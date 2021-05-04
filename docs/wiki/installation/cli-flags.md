@@ -395,45 +395,29 @@ The minimum level for status logs written to stderr. Use the following values: `
 
 The default behavior is to also write status logs to stderr. Set this flag to false to disable writing (copying) status logs to stderr. In this case `--verbose` is respected.
 
-`--host_identifier=hostname`
-
-Field used to identify the host running osquery: `hostname`, `uuid`, `ephemeral`, `instance`, `specified`.
-
-DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Four options are available to you:
-
-- `uuid` uses the platform (DMTF) host UUID, fetched at process start.
-- `instance` uses an instance-unique UUID generated at process start, persisted in the backing store.
-- `ephemeral` uses an instance-unique UUID generated at process start, not persisted.
-- `specified` uses an ID provided by the `--specified_identifier` flag.
-
-`--specified_identifier=this.is.the.identifier`
-
-If `--host_identifier=specified` is set, use this value as the host identifier.
-
-`--verbose=false`
-
-Enable verbose informational messages.
-
-`--thrift_verbose=false`
-
-Enable thrift global output.
-
 `--logger_path=/var/log/osquery/`
 
-Directory path for `ERROR`/`WARN`/`INFO` and query results logging.
+Directory path for `ERROR`/`WARN`/`INFO` and query result logging by the **filesystem** plugin.
 
 `--logger_mode=420`
 
-File mode for output log files (provided as a decimal string).  Note that this
-affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
+File mode for output log files by the **filesystem** plugin (provided as an octal string). Note that this affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
 
-`--value_max=512`
+`--logger_rotate=false`
 
-Maximum returned row value size.
+When enabled, the **filesystem** plugin will rotate logs based on size. An example includes `/var/log/osquery/osqueryd.results.log` being rotated to `/var/log/osquery/osqueryd.results.log.1` when the trigger size is reached. Files after the first rotation will be Zstandard-compressed and will use the `.zst` file extension. A max number of log files will be maintained and logs overflowing this count will be deleted after rotation.
+
+`--logger_rotate_size=26214400` (25MB)
+
+A size, specified in bytes, to trigger rotation when enabled with `--logger_rotate`. A result or snapshot log will be rotated when it grows past this size. The size is checked before each new write to the logfile.
+
+`--logger_rotate_max_files=25`
+
+The max number of result and snapshot rotation files. The count applies to each individually, meaning by default osquery will maintain 25 results files and 25 snapshot files. If a rotation happens after hitting this max, the oldest file will be removed.
 
 `--logger_syslog_facility`
 
-Set the syslog facility (number) `0`-`23` for the results log. When using the **syslog** logger plugin, the default facility is `19` at the `LOG_INFO` level, which does not log to `/var/log/system`.
+Set the syslog facility (number) `0`-`23` for the results log by the **syslog** plugin. When using the **syslog** logger plugin, the default facility is `19` at the `LOG_INFO` level, which does not log to `/var/log/system`.
 
 `--logger_syslog_prepend_cee`
 
@@ -460,6 +444,33 @@ Compression codec to use for compressing message sets. Valid options are ("none"
 There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger destination they will be purged in order of their timestamp. The oldest logs are purged first.
 
 Setting this to value to `0` means unlimited logs will be buffered.
+
+`--host_identifier=hostname`
+
+Field used to identify the host running osquery: `hostname`, `uuid`, `ephemeral`, `instance`, `specified`.
+
+DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Four options are available to you:
+
+- `uuid` uses the platform (DMTF) host UUID, fetched at process start.
+- `instance` uses an instance-unique UUID generated at process start, persisted in the backing store.
+- `ephemeral` uses an instance-unique UUID generated at process start, not persisted.
+- `specified` uses an ID provided by the `--specified_identifier` flag.
+
+`--specified_identifier=this.is.the.identifier`
+
+If `--host_identifier=specified` is set, use this value as the host identifier.
+
+`--verbose=false`
+
+Enable verbose informational messages.
+
+`--thrift_verbose=false`
+
+Enable thrift global output.
+
+`--value_max=512`
+
+Maximum returned row value size.
 
 ## Distributed query service flags
 
