@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-present, The osquery authors
+ * Copyright (c) 2021-present, The osquery authors
  *
  * This source code is licensed as defined by the LICENSE file found in the
  * root directory of this source tree.
@@ -31,9 +31,8 @@ const std::map<std::string, std::pair<std::string, std::wstring>> kQueryMap = {
      {"select Name,Value from HP_BiosSetting", L"root\\hp\\instrumentedBIOS"}},
     {"lenovo", {"select CurrentSetting from Lenovo_BiosSetting", L"root\\wmi"}},
     {"dell",
-     {"select AttributeName,CurrentValue,PossibleValues, "
-      "PossibleValuesDescription from DCIM_BIOSEnumeration",
-      L"root\\dcim\\sysman"}}};
+     {"select AttributeName,CurrentValue from EnumerationAttribute",
+      L"root\\dcim\\sysman\\biosattributes"}}};
 
 std::string getManufacturer(std::string manufacturer) {
   transform(manufacturer.begin(),
@@ -90,38 +89,16 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
 
 Row getDellBiosInfo(const WmiResultItem& item) {
   Row r;
+  std::string CurrentValue;
 
-  std::vector<std::string> vCurrentValue;
-  std::vector<std::string> vPossibleValues;
-  std::vector<std::string> vPossibleValuesDescription;
   item.GetString("AttributeName", r["name"]);
-  item.GetVectorOfStrings("CurrentValue", vCurrentValue);
-  item.GetVectorOfStrings("PossibleValues", vPossibleValues);
-  item.GetVectorOfStrings("PossibleValuesDescription",
-                          vPossibleValuesDescription);
-
-  if (vCurrentValue.size() == 1 && !vPossibleValues.empty()) {
-    auto pos = std::find(
-        vPossibleValues.begin(), vPossibleValues.end(), vCurrentValue[0]);
-    if (pos != vPossibleValues.end()) {
-      r["value"] = vPossibleValuesDescription[pos - vPossibleValues.begin()];
-    } else {
-      r["value"] = "N/A";
-    }
-
-  } else if (vCurrentValue.size() > 1) {
-    std::ostringstream oValueConcat;
-    std::copy(vCurrentValue.begin(),
-              vCurrentValue.end() - 1,
-              std::ostream_iterator<std::string>(oValueConcat, ","));
-    oValueConcat << vCurrentValue.back();
-
-    r["value"] = oValueConcat.str();
-
-  } else {
+  item.GetString("CurrentValue", CurrentValue);
+  
+  if (CurrentValue == "") {
     r["value"] = "N/A";
+  } else {
+    r["value"] = CurrentValue;
   }
-
   return r;
 }
 
