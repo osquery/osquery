@@ -30,6 +30,7 @@ HIDDEN_FLAG(int32, rocksdb_write_buffer, 16, "Max write buffer number");
 HIDDEN_FLAG(int32, rocksdb_merge_number, 4, "Min write buffer number to merge");
 HIDDEN_FLAG(int32, rocksdb_background_flushes, 4, "Max background flushes");
 HIDDEN_FLAG(int32, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
+HIDDEN_FLAG(bool, rocksdb_logs_wal, false, "Use the write-ahead-log for logs");
 
 DECLARE_string(database_path);
 
@@ -305,6 +306,10 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   return putBatch(domain, {std::make_pair(key, value)});
 }
 
+inline bool skipWal(const std::string& domain) {
+  return (kEvents == domain || (!FLAGS_rocksdb_logs_wal && kLogs == domain));
+}
+
 Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
                                        const DatabaseStringValueList& data) {
   auto cfh = getHandleForColumnFamily(domain);
@@ -314,7 +319,7 @@ Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
 
   // Events should be fast, and do not need to force syncs.
   auto options = rocksdb::WriteOptions();
-  if (kEvents == domain) {
+  if (skipWal(domain)) {
     options.disableWAL = true;
   } else {
     options.sync = true;
@@ -358,7 +363,7 @@ Status RocksDBDatabasePlugin::remove(const std::string& domain,
 
   // We could sync here, but large deletes will cause multi-syncs.
   // For example: event record expirations found in an expired index.
-  if (kEvents != domain) {
+  if (!skipWal(domain)) {
     options.sync = true;
   }
   auto s = getDB()->Delete(options, cfh, key);
@@ -382,7 +387,7 @@ Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
 
   // We could sync here, but large deletes will cause multi-syncs.
   // For example: event record expirations found in an expired index.
-  if (kEvents != domain) {
+  if (!skipWal(domain)) {
     options.sync = true;
   }
   auto s = getDB()->DeleteRange(options, cfh, low, high);
