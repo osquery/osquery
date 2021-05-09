@@ -15,7 +15,7 @@ schema([
     Column("accessed_files", TEXT, "Files accessed by application within ten seconds of launch."),
     Column("accessed_directories", TEXT, "Directories accessed by application within ten seconds of launch.")
 ])
-implementation("prefetch@genPrefetch")
+implementation("prefetch@genPrefetch", generator=True)
 examples([
   "select * from prefetch;",
 ])

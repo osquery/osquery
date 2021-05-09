@@ -12,6 +12,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/tables/system/windows/prefetch.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -108,7 +109,7 @@ ExpectedPrefetchHeader parseHeader(const std::string& prefetch_data) {
   return ExpectedPrefetchHeader::success(header_data);
 }
 
-void parsePrefetchData(QueryData& results,
+void parsePrefetchData(RowYield& yield,
                        const std::string& prefetch_data,
                        const std::string& file_path,
                        const int& version) {
@@ -237,7 +238,7 @@ void parsePrefetchData(QueryData& results,
     LOG(WARNING) << "Could not convert run count to integer: " << prefetch_data;
     return;
   }
-  Row r;
+  auto r = make_table_row();
   r["path"] = file_path;
   r["filename"] = header.filename;
   r["hash"] = header.prefetch_hash;
@@ -251,10 +252,10 @@ void parsePrefetchData(QueryData& results,
   r["number_of_accessed_directories"] = INTEGER(accessed_dirs_list.size());
   r["accessed_files"] = files_accessed_list;
   r["accessed_directories"] = dirs_accessed_list;
-  results.push_back(r);
+  yield(std::move(r));
 }
 
-void parsePrefetchVersion(QueryData& results,
+void parsePrefetchVersion(RowYield& yield,
                           const std::string& prefetch_data,
                           const std::string& file_path) {
   std::string str_version = prefetch_data.substr(0, 8);
@@ -262,14 +263,14 @@ void parsePrefetchVersion(QueryData& results,
   int version = tryTo<int>(str_version, 16).takeOr(0);
   // Currently supports Win7 and higher
   if (version == 30 || version == 23 || version == 26) {
-    parsePrefetchData(results, prefetch_data, file_path, version);
+    parsePrefetchData(yield, prefetch_data, file_path, version);
   } else {
     LOG(WARNING) << "Unsupported prefetch file: " << file_path;
   }
 }
 
 void parsePrefetch(const std::vector<std::string>& prefetch_files,
-                   QueryData& results) {
+                   RowYield& yield) {
   for (const auto& file : prefetch_files) {
     if (boost::algorithm::iends_with(file, ".pf") &&
         boost::filesystem::is_regular_file(file)) {
@@ -333,13 +334,12 @@ void parsePrefetch(const std::vector<std::string>& prefetch_files,
                      << file_path;
         continue;
       }
-      parsePrefetchVersion(results, data, file_path);
+      parsePrefetchVersion(yield, data, file_path);
     }
   }
 }
 
-QueryData genPrefetch(QueryContext& context) {
-  QueryData results;
+void genPrefetch(RowYield& yield, QueryContext& context) {
   std::vector<std::string> prefetch_files;
 
   // There are no required columns for prefetch, but prefetch can take a bit of
@@ -364,14 +364,12 @@ QueryData genPrefetch(QueryContext& context) {
       }));
   if (paths.size() > 0) {
     std::vector<std::string> input_files(paths.begin(), paths.end());
-    parsePrefetch(input_files, results);
+    parsePrefetch(input_files, yield);
   } else if (listFilesInDirectory(kPrefetchLocation, prefetch_files)) {
-    parsePrefetch(prefetch_files, results);
+    parsePrefetch(prefetch_files, yield);
   } else {
     LOG(WARNING) << "No prefetch files to parse";
   }
-
-  return results;
 }
 } // namespace tables
 } // namespace osquery
