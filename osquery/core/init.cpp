@@ -493,6 +493,10 @@ bool Initializer::isWatcher() {
 
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
+  if (shutdownRequested()) {
+    return;
+  }
+
   auto status = applyExtensionDelay(([type, name](bool& stop) {
     auto rs = RegistryFactory::get().setActive(type, name);
     if (rs.ok()) {
@@ -559,6 +563,10 @@ void Initializer::start() const {
 
   // Then set the config plugin, which uses a single/active plugin.
   initActivePlugin("config", FLAGS_config_plugin);
+
+  if (shutdownRequested()) {
+    return;
+  }
 
   // Run the setup for all lazy registries (tables, SQL).
   Registry::setUp();
@@ -691,4 +699,4 @@ void Initializer::shutdownNow(int retcode) {
   platformTeardown();
   _Exit(retcode);
 }
-}
+} // namespace osquery

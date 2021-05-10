@@ -8,6 +8,7 @@
  */
 
 #include <osquery/core/core.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/registry/registry_factory.h>
 
 #include <cstdlib>
@@ -224,6 +225,10 @@ std::string RegistryFactory::getActive(const std::string& registry_name) const {
 }
 
 void RegistryFactory::setUp() {
+  if (shutdownRequested()) {
+    return;
+  }
+
   for (const auto& registry : get().all()) {
     registry.second->setUp();
   }

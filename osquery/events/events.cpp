@@ -8,6 +8,7 @@
  */
 
 #include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/events/eventfactory.h>
 #include <osquery/events/events.h>
 #include <osquery/logger/logger.h>
@@ -18,6 +19,10 @@
 namespace osquery {
 
 void attachEvents() {
+  if (shutdownRequested()) {
+    return;
+  }
+
   const auto& publishers = RegistryFactory::get().plugins("event_publisher");
   for (const auto& publisher : publishers) {
     EventFactory::registerEventPublisher(publisher.second);
