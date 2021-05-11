@@ -473,7 +473,7 @@ void genPkgInstallHistoryEntry(const pt::ptree& entry, QueryData& results) {
   // assume that.
   auto it = entry.find("packageIdentifiers");
   if (it != entry.not_found()) {
-    for (const auto& package_identifier : *it) {
+    for (const auto& package_identifier : it) {
       r["package_id"] = package_identifier.second.get<std::string>("");
       results.push_back(r);
     }
