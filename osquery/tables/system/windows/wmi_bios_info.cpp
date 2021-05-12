@@ -89,16 +89,17 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
 
 Row getDellBiosInfo(const WmiResultItem& item) {
   Row r;
-  std::string CurrentValue;
 
+  std::string currentvalue;
   item.GetString("AttributeName", r["name"]);
-  item.GetString("CurrentValue", CurrentValue);
-  
-  if (CurrentValue == "") {
+  item.GetString("CurrentValue", currentvalue);
+
+  if (currentvalue == "") {
     r["value"] = "N/A";
   } else {
-    r["value"] = CurrentValue;
+    r["value"] = currentvalue;
   }
+
   return r;
 }
 
