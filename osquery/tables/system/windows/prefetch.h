@@ -33,14 +33,14 @@ using ExpectedPrefetchAccessedData =
  *
  * @returns Expected prefetch header data
  */
-ExpectedPrefetchHeader parseHeader(const std::string& prefetch_data);
+ExpectedPrefetchHeader parseHeader(const std::vector<UCHAR>& prefetch_data);
 
 /**
  * @brief Windows helper function to parse accessed data in prefetch file
  *
  * @returns Expected accessed data list
  */
-ExpectedPrefetchAccessedData parseAccessedData(const std::string& data,
+ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
                                                const std::string& type);
 
 } // namespace tables

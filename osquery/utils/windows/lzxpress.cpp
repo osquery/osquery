@@ -89,15 +89,6 @@ ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
     return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
                                            "Failed to decompress data");
   }
-  std::stringstream ss;
-  for (unsigned long i = 0; i < size; i++) {
-    std::stringstream value;
-    value << std::setfill('0') << std::setw(2);
-    value << std::hex << std::uppercase << static_cast<int>((output_buffer[i]));
-    ss << value.str();
-  }
-  std::string decompress_hex = ss.str();
-  return ExpectedDecompressData::success(decompress_hex);
+  return ExpectedDecompressData::success(output_buffer);
 }
-
 } // namespace osquery

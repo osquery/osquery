@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace osquery {
-using ExpectedDecompressData = Expected<std::string, ConversionError>;
+using ExpectedDecompressData = Expected<std::vector<UCHAR>, ConversionError>;
 
 /**
  * @brief Windows helper function to decompress LZ Xpress Huffman compression
