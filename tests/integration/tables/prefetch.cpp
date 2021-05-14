@@ -45,14 +45,11 @@ TEST_F(PrefetchTest, test_sanity) {
       {"volume_creation", NormalType},
       {"number_of_accessed_files", NormalType},
   };
-  if (!rows.empty()) {
-    ASSERT_GT(rows.size(), 0ul);
-    validate_rows(rows, row_map);
-  }
-  if (!specific_rows.empty()) {
-    ASSERT_EQ(specific_rows.size(), 1ul);
-    validate_rows(specific_rows, row_map);
-  }
+  ASSERT_GT(rows.size(), 0ul);
+  validate_rows(rows, row_map);
+
+  ASSERT_EQ(specific_rows.size(), 1ul);
+  validate_rows(specific_rows, row_map);
 }
 } // namespace table_tests
 } // namespace osquery
