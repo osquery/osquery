@@ -18,7 +18,6 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/lzxpress.h>
 
-#include <boost/algorithm/hex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
@@ -66,6 +65,7 @@ ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
       continue;
     }
     accessed_data.push_back(file_accessed);
+
     pf_data.erase(pf_data.begin(),
                   pf_data.begin() + (file_accessed.size() * 2) + 2);
   }
@@ -89,27 +89,24 @@ void parsePrefetchData(RowYield& yield,
                        const std::string& file_path,
                        const int& version) {
   if (data.size() < 204) {
-    LOG(WARNING) << "Prefetch data fomrat incorrect, expected minimum of 204 "
+    LOG(WARNING) << "Prefetch data format incorrect, expected minimum of 204 "
                     "bytes, got: "
                  << data.size();
     return;
   }
   std::vector<UCHAR> prefetch_data = data;
   auto expected_header = parseHeader(prefetch_data);
-  if (expected_header.isError()) {
-    return;
-  }
+
   PrefetchHeader header = expected_header.take();
   int offset = *reinterpret_cast<int*>(&prefetch_data[100]);
   int size = *reinterpret_cast<int*>(&prefetch_data[104]);
   std::vector<UCHAR> files_accessed(prefetch_data.begin() + offset,
                                     prefetch_data.begin() + offset + size);
+
   const std::string filename = "filename";
   auto expected_accessed_file_list =
       parseAccessedData(files_accessed, filename);
-  if (expected_accessed_file_list.isError()) {
-    return;
-  }
+
   std::vector<std::string> accessed_file_list =
       expected_accessed_file_list.take();
   std::string files_accessed_list = osquery::join(accessed_file_list, ",");
@@ -119,8 +116,6 @@ void parsePrefetchData(RowYield& yield,
   size = *reinterpret_cast<int*>(&prefetch_data[116]);
   std::vector<UCHAR> dir_accessed(prefetch_data.begin() + offset,
                                   prefetch_data.begin() + offset + size);
-
-  int dir_offset = *reinterpret_cast<int*>(&dir_accessed[28]);
   std::vector<UCHAR> dir = dir_accessed;
   std::vector<std::string> volume_creation_list;
   std::vector<std::string> volume_serial_list;
@@ -153,9 +148,7 @@ void parsePrefetchData(RowYield& yield,
     std::vector<UCHAR> data_dir(dir_accessed.begin() + dir_lists[volume],
                                 dir_accessed.end());
     auto expected_accessed_dirs_list = parseAccessedData(data_dir, directory);
-    if (expected_accessed_dirs_list.isError()) {
-      return;
-    }
+
     std::vector<std::string> dir_data = expected_accessed_dirs_list.take();
     accessed_dirs_list.insert(
         accessed_dirs_list.end(), dir_data.begin(), dir_data.end());
@@ -260,9 +253,11 @@ void parsePrefetch(const std::vector<std::string>& prefetch_files,
         }
         data = expected_data.take();
       } else {
-        for (auto& char_data : compressed_data) {
-          data.push_back(reinterpret_cast<UCHAR&>(char_data));
-        }
+        std::transform(
+            compressed_data.begin(),
+            compressed_data.end(),
+            std::back_inserter(data),
+            [](char char_data) { return reinterpret_cast<UCHAR&>(char_data); });
       }
       long header = *reinterpret_cast<long*>(&data[4]);
       // Check for "SCCA" signature

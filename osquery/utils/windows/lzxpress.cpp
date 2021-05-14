@@ -11,9 +11,6 @@
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/windows/lzxpress.h>
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
 namespace osquery {
 ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
                                           unsigned long size) {
