@@ -23,7 +23,6 @@ class wmiTpmInfo : public testing::Test {
 };
 
 TEST_F(wmiTpmInfo, test_sanity) {
-  
   auto const data = execute_query("select * from wmi_tpm_info");
 }
 
