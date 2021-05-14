@@ -22,8 +22,8 @@ TEST_F(PrefetchTest, test_sanity) {
   QueryData const rows = execute_query(
       "select * from prefetch where path like "
       "'D:"
-      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch'"
-      "\\%.pf");
+      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
+      "\\%.pf'");
   QueryData const specific_rows = execute_query(
       "select * from prefetch where path like "
       "'D:"
