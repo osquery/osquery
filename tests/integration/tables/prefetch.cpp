@@ -21,14 +21,14 @@ class PrefetchTest : public testing::Test {
 TEST_F(PrefetchTest, test_sanity) {
   QueryData const rows = execute_query(
       "select * from prefetch where path like "
-      "D:"
-      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
+      "'D:"
+      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch'"
       "\\%.pf");
   QueryData const specific_rows = execute_query(
       "select * from prefetch where path like "
-      "D:"
+      "'D:"
       "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
-      "\\%.pf AND last_execution_time = 1620953788 AND count = 3 AND "
+      "\\%.pf' AND last_execution_time = 1620953788 AND count = 3 AND "
       "number_of_accessed_files=53");
   ValidationMap row_map = {
       {"path", NonEmptyString},
