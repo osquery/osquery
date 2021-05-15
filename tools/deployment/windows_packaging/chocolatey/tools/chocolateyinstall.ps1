@@ -72,7 +72,6 @@ New-Item -Force -Type directory -Path $logFolder
 $packageRoot = (Join-Path "$PSScriptRoot" "..")
 Copy-Item -Force -Recurse (Join-Path "$packageRoot" "certs") $targetFolder
 Copy-Item -Force -Recurse (Join-Path "$packageRoot" "osqueryd") $targetFolder
-Copy-Item -Force -Recurse (Join-Path "$packageRoot" "packs") $targetFolder
 
 # Grab the individual files
 Copy-Item -Force (Join-Path "$packageRoot" "manage-osqueryd.ps1") $targetFolder
