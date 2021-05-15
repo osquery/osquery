@@ -19,7 +19,7 @@ namespace osquery {
 namespace tables {
 
 struct PrefetchHeader {
-  int file_size;
+  std::uint32_t file_size;
   std::string filename;
   std::string prefetch_hash;
 };

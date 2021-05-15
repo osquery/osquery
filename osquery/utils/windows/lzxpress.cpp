@@ -12,8 +12,8 @@
 #include <osquery/utils/windows/lzxpress.h>
 
 namespace osquery {
-ExpectedDecompressData decompressLZxpress(std::vector<char> prefetch_data,
-                                          unsigned long size) {
+ExpectedDecompressData decompressLZxpress(
+    const std::vector<UCHAR>& prefetch_data, unsigned long size) {
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
       _In_ USHORT format,
       _Out_ PUCHAR uncompressedBuffer,

@@ -385,6 +385,14 @@ function(generateOsqueryTablesSystemSystemtable)
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     add_test(NAME osquery_tables_system_windows_tests-test COMMAND osquery_tables_system_windows_tests-test)
+    set(windowsprefetch-test_env
+      "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests/configs/windows/prefetch"
+    )
+    set_tests_properties(
+      osquery_tables_system_windows_tests-test
+      PROPERTIES ENVIRONMENT "${windowsprefetch-test_env}"
+    )
   endif()
 
   add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)

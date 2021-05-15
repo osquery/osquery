@@ -44,13 +44,19 @@ ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
                                                const std::string& type) {
   std::vector<std::string> accessed_data;
   std::vector<UCHAR> pf_data = data;
+  // int pf_data_size = pf_data.size();
+  // int access_start = 0;
+  // while (access_start < pf_data_size) {
+
+  //}
+
   while (pf_data.size() > 0) {
     std::string file_accessed = ucharToString(pf_data);
     if (type == "directory") {
       if (file_accessed.size() < 4) {
         break;
       }
-      std::string check_name = "";
+      std::string check_name;
       file_accessed = file_accessed.substr(1);
       check_name = file_accessed.substr(0, 4);
 
@@ -72,34 +78,39 @@ ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
   return ExpectedPrefetchAccessedData::success(accessed_data);
 }
 
-ExpectedPrefetchHeader parseHeader(const std::vector<UCHAR>& data) {
-  std::vector<UCHAR> prefetch_data = data;
+ExpectedPrefetchHeader parseHeader(const std::vector<UCHAR>& prefetch_data) {
+  // std::vector<UCHAR> prefetch_data = data;
   PrefetchHeader header_data;
-  header_data.file_size = *reinterpret_cast<int*>(&prefetch_data[12]);
+  memcpy(&header_data.file_size,
+         &prefetch_data[12],
+         sizeof(header_data.file_size));
   std::vector<UCHAR> filename(prefetch_data.begin() + 16,
                               prefetch_data.begin() + 76);
   header_data.filename = ucharToString(filename);
-  int hash = *reinterpret_cast<int*>(&prefetch_data[76]);
+  int hash = 0;
+  memcpy(&hash, &prefetch_data[76], sizeof(hash));
   header_data.prefetch_hash = (boost::format("%x") % hash).str();
   return ExpectedPrefetchHeader::success(header_data);
 }
 
 void parsePrefetchData(RowYield& yield,
-                       const std::vector<UCHAR>& data,
+                       const std::vector<UCHAR>& prefetch_data,
                        const std::string& file_path,
                        const int& version) {
-  if (data.size() < 204) {
+  if (prefetch_data.size() < 204) {
     LOG(WARNING) << "Prefetch data format incorrect, expected minimum of 204 "
                     "bytes, got: "
-                 << data.size();
+                 << prefetch_data.size();
     return;
   }
-  std::vector<UCHAR> prefetch_data = data;
+  // std::vector<UCHAR> prefetch_data = data;
   auto expected_header = parseHeader(prefetch_data);
 
   PrefetchHeader header = expected_header.take();
-  int offset = *reinterpret_cast<int*>(&prefetch_data[100]);
-  int size = *reinterpret_cast<int*>(&prefetch_data[104]);
+  int offset = 0;
+  memcpy(&offset, &prefetch_data[100], sizeof(offset));
+  int size = 0;
+  memcpy(&size, &prefetch_data[104], sizeof(size));
   std::vector<UCHAR> files_accessed(prefetch_data.begin() + offset,
                                     prefetch_data.begin() + offset + size);
 
@@ -111,9 +122,10 @@ void parsePrefetchData(RowYield& yield,
       expected_accessed_file_list.take();
   std::string files_accessed_list = osquery::join(accessed_file_list, ",");
 
-  offset = *reinterpret_cast<int*>(&prefetch_data[108]);
-  int volume_numbers = *reinterpret_cast<int*>(&prefetch_data[112]);
-  size = *reinterpret_cast<int*>(&prefetch_data[116]);
+  memcpy(&offset, &prefetch_data[108], sizeof(offset));
+  int volume_numbers = 0;
+  memcpy(&volume_numbers, &prefetch_data[112], sizeof(volume_numbers));
+  memcpy(&size, &prefetch_data[116], sizeof(size));
   std::vector<UCHAR> dir_accessed(prefetch_data.begin() + offset,
                                   prefetch_data.begin() + offset + size);
   std::vector<UCHAR> dir = dir_accessed;
@@ -121,18 +133,21 @@ void parsePrefetchData(RowYield& yield,
   std::vector<std::string> volume_serial_list;
   std::vector<int> dir_lists;
   while (volume_numbers > 0) {
-    long long creation = *reinterpret_cast<long long*>(&dir[8]);
+    std::int64_t creation = 0;
+    memcpy(&creation, &dir[8], sizeof(creation));
     LARGE_INTEGER large_time;
     large_time.QuadPart = creation;
     FILETIME file_time;
     file_time.dwHighDateTime = large_time.HighPart;
     file_time.dwLowDateTime = large_time.LowPart;
-    long long creation_time = filetimeToUnixtime(file_time);
+    LONGLONG creation_time = filetimeToUnixtime(file_time);
     volume_creation_list.push_back(std::to_string(creation_time));
-    int serial = *reinterpret_cast<int*>(&dir[16]);
+    int serial = 0;
+    memcpy(&serial, &dir[16], sizeof(serial));
     volume_serial_list.push_back((boost::format("%x") % serial).str());
     volume_numbers -= 1;
-    int list_offset = *reinterpret_cast<int*>(&dir[28]);
+    int list_offset = 0;
+    memcpy(&list_offset, &dir[28], sizeof(list_offset));
     dir_lists.push_back(list_offset);
     // Volume metadata size depends on Prefetch version
     if (version == 30) {
@@ -156,20 +171,22 @@ void parsePrefetchData(RowYield& yield,
     volume++;
   }
   std::string dirs_accessed_list = osquery::join(accessed_dirs_list, ",");
-  std::vector<long long> run_times;
+  std::vector<std::int64_t> run_times;
+  std::int64_t times_run = 0;
   // Win8+ Prefetch can contain up to eight timestamps
   // If the eight timestamps are not filled, they are set to 0
   if (version == 23) {
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[128]));
+    memcpy(&times_run, &prefetch_data[128], sizeof(times_run));
+    run_times.push_back(times_run);
   } else {
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[128]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[136]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[144]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[152]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[160]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[168]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[176]));
-    run_times.push_back(*reinterpret_cast<long long*>(&prefetch_data[184]));
+    int time_i = 0;
+    int time_offset = 128;
+    while (time_i < 8) {
+      memcpy(&times_run, &prefetch_data[time_offset], sizeof(times_run));
+      run_times.push_back(times_run);
+      time_i++;
+      time_offset += 8;
+    }
   }
   std::vector<std::string> timestamps;
   int times = 0;
@@ -182,7 +199,7 @@ void parsePrefetchData(RowYield& yield,
     FILETIME file_time;
     file_time.dwHighDateTime = large_time.HighPart;
     file_time.dwLowDateTime = large_time.LowPart;
-    long long runtime = filetimeToUnixtime(file_time);
+    LONGLONG runtime = filetimeToUnixtime(file_time);
     std::string time = std::to_string(runtime);
     timestamps.push_back(time);
     run_times.erase(run_times.begin());
@@ -191,11 +208,11 @@ void parsePrefetchData(RowYield& yield,
   std::string timestamp_list = osquery::join(timestamps, ",");
   int run_count = 0;
   if (version == 23) {
-    run_count = *reinterpret_cast<int*>(&prefetch_data[152]);
+    memcpy(&run_count, &prefetch_data[152], sizeof(run_count));
   } else if (version == 26) {
-    run_count = *reinterpret_cast<int*>(&prefetch_data[208]);
+    memcpy(&run_count, &prefetch_data[208], sizeof(run_count));
   } else {
-    run_count = *reinterpret_cast<int*>(&prefetch_data[200]);
+    memcpy(&run_count, &prefetch_data[200], sizeof(run_count));
   }
 
   auto r = make_table_row();
@@ -219,7 +236,8 @@ void parsePrefetchVersion(RowYield& yield,
                           const std::vector<UCHAR>& data,
                           const std::string& file_path) {
   std::vector<UCHAR> prefetch_data = data;
-  int version = *reinterpret_cast<int*>(&prefetch_data[0]);
+  int version = 0;
+  memcpy(&version, &prefetch_data[0], sizeof(version));
   // Currently supports Win7 and higher
   if (version == 30 || version == 23 || version == 26) {
     parsePrefetchData(yield, prefetch_data, file_path, version);
@@ -235,15 +253,16 @@ void parsePrefetch(const std::vector<std::string>& prefetch_files,
         boost::filesystem::is_regular_file(file)) {
       LOG(INFO) << "Parsing prefetch file: " << file;
       std::ifstream input_file(file, std::ios::in | std::ios::binary);
-      std::vector<char> compressed_data(
+      std::vector<UCHAR> compressed_data(
           (std::istreambuf_iterator<char>(input_file)),
           (std::istreambuf_iterator<char>()));
       input_file.close();
 
-      long header_sig = *reinterpret_cast<long*>(&compressed_data[0]);
-      long size = *reinterpret_cast<long*>(&compressed_data[4]);
+      std::int32_t header_sig = 0;
+      memcpy(&header_sig, &compressed_data[0], sizeof(header_sig));
+      std::int32_t size = 0;
+      memcpy(&size, &compressed_data[4], sizeof(size));
       std::vector<UCHAR> data;
-      std::string file_path = file;
       // Check for compression signature MAM04. Prefetch may be compressed on
       // Win8+
       if (header_sig == 72171853) {
@@ -253,20 +272,16 @@ void parsePrefetch(const std::vector<std::string>& prefetch_files,
         }
         data = expected_data.take();
       } else {
-        std::transform(
-            compressed_data.begin(),
-            compressed_data.end(),
-            std::back_inserter(data),
-            [](char char_data) { return reinterpret_cast<UCHAR&>(char_data); });
+        data = compressed_data;
       }
-      long header = *reinterpret_cast<long*>(&data[4]);
+      std::int32_t header = 0;
+      memcpy(&header, &data[4], sizeof(header));
       // Check for "SCCA" signature
       if (header != 1094927187) {
-        LOG(WARNING) << "Unsupported prefetch file, missing header: "
-                     << file_path;
+        LOG(WARNING) << "Unsupported prefetch file, missing header: " << file;
         continue;
       }
-      parsePrefetchVersion(yield, data, file_path);
+      parsePrefetchVersion(yield, data, file);
     }
   }
 }
