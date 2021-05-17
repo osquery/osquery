@@ -23,39 +23,46 @@
 
 namespace osquery {
 namespace tables {
-
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
 
 // Convert End of string UCHAR vectors to string
-std::string ucharToString(const std::vector<UCHAR>& data) {
-  int data_char = 0;
-  std::string data_string;
-  while (data[data_char] != '\0') {
-    data_string += data[data_char];
-    data_char++;
-    if (data[data_char] == '\0') {
-      data_char++;
-    }
+std::string ucharToString(const std::string_view& data) {
+  if (data.empty()) {
+    return {};
   }
-  return data_string;
+
+  size_t size = 0;
+  size_t string_size = 0;
+  int offset = 0;
+  std::string string_data = "";
+  // Loop through UTF16 string_view until null-terminated char
+  while (true) {
+    size = strnlen(&data.data()[offset], data.size());
+    if (size > 0) {
+      string_size += size;
+      string_data += data.data()[offset];
+      offset += 2;
+      continue;
+    }
+    break;
+  }
+  return string_data;
 }
 
 ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
                                                const std::string& type) {
   std::vector<std::string> accessed_data;
-  std::vector<UCHAR> pf_data = data;
-  // int pf_data_size = pf_data.size();
-  // int access_start = 0;
-  // while (access_start < pf_data_size) {
+  std::string_view pf_data(reinterpret_cast<const char*>(data.data()),
+                           data.size());
 
-  //}
-
-  while (pf_data.size() > 0) {
+  size_t offset = 0;
+  while (true) {
     std::string file_accessed = ucharToString(pf_data);
+    if (file_accessed.size() == 0) {
+      break;
+    }
+    offset = file_accessed.size();
     if (type == "directory") {
-      if (file_accessed.size() < 4) {
-        break;
-      }
       std::string check_name;
       file_accessed = file_accessed.substr(1);
       check_name = file_accessed.substr(0, 4);
@@ -66,26 +73,31 @@ ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
         break;
       }
       accessed_data.push_back(file_accessed);
-      pf_data.erase(pf_data.begin(),
-                    pf_data.begin() + (file_accessed.size() * 2) + 4);
-      continue;
+      if (offset > 0) {
+        pf_data = pf_data.substr((offset * 2) + 2);
+        continue;
+      }
+      break;
     }
     accessed_data.push_back(file_accessed);
 
-    pf_data.erase(pf_data.begin(),
-                  pf_data.begin() + (file_accessed.size() * 2) + 2);
+    if (offset > 0) {
+      pf_data = pf_data.substr((offset * 2) + 2);
+      continue;
+    }
+    break;
   }
   return ExpectedPrefetchAccessedData::success(accessed_data);
 }
 
 ExpectedPrefetchHeader parseHeader(const std::vector<UCHAR>& prefetch_data) {
-  // std::vector<UCHAR> prefetch_data = data;
   PrefetchHeader header_data;
   memcpy(&header_data.file_size,
          &prefetch_data[12],
          sizeof(header_data.file_size));
-  std::vector<UCHAR> filename(prefetch_data.begin() + 16,
-                              prefetch_data.begin() + 76);
+  std::string_view filename(
+      reinterpret_cast<const char*>(&prefetch_data.data()[16]), 76);
+
   header_data.filename = ucharToString(filename);
   int hash = 0;
   memcpy(&hash, &prefetch_data[76], sizeof(hash));
@@ -103,7 +115,6 @@ void parsePrefetchData(RowYield& yield,
                  << prefetch_data.size();
     return;
   }
-  // std::vector<UCHAR> prefetch_data = data;
   auto expected_header = parseHeader(prefetch_data);
 
   PrefetchHeader header = expected_header.take();
@@ -214,10 +225,9 @@ void parsePrefetchData(RowYield& yield,
   } else {
     memcpy(&run_count, &prefetch_data[200], sizeof(run_count));
   }
-
   auto r = make_table_row();
   r["path"] = file_path;
-  r["filename"] = header.filename;
+  r["filename"] = SQL_TEXT(header.filename);
   r["hash"] = header.prefetch_hash;
   r["size"] = INTEGER(header.file_size);
   r["number_of_accessed_files"] = INTEGER(accessed_file_list.size());
