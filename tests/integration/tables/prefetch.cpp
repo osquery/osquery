@@ -7,11 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/config/tests/test_utils.h>
 #include <osquery/tests/integration/tables/helper.h>
 #include <string>
-
-#include <iostream>
 
 namespace osquery {
 namespace table_tests {
@@ -23,17 +20,17 @@ class PrefetchTest : public testing::Test {
 };
 
 TEST_F(PrefetchTest, test_sanity) {
-  // auto test = getTestConfigDirectory();
-  // std::cout << test.string() << std::endl;
-  std::string pf_config_tests = test + "\\windows\\prefetch\\%.pf'";
-  std::string first_query =
-      "select * from prefetch where path like '" + pf_config_tests;
-  QueryData const rows = execute_query(first_query);
-  std::string second_query =
-      first_query +
-      " AND last_execution_time = 1620953788 AND count = 3 AND "
-      "number_of_accessed_files=53";
-  QueryData const specific_rows = execute_query(second_query);
+  QueryData const rows = execute_query(
+      "select * from prefetch where path like "
+      "'D:"
+      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
+      "\\%.pf'");
+  QueryData const specific_rows = execute_query(
+      "select * from prefetch where path like "
+      "'D:"
+      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
+      "\\%.pf' AND last_execution_time = 1620953788 AND count = 3 AND "
+      "number_of_accessed_files=53");
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"number_of_accessed_directories", NormalType},
