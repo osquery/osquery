@@ -8,6 +8,7 @@
  */
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 #include <string>
 
 namespace osquery {
@@ -20,17 +21,17 @@ class PrefetchTest : public testing::Test {
 };
 
 TEST_F(PrefetchTest, test_sanity) {
-  QueryData const rows = execute_query(
-      "select * from prefetch where path like "
-      "'D:"
-      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
-      "\\%.pf'");
-  QueryData const specific_rows = execute_query(
-      "select * from prefetch where path like "
-      "'D:"
-      "\\a\\osquery\\osquery\\w\\src\\tools\\tests\\configs\\windows\\prefetch"
-      "\\%.pf' AND last_execution_time = 1620953788 AND count = 3 AND "
-      "number_of_accessed_files=53");
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  std::string query = "select * from prefetch where path like '" + *test +
+                      "\\windows\\prefetch\\%.pf'";
+  QueryData const rows = execute_query(query);
+  std::string second_query = query +
+                             " AND last_execution_time = 1620953788 AND count "
+                             "= 3 AND number_of_accessed_files=53";
+  QueryData const specific_rows = execute_query(second_query);
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"number_of_accessed_directories", NormalType},
