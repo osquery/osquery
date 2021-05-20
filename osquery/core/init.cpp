@@ -115,7 +115,7 @@ CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
 CLI_FLAG(uint64,
          alarm_timeout,
          15,
-         "Seconds to wait for a graceful shutdown. Minimum is 4");
+         "Seconds to allow for shutdown. Minimum is 10");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
@@ -706,4 +706,4 @@ void Initializer::shutdownNow(int retcode) {
   platformTeardown();
   _Exit(retcode);
 }
-}
+} // namespace osquery
