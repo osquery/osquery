@@ -15,6 +15,8 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/system/system.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -45,6 +47,7 @@ void parseYumConf(std::istream& source,
         r[it2.first] = it2.second.data();
       }
     }
+    r["pid_with_namespace"] = "0";
     results.push_back(r);
   }
 }
@@ -68,7 +71,7 @@ void parseYumConf(const std::string& source,
   }
 }
 
-QueryData genYumSrcs(QueryContext& context) {
+QueryData genYumSrcsImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   // Expect the YUM home to be /etc/yum.conf
   std::string repos_dir;
@@ -87,6 +90,15 @@ QueryData genYumSrcs(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genYumSrcs(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "yum_sources", genYumSrcsImpl);
+  } else {
+    GLOGLogger logger;
+    return genYumSrcsImpl(context, logger);
+  }
 }
 } // namespace tables
 } // namespace osquery

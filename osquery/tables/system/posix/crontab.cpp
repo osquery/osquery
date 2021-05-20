@@ -16,6 +16,8 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -94,11 +96,12 @@ void genCronLine(const std::string& path,
     // The line was not well-formed, perhaps it was a variable?
     return;
   }
+  r["pid_with_namespace"] = "0";
 
   results.push_back(r);
 }
 
-QueryData genCronTab(QueryContext& context) {
+QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::vector<std::string> file_list;
 
@@ -116,6 +119,15 @@ QueryData genCronTab(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genCronTab(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "crontab", genCronTabImpl);
+  } else {
+    GLOGLogger logger;
+    return genCronTabImpl(context, logger);
+  }
 }
 }
 }

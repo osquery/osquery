@@ -16,6 +16,8 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/system.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -169,7 +171,7 @@ void genAptUrl(const std::string& source,
       r["architectures"] = fields[1];
     }
   }
-
+  r["pid_with_namespace"] = "0";
   results.push_back(r);
 }
 
@@ -188,7 +190,7 @@ static void genAptSource(const std::string& source, QueryData& results) {
   }
 }
 
-QueryData genAptSrcs(QueryContext& context) {
+QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   // We are going to read a few files.
@@ -209,6 +211,15 @@ QueryData genAptSrcs(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genAptSrcs(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "apt_sources", genAptSrcsImpl);
+  } else {
+    GLOGLogger logger;
+    return genAptSrcsImpl(context, logger);
+  }
 }
 } // namespace tables
 } // namespace osquery

@@ -16,6 +16,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/system/system.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -50,12 +52,13 @@ void genSSHkeyForHosts(const std::string& uid,
       r["path"] = kfile;
       r["encrypted"] =
           (keys_content.find("ENCRYPTED") != std::string::npos) ? "1" : "0";
+      r["pid_with_namespace"] = "0";
       results.push_back(r);
     }
   }
 }
 
-QueryData getUserSshKeys(QueryContext& context) {
+QueryData getUserSshKeysImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   // Iterate over each user
@@ -70,6 +73,15 @@ QueryData getUserSshKeys(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData getUserSshKeys(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "user_ssh_keys", getUserSshKeysImpl);
+  } else {
+    GLOGLogger logger;
+    return getUserSshKeysImpl(context, logger);
+  }
 }
 } // namespace tables
 } // namespace osquery

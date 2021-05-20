@@ -17,6 +17,8 @@
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/system.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -43,13 +45,14 @@ void genSSHkeysForUser(const std::string& uid,
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         Row r = {{"uid", uid}, {"key", line}, {"key_file", keys_file.string()}};
+        r["pid_with_namespace"] = "0";
         results.push_back(r);
       }
     }
   }
 }
 
-QueryData getAuthorizedKeys(QueryContext& context) {
+QueryData getAuthorizedKeysImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   // Iterate over each user
@@ -64,6 +67,16 @@ QueryData getAuthorizedKeys(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData getAuthorizedKeys(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(
+        context, "authorized_keys", getAuthorizedKeysImpl);
+  } else {
+    GLOGLogger logger;
+    return getAuthorizedKeysImpl(context, logger);
+  }
 }
 }
 }

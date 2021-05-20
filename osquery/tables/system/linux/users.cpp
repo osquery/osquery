@@ -15,6 +15,8 @@
 #include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/mutex.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
@@ -43,10 +45,11 @@ void genUser(const struct passwd* pwd, QueryData& results) {
   if (pwd->pw_shell != nullptr) {
     r["shell"] = TEXT(pwd->pw_shell);
   }
+  r["pid_with_namespace"] = "0";
   results.push_back(r);
 }
 
-QueryData genUsers(QueryContext& context) {
+QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   struct passwd* pwd = nullptr;
@@ -82,6 +85,15 @@ QueryData genUsers(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genUsers(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "users", genUsersImpl);
+  } else {
+    GLOGLogger logger;
+    return genUsersImpl(context, logger);
+  }
 }
 }
 }

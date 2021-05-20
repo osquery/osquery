@@ -16,6 +16,8 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace fs = boost::filesystem;
 
@@ -66,7 +68,7 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   if ((perms & 02000) == 02000) {
     r["permissions"] += "G";
   }
-
+  r["pid_with_namespace"] = "0";
   results.push_back(r);
   return Status::success();
 }
@@ -118,7 +120,7 @@ void genSuidBinsFromPath(const std::string& path, QueryData& results) {
   }
 }
 
-QueryData genSuidBin(QueryContext& context) {
+QueryData genSuidBinImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   // Todo: add hidden column to select on that triggers non-std path searches.
@@ -127,6 +129,15 @@ QueryData genSuidBin(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genSuidBin(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "suid_bin", genSuidBinImpl);
+  } else {
+    GLOGLogger logger;
+    return genSuidBinImpl(context, logger);
+  }
 }
 }
 }

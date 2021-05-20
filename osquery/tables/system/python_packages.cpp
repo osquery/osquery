@@ -17,6 +17,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 #ifdef WIN32
 #include "windows/registry.h"
@@ -99,6 +101,7 @@ void genSiteDirectories(const std::string& site, QueryData& results) {
 
     r["directory"] = site;
     r["path"] = directory;
+    r["pid_with_namespace"] = "0";
     results.push_back(r);
   }
 }
@@ -121,7 +124,7 @@ void genWinPythonPackages(const std::string& keyGlob, QueryData& results) {
 #endif
 }
 
-QueryData genPythonPackages(QueryContext& context) {
+QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::set<std::string> paths;
   if (context.constraints.count("directory") > 0 &&
@@ -170,6 +173,16 @@ QueryData genPythonPackages(QueryContext& context) {
   }
 
   return results;
+}
+
+QueryData genPythonPackages(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(
+        context, "python_packages", genPythonPackagesImpl);
+  } else {
+    GLOGLogger logger;
+    return genPythonPackagesImpl(context, logger);
+  }
 }
 } // namespace tables
 } // namespace osquery
