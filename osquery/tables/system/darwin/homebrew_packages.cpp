@@ -22,12 +22,10 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kHomebrewPrefixes = {
+const std::set<std::string> kHomebrewPrefixes = {
     "/usr/local",
     "/opt/homebrew",
 };
-
-const std::string kHomebrewBinary = "/usr/local/bin/brew";
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths(const std::string& root) {
   std::vector<std::string> results;
@@ -60,51 +58,66 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
   return results;
 }
 
+void packagesFromPrefix(QueryData& results,
+                        const std::string& prefix,
+                        bool userRequested) {
+  // The Homebrew wrapper script finds the Library directory by taking the
+  // directory that it is located in and concatenating `/../Library`:
+  //   BREW_FILE_DIRECTORY=$(chdir "${0%/*}" && pwd -P)
+  //   export HOMEBREW_BREW_FILE="$BREW_FILE_DIRECTORY/${0##*/}"
+  // Note that the `-P` flag to pwd resolves all symlinks.
+  //
+  // Next, it will use given filename to find the prefix:
+  //   HOMEBREW_PREFIX = Pathname.new(HOMEBREW_BREW_FILE).dirname.parent
+
+  if (!pathExists(prefix).ok()) {
+    if (userRequested) {
+      LOG(WARNING) << "Error reading homebrew prefix " << prefix;
+    }
+    return;
+  }
+
+  auto cellarPath = fs::path(prefix) / "Cellar";
+
+  if (!pathExists(cellarPath).ok()) {
+    if (userRequested) {
+      LOG(WARNING) << "Error reading homebrew cellar path "
+                   << cellarPath.native();
+    }
+    return;
+  }
+
+  for (const auto& path :
+       getHomebrewAppInfoPlistPaths(fs::canonical(cellarPath).string())) {
+    auto versions = getHomebrewVersionsFromInfoPlistPath(path);
+    auto name = getHomebrewNameFromInfoPlistPath(path);
+    for (const auto& version : versions) {
+      // Support a many to one version to package name.
+      Row r;
+      r["name"] = name;
+      r["path"] = path;
+      r["version"] = version;
+      r["prefix"] = prefix;
+
+      results.push_back(r);
+    }
+  }
+}
+
 QueryData genHomebrewPackages(QueryContext& context) {
   QueryData results;
 
-  std::set<std::string> prefixes;
-  // FIXME: Does it make sense to merge the constant in?
   if (context.constraints.count("prefix") > 0 &&
       context.constraints.at("prefix").exists(EQUALS)) {
-    paths = context.constraints["prefix"].getAll(EQUALS);
-  } else {
-    paths = kHomebrewPrefixes;
-  }
-
-  for (const auto& prefix : prefixes) {
-    // The Homebrew wrapper script finds the Library directory by taking the
-    // directory that it is located in and concatenating `/../Library`:
-    //   BREW_FILE_DIRECTORY=$(chdir "${0%/*}" && pwd -P)
-    //   export HOMEBREW_BREW_FILE="$BREW_FILE_DIRECTORY/${0##*/}"
-    // Note that the `-P` flag to pwd resolves all symlinks.
-    //
-    // Next, it will use given filename to find the prefix:
-    //   HOMEBREW_PREFIX = Pathname.new(HOMEBREW_BREW_FILE).dirname.parent
-
-    auto cellarPath = fs::canonical(prefix);
-    cellarPath /= "Cellar";
-
-    // FIXME: Figure out if we need a `Homebrew` in there?
-
-    if (!pathExists(cellarPath).ok()) {
-      // FIXME: We should log, if and only if, it's a user specified directory
-      continue;
+    std::set<std::string> prefixes =
+        context.constraints["prefix"].getAll(EQUALS);
+    for (const auto& prefix : prefixes) {
+      packagesFromPrefix(results, prefix, true);
     }
-
-    for (const auto& path : getHomebrewAppInfoPlistPaths(cellarPath.native())) {
-      auto versions = getHomebrewVersionsFromInfoPlistPath(path);
-      auto name = getHomebrewNameFromInfoPlistPath(path);
-      for (const auto& version : versions) {
-        // Support a many to one version to package name.
-        Row r;
-        r["name"] = name;
-        r["path"] = path;
-        r["version"] = version;
-        r["prefix"] = prefix;
-
-        results.push_back(r);
-      }
+  } else {
+    // No prefixes requested, fall back to the system ones.
+    for (const auto& prefix : kHomebrewPrefixes) {
+      packagesFromPrefix(results, prefix, false);
     }
   }
   return results;
