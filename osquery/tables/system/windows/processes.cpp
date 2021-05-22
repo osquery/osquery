@@ -460,7 +460,7 @@ void genProcessUserTokenInfo(HANDLE& proc, DynamicTableRowHolder& r) {
       elevated = elevation.TokenIsElevated;
     }
   }
-  r["is_elevated_token"] = INTEGER(elevated);
+  r["elevated_token"] = INTEGER(elevated);
   if (ret != 0 && !tok_user.empty()) {
     auto sid = PTOKEN_OWNER(tok_user.data())->Owner;
 
@@ -614,10 +614,10 @@ TableRows genProcesses(QueryContext& context) {
     r["handle_count"] = BIGINT(-1);
 
     r["on_disk"] = BIGINT(-1);
-    r["is_elevated_token"] = BIGINT(-1);
-    r["is_secure_process"] = BIGINT(-1);
+    r["elevated_token"] = BIGINT(-1);
+    r["secure_process"] = BIGINT(-1);
     r["protection_type"] = SQL_TEXT("");
-    r["is_virtual_process"] = BIGINT(-1);
+    r["virtual_process"] = BIGINT(-1);
 
     if (pid == 0) {
       results.push_back(r);
@@ -668,9 +668,9 @@ TableRows genProcesses(QueryContext& context) {
       }
       if (NT_SUCCESS(status)) {
         isSecureProcess = pebi.s.IsSecureProcess;
-        r["is_secure_process"] = BIGINT(isSecureProcess);
+        r["secure_process"] = BIGINT(isSecureProcess);
         isVirtualProcess = pebi.BasicInfo.PebBaseAddress == NULL;
-        r["is_virtual_process"] = BIGINT(isVirtualProcess);
+        r["virtual_process"] = BIGINT(isVirtualProcess);
       } else {
         VLOG(1) << "Failed to query ProcessBasicInformation for pid "
                 << proc.th32ProcessID << " with " << status;
@@ -698,7 +698,7 @@ TableRows genProcesses(QueryContext& context) {
       r["cmdline"] = cmd;
     }
 
-    if (context.isAnyColumnUsed({"uid", "gid", "is_elevated_token"})) {
+    if (context.isAnyColumnUsed({"uid", "gid", "elevated_token"})) {
       genProcessUserTokenInfo(proc_handle, r);
     }
 
