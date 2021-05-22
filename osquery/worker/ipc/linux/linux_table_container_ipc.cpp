@@ -247,7 +247,7 @@ void LinuxTableContainerIPC::stopContainerWorker() {
                    << " did not stop in a timely fashion, so it will be "
                       "forcefully terminated";
         process.kill();
-        process.cleanup();
+        process.cleanup(max_delay);
       }
     };
 

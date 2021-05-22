@@ -111,6 +111,8 @@ CLI_FLAG(bool,
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
+DECLARE_uint64(alarm_timeout);
+
 void Watcher::resetWorkerCounters(uint64_t respawn_time) {
   // Reset the monitoring counters for the watcher.
   state_.sustained_latency = 0;
@@ -271,15 +273,31 @@ void WatcherRunner::start() {
 }
 
 void WatcherRunner::stop() {
-  for (const auto& extension : watcher_->extensions()) {
+  auto stop_extension = [this](
+                            const std::string& extension_name,
+                            const std::shared_ptr<PlatformProcess> extension) {
     try {
-      stopChild(*extension.second);
+      stopChild(*extension);
     } catch (std::exception& e) {
       LOG(ERROR) << "[WatcherRunner] couldn't kill the extension "
-                 << extension.first << "nicely. Reason: " << e.what()
+                 << extension_name << "nicely. Reason: " << e.what()
                  << std::endl;
-      extension.second->kill();
+      extension->kill();
     }
+  };
+
+  std::vector<std::thread> stop_extensions_threads;
+  for (const auto& extension : watcher_->extensions()) {
+    stop_extensions_threads.emplace_back(
+        stop_extension, extension.first, extension.second);
+  }
+
+  if (watcher_->getWorker().isValid()) {
+    stopChild(watcher_->getWorker());
+  }
+
+  for (auto& thread : stop_extensions_threads) {
+    thread.join();
   }
 }
 
@@ -359,17 +377,21 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
 }
 
 void WatcherRunner::stopChild(const PlatformProcess& child) const {
+  /* We leave 2 seconds for the rest of the logic to shutdown,
+   and 2 seconds for the forced kill to do the reaping */
+  auto timeout = (FLAGS_alarm_timeout - 4) * 1000;
+
   child.killGracefully();
 
   // Clean up the defunct (zombie) process.
-  if (!child.cleanup()) {
+  if (!child.cleanup(std::chrono::milliseconds(timeout))) {
     auto child_pid = child.pid();
 
     LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
                  << ") could not be stopped. Sending kill signal.";
 
     child.kill();
-    if (!child.cleanup()) {
+    if (!child.cleanup(std::chrono::milliseconds(2000))) {
       auto message = std::string("Watcher cannot stop worker process (") +
                      std::to_string(child_pid) + ").";
       requestShutdown(EXIT_CATASTROPHIC, message);

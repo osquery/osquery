@@ -51,6 +51,7 @@
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/data_logger.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/sql/sql.h>
@@ -58,10 +59,10 @@
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"
 #endif
-#include "osquery/utils/info/tool_type.h"
-#include "osquery/utils/info/platform_type.h"
-#include "osquery/utils/conversions/tryto.h"
 #include "osquery/utils/config/default_paths.h"
+#include "osquery/utils/conversions/tryto.h"
+#include "osquery/utils/info/platform_type.h"
+#include "osquery/utils/info/tool_type.h"
 #ifdef WIN32
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
@@ -377,14 +378,13 @@ Status createPidFile() {
   return status;
 }
 
-bool PlatformProcess::cleanup() const {
+bool PlatformProcess::cleanup(std::chrono::milliseconds timeout) const {
   if (!isValid()) {
     return false;
   }
 
   size_t delay = 0;
-  auto timeout = (FLAGS_alarm_timeout + 1) * 1000;
-  while (delay < timeout) {
+  while (delay < static_cast<size_t>(timeout.count())) {
     int status = 0;
     if (checkStatus(status) == PROCESS_EXITED) {
       return true;
