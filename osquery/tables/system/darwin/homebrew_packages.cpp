@@ -22,7 +22,10 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kHomebrewBinary = "/usr/local/bin/brew";
+const std::set<std::string> kHomebrewPrefixes = {
+    "/usr/local",
+    "/opt/homebrew",
+};
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths(const std::string& root) {
   std::vector<std::string> results;
@@ -55,7 +58,9 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
   return results;
 }
 
-Status getHomebrewCellar(fs::path& cellarPath) {
+void packagesFromPrefix(QueryData& results,
+                        const std::string& prefix,
+                        bool userRequested) {
   // The Homebrew wrapper script finds the Library directory by taking the
   // directory that it is located in and concatenating `/../Library`:
   //   BREW_FILE_DIRECTORY=$(chdir "${0%/*}" && pwd -P)
@@ -65,43 +70,25 @@ Status getHomebrewCellar(fs::path& cellarPath) {
   // Next, it will use given filename to find the prefix:
   //   HOMEBREW_PREFIX = Pathname.new(HOMEBREW_BREW_FILE).dirname.parent
 
-  if (!pathExists(kHomebrewBinary).ok()) {
-    return Status(1, "No Homebrew binary found");
+  if (!pathExists(prefix).ok()) {
+    if (userRequested) {
+      LOG(WARNING) << "Error reading homebrew prefix " << prefix;
+    }
+    return;
   }
 
-  // Get the actual location of the Homebrew binary.
-  // In the future, we could extend this to look at all 'brew' executables in
-  // $PATH and check all of them.
-  auto brewExecutable = fs::canonical(kHomebrewBinary);
+  auto cellarPath = fs::path(prefix) / "Cellar";
 
-  // Note that the first `parent_path` call is to remove the filename, and the
-  // next to actually move up a directory.
-  auto path = brewExecutable.parent_path().parent_path();
-  // Newer versions of Homebrew may include a 'Homebrew' directory.
-  if ("Homebrew" == path.leaf().string()) {
-    path = path.parent_path();
+  if (!pathExists(cellarPath).ok()) {
+    if (userRequested) {
+      LOG(WARNING) << "Error reading homebrew cellar path "
+                   << cellarPath.native();
+    }
+    return;
   }
 
-  path /= "Cellar";
-  if (!pathExists(path).ok()) {
-    return Status(1, "No Homebrew Cellar found");
-  }
-
-  cellarPath = path;
-  return Status::success();
-}
-
-QueryData genHomebrewPackages(QueryContext& context) {
-  QueryData results;
-  fs::path cellar;
-
-  auto status = getHomebrewCellar(cellar);
-  if (!status.ok()) {
-    TLOG << "Could not list Homebrew packages: " << status.toString();
-    return results;
-  }
-
-  for (const auto& path : getHomebrewAppInfoPlistPaths(cellar.native())) {
+  for (const auto& path :
+       getHomebrewAppInfoPlistPaths(fs::canonical(cellarPath).string())) {
     auto versions = getHomebrewVersionsFromInfoPlistPath(path);
     auto name = getHomebrewNameFromInfoPlistPath(path);
     for (const auto& version : versions) {
@@ -110,8 +97,27 @@ QueryData genHomebrewPackages(QueryContext& context) {
       r["name"] = name;
       r["path"] = path;
       r["version"] = version;
+      r["prefix"] = prefix;
 
       results.push_back(r);
+    }
+  }
+}
+
+QueryData genHomebrewPackages(QueryContext& context) {
+  QueryData results;
+
+  if (context.constraints.count("prefix") > 0 &&
+      context.constraints.at("prefix").exists(EQUALS)) {
+    std::set<std::string> prefixes =
+        context.constraints["prefix"].getAll(EQUALS);
+    for (const auto& prefix : prefixes) {
+      packagesFromPrefix(results, prefix, true);
+    }
+  } else {
+    // No prefixes requested, fall back to the system ones.
+    for (const auto& prefix : kHomebrewPrefixes) {
+      packagesFromPrefix(results, prefix, false);
     }
   }
   return results;
