@@ -118,17 +118,28 @@ std::string accessPermsToStr(const unsigned long pmask) {
 }
 
 std::string pSidToStrUserName(PSID psid) {
-  unsigned long sizeOut = maxBuffSize;
-  char name[maxBuffSize];
-  char domain[maxBuffSize];
+  unsigned long unameSize = 0;
+  unsigned long domNameSize = 1;
   SID_NAME_USE accountType;
-  auto r = LookupAccountSidA(
-      nullptr, psid, name, &sizeOut, domain, &sizeOut, &accountType);
-  if (r == FALSE) {
+
+  // LookupAccountSid first gets the size of the username buff required.
+  LookupAccountSidW(
+      nullptr, psid, nullptr, &unameSize, nullptr, &domNameSize, &accountType);
+
+  std::vector<wchar_t> uname(unameSize);
+  std::vector<wchar_t> domName(domNameSize);
+  BOOL bSuccess = LookupAccountSidW(nullptr,
+                                    psid,
+                                    uname.data(),
+                                    &unameSize,
+                                    domName.data(),
+                                    &domNameSize,
+                                    &accountType);
+  if (bSuccess == FALSE) {
     VLOG(1) << "LookupAccountSid error: " << GetLastError();
     return "";
   } else {
-    return name;
+    return wstringToString(uname.data());
   }
 }
 
@@ -140,7 +151,7 @@ QueryData genNtfsAclPerms(QueryContext& context) {
     if (!fs::exists(pathString)) {
       continue;
     }
-    std::wstring wsPath(pathString.begin(), pathString.end());
+    std::wstring wsPath(stringToWstring(pathString));
     // Get a pointer to the existing DACL.
     PACL dacl = nullptr;
     auto result = GetNamedSecurityInfoW(wsPath.c_str(),
@@ -162,7 +173,7 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       Row r;
       // Get ACE
       if (GetAce(dacl, cAce, (LPVOID*)&pAce) == FALSE) {
-        VLOG(1) << "GetAce failed. Error = " << GetLastError();
+        VLOG(1) << "GetAce Error = " << GetLastError();
         continue;
       }
       auto trusteeName = pSidToStrUserName(&pAce->SidStart);
