@@ -9,7 +9,6 @@
 
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
-#include <osquery/core/shutdown.h>
 #include <osquery/core/system.h>
 #include <osquery/events/eventfactory.h>
 #include <osquery/events/eventsubscriber.h>
@@ -425,10 +424,6 @@ Status EventFactory::run(const std::string& type_id) {
 void EventFactory::delay() {
   // Caller may disable event publisher threads.
   if (FLAGS_disable_events) {
-    return;
-  }
-
-  if (shutdownRequested()) {
     return;
   }
 

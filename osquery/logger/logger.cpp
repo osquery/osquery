@@ -30,7 +30,6 @@
 #include <osquery/registry/registry_factory.h>
 
 #include <osquery/core/flagalias.h>
-#include <osquery/core/shutdown.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
@@ -263,10 +262,6 @@ void initStatusLogger(const std::string& name, bool init_glog) {
 }
 
 void initLogger(const std::string& name) {
-  if (shutdownRequested()) {
-    return;
-  }
-
   BufferedLogSink::get().resetPlugins();
 
   bool forward = false;
