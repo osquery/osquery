@@ -169,7 +169,7 @@ QueryData genNtfsAclPerms(QueryContext& context) {
 
     ACCESS_ALLOWED_ACE* pAce = NULL;
     // Loop through the ACEs and display the information.
-    for (int cAce = 0; cAce < dacl->AceCount; cAce++) {
+    for (WORD cAce = 0; cAce < dacl->AceCount; cAce++) {
       Row r;
       // Get ACE
       if (GetAce(dacl, cAce, (LPVOID*)&pAce) == FALSE) {
