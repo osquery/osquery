@@ -36,11 +36,15 @@ const std::map<std::string, std::pair<std::string, std::wstring>> kQueryMap = {
     // Dell Command Monitor driver installed on them.
     {"dell",
      {"select AttributeName,CurrentValue from EnumerationAttribute",
+<<<<<<< HEAD
       L"root\\dcim\\sysman\\biosattributes"}},
     {"dell-legacy",
      {"select AttributeName,CurrentValue,PossibleValues, "
       "PossibleValuesDescription from DCIM_BIOSEnumeration",
       L"root\\dcim\\sysman"}}};
+=======
+      L"root\\dcim\\sysman\\biosattributes"}}};
+>>>>>>> a808489e9455167f4c180060ba053680add03819
 
 std::string getManufacturer(std::string manufacturer) {
   transform(manufacturer.begin(),
@@ -107,35 +111,14 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
 Row getDellLegacyBiosInfo(const WmiResultItem& item) {
   Row r;
 
-  std::vector<std::string> vCurrentValue;
-  std::vector<std::string> vPossibleValues;
-  std::vector<std::string> vPossibleValuesDescription;
+  std::string currentvalue;
   item.GetString("AttributeName", r["name"]);
-  item.GetVectorOfStrings("CurrentValue", vCurrentValue);
-  item.GetVectorOfStrings("PossibleValues", vPossibleValues);
-  item.GetVectorOfStrings("PossibleValuesDescription",
-                          vPossibleValuesDescription);
+  item.GetString("CurrentValue", currentvalue);
 
-  if (vCurrentValue.size() == 1 && !vPossibleValues.empty()) {
-    auto pos = std::find(
-        vPossibleValues.begin(), vPossibleValues.end(), vCurrentValue[0]);
-    if (pos != vPossibleValues.end()) {
-      r["value"] = vPossibleValuesDescription[pos - vPossibleValues.begin()];
-    } else {
-      r["value"] = "N/A";
-    }
-
-  } else if (vCurrentValue.size() > 1) {
-    std::ostringstream oValueConcat;
-    std::copy(vCurrentValue.begin(),
-              vCurrentValue.end() - 1,
-              std::ostream_iterator<std::string>(oValueConcat, ","));
-    oValueConcat << vCurrentValue.back();
-
-    r["value"] = oValueConcat.str();
-
-  } else {
+  if (currentvalue == "") {
     r["value"] = "N/A";
+  } else {
+    r["value"] = currentvalue;
   }
 
   return r;
