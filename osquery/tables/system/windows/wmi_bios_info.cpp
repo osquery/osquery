@@ -36,15 +36,11 @@ const std::map<std::string, std::pair<std::string, std::wstring>> kQueryMap = {
     // Dell Command Monitor driver installed on them.
     {"dell",
      {"select AttributeName,CurrentValue from EnumerationAttribute",
-<<<<<<< HEAD
       L"root\\dcim\\sysman\\biosattributes"}},
     {"dell-legacy",
      {"select AttributeName,CurrentValue,PossibleValues, "
       "PossibleValuesDescription from DCIM_BIOSEnumeration",
       L"root\\dcim\\sysman"}}};
-=======
-      L"root\\dcim\\sysman\\biosattributes"}}};
->>>>>>> a808489e9455167f4c180060ba053680add03819
 
 std::string getManufacturer(std::string manufacturer) {
   transform(manufacturer.begin(),
