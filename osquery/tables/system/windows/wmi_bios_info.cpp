@@ -107,14 +107,35 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
 Row getDellLegacyBiosInfo(const WmiResultItem& item) {
   Row r;
 
-  std::string currentvalue;
+  std::vector<std::string> vCurrentValue;
+  std::vector<std::string> vPossibleValues;
+  std::vector<std::string> vPossibleValuesDescription;
   item.GetString("AttributeName", r["name"]);
-  item.GetString("CurrentValue", currentvalue);
+  item.GetVectorOfStrings("CurrentValue", vCurrentValue);
+  item.GetVectorOfStrings("PossibleValues", vPossibleValues);
+  item.GetVectorOfStrings("PossibleValuesDescription",
+                          vPossibleValuesDescription);
 
-  if (currentvalue == "") {
-    r["value"] = "N/A";
+  if (vCurrentValue.size() == 1 && !vPossibleValues.empty()) {
+    auto pos = std::find(
+        vPossibleValues.begin(), vPossibleValues.end(), vCurrentValue[0]);
+    if (pos != vPossibleValues.end()) {
+      r["value"] = vPossibleValuesDescription[pos - vPossibleValues.begin()];
+    } else {
+      r["value"] = "N/A";
+    }
+
+  } else if (vCurrentValue.size() > 1) {
+    std::ostringstream oValueConcat;
+    std::copy(vCurrentValue.begin(),
+              vCurrentValue.end() - 1,
+              std::ostream_iterator<std::string>(oValueConcat, ","));
+    oValueConcat << vCurrentValue.back();
+
+    r["value"] = oValueConcat.str();
+
   } else {
-    r["value"] = currentvalue;
+    r["value"] = "N/A";
   }
 
   return r;
