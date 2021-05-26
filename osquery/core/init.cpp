@@ -572,8 +572,16 @@ void Initializer::start() const {
     }
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Then set the config plugin, which uses a single/active plugin.
   initActivePlugin("config", FLAGS_config_plugin);
+
+  if (shutdownRequested()) {
+    return;
+  }
 
   // Run the setup for all lazy registries (tables, SQL).
   Registry::setUp();
@@ -596,6 +604,10 @@ void Initializer::start() const {
     return;
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Load the osquery config using the default/active config plugin.
   s = Config::get().load();
   if (!s.ok()) {
@@ -609,22 +621,48 @@ void Initializer::start() const {
 
   // Initialize the status and result plugin logger.
   if (!FLAGS_disable_logging) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin("logger", FLAGS_logger_plugin);
+
+    if (shutdownRequested()) {
+      return;
+    }
+
     initLogger(binary_);
   }
 
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin("distributed", FLAGS_distributed_plugin);
   }
 
   if (FLAGS_enable_numeric_monitoring) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Start event threads.
   attachEvents();
+
+  if (shutdownRequested()) {
+    return;
+  }
+
   EventFactory::delay();
 }
 
