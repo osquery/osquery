@@ -87,7 +87,8 @@ std::string TLSEnrollPlugin::enroll() {
 
   bool should_shutdown = false;
 
-  for (;;) {
+  while (FLAGS_tls_enroll_max_attempts == 0 ||
+         attempt <= FLAGS_tls_enroll_max_attempts) {
     auto status = requestKey(uri, node_key);
     if (status.ok() || attempt == FLAGS_tls_enroll_max_attempts) {
       break;
