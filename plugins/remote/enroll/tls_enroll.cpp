@@ -33,11 +33,12 @@ namespace osquery {
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_enrollment);
 
-CLI_FLAG(uint64,
-         tls_enroll_max_attempts,
-         12,
-         "Number of attempts to retry a TLS enroll request, it used to be the "
-         "same as [config_tls_max_attempts]");
+CLI_FLAG(
+    uint64,
+    tls_enroll_max_attempts,
+    12,
+    "Number of attempts to retry a TLS enroll request; if 0 the attempts "
+    "will be infinite. It used to be the same as [config_tls_max_attempts].");
 
 CLI_FLAG(uint64,
          tls_enroll_max_interval,
