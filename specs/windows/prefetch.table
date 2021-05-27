@@ -10,8 +10,8 @@ schema([
     Column("size", INTEGER, "Application file size."),
     Column("volume_serial", TEXT, "Volume serial number."),
     Column("volume_creation", TEXT, "Volume creation time."),
-    Column("number_of_accessed_files", INTEGER, "Number of files accessed."),
-    Column("number_of_accessed_directories", INTEGER, "Number of directories accessed."),
+    Column("accessed_files_count", INTEGER, "Number of files accessed."),
+    Column("accessed_directories_count", INTEGER, "Number of directories accessed."),
     Column("accessed_files", TEXT, "Files accessed by application within ten seconds of launch."),
     Column("accessed_directories", TEXT, "Directories accessed by application within ten seconds of launch.")
 ])
