@@ -21,71 +21,63 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include <iostream>
+
 namespace osquery {
 namespace tables {
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
 
-// Convert End of string UCHAR vectors to string
-std::string ucharToString(const std::string_view& data) {
-  if (data.empty()) {
-    return {};
-  }
-
-  size_t size = 0;
-  size_t string_size = 0;
-  int offset = 0;
-  std::string string_data = "";
-  // Loop through UTF16 string_view until null-terminated char
-  while (true) {
-    size = strnlen(&data.data()[offset], data.size());
-    if (size > 0) {
-      string_size += size;
-      string_data += data.data()[offset];
-      offset += 2;
-      continue;
+// Convert UTF16 UCHAR vectors to string
+std::string ucharToString(const std::vector<UCHAR>& data) {
+  int data_char = 0;
+  std::string data_string;
+  while (data[data_char] != '\0') {
+    data_string += data[data_char];
+    data_char++;
+    if (data[data_char] == '\0') {
+      data_char++;
     }
-    break;
   }
-  return string_data;
+  return data_string;
 }
 
 ExpectedPrefetchAccessedData parseAccessedData(const std::vector<UCHAR>& data,
                                                const std::string& type) {
   std::vector<std::string> accessed_data;
-  std::string_view pf_data(reinterpret_cast<const char*>(data.data()),
-                           data.size());
+  std::vector<UCHAR> pf_data = data;
+  pf_data.push_back('\0');
+  pf_data.push_back('\0');
 
-  size_t offset = 0;
-  while (true) {
+  while (pf_data.size() > 0) {
     std::string file_accessed = ucharToString(pf_data);
     if (file_accessed.size() == 0) {
       break;
     }
-    offset = file_accessed.size();
+    std::string check_name;
+    check_name = file_accessed.substr(0, 8);
     if (type == "directory") {
-      std::string check_name;
+      if (file_accessed.size() < 4) {
+        break;
+      }
       file_accessed = file_accessed.substr(1);
-      check_name = file_accessed.substr(0, 4);
-
-      // Check if directory does not begin with \VOL or \DEV, diretory entries
-      // often contain remenant data
-      if (check_name != "\\VOL" && check_name != "\\DEV") {
+      check_name = file_accessed.substr(0, 8);
+      // Check if data does not begin with \VOL or \DEV
+      if (check_name != "\\VOLUME{" && check_name != "\\DEVICE{") {
         break;
       }
       accessed_data.push_back(file_accessed);
-      if (offset > 0) {
-        pf_data = pf_data.substr((offset * 2) + 2);
-        continue;
-      }
+      pf_data.erase(pf_data.begin(),
+                    pf_data.begin() + (file_accessed.size() * 2) + 4);
+      continue;
+    }
+    // Check if data does not begin with \VOL or \DEV
+    if (check_name != "\\VOLUME{" && check_name != "\\DEVICE{") {
       break;
     }
     accessed_data.push_back(file_accessed);
 
-    if (offset > 0) {
-      pf_data = pf_data.substr((offset * 2) + 2);
-      continue;
-    }
-    break;
+    pf_data.erase(pf_data.begin(),
+                  pf_data.begin() + (file_accessed.size() * 2) + 2);
   }
   return ExpectedPrefetchAccessedData::success(accessed_data);
 }
@@ -95,8 +87,11 @@ ExpectedPrefetchHeader parseHeader(const std::vector<UCHAR>& prefetch_data) {
   memcpy(&header_data.file_size,
          &prefetch_data[12],
          sizeof(header_data.file_size));
-  std::string_view filename(
-      reinterpret_cast<const char*>(&prefetch_data.data()[16]), 76);
+
+  std::vector<UCHAR> filename(prefetch_data.begin() + 16,
+                              prefetch_data.begin() + 60);
+  filename.push_back('\0');
+  filename.push_back('\0');
 
   header_data.filename = ucharToString(filename);
   int hash = 0;
