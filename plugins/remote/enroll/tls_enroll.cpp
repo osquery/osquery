@@ -110,7 +110,7 @@ std::string TLSEnrollPlugin::enroll() {
     }
 
     should_shutdown =
-        waitTimeoutOrShutdown(std::chrono::milliseconds(interval * 1000UL));
+        waitTimeoutOrShutdown(std::chrono::milliseconds(interval * 1000));
 
     if (should_shutdown) {
       LOG(WARNING)
