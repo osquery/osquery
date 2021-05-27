@@ -136,7 +136,7 @@ std::string pSidToStrUserName(PSID psid) {
                                     &domNameSize,
                                     &accountType);
   if (bSuccess == FALSE) {
-    VLOG(1) << "LookupAccountSid error: " << GetLastError();
+    VLOG(1) << "LookupAccountSid Error " << GetLastError();
     return "";
   } else {
     return wstringToString(uname.data());
@@ -173,7 +173,7 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       Row r;
       // Get ACE
       if (GetAce(dacl, cAce, (LPVOID*)&pAce) == FALSE) {
-        VLOG(1) << "GetAce Error = " << GetLastError();
+        VLOG(1) << "GetAce Error " << GetLastError();
         continue;
       }
       auto trusteeName = pSidToStrUserName(&pAce->SidStart);
