@@ -90,8 +90,15 @@ QueryData genChromeExtensions(QueryContext& context) {
 
       row["install_timestamp"] = BIGINT(converted_timestamp);
 
-      row["identifier"] =
-          SQL_TEXT(getExtensionProfileSettingsValue(extension, "identifier"));
+      row["referenced_identifier"] = SQL_TEXT(
+          getExtensionProfileSettingsValue(extension, "referenced_identifier"));
+
+      if (extension.opt_computed_identifier.has_value()) {
+        const auto& computed_identifier = *extension.opt_computed_identifier;
+        row["identifier"] = SQL_TEXT(computed_identifier);
+      } else {
+        row["identifier"] = SQL_TEXT("");
+      }
 
       // This column has been deprecated and is marked as hidden. It will
       // be removed in a future version
