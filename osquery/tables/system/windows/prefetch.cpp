@@ -21,8 +21,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-#include <iostream>
-
 namespace osquery {
 namespace tables {
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
