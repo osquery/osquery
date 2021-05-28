@@ -36,9 +36,8 @@ DECLARE_bool(disable_enrollment);
 CLI_FLAG(uint64,
          tls_enroll_max_attempts,
          12,
-         "The total number of attempts that will be made to the remote enroll "
-         "server if a request fails; if 0 the attempts will be infinite. It "
-         "used to be the same as [config_tls_max_attempts].");
+         "The total number of attempts that will be made to the enroll "
+         "endpoint if a request fails, 0 for infinite");
 
 CLI_FLAG(uint64,
          tls_enroll_max_interval,
