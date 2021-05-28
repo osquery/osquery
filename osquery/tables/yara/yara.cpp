@@ -96,7 +96,7 @@ static YARAConfigParser getYaraParser(void) {
   YARAConfigParser yaraParser = nullptr;
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
-  } catch (const std::bad_cast& e) {
+  } catch (const std::bad_cast&) {
     LOG(ERROR) << "Cannot cast YARA config parser plugin";
     return nullptr;
   }
