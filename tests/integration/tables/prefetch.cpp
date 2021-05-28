@@ -25,37 +25,37 @@ TEST_F(PrefetchTest, test_sanity) {
   if (!test.is_initialized()) {
     FAIL();
   }
+
+  ValidationMap row_map = {
+      {"path", NonEmptyString},
+      {"filename", NormalType},
+      {"hash", NormalType},
+      {"last_execution_time", IntType},
+      {"execution_times", NormalType},
+      {"count", IntType},
+      {"size", IntType},
+      {"volume_serial", NormalType},
+      {"volume_creation", NormalType},
+      {"accessed_directories", NormalType},
+      {"accessed_directories_count", IntType},
+      {"accessed_files", NormalType},
+      {"accessed_files_count", IntType},
+  };
+
   std::string query = "select * from prefetch where path like '" + *test +
                       "\\windows\\prefetch\\%.pf'";
   QueryData const rows = execute_query(query);
+
+  ASSERT_GT(rows.size(), 0ul);
+  validate_rows(rows, row_map);
+
   std::string second_query = query +
                              " AND last_execution_time = 1620953788 AND count "
-                             "= 3 AND number_of_accessed_files=53";
+                             "= 3 AND accessed_files_count = 53";
   QueryData const specific_rows = execute_query(second_query);
-  ValidationMap row_map = {
-      {"path", NonEmptyString},
-      {"number_of_accessed_directories", NormalType},
-      {"filename", NormalType},
-      {"accessed_files", NormalType},
-      {"hash", NormalType},
-      {"accessed_directories", NormalType},
-      {"last_execution_time", NormalType},
-      {"execution_times", NormalType},
-      {"count", NormalType},
-      {"size", NormalType},
-      {"volume_serial", NormalType},
-      {"volume_creation", NormalType},
-      {"number_of_accessed_files", NormalType},
-  };
-  if (!rows.empty()) {
-    ASSERT_GT(rows.size(), 0ul);
-    validate_rows(rows, row_map);
-  }
 
-  if (!specific_rows.empty()) {
-    ASSERT_EQ(specific_rows.size(), 1ul);
-    validate_rows(specific_rows, row_map);
-  }
+  ASSERT_EQ(specific_rows.size(), 1ul);
+  validate_rows(specific_rows, row_map);
 
   // If running tests locally try local Prefetch files
   QueryData const default_rows = execute_query("select * from prefetch");
