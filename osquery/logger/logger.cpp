@@ -336,7 +336,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
 void BufferedLogSink::WaitTillSent() {
   if (kOptBufferedLogSinkSender.has_value()) {
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      kOptBufferedLogSinkSender.value().wait();
+      kOptBufferedLogSinkSender->wait();
     } else {
       /* We cannot wait indefinitely because glog doesn't use read/write locks
         on Windows. When we are in a recursive logging situation, there's a
@@ -345,8 +345,7 @@ void BufferedLogSink::WaitTillSent() {
         (sink_mutex_), instead of in read mode only. The new thread needs to be
         able to acquire the same lock to log the message though,
         so unless this thread yields, we end up in a deadlock. */
-      kOptBufferedLogSinkSender.value().wait_for(
-          std::chrono::microseconds(100));
+      kOptBufferedLogSinkSender->wait_for(std::chrono::microseconds(100));
     }
     kOptBufferedLogSinkSender.reset();
   }
