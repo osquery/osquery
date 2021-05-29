@@ -155,7 +155,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   std::shared_ptr<YARAConfigParserPlugin> yaraParser;
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
-  } catch (const std::bad_cast& e) {
+  } catch (const std::bad_cast&) {
     return Status(1, "Error casting yara config parser plugin");
   }
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
@@ -192,4 +192,4 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
 
   return Status::success();
 }
-}
+} // namespace osquery
