@@ -303,6 +303,7 @@ function(generateNativeTables)
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
     "windows/shortcut_files.table:windows"
+    "windows/jumplists.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )

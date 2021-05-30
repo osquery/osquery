@@ -196,6 +196,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/groups.cpp
       windows/ie_extensions.cpp
       windows/intel_me.cpp
+      windows/jumplists.cpp
       windows/kernel_info.cpp
       windows/kva_speculative_info.cpp
       windows/logged_in_users.cpp
@@ -353,6 +354,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/windows_eventlog.h
+      windows/shortcut_files.h
     )
   endif()
 

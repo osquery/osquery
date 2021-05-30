@@ -11,6 +11,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/windows/registry.h>
+#include <osquery/tables/system/windows/shortcut_files.h>
 #include <osquery/utils/conversions/join.h>
 
 #include <osquery/logger/logger.h>
@@ -24,14 +25,12 @@
 namespace osquery {
 namespace tables {
 
-void parseShortcutFiles(QueryData& results,
-                        LinkFileHeader& data,
-                        std::string& data_string,
-                        std::string& lnk) {
+LnkData parseShortcutFiles(const LinkFileHeader& data, const std::string& short_data_string) {
   TargetInfo target_data;
   LocationInfo location_data;
   ExtraDataTracker extra_data;
   DataStringInfo data_info_string;
+  std::string data_string = short_data_string;
   if (data.flags.has_target_id_list) {
     target_data = parseTargetInfo(data_string);
     data_string = target_data.data;
@@ -109,37 +108,50 @@ void parseShortcutFiles(QueryData& results,
     }
     target_path = target_data.path;
   }
-  Row r;
-  r["path"] = lnk;
-  r["target_created"] = INTEGER(data.creation_time);
-  r["target_modified"] = INTEGER(data.modified_time);
-  r["target_accessed"] = INTEGER(data.access_time);
-  r["target_size"] = BIGINT(data.file_size);
+  LnkData data_lnk;
+  data_lnk.header = data;
+  data_lnk.target_data = target_data;
+  data_lnk.location_data = location_data;
+  data_lnk.extra_data = extra_data;
+  data_lnk.data_info_string = data_info_string;
+  data_lnk.target_path = target_path;
+  return data_lnk;
+}
 
-  if (data.flags.has_target_id_list) {
-    r["target_path"] = target_path;
-    if (target_data.mft_entry != -1LL) {
-      r["mft_entry"] = BIGINT(target_data.mft_entry);
-      r["mft_sequence"] = INTEGER(target_data.mft_sequence);
+void buildLnkTable(QueryData& results,
+                   LnkData data,
+                   std::string& path) {
+  Row r;
+  r["path"] = path;
+  r["target_created"] = INTEGER(data.header.creation_time);
+  r["target_modified"] = INTEGER(data.header.modified_time);
+  r["target_accessed"] = INTEGER(data.header.access_time);
+  r["target_size"] = BIGINT(data.header.file_size);
+
+  if (data.header.flags.has_target_id_list) {
+    r["target_path"] = data.target_path;
+    if (data.target_data.mft_entry != -1LL) {
+      r["mft_entry"] = BIGINT(data.target_data.mft_entry);
+      r["mft_sequence"] = INTEGER(data.target_data.mft_sequence);
     }
   }
-  if (data.flags.has_link_info) {
-    r["local_path"] = location_data.local_path;
-    r["common_path"] = location_data.common_path;
-    r["device_type"] = location_data.type;
-    r["volume_serial"] = location_data.serial;
-    r["share_name"] = location_data.share_name;
+  if (data.header.flags.has_link_info) {
+    r["local_path"] = data.location_data.local_path;
+    r["common_path"] = data.location_data.common_path;
+    r["device_type"] = data.location_data.type;
+    r["volume_serial"] = data.location_data.serial;
+    r["share_name"] = data.location_data.share_name;
   }
-  if (data.flags.has_name || data.flags.has_relative_path ||
-      data.flags.has_working_dir || data.flags.has_arguments ||
-      data.flags.has_icon_location) {
-    r["relative_path"] = data_info_string.relative_path;
-    r["command_args"] = data_info_string.arguments;
-    r["icon_path"] = data_info_string.icon_location;
-    r["working_path"] = data_info_string.working_path;
-    r["description"] = data_info_string.description;
+  if (data.header.flags.has_name || data.header.flags.has_relative_path ||
+      data.header.flags.has_working_dir || data.header.flags.has_arguments ||
+      data.header.flags.has_icon_location) {
+    r["relative_path"] = data.data_info_string.relative_path;
+    r["command_args"] = data.data_info_string.arguments;
+    r["icon_path"] = data.data_info_string.icon_location;
+    r["working_path"] = data.data_info_string.working_path;
+    r["description"] = data.data_info_string.description;
   }
-  r["hostname"] = extra_data.hostname;
+  r["hostname"] = data.extra_data.hostname;
   results.push_back(r);
 }
 
@@ -213,7 +225,11 @@ QueryData genShortcutFiles(QueryContext& context) {
     const int lnk_data = 152;
     std::string data_string = lnk_hex.substr(lnk_data);
     std::string lnk_path = lnk;
-    parseShortcutFiles(results, data, data_string, lnk_path);
+    LnkData data_lnk;
+    data_lnk = parseShortcutFiles(data, data_string);
+    buildLnkTable(results,
+                  data_lnk,
+                  lnk_path);
   }
   return results;
 }

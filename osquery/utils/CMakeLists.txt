@@ -49,6 +49,7 @@ function(generateOsqueryUtils)
     list(APPEND source_files
       windows/shellitem.cpp
       windows/shelllnk.cpp
+      windows/olecf.cpp
     )
   endif()
 
@@ -96,6 +97,7 @@ function(generateOsqueryUtils)
     set(platform_public_header_files
       windows/shellitem.h
       windows/shelllnk.h
+      windows/olecf.h
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
