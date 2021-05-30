@@ -7,8 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/system/env.h>
+
 #include <string>
 
 namespace osquery {
@@ -42,8 +45,12 @@ TEST_F(PrefetchTest, test_sanity) {
       {"accessed_files_count", IntType},
   };
 
-  std::string query = "select * from prefetch where path like '" + *test +
-                      "\\windows\\prefetch\\%.pf'";
+  auto const test_filepath =
+      boost::filesystem::path(*test + "\\windows\\prefetch\\%.pf")
+          .make_preferred()
+          .string();
+  std::string query =
+      "select * from prefetch where path like '" + test_filepath + "'";
   QueryData const rows = execute_query(query);
 
   ASSERT_GT(rows.size(), 0ul);

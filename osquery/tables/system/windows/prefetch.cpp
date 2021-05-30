@@ -38,6 +38,9 @@ std::string ucharToString(std::string_view data) {
   while (data_char < data.size() && data[data_char] != '\0') {
     data_string += data[data_char];
     data_char++;
+    if (data_char == data.size()) {
+      break;
+    }
     if (data[data_char] == '\0') {
       data_char++;
     }
@@ -83,7 +86,7 @@ PrefetchHeader parseHeader(std::string_view data_view) {
 
   header_data.filename = ucharToString(data_view.substr(16, 60));
 
-  int hash = 0;
+  std::int32_t hash = 0;
   memcpy(&hash, &data_view[76], sizeof(hash));
   header_data.prefetch_hash = (boost::format("%x") % hash).str();
   return header_data;
@@ -92,21 +95,20 @@ PrefetchHeader parseHeader(std::string_view data_view) {
 void parsePrefetchData(RowYield& yield,
                        const std::vector<UCHAR>& data,
                        const std::string& file_path,
-                       const int& version) {
+                       const std::int32_t version) {
   if (data.size() < 204) {
-    LOG(WARNING) << "Prefetch data format incorrect, expected minimum of 204 "
-                    "bytes, got: "
-                 << data.size();
+    LOG(INFO) << "Prefetch data format incorrect unexpected size "
+              << data.size();
     return;
   }
 
-  std::string_view data_view(reinterpret_cast<const char*>(data.data()),
-                             data.size());
+  const std::string_view data_view(reinterpret_cast<const char*>(data.data()),
+                                   data.size());
   auto header = parseHeader(data_view);
 
-  uint32_t offset = 0;
+  std::int32_t offset = 0;
   memcpy(&offset, &data[100], sizeof(offset));
-  uint32_t size = 0;
+  std::int32_t size = 0;
   memcpy(&size, &data[104], sizeof(size));
 
   if (offset < 0 || offset > data_view.size()) {
@@ -129,7 +131,7 @@ void parsePrefetchData(RowYield& yield,
   }
 
   memcpy(&offset, &data[108], sizeof(offset));
-  int volume_numbers = 0;
+  std::int32_t volume_numbers = 0;
   memcpy(&volume_numbers, &data[112], sizeof(volume_numbers));
   memcpy(&size, &data[116], sizeof(size));
 
@@ -148,7 +150,7 @@ void parsePrefetchData(RowYield& yield,
 
   std::string volume_creation;
   std::string volume_serial;
-  std::vector<int> dir_lists;
+  std::vector<std::int32_t> dir_lists;
   {
     std::vector<std::string> volume_creation_list;
     std::vector<std::string> volume_serial_list;
@@ -159,7 +161,7 @@ void parsePrefetchData(RowYield& yield,
       }
 
       std::int64_t creation = 0;
-      memcpy(&creation, &dir_view[8], sizeof(creation));
+      memcpy(&creation, &dir_view.data()[8], sizeof(creation));
       LARGE_INTEGER large_time;
       large_time.QuadPart = creation;
       FILETIME file_time;
@@ -167,12 +169,12 @@ void parsePrefetchData(RowYield& yield,
       file_time.dwLowDateTime = large_time.LowPart;
       LONGLONG creation_time = filetimeToUnixtime(file_time);
       volume_creation_list.push_back(std::to_string(creation_time));
-      int serial = 0;
-      memcpy(&serial, &dir_view[16], sizeof(serial));
+      std::int32_t serial = 0;
+      memcpy(&serial, &dir_view.data()[16], sizeof(serial));
       volume_serial_list.push_back((boost::format("%x") % serial).str());
       volume_numbers -= 1;
-      int list_offset = 0;
-      memcpy(&list_offset, &dir_view[28], sizeof(list_offset));
+      std::int32_t list_offset = 0;
+      memcpy(&list_offset, &dir_view.data()[28], sizeof(list_offset));
       dir_lists.push_back(list_offset);
       // Volume metadata size depends on Prefetch version
       if (version == 30) {
@@ -234,10 +236,12 @@ void parsePrefetchData(RowYield& yield,
       timestamps.push_back(std::to_string(runtime));
     }
     timestamp_list = osquery::join(timestamps, ",");
-    last_execution_time = timestamps[0];
+    if (!timestamps.empty()) {
+      last_execution_time = timestamps[0];
+    }
   }
 
-  int run_count = 0;
+  std::int32_t run_count = 0;
   if (version == 23) {
     memcpy(&run_count, &data[152], sizeof(run_count));
   } else if (version == 26) {
@@ -245,6 +249,7 @@ void parsePrefetchData(RowYield& yield,
   } else {
     memcpy(&run_count, &data[200], sizeof(run_count));
   }
+
   auto r = make_table_row();
   r["path"] = file_path;
   r["filename"] = SQL_TEXT(header.filename);
@@ -265,19 +270,18 @@ void parsePrefetchData(RowYield& yield,
 void parsePrefetchVersion(RowYield& yield,
                           const std::vector<UCHAR>& data,
                           const std::string& file_path) {
-  int version = 0;
+  std::int32_t version = 0;
   memcpy(&version, &data[0], sizeof(version));
   // Currently supports Win7 and higher
   if (version == 30 || version == 23 || version == 26) {
     parsePrefetchData(yield, data, file_path, version);
   } else {
-    LOG(WARNING) << "Unsupported prefetch file: " << file_path;
+    LOG(INFO) << "Unsupported prefetch file: " << file_path;
   }
 }
 
-void parsePrefetch(const std::string& file, RowYield& yield) {
-  LOG(INFO) << "Parsing prefetch file: " << file;
-  std::ifstream input_file(file, std::ios::in | std::ios::binary);
+void parsePrefetch(const std::string& file_path, RowYield& yield) {
+  std::ifstream input_file(file_path, std::ios::in | std::ios::binary);
   std::vector<UCHAR> compressed_data(
       (std::istreambuf_iterator<char>(input_file)),
       (std::istreambuf_iterator<char>()));
@@ -313,10 +317,10 @@ void parsePrefetch(const std::string& file, RowYield& yield) {
   memcpy(&header, &data[4], sizeof(header));
   // Check for "SCCA" signature
   if (header != 1094927187) {
-    LOG(WARNING) << "Unsupported prefetch file, missing header: " << file;
+    LOG(INFO) << "Unsupported prefetch file missing header: " << file_path;
     return;
   }
-  parsePrefetchVersion(yield, data, file);
+  parsePrefetchVersion(yield, data, file_path);
 }
 
 void genPrefetch(RowYield& yield, QueryContext& context) {
@@ -346,14 +350,14 @@ void genPrefetch(RowYield& yield, QueryContext& context) {
     listFilesInDirectory(kPrefetchLocation, prefetch_files);
   }
 
-  for (const auto& file : prefetch_files) {
-    if (!boost::algorithm::iends_with(file, ".pf")) {
+  for (const auto& file_path : prefetch_files) {
+    if (!boost::algorithm::iends_with(file_path, ".pf")) {
       continue;
     }
 
     boost::system::error_code ec;
-    if (boost::filesystem::is_regular_file(file, ec) && !ec) {
-      parsePrefetch(file, yield);
+    if (boost::filesystem::is_regular_file(file_path, ec) && !ec) {
+      parsePrefetch(file_path, yield);
     }
   }
 }
