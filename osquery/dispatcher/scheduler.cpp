@@ -224,7 +224,7 @@ void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
 void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
   // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
   if ((time_step % 3) == 0) {
-    relayStatusLogs(true);
+    relayStatusLogs(LoggerRelayMode::Async);
   }
 }
 
