@@ -69,7 +69,7 @@ std::vector<std::string> parseAccessedData(std::string_view data_view,
     }
 
     auto check_name = file_accessed.substr(0, 8);
-    // Check if data does not begin with \VOL or \DEV
+    // Check if data does not begin with \VOLUME{ or \DEVICE{
     if (check_name != "\\VOLUME{" && check_name != "\\DEVICE{") {
       break;
     }
@@ -317,7 +317,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
   memcpy(&header, &data[4], sizeof(header));
   // Check for "SCCA" signature
   if (header != 1094927187) {
-    LOG(INFO) << "Unsupported prefetch file missing header: " << file_path;
+    LOG(WARNING) << "Unsupported prefetch file missing header: " << file_path;
     return;
   }
   parsePrefetchVersion(yield, data, file_path);

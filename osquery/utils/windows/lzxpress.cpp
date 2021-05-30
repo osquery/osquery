@@ -12,8 +12,8 @@
 #include <osquery/utils/windows/lzxpress.h>
 
 namespace osquery {
-ExpectedDecompressData decompressLZxpress(
-    const std::vector<UCHAR>& prefetch_data, unsigned long size) {
+ExpectedDecompressData decompressLZxpress(std::vector<UCHAR>& prefetch_data,
+                                          unsigned long size) {
   typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
       _In_ USHORT format,
       _Out_ PUCHAR uncompressedBuffer,
@@ -60,13 +60,6 @@ ExpectedDecompressData decompressLZxpress(
         ConversionError::InvalidArgument,
         "Failed to set compression workspace size");
   }
-  std::vector<UCHAR> compressed_data;
-  compressed_data.resize(prefetch_data.size() - 8);
-
-  // Substract header size from compressed data size
-  for (int i = 8; i < prefetch_data.size(); i++) {
-    compressed_data[i - 8] = prefetch_data[i];
-  }
   std::vector<UCHAR> output_buffer;
   output_buffer.resize(size);
 
@@ -77,7 +70,7 @@ ExpectedDecompressData decompressLZxpress(
   auto decom_results = RtlDecompressBufferEx(COMPRESSION_FORMAT_XPRESS_HUFF,
                                              output_buffer.data(),
                                              size,
-                                             compressed_data.data(),
+                                             &prefetch_data[8],
                                              buffer_size,
                                              &final_size,
                                              fragment_workspace.data());

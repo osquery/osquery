@@ -24,6 +24,6 @@ using ExpectedDecompressData = Expected<std::vector<UCHAR>, ConversionError>;
  *
  * @returns Decompressed data as hex encoded string or error
  */
-ExpectedDecompressData decompressLZxpress(
-    const std::vector<UCHAR>& compressed_data, unsigned long size);
+ExpectedDecompressData decompressLZxpress(std::vector<UCHAR>& compressed_data,
+                                          unsigned long size);
 } // namespace osquery
