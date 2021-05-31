@@ -12,54 +12,61 @@
 #include <osquery/utils/windows/lzxpress.h>
 
 namespace osquery {
+namespace {
+
+#ifndef STATUS_SUCCESS
+#define STATUS_SUCCESS 0
+#endif
+
+typedef HRESULT(WINAPI* RTLDECOMPRESSBUFFEREX)(_In_ USHORT format,
+                                               _Out_ PUCHAR uncompressedBuffer,
+                                               _In_ ULONG uncompressedSize,
+                                               _In_ PUCHAR data,
+                                               _In_ ULONG dataSize,
+                                               _Out_ PULONG finalSize,
+                                               _In_ PVOID workspace);
+
+typedef HRESULT(WINAPI* RTLGETCOMPRESSIONWORKSPACESIZE)(
+    _In_ USHORT format,
+    _Out_ PULONG bufferWorkSpaceSize,
+    _Out_ PULONG fragmentWorkSpaceSize);
+
+} // namespace
+
 ExpectedDecompressData decompressLZxpress(std::vector<UCHAR>& prefetch_data,
                                           unsigned long size) {
-  typedef HRESULT(WINAPI * pRtlDecompressBufferEx)(
-      _In_ USHORT format,
-      _Out_ PUCHAR uncompressedBuffer,
-      _In_ ULONG uncompressedSize,
-      _In_ PUCHAR data,
-      _In_ ULONG dataSize,
-      _Out_ PULONG finalSize,
-      _In_ PVOID workspace);
+  RTLGETCOMPRESSIONWORKSPACESIZE RtlGetCompressionWorkSpaceSize;
+  RTLDECOMPRESSBUFFEREX RtlDecompressBufferEx;
 
-  typedef HRESULT(WINAPI * pRtlGetCompressionWorkSpaceSize)(
-      _In_ USHORT format,
-      _Out_ PULONG bufferWorkSpaceSize,
-      _Out_ PULONG fragmentWorkSpaceSize);
-
-  pRtlDecompressBufferEx RtlDecompressBufferEx;
-  pRtlGetCompressionWorkSpaceSize RtlGetCompressionWorkSpaceSize;
   RtlGetCompressionWorkSpaceSize =
-      reinterpret_cast<pRtlGetCompressionWorkSpaceSize>(GetProcAddress(
+      reinterpret_cast<RTLGETCOMPRESSIONWORKSPACESIZE>(GetProcAddress(
           GetModuleHandleA("ntdll.dll"), "RtlGetCompressionWorkSpaceSize"));
   if (RtlGetCompressionWorkSpaceSize == nullptr) {
-    LOG(ERROR) << "Failed to load function RtlGetCompressionWorkSpaceSize";
     return ExpectedDecompressData::failure(
         ConversionError::InvalidArgument,
         "Failed to load function RtlGetCompressionWorkSpaceSize");
   }
-  RtlDecompressBufferEx = reinterpret_cast<pRtlDecompressBufferEx>(
-      GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlDecompressBufferEx"));
 
+  RtlDecompressBufferEx = reinterpret_cast<RTLDECOMPRESSBUFFEREX>(
+      GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlDecompressBufferEx"));
   // Check for decompression function, only exists on Win8+
   if (RtlDecompressBufferEx == nullptr) {
-    LOG(ERROR) << "Failed to load function RtlDecompressBufferEx";
     return ExpectedDecompressData::failure(
         ConversionError::InvalidArgument,
         "Failed to load function RtlDecompressBufferEx");
   }
+
   ULONG bufferWorkSpaceSize = 0ul;
   ULONG fragmentWorkSpaceSize = 0ul;
   auto results = RtlGetCompressionWorkSpaceSize(COMPRESSION_FORMAT_XPRESS_HUFF,
                                                 &bufferWorkSpaceSize,
                                                 &fragmentWorkSpaceSize);
-  if (results != 0) {
-    LOG(ERROR) << "Failed to set compression workspace size";
+  if (results != STATUS_SUCCESS) {
     return ExpectedDecompressData::failure(
         ConversionError::InvalidArgument,
         "Failed to set compression workspace size");
   }
+
   std::vector<UCHAR> output_buffer;
   output_buffer.resize(size);
 
@@ -67,6 +74,7 @@ ExpectedDecompressData decompressLZxpress(std::vector<UCHAR>& prefetch_data,
   ULONG final_size = 0ul;
   std::vector<PVOID> fragment_workspace;
   fragment_workspace.resize(fragmentWorkSpaceSize);
+
   auto decom_results = RtlDecompressBufferEx(COMPRESSION_FORMAT_XPRESS_HUFF,
                                              output_buffer.data(),
                                              size,
@@ -74,8 +82,7 @@ ExpectedDecompressData decompressLZxpress(std::vector<UCHAR>& prefetch_data,
                                              buffer_size,
                                              &final_size,
                                              fragment_workspace.data());
-  if (decom_results != 0) {
-    LOG(ERROR) << "Failed to decompress data";
+  if (decom_results != STATUS_SUCCESS) {
     return ExpectedDecompressData::failure(ConversionError::InvalidArgument,
                                            "Failed to decompress data");
   }

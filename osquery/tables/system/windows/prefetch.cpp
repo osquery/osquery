@@ -14,14 +14,19 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/lzxpress.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#define PREFETCH_SIGNATURE_COMPRESSED '\x04MAM' // MAM\0x4
+#define PREFETCH_SIGNATURE 'ACCS' // SCCA
+
 namespace osquery {
 namespace tables {
+namespace {
 
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
 
@@ -30,6 +35,64 @@ struct PrefetchHeader {
   std::string filename;
   std::string prefetch_hash;
 };
+
+struct PrefetchFileInfo {
+  std::string files;
+  size_t count;
+};
+
+#pragma pack(push, 1)
+typedef struct _PREFETCH_COMPRESSED_HEADER {
+  DWORD Signature;
+  DWORD TotalUncompressedSize;
+  BYTE CompressedData[1]; // arbitrary size
+} PREFETCH_COMPRESSED_HEADER, *PPREFETCH_COMPRESSED_HEADER;
+
+typedef struct _PREFETCH_FILE_HEADER {
+  DWORD Version;
+  DWORD Signature;
+  DWORD Reserved1;
+  DWORD FileSize;
+  WCHAR FileName[30];
+  DWORD Hash;
+  DWORD Reserved2;
+} PREFETCH_FILE_HEADER, *PPREFETCH_FILE_HEADER;
+
+typedef struct _PREFETCH_FILE_INFORMATION {
+  DWORD FileMetricsArrayOffset;
+  DWORD NumberOfMetricEntries;
+  DWORD TraceChainsArrayOffset;
+  DWORD NumberOfTraceChains;
+  DWORD FileNameStringsOffset;
+  DWORD FileNameStringsSize;
+  DWORD VolumeInformationOffset;
+  DWORD NumberOfVolumes;
+  DWORD VolumesInformationSize;
+  FILETIME LastRunTime;
+  DWORD Reserved1[4];
+  DWORD RunCount;
+  DWORD Reserved2;
+} PREFETCH_FILE_INFORMATION, *PPREFETCH_FILE_INFORMATION;
+
+typedef struct _PREFETCH_VOLUME_INFORMATION {
+  DWORD VolumePathOffset;
+  DWORD VolumeDevicePathNumberOfCharacters;
+  FILETIME VolumeCreationTime;
+  DWORD VolumeSerialNumber;
+  DWORD FileReferencesOffset;
+  DWORD FileReferencesDataSize;
+  DWORD DirectoryStringsOffset;
+  DWORD NumberOfDirectoryStrings;
+  DWORD Reserved1;
+} PREFETCH_VOLUME_INFORMATION, *PPREFETCH_VOLUME_INFORMATION;
+
+typedef struct _DIRECTORY_STRING {
+  USHORT Size;
+  WCHAR Directory[1]; // arbitrary size
+} DIRECTORY_STRING, *PDIRECTORY_STRING;
+#pragma pack(pop)
+
+} // namespace
 
 // Convert UTF16 UCHAR vectors to string
 std::string ucharToString(std::string_view data) {
@@ -80,56 +143,76 @@ std::vector<std::string> parseAccessedData(std::string_view data_view,
   return accessed_data;
 }
 
-PrefetchHeader parseHeader(std::string_view data_view) {
-  PrefetchHeader header_data;
-  memcpy(&header_data.file_size, &data_view[12], sizeof(header_data.file_size));
+PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* data) {
+  PrefetchHeader result;
+  result.filename = wstringToString(data->FileName);
+  result.prefetch_hash = (boost::format("%x") % data->Hash).str();
+  result.file_size = data->FileSize;
+  return result;
+}
 
-  header_data.filename = ucharToString(data_view.substr(16, 60));
+PrefetchFileInfo parseFileInfo(std::string_view data_view) {
+  PrefetchFileInfo result;
+  const auto file_info = (PPREFETCH_FILE_INFORMATION)(
+      &data_view.data()[0] + sizeof(PREFETCH_FILE_HEADER));
 
-  std::int32_t hash = 0;
-  memcpy(&hash, &data_view[76], sizeof(hash));
-  header_data.prefetch_hash = (boost::format("%x") % hash).str();
-  return header_data;
+  auto size = file_info->FileNameStringsSize;
+  auto offset = file_info->FileNameStringsOffset;
+  if (offset < 0 || offset > data_view.size()) {
+    // Unexpected offset.
+    return result;
+  }
+
+  if (size < 0 || size + offset > data_view.size()) {
+    // Unexpected size.
+    return result;
+  }
+
+  std::vector<std::string> filenames;
+  auto next = (PWCHAR)(&data_view.data()[0] + offset);
+  while (*next != '\0') {
+    auto filename = wstringToString(next);
+    if (filename.size() < 8) {
+      break;
+    }
+    auto prefix = filename.substr(0, 8);
+    if (prefix != "\\VOLUME{" && prefix != "\\DEVICE") {
+      break;
+    }
+    filenames.emplace_back(std::move(filename));
+    auto length = wcslen(next);
+    next += length + 1;
+  }
+  result.files = osquery::join(filenames, ",");
+  result.count = filenames.size();
+  return result;
 }
 
 void parsePrefetchData(RowYield& yield,
                        const std::vector<UCHAR>& data,
-                       const std::string& file_path,
-                       const std::int32_t version) {
-  if (data.size() < 204) {
-    LOG(INFO) << "Prefetch data format incorrect unexpected size "
-              << data.size();
+                       const std::string& file_path) {
+  const auto prefetch_header = (PPREFETCH_FILE_HEADER)&data[0];
+  if (prefetch_header->Signature != PREFETCH_SIGNATURE) {
+    LOG(INFO) << "Unsupported prefetch file header: " << file_path;
     return;
   }
+
+  const auto version = prefetch_header->Version;
+  if (version != 30 && version != 23 && version != 26) {
+    LOG(INFO) << "Unsupported prefetch file version: " << file_path;
+    return;
+  }
+
+  // check size is > 204?
+  auto header = parseHeader(prefetch_header);
 
   const std::string_view data_view(reinterpret_cast<const char*>(data.data()),
                                    data.size());
-  auto header = parseHeader(data_view);
 
-  std::int32_t offset = 0;
-  memcpy(&offset, &data[100], sizeof(offset));
-  std::int32_t size = 0;
-  memcpy(&size, &data[104], sizeof(size));
+  auto files_accessed = parseFileInfo(data_view);
 
-  if (offset < 0 || offset > data_view.size()) {
-    // Unexpected offset.
-    return;
-  }
-
-  if (size < 0 || offset + size > data_view.size()) {
-    // Unexpected size.
-    return;
-  }
-
-  std::string files_accessed;
-  size_t files_accessed_count{0};
-  {
-    auto files_accessed_view = data_view.substr(offset, size);
-    auto files_accessed_list = parseAccessedData(files_accessed_view, false);
-    files_accessed = osquery::join(files_accessed_list, ",");
-    files_accessed_count = files_accessed_list.size();
-  }
-
+  std::int32_t offset{0};
+  std::int32_t size{0};
   memcpy(&offset, &data[108], sizeof(offset));
   std::int32_t volume_numbers = 0;
   memcpy(&volume_numbers, &data[112], sizeof(volume_numbers));
@@ -255,8 +338,8 @@ void parsePrefetchData(RowYield& yield,
   r["filename"] = SQL_TEXT(header.filename);
   r["hash"] = header.prefetch_hash;
   r["size"] = INTEGER(header.file_size);
-  r["accessed_files_count"] = INTEGER(files_accessed_count);
-  r["accessed_files"] = std::move(files_accessed);
+  r["accessed_files_count"] = INTEGER(files_accessed.count);
+  r["accessed_files"] = std::move(files_accessed.files);
   r["volume_serial"] = std::move(volume_serial);
   r["volume_creation"] = std::move(volume_creation);
   r["accessed_directories_count"] = INTEGER(dirs_accessed_count);
@@ -267,19 +350,6 @@ void parsePrefetchData(RowYield& yield,
   yield(std::move(r));
 }
 
-void parsePrefetchVersion(RowYield& yield,
-                          const std::vector<UCHAR>& data,
-                          const std::string& file_path) {
-  std::int32_t version = 0;
-  memcpy(&version, &data[0], sizeof(version));
-  // Currently supports Win7 and higher
-  if (version == 30 || version == 23 || version == 26) {
-    parsePrefetchData(yield, data, file_path, version);
-  } else {
-    LOG(INFO) << "Unsupported prefetch file: " << file_path;
-  }
-}
-
 void parsePrefetch(const std::string& file_path, RowYield& yield) {
   std::ifstream input_file(file_path, std::ios::in | std::ios::binary);
   std::vector<UCHAR> compressed_data(
@@ -287,40 +357,32 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
       (std::istreambuf_iterator<char>()));
   input_file.close();
 
-  if (compressed_data.size() < 8) {
-    // Not enough data to determine header_size and size.
+  if (compressed_data.size() < sizeof(PPREFETCH_COMPRESSED_HEADER)) {
+    // Not enough data to determine header size.
     return;
   }
 
-  std::int32_t header_sig = 0;
-  memcpy(&header_sig, &compressed_data[0], sizeof(header_sig));
-  std::int32_t size = 0;
-  memcpy(&size, &compressed_data[4], sizeof(size));
   std::vector<UCHAR> data;
-  // Check for compression signature MAM04. Prefetch may be compressed on Win8+
-  if (header_sig == 72171853) {
-    auto expected_data = decompressLZxpress(compressed_data, size);
-    if (expected_data.isError()) {
+  const auto compressed_header =
+      (PPREFETCH_COMPRESSED_HEADER)&compressed_data[0];
+  if (compressed_header->Signature == PREFETCH_SIGNATURE_COMPRESSED) {
+    auto expected = decompressLZxpress(
+        compressed_data, compressed_header->TotalUncompressedSize);
+    if (expected.isError()) {
+      LOG(INFO) << "Could not decompress prefetch " << expected.getError();
       return;
     }
-    data = expected_data.take();
+    data = expected.take();
   } else {
     data = std::move(compressed_data);
   }
 
-  if (data.size() < 8) {
-    // Not enough data to determine header.
+  if (data.size() < sizeof(PPREFETCH_FILE_HEADER)) {
+    // Not enough data to determine signature.
     return;
   }
 
-  std::int32_t header = 0;
-  memcpy(&header, &data[4], sizeof(header));
-  // Check for "SCCA" signature
-  if (header != 1094927187) {
-    LOG(WARNING) << "Unsupported prefetch file missing header: " << file_path;
-    return;
-  }
-  parsePrefetchVersion(yield, data, file_path);
+  parsePrefetchData(yield, data, file_path);
 }
 
 void genPrefetch(RowYield& yield, QueryContext& context) {
