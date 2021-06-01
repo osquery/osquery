@@ -156,31 +156,30 @@ PrefetchFileInfo parseFileInfo(std::string_view data_view) {
   const auto file_info = (PPREFETCH_FILE_INFORMATION)(
       &data_view.data()[0] + sizeof(PREFETCH_FILE_HEADER));
 
-  auto size = file_info->FileNameStringsSize;
+  // Size is given in bytes.
+  auto size = file_info->FileNameStringsSize / 2;
   auto offset = file_info->FileNameStringsOffset;
-  if (offset < 0 || offset > data_view.size()) {
+  if (offset > data_view.size()) {
     // Unexpected offset.
     return result;
   }
 
-  if (size < 0 || size + offset > data_view.size()) {
-    // Unexpected size.
-    return result;
-  }
-
+  size_t total_length{0};
   std::vector<std::string> filenames;
   auto next = (PWCHAR)(&data_view.data()[0] + offset);
   while (*next != '\0') {
+    auto length = wcsnlen_s(next, size - total_length);
+    if (length == 0 || length == size - total_length) {
+      // A null wide character was not found.
+      break;
+    }
+
     auto filename = wstringToString(next);
-    if (filename.size() < 8) {
-      break;
-    }
-    auto prefix = filename.substr(0, 8);
-    if (prefix != "\\VOLUME{" && prefix != "\\DEVICE") {
-      break;
-    }
     filenames.emplace_back(std::move(filename));
-    auto length = wcslen(next);
+    total_length += length + 1;
+    if (total_length >= size) {
+      break;
+    }
     next += length + 1;
   }
   result.files = osquery::join(filenames, ",");
@@ -369,7 +368,6 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
     auto expected = decompressLZxpress(
         compressed_data, compressed_header->TotalUncompressedSize);
     if (expected.isError()) {
-      LOG(INFO) << "Could not decompress prefetch " << expected.getError();
       return;
     }
     data = expected.take();
