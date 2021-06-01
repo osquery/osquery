@@ -33,16 +33,15 @@ TEST_F(PrefetchTest, test_sanity) {
       {"path", NonEmptyString},
       {"filename", NormalType},
       {"hash", NormalType},
-      {"last_execution_time", IntType},
-      {"execution_times", NormalType},
-      {"count", IntType},
+      {"last_run_time", IntType},
+      {"run_count", IntType},
       {"size", IntType},
       {"volume_serial", NormalType},
       {"volume_creation", NormalType},
-      {"accessed_directories", NormalType},
+      {"accessed_files_count", IntType},
       {"accessed_directories_count", IntType},
       {"accessed_files", NormalType},
-      {"accessed_files_count", IntType},
+      {"accessed_directories", NormalType},
   };
 
   auto const test_filepath =
@@ -57,7 +56,7 @@ TEST_F(PrefetchTest, test_sanity) {
   validate_rows(rows, row_map);
 
   std::string second_query = query +
-                             " AND last_execution_time = 1620953788 AND count "
+                             " AND last_run_time = 1620953788 AND run_count "
                              "= 3 AND accessed_files_count = 53";
   QueryData const specific_rows = execute_query(second_query);
 

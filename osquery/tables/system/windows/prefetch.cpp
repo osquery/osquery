@@ -38,7 +38,16 @@ struct PrefetchHeader {
 
 struct PrefetchFileInfo {
   std::string files;
-  size_t count;
+  size_t files_count;
+  LONGLONG last_run_time;
+  size_t run_count;
+};
+
+struct PrefetchVolumeInfo {
+  std::string directories;
+  size_t directories_count;
+  std::string volume_serial;
+  std::string volume_creation;
 };
 
 #pragma pack(push, 1)
@@ -68,10 +77,28 @@ typedef struct _PREFETCH_FILE_INFORMATION {
   DWORD VolumeInformationOffset;
   DWORD NumberOfVolumes;
   DWORD VolumesInformationSize;
-  FILETIME LastRunTime;
-  DWORD Reserved1[4];
-  DWORD RunCount;
-  DWORD Reserved2;
+  union {
+    struct {
+      DWORD Reserved1[2];
+      FILETIME LastRunTime;
+      DWORD Reserved2[4];
+      DWORD RunCount;
+    } v23;
+    struct {
+      DWORD Reserved1[2];
+      FILETIME LastRunTime;
+      FILETIME OtherRunTimes[7];
+      DWORD Reserved2[4];
+      DWORD RunCount;
+    } v26;
+    struct {
+      DWORD Reserved1[2];
+      FILETIME LastRunTime;
+      FILETIME OtherRunTimes[7];
+      DWORD Reserved2[2];
+      DWORD RunCount;
+    } v30v2;
+  } ext;
 } PREFETCH_FILE_INFORMATION, *PPREFETCH_FILE_INFORMATION;
 
 typedef struct _PREFETCH_VOLUME_INFORMATION {
@@ -94,96 +121,137 @@ typedef struct _DIRECTORY_STRING {
 
 } // namespace
 
-// Convert UTF16 UCHAR vectors to string
-std::string ucharToString(std::string_view data) {
-  size_t data_char = 0;
-  std::string data_string;
-  while (data_char < data.size() && data[data_char] != '\0') {
-    data_string += data[data_char];
-    data_char++;
-    if (data_char == data.size()) {
-      break;
-    }
-    if (data[data_char] == '\0') {
-      data_char++;
-    }
-  }
-  return data_string;
-}
-
-std::vector<std::string> parseAccessedData(std::string_view data_view,
-                                           bool directory) {
-  std::vector<std::string> accessed_data;
-
-  while (data_view.size() > 0) {
-    std::string file_accessed = ucharToString(data_view);
-    if (file_accessed.size() == 0) {
-      break;
-    }
-
-    size_t size = 2;
-    if (directory) {
-      if (file_accessed.size() < 4) {
-        break;
-      }
-
-      size += 2;
-      file_accessed = file_accessed.substr(1);
-    }
-
-    auto check_name = file_accessed.substr(0, 8);
-    // Check if data does not begin with \VOLUME{ or \DEVICE{
-    if (check_name != "\\VOLUME{" && check_name != "\\DEVICE{") {
-      break;
-    }
-
-    accessed_data.push_back(file_accessed);
-    data_view = data_view.substr((file_accessed.size() * 2) + size);
-  }
-  return accessed_data;
-}
-
-PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* data) {
+PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
-  result.filename = wstringToString(data->FileName);
-  result.prefetch_hash = (boost::format("%x") % data->Hash).str();
-  result.file_size = data->FileSize;
+  if (header->FileName[(sizeof(header->FileName) / 2) - 1] == '\0') {
+    result.filename = wstringToString(header->FileName);
+  }
+  result.prefetch_hash = (boost::format("%x") % header->Hash).str();
+  result.file_size = header->FileSize;
   return result;
 }
 
-PrefetchFileInfo parseFileInfo(std::string_view data_view) {
+PrefetchFileInfo parseFileInfo(
+    const std::vector<UCHAR>& data,
+    const PREFETCH_FILE_INFORMATION* prefetch_file_info,
+    DWORD version) {
   PrefetchFileInfo result;
-  const auto file_info = (PPREFETCH_FILE_INFORMATION)(
-      &data_view.data()[0] + sizeof(PREFETCH_FILE_HEADER));
+
+  FILETIME last_run_time;
+  if (version == 23) {
+    last_run_time = prefetch_file_info->ext.v23.LastRunTime;
+    result.run_count = prefetch_file_info->ext.v23.RunCount;
+  } else if (version == 26) {
+    last_run_time = prefetch_file_info->ext.v26.LastRunTime;
+    result.run_count = prefetch_file_info->ext.v26.RunCount;
+  } else if (version == 30) {
+    last_run_time = prefetch_file_info->ext.v30v2.LastRunTime;
+    result.run_count = prefetch_file_info->ext.v30v2.RunCount;
+  }
+  result.last_run_time = filetimeToUnixtime(last_run_time);
 
   // Size is given in bytes.
-  auto size = file_info->FileNameStringsSize / 2;
-  auto offset = file_info->FileNameStringsOffset;
-  if (offset > data_view.size()) {
+  const auto size = prefetch_file_info->FileNameStringsSize;
+  const auto offset = prefetch_file_info->FileNameStringsOffset;
+  if (offset > data.size()) {
     // Unexpected offset.
     return result;
   }
 
   size_t total_length{0};
   std::vector<std::string> filenames;
-  auto next = (PWCHAR)(&data_view.data()[0] + offset);
+  auto next = (PWCHAR)(&data[0] + offset);
   while (*next != '\0') {
-    auto length = wcsnlen_s(next, size - total_length);
-    if (length == 0 || length == size - total_length) {
+    auto length = wcsnlen_s(next, (size - total_length) / 2);
+    if (length == 0 || length == (size - total_length) / 2) {
       // A null wide character was not found.
       break;
     }
 
     auto filename = wstringToString(next);
     filenames.emplace_back(std::move(filename));
-    total_length += length + 1;
+    total_length += (length + 1) * 2;
     if (total_length >= size) {
       break;
     }
     next += length + 1;
   }
+
   result.files = osquery::join(filenames, ",");
-  result.count = filenames.size();
+  result.files_count = filenames.size();
+  return result;
+}
+
+PrefetchVolumeInfo parseVolumeInfo(
+    const std::vector<UCHAR>& data,
+    const PREFETCH_FILE_INFORMATION* prefetch_file_info,
+    DWORD version) {
+  PrefetchVolumeInfo result;
+
+  const auto volume_header_size = (version == 30) ? 104 : 96;
+  const auto volume_offset = prefetch_file_info->VolumeInformationOffset;
+  // Size is given in bytes.
+  const auto volume_size = prefetch_file_info->VolumesInformationSize;
+  if (volume_offset > data.size()) {
+    // Unexpected offset.
+    return result;
+  }
+
+  // Headers are stacked sequentially.
+  auto volume_header_offset = volume_offset;
+
+  std::vector<std::string> directories;
+  std::vector<std::string> volume_serials;
+  std::vector<std::string> volume_creations;
+  for (size_t i = 0; i < prefetch_file_info->NumberOfVolumes; i++) {
+    if (volume_header_offset + volume_header_size > data.size()) {
+      // Unexpected size.
+      return result;
+    }
+
+    const auto prefetch_volume_info =
+        (PPREFETCH_VOLUME_INFORMATION)(&data[0] + volume_header_offset);
+    const auto creation =
+        filetimeToUnixtime(prefetch_volume_info->VolumeCreationTime);
+    volume_creations.push_back(std::to_string(creation));
+    const auto serial = prefetch_volume_info->VolumeSerialNumber;
+    volume_serials.push_back((boost::format("%x") % serial).str());
+    volume_header_offset += volume_header_size;
+
+    const auto dir_count = prefetch_volume_info->NumberOfDirectoryStrings;
+    size_t dir_offset = prefetch_volume_info->DirectoryStringsOffset;
+    if (dir_count == 0) {
+      continue;
+    }
+
+    for (size_t j = 0; j < dir_count; j++) {
+      if (volume_offset + dir_offset + sizeof(PDIRECTORY_STRING) >
+          data.size()) {
+        // Unexpected offset.
+        break;
+      }
+
+      const auto prefetch_directory =
+          (PDIRECTORY_STRING)(&data[0] + volume_offset + dir_offset);
+      dir_offset += sizeof(DIRECTORY_STRING);
+
+      auto length = wcsnlen_s(prefetch_directory->Directory,
+                              (volume_size - dir_offset) / 2);
+      if (length == 0 || length == (volume_size - dir_offset) / 2) {
+        // A null wide character was not found.
+        break;
+      }
+
+      auto filename = wstringToString(prefetch_directory->Directory);
+      directories.emplace_back(std::move(filename));
+      dir_offset += (length + 1) * 2;
+    }
+  }
+
+  result.volume_creation = osquery::join(volume_creations, ",");
+  result.volume_serial = osquery::join(volume_serials, ",");
+  result.directories = osquery::join(directories, ",");
+  result.directories_count = directories.size();
   return result;
 }
 
@@ -202,150 +270,26 @@ void parsePrefetchData(RowYield& yield,
     return;
   }
 
-  // check size is > 204?
   auto header = parseHeader(prefetch_header);
 
-  const std::string_view data_view(reinterpret_cast<const char*>(data.data()),
-                                   data.size());
-
-  auto files_accessed = parseFileInfo(data_view);
-
-  std::int32_t offset{0};
-  std::int32_t size{0};
-  memcpy(&offset, &data[108], sizeof(offset));
-  std::int32_t volume_numbers = 0;
-  memcpy(&volume_numbers, &data[112], sizeof(volume_numbers));
-  memcpy(&size, &data[116], sizeof(size));
-
-  if (offset < 0 || offset > data_view.size()) {
-    // Unexpected offset.
-    return;
-  }
-
-  if (size < 0 || offset + size > data_view.size()) {
-    // Unexpected size.
-    return;
-  }
-
-  auto dir_accessed_view = data_view.substr(offset, size);
-  auto dir_view = dir_accessed_view;
-
-  std::string volume_creation;
-  std::string volume_serial;
-  std::vector<std::int32_t> dir_lists;
-  {
-    std::vector<std::string> volume_creation_list;
-    std::vector<std::string> volume_serial_list;
-    while (volume_numbers > 0) {
-      if (dir_view.size() < 32) {
-        // Not enough data to parse.
-        break;
-      }
-
-      std::int64_t creation = 0;
-      memcpy(&creation, &dir_view.data()[8], sizeof(creation));
-      LARGE_INTEGER large_time;
-      large_time.QuadPart = creation;
-      FILETIME file_time;
-      file_time.dwHighDateTime = large_time.HighPart;
-      file_time.dwLowDateTime = large_time.LowPart;
-      LONGLONG creation_time = filetimeToUnixtime(file_time);
-      volume_creation_list.push_back(std::to_string(creation_time));
-      std::int32_t serial = 0;
-      memcpy(&serial, &dir_view.data()[16], sizeof(serial));
-      volume_serial_list.push_back((boost::format("%x") % serial).str());
-      volume_numbers -= 1;
-      std::int32_t list_offset = 0;
-      memcpy(&list_offset, &dir_view.data()[28], sizeof(list_offset));
-      dir_lists.push_back(list_offset);
-      // Volume metadata size depends on Prefetch version
-      if (version == 30) {
-        dir_view.remove_prefix(96);
-      } else {
-        dir_view.remove_prefix(104);
-      }
-    }
-    volume_creation = osquery::join(volume_creation_list, ",");
-    volume_serial = osquery::join(volume_serial_list, ",");
-  }
-
-  std::string dirs_accessed;
-  size_t dirs_accessed_count{0};
-  {
-    std::vector<std::string> dirs_accessed_list;
-    for (const auto& dir_list : dir_lists) {
-      auto dir_view = dir_accessed_view.substr(dir_list);
-      auto dir = parseAccessedData(dir_view, true);
-      dirs_accessed_list.insert(
-          dirs_accessed_list.end(), dir.begin(), dir.end());
-    }
-    dirs_accessed = osquery::join(dirs_accessed_list, ",");
-    dirs_accessed_count = dirs_accessed_list.size();
-  }
-
-  std::string timestamp_list;
-  std::string last_execution_time;
-  {
-    std::vector<std::int64_t> run_times;
-    std::int64_t times_run = 0;
-    // Win8+ Prefetch can contain up to eight timestamps
-    // If the eight timestamps are not filled, they are set to 0
-    if (version == 23) {
-      memcpy(&times_run, &data[128], sizeof(times_run));
-      run_times.push_back(times_run);
-    } else {
-      int time_i = 0;
-      int time_offset = 128;
-      while (time_i < 8) {
-        memcpy(&times_run, &data[time_offset], sizeof(times_run));
-        run_times.push_back(times_run);
-        time_i++;
-        time_offset += 8;
-      }
-    }
-
-    std::vector<std::string> timestamps;
-    for (const auto& run_time : run_times) {
-      if (run_time == 0ll) {
-        break;
-      }
-      LARGE_INTEGER large_time;
-      large_time.QuadPart = run_time;
-      FILETIME file_time;
-      file_time.dwHighDateTime = large_time.HighPart;
-      file_time.dwLowDateTime = large_time.LowPart;
-      LONGLONG runtime = filetimeToUnixtime(file_time);
-      timestamps.push_back(std::to_string(runtime));
-    }
-    timestamp_list = osquery::join(timestamps, ",");
-    if (!timestamps.empty()) {
-      last_execution_time = timestamps[0];
-    }
-  }
-
-  std::int32_t run_count = 0;
-  if (version == 23) {
-    memcpy(&run_count, &data[152], sizeof(run_count));
-  } else if (version == 26) {
-    memcpy(&run_count, &data[208], sizeof(run_count));
-  } else {
-    memcpy(&run_count, &data[200], sizeof(run_count));
-  }
+  const auto prefetch_file_info =
+      (PPREFETCH_FILE_INFORMATION)(&data[0] + sizeof(PREFETCH_FILE_HEADER));
+  auto file_info = parseFileInfo(data, prefetch_file_info, version);
+  auto volume_info = parseVolumeInfo(data, prefetch_file_info, version);
 
   auto r = make_table_row();
   r["path"] = file_path;
   r["filename"] = SQL_TEXT(header.filename);
   r["hash"] = header.prefetch_hash;
   r["size"] = INTEGER(header.file_size);
-  r["accessed_files_count"] = INTEGER(files_accessed.count);
-  r["accessed_files"] = std::move(files_accessed.files);
-  r["volume_serial"] = std::move(volume_serial);
-  r["volume_creation"] = std::move(volume_creation);
-  r["accessed_directories_count"] = INTEGER(dirs_accessed_count);
-  r["accessed_directories"] = std::move(dirs_accessed);
-  r["last_execution_time"] = last_execution_time;
-  r["execution_times"] = std::move(timestamp_list);
-  r["count"] = INTEGER(run_count);
+  r["accessed_files_count"] = INTEGER(file_info.files_count);
+  r["accessed_files"] = std::move(file_info.files);
+  r["volume_serial"] = std::move(volume_info.volume_serial);
+  r["volume_creation"] = std::move(volume_info.volume_creation);
+  r["accessed_directories_count"] = INTEGER(volume_info.directories_count);
+  r["accessed_directories"] = std::move(volume_info.directories);
+  r["last_run_time"] = INTEGER(file_info.last_run_time);
+  r["run_count"] = INTEGER(file_info.run_count);
   yield(std::move(r));
 }
 
@@ -368,6 +312,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
     auto expected = decompressLZxpress(
         compressed_data, compressed_header->TotalUncompressedSize);
     if (expected.isError()) {
+      LOG(INFO) << "Cannot decompress prefetch file: " << expected.getError();
       return;
     }
     data = expected.take();

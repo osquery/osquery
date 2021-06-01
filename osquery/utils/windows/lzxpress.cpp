@@ -11,6 +11,8 @@
 #include <osquery/utils/expected/expected.h>
 #include <osquery/utils/windows/lzxpress.h>
 
+#include <winternl.h>
+
 namespace osquery {
 namespace {
 
@@ -18,15 +20,15 @@ namespace {
 #define STATUS_SUCCESS 0
 #endif
 
-typedef HRESULT(WINAPI* RTLDECOMPRESSBUFFEREX)(_In_ USHORT format,
-                                               _Out_ PUCHAR uncompressedBuffer,
-                                               _In_ ULONG uncompressedSize,
-                                               _In_ PUCHAR data,
-                                               _In_ ULONG dataSize,
-                                               _Out_ PULONG finalSize,
-                                               _In_ PVOID workspace);
+typedef NTSTATUS(WINAPI* RTLDECOMPRESSBUFFEREX)(_In_ USHORT format,
+                                                _Out_ PUCHAR uncompressedBuffer,
+                                                _In_ ULONG uncompressedSize,
+                                                _In_ PUCHAR data,
+                                                _In_ ULONG dataSize,
+                                                _Out_ PULONG finalSize,
+                                                _In_ PVOID workspace);
 
-typedef HRESULT(WINAPI* RTLGETCOMPRESSIONWORKSPACESIZE)(
+typedef NTSTATUS(WINAPI* RTLGETCOMPRESSIONWORKSPACESIZE)(
     _In_ USHORT format,
     _Out_ PULONG bufferWorkSpaceSize,
     _Out_ PULONG fragmentWorkSpaceSize);
