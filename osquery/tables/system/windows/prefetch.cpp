@@ -33,7 +33,8 @@ const unsigned int kPrefetchVersionWindows10 = 30;
 const unsigned int kPrefetchVersionWindows8 = 26;
 const unsigned int kPrefetchVersionWindows7 = 23;
 const unsigned int kPrefetchVolumeVersionWindows10 = kPrefetchVersionWindows10;
-const unsigned int kPrefetchVolumeVersionWindows8 = kPrefetchVersionWindows8;
+const unsigned int kPrefetchVolumeSizeWindows10 = 96;
+const unsigned int kPrefetchVolumeSizeWindows8 = 104;
 
 struct PrefetchHeader {
   std::uint32_t file_size;
@@ -217,8 +218,8 @@ PrefetchVolumeInfo parseVolumeInfo(
   PrefetchVolumeInfo result;
 
   const auto volume_header_size = (version == kPrefetchVersionWindows10)
-                                      ? kPrefetchVolumeVersionWindows8
-                                      : kPrefetchVolumeVersionWindows10;
+                                      ? kPrefetchVolumeSizeWindows10
+                                      : kPrefetchVolumeSizeWindows8;
   const auto volume_offset = prefetch_file_info->VolumeInformationOffset;
   // Size is given in bytes.
   const auto volume_size = prefetch_file_info->VolumesInformationSize;
