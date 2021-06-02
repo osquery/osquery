@@ -29,6 +29,11 @@ namespace tables {
 namespace {
 
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
+const unsigned int kPrefetchVersionWindows10 = 30;
+const unsigned int kPrefetchVersionWindows8 = 26;
+const unsigned int kPrefetchVersionWindows7 = 23;
+const unsigned int kPrefetchVolumeVersionWindows10 = kPrefetchVersionWindows10;
+const unsigned int kPrefetchVolumeVersionWindows8 = kPrefetchVersionWindows8;
 
 struct PrefetchHeader {
   std::uint32_t file_size;
@@ -40,6 +45,7 @@ struct PrefetchFileInfo {
   std::string files;
   size_t files_count;
   LONGLONG last_run_time;
+  std::string run_times;
   size_t run_count;
 };
 
@@ -123,7 +129,8 @@ typedef struct _DIRECTORY_STRING {
 
 PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
-  if (header->FileName[(sizeof(header->FileName) / 2) - 1] == '\0') {
+  if (header->FileName[(sizeof(header->FileName) / sizeof(WCHAR)) - 1] ==
+      '\0') {
     result.filename = wstringToString(header->FileName);
   }
   result.prefetch_hash = (boost::format("%x") % header->Hash).str();
@@ -138,16 +145,37 @@ PrefetchFileInfo parseFileInfo(
   PrefetchFileInfo result;
 
   FILETIME last_run_time;
-  if (version == 23) {
-    last_run_time = prefetch_file_info->ext.v23.LastRunTime;
-    result.run_count = prefetch_file_info->ext.v23.RunCount;
-  } else if (version == 26) {
-    last_run_time = prefetch_file_info->ext.v26.LastRunTime;
-    result.run_count = prefetch_file_info->ext.v26.RunCount;
-  } else if (version == 30) {
+  std::vector<std::string> run_times;
+
+  switch (version) {
+  case kPrefetchVersionWindows10:
     last_run_time = prefetch_file_info->ext.v30v2.LastRunTime;
     result.run_count = prefetch_file_info->ext.v30v2.RunCount;
+    for (const auto& entry : prefetch_file_info->ext.v30v2.OtherRunTimes) {
+      LONGLONG time = filetimeToUnixtime(entry);
+      if (time != -11644473600) {
+        run_times.push_back(std::to_string(filetimeToUnixtime(entry)));
+      }
+    }
+    result.run_times = osquery::join(run_times, ",");
+
+    break;
+  case kPrefetchVersionWindows8:
+    last_run_time = prefetch_file_info->ext.v26.LastRunTime;
+    result.run_count = prefetch_file_info->ext.v26.RunCount;
+    for (const auto& entry : prefetch_file_info->ext.v30v2.OtherRunTimes) {
+      run_times.push_back(std::to_string(filetimeToUnixtime(entry)));
+    }
+    result.run_times = osquery::join(run_times, ",");
+    break;
+  case kPrefetchVersionWindows7:
+    last_run_time = prefetch_file_info->ext.v23.LastRunTime;
+    result.run_count = prefetch_file_info->ext.v23.RunCount;
+    break;
+  default:
+    LOG(INFO) << "Unsupported prefetch version: " << version;
   }
+
   result.last_run_time = filetimeToUnixtime(last_run_time);
 
   // Size is given in bytes.
@@ -161,16 +189,16 @@ PrefetchFileInfo parseFileInfo(
   size_t total_length{0};
   std::vector<std::string> filenames;
   auto next = (PWCHAR)(&data[0] + offset);
-  while (*next != '\0') {
-    auto length = wcsnlen_s(next, (size - total_length) / 2);
-    if (length == 0 || length == (size - total_length) / 2) {
+  while (*next != L'\0') {
+    auto length = wcsnlen_s(next, (size - total_length) / sizeof(WCHAR));
+    if (length == 0 || length == (size - total_length) / sizeof(WCHAR)) {
       // A null wide character was not found.
       break;
     }
 
     auto filename = wstringToString(next);
     filenames.emplace_back(std::move(filename));
-    total_length += (length + 1) * 2;
+    total_length += (length + 1) * sizeof(WCHAR);
     if (total_length >= size) {
       break;
     }
@@ -188,7 +216,9 @@ PrefetchVolumeInfo parseVolumeInfo(
     DWORD version) {
   PrefetchVolumeInfo result;
 
-  const auto volume_header_size = (version == 30) ? 104 : 96;
+  const auto volume_header_size = (version == kPrefetchVersionWindows10)
+                                      ? kPrefetchVolumeVersionWindows8
+                                      : kPrefetchVolumeVersionWindows10;
   const auto volume_offset = prefetch_file_info->VolumeInformationOffset;
   // Size is given in bytes.
   const auto volume_size = prefetch_file_info->VolumesInformationSize;
@@ -236,15 +266,15 @@ PrefetchVolumeInfo parseVolumeInfo(
       dir_offset += sizeof(DIRECTORY_STRING);
 
       auto length = wcsnlen_s(prefetch_directory->Directory,
-                              (volume_size - dir_offset) / 2);
-      if (length == 0 || length == (volume_size - dir_offset) / 2) {
+                              (volume_size - dir_offset) / sizeof(WCHAR));
+      if (length == 0 || length == (volume_size - dir_offset) / sizeof(WCHAR)) {
         // A null wide character was not found.
         break;
       }
 
       auto filename = wstringToString(prefetch_directory->Directory);
       directories.emplace_back(std::move(filename));
-      dir_offset += (length + 1) * 2;
+      dir_offset += (length + 1) * sizeof(WCHAR);
     }
   }
 
@@ -265,7 +295,9 @@ void parsePrefetchData(RowYield& yield,
   }
 
   const auto version = prefetch_header->Version;
-  if (version != 30 && version != 23 && version != 26) {
+  if (version != kPrefetchVersionWindows10 &&
+      version != kPrefetchVersionWindows7 &&
+      version != kPrefetchVersionWindows8) {
     LOG(INFO) << "Unsupported prefetch file version: " << file_path;
     return;
   }
@@ -289,6 +321,11 @@ void parsePrefetchData(RowYield& yield,
   r["accessed_directories_count"] = INTEGER(volume_info.directories_count);
   r["accessed_directories"] = std::move(volume_info.directories);
   r["last_run_time"] = INTEGER(file_info.last_run_time);
+
+  if (version != 23) {
+    r["other_run_times"] = file_info.run_times;
+  }
+
   r["run_count"] = INTEGER(file_info.run_count);
   yield(std::move(r));
 }

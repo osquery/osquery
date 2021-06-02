@@ -34,6 +34,7 @@ TEST_F(PrefetchTest, test_sanity) {
       {"filename", NormalType},
       {"hash", NormalType},
       {"last_run_time", IntType},
+      {"other_run_times", NormalType},
       {"run_count", IntType},
       {"size", IntType},
       {"volume_serial", NormalType},
