@@ -69,15 +69,15 @@ def url_for_spec(path):
     to the specification on GitHub.
     """
     full_path = os.path.abspath(path)
+
     url = "https://github.com/osquery/osquery/blob/master"
-    osquery_found = False
-    for part in full_path.split("/"):
-        if osquery_found:
-            url = url + "/" + part
-        elif part == "osquery":
-            osquery_found = True
-        else:
-            continue
+
+    # Split the full_path at `specs`, anything after it should be
+    # appended to the url
+    path_fragments = full_path.split("/specs/", 1)
+
+    url = url + "/specs/" + path_fragments[1]
+
     return url
 
 def generate_table_metadata(full_path):
