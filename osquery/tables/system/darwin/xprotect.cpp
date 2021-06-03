@@ -26,10 +26,31 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-/// Path to XProtect.meta.plist and XProtect.plist
-const std::string kXProtectPath =
+/// Path to XProtect.meta.plist and XProtect.plist, before macOS 11
+const std::string kXProtectPathPreBigSur =
     "/System/Library/CoreServices/"
     "CoreTypes.bundle/Contents/Resources/";
+
+/// the path to the XProtect.meta.plist and XProtect.plist changed in macOS 11
+const std::string kXProtectPathPostBigSur =
+    "/Library/Apple/System/Library/"
+    "CoreServices/XProtect.bundle/Contents/Resources";
+
+Status getExpectedXProtectDir(std::string& path) {
+  auto qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    return Status(-1, "Couldn't determine macOS version");
+  }
+
+  // Big Sur is designated as "11.0" OR "10.16"
+  if (qd.front().at("major") < "11" ||
+      (sq.front().at("major") == "10" && sq.front().at("minor") == "16")) {
+    path = kXProtectPathPreBigSur;
+  } else {
+    path = kXProtectPathPostBigSur;
+  }
+  return Status(0, "ok");
+}
 
 /// Relative path for each user's logging directory
 const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
@@ -148,7 +169,14 @@ QueryData genXProtectEntries(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
 
-  auto xprotect_path = fs::path(kXProtectPath) / "XProtect.plist";
+  std::string xprotect_dir;
+  auto status = getExpectedXProtectDir(xprotect_dir);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+    return results;
+  }
+
+  auto xprotect_path = fs::path(xprotect_dir) / "XProtect.plist";
   if (!osquery::pathExists(xprotect_path).ok()) {
     VLOG(1) << "XProtect.plist is missing";
     return results;
@@ -172,7 +200,14 @@ QueryData genXProtectMeta(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
 
-  auto xprotect_meta = fs::path(kXProtectPath) / "XProtect.meta.plist";
+  std::string xprotect_dir;
+  auto status = getExpectedXProtectDir(xprotect_dir);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+    return results;
+  }
+
+  auto xprotect_meta = fs::path(xprotect_dir) / "XProtect.meta.plist";
   if (!osquery::pathExists(xprotect_meta).ok()) {
     VLOG(1) << "XProtect.meta.plist is missing";
     return results;
