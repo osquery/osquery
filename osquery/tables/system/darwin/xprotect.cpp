@@ -26,31 +26,11 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-/// Path to XProtect.meta.plist and XProtect.plist, before macOS 11
-const std::string kXProtectPathPreBigSur =
-    "/System/Library/CoreServices/"
-    "CoreTypes.bundle/Contents/Resources/";
-
-/// the path to the XProtect.meta.plist and XProtect.plist changed in macOS 11
-const std::string kXProtectPathPostBigSur =
-    "/Library/Apple/System/Library/"
-    "CoreServices/XProtect.bundle/Contents/Resources";
-
-Status getExpectedXProtectDir(std::string& path) {
-  auto qd = SQL::selectAllFrom("os_version");
-  if (qd.size() != 1) {
-    return Status(-1, "Couldn't determine macOS version");
-  }
-
-  // Big Sur is designated as "11.0" OR "10.16"
-  if (qd.front().at("major") < "11" ||
-      (sq.front().at("major") == "10" && sq.front().at("minor") == "16")) {
-    path = kXProtectPathPreBigSur;
-  } else {
-    path = kXProtectPathPostBigSur;
-  }
-  return Status(0, "ok");
-}
+const std::vector<std::string> kPotentialXProtectDirs = {
+    "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/",
+    "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/"
+    "Resources",
+};
 
 /// Relative path for each user's logging directory
 const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
@@ -165,26 +145,19 @@ QueryData genXProtectReports(QueryContext& context) {
   return results;
 }
 
-QueryData genXProtectEntries(QueryContext& context) {
-  QueryData results;
+void genXProtectEntriesFromPath(const std::string& xprotect_dir,
+                                QueryData& results) {
   pt::ptree tree;
-
-  std::string xprotect_dir;
-  auto status = getExpectedXProtectDir(xprotect_dir);
-  if (!status.ok()) {
-    VLOG(1) << status.getMessage();
-    return results;
-  }
 
   auto xprotect_path = fs::path(xprotect_dir) / "XProtect.plist";
   if (!osquery::pathExists(xprotect_path).ok()) {
     VLOG(1) << "XProtect.plist is missing";
-    return results;
+    return;
   }
 
   if (!osquery::parsePlist(xprotect_path, tree).ok()) {
     VLOG(1) << "Could not parse the XProtect.plist";
-    return results;
+    return;
   }
 
   if (tree.count("root") != 0) {
@@ -192,30 +165,30 @@ QueryData genXProtectEntries(QueryContext& context) {
       genXProtectEntry(it.second, results);
     }
   }
+}
 
+QueryData genXProtectEntries(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& dir : kPotentialXProtectDirs) {
+    genXProtectEntriesFromPath(dir, results);
+  }
   return results;
 }
 
-QueryData genXProtectMeta(QueryContext& context) {
-  QueryData results;
+void genXProtectMetaFromPath(const std::string& xprotect_dir,
+                             QueryData& results) {
   pt::ptree tree;
-
-  std::string xprotect_dir;
-  auto status = getExpectedXProtectDir(xprotect_dir);
-  if (!status.ok()) {
-    VLOG(1) << status.getMessage();
-    return results;
-  }
 
   auto xprotect_meta = fs::path(xprotect_dir) / "XProtect.meta.plist";
   if (!osquery::pathExists(xprotect_meta).ok()) {
     VLOG(1) << "XProtect.meta.plist is missing";
-    return results;
+    return;
   }
 
   if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
     VLOG(1) << "Could not parse the XProtect.meta.plist";
-    return results;
+    return;
   }
 
   for (const auto& it : tree) {
@@ -247,6 +220,14 @@ QueryData genXProtectMeta(QueryContext& context) {
         }
       }
     }
+  }
+}
+
+QueryData genXProtectMeta(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& dir : kPotentialXProtectDirs) {
+    genXProtectMetaFromPath(dir, results);
   }
 
   return results;
