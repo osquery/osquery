@@ -193,7 +193,7 @@ index 08da222a..2bb08fd3 100644
  
    return _HEX_STRING_;
 diff --git a/libyara/modules/pe/pe.c b/libyara/modules/pe/pe.c
-index e2c4e1aa..7779e4a1 100644
+index e2c4e1aa..32dfe5c1 100644
 --- a/libyara/modules/pe/pe.c
 +++ b/libyara/modules/pe/pe.c
 @@ -605,20 +605,20 @@ static void pe_parse_version_info(PIMAGE_RESOURCE_DATA_ENTRY rsrc_data, PE* pe)
@@ -248,6 +248,15 @@ index e2c4e1aa..7779e4a1 100644
  
              set_string(value, pe->object, "version_info[%s]", key);
            }
+@@ -2207,7 +2207,7 @@ define_function(imphash)
+     if (!dll_name)
+       return ERROR_INSUFFICIENT_MEMORY;
+ 
+-    strlcpy(dll_name, dll->name, dll_name_len + 1);
++    yara_strlcpy(dll_name, dll->name, dll_name_len + 1);
+ 
+     func = dll->functions;
+ 
 diff --git a/libyara/re_lexer.c b/libyara/re_lexer.c
 index bf5520f3..1bd68a37 100644
 --- a/libyara/re_lexer.c
