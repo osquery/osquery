@@ -99,6 +99,7 @@ function(generateLibrdkafka)
   if(DEFINED PLATFORM_WINDOWS)
     target_sources(thirdparty_librdkafka_c PRIVATE
       "${library_root}/rdkafka_sasl_win32.c"
+      "${library_root}/rdkafka_sasl_oauthbearer.c"
       "${library_root}/regexp.c"
     )
   endif()
