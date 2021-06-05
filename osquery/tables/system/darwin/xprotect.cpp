@@ -156,10 +156,12 @@ QueryData genXProtectEntries(QueryContext& context) {
     // try the newer macOS11 path before giving up
     xprotect_path = fs::path(kXProtectLeadPath) / xprotect_path;
   }
+
   if (!osquery::pathExists(xprotect_path).ok()) {
     VLOG(1) << "XProtect.plist is missing";
     return results;
   }
+
   if (!osquery::parsePlist(xprotect_path, tree).ok()) {
     VLOG(1) << "Could not parse the XProtect.plist";
     return results;
@@ -183,10 +185,12 @@ QueryData genXProtectMeta(QueryContext& context) {
     // try the newer macOS11 path before giving up
     xprotect_meta = fs::path(kXProtectLeadPath) / xprotect_meta;
   }
+
   if (!osquery::pathExists(xprotect_meta).ok()) {
     VLOG(1) << "XProtect.meta.plist is missing";
     return results;
   }
+
   if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
     VLOG(1) << "Could not parse the XProtect.meta.plist";
     return results;
