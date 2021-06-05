@@ -31,6 +31,9 @@ const std::string kXProtectPath =
     "/System/Library/CoreServices/"
     "CoreTypes.bundle/Contents/Resources/";
 
+/// Newer Root Path for XProtect in macOS 11
+const std::string kXProtectLeadPath = "/Library/Apple";
+
 /// Relative path for each user's logging directory
 const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
 
@@ -150,6 +153,11 @@ QueryData genXProtectEntries(QueryContext& context) {
 
   auto xprotect_path = fs::path(kXProtectPath) / "XProtect.plist";
   if (!osquery::pathExists(xprotect_path).ok()) {
+    // try the newer macOS11 path before giving up
+    xprotect_path = fs::path(kXProtectLeadPath) / xprotect_path;
+  }
+  
+  if (!osquery::pathExists(xprotect_path).ok()) {
     VLOG(1) << "XProtect.plist is missing";
     return results;
   }
@@ -173,6 +181,11 @@ QueryData genXProtectMeta(QueryContext& context) {
   pt::ptree tree;
 
   auto xprotect_meta = fs::path(kXProtectPath) / "XProtect.meta.plist";
+  if (!osquery::pathExists(xprotect_meta).ok()) {
+    // try the newer macOS11 path before giving up
+    xprotect_meta = fs::path(kXProtectLeadPath) / xprotect_meta;
+  }
+  
   if (!osquery::pathExists(xprotect_meta).ok()) {
     VLOG(1) << "XProtect.meta.plist is missing";
     return results;
