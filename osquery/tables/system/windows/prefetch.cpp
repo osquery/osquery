@@ -131,9 +131,9 @@ PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
   if (header->FileName[ARRAYSIZE(header->FileName) - 1] == L'\0') {
     result.filename = wstringToString(header->FileName);
-    if (result.filename.empty()) {
-      LOG(INFO) << "Did not find null-terminated filename for prefetch file";
-    }
+  }
+  if (result.filename.empty()) {
+    LOG(INFO) << "Did not find null-terminated filename for prefetch file";
   }
   result.prefetch_hash = (boost::format("%x") % header->Hash).str();
   result.file_size = header->FileSize;
