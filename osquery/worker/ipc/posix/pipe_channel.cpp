@@ -119,6 +119,11 @@ Status PipeChannel::recvStringMessageImpl(std::string& message) {
                   reinterpret_cast<char*>(&message[pos]),
                   static_cast<size_t>(message_size - pos));
 
+    if (result == 0) {
+      return Status::failure(
+          2, "Pipe to the table " + table_name_ + " closed while reading");
+    }
+
     if (result < 0) {
       return Status::failure(
           errno,
