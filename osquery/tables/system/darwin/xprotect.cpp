@@ -31,8 +31,8 @@ const std::string kXProtectPath =
     "/System/Library/CoreServices/"
     "CoreTypes.bundle/Contents/Resources/";
 
-/// Newer Root Path for XProtect in macOS 11
-const std::string kXProtectLeadPath = "/Library/Apple";
+/// New Root Path for XProtect in macOS 11
+const std::string kXProtectNewRootPath = "/Library/Apple";
 
 /// Relative path for each user's logging directory
 const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
@@ -147,23 +147,33 @@ QueryData genXProtectReports(QueryContext& context) {
   return results;
 }
 
+Status genXProtectTreeFromPlist(std::string plistFileName, pt::ptree& tree) {
+  auto xprotect_path = fs::path(kXProtectPath) / plistFileName;
+
+  if (!osquery::pathExists(xprotect_path).ok()) {
+    // try the newer macOS11 path before giving up
+    xprotect_path = fs::path(kXProtectNewRootPath) / xprotect_path;
+  }
+
+  if (!osquery::pathExists(xprotect_path).ok()) {
+    return Status::failure(plistFileName + " is missing");
+  }
+
+  if (!osquery::parsePlist(xprotect_path, tree).ok()) {
+    return Status::failure("Could not parse the " + plistFileName);
+  }
+
+  return Status::success();
+}
+
 QueryData genXProtectEntries(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
 
-  auto xprotect_path = fs::path(kXProtectPath) / "XProtect.plist";
-  if (!osquery::pathExists(xprotect_path).ok()) {
-    // try the newer macOS11 path before giving up
-    xprotect_path = fs::path(kXProtectLeadPath) / xprotect_path;
-  }
+  auto loaded_plist = genXProtectTreeFromPlist("XProtect.plist", tree);
 
-  if (!osquery::pathExists(xprotect_path).ok()) {
-    VLOG(1) << "XProtect.plist is missing";
-    return results;
-  }
-
-  if (!osquery::parsePlist(xprotect_path, tree).ok()) {
-    VLOG(1) << "Could not parse the XProtect.plist";
+  if (!loaded_plist.ok()) {
+    VLOG(1) << loaded_plist.getMessage();
     return results;
   }
 
@@ -180,19 +190,10 @@ QueryData genXProtectMeta(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
 
-  auto xprotect_meta = fs::path(kXProtectPath) / "XProtect.meta.plist";
-  if (!osquery::pathExists(xprotect_meta).ok()) {
-    // try the newer macOS11 path before giving up
-    xprotect_meta = fs::path(kXProtectLeadPath) / xprotect_meta;
-  }
+  auto loaded_plist = genXProtectTreeFromPlist("XProtect.meta.plist", tree);
 
-  if (!osquery::pathExists(xprotect_meta).ok()) {
-    VLOG(1) << "XProtect.meta.plist is missing";
-    return results;
-  }
-
-  if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
-    VLOG(1) << "Could not parse the XProtect.meta.plist";
+  if (!loaded_plist.ok()) {
+    VLOG(1) << loaded_plist.getMessage();
     return results;
   }
 
