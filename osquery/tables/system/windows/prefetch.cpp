@@ -32,7 +32,6 @@ const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
 const unsigned int kPrefetchVersionWindows10 = 30;
 const unsigned int kPrefetchVersionWindows8 = 26;
 const unsigned int kPrefetchVersionWindows7 = 23;
-const unsigned int kPrefetchVolumeVersionWindows10 = kPrefetchVersionWindows10;
 const unsigned int kPrefetchVolumeSizeWindows10 = 96;
 const unsigned int kPrefetchVolumeSizeWindows8 = 104;
 
@@ -130,9 +129,11 @@ typedef struct _DIRECTORY_STRING {
 
 PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
-  if (header->FileName[(sizeof(header->FileName) / sizeof(WCHAR)) - 1] ==
-      '\0') {
+  if (header->FileName[ARRAYSIZE(header->FileName) - 1] == L'\0') {
     result.filename = wstringToString(header->FileName);
+    if (result.filename.empty()) {
+      LOG(INFO) << "Did not find null-terminated filename for prefetch file";
+    }
   }
   result.prefetch_hash = (boost::format("%x") % header->Hash).str();
   result.file_size = header->FileSize;
@@ -323,7 +324,7 @@ void parsePrefetchData(RowYield& yield,
   r["accessed_directories"] = std::move(volume_info.directories);
   r["last_run_time"] = INTEGER(file_info.last_run_time);
 
-  if (version != 23) {
+  if (version != kPrefetchVersionWindows7) {
     r["other_run_times"] = file_info.run_times;
   }
 
