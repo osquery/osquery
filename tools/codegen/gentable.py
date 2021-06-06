@@ -18,8 +18,6 @@ import templite
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-from osquery_tests.tools.tests import utils
-
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 
@@ -29,8 +27,18 @@ TEMPLATES = {}
 # Temporary reserved column names
 RESERVED = ["n", "index"]
 
-# Set the platform in osquery-language
-PLATFORM = utils.platform()
+# Set the platform in osquery-language. This is duplicated with
+# tests/utils.py, but that duplication allows usage to _not_ require a
+# build
+def platform():
+    platform = sys.platform
+    if platform.find("linux") == 0:
+        platform = "linux"
+    if platform.find("freebsd") == 0:
+        platform = "freebsd"
+    return platform
+
+PLATFORM = platform()
 
 # Supported SQL types for spec
 class DataType(object):
