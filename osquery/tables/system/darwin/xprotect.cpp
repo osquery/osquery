@@ -147,6 +147,20 @@ QueryData genXProtectReports(QueryContext& context) {
   return results;
 }
 
+// returns boolean indicating whether a valid plist was found
+bool findAndParsePlist(fs::path plistPath, pt::ptree& tree) {
+  if (!osquery::pathExists(plistPath).ok()) {
+    return false;
+  }
+
+  if (!osquery::parsePlist(plistPath, tree).ok()) {
+    VLOG(1) << "Could not parse the plist at " << plistPath.string();
+    return false;
+  }
+
+  return true;
+}
+
 QueryData genXProtectEntries(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
@@ -154,16 +168,11 @@ QueryData genXProtectEntries(QueryContext& context) {
 
   for (const auto& dir : kPotentialXProtectDirs) {
     auto xprotect_path = fs::path(dir) / "XProtect.plist";
-    if (!osquery::pathExists(xprotect_path).ok()) {
+    auto validPlist = findAndParsePlist(xprotect_path, tree);
+    if (!validPlist) {
       continue;
     }
     plistFound = true;
-
-    if (!osquery::parsePlist(xprotect_path, tree).ok()) {
-      VLOG(1) << "Could not parse the XProtect.plist";
-      continue;
-    }
-
     if (tree.count("root") != 0) {
       for (const auto& it : tree.get_child("root")) {
         genXProtectEntry(it.second, results);
@@ -172,7 +181,7 @@ QueryData genXProtectEntries(QueryContext& context) {
   }
 
   if (!plistFound) {
-    VLOG(1) << "XProtect.plist not found in expected directories";
+    VLOG(1) << "valid XProtect.plist not found in expected directories";
   }
 
   return results;
@@ -185,16 +194,11 @@ QueryData genXProtectMeta(QueryContext& context) {
 
   for (const auto& dir : kPotentialXProtectDirs) {
     auto xprotect_meta = fs::path(dir) / "XProtect.meta.plist";
-    if (!osquery::pathExists(xprotect_meta).ok()) {
+    auto validPlist = findAndParsePlist(xprotect_meta, tree);
+    if (!validPlist) {
       continue;
     }
     plistFound = true;
-
-    if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
-      VLOG(1) << "Could not parse the XProtect.meta.plist";
-      continue;
-    }
-
     for (const auto& it : tree) {
       if (it.first == "JavaWebComponentVersionMinimum") {
         Row r;
@@ -228,7 +232,7 @@ QueryData genXProtectMeta(QueryContext& context) {
     }
   }
   if (!plistFound) {
-    VLOG(1) << "XProtect.meta.plist not found in expected directories";
+    VLOG(1) << "valid XProtect.meta.plist not found in expected directories";
   }
 
   return results;
