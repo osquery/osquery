@@ -81,11 +81,25 @@ function(generateLibrdkafka)
     "${library_root}/rdkafka_zstd.c"
     "${library_root}/rdkafka_sasl_scram.c"
     "${library_root}/rdgz.c"
+    "${library_root}/rdkafka_ssl.c"
+    "${library_root}/rdkafka_assignment.c"
+    "${library_root}/rdkafka_coord.c"
+    "${library_root}/rdkafka_mock.c"
+    "${library_root}/rdkafka_mock_handlers.c"
+    "${library_root}/rdkafka_mock_cgrp.c"
+    "${library_root}/rdkafka_error.c"
+    "${library_root}/rdkafka_txnmgr.c"
+    "${library_root}/rdfnv1a.c"
+    "${library_root}/rdkafka_cert.c"
+    "${library_root}/rdkafka_conf.c"
+    "${library_root}/rdmap.c"
+    "${library_root}/rdkafka_sticky_assignor.c"
   )
 
   if(DEFINED PLATFORM_WINDOWS)
     target_sources(thirdparty_librdkafka_c PRIVATE
       "${library_root}/rdkafka_sasl_win32.c"
+      "${library_root}/rdkafka_sasl_oauthbearer.c"
       "${library_root}/regexp.c"
     )
   endif()
@@ -101,7 +115,7 @@ function(generateLibrdkafka)
   )
 
   target_compile_definitions(thirdparty_librdkafka_c PRIVATE
-    LIBRDKAFKA_GIT_VERSION=\"v1.0.1\"
+    LIBRDKAFKA_GIT_VERSION=\"v1.7.0\"
     XXH_NAMESPACE=rdkafka_
     XXH_PRIVATE_API
   )
