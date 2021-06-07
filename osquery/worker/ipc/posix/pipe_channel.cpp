@@ -113,22 +113,24 @@ Status PipeChannel::recvStringMessageImpl(std::string& message) {
   }
 
   message.resize(static_cast<size_t>(message_size));
-  result = read(read_pipe_fd,
-                reinterpret_cast<char*>(&message[0]),
-                static_cast<size_t>(message_size));
+  ssize_t pos = 0;
+  while (pos < message_size) {
+    result = read(read_pipe_fd,
+                  reinterpret_cast<char*>(&message[pos]),
+                  static_cast<size_t>(message_size - pos));
 
-  if (result < 0) {
-    return Status::failure(
-        errno,
-        "Failed to read the size of the message from the pipe of table " +
-            table_name_ + ", errno " + std::to_string(errno));
-  }
+    if (result == 0) {
+      return Status::failure(
+          2, "Pipe to the table " + table_name_ + " closed while reading");
+    }
 
-  if (result != message_size) {
-    return Status::failure(
-        "Failed to read the entire message from the pipe of table " +
-        table_name_ + ", read only " + std::to_string(result) + "/" +
-        std::to_string(message_size) + " bytes");
+    if (result < 0) {
+      return Status::failure(
+          errno,
+          "Failed to read the message from the pipe of table " + table_name_ +
+              ", errno " + std::to_string(errno));
+    }
+    pos += result;
   }
 
   return Status::success();
