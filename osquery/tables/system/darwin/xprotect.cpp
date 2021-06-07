@@ -147,89 +147,88 @@ QueryData genXProtectReports(QueryContext& context) {
   return results;
 }
 
-void genXProtectEntriesFromPath(const std::string& xprotect_dir,
-                                QueryData& results) {
-  pt::ptree tree;
-
-  auto xprotect_path = fs::path(xprotect_dir) / "XProtect.plist";
-  if (!osquery::pathExists(xprotect_path).ok()) {
-    VLOG(1) << "XProtect.plist is missing";
-    return;
-  }
-
-  if (!osquery::parsePlist(xprotect_path, tree).ok()) {
-    VLOG(1) << "Could not parse the XProtect.plist";
-    return;
-  }
-
-  if (tree.count("root") != 0) {
-    for (const auto& it : tree.get_child("root")) {
-      genXProtectEntry(it.second, results);
-    }
-  }
-}
-
 QueryData genXProtectEntries(QueryContext& context) {
   QueryData results;
+  pt::ptree tree;
+  bool plistFound = false;
 
   for (const auto& dir : kPotentialXProtectDirs) {
-    genXProtectEntriesFromPath(dir, results);
-  }
-  return results;
-}
+    auto xprotect_path = fs::path(dir) / "XProtect.plist";
+    if (!osquery::pathExists(xprotect_path).ok()) {
+      continue;
+    }
+    plistFound = true;
 
-void genXProtectMetaFromPath(const std::string& xprotect_dir,
-                             QueryData& results) {
-  pt::ptree tree;
+    if (!osquery::parsePlist(xprotect_path, tree).ok()) {
+      VLOG(1) << "Could not parse the XProtect.plist";
+      continue;
+    }
 
-  auto xprotect_meta = fs::path(xprotect_dir) / "XProtect.meta.plist";
-  if (!osquery::pathExists(xprotect_meta).ok()) {
-    VLOG(1) << "XProtect.meta.plist is missing";
-    return;
-  }
-
-  if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
-    VLOG(1) << "Could not parse the XProtect.meta.plist";
-    return;
-  }
-
-  for (const auto& it : tree) {
-    if (it.first == "JavaWebComponentVersionMinimum") {
-      Row r;
-      r["identifier"] = "java";
-      r["min_version"] = it.second.data();
-      r["type"] = "plugin";
-      results.push_back(std::move(r));
-    } else if (it.first == "ExtensionBlacklist") {
-      for (const auto& ext : it.second.get_child("Extensions")) {
-        Row r;
-        r["identifier"] = ext.second.get("CFBundleIdentifier", "");
-        r["developer_id"] = ext.second.get("Developer Identifier", "");
-        r["type"] = "extension";
-        r["min_version"] = "any";
-        results.push_back(std::move(r));
-      }
-    } else if (it.first == "PlugInBlacklist") {
-      for (const auto& cat : it.second) {
-        // Not sure why there's a category-like sub-dictionary, default="10".
-        for (const auto& plug : cat.second) {
-          Row r;
-          r["identifier"] = plug.first;
-          r["min_version"] = plug.second.get("MinimumPlugInBundleVersion", "");
-          r["type"] = "plugin";
-          r["developer_id"] = "";
-          results.push_back(std::move(r));
-        }
+    if (tree.count("root") != 0) {
+      for (const auto& it : tree.get_child("root")) {
+        genXProtectEntry(it.second, results);
       }
     }
   }
+
+  if (!plistFound) {
+    VLOG(1) << "XProtect.plist not found in expected directories";
+  }
+
+  return results;
 }
 
 QueryData genXProtectMeta(QueryContext& context) {
   QueryData results;
+  pt::ptree tree;
+  bool plistFound;
 
   for (const auto& dir : kPotentialXProtectDirs) {
-    genXProtectMetaFromPath(dir, results);
+    auto xprotect_meta = fs::path(dir) / "XProtect.meta.plist";
+    if (!osquery::pathExists(xprotect_meta).ok()) {
+      continue;
+    }
+    plistFound = true;
+
+    if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
+      VLOG(1) << "Could not parse the XProtect.meta.plist";
+      continue;
+    }
+
+    for (const auto& it : tree) {
+      if (it.first == "JavaWebComponentVersionMinimum") {
+        Row r;
+        r["identifier"] = "java";
+        r["min_version"] = it.second.data();
+        r["type"] = "plugin";
+        results.push_back(std::move(r));
+      } else if (it.first == "ExtensionBlacklist") {
+        for (const auto& ext : it.second.get_child("Extensions")) {
+          Row r;
+          r["identifier"] = ext.second.get("CFBundleIdentifier", "");
+          r["developer_id"] = ext.second.get("Developer Identifier", "");
+          r["type"] = "extension";
+          r["min_version"] = "any";
+          results.push_back(std::move(r));
+        }
+      } else if (it.first == "PlugInBlacklist") {
+        for (const auto& cat : it.second) {
+          // Not sure why there's a category-like sub-dictionary, default="10".
+          for (const auto& plug : cat.second) {
+            Row r;
+            r["identifier"] = plug.first;
+            r["min_version"] =
+                plug.second.get("MinimumPlugInBundleVersion", "");
+            r["type"] = "plugin";
+            r["developer_id"] = "";
+            results.push_back(std::move(r));
+          }
+        }
+      }
+    }
+  }
+  if (!plistFound) {
+    VLOG(1) << "XProtect.meta.plist not found in expected directories";
   }
 
   return results;
