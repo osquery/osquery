@@ -181,7 +181,7 @@ QueryData genXProtectEntries(QueryContext& context) {
 QueryData genXProtectMeta(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
-  bool plistFound;
+  bool plistFound = false;
 
   for (const auto& dir : kPotentialXProtectDirs) {
     auto xprotect_meta = fs::path(dir) / "XProtect.meta.plist";
