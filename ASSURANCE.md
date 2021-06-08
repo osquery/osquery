@@ -4,11 +4,13 @@ This document describes why we think the osquery agent is adequately secure soft
 the "assurance case" for osquery. This is a living document, and is the result of continuous threat-modeling during
 osquery's continued development and maintenance.
 
-This document also serves as detailed documentation of osquery's security requirements.
+This document also serves as detailed documentation of the basic security principles of osquery's development, and the
+specific threat cases that the team of maintainers have thought about and attempted to mitigate.
 
-## Security Requirements Met by Functionality
+## Security Design Considerations of osquery
 
-Existing functionality in osquery attempts to address the following categories of security requirement.
+The following is a list of high-level considerations for security, and efforts that osquery and its team of maintainers
+implement in the current version of the software.
 
 ### Confidentiality
 
