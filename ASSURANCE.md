@@ -47,20 +47,58 @@ The current version of osquery uses HTTPS (specifically, the TLS v1.2 protocol),
 
 #### Access control functions
 
+osquery makes use of system-provided access control permissions to restrict access to the following osquery assets:
+
+- Reading and writing storage and cached content used by osquery, a.k.a., the RocksDB storage layer
+- Reading and writing status logs and results logs, when osquery logs are written to the filesystem
+- Reading and writing to the osquery extensions socket (or Pipe, on Windows)
+
 ### Integrity
 
 #### Limited attack surface
 
+osquery never listens on network interfaces. If it is configured to use the network at all, it is opt-in, and always a
+poll model.
+
+osquery minimizes its exposure to user-controlled data on disk by relying on access through OS-provided APIs wherever
+possible. When osquery performs file parsing, it usually does so within third-party libraries that are statically
+linked into osquery.
+
+The osquery maintainers respond to known vulnerabilities in third-party libraries by being responsive to vulnerability
+disclosures, upgrading osquery to use the fixed version of the associated dependency, and making the new version of
+osquery available at the very next release cycle, if not sooner (urgent security issues may be addressed in an
+out-of-cycle "point release").
+
 #### Daemon runs as root
 
+The recommended, and default, way to run the osquery daemon is as root (or Administrator, on Windows).
+
 - Its files are owned as root (config, RocksDB) to resist tampering
-- Extensions must also run as root, communicate over IPC restricted to root
+- Extensions must also run as root, and communicate over an IPC restricted to root
+- When osquery runs as root, it enforces additional file permission checks on the osquery core executable file and that
+  of any extensions. For example, a user-controlled directory or binary should not be run as root, since osquery will
+  fork and exec itself, which may lead to TOCTOU bugs. To prevent this, osquery checks for the secure set of file
+  permissions during its startup, and quits with a warning if the permissions are insufficient, unless the user
+  overrides this check with a flag.
 
 #### No self-update feature
 
+The osquery agent will never update or replace itself. The sysadmin is in control of when to update, using their method
+of choice for software update management.
+
 #### No methods to modify data on the system
 
+Making no changes to the existing host system (its configuration or its data) is a goal that osquery seeks to achieve,
+but on a best-effort basis. The maintainers enforce this as a policy for the acceptance of any new contributed
+code in osquery. If we are made aware of violations of this rule, we treat them as high priority bugs and promptly fix
+them. Where it is for some reason unavoidable, we will document any exceptions here.
+
 #### No dynamic linking
+
+The osquery executable is self-contained and statically linked, so it has no external library dependencies except the
+absolute minimum required to load on each platform that it supports. This allows osquery to control the version of its
+third-party dependencies (it will not be subject to outdated dynamic libraries on a host), and helps osquery avoid
+certain kinds of library injection privilege-escalation attacks on the host.
 
 #### Code-signed releases
 
@@ -90,18 +128,22 @@ The current version of osquery uses HTTPS (specifically, the TLS v1.2 protocol),
 
 ## Threat Model
 
-- osquery agent must trust its config server
+- osquery agent must trust:
+  - its config server, if using a remote server to deliver the osquery config
+  - the person issuing queries, which is the same role as can modify the config
 
 ### Assets
 
 - osquery executable
 - osquery config (may contain threat-hunting queries)
 - local database backing store (RocksDB)
+- logs
+- socket or pipe
 
 ### Threat agents
 
 - Remote attacker
-- Network man-in-the-middle
+- Network agent-in-the-middle
 - Malware on host, with User privilege
 - Malware on host, with Root privilege
 
