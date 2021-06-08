@@ -14,27 +14,6 @@ implement in the current version of the software.
 
 ### Confidentiality Considerations
 
-#### No Retrieval of Sensitive User-owned Data
-
-The design intent of osquery is to collect and monitor system-level information, not the potentially private data from the
-user's home directory, or their internet activity. While there is no clear line that separates the two (and the definition
-of "user data" can be subjective), osquery disables certain tables by default in order to minimize its ability to
-collect user data without explicit configuration. It also provides the ability to disable additional tables.
-
-Some caveats apply:
-
-- Disabling tables is done via the osquery config, but, osquery doesn't currently have a concept of separate access
-  roles for the "can alter the osquery config" permission and the "can make a query" permission. They are the same
-  level of privilege. Disabling a table, then, is establishing an intent not to collect, rather than creating an
-  enforceable security boundary.
-- An osquery table is enabled or disabled in its entirety, and cannot currently be enabled only, e.g., for subsets of
-  the filesystem.
-- Some tables are flexible and powerful enough to be used to _indirectly_ query user data.
-
-There are no other mechanisms within osquery to guarantee the collection of user data can't happen. Anything that
-can be seen by the osquery process (normally running as root), has at least the potential to be collected in a query,
-even if only inadvertently.
-
 #### Use of HTTPS (TLS)
 
 The current version of osquery uses HTTPS (specifically, the TLS v1.2 protocol), to encrypt all of its communications.
