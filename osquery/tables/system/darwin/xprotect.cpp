@@ -148,7 +148,7 @@ QueryData genXProtectReports(QueryContext& context) {
 }
 
 // returns boolean indicating whether a valid plist was found
-bool findAndParsePlist(fs::path plistPath, pt::ptree& tree) {
+inline bool findAndParsePlist(const fs::path& plistPath, pt::ptree& tree) {
   if (!osquery::pathExists(plistPath).ok()) {
     return false;
   }
@@ -180,8 +180,8 @@ QueryData genXProtectEntries(QueryContext& context) {
     return results;
   }
 
-  // if code execution continues to here, it means no valid plist was found.
-  VLOG(1) << "no valid XProtect.plist found in expected directories";
+  // If code execution continues to here, it means no valid plist was found.
+  VLOG(1) << "No valid XProtect.plist found in expected directories";
   return results;
 }
 
@@ -229,8 +229,8 @@ QueryData genXProtectMeta(QueryContext& context) {
     return results;
   }
 
-  // if code execution continues to here, it means no valid plist was found.
-  VLOG(1) << "no valid XProtect.meta.plist found in expected directories";
+  // If code execution continues to here, it means no valid plist was found.
+  VLOG(1) << "No valid XProtect.meta.plist found in expected directories";
 
   return results;
 }
