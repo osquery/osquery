@@ -110,6 +110,13 @@ certain kinds of library injection privilege-escalation attacks on the host.
 
 #### Watchdog
 
+The osquery agent operates as a watchdog process and a worker process, with one forking the other at osquery startup.
+The intent of the watchdog process is to enforce limits on resource use by the worker process, but one side-effect of
+that is that it mitigates certain denial-of-service risks. For example, a poorly crafted query that would otherwise run
+on forever, or intentionally planted data on the host that has been crafted specifically to cause a denial-of-service in
+the osquery agent. Either of those would trigger the watchdog to restart osquery and temporarily ban the query that
+exhibited the problematic behavior.
+
 ## Security Implemented in Development Lifecycle Processes
 
 - configuration management via GitHub, can track the changes, who made them, and when they were made
@@ -130,24 +137,35 @@ certain kinds of library injection privilege-escalation attacks on the host.
 
 ## Threat Model
 
-- osquery agent must trust:
-  - its config server, if using a remote server to deliver the osquery config
-  - the person issuing queries, which is the same role as can modify the config
+osquery agent must trust:
+
+- its config server, if using a remote server to deliver the osquery config
+- the person issuing queries, which is the same role as can modify the config
+
+osquery attempts to mitigate an attacker:
+
+- on another host with network connectivity to the osquery host, or positioned as an agent-in-the-middle on the network
+- on the osquery host but with standard non-root privilege
+
+Also in the threat model, but for which osquery does _not_ currently have mitigations for:
+
+- an attacker that has successfully elevated to root privilege, and subverts or kills the osquery process
 
 ### Assets
 
 - osquery executable
 - osquery config (may contain threat-hunting queries)
 - local database backing store (RocksDB)
-- logs
-- socket or pipe
+- osquery's own logs
+- osquery's extension socket (or named pipe, on Windows)
 
 ### Threat agents
 
 - Remote attacker
 - Network agent-in-the-middle
-- Malware on host, with User privilege
-- Malware on host, with Root privilege
+- Attacker on the osquery host, with User privilege
+- Attacker on the osquery host, with Root privilege
+- Compromised or maliciously controlled osquery config server
 
 ### Vulnerabilities in third-party library dependencies
 
