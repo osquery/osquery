@@ -164,7 +164,6 @@ bool findAndParsePlist(fs::path plistPath, pt::ptree& tree) {
 QueryData genXProtectEntries(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
-  bool plistFound = false;
 
   for (const auto& dir : kPotentialXProtectDirs) {
     auto xprotect_path = fs::path(dir) / "XProtect.plist";
@@ -172,25 +171,23 @@ QueryData genXProtectEntries(QueryContext& context) {
     if (!validPlist) {
       continue;
     }
-    plistFound = true;
+
     if (tree.count("root") != 0) {
       for (const auto& it : tree.get_child("root")) {
         genXProtectEntry(it.second, results);
       }
     }
+    return results;
   }
 
-  if (!plistFound) {
-    VLOG(1) << "valid XProtect.plist not found in expected directories";
-  }
-
+  // if code execution continues to here, it means no valid plist was found.
+  VLOG(1) << "no valid XProtect.plist found in expected directories";
   return results;
 }
 
 QueryData genXProtectMeta(QueryContext& context) {
   QueryData results;
   pt::ptree tree;
-  bool plistFound = false;
 
   for (const auto& dir : kPotentialXProtectDirs) {
     auto xprotect_meta = fs::path(dir) / "XProtect.meta.plist";
@@ -198,7 +195,6 @@ QueryData genXProtectMeta(QueryContext& context) {
     if (!validPlist) {
       continue;
     }
-    plistFound = true;
     for (const auto& it : tree) {
       if (it.first == "JavaWebComponentVersionMinimum") {
         Row r;
@@ -230,10 +226,11 @@ QueryData genXProtectMeta(QueryContext& context) {
         }
       }
     }
+    return results;
   }
-  if (!plistFound) {
-    VLOG(1) << "valid XProtect.meta.plist not found in expected directories";
-  }
+
+  // if code execution continues to here, it means no valid plist was found.
+  VLOG(1) << "no valid XProtect.meta.plist found in expected directories";
 
   return results;
 }
