@@ -29,9 +29,9 @@ namespace tables {
 /// the directory containing XProtect.plist and XProtect.meta.plist changes
 /// depending on the macOS version
 const std::vector<std::string> kPotentialXProtectDirs = {
-    "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/",
     "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/"
     "Resources",
+    "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/",
 };
 
 /// Relative path for each user's logging directory
