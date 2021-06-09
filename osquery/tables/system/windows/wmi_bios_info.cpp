@@ -147,7 +147,7 @@ Row getDellBiosInfo(const WmiResultItem& item) {
   std::string currentvalue;
   item.GetString("AttributeName", r["name"]);
   item.GetString("CurrentValue", currentvalue);
-  if (currentvalue == "") {
+  if (currentvalue.empty()) {
     r["value"] = "N/A";
   } else {
     r["value"] = currentvalue;
