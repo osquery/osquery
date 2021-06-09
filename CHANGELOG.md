@@ -52,6 +52,7 @@ Representing commits from 15 contributors! Thank you all.
 
 - Update process auditing requirements documentation ([#7102](https://github.com/osquery/osquery/pull/7102))
 - Update website docs indicating windows support for yara tables ([#7130](https://github.com/osquery/osquery/pull/7130))
+- Add 4.9.0 CHANGELOG ([#7152](https://github.com/osquery/osquery/pull/7152))
 
 ### Build
 
