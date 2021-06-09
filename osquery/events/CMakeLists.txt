@@ -36,6 +36,7 @@ function(generateOsqueryEvents)
         linux/bpf/systemstatetracker.cpp
         linux/bpf/usertracer.cpp
         linux/bpf/usertracermanager.cpp
+        linux/bpf/usertracersconfigplugin.cpp
       )
     endif()
 
@@ -134,6 +135,7 @@ function(generateOsqueryEvents)
         linux/bpf/uniquedir.h
         linux/bpf/usertracer.h
         linux/bpf/usertracermanager.h
+        linux/bpf/usertracersconfigplugin.h
       )
     endif()
 
