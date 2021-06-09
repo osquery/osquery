@@ -52,7 +52,7 @@ disclosures, upgrading osquery to use the fixed version of the associated depend
 osquery available at the very next release cycle, if not sooner (urgent security issues may be addressed in an
 out-of-cycle "point release").
 
-#### Daemon Runs as root
+#### Daemon Runs as root (or Administrator)
 
 The recommended, and default, way to run the osquery daemon is as root (or Administrator, on Windows).
 
@@ -126,6 +126,9 @@ The osquery development lifecycle includes many practices to mitigate security i
 - opting into compile-time security mitigations (stack protectors, full relro, and other compiler-available hardening options): see [the cmake configuration for the project](https://github.com/osquery/osquery/blob/master/cmake/flags.cmake)
 - only the required subset of the TSC has access to code-signing secrets / key material, and they are protected within a
   separate GitHub repo that performs osquery release signing
+
+See our [CONTRIBUTING doc](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#guidelines-for-contributing-features-to-osquery-core)
+for more information on our guiding principles for osquery development.
 
 ## Threat Model
 
