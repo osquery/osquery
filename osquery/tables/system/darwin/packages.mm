@@ -28,7 +28,7 @@ namespace tables {
 const std::vector<std::string> kPkgReceiptPaths = {
     "/private/var/db/receipts/",
     "/Library/Receipts/",
-    "/Library/Apple/System/Library/Receipts"};
+    "/Library/Apple/System/Library/Receipts/"};
 
 const std::vector<std::string> kPkgReceiptUserPaths = {
     "/Library/Receipts/",
