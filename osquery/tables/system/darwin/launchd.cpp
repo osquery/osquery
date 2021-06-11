@@ -30,6 +30,8 @@ const std::vector<std::string> kLaunchdSearchPaths = {
     "/Library/LaunchDaemons",
     "/System/Library/LaunchAgents",
     "/Library/LaunchAgents",
+    "/Library/Apple/System/Library/LaunchDaemons",
+    "/Library/Apple/System/Library/LaunchAgents",
 };
 
 const std::vector<std::string> kUserLaunchdSearchPaths = {
