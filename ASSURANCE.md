@@ -1,11 +1,60 @@
 # The Security Assurance Case for osquery
 
-This document describes why we think the osquery agent is adequately secure software. In other words, this document is
-the "assurance case" for osquery. This is a living document, and is the result of continuous threat-modeling during
-osquery's continued development and maintenance.
+This document details the basic security principles of osquery's development, the specific threat cases that the team
+of maintainers have thought about, and how we have attempted to mitigate them.
 
-This document also serves as detailed documentation of the basic security principles of osquery's development, and the
-specific threat cases that the team of maintainers have thought about and attempted to mitigate.
+In other words, this describes why we think the osquery agent is adequately secure software: the "assurance case" for
+osquery. This is a living document, and is the result of continuous threat-modeling during osquery's continued
+development and maintenance.
+
+## The osquery Threat Model
+
+The core osquery agent is a single-executable daemon, running on each host that is to be queried.
+
+The osquery agent does not trust:
+
+- on the osquery host but with standard non-root privilege (no interaction with the users on the host)
+- network third-parties, including external network services or agents-in-the-middle on the network
+
+However, the osquery agent _must_ trust:
+
+- its config server, if using a remote server to deliver the osquery config
+- the person issuing queries, which is the same role as can modify the config
+
+Note that in this threat model, osquery does _not_ currently have mitigations for:
+
+- an attacker that has successfully elevated to root privilege, and subverts or kills the osquery process
+
+### osquery's Assets
+
+- osquery executable
+- osquery config (may contain threat-hunting queries)
+- local database backing store (RocksDB)
+- osquery's own logs
+- osquery's extension socket (or named pipe, on Windows)
+
+### osquery's Threat Agents
+
+- Remote attacker
+- Network agent-in-the-middle
+- Attacker on the osquery host, with User privilege
+- Attacker on the osquery host, with Root privilege
+- Compromised or maliciously controlled osquery config server
+- Supply-chain threats (vulnerabilities in third-party dependencies)
+
+### Vulnerabilities in Third-party Library Dependencies
+
+Updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
+languages. We learn of newly disclosed vulnerabilities in osquery's dependencies by following community news and
+maintaining a general awareness of new announcements. It's a shared responsibility.
+
+The osquery maintainers make a best effort to rapidly update vulnerable libraries with a new version of osquery, when
+needed. See an [example](https://github.com/osquery/osquery/commit/0e9efb1497037ded21e8679dda09547d5b0fecd0)
+demonstrating how we update a third-party dependency.)
+
+Finally, a note: sometimes security-dependency-checking tools generate false positives. There may be a vulnerability
+in one of osquery's dependencies, but it does not affect osquery for one reason or another. We still make an effort
+to update to fixed versions of libraries, but more or less urgently depending on osquery's actual exposure to the risk.
 
 ## Security Design Considerations of osquery
 
@@ -24,9 +73,16 @@ Only well-known, industry standard encryption libraries are used in osquery. Spe
 
 #### No Network Connectivity to Third Parties
 
-#### Does Not Accept Incoming Network Connections
+With few exceptions (_e.g._, use of the cURL table, or certain configurations of the yara table), osquery will never
+make an outbound network connection to a third-party server (any server other than the one that controls its config).
+
+In no case will the osquery core agent ever listen for or accept inbound network connections.
 
 #### Does Not 'shell out' to Other Binaries for Data Collection
+
+The osquery executable will be the only process; it spawns two instances (a worker process and a watchdog). It does
+not fork/subprocess/shell out to any other executables. An optional extension interface allows osquery to communicate
+with osquery extensions (separate executables), which are allowed to invoke their own additional processes.
 
 #### Access Control Functions
 
@@ -40,15 +96,15 @@ osquery makes use of system-provided access control permissions to restrict acce
 
 #### Limited Attack Surface
 
-osquery never listens on network interfaces. If it is configured to use the network at all, it is opt-in, and always a
-poll model.
+As mentioned, osquery never listens on network interfaces. If it is configured to use the network at all, it is
+opt-in, and always using a poll model.
 
 osquery minimizes its exposure to user-controlled data on disk by relying on access through OS-provided APIs wherever
 possible. When osquery performs file parsing, it usually does so within third-party libraries that are statically
 linked into osquery.
 
-The osquery maintainers respond to known vulnerabilities in third-party libraries by being responsive to vulnerability
-disclosures, upgrading osquery to use the fixed version of the associated dependency, and making the new version of
+The osquery maintainers react to known vulnerabilities in third-party libraries by being responsive to vulnerability
+disclosures, upgrading osquery to use the patched version of the associated dependency, and making the new version of
 osquery available at the very next release cycle, if not sooner (urgent security issues may be addressed in an
 out-of-cycle "point release").
 
@@ -89,6 +145,10 @@ Every release of osquery is code-signed, on every supported platform.
 
 ### Availability Considerations
 
+Availability refers to the agent's goal of being resilient to communications failure, shutdown, or other kinds
+of denial-of-service condition. This is one of the three traditional pillars of security design, after confidentiality
+and integrity.
+
 #### Minimal Configuration by Default
 
 The less functionality is enabled, the fewer things can hypothetically go wrong: that is the reasoning behind the
@@ -97,11 +157,11 @@ design principle of osquery requiring an explicit opt-in to enable some of its f
 #### Watchdog
 
 The osquery agent operates as a watchdog process and a worker process, with one forking the other at osquery startup.
-The intent of the watchdog process is to enforce limits on resource use by the worker process, but one side-effect of
-that is that it mitigates certain denial-of-service risks. For example, a poorly crafted query that would otherwise run
+The intent of the watchdog process is to enforce limits on resource use by the worker process, but one side-benefit
+is that it mitigates certain denial-of-service risks. For example, a poorly crafted query that would otherwise run
 on forever, or intentionally planted data on the host that has been crafted specifically to cause a denial-of-service in
 the osquery agent. Either of those would trigger the watchdog to restart osquery and temporarily ban the query that
-exhibited the problematic behavior.
+exhibited the problematic behavior, reducing the impact on operations.
 
 ## Security Implemented in Development Lifecycle Processes
 
@@ -129,50 +189,3 @@ The osquery development lifecycle includes many practices to mitigate security i
 
 See our [CONTRIBUTING doc](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#guidelines-for-contributing-features-to-osquery-core)
 for more information on our guiding principles for osquery development.
-
-## Threat Model
-
-osquery agent must trust:
-
-- its config server, if using a remote server to deliver the osquery config
-- the person issuing queries, which is the same role as can modify the config
-
-osquery attempts to mitigate an attacker:
-
-- on another host with network connectivity to the osquery host, or positioned as an agent-in-the-middle on the network
-- on the osquery host but with standard non-root privilege
-
-Also in the threat model, but for which osquery does _not_ currently have mitigations for:
-
-- an attacker that has successfully elevated to root privilege, and subverts or kills the osquery process
-
-### osquery's Assets
-
-- osquery executable
-- osquery config (may contain threat-hunting queries)
-- local database backing store (RocksDB)
-- osquery's own logs
-- osquery's extension socket (or named pipe, on Windows)
-
-### osquery's Threat Agents
-
-- Remote attacker
-- Network agent-in-the-middle
-- Attacker on the osquery host, with User privilege
-- Attacker on the osquery host, with Root privilege
-- Compromised or maliciously controlled osquery config server
-- Supply-chain threats (vulnerabilities in third-party dependencies)
-
-### Vulnerabilities in Third-party Library Dependencies
-
-Updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
-languages. We learn of newly disclosed vulnerabilities in osquery's dependencies by following community news and
-maintaining a general awareness of new announcements. It's a shared responsibility.
-
-The osquery maintainers make a best effort to rapidly update vulnerable libraries with a new version of osquery, when
-needed. See an [example](https://github.com/osquery/osquery/commit/0e9efb1497037ded21e8679dda09547d5b0fecd0)
-demonstrating how we update a third-party dependency.)
-
-Finally, a note: sometimes security-dependency-checking tools generate false positives. There may be a vulnerability
-in one of osquery's dependencies, but it does not affect osquery for one reason or another. We still make an effort
-to update to fixed versions of libraries, but more or less urgently depending on osquery's actual exposure to the risk.
