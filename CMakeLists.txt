@@ -108,6 +108,7 @@ function(importLibraries)
     "Linux:librpm"
     "Linux:libudev"
     "Linux,Darwin,Windows:libxml2"
+    "Darwin,Windows:lief"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
     "Linux,Darwin,Windows:lzma"

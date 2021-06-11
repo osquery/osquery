@@ -130,6 +130,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain_utils.cpp
       darwin/launchd.cpp
       darwin/location_services.mm
+      darwin/machoinfo.cpp
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
@@ -291,6 +292,7 @@ function(generateOsqueryTablesSystemSystemtable)
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_openssl
+      thirdparty_lief
     )
 
     target_link_options(osquery_tables_system_systemtable PRIVATE
