@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <ctime>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
 
@@ -51,6 +52,11 @@ FLAG(bool,
      schedule_lognames,
      false,
      "Log the running scheduled query name at INFO level");
+
+FLAG(bool,
+     schedule_allow_denylisted_events,
+     true,
+     "Allow event-based queries to skip the denylist");
 
 HIDDEN_FLAG(bool,
             schedule_reload_sql,
@@ -228,6 +234,22 @@ void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
   }
 }
 
+bool isDenylisted(const ScheduledQuery& query) {
+  if (!query.denylisted) {
+    return false;
+  }
+  if (!FLAGS_schedule_allow_denylisted_events) {
+    return true;
+  }
+
+  auto tables = QueryPlanner(query.query).tables();
+  bool event_based =
+      std::any_of(tables.begin(), tables.end(), [](const std::string& table) {
+        return boost::algorithm::ends_with(table, "_events");
+      });
+  return !event_based;
+}
+
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
@@ -236,21 +258,27 @@ void SchedulerRunner::start() {
 
   for (; (end == 0) || (i <= end); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
-    Config::get().scheduledQueries(([&i](const std::string& name,
-                                         const ScheduledQuery& query) {
-      if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-        TablePlugin::kCacheInterval = query.splayed_interval;
-        TablePlugin::kCacheStep = i;
-        const auto status = launchQuery(name, query);
-        monitoring::record((boost::format("scheduler.query.%s.%s.status.%s") %
-                            query.pack_name % query.name %
-                            (status.ok() ? "success" : "failure"))
-                               .str(),
-                           1,
-                           monitoring::PreAggregationType::Sum,
-                           true);
-      }
-    }));
+    Config::get().scheduledQueries(
+        ([&i](const std::string& name, const ScheduledQuery& query) {
+          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+            if (isDenylisted(query)) {
+              return;
+            }
+
+            TablePlugin::kCacheInterval = query.splayed_interval;
+            TablePlugin::kCacheStep = i;
+            const auto status = launchQuery(name, query);
+            monitoring::record(
+                (boost::format("scheduler.query.%s.%s.status.%s") %
+                 query.pack_name % query.name %
+                 (status.ok() ? "success" : "failure"))
+                    .str(),
+                1,
+                monitoring::PreAggregationType::Sum,
+                true);
+          }
+        }),
+        true);
 
     maybeRunDecorators(i);
     maybeReloadSchedule(i);
