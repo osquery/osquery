@@ -161,7 +161,7 @@ typedef struct LANGANDCODEPAGE {
 
 // retrieve the list of languages and code pages from version information
 // ressource
-BOOL getLanguagesAndCodepages(
+Status getLanguagesAndCodepages(
     const std::unique_ptr<BYTE[]>& versionInfo,
     std::vector<langandcodepage_t>& langs_and_codepages) {
   langandcodepage_t* lpTranslate = nullptr;
@@ -171,11 +171,11 @@ BOOL getLanguagesAndCodepages(
                      L"\\VarFileInfo\\Translation",
                      (LPVOID*)&lpTranslate,
                      &cbTranslate)) {
-    for (int i = 0; i < (cbTranslate / sizeof(langandcodepage_t)); ++i)
+    for (size_t i = 0; i < (cbTranslate / sizeof(langandcodepage_t)); ++i)
       langs_and_codepages.push_back(lpTranslate[i]);
-    return TRUE;
+    return Status::success();
   }
-  return FALSE;
+  return Status(GetLastError(), "Failed to read languages and code pages");
 }
 
 void initLanguagesAndCodepagesHeuristic(
@@ -190,9 +190,10 @@ void initLanguagesAndCodepagesHeuristic(
 
 // retrieve OriginalFilename for language and code page from version information
 // ressource
-BOOL getOriginalFilenameForCodepage(const std::unique_ptr<BYTE[]>& versionInfo,
-                                    const langandcodepage_t& lang_and_codepage,
-                                    std::string& original_filename) {
+Status getOriginalFilenameForCodepage(
+    const std::unique_ptr<BYTE[]>& versionInfo,
+    const langandcodepage_t& lang_and_codepage,
+    std::string& original_filename) {
   WCHAR string_buf[50] = {'\0'};
   size_t string_buf_size = sizeof(string_buf) / sizeof(WCHAR);
   WCHAR* lpBuffer = nullptr;
@@ -207,9 +208,10 @@ BOOL getOriginalFilenameForCodepage(const std::unique_ptr<BYTE[]>& versionInfo,
       VerQueryValueW(
           versionInfo.get(), string_buf, (LPVOID*)&lpBuffer, &dwBytes)) {
     original_filename = wstringToString(lpBuffer);
-    return TRUE;
+    return Status::success();
   }
-  return FALSE;
+  return Status(GetLastError(),
+                "Failed to retrieve OriginalFilename for codepage");
 }
 
 // retrieve OriginalFilename from version information ressource
@@ -243,18 +245,19 @@ Status windowsGetOriginalFilename(const std::string& path,
 
   // retrieve the list of languages and code pages
   std::vector<langandcodepage_t> langs_and_codepages;
-  err = getLanguagesAndCodepages(verInfo, langs_and_codepages);
-  if (err == 0) {
-    return Status(GetLastError(), "Failed to read languages and code pages");
+  auto stat = getLanguagesAndCodepages(verInfo, langs_and_codepages);
+  if (!stat.ok()) {
+    return stat;
   }
 
   // retrieve OriginalFilename for each language and code page, stop on first
   // successful read
-  BOOL successful_read = FALSE;
-  for (int i = 0; i < langs_and_codepages.size(); ++i) {
-    if (getOriginalFilenameForCodepage(
-            verInfo, langs_and_codepages[i], original_filename)) {
-      successful_read = TRUE;
+  stat = Status::failure(
+      "Failed to retrieve OriginalFilename from version information ressource");
+  for (size_t i = 0; i < langs_and_codepages.size(); ++i) {
+    stat = getOriginalFilenameForCodepage(
+        verInfo, langs_and_codepages[i], original_filename);
+    if (stat.ok()) {
       break;
     }
   }
@@ -272,22 +275,22 @@ Status windowsGetOriginalFilename(const std::string& path,
    * 040704B0=German+CP_UNICODE sometimes. We will try to simulate similiar
    * behavior here.
    */
-  if (!successful_read) {
+  if (!stat.ok()) {
     langs_and_codepages.clear();
     initLanguagesAndCodepagesHeuristic(langs_and_codepages);
-    for (int i = 0; i < langs_and_codepages.size(); ++i) {
-      if (getOriginalFilenameForCodepage(
-              verInfo, langs_and_codepages[i], original_filename)) {
-        successful_read = TRUE;
+    for (size_t i = 0; i < langs_and_codepages.size(); ++i) {
+      stat = getOriginalFilenameForCodepage(
+          verInfo, langs_and_codepages[i], original_filename);
+      if (stat.ok()) {
         break;
       }
     }
   }
 
-  return successful_read ? Status::success()
-                         : Status::failure(
-                               "Failed to retrieve OriginalFilename from "
-                               "version information ressource");
+  return stat.ok() ? Status::success()
+                   : Status::failure(
+                         "Failed to retrieve OriginalFilename from "
+                         "version information ressource");
 }
 
 static bool hasGlobBraces(const std::wstring& glob) {
