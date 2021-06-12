@@ -112,7 +112,10 @@ DECLARE_bool(enable_numeric_monitoring);
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
 CLI_FLAG(bool, daemonize, false, "Attempt to daemonize (POSIX only)");
-CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
+CLI_FLAG(uint64,
+         alarm_timeout,
+         15,
+         "Seconds to allow for shutdown. Minimum is 10");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
@@ -160,7 +163,19 @@ void signalHandler(int num) {
 
   Initializer::requestShutdown(rc);
 }
+
+bool validateAlarmTimeout(const char* flagname, std::uint64_t value) {
+  if (value < 10) {
+    osquery::systemLog("Alarm timeout cannot be lower than 10 seconds");
+    std::cerr << "Alarm timeout cannot be lower than 10 seconds" << std::endl;
+    return false;
+  }
+
+  return true;
+}
 } // namespace
+
+DEFINE_validator(alarm_timeout, &validateAlarmTimeout);
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -557,8 +572,16 @@ void Initializer::start() const {
     }
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Then set the config plugin, which uses a single/active plugin.
   initActivePlugin("config", FLAGS_config_plugin);
+
+  if (shutdownRequested()) {
+    return;
+  }
 
   // Run the setup for all lazy registries (tables, SQL).
   Registry::setUp();
@@ -581,6 +604,10 @@ void Initializer::start() const {
     return;
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Load the osquery config using the default/active config plugin.
   s = Config::get().load();
   if (!s.ok()) {
@@ -594,22 +621,48 @@ void Initializer::start() const {
 
   // Initialize the status and result plugin logger.
   if (!FLAGS_disable_logging) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin("logger", FLAGS_logger_plugin);
+
+    if (shutdownRequested()) {
+      return;
+    }
+
     initLogger(binary_);
   }
 
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin("distributed", FLAGS_distributed_plugin);
   }
 
   if (FLAGS_enable_numeric_monitoring) {
+    if (shutdownRequested()) {
+      return;
+    }
+
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
   }
 
+  if (shutdownRequested()) {
+    return;
+  }
+
   // Start event threads.
   attachEvents();
+
+  if (shutdownRequested()) {
+    return;
+  }
+
   EventFactory::delay();
 }
 
@@ -691,4 +744,4 @@ void Initializer::shutdownNow(int retcode) {
   platformTeardown();
   _Exit(retcode);
 }
-}
+} // namespace osquery

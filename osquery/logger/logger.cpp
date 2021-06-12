@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <future>
+#include <optional>
 #include <queue>
 #include <thread>
 
@@ -154,10 +155,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   const std::vector<std::string>& enabledPlugins() const;
 
  public:
-  /// Queue of sender functions that relay status logs to all plugins.
-  std::queue<std::future<void>> senders;
-
- public:
   BufferedLogSink(BufferedLogSink const&) = delete;
   void operator=(BufferedLogSink const&) = delete;
 
@@ -187,8 +184,8 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 /// Mutex protecting accesses to buffered status logs.
 Mutex kBufferedLogSinkLogs;
 
-/// Mutex protecting queued status log futures.
-Mutex kBufferedLogSinkSenders;
+/// Used to wait on the thread that defers relaying the buffered status logs
+thread_local std::optional<std::future<void>> kOptBufferedLogSinkSender;
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -292,7 +289,7 @@ void initLogger(const std::string& name) {
   if (forward) {
     // Begin forwarding after all plugins have been set up.
     BufferedLogSink::get().enable();
-    relayStatusLogs(true);
+    relayStatusLogs(LoggerRelayMode::Sync);
   }
 }
 
@@ -331,27 +328,26 @@ void BufferedLogSink::send(google::LogSeverity severity,
 
   // The daemon will relay according to the schedule.
   if (enabled_ && !isDaemon()) {
-    relayStatusLogs(FLAGS_logger_status_sync);
+    relayStatusLogs(FLAGS_logger_status_sync ? LoggerRelayMode::Sync
+                                             : LoggerRelayMode::Async);
   }
 }
 
 void BufferedLogSink::WaitTillSent() {
-  std::future<void> first;
-
-  {
-    WriteLock lock(kBufferedLogSinkSenders);
-    if (senders.empty()) {
-      return;
+  if (kOptBufferedLogSinkSender.has_value()) {
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      kOptBufferedLogSinkSender->wait();
+    } else {
+      /* We cannot wait indefinitely because glog doesn't use read/write locks
+        on Windows. When we are in a recursive logging situation, there's a
+        thread that is waiting here for a new thread it launched to finish its
+        logging, and it does so while holding an exclusive lock inside glog
+        (sink_mutex_), instead of in read mode only. The new thread needs to be
+        able to acquire the same lock to log the message though,
+        so unless this thread yields, we end up in a deadlock. */
+      kOptBufferedLogSinkSender->wait_for(std::chrono::microseconds(100));
     }
-    first = std::move(senders.back());
-    senders.pop();
-  }
-
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    first.wait();
-  } else {
-    // Windows is locking by scheduling an async on the main thread.
-    first.wait_for(std::chrono::microseconds(100));
+    kOptBufferedLogSinkSender.reset();
   }
 }
 
@@ -483,12 +479,7 @@ size_t queuedStatuses() {
   return BufferedLogSink::get().dump().size();
 }
 
-size_t queuedSenders() {
-  ReadLock lock(kBufferedLogSinkSenders);
-  return BufferedLogSink::get().senders.size();
-}
-
-void relayStatusLogs(bool async) {
+void relayStatusLogs(LoggerRelayMode relay_mode) {
   if (FLAGS_disable_logging || !databaseInitialized()) {
     // The logger plugins may not be setUp if logging is disabled.
     // If the database is not setUp, or is in a reset, status logs continue
@@ -533,16 +524,12 @@ void relayStatusLogs(bool async) {
     }
   });
 
-  if (async) {
+  if (relay_mode == LoggerRelayMode::Sync) {
     sender();
   } else {
     std::packaged_task<void()> task(std::move(sender));
-    auto result = task.get_future();
+    kOptBufferedLogSinkSender = task.get_future();
     std::thread(std::move(task)).detach();
-
-    // Lock accesses to the sender queue.
-    WriteLock lock(kBufferedLogSinkSenders);
-    BufferedLogSink::get().senders.push(std::move(result));
   }
 }
 

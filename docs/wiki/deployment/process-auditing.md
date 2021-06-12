@@ -9,10 +9,10 @@ Because different platforms have different choices for collecting real-time even
 | Event type | osquery Table | Source | Supported Platform |
 | -------------- | -------- | -------- | -------- |
 | Process events | [`process_events`](https://osquery.io/schema/current#process_events)    | Audit (Linux), OpenBSM (macOS)  | Linux, macOS (10.15 and older) |
-| Process events | [`bpf_process_events`](https://osquery.io/schema/current#bpf_process_events) | BPF | Linux (kernel 4.11 and newer) |
+| Process events | [`bpf_process_events`](https://osquery.io/schema/current#bpf_process_events) | BPF | Linux (kernel 4.18 and newer) |
 | Process events | [`es_process_events`](https://osquery.io/schema/current#es_process_events) | EndpointSecurity | macOS (10.15 and newer) |
 | Socket events  | [`socket_events`](https://osquery.io/schema/current#process_events)      | Audit (Linux), OpenBSM (macOS) | Linux, macOS (10.15 and older) |
-| Socket events  | [`bpf_socket_events`](https://osquery.io/schema/current#bpf_socket_events) | BPF | Linux (kernel 4.11 and newer) |
+| Socket events  | [`bpf_socket_events`](https://osquery.io/schema/current#bpf_socket_events) | BPF | Linux (kernel 4.18 and newer) |
 
 To collect process events, you would add a query like the following to your query schedule, or to a query pack:
 

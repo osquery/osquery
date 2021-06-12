@@ -898,10 +898,10 @@ QueryData genContainerStats(QueryContext& context) {
           BIGINT(container.get<uint64_t>("memory_stats.max_usage", 0));
       r["memory_limit"] =
           BIGINT(container.get<uint64_t>("memory_stats.limit", 0));
-      r["network_rx_bytes"] =
-          getNetworkBytes(container.get_child("networks"), "rx_bytes");
-      r["network_tx_bytes"] =
-          getNetworkBytes(container.get_child("networks"), "tx_bytes");
+      r["network_rx_bytes"] = getNetworkBytes(
+          container.get_child("networks", pt::ptree()), "rx_bytes");
+      r["network_tx_bytes"] = getNetworkBytes(
+          container.get_child("networks", pt::ptree()), "tx_bytes");
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
       VLOG(1) << "Error getting docker container stats " << id << ": "

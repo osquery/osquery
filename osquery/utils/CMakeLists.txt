@@ -48,6 +48,7 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/shellitem.cpp
+      windows/lzxpress.cpp
       windows/shelllnk.cpp
       windows/olecf.cpp
     )
@@ -96,6 +97,7 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/shellitem.h
+      windows/lzxpress.h
       windows/shelllnk.h
       windows/olecf.h
     )

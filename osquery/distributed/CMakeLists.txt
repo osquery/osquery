@@ -18,6 +18,8 @@ function(generateOsqueryDistributed)
     distributed.cpp
   )
 
+  enableLinkWholeArchive(osquery_distributed)
+
   target_link_libraries(osquery_distributed PUBLIC
     osquery_cxx_settings
     osquery_core

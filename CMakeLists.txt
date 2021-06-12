@@ -333,6 +333,19 @@ function(generateInstallDirectives)
     )
 
   elseif(PLATFORM_WINDOWS)
+
+    # CMake doesn't prefer 'Program Files' on x64 platforms, more information
+    # here: https://gitlab.kitware.com/cmake/cmake/-/issues/18312
+    # This is a workaround, to ensure that we leverage 'Program Files' when
+    # on a 64 bit system.
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      if(CMAKE_SIZEOF_VOID_P MATCHES "8") 
+        set(CMAKE_INSTALL_PREFIX "/Program Files/${CMAKE_PROJECT_NAME}" CACHE PATH "" FORCE) 
+      else() 
+        set(CMAKE_INSTALL_PREFIX "/Program Files (x86)/${CMAKE_PROJECT_NAME}" CACHE PATH "" FORCE) 
+      endif() 
+    endif()
+
     install(
       TARGETS osqueryd
       DESTINATION "osqueryd"
@@ -359,6 +372,11 @@ function(generateInstallDirectives)
       FILES "LICENSE"
       DESTINATION "/control"
       RENAME "LICENSE.txt"
+    )
+
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.ico"
+      DESTINATION "/control"
     )
 
     install(
@@ -400,11 +418,6 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/windows_packaging/osquery_utils.ps1"
       DESTINATION "/control/nupkg/tools"
-    )
-
-    install(
-      FILES "tools/deployment/windows_packaging/osquery.ico"
-      DESTINATION "/control/msi"
     )
 
     install(

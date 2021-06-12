@@ -88,6 +88,18 @@ const std::string kEc2MetadataUrl =
 /// Hypervisor UUID file
 const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
 
+/// URL resource to request IMDSv2 API token
+const std::string kImdsTokenResource = "api/token";
+
+/// Token header to be used in HTTP GET requests for IMDSv2 API calls
+const std::string kImdsTokenHeader = "x-aws-ec2-metadata-token";
+
+/// Header for specifying TTL for IMDSv2 API token
+const std::string kImdsTokenTtlHeader = "x-aws-ec2-metadata-token-ttl-seconds";
+
+/// Default TTL value for IMDSv2 API token, set as per the AWS SDK
+const std::string kImdsTokenTtlDefaultValue = "21600";
+
 /// Map of AWS region name to AWS::Region enum.
 static const std::set<std::string> kAwsRegions = {
     "af-south-1",     "ap-east-1",     "ap-northeast-1", "ap-northeast-2",
@@ -382,6 +394,10 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
 
     initAwsSdk();
     http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
+    auto token = getIMDSToken();
+    if (!token.empty()) {
+      req << http::Request::Header(kImdsTokenHeader, token);
+    }
     http::Client::Options options;
     options.timeout(3);
     http::Client client(options);
@@ -408,6 +424,23 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
   region = cached_region;
 }
 
+std::string getIMDSToken() {
+  std::string token;
+  http::Request req(kEc2MetadataUrl + kImdsTokenResource);
+  http::Client::Options options;
+  options.timeout(3);
+  http::Client client(options);
+  req << http::Request::Header(kImdsTokenTtlHeader, kImdsTokenTtlDefaultValue);
+
+  try {
+    http::Response res = client.put(req, "", "");
+    token = res.status() == 200 ? res.body() : "";
+  } catch (const std::system_error& e) {
+    VLOG(1) << "Request for " << kImdsTokenResource << " failed:" << e.what();
+  }
+  return token;
+}
+
 bool isEc2Instance() {
   static std::atomic<bool> checked(false);
   static std::atomic<bool> is_ec2_instance(false);
@@ -427,7 +460,11 @@ bool isEc2Instance() {
       return; // Not EC2 instance
     }
 
+    auto token = getIMDSToken();
     http::Request req(kEc2MetadataUrl);
+    if (!token.empty()) {
+      req << http::Request::Header(kImdsTokenHeader, token);
+    }
     http::Client::Options options;
     options.timeout(3);
     http::Client client(options);

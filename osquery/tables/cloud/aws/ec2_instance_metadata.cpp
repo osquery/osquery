@@ -127,7 +127,11 @@ class JSONEc2MetaData : public Ec2MetaData {
 std::string Ec2MetaData::doGet() const {
   const static std::string ec2_metadata_url{kEc2MetadataUrl};
 
+  auto token = getIMDSToken();
   http::Request req(ec2_metadata_url + url_suffix_);
+  if (!token.empty()) {
+    req << http::Request::Header(kImdsTokenHeader, token);
+  }
   http::Client::Options options;
   options.timeout(3);
   http::Client client(options);

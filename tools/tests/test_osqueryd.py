@@ -127,14 +127,27 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
     def test_daemon_sigint(self):
+        # First check that the pidfile does not exist.
+        # The existance will be used to check if the daemon has run.
+        pidfile_path = test_base.CONFIG["options"]["pidfile"]
+        def pidfile_exists():
+            return os.path.exists(pidfile_path)
+        self.assertFalse(pidfile_exists())
+
         # An interrupt signal will cause the daemon to stop.
         daemon = self._run_daemon({
             "disable_watchdog": True,
-            "ephemeral": True,
+            "disable_extensions": True,
             "disable_database": True,
             "disable_logging": True,
         })
         self.assertTrue(daemon.isAlive())
+        self.assertEqual(pidfile_path, daemon.options["pidfile"])
+
+        # Wait for the pidfile to exist.
+        # This means the signal handler has been installed.
+        test_base.expectTrue(pidfile_exists)
+        self.assertTrue(pidfile_exists())
 
         # Send a SIGINT
         os.kill(daemon.pid, signal.SIGINT)

@@ -166,7 +166,7 @@ Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
   do {
     bool stop = false;
     status = predicate(stop);
-    if (stop || status.ok()) {
+    if (stop || status.ok() || shutdownRequested()) {
       break;
     }
 

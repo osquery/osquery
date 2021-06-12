@@ -302,6 +302,7 @@ function(generateTestsIntegrationTablesTestsTest)
       physical_disk_performance.cpp
       pipes.cpp
       powershell_events.cpp
+      prefetch.cpp
       programs.cpp
       registry.cpp
       scheduled_tasks.cpp
@@ -356,6 +357,10 @@ function(generateTestsIntegrationTablesTestsTest)
   )
 
   add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
+  set_tests_properties(
+        tests_integration_tables-test
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
 
 endfunction()
 
