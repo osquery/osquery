@@ -24,7 +24,7 @@ struct JumplistData {
 /**
  * @brief Windows helper function for OLE CF Jumplist data
  *
- * @returns The vector of Windows shortcut data
+ * @returns A vector of Windows shortcut data and jumplist metadata
  */
 std::vector<JumplistData> parseOlecf(const std::vector<char>& olecf_data);
 

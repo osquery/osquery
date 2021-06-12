@@ -21,23 +21,23 @@
 #include <string_view>
 #include <vector>
 
-#include <iostream>
-
 namespace osquery {
+
+// Header is 512 bytes
 struct OlecfHeader {
-  std::string sig;
-  std::string guid;
-  std::string revision_minor;
-  std::string revision_major;
-  std::string byte_order;
-  double sector_size;
-  double short_sector_size;
+  char sig[8];
+  char guid[16];
+  short revision_minor;
+  short revision_major;
+  short byte_order;
+  int sector_size;
+  int short_sector_size;
   int total_sectors;
   int sector_sid;
   int sector_size_stream;
   int sector_sid_ssat;
   int total_sectors_ssat;
-  std::string sector_sid_msat;
+  int sector_sid_msat;
   int total_sectors_msat;
   char msat[436];
 };
@@ -95,26 +95,26 @@ struct OleDestListFull {
   std::vector<std::string> path;
 };
 
+const unsigned int kOlecfHeaderSize = 512;
+const unsigned int kDirectorySize = 128;
+
 OlecfHeader parseOlecfHeader(const std::vector<char>& header_data) {
   OlecfHeader header;
-  std::string sig(header_data.begin(), header_data.begin() + 8);
-  header.sig = sig;
-  std::string guid(header_data.begin() + 8, header_data.begin() + 16);
-  header.guid = guid;
-  std::string revision_minor(header_data.begin() + 24,
-                             header_data.begin() + 26);
-  header.revision_minor = revision_minor;
-  std::string revision_major(header_data.begin() + 26,
-                             header_data.begin() + 28);
-  header.revision_major = revision_major;
-  std::string byte_order(header_data.begin() + 28, header_data.begin() + 30);
-  header.byte_order = byte_order;
+  memcpy(&header.sig, &header_data[0], sizeof(header.sig));
+  memcpy(&header.guid, &header_data[8], sizeof(header.guid));
+  memcpy(
+      &header.revision_minor, &header_data[24], sizeof(header.revision_minor));
+  memcpy(
+      &header.revision_major, &header_data[26], sizeof(header.revision_major));
+  memcpy(&header.byte_order, &header_data[28], sizeof(header.byte_order));
   short size = 0;
   memcpy(&size, &header_data[30], sizeof(size));
-  header.sector_size = std::pow(2, size);
+  // Sector size should always be 512
+  header.sector_size = (int)std::pow(2, size);
 
   memcpy(&size, &header_data[32], 2);
-  header.short_sector_size = std::pow(2, size);
+  // Short sectory size should be 64
+  header.short_sector_size = (int)std::pow(2, size);
   memcpy(&header.total_sectors, &header_data[44], sizeof(header.total_sectors));
   memcpy(&header.sector_sid, &header_data[48], sizeof(header.sector_sid));
   memcpy(&header.sector_size_stream,
@@ -126,9 +126,9 @@ OlecfHeader parseOlecfHeader(const std::vector<char>& header_data) {
   memcpy(&header.total_sectors_ssat,
          &header_data[64],
          sizeof(header.total_sectors_ssat));
-  std::string sector_sid_msat(header_data.begin() + 68,
-                              header_data.begin() + 72);
-  header.sector_sid_msat = sector_sid_msat;
+  memcpy(&header.sector_sid_msat,
+         &header_data[68],
+         sizeof(header.sector_sid_msat));
   memcpy(&header.total_sectors_msat,
          &header_data[72],
          sizeof(header.total_sectors_msat));
@@ -143,15 +143,12 @@ std::vector<int> parseMsat(const char mstat[436]) {
   int i = 0;
   // -1 is the end of the msat
   while (true) {
-    // entry = msat_data.substr(0, 8);
     memcpy(&entry, &mstat[i], sizeof(entry));
     if (entry == -1) {
       break;
     }
     msat_entries.push_back(entry);
-    std::cout << "MSAT and SAT sector: " << msat_entries[i] << std::endl;
     i += 4;
-    // msat_data.erase(0, 4);
   }
   return msat_entries;
 }
@@ -160,151 +157,251 @@ std::vector<int> parseMsat(const char mstat[436]) {
 // MSAT
 std::vector<char> buildSat(const std::vector<int>& entries,
                            const std::vector<char>& olecf_data,
-                           const double& sector_size) {
+                           const int& sector_size) {
   std::vector<char> sat;
   for (const auto& entry : entries) {
     sat.insert(sat.end(),
-               olecf_data.begin() + ((entry * sector_size) + 512),
-               olecf_data.begin() + (entry * sector_size) + 512 + sector_size);
+               olecf_data.begin() + ((entry * sector_size) + kOlecfHeaderSize),
+               olecf_data.begin() + (entry * sector_size) + kOlecfHeaderSize +
+                   sector_size);
   }
   return sat;
 }
 
+// Build Short Sector Allocation Table (SSAT) by concating each sector number
+// number found in MSAT
+std::vector<char> buildSsat(const std::vector<char>& olecf_data,
+                            const std::vector<int>& sat_slots,
+                            const OlecfHeader& header) {
+  std::vector<char> ssat_data(
+      olecf_data.begin() + (header.sector_sid_ssat * header.sector_size) +
+          kOlecfHeaderSize,
+      olecf_data.begin() + (header.sector_sid_ssat * header.sector_size) +
+          kOlecfHeaderSize + header.sector_size);
+  int id = sat_slots[header.sector_sid_ssat];
+  while (true) {
+    // Data ends at -2 (FEFFFFFF) or -1 (FFFFFFF)
+    if (id == -2 || id == -1) {
+      break;
+    }
+    ssat_data.insert(
+        ssat_data.end(),
+        olecf_data.begin() + (id * header.sector_size) + kOlecfHeaderSize,
+        olecf_data.begin() + (id * header.sector_size) + kOlecfHeaderSize +
+            header.sector_size);
+    id = sat_slots[id];
+  }
+  return ssat_data;
+}
+
+// Build OLE directory data, will contain the Root, Destlist, shortcut offset
+// directory entries
 std::vector<char> buildDirectory(const int& sector_sid,
                                  const std::vector<char>& olecf_data,
-                                 const double& sector_size,
-                                 const std::vector<int> slots) {
-  std::vector<char> directory_data;
-  // Get first directory entry
-  directory_data.insert(
-      directory_data.end(),
-      olecf_data.begin() + (sector_sid * sector_size) + 512,
-      olecf_data.begin() + (sector_sid * sector_size) + 512 + sector_size);
-
+                                 const int& sector_size,
+                                 const std::vector<int>& slots) {
   // First entry in SAT slot must be -3 (FDFFFFFF)
   if (slots[0] != -3) {
     LOG(WARNING) << "Incorrect directory signature, expected -3 got: "
                  << slots[0];
     return {};
   }
+  std::vector<char> directory_data;
+  // Get first directory entry
+  directory_data.insert(
+      directory_data.end(),
+      olecf_data.begin() + (sector_sid * sector_size) + kOlecfHeaderSize,
+      olecf_data.begin() + (sector_sid * sector_size) + kOlecfHeaderSize +
+          sector_size);
+
   int slot_entry = 1;
-  while (slot_entry < slots.size()) {
+  while (true) {
     // Directory data ends at -2 (FEFFFFFF)
     if (slots[slot_entry] == -2) {
       break;
     }
-    std::cout << "adding directory data at sector: " << slots[slot_entry]
-              << std::endl;
     directory_data.insert(
         directory_data.end(),
-        olecf_data.begin() + (slots[slot_entry] * sector_size) + 512,
-        olecf_data.begin() + (slots[slot_entry] * sector_size) + 512 +
-            sector_size);
-    // Go to the next sector slot
-    slot_entry++;
+        olecf_data.begin() + (slots[slot_entry] * sector_size) +
+            kOlecfHeaderSize,
+        olecf_data.begin() + (slots[slot_entry] * sector_size) +
+            kOlecfHeaderSize + sector_size);
+    slot_entry = slots[slot_entry];
   }
   return directory_data;
 }
 
-// Get the slots for SAT and SSAT data
+// Build the RootData, will contain the data needed to build the shortcut file
+// data Return a vector of 64 byte chunks
+std::vector<std::vector<char>> buildRootData(
+    const std::vector<char>& olecf_data,
+    const OleDirectory& root,
+    const int& sector_size,
+    const int& sector_size_stream,
+    const std::vector<int>& sat_slots) {
+  const unsigned int dataChunk = 64;
+
+  std::vector<std::vector<char>> root_data;
+  int root_offset = 0;
+  if (root.directory_size < sector_size_stream) {
+    while (root_offset < root.directory_size) {
+      std::vector<char> data_root(
+          olecf_data.begin() + (root.sector_sid * sector_size) +
+              kOlecfHeaderSize + root_offset,
+          olecf_data.begin() + (root.sector_sid * sector_size) +
+              kOlecfHeaderSize + root_offset + dataChunk);
+      root_data.push_back(data_root);
+      root_offset += dataChunk;
+    }
+  } else { // If Root data larger than short sector stream size (4096), must build
+           // root data from SAT slots/streams instead of SSAT slots/streams
+    int id = root.sector_sid;
+    while (true) {
+      while (root_offset < sector_size) {
+        std::vector<char> data_root(olecf_data.begin() + (id * sector_size) +
+                                        kOlecfHeaderSize + root_offset,
+                                    olecf_data.begin() + (id * sector_size) +
+                                        kOlecfHeaderSize + root_offset +
+                                        dataChunk);
+        root_data.push_back(data_root);
+        root_offset += dataChunk;
+      }
+      id = sat_slots[id];
+      // Data ends at -2 (FEFFFFFF)
+      if (id == -2) {
+        break;
+      }
+      root_offset = 0;
+    }
+  }
+  return root_data;
+}
+
+// Get the slots/streams for SAT and SSAT data
 std::vector<int> getSlots(const std::vector<char>& sat_data,
                           const double& sector_size) {
   std::vector<int> slots;
-
   int sat_entry = 0;
-  double sat_slots = sector_size / 4;
-  // Slots start at 0
-  while (sat_slots != 0) {
+  while (sat_entry < sat_data.size()) {
     int directory_offset = 0;
     memcpy(&directory_offset, &sat_data[sat_entry], sizeof(directory_offset));
     slots.push_back(directory_offset);
-    sat_slots--;
     sat_entry += 4;
   }
   return slots;
 }
 
-// Get the root directory
 OleDirectory getRootDirectory(const std::vector<char>& dir_data) {
   OleDirectory root;
   // Root directory must always be first
   memcpy(&root, &dir_data[0], sizeof(root));
 
-  wchar_t root_entry[] = L"Root Entry";
-  if (*root.name != L'Root Entry') {
-    LOG(WARNING) << "Incorrect root directory expected 'Root Entry' for file: "
-                 << "ADD FILE HERE";
+  if (std::wstring(root.name) != L"Root Entry") {
+    LOG(WARNING) << "Incorrect root directory, expected 'Root Entry'";
     return {};
   }
-  std::wcout << "The root entry: " << root.name << std::endl;
   return root;
 }
 
 // Return vector of all destlist entries, will be used to build shortcut file
 // data
 OleDestListFull getDestlist(const std::vector<char>& dir_data,
-                            const std::vector<char> olecf_data,
-                            const int& short_sector_size,
-                            const int& sector_sid_ssat,
-                            const int& sector_size) {
-  int dir_entry = 128;
-  // Loop through directory data until Dest List is found
+                            const std::vector<char>& olecf_data,
+                            const std::vector<std::vector<char>>& root_data,
+                            const std::vector<int>& ssat_slots,
+                            const std::vector<int>& sat_slots,
+                            const OlecfHeader& header) {
+  int dir_entry = kDirectorySize;
+  // Loop through directory data until DestList is found
   while (dir_entry < dir_data.size()) {
     OleDirectory destlist;
     memcpy(&destlist, &dir_data[dir_entry], sizeof(destlist));
 
-    if (*destlist.name != L'DestList') {
-      dir_entry += 128;
+    if (std::wstring(destlist.name) != L"DestList") {
+      dir_entry += kDirectorySize;
       continue;
     }
-    std::wcout << "Destlist name: " << destlist.name << std::endl;
-    std::cout << "SID: " << destlist.sector_sid << std::endl;
-    std::cout << "Destlist size: " << destlist.directory_size << std::endl;
+
+    OleDestListFull destlist_full;
+    // Jumplist is empty if directory size smaller than short sector size
+    if (destlist.directory_size < header.short_sector_size) {
+      return destlist_full;
+    }
+    std::vector<char> build_destlist_data;
+    int id = destlist.sector_sid;
+
+    if (destlist.directory_size < header.sector_size_stream) {
+      // Get first sector base on sector id in destlist directory
+      build_destlist_data.insert(build_destlist_data.end(),
+                                 root_data[id].begin(),
+                                 root_data[id].end());
+
+      // SSAT slots/streams contain the sector id for the next sector
+      while (build_destlist_data.size() < destlist.directory_size) {
+        int destlist_sector_id = ssat_slots[id];
+
+        if (destlist_sector_id == -2 || destlist_sector_id == -3) {
+          break;
+        }
+        build_destlist_data.insert(build_destlist_data.end(),
+                                   root_data[destlist_sector_id].begin(),
+                                   root_data[destlist_sector_id].end());
+        id = destlist_sector_id;
+      }
+    } else {// If destlist directory larger than short sector stream size (4096), must build
+           // from SAT slots/streams instead of SSAT slots/streams
+      while (true) {
+        build_destlist_data.insert(
+            build_destlist_data.end(),
+            olecf_data.begin() + (id * header.sector_size) + kOlecfHeaderSize,
+            olecf_data.begin() + (id * header.sector_size) + kOlecfHeaderSize +
+                header.sector_size);
+        id = sat_slots[id];
+        // -2 is the end of data stream (FEFFFFFF)
+        if (id == -2) {
+          break;
+        }
+      }
+    }
 
     // Parse first destlist data entry
-    int destlist_offset = (sector_sid_ssat * sector_size) + 512 + 512 +
-                          (short_sector_size * destlist.sector_sid);
-    std::cout << "Destlist offset: " << destlist_offset << std::endl;
     OleDestListHeader destlist_header;
-    memcpy(&destlist_header,
-           &olecf_data[destlist_offset],
-           sizeof(destlist_header));
-
+    memcpy(&destlist_header, &build_destlist_data[0], sizeof(destlist_header));
+    if (destlist_header.version != 4) {
+      LOG(WARNING) << "Only Windows 10 Jumplists are supported (version 4), "
+                      "got version: "
+                   << destlist_header.version;
+      return destlist_full;
+    }
     OleDestList destlist_data;
-    memcpy(&destlist_data,
-           &olecf_data[destlist_offset + 32],
-           sizeof(destlist_data));
-    std::cout << "Path size: " << destlist_data.path_size * 2 << std::endl;
-    std::cout << "Destlist entry number: " << destlist_data.entry_number
-              << std::endl;
-    std::vector<char> path(olecf_data.begin() + destlist_offset + 162,
-                           olecf_data.begin() + destlist_offset + 162 +
-                               (destlist_data.path_size * 2));
-    OleDestListFull destlist_full;
+    memcpy(&destlist_data, &build_destlist_data[32], sizeof(destlist_data));
+    const unsigned int destlist_header_entry_path_offset = 162;
+
+    std::vector<char> path(
+        build_destlist_data.begin() + destlist_header_entry_path_offset,
+        build_destlist_data.begin() + destlist_header_entry_path_offset +
+            (destlist_data.path_size * 2));
     destlist_full.header = destlist_header;
     destlist_full.list.push_back(destlist_data);
     destlist_full.path.push_back(
         std::string(path.data(), destlist_data.path_size * 2));
 
-    std::cout << "Deslist path: " << destlist_full.path[0] << std::endl;
-    std::cout << "Jumplist entries: " << destlist_full.header.entries
-              << std::endl;
     int entries = destlist_full.header.entries;
-    // If the destlist contains multiple entries, the data is in non-continous
-    // sections, continue to parse data until destlist is completely built
-    int sid = destlist.sector_sid;
+    int destlist_offset = sizeof(destlist_header);
+    // Loop through all the destlist entries (except the first one)
     while (1 < entries) {
-      destlist_offset =
-          (destlist_offset + 162 + (destlist_data.path_size * 2) + 4) +
-          (short_sector_size * sid);
-      std::cout << "Destlist offset: " << destlist_offset << std::endl;
+      const unsigned int destlist_entry_path_offset = 130;
+      const unsigned int padding = 4;
+      destlist_offset = (destlist_offset + destlist_entry_path_offset +
+                         (destlist_data.path_size * 2) + padding);
 
-      memcpy(
-          &destlist_data, &olecf_data[destlist_offset], sizeof(destlist_data));
-      std::cout << "Destlist entry number: " << destlist_data.entry_number
-                << std::endl;
-      std::vector<char> destpath(olecf_data.begin() + destlist_offset + 130,
-                                 olecf_data.begin() + destlist_offset + 130 +
+      memcpy(&destlist_data,
+             &build_destlist_data[destlist_offset],
+             sizeof(destlist_data));
+      std::vector<char> destpath(build_destlist_data.begin() + destlist_offset +
+                                     destlist_entry_path_offset,
+                                 build_destlist_data.begin() + destlist_offset +
+                                     destlist_entry_path_offset +
                                      (destlist_data.path_size * 2));
       destlist_full.path.push_back(
           std::string(destpath.data(), destlist_data.path_size * 2));
@@ -316,56 +413,67 @@ OleDestListFull getDestlist(const std::vector<char>& dir_data,
   return {};
 }
 
-std::vector<JumplistData> buildLnkData(const std::vector<char>& olecf_data,
-                                      const std::vector<char>& dir_data,
-                                      OleDestListFull& destlist_data,
-                                      const int& short_sector_size,
-                                      const int& sector_sid_ssat,
-                                      const int& sector_size,
-                                       const std::vector<int>& ssat_slots) {
+// Build the shortcut data by looking up the destlist entry names in the
+// directory data and concating the root data chunks
+std::vector<JumplistData> buildLnkData(
+    const std::vector<char>& dir_data,
+    OleDestListFull& destlist_data,
+    const std::vector<int>& ssat_slots,
+    const std::vector<std::vector<char>>& root_data) {
   std::vector<JumplistData> jump_data;
-  int offset = 0;
-  bool first_lnk = true;
-  // Loop destlist data and get entry number
+
   for (const auto& entry : destlist_data.list) {
-    std::cout << "Looking for entry name: " << entry.entry_number << std::endl;
-    std::wstring entry_str = std::to_wstring(entry.entry_number);
-    int dir_entry = 128;
+    int dir_entry = kDirectorySize; // Skip the RootEntry
+
+    // Loop through directory data until we find matching entry names
     while (dir_entry < dir_data.size()) {
       OleDirectory dir;
       memcpy(&dir, &dir_data[dir_entry], sizeof(dir));
-      std::wcout << std::wstring(dir.name) << std::endl;
-      if (std::to_wstring(entry.entry_number) != dir.name) {
-        dir_entry += 128;
+      std::wstring dir_name(dir.name);
+      // Skip other directory names unrelated to lnk data
+      if (dir_name == L"DestList" || dir_name == L"") {
+        dir_entry += kDirectorySize;
         continue;
       }
-      std::cout << "Lnk data sector directory is: " << dir.sector_sid
-                << std::endl;
-      std::cout << "Lnk data size is: " << dir.directory_size << std::endl;
-      if (first_lnk) {
-        offset = (sector_sid_ssat * sector_size) + 512 + 512 +
-                 (short_sector_size * dir.sector_sid);
-        first_lnk = false;
-      } else {
-        offset += (dir.sector_sid * short_sector_size);
+      // Directory names for shortcut files are numbers
+      int entry_name = std::stoi(dir_name, nullptr, 16);
+
+      if (entry.entry_number != entry_name) {
+        dir_entry += kDirectorySize;
+        continue;
       }
-      std::cout << "Offset is: " << offset << std::endl;
-      std::vector<char> lnk_data(
-          olecf_data.begin() + offset,
-          olecf_data.begin() + offset + dir.directory_size);
-      std::cout << lnk_data[0] << std::endl;
+
+      std::vector<char> build_lnk;
+      // Concat the root data chunks to form the shortcut file data
+      int id = dir.sector_sid;
+      // Get first sector base on sector id in destlist directory
+      build_lnk.insert(
+          build_lnk.end(), root_data[id].begin(), root_data[id].end());
+      while (build_lnk.size() < dir.directory_size) {
+        int dir_id = ssat_slots[id];
+        // -2 is the end of the data stream
+        if (dir_id == -2) {
+          break;
+        }
+        build_lnk.insert(build_lnk.end(),
+                         root_data[dir_id].begin(),
+                         root_data[dir_id].end());
+        id = dir_id;
+      }
+      // Convert to hex string, shelllnk/shortcut parsing expects a hex string
+      // to parse
       std::stringstream lnk_ss;
-      for (const auto& hex_char : lnk_data) {
+      for (const auto& hex_char : build_lnk) {
         std::stringstream value;
         value << std::setfill('0') << std::setw(2);
         value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
         lnk_ss << value.str();
       }
+      std::string header_sig = lnk_ss.str();
       JumplistData jump;
       jump.lnk_data = lnk_ss.str();
       jump.entry = entry.entry_number;
       jump.interaction_count = entry.interaction_count;
-
       jump_data.push_back(jump);
       break;
     }
@@ -374,25 +482,21 @@ std::vector<JumplistData> buildLnkData(const std::vector<char>& olecf_data,
 }
 
 std::vector<JumplistData> parseOlecf(const std::vector<char>& olecf_data) {
-  std::cout << "Lets parse an OLE file!" << std::endl;
-  std::cout << "OLE size: " << olecf_data.size() << std::endl;
-  // const std::string ole_header(olecf_data[0], olecf_data[1024]);
   const std::vector<char> ole_header(olecf_data.begin(),
-                                     olecf_data.begin() + 512);
-  std::cout << "Header size: " << ole_header.size() << std::endl;
+                                     olecf_data.begin() + kOlecfHeaderSize);
   OlecfHeader header;
   header = parseOlecfHeader(ole_header);
-  std::cout << "Sector size: " << header.sector_size << std::endl;
-  std::cout << "Total sectors: " << header.total_sectors << std::endl;
-  std::cout << "Sector SID: " << header.sector_sid << std::endl;
-  std::cout << "Short sector SID: " << header.sector_sid_ssat << std::endl;
 
-  std::cout << "Short sector size: " << header.short_sector_size << std::endl;
-  std::cout << "Sector size stream: " << header.sector_size_stream << std::endl;
-  std::cout << "Total SSAT sectors: " << header.total_sectors_ssat << std::endl;
-  std::cout << "Total SSAT slots: " << header.short_sector_size / 4
-            << std::endl;
-  std::cout << "Total MSAT sectors: " << header.total_sectors_msat << std::endl;
+  // OLE compound file does not have SSAT if the value is -2
+  if (header.sector_sid_ssat == -2) {
+    return {};
+  }
+  if (header.sector_size != kOlecfHeaderSize) {
+    LOG(WARNING)
+        << "Unexpected Sector size for OLE data, expected 512 bytes, got: "
+        << header.sector_size;
+    return {};
+  }
 
   // Parse MSAT to build SAT and SSAT data
   const std::vector<int> msat_entries = parseMsat(header.msat);
@@ -401,26 +505,35 @@ std::vector<JumplistData> parseOlecf(const std::vector<char>& olecf_data) {
   std::vector<int> sat_slots = getSlots(sat_data, header.sector_size);
   std::vector<char> dir_data = buildDirectory(
       header.sector_sid, olecf_data, header.sector_size, sat_slots);
+
   std::vector<int> ssat_slots;
-  if (header.sector_sid_ssat > 0) {
-    ssat_slots = getSlots(olecf_data, header.short_sector_size);
+  std::vector<char> ssat_data = buildSsat(olecf_data, sat_slots, header);
+  if (header.sector_sid_ssat < 1) {
+    return {};
   }
-  std::cout << "SSAT slots: " << ssat_slots.size() << std::endl;
-  std::cout << "Directory entries: " << dir_data.size() / 128 << std::endl;
+
+  ssat_slots = getSlots(ssat_data, header.short_sector_size);
   OleDirectory root = getRootDirectory(dir_data);
+
+  std::vector<std::vector<char>> root_data =
+      buildRootData(olecf_data,
+                    root,
+                    header.sector_size,
+                    header.sector_size_stream,
+                    sat_slots);
+
   OleDestListFull destlist = getDestlist(dir_data,
                                          olecf_data,
-                                         header.short_sector_size,
-                                         header.sector_sid_ssat,
-                                         header.sector_size);
+                                         root_data,
+                                         ssat_slots,
+                                         sat_slots,
+                                         header);
+
+  if (destlist.list.empty()) {
+    return {};
+  }
   std::vector<JumplistData> jump_data =
-      buildLnkData(olecf_data,
-                   dir_data,
-                   destlist,
-                   header.short_sector_size,
-                   header.sector_sid_ssat,
-                   header.sector_size,
-                   ssat_slots);
+      buildLnkData(dir_data, destlist, ssat_slots, root_data);
   return jump_data;
 }
 } // namespace osquery
