@@ -5,7 +5,7 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/4.8.0...4.9.0)
 
-Representing commits from 15 contributors! Thank you all.
+Representing commits from 16 contributors! Thank you all.
 
 ### New Features
 
@@ -61,6 +61,7 @@ Representing commits from 15 contributors! Thank you all.
 - Add more tests for events expiration ([#7071](https://github.com/osquery/osquery/pull/7071))
 - CI: Regenerate sccache cache when compiler version changes ([#7081](https://github.com/osquery/osquery/pull/7081))
 - Fix flaky test test_daemon_sigint by waiting for pidfile ([#7095](https://github.com/osquery/osquery/pull/7095))
+- Fix icon in windows packaging ([#7148](https://github.com/osquery/osquery/pull/7148))
 - Minor cleanup of unused variables ([#7128](https://github.com/osquery/osquery/pull/7128))
 - Print extension sdk minimum version required when failing to load ([#7074](https://github.com/osquery/osquery/pull/7074))
 - Remove POSIX-only `-fexceptions` flag on Windows ([#7126](https://github.com/osquery/osquery/pull/7126))
