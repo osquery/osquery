@@ -242,9 +242,13 @@ bool enforceDenylist(const std::string& query) {
     return true;
   }
 
+  auto tables = QueryPlanner(query).tables();
+  if (tables.empty()) {
+    return true;
+  }
+
   // Check if the query only operates on event subscribers.
   // If it does, skip the denylist enforcement.
-  auto tables = QueryPlanner(query).tables();
   std::set<std::string> table_set(tables.begin(), tables.end());
   auto event_tables = EventFactory::subscriberNames();
 
