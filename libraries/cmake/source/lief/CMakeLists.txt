@@ -11,8 +11,6 @@ include(CheckCXXCompilerFlag)
 function(liefCppMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  #add_library(thirdparty_lief INTERFACE)
-
   add_library(thirdparty_lief
     "${library_root}/src/Object.cpp"
     "${library_root}/src/Visitor.cpp"
@@ -32,18 +30,18 @@ function(liefCppMain)
     "${library_root}/src/Abstract/Section.cpp"
     "${library_root}/src/Abstract/Symbol.cpp"
     "${library_root}/src/Abstract/hash.cpp"
-    #"${library_root}/src/Abstract/json.cpp"
     "${library_root}/src/BinaryStream/BinaryStream.cpp"
     "${library_root}/src/BinaryStream/Convert.cpp"
     "${library_root}/src/BinaryStream/MemoryStream.cpp"
     "${library_root}/src/BinaryStream/VectorStream.cpp"
     "${library_root}/src/visitors/hash.cpp"
-    #"${library_root}/src/visitors/json.cpp"
     "${library_root}/src/hash_stream.hpp"
-    #"${library_root}/src/frozen.hpp"
     )
 
   if(DEFINED PLATFORM_MACOS)
+    set(LIEF_MACHO_SUPPORT 1)
+    file(READ "${library_root}/include/LIEF/MachO/enums.inc"      LIEF_MACHO_ENUMS)
+    file(READ "${library_root}/include/LIEF/MachO/structures.inc" LIEF_MACHO_STRUCTURES)
     target_sources(thirdparty_lief PRIVATE
       "${library_root}/src/MachO/utils.cpp"
       "${library_root}/src/MachO/Binary.cpp"
@@ -91,6 +89,110 @@ function(liefCppMain)
       "${library_root}/src/MachO/TrieNode.hpp"
       )
   endif()
+  if(DEFINED PLATFORM_WINDOWS)
+    set(LIEF_PE_SUPPORT 1)
+    file(READ "${library_root}/include/LIEF/PE/enums.inc"      LIEF_PE_ENUMS)
+    file(READ "${library_root}/include/LIEF/PE/structures.inc" LIEF_PE_STRUCTURES)
+    target_sources(thirdparty_lief PRIVATE
+       "${library_root}/src/PE/utils.cpp"
+  "${library_root}/src/PE/ExportEntry.cpp"
+  "${library_root}/src/PE/Binary.cpp"
+  "${library_root}/src/PE/Symbol.cpp"
+  "${library_root}/src/PE/EnumToString.cpp"
+  "${library_root}/src/PE/Header.cpp"
+  "${library_root}/src/PE/DosHeader.cpp"
+  "${library_root}/src/PE/RichHeader.cpp"
+  "${library_root}/src/PE/RichEntry.cpp"
+  "${library_root}/src/PE/ResourceDirectory.cpp"
+  "${library_root}/src/PE/Import.cpp"
+  "${library_root}/src/PE/ResourceNode.cpp"
+  "${library_root}/src/PE/Export.cpp"
+  "${library_root}/src/PE/Section.cpp"
+  "${library_root}/src/PE/OptionalHeader.cpp"
+  "${library_root}/src/PE/Builder.cpp"
+  "${library_root}/src/PE/Parser.cpp"
+  "${library_root}/src/PE/ResourcesManager.cpp"
+  "${library_root}/src/PE/Relocation.cpp"
+  "${library_root}/src/PE/TLS.cpp"
+  "${library_root}/src/PE/Debug.cpp"
+  "${library_root}/src/PE/CodeView.cpp"
+  "${library_root}/src/PE/CodeViewPDB.cpp"
+  "${library_root}/src/PE/Pogo.cpp"
+  "${library_root}/src/PE/PogoEntry.cpp"
+  "${library_root}/src/PE/ImportEntry.cpp"
+  "${library_root}/src/PE/ResourceData.cpp"
+  "${library_root}/src/PE/RelocationEntry.cpp"
+  "${library_root}/src/PE/DataDirectory.cpp"
+  "${library_root}/src/PE/CodeIntegrity.cpp"
+  "${library_root}/src/PE/Builder.tcc"
+  "${library_root}/src/PE/Parser.tcc"
+  "${library_root}/src/PE/resources/ResourceVersion.cpp"
+  "${library_root}/src/PE/resources/ResourceDialog.cpp"
+  "${library_root}/src/PE/resources/ResourceDialogItem.cpp"
+  "${library_root}/src/PE/resources/ResourceVersion.cpp"
+  "${library_root}/src/PE/resources/ResourceFixedFileInfo.cpp"
+  "${library_root}/src/PE/resources/ResourceVarFileInfo.cpp"
+  "${library_root}/src/PE/resources/ResourceStringFileInfo.cpp"
+  "${library_root}/src/PE/resources/LangCodeItem.cpp"
+  "${library_root}/src/PE/resources/ResourceIcon.cpp"
+  "${library_root}/src/PE/resources/ResourceStringTable.cpp"
+  "${library_root}/src/PE/resources/ResourceAccelerator.cpp"
+    "${library_root}/src/PE/LoadConfigurations/LoadConfigurations.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfiguration.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfiguration.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV0.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV0.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV1.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV1.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV2.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV2.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV3.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV3.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV4.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV4.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV5.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV5.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV6.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV6.tcc"
+
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV7.cpp"
+  "${library_root}/src/PE/LoadConfigurations/LoadConfigurationV7.tcc"
+    "${library_root}/src/PE/signatures/Attribute.cpp"
+  "${library_root}/src/PE/signatures/ContentInfo.cpp"
+  "${library_root}/src/PE/signatures/Signature.cpp"
+  "${library_root}/src/PE/signatures/SignerInfo.cpp"
+  "${library_root}/src/PE/signatures/x509.cpp"
+  "${library_root}/src/PE/signatures/OIDToString.cpp"
+  "${library_root}/src/PE/signatures/SignatureParser.cpp"
+  "${library_root}/src/PE/signatures/RsaInfo.cpp"
+    "${library_root}/src/PE/signatures/attributes/GenericType.cpp"
+  "${library_root}/src/PE/signatures/attributes/ContentType.cpp"
+
+  "${library_root}/src/PE/signatures/attributes/SpcSpOpusInfo.cpp"
+
+  "${library_root}/src/PE/signatures/attributes/MsCounterSign.cpp"
+  "${library_root}/src/PE/signatures/attributes/MsSpcNestedSignature.cpp"
+  "${library_root}/src/PE/signatures/attributes/MsSpcStatementType.cpp"
+
+  "${library_root}/src/PE/signatures/attributes/PKCS9AtSequenceNumber.cpp"
+  "${library_root}/src/PE/signatures/attributes/PKCS9CounterSignature.cpp"
+  "${library_root}/src/PE/signatures/attributes/PKCS9MessageDigest.cpp"
+  "${library_root}/src/PE/signatures/attributes/PKCS9SigningTime.cpp"
+  )
+  target_include_directories(thirdpart_lief PRIVATE
+    "${library_root}/src/PE/utils/ordinals_lookup_tables"
+    "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
+    "${library_root}/src/PE/signatures/"
+      )
+    endif()
 
   target_include_directories(thirdparty_lief PRIVATE
     "${library_root}/include"
@@ -109,7 +211,6 @@ function(liefCppMain)
   LIEF_ART=off
   LIEF_VDEX=off
   LIEF_ELF=off
-  LIEF_PE=off
   LIEF_LOGGING=off
   LIEF_DEBUG_LOGGING=off
   LIEF_PYTHON_API=off
@@ -121,7 +222,6 @@ function(liefCppMain)
 
 set(LIEF_ELF_SUPPORT 0)
 set(LIEF_PE_SUPPORT 0)
-set(LIEF_MACHO_SUPPORT 1)
 
 set(LIEF_OAT_SUPPORT 0)
 set(LIEF_DEX_SUPPORT 0)
@@ -134,6 +234,19 @@ set(LIEF_LOGGING_DEBUG_SUPPORT 0)
 set(LIEF_FROZEN_ENABLED 0)
 
 configure_file("${library_root}/include/LIEF/config.h.in" "${library_root}/include/LIEF/config.h")
+configure_file("${library_root}/include/LIEF/MACHO/enums.hpp.in" "${library_root}/include/LIEF/MACHO/enums.hpp")
+configure_file("${library_root}/include/LIEF/MACHO/Structures.hpp.in" "${library_root}/include/LIEF/MACHO/Structures.hpp")
+configure_file(
+  "${library_root}/include/LIEF/PE/enums.hpp.in"
+  "${library_root}/include/LIEF/PE/enums.hpp"
+  @ONLY
+)
+
+configure_file(
+  "${library_root}/include/LIEF/PE/Structures.hpp.in"
+  "${library_root}/include/LIEF/PE/Structures.hpp"
+  @ONLY
+)
 
 set(MBED_TLS_VERSION 2.25.0)
 set(MBED_TLS_SHA256 SHA256=6bf01ef178925f7db3c9027344a50855b116f2defe4a24cbdc0220111a371597)
@@ -155,115 +268,7 @@ ExternalProject_get_property(lief_mbed_tls SOURCE_DIR)
 set(MBEDTLS_SOURCE_DIR "${SOURCE_DIR}")
 set(MBEDTLS_INCLUDE_DIRS "${MBEDTLS_SOURCE_DIR}/include")
 
-set(mbedtls_src_crypto
-  "${MBEDTLS_SOURCE_DIR}/library/aes.c"
-  "${MBEDTLS_SOURCE_DIR}/library/aesni.c"
-  "${MBEDTLS_SOURCE_DIR}/library/arc4.c"
-  "${MBEDTLS_SOURCE_DIR}/library/aria.c"
-  "${MBEDTLS_SOURCE_DIR}/library/asn1parse.c"
-  "${MBEDTLS_SOURCE_DIR}/library/asn1write.c"
-  "${MBEDTLS_SOURCE_DIR}/library/base64.c"
-  "${MBEDTLS_SOURCE_DIR}/library/bignum.c"
-  "${MBEDTLS_SOURCE_DIR}/library/blowfish.c"
-  "${MBEDTLS_SOURCE_DIR}/library/camellia.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ccm.c"
-  "${MBEDTLS_SOURCE_DIR}/library/chacha20.c"
-  "${MBEDTLS_SOURCE_DIR}/library/chachapoly.c"
-  "${MBEDTLS_SOURCE_DIR}/library/cipher.c"
-  "${MBEDTLS_SOURCE_DIR}/library/cipher_wrap.c"
-  "${MBEDTLS_SOURCE_DIR}/library/cmac.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ctr_drbg.c"
-  "${MBEDTLS_SOURCE_DIR}/library/des.c"
-  "${MBEDTLS_SOURCE_DIR}/library/dhm.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ecdh.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ecdsa.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ecjpake.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ecp.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ecp_curves.c"
-  "${MBEDTLS_SOURCE_DIR}/library/entropy.c"
-  "${MBEDTLS_SOURCE_DIR}/library/entropy_poll.c"
-  "${MBEDTLS_SOURCE_DIR}/library/error.c"
-  "${MBEDTLS_SOURCE_DIR}/library/gcm.c"
-  "${MBEDTLS_SOURCE_DIR}/library/havege.c"
-  "${MBEDTLS_SOURCE_DIR}/library/hkdf.c"
-  "${MBEDTLS_SOURCE_DIR}/library/hmac_drbg.c"
-  "${MBEDTLS_SOURCE_DIR}/library/md.c"
-  "${MBEDTLS_SOURCE_DIR}/library/md2.c"
-  "${MBEDTLS_SOURCE_DIR}/library/md4.c"
-  "${MBEDTLS_SOURCE_DIR}/library/md5.c"
-  "${MBEDTLS_SOURCE_DIR}/library/memory_buffer_alloc.c"
-  "${MBEDTLS_SOURCE_DIR}/library/nist_kw.c"
-  "${MBEDTLS_SOURCE_DIR}/library/oid.c"
-  "${MBEDTLS_SOURCE_DIR}/library/padlock.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pem.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pk.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pk_wrap.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pkcs12.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pkcs5.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pkparse.c"
-  "${MBEDTLS_SOURCE_DIR}/library/pkwrite.c"
-  "${MBEDTLS_SOURCE_DIR}/library/platform.c"
-  "${MBEDTLS_SOURCE_DIR}/library/platform_util.c"
-  "${MBEDTLS_SOURCE_DIR}/library/poly1305.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_crypto.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_crypto_driver_wrappers.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_crypto_se.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_crypto_slot_management.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_crypto_storage.c"
-  "${MBEDTLS_SOURCE_DIR}/library/psa_its_file.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ripemd160.c"
-  "${MBEDTLS_SOURCE_DIR}/library/rsa.c"
-  "${MBEDTLS_SOURCE_DIR}/library/rsa_internal.c"
-  "${MBEDTLS_SOURCE_DIR}/library/sha1.c"
-  "${MBEDTLS_SOURCE_DIR}/library/sha256.c"
-  "${MBEDTLS_SOURCE_DIR}/library/sha512.c"
-  "${MBEDTLS_SOURCE_DIR}/library/threading.c"
-  "${MBEDTLS_SOURCE_DIR}/library/timing.c"
-  "${MBEDTLS_SOURCE_DIR}/library/version.c"
-  "${MBEDTLS_SOURCE_DIR}/library/version_features.c"
-  "${MBEDTLS_SOURCE_DIR}/library/xtea.c"
-)
-
-set(mbedtls_src_x509
-    "${MBEDTLS_SOURCE_DIR}/library/certs.c"
-    "${MBEDTLS_SOURCE_DIR}/library/pkcs11.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509_create.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509_crl.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509_crt.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509_csr.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509write_crt.c"
-    "${MBEDTLS_SOURCE_DIR}/library/x509write_csr.c"
-)
-
-set(mbedtls_src_tls
-  "${MBEDTLS_SOURCE_DIR}/library/debug.c"
-  "${MBEDTLS_SOURCE_DIR}/library/net_sockets.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_cache.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_ciphersuites.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_cli.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_cookie.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_msg.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_srv.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_ticket.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_tls.c"
-  "${MBEDTLS_SOURCE_DIR}/library/ssl_tls13_keys.c"
-)
-
-set_source_files_properties(${mbedtls_src_crypto} PROPERTIES GENERATED TRUE)
-set_source_files_properties(${mbedtls_src_x509} PROPERTIES GENERATED TRUE)
-set_source_files_properties(${mbedtls_src_tls} PROPERTIES GENERATED TRUE)
-
-source_group("mbedtls\\crypto" FILES ${mbedtls_src_crypto})
-source_group("mbedtls\\x509" FILES ${mbedtls_src_x509})
-source_group("mbedtls\\tls" FILES ${mbedtls_src_tls})
-
-target_sources(thirdparty_lief PRIVATE
-  "${mbedtls_src_crypto}"
-  "${mbedtls_src_x509}"
-  "${mbedtls_src_tls}"
-  )
-
+  
 set(SPDLOG_VERSION 1.8.2)
 set(SPDLOG_SHA256 SHA256=f0410b12b526065802b40db01304783550d3d20b4b6fe2f8da55f9d08ed2035d)
 set(SPDLOG_URL "${library_root}/third-party/spdlog-${SPDLOG_VERSION}.zip" CACHE STRING "URL to the spdlog lib repo")
@@ -287,14 +292,94 @@ set(spdlogging
   "${SPDLOG_SOURCE_DIR}/src/fmt.cpp"
   "${SPDLOG_SOURCE_DIR}/src/spdlog.cpp"
   "${SPDLOG_SOURCE_DIR}/src/stdout_sinks.cpp"
-)
-add_dependencies(thirdparty_lief lief_mbed_tls lief_spdlog)
+  )
+
+set(LEAF_VERSION 0.3.1) # Custom fix to remove use of SUBLANG_DEFAULT in common.hpp and all.hpp
+set(LEAF_SHA256 SHA256=b925413d165cb841e560e44438dc6ad6bfcbf537d526a51489d518ad381a4c11  )
+set(LEAF_URL "${library_root}/third-party/leaf-${LEAF_VERSION}.zip" CACHE STRING "URL to Leaf")
+ExternalProject_Add(lief_leaf # :)
+  URL               ${LEAF_URL}
+  URL_HASH          ${LEAF_SHA256}
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  UPDATE_COMMAND    ""
+  INSTALL_COMMAND   "")
+
+ExternalProject_get_property(lief_leaf SOURCE_DIR)
+set(LEAF_INCLUDE_DIR "${SOURCE_DIR}/include")
+
+set(UTFCPP_VERSION 3.1.2) # Custom fix to remove use of SUBLANG_DEFAULT in common.hpp and all.hpp
+set(UTFCPP_SHA256 SHA256=b77bff122a6d4f2a7a1ab409086bbb59bf899a2fdde12e1a85a4305fa91764c4)
+set(UTFCPP_URL "${library_root}/third-party/utfcpp-${UTFCPP_VERSION}.zip" CACHE STRING "URL to UTFCPP")
+ExternalProject_Add(lief_utfcpp
+  URL               ${UTFCPP_URL}
+  URL_HASH          ${UTFCPP_SHA256}
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  UPDATE_COMMAND    ""
+  INSTALL_COMMAND   "")
+
+ExternalProject_get_property(lief_utfcpp SOURCE_DIR)
+set(UTFCPP_INCLUDE_DIR "${SOURCE_DIR}/source")
+
+
+
+add_dependencies(thirdparty_lief lief_mbed_tls lief_spdlog lief_leaf lief_utfcpp)
 target_link_libraries(thirdparty_lief PRIVATE
   thirdparty_cxx_settings
+  thirdparty_c_settings
   )
+target_link_libraries(thirdparty_lief PUBLIC
+  thirdparty_mbedtls
+  )
+
+# =======================================
+# Leaf
+# =======================================
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/boost/leaf/all.hpp
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${LEAF_INCLUDE_DIR}/
+    ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/
+  DEPENDS lief_leaf)
+
+target_sources(thirdparty_lief PRIVATE
+  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/boost/leaf/all.hpp)
+
+add_custom_command(OUTPUT ${library_root}/include/LIEF/third-party/boost/leaf/all.hpp
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${LEAF_INCLUDE_DIR}/
+    ${library_root}/include/LIEF/third-party/
+  DEPENDS lief_leaf)
+
+target_sources(thirdparty_lief PRIVATE
+  ${library_root}/include/LIEF/third-party/boost/leaf/all.hpp)
+
+# =======================================
+# utfcpp
+# =======================================
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/utfcpp/utf8.h
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${UTFCPP_INCLUDE_DIR}/
+    ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/utfcpp
+  DEPENDS lief_utfcpp)
+
+target_sources(thirdparty_lief PRIVATE
+  ${CMAKE_CURRENT_BINARY_DIR}/include/LIEF/third-party/utfcpp/utf8.h)
+
+add_custom_command(OUTPUT ${library_root}/include/LIEF/third-party/utfcpp/utf8.h
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${UTFCPP_INCLUDE_DIR}/
+    ${library_root}/include/LIEF/third-party/utfcpp
+  DEPENDS lief_utfcpp)
+
+target_sources(thirdparty_lief PRIVATE
+  ${library_root}/include/LIEF/third-party/utfcpp/utf8.h)
+
 target_include_directories(thirdparty_lief PRIVATE
   "${MBEDTLS_INCLUDE_DIRS}"
   "${SPDLOG_INCLUDE_DIR}"
+  "${LEAF_INCLUDE_DIR}/boost/leaf"
+  "${UTFCPP_INCLUDE_DIR}"
   )
 
 set(LIEF_SUPPORT_CXX11 0)
@@ -334,53 +419,6 @@ set_target_properties(
              CXX_STANDARD_REQUIRED     ON
              CXX_VISIBILITY_PRESET     hidden
              C_VISIBILITY_PRESET       hidden)
-# cmake-format: on
-
-if(UNIX AND NOT APPLE)
-  set_property(
-    TARGET thirdparty_lief
-    APPEND
-    PROPERTY LINK_FLAGS "-Wl,--gc-sections -Wl,--exclude-libs,ALL")
-endif()
-
-target_compile_definitions(thirdparty_lief PUBLIC _GLIBCXX_USE_CXX11_ABI=1)
-
-# Enable support for MD2 and MD4 for parsing the Authenticode sigs of older
-# executables. Also, some older signed executables use certs with the
-# SpcSpAgencyInfo Critical Extension, which mbed TLS doesn't support, so set
-# MBEDTLS_X509_ALLOW_UNSUPPORTED_CRITICAL_EXTENSION to have it skip this
-# extension.
-add_definitions(-DMBEDTLS_MD2_C -DMBEDTLS_MD4_C -DMBEDTLS_PEM_PARSE_C
-                -DMBEDTLS_X509_CRT_PARSE_C -DMBEDTLS_PEM_WRITE_C
-                -DMBEDTLS_PKCS1_V15 -DMBEDTLS_PKCS1_V21
-                -DMBEDTLS_X509_ALLOW_UNSUPPORTED_CRITICAL_EXTENSION
-		)
-  macro(ADD_FLAG_IF_SUPPORTED flag name)
-  CHECK_C_COMPILER_FLAG("${flag}"   "C_SUPPORTS_${name}")
-  CHECK_CXX_COMPILER_FLAG("${flag}" "CXX_SUPPORTS_${name}")
-
-  if (C_SUPPORTS_${name})
-    target_compile_options(thirdparty_lief PRIVATE ${flag})
-  endif()
-
-  if (CXX_SUPPORTS_${name})
-    target_compile_options(thirdparty_lief PRIVATE ${flag})
-  endif()
-endmacro()
-
-  ADD_FLAG_IF_SUPPORTED("-Wall"                     WALL)
-  ADD_FLAG_IF_SUPPORTED("-Wextra"                   WEXTRA)
-  ADD_FLAG_IF_SUPPORTED("-Wpedantic"                WPEDANTIC)
-  ADD_FLAG_IF_SUPPORTED("-fno-stack-protector"      NO_STACK_PROTECTOR)
-  ADD_FLAG_IF_SUPPORTED("-fomit-frame-pointer"      OMIT_FRAME_POINTER)
-  ADD_FLAG_IF_SUPPORTED("-fno-strict-aliasing"      NO_STRICT_ALIASING)
-  ADD_FLAG_IF_SUPPORTED("-fexceptions"              EXCEPTION)
-  ADD_FLAG_IF_SUPPORTED("-fvisibility=hidden"       VISIBILITY)
-  ADD_FLAG_IF_SUPPORTED("-Wno-expansion-to-defined" NO_EXPANSION_TO_DEFINED)
-
-  ADD_FLAG_IF_SUPPORTED("-fdiagnostics-color=always" DIAGNOSTICS_COLOR)
-  ADD_FLAG_IF_SUPPORTED("-fcolor-diagnostics"        COLOR_DIAGNOSTICS)
-
 endfunction()
 
 liefCppMain()

@@ -139,3 +139,7 @@
 [submodule "libraries/cmake/source/lief/src"]
 	path = libraries/cmake/source/lief/src
 	url = https://github.com/lief-project/LIEF
+[submodule "libraries/cmake/source/mbedtls/src"]
+	path = libraries/cmake/source/mbedtls/src
+	url = https://github.com/ARMmbed/mbedtls
+	branch = development_2.x

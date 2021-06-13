@@ -14,7 +14,7 @@ schema([
     Column("is_encrypted", INTEGER, "Is Encryption Info present in the executable."),
 ])
 
-implementation("maco_info@genMachoInfo")
+implementation("macho_info@genMachoInfo")
 examples([
     "select * from macho_info where path = '/bin/ls'",
 ])
