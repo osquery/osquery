@@ -339,7 +339,9 @@ Maximum number of events to buffer in the backing store while waiting for a quer
 
 `--events_enforce_denylist=false`
 
-This controls whether denylisted queries that operate on a "*_events" (event-based) table skip denylist enforcement. These queries operate on meta-generated table logic so performance issues are unavoidable and it does not make sense to denylist. Skipping these queries may lead to adverse and opposite effects because events will buffer longer and impact RocksDB storage.
+This controls whether watchdog denylisting is enforced on queries using "*_events" (event-based) tables. As these these queries operate on meta-generated table logic, performance issues are unavoidable. It does not make sense to denylist. Enforcing this may lead to adverse and opposite effects because events will buffer longer and impact RocksDB storage.
+
+This only considers queries that are entirely event-based. For example `SELECT * FROM process_events` is considered, but `SELECT * FROM process_events join time` is not.
 
 It is not recommended to set this to `true`.
 

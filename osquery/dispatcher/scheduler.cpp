@@ -235,31 +235,27 @@ void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
   }
 }
 
-bool isDenylisted(const ScheduledQuery& query) {
-  if (!query.denylisted) {
-    return false;
-  }
+bool enforceDenylist(const std::string& query) {
+  // The only exception for a denylisted query to still run is when this flag
+  // is false (the default).
   if (FLAGS_events_enforce_denylist) {
     return true;
   }
 
-  // Check if the query operates on an event subscriber.
+  // Check if the query only operates on event subscribers.
   // If it does, skip the denylist enforcement.
-  auto tables = QueryPlanner(query.query).tables();
+  auto tables = QueryPlanner(query).tables();
+  std::set<std::string> table_set(tables.begin(), tables.end());
   auto event_tables = EventFactory::subscriberNames();
-  std::sort(tables.begin(), tables.end());
-  std::sort(event_tables.begin(), event_tables.end());
 
-  std::vector<std::string> overlap;
-  std::set_intersection(tables.begin(),
-                        tables.end(),
+  std::set<std::string> overlap;
+  std::set_intersection(table_set.begin(),
+                        table_set.end(),
                         event_tables.begin(),
                         event_tables.end(),
-                        back_inserter(overlap));
-  // It does not, so the query is denylisted.
-  return overlap.empty();
+                        std::inserter(overlap, overlap.begin()));
+  return overlap.size() != table_set.size();
 }
-
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
@@ -271,7 +267,7 @@ void SchedulerRunner::start() {
     Config::get().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            if (isDenylisted(query)) {
+            if (query.denylisted && enforceDenylist(query.query)) {
               return;
             }
 
