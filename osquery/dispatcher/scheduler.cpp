@@ -21,6 +21,7 @@
 #include <osquery/core/query.h>
 #include <osquery/core/shutdown.h>
 #include <osquery/database/database.h>
+#include <osquery/events/eventfactory.h>
 #include <osquery/logger/data_logger.h>
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
@@ -53,10 +54,10 @@ FLAG(bool,
      false,
      "Log the running scheduled query name at INFO level");
 
-FLAG(bool,
-     schedule_allow_denylisted_events,
-     true,
-     "Allow event-based queries to skip the denylist");
+HIDDEN_FLAG(bool,
+            events_enforce_denylist,
+            false,
+            "Enforce denylist for event-based queries");
 
 HIDDEN_FLAG(bool,
             schedule_reload_sql,
@@ -238,16 +239,25 @@ bool isDenylisted(const ScheduledQuery& query) {
   if (!query.denylisted) {
     return false;
   }
-  if (!FLAGS_schedule_allow_denylisted_events) {
+  if (FLAGS_events_enforce_denylist) {
     return true;
   }
 
+  // Check if the query operates on an event subscriber.
+  // If it does, skip the denylist enforcement.
   auto tables = QueryPlanner(query.query).tables();
-  bool event_based =
-      std::any_of(tables.begin(), tables.end(), [](const std::string& table) {
-        return boost::algorithm::ends_with(table, "_events");
-      });
-  return !event_based;
+  auto event_tables = EventFactory::subscriberNames();
+  std::sort(tables.begin(), tables.end());
+  std::sort(event_tables.begin(), event_tables.end());
+
+  std::vector<std::string> overlap;
+  std::set_intersection(tables.begin(),
+                        tables.end(),
+                        event_tables.begin(),
+                        event_tables.end(),
+                        back_inserter(overlap));
+  // It does not, so the query is denylisted.
+  return overlap.empty();
 }
 
 void SchedulerRunner::start() {
