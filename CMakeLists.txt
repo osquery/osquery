@@ -112,6 +112,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin:lldpd"
     "Linux,Darwin,Windows:lzma"
+    "Windows,Darwin:mbedtls"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
