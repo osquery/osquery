@@ -194,7 +194,7 @@ std::vector<char> buildSsat(const std::vector<char>& olecf_data,
   return ssat_data;
 }
 
-// Build OLE directory data, will contain the Root, Destlist, shortcut offset
+// Build OLE directory data, will contain the Root, Destlist, and shortcut offset
 // directory entries
 std::vector<char> buildDirectory(const int& sector_sid,
                                  const std::vector<char>& olecf_data,
@@ -232,7 +232,7 @@ std::vector<char> buildDirectory(const int& sector_sid,
 }
 
 // Build the RootData, will contain the data needed to build the shortcut file
-// data Return a vector of 64 byte chunks
+// data. Return a vector of 64 byte chunks
 std::vector<std::vector<char>> buildRootData(
     const std::vector<char>& olecf_data,
     const OleDirectory& root,
@@ -253,8 +253,9 @@ std::vector<std::vector<char>> buildRootData(
       root_data.push_back(data_root);
       root_offset += dataChunk;
     }
-  } else { // If Root data larger than short sector stream size (4096), must build
-           // root data from SAT slots/streams instead of SSAT slots/streams
+  } else { // If Root data larger than short sector stream size (4096), must
+           // build root data from SAT slots/streams instead of SSAT
+           // slots/streams
     int id = root.sector_sid;
     while (true) {
       while (root_offset < sector_size) {
@@ -348,8 +349,9 @@ OleDestListFull getDestlist(const std::vector<char>& dir_data,
                                    root_data[destlist_sector_id].end());
         id = destlist_sector_id;
       }
-    } else {// If destlist directory larger than short sector stream size (4096), must build
-           // from SAT slots/streams instead of SSAT slots/streams
+    } else { // If destlist directory larger than short sector stream size
+             // (4096), must build
+      // from SAT slots/streams instead of SSAT slots/streams
       while (true) {
         build_destlist_data.insert(
             build_destlist_data.end(),
@@ -364,15 +366,16 @@ OleDestListFull getDestlist(const std::vector<char>& dir_data,
       }
     }
 
-    // Parse first destlist data entry
     OleDestListHeader destlist_header;
     memcpy(&destlist_header, &build_destlist_data[0], sizeof(destlist_header));
-    if (destlist_header.version != 4) {
-      LOG(WARNING) << "Only Windows 10 Jumplists are supported (version 4), "
+    if (destlist_header.version != 4 && destlist_header.version != 3) {
+      LOG(WARNING) << "Only Windows 10 Jumplists are supported (version 4 or "
+                      "version 3), "
                       "got version: "
                    << destlist_header.version;
       return destlist_full;
     }
+    // Parse first destlist data entry
     OleDestList destlist_data;
     memcpy(&destlist_data, &build_destlist_data[32], sizeof(destlist_data));
     const unsigned int destlist_header_entry_path_offset = 162;
@@ -522,12 +525,8 @@ std::vector<JumplistData> parseOlecf(const std::vector<char>& olecf_data) {
                     header.sector_size_stream,
                     sat_slots);
 
-  OleDestListFull destlist = getDestlist(dir_data,
-                                         olecf_data,
-                                         root_data,
-                                         ssat_slots,
-                                         sat_slots,
-                                         header);
+  OleDestListFull destlist = getDestlist(
+      dir_data, olecf_data, root_data, ssat_slots, sat_slots, header);
 
   if (destlist.list.empty()) {
     return {};
