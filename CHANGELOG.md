@@ -10,7 +10,7 @@ Representing commits from 16 contributors! Thank you all.
 ### New Features
 
 - Add filesystem logrotate feature ([#7015](https://github.com/osquery/osquery/pull/7015))
-- Add EndpointSecurity based process events to macOS ([#7046](https://github.com/osquery/osquery/pull/7046))
+- Add Non-Functional EndpointSecurity based process events to macOS (Requires updated codesigning due in 5.0) ([#7046](https://github.com/osquery/osquery/pull/7046))
 
 ### Table Changes
 
@@ -44,7 +44,6 @@ Representing commits from 16 contributors! Thank you all.
 - Fix custom `curl_certificate` timeouts ([#7151](https://github.com/osquery/osquery/pull/7151))
 - Fix extensions crash on shutdown ([#7075](https://github.com/osquery/osquery/pull/7075))
 - Handle updated paths on various macOS tables -- `xprotect_entries`, `xprotect_meta`, `launchd` ([#7138](https://github.com/osquery/osquery/pull/7138), [#7154](https://github.com/osquery/osquery/pull/7154))
-- Handle newer systems paths in `launchd` and 
 - Trigger event cleanup checks every 256 events ([#7143](https://github.com/osquery/osquery/pull/7143))
 - Update generating an extension uuid to be thread safe ([#7135](https://github.com/osquery/osquery/pull/7135))
 - Watchdog should wait for the worker to shutdown ([#7116](https://github.com/osquery/osquery/pull/7116))
