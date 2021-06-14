@@ -131,10 +131,9 @@ Status readFile(const fs::path& path,
   auto read_max = static_cast<off_t>(FLAGS_read_max);
   if (file_size > read_max) {
     if (!dry_run) {
-      LOG(WARNING) << "Cannot read file that exceeds size limit: "
-                   << path.string();
-      VLOG(1) << "Cannot read " << path.string()
-              << " size exceeds limit: " << file_size << " > " << read_max;
+      return Status::failure(
+          "Cannot read " + path.string() + " size exceeds limit: " +
+          std::to_string(file_size) + " > " + std::to_string(read_max));
     }
     return Status::failure("File exceeds read limits");
   }
@@ -310,7 +309,7 @@ static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
   if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
     dsym_inos.insert(d_stat.st_ino);
   } else {
-    VLOG(1) << "Symlink loop detected. Ignoring: " << path;
+    // VLOG(1) << "Symlink loop detected. Ignoring: " << path;
     return true;
   }
   return false;

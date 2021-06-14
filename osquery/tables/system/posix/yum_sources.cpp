@@ -54,10 +54,11 @@ void parseYumConf(std::istream& source,
 
 void parseYumConf(const std::string& source,
                   QueryData& results,
-                  std::string& repos_dir) {
+                  std::string& repos_dir,
+                  Logger& logger) {
   std::ifstream stream(source.c_str());
   if (!stream) {
-    VLOG(1) << "File " << source << " cannot be read";
+    logger.vlog(1, "File " + source + " cannot be read");
     repos_dir = kYumReposDir;
     return;
   }
@@ -65,8 +66,9 @@ void parseYumConf(const std::string& source,
   try {
     parseYumConf(stream, results, repos_dir);
   } catch (boost::property_tree::ini_parser::ini_parser_error& e) {
-    VLOG(1) << "File " << source
-            << " either cannot be read or cannot be parsed as ini";
+    logger.vlog(
+        1,
+        "File " + source + " either cannot be read or cannot be parsed as ini");
     repos_dir = kYumReposDir;
   }
 }
@@ -75,18 +77,19 @@ QueryData genYumSrcsImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   // Expect the YUM home to be /etc/yum.conf
   std::string repos_dir;
-  parseYumConf(kYumConf, results, repos_dir);
+  parseYumConf(kYumConf, results, repos_dir, logger);
 
   std::vector<std::string> sources;
   if (!resolveFilePattern(
           repos_dir + "/%" + kYumConfigFileExtension, sources, GLOB_FILES)) {
-    VLOG(1) << "Cannot resolve yum conf files under " << repos_dir << "/*"
-            << kYumConfigFileExtension;
+    logger.vlog(1,
+                "Cannot resolve yum conf files under " + repos_dir + "/*" +
+                    kYumConfigFileExtension);
     return results;
   }
 
   for (const auto& source : sources) {
-    parseYumConf(source, results, repos_dir);
+    parseYumConf(source, results, repos_dir, logger);
   }
 
   return results;

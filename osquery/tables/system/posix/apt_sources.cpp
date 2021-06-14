@@ -202,7 +202,7 @@ QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
   sources.push_back("/etc/apt/sources.list");
   if (!resolveFilePattern(
           "/etc/apt/sources.list.d/%.list", sources, GLOB_FILES)) {
-    VLOG(1) << "Cannot resolve apt sources /etc/apt/sources.list.d";
+    logger.vlog(1, "Cannot resolve apt sources /etc/apt/sources.list.d");
     return results;
   }
 

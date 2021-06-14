@@ -84,7 +84,9 @@ bool isSuidBin(const fs::path& path, int perms) {
   return false;
 }
 
-void genSuidBinsFromPath(const std::string& path, QueryData& results) {
+void genSuidBinsFromPath(const std::string& path,
+                         QueryData& results,
+                         Logger& logger) {
   if (!pathExists(path).ok()) {
     // Creating an iterator on a missing path will except.
     return;
@@ -108,7 +110,7 @@ void genSuidBinsFromPath(const std::string& path, QueryData& results) {
 
       ++it;
     } catch (fs::filesystem_error& e) {
-      VLOG(1) << "Cannot read binary from " << subpath;
+      logger.vlog(1, "Cannot read binary from " + subpath.string());
       it.no_push();
       // Try to recover, otherwise break.
       try {
@@ -125,7 +127,7 @@ QueryData genSuidBinImpl(QueryContext& context, Logger& logger) {
 
   // Todo: add hidden column to select on that triggers non-std path searches.
   for (const auto& path : kBinarySearchPaths) {
-    genSuidBinsFromPath(path, results);
+    genSuidBinsFromPath(path, results, logger);
   }
 
   return results;
