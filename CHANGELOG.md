@@ -15,12 +15,12 @@ Representing commits from 16 contributors! Thank you all.
 ### Table Changes
 
 - Add `mdm_managed` column to `system_extensions` on macOS ([#6915](https://github.com/osquery/osquery/pull/6915))
-- Add `prefetch` table on windows ([#7076](https://github.com/osquery/osquery/pull/7076))
+- Add `prefetch` table on Windows ([#7076](https://github.com/osquery/osquery/pull/7076))
 - Add support for IMDSv2 to AWS tables ([#7084](https://github.com/osquery/osquery/pull/7084))
 - Enable container stats on docker containers that don't have traditional networks ([#7145](https://github.com/osquery/osquery/pull/7145))
 - Update `homebrew_packages` to include new prefix, and allow specifying alternate prefixes ([#7117](https://github.com/osquery/osquery/pull/7117))
 - Update `ntfs_acl_permissions` to list all ACE entries (using  `GetAce()`) ([#7114](https://github.com/osquery/osquery/pull/7114))
-- Update `processes` table to display additional windows attributes (`secured`, `protected`, `virtual`, `elevated`) ([#7121](https://github.com/osquery/osquery/pull/7121))
+- Update `processes` table to display additional Windows attributes (`secured`, `protected`, `virtual`, `elevated`) ([#7121](https://github.com/osquery/osquery/pull/7121))
 - Update how `package_install_history` identifies the packageIdentifiers key ([#7099](https://github.com/osquery/osquery/pull/7099))
 - Update how `identifier` is calculated in `chrome_extensions` ([#7124](https://github.com/osquery/osquery/pull/7124))
 
@@ -37,7 +37,7 @@ Representing commits from 16 contributors! Thank you all.
 
 ### Bug Fixes
 
-- Add current WMI location for dell bios info ([#7103](https://github.com/osquery/osquery/pull/7103))
+- Add current WMI location for Dell BIOS info ([#7103](https://github.com/osquery/osquery/pull/7103))
 - Correct RocksDB error code and subcode printing on open failure ([#7069](https://github.com/osquery/osquery/pull/7069))
 - Fix `pipe_channel` not reading all data in a message ([#7139](https://github.com/osquery/osquery/pull/7139))
 - Fix crash and deadlocks in recursive logging ([#7127](https://github.com/osquery/osquery/pull/7127))
@@ -51,18 +51,18 @@ Representing commits from 16 contributors! Thank you all.
 ### Documentation
 
 - Update process auditing requirements documentation ([#7102](https://github.com/osquery/osquery/pull/7102))
-- Update website docs indicating windows support for yara tables ([#7130](https://github.com/osquery/osquery/pull/7130))
+- Update website docs indicating windows support for YARA tables ([#7130](https://github.com/osquery/osquery/pull/7130))
 - Add 4.9.0 CHANGELOG ([#7152](https://github.com/osquery/osquery/pull/7152))
 
 ### Build
 
-- Add apple provisioning profile for distribution ([#7119](https://github.com/osquery/osquery/pull/7119))
+- Add Apple provisioning profile for distribution ([#7119](https://github.com/osquery/osquery/pull/7119))
 - Add more tests for events expiration ([#7071](https://github.com/osquery/osquery/pull/7071))
 - CI: Regenerate sccache cache when compiler version changes ([#7081](https://github.com/osquery/osquery/pull/7081))
 - Fix flaky test test_daemon_sigint by waiting for pidfile ([#7095](https://github.com/osquery/osquery/pull/7095))
-- Fix icon in windows packaging ([#7148](https://github.com/osquery/osquery/pull/7148))
+- Fix icon in Windows packaging ([#7148](https://github.com/osquery/osquery/pull/7148))
 - Minor cleanup of unused variables ([#7128](https://github.com/osquery/osquery/pull/7128))
-- Print extension sdk minimum version required when failing to load ([#7074](https://github.com/osquery/osquery/pull/7074))
+- Print extension SDK minimum version required when failing to load ([#7074](https://github.com/osquery/osquery/pull/7074))
 - Remove POSIX-only `-fexceptions` flag on Windows ([#7126](https://github.com/osquery/osquery/pull/7126))
 - Remove duplicated osquery_utils_aws_tests-test ([#7078](https://github.com/osquery/osquery/pull/7078))
 - Remove flaky test decorators for python tests ([#7070](https://github.com/osquery/osquery/pull/7070))
