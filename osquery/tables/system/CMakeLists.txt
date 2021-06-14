@@ -130,7 +130,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain_utils.cpp
       darwin/launchd.cpp
       darwin/location_services.mm
-      darwin/machoinfo.cpp
+      darwin/macho_info.cpp
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
@@ -207,6 +207,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/objects.cpp
       windows/os_version.cpp
       windows/patches.cpp
+      windows/pe_info.cpp
       windows/physical_disk_performance.cpp
       windows/pipes.cpp
       windows/processes.cpp
@@ -282,13 +283,17 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_dbus
       thirdparty_libcap
     )
-
     if(OSQUERY_BUILD_DPKG)
       target_link_libraries(osquery_tables_system_systemtable PUBLIC
         thirdparty_libdpkg
       )
     endif()
 
+  elseif(DEFINED PLATFORM_WINDOWS) 
+      target_link_libraries(osquery_tables_system_systemtable PUBLIC 
+        thirdparty_lief
+   )
+   
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_openssl

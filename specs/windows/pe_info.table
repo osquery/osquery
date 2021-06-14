@@ -1,0 +1,19 @@
+table_name("pe_info")
+description("PE file information.")
+schema([
+    Column("path", TEXT, "Path to file.", required=True),
+    Column("filename", TEXT, "Executable name."),
+    Column("entrypoint", TEXT, "Entrypoint to executable."),
+    Column("is_pie", INTEGER, "Is the executable Position Indenpendent."),
+    Column("imphash", TEXT, "Impash (import hash) for PE file."),
+    Column("signed", INTEGER, "Is the PE file signed."),
+    Column("has_resources", INTEGER, "Does the PE file have resources."),
+])
+
+implementation("pe_info@genPeInfo")
+examples([
+    "select * from pe_info where path = 'C:\Windows\notepad.exe'",
+])
+fuzz_paths([
+    "C:\Windows\notepad.exe",
+])
