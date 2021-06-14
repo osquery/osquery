@@ -21,8 +21,6 @@
 namespace osquery {
 namespace tables {
 
-Mutex pwdEnumerationMutex;
-
 void genUser(const struct passwd* pwd, QueryData& results) {
   Row r;
   r["uid"] = BIGINT(pwd->pw_uid);
@@ -51,39 +49,48 @@ void genUser(const struct passwd* pwd, QueryData& results) {
 
 QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   QueryData results;
+  struct passwd pwd;
+  struct passwd* pwd_results;
+  char* buf = nullptr;
+  size_t bufsize;
 
-  struct passwd* pwd = nullptr;
+  bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize == (size_t)-1) { /* Value was indeterminate */
+    bufsize = 16384; /* Should be more than enough */
+  }
+  buf = static_cast<char*>(malloc(bufsize));
+
   if (context.constraints["uid"].exists(EQUALS)) {
     auto uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
       auto const auid_exp = tryTo<long>(uid, 10);
       if (auid_exp.isValue()) {
-        WriteLock lock(pwdEnumerationMutex);
-        pwd = getpwuid(auid_exp.get());
-        if (pwd != nullptr) {
-          genUser(pwd, results);
+        getpwuid_r(auid_exp.get(), &pwd, buf, bufsize, &pwd_results);
+        if (pwd_results != nullptr) {
+          genUser(pwd_results, results);
         }
       }
     }
   } else if (context.constraints["username"].exists(EQUALS)) {
     auto usernames = context.constraints["username"].getAll(EQUALS);
     for (const auto& username : usernames) {
-      WriteLock lock(pwdEnumerationMutex);
-      pwd = getpwnam(username.c_str());
-      if (pwd != nullptr) {
-        genUser(pwd, results);
+      getpwnam_r(username.c_str(), &pwd, buf, bufsize, &pwd_results);
+      if (pwd_results != nullptr) {
+        genUser(pwd_results, results);
       }
     }
   } else {
-    WriteLock lock(pwdEnumerationMutex);
-    pwd = getpwent();
-    while (pwd != nullptr) {
-      genUser(pwd, results);
-      pwd = getpwent();
+    setpwent();
+    while (1) {
+      getpwent_r(&pwd, buf, bufsize, &pwd_results);
+      if (pwd_results == nullptr)
+        break;
+      genUser(pwd_results, results);
     }
     endpwent();
   }
 
+  free(buf);
   return results;
 }
 
