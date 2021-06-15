@@ -195,7 +195,7 @@ Status getOriginalFilenameForCodepage(
     const langandcodepage_t& lang_and_codepage,
     std::string& original_filename) {
   WCHAR string_buf[50] = {'\0'};
-  size_t string_buf_size = sizeof(string_buf) / sizeof(WCHAR);
+  size_t string_buf_size = ARRAYSIZE(string_buf);
   WCHAR* lpBuffer = nullptr;
   UINT dwBytes = 0;
 
