@@ -31,14 +31,15 @@ TEST_F(JumplistsTest, test_sanity) {
 
   ValidationMap row_map = {
       {"path", NonEmptyString},
-      {"entry", IntType},
+      {"entry", NormalType},
       {"target_path", NormalType},
-      {"target_modified", IntType},
-      {"target_created", IntType},
-      {"target_accessed", IntType},
+      {"target_modified", NormalType},
+      {"target_created", NormalType},
+      {"target_accessed", NormalType},
       {"app_id", NormalType},
       {"app_name", NormalType},
-      {"interaction_count", IntType},
+      {"interaction_count", NormalType},
+      {"type", NormalType},
       {"relative_path", NormalType},
       {"local_path", NormalType},
       {"working_path", NormalType},
@@ -49,14 +50,14 @@ TEST_F(JumplistsTest, test_sanity) {
       {"share_name", NormalType},
       {"device_type", NormalType},
       {"volume_serial", NormalType},
-      {"mft_entry", IntType},
-      {"mft_sequence", IntType},
+      {"mft_entry", NormalType},
+      {"mft_sequence", NormalType},
       {"description", NormalType},
 
   };
 
   auto const test_filepath =
-      boost::filesystem::path(*test + "\\windows\\jumplists\\automatic\\%")
+      boost::filesystem::path(*test + "\\windows\\jumplists\\%")
           .make_preferred()
           .string();
   std::string query =
@@ -66,6 +67,15 @@ TEST_F(JumplistsTest, test_sanity) {
   ASSERT_GT(rows.size(), 0ul);
   validate_rows(rows, row_map);
 
+  std::string second_query = query +
+                             " AND target_created = 1622861060 AND "
+                             "interaction_count = 2 AND entry = 143";
+  QueryData const specific_rows = execute_query(second_query);
+
+  ASSERT_EQ(specific_rows.size(), 1ul);
+  validate_rows(specific_rows, row_map);
+
+  // If running tests locally try local Jumplist files
   QueryData const default_rows = execute_query("select * from jumplists");
   if (!default_rows.empty()) {
     ASSERT_GT(default_rows.size(), 0ul);

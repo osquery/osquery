@@ -292,6 +292,7 @@ function(generateTestsIntegrationTablesTestsTest)
       ie_extensions.cpp
       intel_me_info.cpp
       logon_sessions.cpp
+      jumplists.cpp
       kernel_info.cpp
       kva_speculative_info.cpp
       logical_drives.cpp

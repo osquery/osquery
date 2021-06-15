@@ -23,8 +23,6 @@
 #include <sstream>
 #include <string>
 
-#include <iostream>
-
 namespace osquery {
 namespace tables {
 const std::string kAutoJumplistLocation =
@@ -812,11 +810,95 @@ void parseJumplistFiles(QueryData& results,
   results.push_back(r);
 }
 
+void parseAutoJumplists(const std::string& path, QueryData& results) {
+  std::ifstream input_file(path, std::ios::in | std::ios::binary);
+  std::vector<char> jump_data((std::istreambuf_iterator<char>(input_file)),
+                              (std::istreambuf_iterator<char>()));
+  input_file.close();
+
+  std::vector<JumplistData> jumplist_data = parseOlecf(jump_data);
+  LinkFileHeader data;
+  if (jumplist_data.empty()) {
+    parseJumplistFiles(results, data, {}, "", path, "automatic");
+  }
+  for (const auto& entry : jumplist_data) {
+    data = parseShortcutHeader(entry.lnk_data);
+    parseJumplistFiles(results, data, entry, "", path, "automatic");
+  }
+}
+
+void parseCustomJumplists(const std::string& path, QueryData& results) {
+  // Read the whole jumplist file, custom jumplist file are just arrays of
+  // shortcut files
+  std::string jump_content;
+  if (!readFile(path, jump_content).ok()) {
+    LOG(WARNING) << "Failed to read custom jumplist file: " << path;
+    return;
+  }
+  // Convert to hex string, shelllnk/shortcut parsing expects a hex string
+  // to parse
+  std::stringstream ss;
+  for (const auto& hex_char : jump_content) {
+    std::stringstream value;
+    value << std::setfill('0') << std::setw(2);
+    value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
+    ss << value.str();
+  }
+
+  std::string lnk_hex = ss.str();
+  while (true) {
+    std::size_t jump_entry =
+        lnk_hex.find("4C0000000114020000000000C000000000000046");
+    if (jump_entry == std::string::npos) {
+      break;
+    }
+    lnk_hex.erase(0, jump_entry);
+    LinkFileHeader data = parseShortcutHeader(lnk_hex);
+
+    parseJumplistFiles(results, data, {}, lnk_hex, path, "custom");
+    lnk_hex.erase(0, 42);
+  }
+}
+
 QueryData genJumplists(QueryContext& context) {
   QueryData results;
+  auto paths = context.constraints["path"].getAll(EQUALS);
+  // Expand constraints
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  std::vector<std::string> jumplist_files(paths.begin(), paths.end());
+  if (!jumplist_files.empty()) {
+    boost::system::error_code ec;
+    for (const auto& jump_paths : paths) {
+      if (boost::algorithm::iends_with(jump_paths,
+                                       ".automaticDestinations-ms") &&
+          boost::filesystem::is_regular_file(jump_paths, ec)) {
+        parseAutoJumplists(jump_paths, results);
+      } else if (boost::algorithm::iends_with(jump_paths,
+                                              ".customDestinations-ms") &&
+                 boost::filesystem::is_regular_file(jump_paths, ec)) {
+        parseCustomJumplists(jump_paths, results);
+      }
+    }
+    return results;
+  }
+
   std::set<boost::filesystem::path> home_paths = getHomeDirectories();
   for (const auto& home : home_paths) {
-    std::cout << home << std::endl;
     if (home.string().find("Users") == std::string::npos) {
       continue;
     }
@@ -828,26 +910,12 @@ QueryData genJumplists(QueryContext& context) {
       return results;
     }
     for (const auto& auto_files : auto_jump_files) {
-      std::cout << auto_files << std::endl;
       boost::system::error_code ec;
       boost::filesystem::path path = auto_files;
       if (!boost::filesystem::is_regular_file(path, ec)) {
         continue;
       }
-      std::ifstream input_file(path.string(), std::ios::in | std::ios::binary);
-      std::vector<char> jump_data((std::istreambuf_iterator<char>(input_file)),
-                                  (std::istreambuf_iterator<char>()));
-      input_file.close();
-
-      std::vector<JumplistData> jumplist_data = parseOlecf(jump_data);
-      LinkFileHeader data;
-      if (jumplist_data.empty()) {
-        parseJumplistFiles(results, data, {}, "", auto_files, "automatic");
-      }
-      for (const auto& entry : jumplist_data) {
-        data = parseShortcutHeader(entry.lnk_data);
-        parseJumplistFiles(results, data, entry, "", auto_files, "automatic");
-      }
+      parseAutoJumplists(path.string(), results);
     }
 
     std::vector<std::string> custom_jump_files;
@@ -858,43 +926,12 @@ QueryData genJumplists(QueryContext& context) {
       return results;
     }
     for (const auto& custom_files : custom_jump_files) {
-      std::cout << custom_files << std::endl;
       boost::system::error_code ec;
       boost::filesystem::path path = custom_files;
       if (!boost::filesystem::is_regular_file(path, ec)) {
         continue;
       }
-
-      // Read the whole jumplist file, custom jumplist file are just arrays of shortcut files
-      std::string jump_content;
-      if (!readFile(path.string(), jump_content).ok()) {
-        LOG(WARNING) << "Failed to read custom jumplist file: "
-                     << path.string();
-        continue;
-      }
-      // Convert to hex string, shelllnk/shortcut parsing expects a hex string
-      // to parse
-      std::stringstream ss;
-      for (const auto& hex_char : jump_content) {
-        std::stringstream value;
-        value << std::setfill('0') << std::setw(2);
-        value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
-        ss << value.str();
-      }
-
-      std::string lnk_hex = ss.str();
-      while (true) {
-        std::size_t jump_entry =
-            lnk_hex.find("4C0000000114020000000000C000000000000046");
-        if (jump_entry == std::string::npos) {
-          break;
-        }
-        lnk_hex.erase(0, jump_entry);
-        LinkFileHeader data = parseShortcutHeader(lnk_hex);
-
-        parseJumplistFiles(results, data, {}, lnk_hex, custom_files, "custom");
-        lnk_hex.erase(0, 42);
-      }
+      parseCustomJumplists(path.string(), results);
     }
   }
   return results;

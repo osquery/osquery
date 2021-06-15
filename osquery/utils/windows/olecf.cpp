@@ -490,6 +490,20 @@ std::vector<JumplistData> parseOlecf(const std::vector<char>& olecf_data) {
   OlecfHeader header;
   header = parseOlecfHeader(ole_header);
 
+  // Check for OLE CF signature
+  std::stringstream olecf_sig;
+  for (const auto& hex_char : header.sig) {
+    std::stringstream value;
+    value << std::setfill('0') << std::setw(2);
+    value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
+    olecf_sig << value.str();
+  }
+  std::string header_sig = olecf_sig.str();
+  const std::string ole_sig = "D0CF11E0A1B11AE1";
+  if (header_sig != ole_sig) {
+    LOG(WARNING) << "Incorrect OLE CF signature, expected D0CF11E0A1B11AE1, got: " << header_sig;
+    return {};
+  }
   // OLE compound file does not have SSAT if the value is -2
   if (header.sector_sid_ssat == -2) {
     return {};

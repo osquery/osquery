@@ -1,7 +1,7 @@
 table_name("jumplists")
 description("View data about Windows jumplist files (composed of multiple shortcut files).")
 schema([
-    Column("path", TEXT, "Directory name."),
+    Column("path", TEXT, "Directory name.", additional=True),
     Column("entry", INTEGER, "Jumplist entry number."),
     Column("target_path", TEXT, "Target file path"),
     Column("target_modified", INTEGER, "Target Modified time."),
