@@ -10,6 +10,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include <LIEF/PE.hpp>
 #include <sstream>
@@ -17,11 +18,8 @@
 namespace osquery {
 namespace tables {
 
-QueryData genPeSig(QueryContext& context) {
-  QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
-
-  // Expand contstraints
+std::set<std::string> expandPaths(QueryContext& context) {
+  std::set<std::string> paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
       "path",
       LIKE,
@@ -37,6 +35,13 @@ QueryData genPeSig(QueryContext& context) {
         }
         return status;
       }));
+  return paths;
+}
+
+QueryData genPeSig(QueryContext& context) {
+  QueryData results;
+  std::set<std::string> paths = expandPaths(context);
+
   boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -111,24 +116,8 @@ QueryData genPeSig(QueryContext& context) {
 
 QueryData genPeSections(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
+  std::set<std::string> paths = expandPaths(context);
 
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
   boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -168,24 +157,8 @@ QueryData genPeSections(QueryContext& context) {
 
 QueryData genPeLibraries(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
+  std::set<std::string> paths = expandPaths(context);
 
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
   boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -225,24 +198,8 @@ QueryData genPeLibraries(QueryContext& context) {
 
 QueryData genPeFunctions(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
+  std::set<std::string> paths = expandPaths(context);
 
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
   boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -260,7 +217,6 @@ QueryData genPeFunctions(QueryContext& context) {
       // Get imported functions from PE file
       for (const auto& imports : pe_binary->imports()) {
         for (const auto& entries : imports.entries()) {
-          // std::cout << entries.name() << std::endl;
           Row r;
           r["path"] = path_string;
           r["filename"] = path.filename().string();
@@ -301,24 +257,7 @@ QueryData genPeFunctions(QueryContext& context) {
 
 QueryData genPeInfo(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
-
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+  std::set<std::string> paths = expandPaths(context);
   boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -344,7 +283,101 @@ QueryData genPeInfo(QueryContext& context) {
       r["entrypoint"] = stream.str();
       r["is_pie"] = INTEGER(pe_binary->is_pie());
       r["has_resources"] = INTEGER(pe_binary->has_resources());
-      results.push_back(r);
+
+      // Check if resources contain additional metadata
+      if (pe_binary->has_resources() &&
+          pe_binary->resources_manager().has_version() &&
+          pe_binary->resources_manager().version().has_string_file_info()) {
+        r["number_of_language_codes"] = INTEGER(pe_binary->resources_manager()
+                                                    .version()
+                                                    .string_file_info()
+                                                    .langcode_items()
+                                                    .size());
+
+        int items = 0;
+        while (items < pe_binary->resources_manager()
+                           .version()
+                           .string_file_info()
+                           .langcode_items()
+                           .size()) {
+          std::unordered_map<std::u16string, std::u16string> string_info =
+              pe_binary->resources_manager()
+                  .version()
+                  .string_file_info()
+                  .langcode_items()[items]
+                  .items();
+          r["language"] = LIEF::PE::to_string(pe_binary->resources_manager()
+                                                  .version()
+                                                  .string_file_info()
+                                                  .langcode_items()[items]
+                                                  .lang());
+          if (string_info.find(u"CompanyName") != string_info.end()) {
+            std::wstring info_data(string_info[u"CompanyName"].begin(),
+                                   string_info[u"CompanyName"].end());
+
+            r["company_name"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"ProductVersion") != string_info.end()) {
+            std::wstring info_data(string_info[u"ProductVersion"].begin(),
+                                   string_info[u"ProductVersion"].end());
+            r["product_version"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"FileVersion") != string_info.end()) {
+            std::wstring info_data(string_info[u"FileVersion"].begin(),
+                                   string_info[u"FileVersion"].end());
+            r["file_version"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"FileDescription") != string_info.end()) {
+            std::wstring info_data(string_info[u"FileDescription"].begin(),
+                                   string_info[u"FileDescription"].end());
+            r["file_description"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"ProductName") != string_info.end()) {
+            std::wstring info_data(string_info[u"ProductName"].begin(),
+                                   string_info[u"ProductName"].end());
+            r["product_name"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"InternalName") != string_info.end()) {
+            std::wstring info_data(string_info[u"InternalName"].begin(),
+                                   string_info[u"InternalName"].end());
+            r["internal_name"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"LegalCopyright") != string_info.end()) {
+            std::wstring info_data(string_info[u"LegalCopyright"].begin(),
+                                   string_info[u"LegalCopyright"].end());
+            r["legal_copyright"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"OriginalFilename") != string_info.end()) {
+            std::wstring info_data(string_info[u"OriginalFilename"].begin(),
+                                   string_info[u"OriginalFilename"].end());
+            r["original_filename"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"LegalTrademarks") != string_info.end()) {
+            std::wstring info_data(string_info[u"LegalTrademarks"].begin(),
+                                   string_info[u"LegalTrademarks"].end());
+            r["legal_trademarks"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"Comments") != string_info.end()) {
+            std::wstring info_data(string_info[u"Comments"].begin(),
+                                   string_info[u"Comments"].end());
+            r["comments"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"PrivateBuild") != string_info.end()) {
+            std::wstring info_data(string_info[u"PrivateBuild"].begin(),
+                                   string_info[u"PrivateBuild"].end());
+            r["private_build"] = wstringToString(info_data);
+          }
+          if (string_info.find(u"SpecialBuild") != string_info.end()) {
+            std::wstring info_data(string_info[u"SpecialBuild"].begin(),
+                                   string_info[u"SpecialBuild"].end());
+            r["special_build"] = wstringToString(info_data);
+          }
+          results.push_back(r);
+          items++;
+        }
+      } else {
+        results.push_back(r);
+      }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse PE file: " << error.what();
     }

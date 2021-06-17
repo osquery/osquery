@@ -17,11 +17,8 @@
 namespace osquery {
 namespace tables {
 
-QueryData genMachoFunctions(QueryContext& context) {
-  QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
-
-  // Expand contstraints
+std::set<std::string> expandPaths(QueryContext& context) {
+  std::set<std::string> paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
       "path",
       LIKE,
@@ -37,8 +34,14 @@ QueryData genMachoFunctions(QueryContext& context) {
         }
         return status;
       }));
-  boost::system::error_code ec;
+  return paths;
+}
 
+QueryData genMachoFunctions(QueryContext& context) {
+  QueryData results;
+  std::set<std::string> paths = expandPaths(context);
+
+  boost::system::error_code ec;
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path, ec)) {
@@ -90,7 +93,7 @@ QueryData genMachoFunctions(QueryContext& context) {
       }
 
     } catch (std::exception& error) {
-      LOG(WARNING) << "Failed to parse Mach-O file: " << error.what();
+      LOG(WARNING) << "Failed to parse MachO file: " << error.what();
     }
   }
   return results;
@@ -98,27 +101,9 @@ QueryData genMachoFunctions(QueryContext& context) {
 
 QueryData genMachoLibraries(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
+  std::set<std::string> paths = expandPaths(context);
 
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
-  auto config = LIEF::MachO::ParserConfig().deep();
   boost::system::error_code ec;
-
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path, ec)) {
@@ -129,6 +114,7 @@ QueryData genMachoLibraries(QueryContext& context) {
       continue;
     }
     try {
+      auto config = LIEF::MachO::ParserConfig().deep();
       // Parse macho file and get some information
       std::unique_ptr<LIEF::MachO::FatBinary> mac_binary =
           LIEF::MachO::Parser::parse(path_string, config.deep());
@@ -156,7 +142,7 @@ QueryData genMachoLibraries(QueryContext& context) {
         }
       }
     } catch (std::exception& error) {
-      LOG(WARNING) << "Failed to parse Mach-O file: " << error.what();
+      LOG(WARNING) << "Failed to parse MachO file: " << error.what();
     }
   }
   return results;
@@ -164,27 +150,9 @@ QueryData genMachoLibraries(QueryContext& context) {
 
 QueryData genMachoSections(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
+  std::set<std::string> paths = expandPaths(context);
 
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
-  auto config = LIEF::MachO::ParserConfig().deep();
   boost::system::error_code ec;
-
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path, ec)) {
@@ -195,6 +163,7 @@ QueryData genMachoSections(QueryContext& context) {
       continue;
     }
     try {
+      auto config = LIEF::MachO::ParserConfig().deep();
       std::unique_ptr<LIEF::MachO::FatBinary> mac_binary =
           LIEF::MachO::Parser::parse(path_string, config.deep());
 
@@ -226,7 +195,7 @@ QueryData genMachoSections(QueryContext& context) {
         }
       }
     } catch (std::exception& error) {
-      LOG(WARNING) << "Failed to parse Mach-O file: " << error.what();
+      LOG(WARNING) << "Failed to parse MachO file: " << error.what();
     }
   }
   return results;
@@ -234,40 +203,20 @@ QueryData genMachoSections(QueryContext& context) {
 
 QueryData genMachoInfo(QueryContext& context) {
   QueryData results;
+  std::set<std::string> paths = expandPaths(context);
 
-  auto paths = context.constraints["path"].getAll(EQUALS);
-
-  // Expand contstraints
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
-
-  auto config = LIEF::MachO::ParserConfig().deep();
   boost::system::error_code ec;
-
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path, ec)) {
       continue;
     }
+    // Skip non-macho files
+    if (!LIEF::MachO::is_macho(path_string)) {
+      continue;
+    }
     try {
-      // Skip non-macho files
-      if (!LIEF::MachO::is_macho(path_string)) {
-        continue;
-      }
-
+      auto config = LIEF::MachO::ParserConfig().deep();
       std::unique_ptr<LIEF::MachO::FatBinary> mac_binary =
           LIEF::MachO::Parser::parse(path_string, config.deep());
 
@@ -319,10 +268,9 @@ QueryData genMachoInfo(QueryContext& context) {
         results.push_back(r);
       }
     } catch (std::exception& error) {
-      LOG(WARNING) << "Failed to parse Mach-O file: " << error.what();
+      LOG(WARNING) << "Failed to parse MachO file: " << error.what();
     }
   }
-
   return results;
 }
 } // namespace tables
