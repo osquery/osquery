@@ -374,8 +374,15 @@ function(generateInstallDirectives)
       RENAME "LICENSE.txt"
     )
 
+    # Icon for the MSI package
     install(
       FILES "tools/deployment/windows_packaging/osquery.ico"
+      DESTINATION "/control"
+    )
+
+    # Icon for the nuget package
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.png"
       DESTINATION "/control"
     )
 
