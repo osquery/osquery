@@ -11,19 +11,34 @@
 // Spec file: specs/windows/wmi_script_event_consumers.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
 
-class wmiTpmInfo : public testing::Test {
+class TpmInfo : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(wmiTpmInfo, test_sanity) {
-  auto const data = execute_query("select * from wmi_tpm_info");
+TEST_F(TpmInfo, test_sanity) {
+  auto const data = execute_query("select * from tpm_info");
+
+  ValidationMap row_map {
+    {"activated", IntType},
+    {"enabled", IntType},
+    {"owned", IntType},
+    {"manufacturer_version", NormalType},
+    {"manufacturer_id", IntType},
+    {"manufacturer_name", NormalType},
+    {"product_name", NormalType},
+    {"physical_presence_version", NormalType},
+    {"spec_version", NormalType},
+  };
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

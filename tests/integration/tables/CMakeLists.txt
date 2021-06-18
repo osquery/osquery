@@ -325,6 +325,7 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_script_event_consumers.cpp
       hvci_status.cpp
       yara.cpp
+      tpm_info.cpp
     )
 
     list(APPEND source_files ${platform_source_files})

@@ -7,11 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <sstream>
-
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
-
 #include <osquery/core/windows/wmi.h>
 
 namespace osquery {
@@ -19,12 +16,15 @@ namespace tables {
 
 QueryData genTpmInfo(QueryContext& context) {
   QueryData resultsdata;
-  std::stringstream ss;
-  ss << "SELECT * FROM Win32_Tpm";
+  std::string wmiclass{"SELECT * FROM Win32_Tpm"};
 
-  BSTR bstr = ::SysAllocString(L"root\\cimv2\\Security\\MicrosoftTpm");
-  const WmiRequest request(ss.str(), bstr);
-  ::SysFreeString(bstr);
+  BSTR wminamespace = ::SysAllocString(L"root\\cimv2\\Security\\MicrosoftTpm");
+  if (wminamespace == NULL) {
+    LOG(WARNING) << "failed to allocate string";
+    return {};
+  }
+  const WmiRequest request(wmiclass, wminamespace);
+  ::SysFreeString(wminamespace);
 
   if (request.getStatus().ok()) {
     const auto& results = request.results();
@@ -35,28 +35,25 @@ QueryData genTpmInfo(QueryContext& context) {
       long ManufacturerID;
 
       result.GetBool("IsActivated_InitialValue", isBool);
-      r["is_activated_initialvalue"] = isBool ? "True" : "False";
+      r["activated"] = INTEGER(isBool);
       result.GetBool("IsEnabled_InitialValue", isBool);
-      r["is_enabled_initialvalue"] = isBool ? "True" : "False";
+      r["enabled"] =  INTEGER(isBool);
       result.GetBool("IsOwned_InitialValue", isBool);
-      r["is_owned_initialvalue"] = isBool ? "True" : "False";
+      r["owned"] = INTEGER(isBool);
       (result.GetLong("ManufacturerId", ManufacturerID))
           ? r["manufacturer_id"] = INTEGER(ManufacturerID)
           : r["manufacturer_id"] = "-1";
-      result.GetString("ManufacturerIdTxt", r["manufacturer_id_txt"]);
+      result.GetString("ManufacturerIdTxt", r["manufacturer_name"]);
       result.GetString("ManufacturerVersion", r["manufacturer_version"]);
-      result.GetString("ManufacturerVersionFull20",
-                       r["manufacturer_version_full"]);
       result.GetString("ManufacturerVersionInfo",
-                       r["manufacturer_version_info"]);
+                       r["product_name"]);
       result.GetString("PhysicalPresenceVersionInfo",
-                       r["physical_presence_version_info"]);
+                       r["physical_presence_version"]);
       result.GetString("SpecVersion", r["spec_version"]);
-      result.GetString("PSComputerName", r["ps_computer_name"]);
       resultsdata.push_back(r);
     }
   }
-
+  
   return resultsdata;
 }
 } // namespace tables
