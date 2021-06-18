@@ -235,6 +235,10 @@ function(generateTestsIntegrationTablesTestsTest)
       launchd.cpp
       launchd_overrides.cpp
       location_services.cpp
+      macho_functions.cpp
+      macho_info.cpp
+      macho_libraries.cpp
+      macho_sections.cpp
       managed_policies.cpp
       mdfind.cpp
       nfs_shares.cpp
