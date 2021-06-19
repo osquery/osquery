@@ -225,7 +225,8 @@ enum _LIEF_EN(DataRegionType) {
 enum _LIEF_EN(REBASE_TYPES) {
   _LIEF_EI(REBASE_TYPE_POINTER)         = 1u,
   _LIEF_EI(REBASE_TYPE_TEXT_ABSOLUTE32) = 2u,
-  _LIEF_EI(REBASE_TYPE_TEXT_PCREL32)    = 3u
+  _LIEF_EI(REBASE_TYPE_TEXT_PCREL32)    = 3u,
+  _LIEF_EI(REBASE_TYPE_THREADED)        = 102u,
 };
 
 enum {
@@ -255,6 +256,7 @@ enum _LIEF_EN(BINDING_CLASS) {
   _LIEF_EI(BIND_CLASS_WEAK)     = 1u,
   _LIEF_EI(BIND_CLASS_LAZY)     = 2u,
   _LIEF_EI(BIND_CLASS_STANDARD) = 3u,
+  _LIEF_EI(BIND_CLASS_THREADED) = 100u
 };
 
 
@@ -293,6 +295,15 @@ enum _LIEF_EN_2(BIND_OPCODES, uint8_t) {
   _LIEF_EI(BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB)            = 0xA0u, ///< Perform binding, also add following ULEB128 as address
   _LIEF_EI(BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED)      = 0xB0u, ///< Perform binding, also add immediate (lower 4-bits) using scaling
   _LIEF_EI(BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB) = 0xC0u, ///< Perform binding for several symbols (as following ULEB128), and skip several bytes.
+  _LIEF_EI(BIND_OPCODE_THREADED)                         = 0xD0u,
+
+  _LIEF_EI(BIND_OPCODE_THREADED_APPLY)                            = 0xD0u | 0x01u,
+  _LIEF_EI(BIND_OPCODE_THREADED_SET_BIND_ORDINAL_TABLE_SIZE_ULEB) = 0xD0u | 0x00u,
+};
+
+enum _LIEF_EN_2(BIND_SUBOPCODE_THREADED, uint8_t) {
+  _LIEF_EI(BIND_SUBOPCODE_THREADED_SET_BIND_ORDINAL_TABLE_SIZE_ULEB) = 0x00u,
+  _LIEF_EI(BIND_SUBOPCODE_THREADED_APPLY)                            = 0x01u,
 };
 
 enum _LIEF_EN(EXPORT_SYMBOL_FLAGS) {
