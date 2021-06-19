@@ -18,9 +18,9 @@
 #define LIEF_CONFIG_H_
 
 // Main formats
-#define LIEF_PE_SUPPORT      1
+/* #undef LIEF_PE_SUPPORT */
 /* #undef LIEF_ELF_SUPPORT */
-/* #undef LIEF_MACHO_SUPPORT */
+#define LIEF_MACHO_SUPPORT   1
 
 // Android formats
 /* #undef LIEF_OAT_SUPPORT */
@@ -36,9 +36,9 @@
 
 #ifdef __cplusplus
 
-static constexpr bool lief_pe_support      = 1;
+static constexpr bool lief_pe_support      = 0;
 static constexpr bool lief_elf_support     = 0;
-static constexpr bool lief_macho_support   = 0;
+static constexpr bool lief_macho_support   = 1;
 
 static constexpr bool lief_oat_support     = 0;
 static constexpr bool lief_dex_support     = 0;

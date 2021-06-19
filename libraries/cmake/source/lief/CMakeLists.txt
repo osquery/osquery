@@ -95,9 +95,10 @@ function(lief)
       "${library_root}/src/MachO/BuildVersion.cpp"
       "${library_root}/src/MachO/TrieNode.hpp"
       )
-    target_include_directories(thirdparty_lief PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-      )
+    target_include_directories(thirdparty_lief PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+    )
+    
   endif()
   if(DEFINED PLATFORM_WINDOWS)
     set(LIEF_PE_SUPPORT 1)
@@ -189,7 +190,6 @@ function(lief)
       "${library_root}/src/PE/utils/ordinals_lookup_tables"
       "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
       "${library_root}/src/PE/signatures/"
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
       )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
@@ -201,8 +201,12 @@ function(lief)
   target_include_directories(thirdparty_lief PRIVATE
     "${library_root}/include"
     "${library_root}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
     )
+
+  target_include_directories(thirdparty_lief PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    )
+
   
   target_include_directories(thirdparty_lief SYSTEM INTERFACE
     "${library_root}/include"
@@ -213,8 +217,6 @@ function(lief)
     thirdparty_cxx_settings
     thirdparty_mbedtls
     thirdparty_spdlog
-    thirdparty_leaf
-    thirdparty_utfcpp
     )
 endfunction()
 

@@ -36,7 +36,8 @@ TEST_F(peSections, test_sanity) {
   validate_rows(rows, row_map);
 
   QueryData const rows_arch = execute_query(
-      "select * from pe_sections where path = 'C:\Windows\System32\svchost.exe' "
+      "select * from pe_sections where path = "
+      "'C:\Windows\System32\svchost.exe' "
       "and section_name = '.text'");
   ASSERT_GT(rows_arch.size(), 0ul);
   validate_rows(rows_arch, row_map);
