@@ -303,6 +303,11 @@ function(generateTestsIntegrationTablesTestsTest)
       ntdomains.cpp
       ntfs_acl_permissions.cpp
       patches.cpp
+      pe_functions.cpp
+      pe_info.cpp
+      pe_libraries.cpp
+      pe_sections.cpp
+      pe_sig.cpp
       physical_disk_performance.cpp
       pipes.cpp
       powershell_events.cpp

@@ -105,7 +105,7 @@ QueryData genPeSig(QueryContext& context) {
         }
         serial.pop_back();
         r["certificate_serial_number"] = serial;
-        results.push_back(std::move(r));
+        results.push_back(r);
       }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse PE file: " << error.what();
@@ -146,7 +146,7 @@ QueryData genPeSections(QueryContext& context) {
         } else {
           r["entropy"] = std::to_string(section.entropy());
         }
-        results.push_back(std::move(r));
+        results.push_back(r);
       }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse PE file: " << error.what();
@@ -187,7 +187,7 @@ QueryData genPeLibraries(QueryContext& context) {
         r["import_lookup_table_rva"] = stream.str();
         r["timestamp"] = INTEGER(imports.timedatestamp());
         r["forwarder_chain"] = INTEGER(imports.forwarder_chain());
-        results.push_back(std::move(r));
+        results.push_back(r);
       }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse PE file: " << error.what();
@@ -220,7 +220,7 @@ QueryData genPeFunctions(QueryContext& context) {
           Row r;
           r["path"] = path_string;
           r["filename"] = path.filename().string();
-          r["function_type"] = "import";
+          r["type"] = "import";
           r["function_name"] = entries.name();
           std::ostringstream stream;
           stream << std::hex << entries.iat_value();
@@ -229,7 +229,7 @@ QueryData genPeFunctions(QueryContext& context) {
           if (entries.is_ordinal()) {
             r["ordinal"] = INTEGER(entries.ordinal());
           }
-          results.push_back(std::move(r));
+          results.push_back(r);
         }
       }
       auto& exports = pe_binary->get_export();
@@ -239,14 +239,14 @@ QueryData genPeFunctions(QueryContext& context) {
         Row r;
         r["path"] = path_string;
         r["filename"] = path.filename().string();
-        r["function_type"] = "export";
+        r["type"] = "export";
         r["library"] = exports.name();
         r["function_name"] = entries.name();
         std::ostringstream stream;
         stream << std::hex << entries.address();
         r["function_address"] = stream.str();
         r["ordinal"] = INTEGER(entries.ordinal());
-        results.push_back(std::move(r));
+        results.push_back(r);
       }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse PE file: " << error.what();
@@ -314,7 +314,6 @@ QueryData genPeInfo(QueryContext& context) {
           if (string_info.find(u"CompanyName") != string_info.end()) {
             std::wstring info_data(string_info[u"CompanyName"].begin(),
                                    string_info[u"CompanyName"].end());
-
             r["company_name"] = wstringToString(info_data);
           }
           if (string_info.find(u"ProductVersion") != string_info.end()) {
