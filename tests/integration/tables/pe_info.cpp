@@ -45,12 +45,12 @@ TEST_F(peInfo, test_sanity) {
   };
 
   QueryData const rows = execute_query(
-      "select * from pe_info where path = 'C:\Windows\System32\svchost.exe'");
+      "select * from pe_info where path = 'C:\\Windows\\System32\\svchost.exe'");
   ASSERT_GT(rows.size(), 0ul);
   validate_rows(rows, row_map);
 
   QueryData const rows_arch = execute_query(
-      "select * from pe_info where path = 'C:\Windows\System32\svchost.exe' "
+      "select * from pe_info where path = 'C:\\Windows\\System32\\svchost.exe' "
       "and signed = 1");
   ASSERT_GT(rows_arch.size(), 0ul);
   validate_rows(rows_arch, row_map);

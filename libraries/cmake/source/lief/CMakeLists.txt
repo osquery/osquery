@@ -204,7 +204,7 @@ function(lief)
     )
 
   target_include_directories(thirdparty_lief PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
     )
 
   

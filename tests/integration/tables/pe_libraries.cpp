@@ -32,13 +32,13 @@ TEST_F(peLibraries, test_sanity) {
 
   QueryData const rows = execute_query(
       "select * from pe_libraries where path = "
-      "'C:\Windows\System32\svchost.exe'");
+      "'C:\\Windows\\System32\\svchost.exe'");
   ASSERT_GT(rows.size(), 0ul);
   validate_rows(rows, row_map);
 
   QueryData const rows_arch = execute_query(
       "select * from pe_libraries where path = "
-      "'C:\Windows\System32\svchost.exe' "
+      "'C:\\Windows\\System32\\svchost.exe' "
       "and library_name = 'api-ms-win-core-threadpool-private-l1-1-0.dll'");
   ASSERT_GT(rows_arch.size(), 0ul);
   validate_rows(rows_arch, row_map);
