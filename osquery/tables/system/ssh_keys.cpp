@@ -13,7 +13,7 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger/log ger.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/system.h>
