@@ -96,9 +96,9 @@ function(lief)
       "${library_root}/src/MachO/TrieNode.hpp"
       )
     target_include_directories(thirdparty_lief PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-    )
-    
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config"
+      )
   endif()
   if(DEFINED PLATFORM_WINDOWS)
     set(LIEF_PE_SUPPORT 1)
@@ -191,6 +191,9 @@ function(lief)
       "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
       "${library_root}/src/PE/signatures/"
       )
+    target_include_directories(thirdparty_lief PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
+    )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
     # Used for the 'and', 'or' ... keywords - See: http://www.cplusplus.com/reference/ciso646/
@@ -203,11 +206,6 @@ function(lief)
     "${library_root}/src"
     )
 
-  target_include_directories(thirdparty_lief PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
-    )
-
-  
   target_include_directories(thirdparty_lief SYSTEM INTERFACE
     "${library_root}/include"
     )

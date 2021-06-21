@@ -37,7 +37,8 @@ TEST_F(peSig, test_sanity) {
   validate_rows(rows, row_map);
 
   QueryData const rows_arch = execute_query(
-      "select * from pe_sig where path = 'C:\\Windows\\System32\\svchost.exe' and "
+      "select * from pe_sig where path = 'C:\\Windows\\System32\\svchost.exe' "
+      "and "
       "certificate_issuer = 'C=US, ST=Washington, L=Redmond, O=Microsoft "
       "Corporation, CN=Microsoft Root Certificate Authority 2010'");
   ASSERT_GT(rows_arch.size(), 0ul);

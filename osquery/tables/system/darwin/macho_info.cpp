@@ -11,7 +11,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 
-#include <LIEF/LIEF.hpp>
+#include <LIEF/MACHO.hpp>
 #include <sstream>
 
 namespace osquery {
