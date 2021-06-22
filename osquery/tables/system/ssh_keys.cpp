@@ -26,7 +26,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kSSHUserKeysDir = ".ssh";
+extern const std::string kSSHUserKeysDir = ".ssh";
 
 const std::string kOpenSshHeader = "-----BEGIN OPENSSH PRIVATE KEY-----";
 
@@ -57,6 +57,8 @@ bool parsePrivateKey(std::string& keys_content,
                      int* key_type,
                      bool* is_encrypted) {
   BIO* bio_stream = BIO_new(BIO_s_mem());
+  auto const bio_stream_guard =
+      scope_guard::create([bio_stream]() { BIO_free(bio_stream); });
   BIO_write(bio_stream, keys_content.c_str(), keys_content.size());
   if (bio_stream == nullptr) {
     return false;
@@ -75,10 +77,8 @@ bool parsePrivateKey(std::string& keys_content,
   auto pkey =
       PEM_read_bio_PrivateKey(bio_stream, nullptr, passwordCallback, nullptr);
   *is_encrypted = encrypted;
-  scope_guard::create([&]() {
-    BIO_free(bio_stream);
-    EVP_PKEY_free(pkey);
-  });
+  auto const pkey_guard =
+      scope_guard::create([pkey]() { EVP_PKEY_free(pkey); });
 
   if (pkey == nullptr) {
     if (encrypted) {

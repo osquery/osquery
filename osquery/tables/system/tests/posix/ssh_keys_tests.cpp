@@ -14,7 +14,7 @@
 
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
-#include <osquery/sql.h>
+#include <osquery/sql/sql.h>
 #include <osquery/tables/system/posix/ssh_keys.h>
 
 #include <osquery/utils/scope_guard.h>
@@ -177,7 +177,7 @@ TEST_F(SshKeysTests, rsa_key_unencrypted) {
 TEST_F(SshKeysTests, rsa_key_encrypted) {
   auto results = QueryData{};
 
-  auto filepath = ssh_directory / fs::path("rsa_unencrypted");
+  auto filepath = ssh_directory / fs::path("rsa_encrypted");
   {
     auto fout =
         std::ofstream(filepath.native(), std::ios::out | std::ios::binary);

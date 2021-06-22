@@ -6,8 +6,8 @@
  *  the LICENSE file found in the root directory of this source tree.
  */
 
-#include <osquery/query.h>
-#include <osquery/tables.h>
+#include <osquery/core/query.h>
+#include <osquery/core/tables.h>
 
 #include <string>
 
