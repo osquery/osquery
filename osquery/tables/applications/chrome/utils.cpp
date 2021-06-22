@@ -66,6 +66,8 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
+    {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
+    {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
     {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"}};
 // clang-format on
 
