@@ -14,7 +14,8 @@ The core osquery agent is a single-executable daemon, running on each host that 
 The osquery agent does not trust:
 
 - on the osquery host but with standard non-root privilege (no interaction with the users on the host)
-- network third-parties, including external network services or agents-in-the-middle on the network
+- network third-parties, including external network services (see "No Network Connectivity to Third Parties") or
+agents-in-the-middle on the network (see "use of HTTPS")
 
 However, the osquery agent _must_ trust:
 
@@ -73,8 +74,11 @@ Only well-known, industry standard encryption libraries are used in osquery. Spe
 
 #### No Network Connectivity to Third Parties
 
-With few exceptions (_e.g._, use of the cURL table, or certain configurations of the yara table), osquery will never
-make an outbound network connection to a third-party server (any server other than the one that controls its config).
+Here, we define a "third-party" as any remote server _other than the ones that deliver the agent's config or receive
+its logs_, which for many osquery deployments may be hosted by a SaaS provider (not on-premises).
+
+With one or two opt-in exceptions (_e.g._, use of the cURL table, or certain configurations of the yara table), the
+osquery core agent will never make an outbound network connection to a third-party server.
 
 In no case will the osquery core agent ever listen for or accept inbound network connections.
 
@@ -123,7 +127,8 @@ The recommended, and default, way to run the osquery daemon is as root (or Admin
 #### No Self-update Feature
 
 The osquery agent will never update or replace itself. The sysadmin is in control of when to update, using their method
-of choice for software update management.
+of choice for software update management. Products that ship with or include the osquery agent may have self-update
+features, but the core agent itself does not.
 
 #### No Methods to Modify System State
 
@@ -131,6 +136,10 @@ Making no changes to the existing host system (its configuration or its data) is
 but on a best-effort basis. The maintainers enforce this as a policy for the acceptance of any new contributed
 code in osquery. If we are made aware of violations of this rule, we treat them as high priority bugs and promptly fix
 them. Where it is for some reason unavoidable, we will document any exceptions here.
+
+Exceptions:
+
+- To monitor the Linux Audit subsystem for events (`--audit_allow_config`), osquery changes kernel Audit settings.
 
 #### Static Linking of Libraries
 
