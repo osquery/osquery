@@ -96,7 +96,6 @@ function(lief)
       "${library_root}/src/MachO/TrieNode.hpp"
       )
     target_include_directories(thirdparty_lief PUBLIC
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
       "${CMAKE_CURRENT_SOURCE_DIR}/config"
       )
   endif()
@@ -193,7 +192,6 @@ function(lief)
       )
     target_include_directories(thirdparty_lief PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
     )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
