@@ -140,6 +140,7 @@ them. Where it is for some reason unavoidable, we will document any exceptions h
 Exceptions:
 
 - To monitor the Linux Audit subsystem for events (`--audit_allow_config`), osquery changes kernel Audit settings.
+- The osquery installer, or its included convenience scripts, may install the osquery daemon to launch as a service.
 
 #### Static Linking of Libraries
 
