@@ -13,7 +13,7 @@ The core osquery agent is a single-executable daemon, running on each host that 
 
 The osquery agent does not trust:
 
-- on the osquery host but with standard non-root privilege (no interaction with the users on the host)
+- users on the osquery host with standard non-root privilege (no interaction with the users on the host)
 - network third-parties, including external network services (see "No Network Connectivity to Third Parties") or
 agents-in-the-middle on the network (see "use of HTTPS")
 
