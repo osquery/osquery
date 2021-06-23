@@ -186,11 +186,17 @@ osquery>
 
 The above is an example of using an absolute path for `sigfile` combined with `pattern`.
 
-### Inline YARA rules with sigrules
+### Inline YARA rules with sigrule
 
 Above, we documented how to query the `yara` table using YARA signatures specified in a local file or retrieved from a
-remote host. YARA rules can also be provided inline with the query, using the `sigrules` constraint column.
+remote host. YARA rules can also be provided inline with the query, using the `sigrule` constraint/column.
 
-To use `sigrules`, first you must set the `enable_yara_table_extension` flag. Because allowing arbitrary YARA rules also
+For example:
+
+```sql
+osquery> select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }';
+```
+
+To use `sigrule`, first you must set the `enable_yara_table_extension` flag. Because allowing arbitrary YARA rules also
 allows the retrieval of arbitrary file data in the `strings` column, the `strings` column will default to providing no
-data unless you also set the `disable_yara_string_private` flag.
+data unless you also set the `disable_yara_string_private` flag or `enable_yara_string` flag.
