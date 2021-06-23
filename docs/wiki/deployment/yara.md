@@ -39,6 +39,54 @@ The second thing to notice is the `yara` section, which contains the configurati
 
 For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which consists of `foo.sig` and `bar.sig`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
 
+### Retrieving YARA Rules at Runtime
+
+The default behavior of the `yara` table is to use YARA rules specified in a file on the osquery host. However, it
+might be more convenient to manage your YARA rules in one location, and have the `yara` table fetch those rules
+at runtime, rather than have to update (and version-manage) a YARA rules file on every individual osquery host. Your
+organization may also treat YARA rules as security-sensitive data, and you may not wish to store that data on the
+filesystem of every osquery host.
+
+To configure osquery to allow the fetching of YARA rules at runtime, first you must set the `enable_yara_sigurl` flag.
+
+Then, set up your `yara` configuration file with the `signature_urls` section, supplying one or more sources for YARA
+rules that will be fetched at runtime:
+
+```json
+ "yara": { 
+   "signature_urls": { 
+     "sig_url_1": "https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar", 
+     "sig_url_2": "https://raw.githubusercontent.com/Yara-Rules/rules/master/crypto/crypto_signatures.yar", 
+     "sig_url_3": "https://raw.githubusercontent.com/Yara-Rules/rules/master/malware/APT_APT3102.yar"
+   }
+ }
+```
+
+These references, here named `sig_url_1`, `sig_url_2`, etc. are then supplied with your `yara` table query to specify
+the `sigurl` column. For example:
+
+```sql
+osquery> select * from yara where path like '%' and sigurl='sig_url_2';
++-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
+| path                    | matches      | count | sig_group | sigfile | sigrule | strings | tags | sigurl    |
++-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
+| CMakeCache.txt          | Big_Numbers1 | 1     |           |         |         |         |      | sig_url_2 |
++-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
+```
+
+Use of `enable_yara_sigurl` also protects the YARA rules from disclosure in osquery's results and logs. To restore
+the default output that includes the YARA rules in the `sigrule` column, set the `disable_yara_string_private` flag.
+
+#### Allowed Domains
+
+TODO
+
+#### Notes
+
+- Retrieved YARA rules are retrieved only once and then cached; the cached copy is used until it is stale as specified
+ by the HTTP `Last-Modified` header in the server's response.
+- The osquery agent currently has no support for authenticating to the server providing the YARA signatures.
+
 ## Continuous monitoring using the yara_events table
 
 Using the configuration above you can see it in action. While osquery is running, we execute `touch /Users/wxs/tmp/foo` in another terminal. Here is the relevant queries to show what happened:
