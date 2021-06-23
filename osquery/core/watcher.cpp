@@ -33,6 +33,7 @@
 #include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/system/time.h>
 
@@ -410,7 +411,11 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
         static_cast<pid_t>(tryTo<long long>(r.at("parent")).takeOr(0LL));
     user_time = tryTo<long long>(r.at("user_time")).takeOr(0LL);
     system_time = tryTo<long long>(r.at("system_time")).takeOr(0LL);
-    change.footprint = tryTo<long long>(r.at("resident_size")).takeOr(0LL);
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      change.footprint = tryTo<long long>(r.at("total_size")).takeOr(0LL);
+    } else {
+      change.footprint = tryTo<long long>(r.at("resident_size")).takeOr(0LL);
+    }
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
@@ -501,7 +506,7 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
   p = (pid == ULONG_MAX) ? -1 : pid;
 #endif
   return SQL::selectFrom(
-      {"parent", "user_time", "system_time", "resident_size"},
+      {"parent", "user_time", "system_time", "resident_size", "total_size"},
       "processes",
       "pid",
       EQUALS,
