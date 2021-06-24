@@ -402,6 +402,8 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
 
 PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
+  change.footprint = 0;
+  change.parent = 0;
 
   // IV is the check interval in seconds, and utilization is set per-second.
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
