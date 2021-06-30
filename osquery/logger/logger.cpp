@@ -502,6 +502,12 @@ void relayStatusLogs(LoggerRelayMode relay_mode) {
     {
       WriteLock lock(kBufferedLogSinkLogs);
       auto& status_logs = BufferedLogSink::get().dump();
+
+      // Prevent serializing and broadcasting an empty response
+      if (status_logs.empty()) {
+        return;
+      }
+
       for (auto& log : status_logs) {
         // Copy the host identifier into each status log.
         log.identifier = identifier;
