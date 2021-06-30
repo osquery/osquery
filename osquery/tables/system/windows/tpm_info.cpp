@@ -8,8 +8,8 @@
  */
 
 #include <osquery/core/tables.h>
-#include <osquery/logger/logger.h>
 #include <osquery/core/windows/wmi.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace tables {
@@ -37,7 +37,7 @@ QueryData genTpmInfo(QueryContext& context) {
       result.GetBool("IsActivated_InitialValue", isBool);
       r["activated"] = INTEGER(isBool);
       result.GetBool("IsEnabled_InitialValue", isBool);
-      r["enabled"] =  INTEGER(isBool);
+      r["enabled"] = INTEGER(isBool);
       result.GetBool("IsOwned_InitialValue", isBool);
       r["owned"] = INTEGER(isBool);
       (result.GetLong("ManufacturerId", ManufacturerID))
@@ -45,15 +45,13 @@ QueryData genTpmInfo(QueryContext& context) {
           : r["manufacturer_id"] = "-1";
       result.GetString("ManufacturerIdTxt", r["manufacturer_name"]);
       result.GetString("ManufacturerVersion", r["manufacturer_version"]);
-      result.GetString("ManufacturerVersionInfo",
-                       r["product_name"]);
+      result.GetString("ManufacturerVersionInfo", r["product_name"]);
       result.GetString("PhysicalPresenceVersionInfo",
                        r["physical_presence_version"]);
       result.GetString("SpecVersion", r["spec_version"]);
       resultsdata.push_back(r);
     }
   }
-  
   return resultsdata;
 }
 } // namespace tables

@@ -26,16 +26,16 @@ class TpmInfo : public testing::Test {
 TEST_F(TpmInfo, test_sanity) {
   auto const data = execute_query("select * from tpm_info");
 
-  ValidationMap row_map {
-    {"activated", IntType},
-    {"enabled", IntType},
-    {"owned", IntType},
-    {"manufacturer_version", NormalType},
-    {"manufacturer_id", IntType},
-    {"manufacturer_name", NormalType},
-    {"product_name", NormalType},
-    {"physical_presence_version", NormalType},
-    {"spec_version", NormalType},
+  ValidationMap row_map{
+      {"activated", IntType},
+      {"enabled", IntType},
+      {"owned", IntType},
+      {"manufacturer_version", NormalType},
+      {"manufacturer_id", IntType},
+      {"manufacturer_name", NormalType},
+      {"product_name", NormalType},
+      {"physical_presence_version", NormalType},
+      {"spec_version", NormalType},
   };
 
   validate_rows(data, row_map);
