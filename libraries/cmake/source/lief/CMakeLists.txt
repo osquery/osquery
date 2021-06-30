@@ -188,11 +188,27 @@ function(lief)
     target_include_directories(thirdparty_lief PRIVATE
       "${library_root}/src/PE/utils/ordinals_lookup_tables"
       "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
-      "${library_root}/src/PE/signatures/"
+      "${library_root}/src/PE/signatures"
       )
-    target_include_directories(thirdparty_lief PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/lief"
-    )
+    file(READ "${library_root}/include/LIEF/PE/enums.inc"      LIEF_PE_ENUMS)
+    file(READ "${library_root}/include/LIEF/PE/structures.inc" LIEF_PE_STRUCTURES)
+    configure_file(
+      "${library_root}/include/LIEF/PE/enums.hpp.in"
+      "${library_root}/include/LIEF/PE/enums.hpp"
+    @ONLY)
+    configure_file(
+      "${library_root}/include/LIEF/PE/Structures.hpp.in"
+      "${library_root}/include/LIEF/PE/Structures.hpp"
+    @ONLY)
+    configure_file("${library_root}/include/LIEF/config.h.in" "${library_root}/include/LIEF/config.h")
+    configure_file(
+      "${library_root}/src/compiler_support.h.in"
+      "${library_root}/src/compiler_support.h"
+    @ONLY)
+
+    #target_include_directories(thirdparty_lief PUBLIC
+    # "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    # )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
     # Used for the 'and', 'or' ... keywords - See: http://www.cplusplus.com/reference/ciso646/
