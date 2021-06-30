@@ -48,10 +48,10 @@ struct LimitDefinition {
 };
 
 struct PerformanceChange {
-  size_t sustained_latency;
-  uint64_t footprint;
-  uint64_t iv;
-  pid_t parent;
+  size_t sustained_latency{0};
+  uint64_t footprint{0};
+  uint64_t iv{0};
+  pid_t parent{0};
 };
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
@@ -402,8 +402,6 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
 
 PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
-  change.footprint = 0;
-  change.parent = 0;
 
   // IV is the check interval in seconds, and utilization is set per-second.
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
