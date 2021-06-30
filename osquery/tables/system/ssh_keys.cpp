@@ -39,12 +39,12 @@ const std::string kOpenSshHeader = "-----BEGIN OPENSSH PRIVATE KEY-----";
 const std::string kOpenSshUnencryptedPrefix = "b3BlbnNzaC1rZXktdjEAAAAABG5vbmU";
 
 // openssl can't currently parse the new openssh keys
-bool isOpenSSHKey(std::string& keys_content) {
+bool isOpenSSHKey(const std::string& keys_content) {
   return boost::starts_with(keys_content, kOpenSshHeader);
 }
 
 // `true` if the openssh key is encrypted, `false` otherwise.
-bool isOpenSSHKeyEncrypted(std::string& keys_content) {
+bool isOpenSSHKeyEncrypted(const std::string& keys_content) {
   const std::string prefix = keys_content.substr(
       kOpenSshHeader.size() + 1, kOpenSshUnencryptedPrefix.size());
   return prefix != kOpenSshUnencryptedPrefix;
@@ -53,9 +53,9 @@ bool isOpenSSHKeyEncrypted(std::string& keys_content) {
 // parsePrivateKey returns true iff the key is valid.
 // Tries to parse the .PEM using openssl. If that fails, it checks
 // if it's an openssh key.
-bool parsePrivateKey(std::string& keys_content,
-                     int* key_type,
-                     bool* is_encrypted) {
+bool parsePrivateKey(const std::string& keys_content,
+                     int& key_type,
+                     bool& is_encrypted) {
   BIO* bio_stream = BIO_new(BIO_s_mem());
   auto const bio_stream_guard =
       scope_guard::create([bio_stream]() { BIO_free(bio_stream); });
@@ -76,27 +76,27 @@ bool parsePrivateKey(std::string& keys_content,
 
   auto pkey =
       PEM_read_bio_PrivateKey(bio_stream, nullptr, passwordCallback, nullptr);
-  *is_encrypted = encrypted;
+  is_encrypted = encrypted;
   auto const pkey_guard =
       scope_guard::create([pkey]() { EVP_PKEY_free(pkey); });
 
   if (pkey == nullptr) {
     if (encrypted) {
-      *key_type = EVP_PKEY_NONE;
+      key_type = EVP_PKEY_NONE;
       return true;
     }
     // A later version of OpenSSL may add support for openssh keys. If so,
     // we can delete this conditional.
     if (isOpenSSHKey(keys_content)) {
-      *key_type = EVP_PKEY_NONE;
-      *is_encrypted = isOpenSSHKeyEncrypted(keys_content);
+      key_type = EVP_PKEY_NONE;
+      is_encrypted = isOpenSSHKeyEncrypted(keys_content);
       return true;
     }
     // if openssl can't parse the key and it doesn't start with the openssh
     // header, it's proabably not a valid key.
     return false;
   }
-  *key_type = EVP_PKEY_base_id(pkey);
+  key_type = EVP_PKEY_base_id(pkey);
   return true;
 }
 
@@ -147,7 +147,7 @@ void genSSHkeyForHosts(const std::string& uid,
     }
     int key_type;
     bool encrypted;
-    bool parsed = parsePrivateKey(keys_content, &key_type, &encrypted);
+    bool parsed = parsePrivateKey(keys_content, key_type, encrypted);
     if (parsed) {
       Row r;
       r["uid"] = uid;
