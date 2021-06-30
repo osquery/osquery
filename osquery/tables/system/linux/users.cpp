@@ -51,21 +51,20 @@ QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   struct passwd pwd;
   struct passwd* pwd_results;
-  char* buf = nullptr;
   size_t bufsize;
 
   bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (bufsize == (size_t)-1) { /* Value was indeterminate */
     bufsize = 16384; /* Should be more than enough */
   }
-  buf = static_cast<char*>(malloc(bufsize));
+  auto buf = std::make_unique<char[]>(bufsize);
 
   if (context.constraints["uid"].exists(EQUALS)) {
     auto uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
       auto const auid_exp = tryTo<long>(uid, 10);
       if (auid_exp.isValue()) {
-        getpwuid_r(auid_exp.get(), &pwd, buf, bufsize, &pwd_results);
+        getpwuid_r(auid_exp.get(), &pwd, buf.get(), bufsize, &pwd_results);
         if (pwd_results != nullptr) {
           genUser(pwd_results, results);
         }
@@ -74,7 +73,7 @@ QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   } else if (context.constraints["username"].exists(EQUALS)) {
     auto usernames = context.constraints["username"].getAll(EQUALS);
     for (const auto& username : usernames) {
-      getpwnam_r(username.c_str(), &pwd, buf, bufsize, &pwd_results);
+      getpwnam_r(username.c_str(), &pwd, buf.get(), bufsize, &pwd_results);
       if (pwd_results != nullptr) {
         genUser(pwd_results, results);
       }
@@ -82,7 +81,7 @@ QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   } else {
     setpwent();
     while (1) {
-      getpwent_r(&pwd, buf, bufsize, &pwd_results);
+      getpwent_r(&pwd, buf.get(), bufsize, &pwd_results);
       if (pwd_results == nullptr)
         break;
       genUser(pwd_results, results);
@@ -90,7 +89,6 @@ QueryData genUsersImpl(QueryContext& context, Logger& logger) {
     endpwent();
   }
 
-  free(buf);
   return results;
 }
 
