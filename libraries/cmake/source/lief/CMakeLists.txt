@@ -7,17 +7,6 @@
 
 function(lief)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
-  set(LIEF_ELF_SUPPORT 0)
-  set(LIEF_OAT_SUPPORT 0)
-  set(LIEF_DEX_SUPPORT 0)
-  set(LIEF_VDEX_SUPPORT 0)
-  set(LIEF_ART_SUPPORT 0)
-  set(LIEF_JSON_SUPPORT 0)
-  set(LIEF_LOGGING_SUPPORT 0)
-  set(LIEF_LOGGING_DEBUG_SUPPORT 0)
-  set(LIEF_FROZEN_ENABLED 0)
-  set(LIEF_PE_SUPPORT 0)
-  set(LIEF_MACHO_SUPPORT 0)
 
   add_library(thirdparty_lief
     "${library_root}/src/Object.cpp"
@@ -47,7 +36,6 @@ function(lief)
     )
 
   if(DEFINED PLATFORM_MACOS)
-    set(LIEF_MACHO_SUPPORT 1)
     
     target_sources(thirdparty_lief PRIVATE
       "${library_root}/src/MachO/utils.cpp"
@@ -96,11 +84,11 @@ function(lief)
       "${library_root}/src/MachO/TrieNode.hpp"
       )
     target_include_directories(thirdparty_lief PUBLIC
-      "${CMAKE_CURRENT_SOURCE_DIR}/config"
-      )
+     "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos"
+     "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+     )
   endif()
   if(DEFINED PLATFORM_WINDOWS)
-    set(LIEF_PE_SUPPORT 1)
     
     target_sources(thirdparty_lief PRIVATE
       "${library_root}/src/PE/utils.cpp"
@@ -190,40 +178,27 @@ function(lief)
       "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
       "${library_root}/src/PE/signatures"
       )
-    file(READ "${library_root}/include/LIEF/PE/enums.inc"      LIEF_PE_ENUMS)
-    file(READ "${library_root}/include/LIEF/PE/structures.inc" LIEF_PE_STRUCTURES)
-    configure_file(
-      "${library_root}/include/LIEF/PE/enums.hpp.in"
-      "${library_root}/include/LIEF/PE/enums.hpp"
-    @ONLY)
-    configure_file(
-      "${library_root}/include/LIEF/PE/Structures.hpp.in"
-      "${library_root}/include/LIEF/PE/Structures.hpp"
-    @ONLY)
-    configure_file("${library_root}/include/LIEF/config.h.in" "${library_root}/include/LIEF/config.h")
-    configure_file(
-      "${library_root}/src/compiler_support.h.in"
-      "${library_root}/src/compiler_support.h"
-    @ONLY)
 
     target_include_directories(thirdparty_lief PUBLIC
+     "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows"
      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
     )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
     # Used for the 'and', 'or' ... keywords - See: http://www.cplusplus.com/reference/ciso646/
     target_compile_options(thirdparty_lief PUBLIC /FIiso646.h)
-    set_property(TARGET thirdparty_lief PROPERTY LINK_FLAGS /NODEFAULTLIB:MSVCRT)
   endif()
 
   target_include_directories(thirdparty_lief PRIVATE
     "${library_root}/include"
     "${library_root}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
     )
 
   target_include_directories(thirdparty_lief SYSTEM INTERFACE
     "${library_root}/include"
     )
+
   target_compile_definitions(thirdparty_lief PRIVATE LIEF_STATIC)
 
   target_link_libraries(thirdparty_lief PRIVATE
