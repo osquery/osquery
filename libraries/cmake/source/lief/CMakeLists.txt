@@ -195,6 +195,10 @@ function(lief)
     "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
     )
 
+   target_include_directories(thirdparty_lief PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
+    )
+
   target_include_directories(thirdparty_lief SYSTEM INTERFACE
     "${library_root}/include"
     )
