@@ -206,9 +206,9 @@ function(lief)
       "${library_root}/src/compiler_support.h"
     @ONLY)
 
-    #target_include_directories(thirdparty_lief PUBLIC
-    # "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    # )
+    target_include_directories(thirdparty_lief PUBLIC
+     "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
+    )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
     # Used for the 'and', 'or' ... keywords - See: http://www.cplusplus.com/reference/ciso646/
