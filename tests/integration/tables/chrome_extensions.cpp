@@ -34,6 +34,7 @@ TEST_F(chromeExtensions, test_sanity) {
                            {"profile", NormalType},
                            {"profile_path", NormalType},
                            {"identifier", NormalType},
+                           {"referenced_identifier", NormalType},
                            {"version", NormalType},
                            {"description", NormalType},
                            {"default_locale", NormalType},

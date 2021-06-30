@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core/tables.h>
@@ -118,6 +119,9 @@ struct ChromeProfile final {
 
     /// The 'matches' entries inside 'content_scripts'
     ContentScriptsEntryList content_scripts_matches;
+
+    /// The extension id, computed from the 'key' property
+    boost::optional<std::string> opt_computed_identifier;
   };
 
   /// A list of extensions
@@ -194,6 +198,19 @@ using ExpectedUnixTimestamp = Expected<std::int64_t, ConversionError>;
 
 /// Converts a timestamp from Webkit to Unix format
 ExpectedUnixTimestamp webkitTimeToUnixTimestamp(const std::string& timestamp);
+
+enum class ExtensionKeyError {
+  MissingProperty,
+  InvalidValue,
+  HashingError,
+  TransformationError,
+};
+
+using ExpectedExtensionKey = Expected<std::string, ExtensionKeyError>;
+
+/// Computes the extension id based on the given key
+ExpectedExtensionKey computeExtensionIdentifier(
+    const ChromeProfile::Extension& extension);
 
 } // namespace tables
 

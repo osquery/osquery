@@ -29,15 +29,30 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+static const unsigned long maxBuffSize = 256;
+
 // map to get access mode string
-static const std::unordered_map<ACCESS_MODE, std::string> kAccessModeToStr = {
-    {NOT_USED_ACCESS, "Not Used"},
-    {GRANT_ACCESS, "Grant"},
-    {SET_ACCESS, "Set"},
-    {DENY_ACCESS, "Deny"},
-    {REVOKE_ACCESS, "Revoke"},
-    {SET_AUDIT_SUCCESS, "Set Audit Success"},
-    {SET_AUDIT_FAILURE, "Set Audit Failure"}};
+static const std::unordered_map<BYTE, std::string> kAccessCodeToStr = {
+    {ACCESS_ALLOWED_ACE_TYPE, "Grant"},
+    {ACCESS_DENIED_ACE_TYPE, "Deny"},
+    {SYSTEM_AUDIT_ACE_TYPE, "Audit"},
+    {SYSTEM_ALARM_ACE_TYPE, "Alarm"},
+    {ACCESS_ALLOWED_COMPOUND_ACE_TYPE, "Compounded Grant"},
+    {ACCESS_ALLOWED_OBJECT_ACE_TYPE, "Grant Object"},
+    {ACCESS_DENIED_OBJECT_ACE_TYPE, "Deny Object"},
+    {SYSTEM_AUDIT_OBJECT_ACE_TYPE, "Audit Object"},
+    {SYSTEM_ALARM_OBJECT_ACE_TYPE, "Alarm Object"},
+    {ACCESS_ALLOWED_CALLBACK_ACE_TYPE, "Grant with Callback"},
+    {ACCESS_DENIED_CALLBACK_ACE_TYPE, "Deny with Callback"},
+    {ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE, "Grant Object with Callback"},
+    {ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE, "Deny Object with Callback"},
+    {SYSTEM_AUDIT_CALLBACK_ACE_TYPE, "Audit with Callback"},
+    {SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE, "Audit Object with Callback"},
+    {SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE, "Alarm Object with Callback"},
+    {SYSTEM_MANDATORY_LABEL_ACE_TYPE, "Mandatory Label"},
+    {SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE, "Resource Attribute"},
+    {SYSTEM_SCOPED_POLICY_ID_ACE_TYPE, "Scoped Policy"},
+    {SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE, "Process trust Label"}};
 
 // map to build access string
 static const std::map<unsigned long, std::string> kPermVals = {
@@ -59,14 +74,37 @@ static const std::map<unsigned long, std::string> kPermVals = {
 // map to get inheritance string
 static const std::unordered_map<unsigned long, std::string> kInheritanceToStr =
     {{CONTAINER_INHERIT_ACE, "Container Inherit Ace"},
-     {INHERIT_NO_PROPAGATE, "Inherit No Propagate"},
-     {INHERIT_ONLY, "Inherit Only"},
-     {NO_INHERITANCE, "No Inheritance"},
+     {NO_PROPAGATE_INHERIT_ACE, "Inherit No Propagate"},
+     {INHERIT_ONLY_ACE, "Inherit Only"},
      {OBJECT_INHERIT_ACE, "Object Inherit Ace"},
-     {SUB_CONTAINERS_AND_OBJECTS_INHERIT,
-      "Sub containers and Objects Inherit"}};
+     {SUB_CONTAINERS_AND_OBJECTS_INHERIT, "Sub containers and Objects Inherit"},
+     {INHERITED_ACE, "Inherited Ace"}};
 
-// helper function to build access string from permission bit mask
+std::string accessCodeToStr(ACE_HEADER aceHeader) {
+  std::string sAccessCode("");
+  auto it = kAccessCodeToStr.find(aceHeader.AceType);
+  if (it != kAccessCodeToStr.end()) {
+    sAccessCode = it->second;
+
+    // Audit / Alarm success
+    if (aceHeader.AceType & SUCCESSFUL_ACCESS_ACE_FLAG) {
+      sAccessCode.append(" Success");
+    } else if (aceHeader.AceType & FAILED_ACCESS_ACE_FLAG) {
+      sAccessCode.append(" Failure");
+    }
+  }
+  return sAccessCode;
+}
+
+std::string inheritCodeToStr(BYTE aceFlags) {
+  std::string sInheritCode("No Inheritance");
+  auto it = kInheritanceToStr.find(aceFlags & VALID_INHERIT_FLAGS);
+  if (it != kInheritanceToStr.end()) {
+    sInheritCode = it->second;
+  }
+  return sInheritCode;
+}
+
 std::string accessPermsToStr(const unsigned long pmask) {
   std::vector<std::string> permList;
 
@@ -79,53 +117,29 @@ std::string accessPermsToStr(const unsigned long pmask) {
   return alg::join(permList, ",");
 }
 
-// helper function to get account/group name from trustee
-std::string trusteeToStr(const TRUSTEEW& trustee) {
-  // Max username length for Windows
-  const unsigned long maxBuffSize = 256;
-  unsigned long sizeOut = maxBuffSize;
-  WCHAR name[maxBuffSize];
-  WCHAR domain[maxBuffSize];
+std::string pSidToStrUserName(PSID psid) {
+  unsigned long unameSize = 0;
+  unsigned long domNameSize = 1;
   SID_NAME_USE accountType;
 
-  switch (trustee.TrusteeForm) {
-  case TRUSTEE_IS_SID: {
-    // get the name from the SID
-    PSID psid = trustee.ptstrName;
-    auto r = LookupAccountSidW(
-        nullptr, psid, name, &sizeOut, domain, &sizeOut, &accountType);
-    if (r == FALSE) {
-      VLOG(1) << "LookupAccountSid error: " << GetLastError();
-      return "";
-    } else {
-      return wstringToString(name);
-    }
-  }
-  case TRUSTEE_IS_NAME:
-    // get the name from ptstrName
-    return wstringToString(trustee.ptstrName);
-  case TRUSTEE_BAD_FORM:
-    // Indicates a trustee form that is not valid.
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa379638(v=vs.85).aspx
-    return "Invalid";
-  case TRUSTEE_IS_OBJECTS_AND_SID: {
-    // ptstrName member is a pointer to an OBJECTS_AND_SID struct
-    auto psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
-    auto r = LookupAccountSidW(
-        nullptr, psid, name, &sizeOut, domain, &sizeOut, &accountType);
-    if (r == FALSE) {
-      VLOG(1) << "LookupAccountSid error: " << GetLastError();
-      return "";
-    } else {
-      return wstringToString(name);
-    }
-  }
-  case TRUSTEE_IS_OBJECTS_AND_NAME:
-    // ptstrName member is a pointer to an OBJECTS_AND_NAME struct
-    return wstringToString(
-        reinterpret_cast<OBJECTS_AND_NAME_W*>(trustee.ptstrName)->ptstrName);
-  default:
+  // LookupAccountSid first gets the size of the username buff required.
+  LookupAccountSidW(
+      nullptr, psid, nullptr, &unameSize, nullptr, &domNameSize, &accountType);
+
+  std::vector<wchar_t> uname(unameSize);
+  std::vector<wchar_t> domName(domNameSize);
+  BOOL bSuccess = LookupAccountSidW(nullptr,
+                                    psid,
+                                    uname.data(),
+                                    &unameSize,
+                                    domName.data(),
+                                    &domNameSize,
+                                    &accountType);
+  if (bSuccess == FALSE) {
+    VLOG(1) << "LookupAccountSid Error " << GetLastError();
     return "";
+  } else {
+    return wstringToString(uname.data());
   }
 }
 
@@ -137,9 +151,10 @@ QueryData genNtfsAclPerms(QueryContext& context) {
     if (!fs::exists(pathString)) {
       continue;
     }
+    std::wstring wsPath(stringToWstring(pathString));
     // Get a pointer to the existing DACL.
     PACL dacl = nullptr;
-    auto result = GetNamedSecurityInfoW(stringToWstring(pathString).c_str(),
+    auto result = GetNamedSecurityInfoW(wsPath.c_str(),
                                         SE_FILE_OBJECT,
                                         DACL_SECURITY_INFORMATION,
                                         nullptr,
@@ -148,50 +163,32 @@ QueryData genNtfsAclPerms(QueryContext& context) {
                                         nullptr,
                                         nullptr);
     if (ERROR_SUCCESS != result) {
-      VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
+      VLOG(1) << "GetNamedSecurityInfo Error " << result;
       continue;
     }
 
-    // get list of ACEs from DACL pointer
-    unsigned long aceCount = 0;
-    PEXPLICIT_ACCESSW aceList = nullptr;
-    result = GetExplicitEntriesFromAclW(dacl, &aceCount, &aceList);
-    if (ERROR_SUCCESS != result) {
-      VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
-      continue;
-    }
-
-    // Loop through list of entries
-    auto aceItem = aceList;
-    for (unsigned long aceIndex = 0; aceIndex < aceCount;
-         aceItem++, aceIndex++) {
+    ACCESS_ALLOWED_ACE* pAce = NULL;
+    // Loop through the ACEs and display the information.
+    for (WORD cAce = 0; cAce < dacl->AceCount; cAce++) {
       Row r;
-
-      auto perms = accessPermsToStr(aceItem->grfAccessPermissions);
-
-      // TODO(6129): Determine the best way to report unknown values.
-      // Investigate the documentation for correct grfInheritance usage.
-      auto accessModeIter = kAccessModeToStr.find(aceItem->grfAccessMode);
-      auto accessMode = (accessModeIter != kAccessModeToStr.end())
-                            ? accessModeIter->second
-                            : "Unknown";
-      auto interitedFromiter = kInheritanceToStr.find(aceItem->grfInheritance);
-      auto inheritedFrom = (interitedFromiter != kInheritanceToStr.end())
-                               ? interitedFromiter->second
-                               : "Unknown";
-      auto trusteeName = trusteeToStr(aceItem->Trustee);
+      // Get ACE
+      if (GetAce(dacl, cAce, (LPVOID*)&pAce) == FALSE) {
+        VLOG(1) << "GetAce Error " << GetLastError();
+        continue;
+      }
+      auto trusteeName = pSidToStrUserName(&pAce->SidStart);
+      auto perms = accessPermsToStr(pAce->Mask);
+      auto aceType = accessCodeToStr(pAce->Header);
+      auto aceFlags = inheritCodeToStr(pAce->Header.AceFlags);
 
       r["path"] = SQL_TEXT(pathString);
-      r["type"] = SQL_TEXT(accessMode);
+      r["type"] = SQL_TEXT(aceType);
       r["principal"] = SQL_TEXT(trusteeName);
       r["access"] = SQL_TEXT(perms);
-      r["inherited_from"] = SQL_TEXT(inheritedFrom);
+      r["inherited_from"] = SQL_TEXT(aceFlags);
       results.push_back(std::move(r));
     }
-
-    LocalFree(aceList);
   }
-
   return results;
 }
 

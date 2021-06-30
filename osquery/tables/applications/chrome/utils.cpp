@@ -15,6 +15,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/applications/chrome/utils.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/base64.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -64,6 +66,8 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
+    {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
+    {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
     {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"}};
 // clang-format on
 
@@ -137,6 +141,8 @@ const ExtensionPropertyMap kExtensionPropertyList = {
     {ExtensionProperty::Type::StringArray,
      "optional_permissions",
      "optional_permissions"},
+
+    {ExtensionProperty::Type::String, "key", "key"},
 };
 
 /// Active extension profile settings
@@ -869,7 +875,7 @@ Status getExtensionProfileSettings(
         extension_path);
   }
 
-  profile_settings["identifier"] = extension_id;
+  profile_settings["referenced_identifier"] = extension_id;
 
   for (const auto& property_name : kExtensionProfileSettingsList) {
     const auto& opt_property = extension_obj.get_child_optional(property_name);
@@ -946,6 +952,15 @@ Status getExtensionFromSnapshot(
   std::stringstream stream;
   pt::write_json(stream, parsed_manifest, false);
   output.manifest_json = stream.str();
+
+  // Attempt to compute the real extension identifier
+  auto identifier_exp = computeExtensionIdentifier(output);
+  if (identifier_exp.isError()) {
+    LOG(ERROR) << identifier_exp.getError().getMessage();
+
+  } else {
+    output.opt_computed_identifier = identifier_exp.take();
+  }
 
   extension = std::move(output);
   return Status::success();
@@ -1163,6 +1178,66 @@ std::string getExtensionProfileSettingsValue(
 
   static_cast<void>(succeeded);
   return value;
+}
+
+ExpectedExtensionKey computeExtensionIdentifier(
+    const ChromeProfile::Extension& extension) {
+  auto extension_key_it = extension.properties.find("key");
+  if (extension_key_it == extension.properties.end()) {
+    return ExpectedExtensionKey::failure(
+        ExtensionKeyError::MissingProperty,
+        "The 'key' property is missing from the extension manifest");
+  }
+
+  const auto& encoded_key = extension_key_it->second;
+
+  auto decoded_key = base64::decode(encoded_key);
+  if (decoded_key.empty()) {
+    return ExpectedExtensionKey::failure(
+        ExtensionKeyError::InvalidValue,
+        "The 'key' property of the extension manifest could not be properly "
+        "base64 decoded");
+  }
+
+  auto decoded_key_hash =
+      hashFromBuffer(HASH_TYPE_SHA256, decoded_key.data(), decoded_key.size());
+  if (decoded_key_hash.size() != 64) {
+    return ExpectedExtensionKey::failure(
+        ExtensionKeyError::HashingError,
+        "The 'key' property of the extension manifest could not be properly "
+        "sha256 hashed");
+  }
+
+  auto hash_prefix = decoded_key_hash.substr(0, 32U);
+
+  std::string identifier;
+  identifier.reserve(hash_prefix.size());
+
+  std::string buffer(1, '\x00');
+
+  for (auto c : hash_prefix) {
+    buffer[0] = c;
+
+    auto as_int_exp = tryTo<int>(buffer, 16);
+    if (as_int_exp.isError()) {
+      return ExpectedExtensionKey::failure(
+          ExtensionKeyError::TransformationError,
+          "Failed to transform the 'key' property of the extension manifest");
+    }
+
+    auto as_int = as_int_exp.take();
+
+    auto ascii = 'a' + as_int;
+    if (ascii < 0x61 || ascii > 0x122) {
+      return ExpectedExtensionKey::failure(
+          ExtensionKeyError::TransformationError,
+          "Failed to transform the 'key' property of the extension manifest");
+    }
+
+    identifier.push_back(static_cast<char>(ascii));
+  }
+
+  return ExpectedExtensionKey::success(identifier);
 }
 
 } // namespace tables

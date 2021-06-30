@@ -1702,6 +1702,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
+    LocalFree(security_descriptor);
     return Status(-1,
                   "GetFileInformationByHandle failed for " + path.string() +
                       " with " + std::to_string(GetLastError()));

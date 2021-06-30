@@ -6,7 +6,8 @@ schema([
     Column("name", TEXT, "Extension display name"),
     Column("profile", TEXT, "The name of the Chrome profile that contains this extension"),
     Column("profile_path", TEXT, "The profile path"),
-    Column("identifier", TEXT, "Extension identifier (folder name)"),
+    Column("referenced_identifier", TEXT, "Extension identifier, as specified by the preferences file. Empty if the extension is not in the profile."),
+    Column("identifier", TEXT, "Extension identifier, computed from its manifest. Empty in case of error."),
     Column("version", TEXT, "Extension-supplied version"),
     Column("description", TEXT, "Extension-optional description"),
     Column("default_locale", TEXT, "Default locale supported by extension", aliases=["locale"]),
@@ -26,6 +27,7 @@ schema([
     Column("install_time", TEXT, "Extension install time, in its original Webkit format"),
     Column("install_timestamp", BIGINT, "Extension install time, converted to unix time"),
     Column("manifest_json", TEXT, "The manifest file of the extension", hidden=True),
+    Column("key", TEXT, "The extension key, from the manifest file", hidden=True),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)

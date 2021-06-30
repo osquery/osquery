@@ -236,6 +236,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/wmi_script_event_consumers.cpp
       windows/hvci_status.cpp
       windows/tpm_info.cpp
+      windows/prefetch.cpp
     )
   endif()
 

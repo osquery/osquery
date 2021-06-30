@@ -1,0 +1,21 @@
+table_name("prefetch")
+description("Prefetch files show metadata related to file execution.")
+schema([
+    Column("path", TEXT, "Prefetch file path.", additional=True),
+    Column("filename", TEXT, "Executable filename."),
+    Column("hash", TEXT, "Prefetch CRC hash."),
+    Column("last_run_time", INTEGER, "Most recent time application was run."),
+    Column("other_run_times", TEXT, "Other execution times in prefetch file."),
+    Column("run_count", INTEGER, "Number of times the application has been run."),
+    Column("size", INTEGER, "Application file size."),
+    Column("volume_serial", TEXT, "Volume serial number."),
+    Column("volume_creation", TEXT, "Volume creation time."),
+    Column("accessed_files_count", INTEGER, "Number of files accessed."),
+    Column("accessed_directories_count", INTEGER, "Number of directories accessed."),
+    Column("accessed_files", TEXT, "Files accessed by application within ten seconds of launch."),
+    Column("accessed_directories", TEXT, "Directories accessed by application within ten seconds of launch.")
+])
+implementation("prefetch@genPrefetch", generator=True)
+examples([
+  "select * from prefetch;",
+])

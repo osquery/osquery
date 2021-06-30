@@ -30,7 +30,14 @@ const std::map<std::string, std::pair<std::string, std::wstring>> kQueryMap = {
     {"hp",
      {"select Name,Value from HP_BiosSetting", L"root\\hp\\instrumentedBIOS"}},
     {"lenovo", {"select CurrentSetting from Lenovo_BiosSetting", L"root\\wmi"}},
+    // Dell machines have two different wmi classes for bios information.
+    // Biosattributes class is present on all machines released after 2018 and
+    // DCIM_BIOSEnumeration is on the machines released prior to 2018 or have
+    // Dell Command Monitor driver installed on them.
     {"dell",
+     {"select AttributeName,CurrentValue from EnumerationAttribute",
+      L"root\\dcim\\sysman\\biosattributes"}},
+    {"dell-legacy",
      {"select AttributeName,CurrentValue,PossibleValues, "
       "PossibleValuesDescription from DCIM_BIOSEnumeration",
       L"root\\dcim\\sysman"}}};
@@ -48,7 +55,16 @@ std::string getManufacturer(std::string manufacturer) {
     manufacturer = "lenovo";
   } else if (std::find(kDell.begin(), kDell.end(), manufacturer) !=
              kDell.end()) {
-    manufacturer = "dell";
+    // If it's a Dell machine, we check if the legacy class exists or not and
+    // accordingly return the corresponding manufacturer name.
+    auto it = kQueryMap.find("dell-legacy");
+    const WmiRequest wmiBiosReq(std::get<0>(it->second),
+                                std::get<1>(it->second));
+    if (!wmiBiosReq.results().empty()) {
+      manufacturer = "dell-legacy";
+    } else {
+      manufacturer = "dell";
+    }
   }
 
   return manufacturer;
@@ -88,7 +104,7 @@ Row getLenovoBiosInfo(const WmiResultItem& item) {
   return r;
 }
 
-Row getDellBiosInfo(const WmiResultItem& item) {
+Row getDellLegacyBiosInfo(const WmiResultItem& item) {
   Row r;
 
   std::vector<std::string> vCurrentValue;
@@ -125,6 +141,20 @@ Row getDellBiosInfo(const WmiResultItem& item) {
   return r;
 }
 
+Row getDellBiosInfo(const WmiResultItem& item) {
+  Row r;
+
+  std::string currentvalue;
+  item.GetString("AttributeName", r["name"]);
+  item.GetString("CurrentValue", currentvalue);
+  if (currentvalue.empty()) {
+    r["value"] = "N/A";
+  } else {
+    r["value"] = currentvalue;
+  }
+  return r;
+}
+
 QueryData genBiosInfo(QueryContext& context) {
 
   const WmiRequest wmiComputerSystemReq(
@@ -157,6 +187,9 @@ QueryData genBiosInfo(QueryContext& context) {
 
     } else if (manufacturer == "dell") {
       r = getDellBiosInfo(wmiResults[i]);
+
+    } else if (manufacturer == "dell-legacy") {
+      r = getDellLegacyBiosInfo(wmiResults[i]);
     }
     if (!r.empty()) {
       results.push_back(r);
