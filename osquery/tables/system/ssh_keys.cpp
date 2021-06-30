@@ -67,15 +67,17 @@ bool parsePrivateKey(const std::string& keys_content,
   // PEM_read_bio_PrivateKey calls passwordCallback
   // if the private key is encrypted. We don't care what the key is;
   // only whether or not it's encrypted.
-  static bool encrypted;
-  encrypted = false;
-  auto passwordCallback = [](char*, int, int, void*) {
-    encrypted = true;
+  auto passwordCallback = [](char*, int, int, void* u) {
+    bool* encrypted_ptr = reinterpret_cast<bool*>(u);
+    *encrypted_ptr = true;
     return -1; // let openssl know that the passwordCallback failed
   };
 
-  auto pkey =
-      PEM_read_bio_PrivateKey(bio_stream, nullptr, passwordCallback, nullptr);
+  bool encrypted = false;
+  auto pkey = PEM_read_bio_PrivateKey(bio_stream,
+                                      nullptr,
+                                      passwordCallback,
+                                      reinterpret_cast<void*>(&encrypted));
   is_encrypted = encrypted;
   auto const pkey_guard =
       scope_guard::create([pkey]() { EVP_PKEY_free(pkey); });
