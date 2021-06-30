@@ -425,7 +425,7 @@ function New-ChocolateyPackage() {
     <copyright>Copyright (c) 2014-present, The osquery authors. See LICENSE file found in the
 # root directory of this source tree.</copyright>
     <projectUrl>https://osquery.io</projectUrl>
-    <iconUrl>https://github.com/osquery/osquery/blob/master/tools/osquery.ico</iconUrl>
+    <iconUrl>https://raw.githubusercontent.com/osquery/osquery/master/tools/deployment/windows_packaging/osquery.ico</iconUrl>
     <licenseUrl>https://github.com/osquery/osquery/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/osquery/osquery</projectSourceUrl>

@@ -70,6 +70,7 @@ function(yaraMain)
     target_sources(thirdparty_yara PRIVATE
       "${library_root}/proc/mach.c"
       "${library_root}/modules/magic/magic.c"
+      "${library_root}/modules/macho/macho.c"
     )
   else()
     message(FATAL_ERROR "Unsupported platform")
@@ -78,12 +79,12 @@ function(yaraMain)
   target_compile_definitions(thirdparty_yara PRIVATE
     PACKAGE_NAME=\"yara\"
     PACKAGE_TARNAME=\"yara\"
-    PACKAGE_VERSION=\"4.0.2\"
-    PACKAGE_STRING=\"yara\ 4.0.2\"
+    PACKAGE_VERSION=\"4.1.1\"
+    PACKAGE_STRING=\"yara\ 4.1.1\"
     PACKAGE_BUGREPORT=\"vmalvarez@virustotal.com\"
     PACKAGE_URL=\"\"
     PACKAGE=\"yara\"
-    VERSION=\"4.0.2\"
+    VERSION=\"4.1.1\"
     YYTEXT_POINTER=1
     STDC_HEADERS=1
     HAVE_SYS_TYPES_H=1
@@ -128,6 +129,7 @@ function(yaraMain)
       USE_MACH_PROC
       HAVE_MEMMEM=1
       HAVE_TIMEGM=1
+      MACHO_MODULE
     )
 
     target_link_libraries(thirdparty_yara PUBLIC

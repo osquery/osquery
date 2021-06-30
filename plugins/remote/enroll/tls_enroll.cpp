@@ -35,9 +35,14 @@ DECLARE_bool(disable_enrollment);
 
 CLI_FLAG(uint64,
          tls_enroll_max_attempts,
-         3,
-         "Number of attempts to retry a TLS enroll request, it used to be the "
-         "same as [config_tls_max_attempts]");
+         12,
+         "The total number of attempts that will be made to the enroll "
+         "endpoint if a request fails, 0 for infinite");
+
+CLI_FLAG(uint64,
+         tls_enroll_max_interval,
+         600,
+         "Maximum wait time in seconds between enroll retry attempts");
 
 /// Enrollment TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
@@ -73,23 +78,44 @@ std::string TLSEnrollPlugin::enroll() {
   }
 
   std::string node_key;
-  bool should_shutdown = false;
   VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-  for (size_t i = 1; i <= FLAGS_tls_enroll_max_attempts && !should_shutdown;
-       i++) {
+
+  std::uint64_t attempt = 1;
+  std::uint64_t interval_step = 1;
+  std::uint64_t interval = 0;
+
+  bool should_shutdown = false;
+
+  while (FLAGS_tls_enroll_max_attempts == 0 ||
+         attempt <= FLAGS_tls_enroll_max_attempts) {
     auto status = requestKey(uri, node_key);
-    if (status.ok() || i == FLAGS_tls_enroll_max_attempts) {
+    if (status.ok() || attempt == FLAGS_tls_enroll_max_attempts) {
       break;
     }
+
+    // Increase attempts only if we haven't chosen infinite retries
+    if (FLAGS_tls_enroll_max_attempts > 0) {
+      ++attempt;
+    }
+
     LOG(WARNING) << "Failed enrollment request to " << uri << " ("
                  << status.what() << ") retrying...";
 
-    should_shutdown =
-        waitTimeoutOrShutdown(std::chrono::milliseconds(i * i * 1000));
-  }
+    interval =
+        std::min(interval_step * interval_step, FLAGS_tls_enroll_max_interval);
 
-  if (should_shutdown) {
-    LOG(WARNING) << "Enrollment attempts interrupted due to a shutdown request";
+    if (interval < FLAGS_tls_enroll_max_interval) {
+      ++interval_step;
+    }
+
+    should_shutdown =
+        waitTimeoutOrShutdown(std::chrono::milliseconds(interval * 1000));
+
+    if (should_shutdown) {
+      LOG(WARNING)
+          << "Enrollment attempts interrupted due to a shutdown request";
+      break;
+    }
   }
 
   return node_key;

@@ -111,9 +111,6 @@ uint32_t getGidFromSid(PSID sid) {
                                 &totalEntries);
 
     if (ret == NERR_Success) {
-      LPLOCALGROUP_USERS_INFO_0 pTmpBuf;
-      DWORD i;
-
       // A user often has more than one local group. We only return the first!
       if (userGroupsBuff != NULL) {
         // From group name to group SID to the RID (osquery concept of GID):
@@ -302,4 +299,4 @@ int platformGetPid() {
 uint64_t platformGetTid() {
   return GetCurrentThreadId();
 }
-}
+} // namespace osquery

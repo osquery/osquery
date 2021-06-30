@@ -13,10 +13,12 @@ function(sqliteMain)
     thirdparty_c_settings
   )
 
-  # Allow tables to rethrow exceptions
-  target_compile_options(thirdparty_sqlite PRIVATE
-    -fexceptions
-  )
+  if(DEFINED PLATFORM_POSIX)
+    # Allow tables to rethrow exceptions
+    target_compile_options(thirdparty_sqlite PRIVATE
+      -fexceptions
+    )
+  endif()
 endfunction()
 
 sqliteMain()

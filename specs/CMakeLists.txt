@@ -302,6 +302,7 @@ function(generateNativeTables)
     "windows/hvci_status.table:windows"
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
+    "windows/prefetch.table:windows"
     "windows/shortcut_files.table:windows"
     "windows/tpm_info.table:windows"
     "yara/yara_events.table:linux,macos"

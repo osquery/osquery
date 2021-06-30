@@ -26,8 +26,9 @@ namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kPkgReceiptPaths = {
-    "/private/var/db/receipts/", "/Library/Receipts/",
-};
+    "/private/var/db/receipts/",
+    "/Library/Receipts/",
+    "/Library/Apple/System/Library/Receipts/"};
 
 const std::vector<std::string> kPkgReceiptUserPaths = {
     "/Library/Receipts/",
@@ -471,9 +472,9 @@ void genPkgInstallHistoryEntry(const pt::ptree& entry, QueryData& results) {
   // some packages do not set packageIdentifiers, allow it to be
   // empty. Empirically this seems to be os packages, but we can't
   // assume that.
-  if (const auto& identifiers =
-          entry.get_child_optional("packageIdentifiers")) {
-    for (const auto& package_identifier : *identifiers) {
+  auto it = entry.find("packageIdentifiers");
+  if (it != entry.not_found()) {
+    for (const auto& package_identifier : it->second) {
       r["package_id"] = package_identifier.second.get<std::string>("");
       results.push_back(r);
     }

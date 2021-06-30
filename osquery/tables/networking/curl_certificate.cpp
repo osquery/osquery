@@ -438,7 +438,7 @@ QueryData genTLSCertificate(QueryContext& context) {
   }
 
   if (context.hasConstraint("timeout", EQUALS)) {
-    auto timeout =
+    timeout =
         tryTo<int>(*(context.constraints["timeout"].getAll(EQUALS).begin()), 10)
             .takeOr(DEFAULT_READ_TIMEOUT);
     if (timeout < 0) {

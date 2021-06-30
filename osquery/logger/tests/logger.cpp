@@ -442,7 +442,7 @@ class RecursiveLoggerPlugin : public LoggerPlugin {
   }
 
  public:
-  size_t statuses{0};
+  std::atomic<size_t> statuses{0};
 };
 
 TEST_F(LoggerTests, test_recursion) {
@@ -482,14 +482,13 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_EQ(3U, plugin->statuses);
 
   // All of recursive log lines will sink during the next call.
-  relayStatusLogs(true);
+  relayStatusLogs(LoggerRelayMode::Sync);
   EXPECT_EQ(4U, plugin->statuses);
-  relayStatusLogs(true);
+  relayStatusLogs(LoggerRelayMode::Sync);
   EXPECT_EQ(5U, plugin->statuses);
   setToolType(tool_type);
 
   EXPECT_EQ(0U, queuedStatuses());
-  EXPECT_EQ(0U, queuedSenders());
 
   // Make sure the test file does not create a filesystem log.
   // This will happen if the logtostderr is not set.

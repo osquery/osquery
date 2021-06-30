@@ -252,6 +252,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
+  r["total_size"] = INTEGER(100);
   runner.setProcessRow({r});
 
   // Hold the process and process state externally.
@@ -275,6 +276,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   // Now we can alter the performance.
   // Let us emulate the watcher having just allocated 1G of memory.
   r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  r["total_size"] = INTEGER(1024 * 1024 * 1024);
   runner.setProcessRow({r});
 
   auto status = runner.isWatcherHealthy(*test_process, state);
@@ -308,6 +310,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
+  r["total_size"] = INTEGER(100);
   runner.setProcessRow({r});
 
   // Set the worker start time.
@@ -319,6 +322,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   // Update the fake process resident memory, make it unhealthy.
   r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  r["total_size"] = INTEGER(1024 * 1024 * 1024);
   runner.setProcessRow({r});
 
   // Set the watchdog to delay 1000s.
