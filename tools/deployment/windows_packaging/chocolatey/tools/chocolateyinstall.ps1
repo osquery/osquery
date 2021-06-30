@@ -9,6 +9,8 @@
 
 #Requires -Version 3.0
 
+$ErrorActionPreference = "Stop"
+
 . (Join-Path "$PSScriptRoot" "osquery_utils.ps1")
 
 $packageParameters = $env:chocolateyPackageParameters
