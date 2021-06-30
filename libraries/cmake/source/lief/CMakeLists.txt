@@ -207,7 +207,7 @@ function(lief)
     @ONLY)
 
     target_include_directories(thirdparty_lief PUBLIC
-     "${CMAKE_CURRENT_SOURCE_DIR}/config"
+     "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
     )
   
     target_compile_definitions(thirdparty_lief PRIVATE NOMINMAX)
