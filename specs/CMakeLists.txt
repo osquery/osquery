@@ -179,6 +179,7 @@ function(generateNativeTables)
     "linux/memory_map.table:linux"
     "linux/elf_dynamic.table:linux"
     "linux/elf_sections.table:linux"
+    "linux/elf_strings.table:linux"
     "linux/selinux_settings.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"

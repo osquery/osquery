@@ -189,6 +189,66 @@ function(lief)
     target_compile_options(thirdparty_lief PUBLIC /FIiso646.h)
   endif()
 
+  if(DEFINED PLATFORM_LINUX)
+    
+    target_sources(thirdparty_lief PRIVATE
+      "${library_root}/src/ELF/Convert.cpp"
+      "${library_root}/src/ELF/DynamicEntryArray.cpp"
+      "${library_root}/src/ELF/utils.cpp"
+      "${library_root}/src/ELF/SymbolVersionRequirement.cpp"
+      "${library_root}/src/ELF/SymbolVersionAuxRequirement.cpp"
+      "${library_root}/src/ELF/Binary.cpp"
+      "${library_root}/src/ELF/Symbol.cpp"
+      "${library_root}/src/ELF/EnumToString.cpp"
+      "${library_root}/src/ELF/Header.cpp"
+      "${library_root}/src/ELF/DynamicSharedObject.cpp"
+      "${library_root}/src/ELF/Segment.cpp"
+      "${library_root}/src/ELF/Section.cpp"
+      "${library_root}/src/ELF/SymbolVersionAux.cpp"
+      "${library_root}/src/ELF/GnuHash.cpp"
+      "${library_root}/src/ELF/SysvHash.cpp"
+      "${library_root}/src/ELF/SymbolVersion.cpp"
+      "${library_root}/src/ELF/Builder.cpp"
+      "${library_root}/src/ELF/DynamicEntryLibrary.cpp"
+      "${library_root}/src/ELF/DataHandler/Node.cpp"
+      "${library_root}/src/ELF/DataHandler/Handler.cpp"
+      "${library_root}/src/ELF/Parser.cpp"
+      "${library_root}/src/ELF/Relocation.cpp"
+      "${library_root}/src/ELF/DynamicEntryRunPath.cpp"
+      "${library_root}/src/ELF/SymbolVersionDefinition.cpp"
+      "${library_root}/src/ELF/DynamicEntry.cpp"
+      "${library_root}/src/ELF/DynamicEntryRpath.cpp"
+      "${library_root}/src/ELF/DynamicEntryFlags.cpp"
+      "${library_root}/src/ELF/Builder.tcc"
+      "${library_root}/src/ELF/Parser.tcc"
+      "${library_root}/src/ELF/Binary.tcc"
+      "${library_root}/src/ELF/hash.cpp"
+      "${library_root}/src/ELF/Note.cpp"
+      "${library_root}/src/ELF/NoteDetails.cpp"
+
+      "${library_root}/src/ELF/NoteDetails/AndroidNote.cpp"
+      "${library_root}/src/ELF/NoteDetails/NoteAbi.cpp"
+
+      "${library_root}/src/ELF/NoteDetails/core/CorePrPsInfo.cpp"
+      "${library_root}/src/ELF/NoteDetails/core/CorePrPsInfo.tcc"
+      
+      "${library_root}/src/ELF/NoteDetails/core/CoreFile.cpp"
+      "${library_root}/src/ELF/NoteDetails/core/CoreFile.tcc"
+
+      "${library_root}/src/ELF/NoteDetails/core/CorePrStatus.cpp"
+      "${library_root}/src/ELF/NoteDetails/core/CorePrStatus.tcc"
+
+      "${library_root}/src/ELF/NoteDetails/core/CoreAuxv.cpp"
+      "${library_root}/src/ELF/NoteDetails/core/CoreAuxv.tcc"
+
+      "${library_root}/src/ELF/NoteDetails/core/CoreSigInfo.cpp"
+      )
+    target_include_directories(thirdparty_lief PUBLIC
+     "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux"
+     "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+     )
+  endif()
+
   target_include_directories(thirdparty_lief PRIVATE
     "${library_root}/include"
     "${library_root}/src"

@@ -282,6 +282,7 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_popt
       thirdparty_dbus
       thirdparty_libcap
+      thirdparty_lief
     )
     if(OSQUERY_BUILD_DPKG)
       target_link_libraries(osquery_tables_system_systemtable PUBLIC
