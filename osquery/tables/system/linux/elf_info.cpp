@@ -7,12 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-//#include <elf.h>
-//#include <fcntl.h>
-
-//#include <libelfin/elf/elf++.hh>
-
-//#include <unordered_map>
 #include <iostream>
 
 #include <osquery/core/tables.h>
@@ -63,12 +57,12 @@ QueryData getELFStrings(QueryContext& context) {
       std::unique_ptr<LIEF::ELF::Binary> elf_binary =
           LIEF::ELF::Parser::parse(path_string);
       Row r;
-      for(const auto& string : elf_binary->strings()) {
-	r["path"] = path_string;
-	r["filename"] = path.filename().string();
-	r["string"] = string;
-	results.push_back(r);
-      }    
+      for (const auto& string : elf_binary->strings()) {
+        r["path"] = path_string;
+        r["filename"] = path.filename().string();
+        r["string"] = string;
+        results.push_back(r);
+      }
     } catch (std::exception& error) {
       LOG(WARNING) << "Failed to parse ELF file: " << error.what();
     }
@@ -120,129 +114,180 @@ QueryData getELFInfo(QueryContext& context) {
 
 QueryData getELFSegments(QueryContext& context) {
   QueryData results;
-  /*
-  auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (const auto& seg : f.segments()) {
-      const auto& hdr = seg.get_hdr();
-
-      Row r;
-      r["path"] = path;
-      auto gnu_tyelf =
-          kGNUTyelfs.find(static_cast<elf::ElfTyelfs::Word>(hdr.tyelf));
-      if (gnu_tyelf != kGNUTyelfs.end()) {
-        r["name"] = gnu_tyelf->second;
-      } else {
-        r["name"] = to_string(hdr.tyelf);
-      }
-      r["offset"] = std::to_string(hdr.offset);
-      r["vaddr"] = std::to_string(hdr.vaddr);
-      r["flags"] = to_string(hdr.flags);
-      r["psize"] = std::to_string(hdr.filesz);
-      r["msize"] = std::to_string(hdr.memsz);
-      r["align"] = std::to_string(hdr.align);
-      results.push_back(r);
+  std::set<std::string> paths = expandPaths(context);
+  boost::system::error_code ec;
+  for (const auto& path_string : paths) {
+    boost::filesystem::path path = path_string;
+    if (!boost::filesystem::is_regular_file(path, ec)) {
+      continue;
     }
-  };
+    try {
+      // Skip non-elf files
+      if (!LIEF::ELF::is_elf(path_string)) {
+        continue;
+      }
+      std::unique_ptr<LIEF::ELF::Binary> elf_binary =
+          LIEF::ELF::Parser::parse(path_string);
+      for (const auto& binary : elf_binary->segments()) {
+        Row r;
 
-  genElfInfo(context, lambda);
-  */
+        r["path"] = path_string;
+        r["filename"] = path.filename().string();
+        r["segment_name"] = LIEF::ELF::to_string(binary.type());
+        std::ostringstream stream;
+        stream << std::hex << binary.file_offset();
+        r["segment_file_offset"] = stream.str();
+        stream.str("");
+        stream << std::hex << binary.virtual_address();
+        r["segment_virtual_address"] = stream.str();
+        stream.str("");
+        stream << std::hex << binary.physical_address();
+        r["segment_physical_address"] = stream.str();
+        r["segment_physical_size"] = BIGINT(binary.physical_size());
+        r["segment_virtual_size"] = BIGINT(binary.virtual_size());
+        r["alignment"] = INTEGER(binary.alignment());
+
+        r["segment_flags"] = LIEF::ELF::to_string(binary.flags());
+        results.push_back(r);
+      }
+
+    } catch (std::exception& error) {
+      LOG(WARNING) << "Failed to parse ELF file: " << error.what();
+    }
+  }
   return results;
 }
 
 QueryData getELFSymbols(QueryContext& context) {
   QueryData results;
-  /*
-  auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (const auto& sec : f.sections()) {
-      const auto& hdr = sec.get_hdr();
-
-      if (hdr.tyelf != elf::sht::symtab && hdr.tyelf != elf::sht::dynsym) {
+  std::set<std::string> paths = expandPaths(context);
+  boost::system::error_code ec;
+  for (const auto& path_string : paths) {
+    boost::filesystem::path path = path_string;
+    if (!boost::filesystem::is_regular_file(path, ec)) {
+      continue;
+    }
+    try {
+      // Skip non-elf files
+      if (!LIEF::ELF::is_elf(path_string)) {
         continue;
       }
+      std::unique_ptr<LIEF::ELF::Binary> elf_binary =
+          LIEF::ELF::Parser::parse(path_string);
+      for (const auto& binary : elf_binary->symbols()) {
+        Row r;
 
-      Row r;
-      r["path"] = path;
-      r["table"] = sec.get_name();
-
-      for (const auto& sym : sec.as_symtab()) {
-        const auto& d = sym.get_data();
-        r["addr"] = std::to_string(d.value);
-        r["size"] = std::to_string(d.size);
-        r["tyelf"] = to_string(d.tyelf());
-        r["binding"] = to_string(d.binding());
-        r["offset"] = to_string(d.shnxd);
-        r["name"] = sym.get_name();
+        r["path"] = path_string;
+        r["filename"] = path.filename().string();
+        r["symbol_name"] = binary.name();
+        r["symbol_type"] = LIEF::ELF::to_string(binary.type());
+        r["binding"] = LIEF::ELF::to_string(binary.binding());
+        r["symbol_shndx"] = INTEGER(binary.shndx());
+        if (binary.has_version() &&
+            binary.symbol_version().has_auxiliary_version()) {
+          r["symbol_version"] =
+              binary.symbol_version().symbol_version_auxiliary().name();
+        } else {
+          r["symbol_version"] = "";
+        }
+        r["symbol_size"] = INTEGER(binary.size());
         results.push_back(r);
       }
-    }
-  };
 
-  genElfInfo(context, lambda);
-  */
+    } catch (std::exception& error) {
+      LOG(WARNING) << "Failed to parse ELF file: " << error.what();
+    }
+  }
   return results;
 }
 
 QueryData getELFSections(QueryContext& context) {
   QueryData results;
-  /*
-  auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (const auto& sec : f.sections()) {
-      const auto& hdr = sec.get_hdr();
-
-      Row r;
-      r["path"] = path;
-      r["name"] = sec.get_name();
-      r["tyelf"] = std::to_string(static_cast<elf::ElfTyelfs::Word>(hdr.tyelf));
-      r["addr"] = std::to_string(hdr.addr);
-      r["offset"] = std::to_string(hdr.offset);
-      r["size"] = std::to_string(hdr.size);
-      r["flags"] = to_string(hdr.flags);
-      r["link"] = to_string(hdr.link);
-      r["align"] = std::to_string(hdr.addralign);
-      results.push_back(r);
+  std::set<std::string> paths = expandPaths(context);
+  boost::system::error_code ec;
+  for (const auto& path_string : paths) {
+    boost::filesystem::path path = path_string;
+    if (!boost::filesystem::is_regular_file(path, ec)) {
+      continue;
     }
-  };
+    try {
+      // Skip non-elf files
+      if (!LIEF::ELF::is_elf(path_string)) {
+        continue;
+      }
+      std::unique_ptr<LIEF::ELF::Binary> elf_binary =
+          LIEF::ELF::Parser::parse(path_string);
+      for (const auto& binary : elf_binary->sections()) {
+        Row r;
 
-  genElfInfo(context, lambda);
-  */
+        r["path"] = path_string;
+        r["filename"] = path.filename().string();
+        r["section_name"] = binary.name();
+        r["type"] = LIEF::ELF::to_string(binary.type());
+        std::ostringstream stream;
+        stream << std::hex << binary.offset();
+        r["section_address"] = stream.str();
+        std::string section_flags;
+        for (const auto& flags : binary.flags_list()) {
+          section_flags += LIEF::ELF::to_string(flags);
+          section_flags += "|";
+        }
+        section_flags.pop_back();
+        r["section_flags"] = section_flags;
+        r["link"] = INTEGER(binary.link());
+        r["align"] = INTEGER(binary.alignment());
+        r["section_size"] = INTEGER(binary.size());
+
+        // LIEF returns 0 as -0.0000, strip negative sign from 0 value
+        if (std::to_string(binary.entropy()).find("-") != std::string::npos) {
+          r["entropy"] = std::to_string(binary.entropy()).erase(0, 1);
+        } else {
+          r["entropy"] = std::to_string(binary.entropy());
+        }
+        results.push_back(r);
+      }
+
+    } catch (std::exception& error) {
+      LOG(WARNING) << "Failed to parse ELF file: " << error.what();
+    }
+  }
   return results;
 }
 
 QueryData getELFDynamic(QueryContext& context) {
   QueryData results;
-  /*
-  auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (const auto& sec : f.sections()) {
-      const auto& hdr = sec.get_hdr();
-      if (hdr.tyelf != elf::sht::dynamic) {
+  std::set<std::string> paths = expandPaths(context);
+  boost::system::error_code ec;
+  for (const auto& path_string : paths) {
+    boost::filesystem::path path = path_string;
+    if (!boost::filesystem::is_regular_file(path, ec)) {
+      continue;
+    }
+    try {
+      // Skip non-elf files
+      if (!LIEF::ELF::is_elf(path_string)) {
         continue;
       }
+      std::unique_ptr<LIEF::ELF::Binary> elf_binary =
+          LIEF::ELF::Parser::parse(path_string);
+      for (const auto& binary : elf_binary->dynamic_entries()) {
+        Row r;
 
-      Row r;
-      r["path"] = path;
-      const auto* data = sec.data();
-      if (f.get_hdr().ei_class == elf::elfclass::_32) {
-        r["class"] = "32";
-        auto* dynamic = reinterpret_cast<const Elf32_Dyn*>(data);
-        for (const auto* d = dynamic; d->d_tag != DT_NULL; ++d) {
-          r["tag"] = std::to_string(d->d_tag);
-          r["value"] = std::to_string(d->d_un.d_val);
-          results.push_back(r);
-        }
-      } else {
-        r["class"] = "64";
-        auto* dynamic = reinterpret_cast<const Elf64_Dyn*>(data);
-        for (const auto* d = dynamic; d->d_tag != DT_NULL; ++d) {
-          r["tag"] = std::to_string(d->d_tag);
-          r["value"] = std::to_string(d->d_un.d_val);
-          results.push_back(r);
-        }
+        r["path"] = path_string;
+        r["filename"] = path.filename().string();
+        r["dynamic_tag"] = LIEF::ELF::to_string(binary.tag());
+        ;
+        r["dynamic_value"] = INTEGER(binary.value());
+        r["class"] =
+            LIEF::ELF::to_string(elf_binary->header().identity_class());
+        ;
+        results.push_back(r);
       }
-    }
-  };
 
-  genElfInfo(context, lambda);
-  */
+    } catch (std::exception& error) {
+      LOG(WARNING) << "Failed to parse ELF file: " << error.what();
+    }
+  }
   return results;
 }
 
