@@ -70,6 +70,7 @@ function(yaraMain)
     target_sources(thirdparty_yara PRIVATE
       "${library_root}/proc/mach.c"
       "${library_root}/modules/magic/magic.c"
+      "${library_root}/modules/macho/macho.c"
     )
   else()
     message(FATAL_ERROR "Unsupported platform")
@@ -128,6 +129,7 @@ function(yaraMain)
       USE_MACH_PROC
       HAVE_MEMMEM=1
       HAVE_TIMEGM=1
+      MACHO_MODULE
     )
 
     target_link_libraries(thirdparty_yara PUBLIC

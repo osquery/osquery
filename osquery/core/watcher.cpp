@@ -48,10 +48,10 @@ struct LimitDefinition {
 };
 
 struct PerformanceChange {
-  size_t sustained_latency;
-  uint64_t footprint;
-  uint64_t iv;
-  pid_t parent;
+  size_t sustained_latency{0};
+  uint64_t footprint{0};
+  uint64_t iv{0};
+  pid_t parent{0};
 };
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
