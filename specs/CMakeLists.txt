@@ -180,6 +180,7 @@ function(generateNativeTables)
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
     "linwin/intel_me_info.table:linux,windows"
+    "linwin/secureboot.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"

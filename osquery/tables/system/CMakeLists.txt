@@ -78,6 +78,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
+      linux/secureboot.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -212,6 +213,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/programs.cpp
       windows/registry.cpp
       windows/scheduled_tasks.cpp
+      windows/secureboot.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
