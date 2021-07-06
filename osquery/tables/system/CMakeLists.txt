@@ -305,6 +305,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(public_header_files
     efi_misc.h
     intel_me.hpp
+    secureboot.hpp
     smbios_utils.h
     system_utils.h
     user_groups.h
