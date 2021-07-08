@@ -5,6 +5,9 @@ There are two YARA-related tables in osquery, which serve very different purpose
 and will execute YARA when a file change event fires. The second table, just called `yara`, is a table for performing an
 on-demand YARA scan.
 
+In this document, "signature file" is intended to be synonymous with "YARA rule file" (plain-text files commonly
+distributed with a `.yar` or `.yara` filename extension, although any extension is allowed).
+
 ## YARA Configuration
 
 The configuration for osquery is simple. Here is an example config:
@@ -15,8 +18,8 @@ The configuration for osquery is simple. Here is an example config:
   "yara": {
     "signatures": {
       // Each key is an arbitrary group name to give the signatures listed
-      "sig_group_1": [ "/Users/wxs/sigs/foo.sig", "/Users/wxs/sigs/bar.sig" ],
-      "sig_group_2": [ "/Users/wxs/sigs/baz.sig" ]
+      "sig_group_1": [ "/Users/wxs/sigs/foo.yar", "/Users/wxs/sigs/bar.yar" ],
+      "sig_group_2": [ "/Users/wxs/sigs/baz.yar" ]
     },
     "file_paths": {
       // Each key is a key from file_paths
@@ -50,7 +53,7 @@ compiled and stored within osquery. The paths to the signature files can be abso
 section to a signature grouping to use when scanning.
 
 For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which
-consists of `foo.sig` and `bar.sig`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
+consists of `foo.yar` and `bar.yar`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
 
 ### Retrieving YARA Rules at Runtime
 
@@ -196,20 +199,17 @@ osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sig_group="sig_group_
 The above illustrates using the `path LIKE` constraint to scan `/bin/%sh` with a signature group.
 
 ```sql
-osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sigfile="/Users/wxs/sigs/baz.sig";
-+-----------+---------+-------+-----------+-------------------------+----------+----------+
-| path      | matches | count | sig_group | sigfile                 | strings  | tags     |
-+-----------+---------+-------+-----------+-------------------------+----------+----------+
-| /bin/bash |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-| /bin/csh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-| /bin/ksh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-| /bin/sh   |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-| /bin/tcsh |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-| /bin/zsh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
-+-----------+---------+-------+-----------+-------------------------+----------+----------+
+osquery> select * from yara where path LIKE 'C:\tmp\%' and sigfile = "C:\tmp\test.yar.txt";
++------------------------------+-------------+-------+-----------+---------------------+-----------------+------+
+| path                         | matches     | count | sig_group | sigfile             | strings         | tags |
++------------------------------+-------------+-------+-----------+---------------------+-----------------+------+
+| C:\tmp\New Text Document.txt | TextExample | 1     |           | C:\tmp\test.yar.txt | $text_string:0  |      |
+| C:\tmp\test.yar.txt          | TextExample | 1     |           | C:\tmp\test.yar.txt | $text_string:35 |      |
++------------------------------+-------------+-------+-----------+---------------------+-----------------+------+
 ```
 
-The above is an example of using an absolute path for `sigfile` combined with `path LIKE`.
+The above is an example of using an absolute path for `sigfile` combined with `path LIKE`. Because the sigfile
+contains the string its rule is searching for, it has also returned itself as a result.
 
 **Tip:** you can specify `AND count > 0` in your query to return only positive YARA results.
 
@@ -250,3 +250,13 @@ above, the `sigrule` string has been single-quoted so the enclosed variable `"He
 Because allowing arbitrary YARA rules would also make it possible to retrieve arbitrary file data in the `strings`
 column, as a protection, the `strings` column will default to returning empty unless you also set the hidden flag
 `enable_yara_string` to `true` (its default is `false`).
+
+## Troubleshooting
+
+### YARA compile error
+
+Before a YARA scan is performed, the YARA engine compiles the rule(s). An error here indicates there is probably an
+issue with the YARA rule(s), but, the first thing to check is whether the same rule can be run with the YARA
+command-line utility: `yara64.exe myYaraRule.yar fileToScan.foo`. You will be able to get more helpful messages
+about the compile error. If, however, this actually works as intended, then perhaps you've found a bug! Please let
+the osquery team know, on Slack or by opening an issue on GitHub.
