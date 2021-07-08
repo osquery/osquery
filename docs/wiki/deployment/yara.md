@@ -1,6 +1,9 @@
 # YARA-based scanning with osquery
 
-There are two YARA-related tables in osquery, which serve very different purposes. The first table, called `yara_events`, uses osquery's [Events framework](../development/pubsub-framework.md) to monitor for filesystem changes and will execute YARA when a file change event fires. The second table, just called `yara`, is an on-demand YARA scanning table.
+There are two YARA-related tables in osquery, which serve very different purposes. The first table, called
+`yara_events`, uses osquery's [Events framework](../development/pubsub-framework.md) to monitor for filesystem changes
+and will execute YARA when a file change event fires. The second table, just called `yara`, is a table for performing an
+on-demand YARA scan.
 
 ## YARA Configuration
 
@@ -33,11 +36,21 @@ The configuration for osquery is simple. Here is an example config:
 }
 ```
 
-The first thing to notice is the `file_paths` section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcard rules described on the [FIM](../deployment/file-integrity-monitoring.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [`file_events`](https://osquery.io/schema/current/#file_events) table.
+The first thing to notice is the `file_paths` section, which is used to describe which paths to monitor for changes.
+Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery
+wildcard rules described on the [FIM](../deployment/file-integrity-monitoring.md) page. The paths, when expanded out
+by osquery, are monitored for changes and processed by the
+[`file_events`](https://osquery.io/schema/current/#file_events) table.
 
-The second thing to notice is the `yara` section, which contains the configuration to use for YARA within osquery. The `yara` section contains two keys: `signatures` and `file_paths`. The `signatures` key contains a set of arbitrary key names, called "signature groups." The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The `file_paths` key maps the category name for an event described in the global `file_paths` section to a signature grouping to use when scanning.
+The second thing to notice is the `yara` section, which contains the configuration to use for YARA within osquery. The
+`yara` section contains two keys: `signatures` and `file_paths`. The `signatures` key contains a set of arbitrary key
+names, called "signature groups." The value for each of these groups are the paths to the signature files that will be
+compiled and stored within osquery. The paths to the signature files can be absolute or relative to
+```/etc/osquery/yara/```. The `file_paths` key maps the category name for an event described in the global `file_paths`
+section to a signature grouping to use when scanning.
 
-For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which consists of `foo.sig` and `bar.sig`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
+For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which
+consists of `foo.sig` and `bar.sig`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
 
 ### Retrieving YARA Rules at Runtime
 
@@ -89,7 +102,8 @@ TODO
 
 ## Continuous monitoring using the yara_events table
 
-Using the configuration above you can see it in action. While osquery is running, we execute `touch /Users/wxs/tmp/foo` in another terminal. Here is the relevant queries to show what happened:
+Using the configuration above you can see it in action. While osquery is running, we execute `touch /Users/wxs/tmp/foo`
+in another terminal. Here is the relevant queries to show what happened:
 
 ```sql
 osquery> SELECT * FROM file_events;
@@ -107,9 +121,13 @@ osquery> SELECT * FROM yara_events;
 osquery>
 ```
 
-The [`file_events`](https://osquery.io/schema/current/#file_events) table recorded that a file named `/Users/wxs/tmp/foo` was created with the corresponding hashes and a timestamp.
+The [`file_events`](https://osquery.io/schema/current/#file_events) table recorded that a file named
+`/Users/wxs/tmp/foo` was created with the corresponding hashes and a timestamp.
 
-The [`yara_events`](https://osquery.io/schema/current/#yara_events) table recorded that 1 matching rule (`always_true`) was found when the file was created. In this example every file will always have at least one match because we are using a rule which always evaluates to true. In the next example we'll issue the same command to create a file in a monitored directory but have removed the `always_true` rule from our signature files.
+The [`yara_events`](https://osquery.io/schema/current/#yara_events) table recorded that 1 matching rule (`always_true`)
+was found when the file was created. In this example every file will always have at least one match because we are
+using a rule which always evaluates to true. In the next example we'll issue the same command to create a file in a
+monitored directory but have removed the `always_true` rule from our signature files.
 
 ```sql
 osquery> SELECT * FROM yara_events;
@@ -126,13 +144,20 @@ As you can see, even though no matches were found, a row is still created and st
 
 ## On-demand YARA scanning
 
-The [`yara`](https://osquery.io/schema/current/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan, the table must be given a constraint which says where to scan and what to scan with.
+The [`yara`](https://osquery.io/schema/current/#yara) table is used for on-demand scanning. With this table
+you can arbitrarily YARA scan any available file on the filesystem with any available signature files or
+signature group from the configuration. In order to scan, the table must be given a constraint which says
+where to scan and what to scan with.
 
-In order to determine where to scan, the `path` constraint must be a full path to a single file, or a `path LIKE` with
-a wildcard pattern. There is no expansion or recursion with this constraint. Note that you must use `LIKE` if you want
-to use a wildcard pattern.
+In order to determine where to scan, the `path` constraint must be a full path to a single file, or a
+`path LIKE` with a wildcard pattern. There is no expansion or recursion with this constraint. Note that
+you must use `LIKE` if you want to use a wildcard pattern.
 
-Once the `where` is out of the way, you must specify the "what" part. This is done through either the `sigfile` or `sig_group` constraints. The `sigfile` constraint can be either an absolute path to a signature file on disk or a path relative to `/var/osquery/`. The signature file will be compiled only for the execution of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature grouping from your configuration file.
+Once the `where` is out of the way, you must specify the "what" part. This is done through either the
+`sigfile` or `sig_group` constraints. The `sigfile` constraint can be either an absolute path to a signature
+file on disk or a path relative to `/var/osquery/`. The signature file will be compiled only for the execution
+of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature grouping
+from your configuration file.
 
 Here are some examples of the `yara` table in action:
 
@@ -186,18 +211,41 @@ osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sigfile="/Users/wxs/s
 
 The above is an example of using an absolute path for `sigfile` combined with `path LIKE`.
 
-*Tip:* you can specify `AND count > 0` in your query to return only positive YARA results.
+**Tip:** you can specify `AND count > 0` in your query to return only positive YARA results.
 
 ### Inline YARA rules with sigrule
 
 Above, we documented how to query the `yara` table using YARA signatures specified in a local file or retrieved from a
-remote host. YARA rules can also be provided inline with the query, using the `sigrule` constraint/column.
+remote host. YARA rules can also be provided inline with the query, using the hidden column `sigrule` as a constraint.
+
+YARA rules take the form of `'rule rulename { condition: [whatever] }'` and follow the
+[standard YARA rule syntax](https://yara.readthedocs.io/en/stable/writingrules.html).
 
 For example:
 
 ```sql
 osquery> select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }';
 ```
+
+YARA rules don't have a line-terminating character. To enter a multi-line YARA rule, use newlines. This
+even works in `osqueryi`:
+
+```sql
+osquery> select * from yara where path LIKE 'C:\tmp\%' and sigrule = 'rule hello_world {
+    ...> strings:
+    ...> $a = "Hello world"
+    ...> condition: $a
+    ...> }';
++------------------------------+-------------+-------+-----------+---------+---------+------+
+| path                         | matches     | count | sig_group | sigfile | strings | tags |
++------------------------------+-------------+-------+-----------+---------+---------+------+
+| C:\tmp\New Text Document.txt | hello_world | 1     |           |         |         |      |
++------------------------------+-------------+-------+-----------+---------+---------+------+
+```
+
+**Note:**  when entering a `sigrule` inline, be careful to avoid double-quoting the rule and then also a string
+variable within the rule, as the second `"` will terminate the rule and cause a `syntax error`. In the example
+above, the `sigrule` string has been single-quoted so the enclosed variable `"Hello world"` can be double-quoted.
 
 Because allowing arbitrary YARA rules would also make it possible to retrieve arbitrary file data in the `strings`
 column, as a protection, the `strings` column will default to returning empty unless you also set the hidden flag
