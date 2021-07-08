@@ -53,7 +53,8 @@ compiled and stored within osquery. The paths to the signature files must be abs
 grouping to use when scanning.
 
 For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which
-consists of `foo.yar` and `bar.yar`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
+consists of `foo.yar` and `bar.yar`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with
+`sig_group_1` and `sig_group_2`, which consists of all three signature files.
 
 ### Retrieving YARA Rules at Runtime
 
@@ -106,7 +107,7 @@ TODO
 ## Continuous monitoring using the yara_events table
 
 Using the configuration above you can see it in action. While osquery is running, we execute `touch /Users/wxs/tmp/foo`
-in another terminal. Here is the relevant queries to show what happened:
+in another terminal. Here are the relevant queries to show what was detected:
 
 ```sql
 osquery> SELECT * FROM file_events;
@@ -140,7 +141,6 @@ osquery> SELECT * FROM yara_events;
 | /Users/wxs/tmp/foo | tmp      | 1430078285 | CREATED | 33859499       | always_true | 1     |
 | /Users/wxs/tmp/foo | tmp      | 1430078524 | CREATED | 33860795       |             | 0     |
 +--------------------+----------+------------+---------+----------------+-------------+-------+
-osquery>
 ```
 
 As you can see, even though no matches were found, a row is still created and stored.
