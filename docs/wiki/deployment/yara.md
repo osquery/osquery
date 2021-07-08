@@ -74,8 +74,8 @@ osquery> select * from yara where path like '%' and sigurl='sig_url_2';
 +-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
 ```
 
-Use of `enable_yara_sigurl` also protects the YARA rules from disclosure in osquery's results and logs. To restore
-the default output that includes the YARA rules in the `sigrule` column, set the `disable_yara_string_private` flag.
+YARA rule strings are omitted from output by default, to prevent disclosure in osquery's results and logs. To include
+the YARA rules in the `sigrule` column, set the `enable_yara_string` flag to `true`.
 
 #### Allowed Domains
 
@@ -197,6 +197,6 @@ For example:
 osquery> select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }';
 ```
 
-To use `sigrule`, first you must set the `enable_yara_table_extension` flag. Because allowing arbitrary YARA rules also
-allows the retrieval of arbitrary file data in the `strings` column, the `strings` column will default to providing no
-data unless you also set the `disable_yara_string_private` flag or `enable_yara_string` flag.
+Because allowing arbitrary YARA rules would also make it possible to retrieve arbitrary file data in the `strings`
+column, as a protection, the `strings` column will default to returning empty unless you also set the hidden flag
+`enable_yara_string` to `true` (its default is `false`).
