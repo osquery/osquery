@@ -48,9 +48,9 @@ by osquery, are monitored for changes and processed by the
 The second thing to notice is the `yara` section, which contains the configuration to use for YARA within osquery. The
 `yara` section contains two keys: `signatures` and `file_paths`. The `signatures` key contains a set of arbitrary key
 names, called "signature groups." The value for each of these groups are the paths to the signature files that will be
-compiled and stored within osquery. The paths to the signature files can be absolute or relative to
-```/etc/osquery/yara/```. The `file_paths` key maps the category name for an event described in the global `file_paths`
-section to a signature grouping to use when scanning.
+compiled and stored within osquery. The paths to the signature files must be absolute paths (not relative paths). The
+`file_paths` key maps the category name for an event described in the global `file_paths` section to a signature
+grouping to use when scanning.
 
 For example, when a file in `/usr/bin/` and `/usr/sbin/` is changed it will be scanned with `sig_group_1`, which
 consists of `foo.yar` and `bar.yar`. When a file in `/Users/%/tmp/` (recursively) is changed it will be scanned with `sig_group_1` and `sig_group_2`, which consists of all three signature files.
@@ -157,10 +157,10 @@ In order to determine where to scan, the `path` constraint must be a full path t
 you must use `LIKE` if you want to use a wildcard pattern.
 
 Once the `where` is out of the way, you must specify the "what" part. This is done through either the
-`sigfile` or `sig_group` constraints. The `sigfile` constraint can be either an absolute path to a signature
-file on disk or a path relative to `/var/osquery/`. The signature file will be compiled only for the execution
-of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature grouping
-from your configuration file.
+`sigfile` or `sig_group` constraints. The `sigfile` constraint must be an absolute path to a signature
+file on the filesystem, not a elative path. The signature file will be compiled only for the execution
+of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature
+grouping from your configuration file.
 
 Here are some examples of the `yara` table in action:
 
