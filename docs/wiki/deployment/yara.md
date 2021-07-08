@@ -33,7 +33,7 @@ The configuration for osquery is simple. Here is an example config:
 }
 ```
 
-The first thing to notice is the `file_paths` section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcarding rules described on the [FIM](../deployment/file-integrity-monitoring.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [`file_events`](https://osquery.io/schema/current/#file_events) table.
+The first thing to notice is the `file_paths` section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcard rules described on the [FIM](../deployment/file-integrity-monitoring.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [`file_events`](https://osquery.io/schema/current/#file_events) table.
 
 The second thing to notice is the `yara` section, which contains the configuration to use for YARA within osquery. The `yara` section contains two keys: `signatures` and `file_paths`. The `signatures` key contains a set of arbitrary key names, called "signature groups." The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The `file_paths` key maps the category name for an event described in the global `file_paths` section to a signature grouping to use when scanning.
 
@@ -128,7 +128,9 @@ As you can see, even though no matches were found, a row is still created and st
 
 The [`yara`](https://osquery.io/schema/current/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan, the table must be given a constraint which says where to scan and what to scan with.
 
-In order to determine where to scan, the table accepts either a `path` or a `pattern` constraint. The `path` constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The `pattern` constraint follows the same wildcard rules mentioned before.
+In order to determine where to scan, the `path` constraint must be a full path to a single file, or a `path LIKE` with
+a wildcard pattern. There is no expansion or recursion with this constraint. Note that you must use `LIKE` if you want
+to use a wildcard pattern.
 
 Once the `where` is out of the way, you must specify the "what" part. This is done through either the `sigfile` or `sig_group` constraints. The `sigfile` constraint can be either an absolute path to a signature file on disk or a path relative to `/var/osquery/`. The signature file will be compiled only for the execution of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature grouping from your configuration file.
 
@@ -136,55 +138,55 @@ Here are some examples of the `yara` table in action:
 
 ```sql
 osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_1";
-+---------+-------------+-------+-------------+---------+---------+
-| path    | matches     | count | sig_group   | sigfile | pattern |
-+---------+-------------+-------+-------------+---------+---------+
-| /bin/ls | always_true | 1     | sig_group_1 |         |         |
-+---------+-------------+-------+-------------+---------+---------+
++---------+-------------+-------+-------------+---------+---------+---------+
+| path    | matches     | count | sig_group   | sigfile | strings | tags    |
++---------+-------------+-------+-------------+---------+---------+---------+
+| /bin/ls | always_true | 1     | sig_group_1 |         |         |         |
++---------+-------------+-------+-------------+---------+---------+---------+
+
 osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_2";
-+---------+---------+-------+-------------+---------+---------+
-| path    | matches | count | sig_group   | sigfile | pattern |
-+---------+---------+-------+-------------+---------+---------+
-| /bin/ls |         | 0     | sig_group_2 |         |         |
-+---------+---------+-------+-------------+---------+---------+
-osquery>
++---------+---------+-------+-------------+---------+---------+---------+
+| path    | matches | count | sig_group   | sigfile | strings | tags    |
++---------+---------+-------+-------------+---------+---------+---------+
+| /bin/ls |         | 0     | sig_group_2 |         |         |         |
++---------+---------+-------+-------------+---------+---------+---------+
 ```
 
 As you can see in these examples, we scan the same file with two different signature groups and get different results.
 
 ```sql
-osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sig_group="sig_group_1";
-+-----------+-------------+-------+-------------+---------+----------+
-| path      | matches     | count | sig_group   | sigfile | pattern  |
-+-----------+-------------+-------+-------------+---------+----------+
-| /bin/bash | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/csh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/ksh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/sh   | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/tcsh | always_true | 1     | sig_group_1 |         | /bin/%sh |
-| /bin/zsh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
-+-----------+-------------+-------+-------------+---------+----------+
-osquery>
+osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sig_group="sig_group_1";
++-----------+-------------+-------+-------------+---------+----------+----------+
+| path      | matches     | count | sig_group   | sigfile | strings  | tags     |
++-----------+-------------+-------+-------------+---------+----------+----------+
+| /bin/bash | always_true | 1     | sig_group_1 |         |          |          |
+| /bin/csh  | always_true | 1     | sig_group_1 |         |          |          |
+| /bin/ksh  | always_true | 1     | sig_group_1 |         |          |          |
+| /bin/sh   | always_true | 1     | sig_group_1 |         |          |          |
+| /bin/tcsh | always_true | 1     | sig_group_1 |         |          |          |
+| /bin/zsh  | always_true | 1     | sig_group_1 |         |          |          |
++-----------+-------------+-------+-------------+---------+----------+----------+
 ```
 
-The above illustrates using the `pattern` constraint to scan `/bin/%sh` with a signature group.
+The above illustrates using the `path LIKE` constraint to scan `/bin/%sh` with a signature group.
 
 ```sql
-osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sigfile="/Users/wxs/sigs/baz.sig";
-+-----------+---------+-------+-----------+-------------------------+----------+
-| path      | matches | count | sig_group | sigfile                 | pattern  |
-+-----------+---------+-------+-----------+-------------------------+----------+
-| /bin/bash |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/csh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/ksh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/sh   |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/tcsh |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-| /bin/zsh  |         | 0     |           | /Users/wxs/sigs/baz.sig | /bin/%sh |
-+-----------+---------+-------+-----------+-------------------------+----------+
-osquery>
+osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sigfile="/Users/wxs/sigs/baz.sig";
++-----------+---------+-------+-----------+-------------------------+----------+----------+
+| path      | matches | count | sig_group | sigfile                 | strings  | tags     |
++-----------+---------+-------+-----------+-------------------------+----------+----------+
+| /bin/bash |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
+| /bin/csh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
+| /bin/ksh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
+| /bin/sh   |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
+| /bin/tcsh |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
+| /bin/zsh  |         | 0     |           | /Users/wxs/sigs/baz.sig |          |          |
++-----------+---------+-------+-----------+-------------------------+----------+----------+
 ```
 
-The above is an example of using an absolute path for `sigfile` combined with `pattern`.
+The above is an example of using an absolute path for `sigfile` combined with `path LIKE`.
+
+*Tip:* you can specify `AND count > 0` in your query to return only positive YARA results.
 
 ### Inline YARA rules with sigrule
 
