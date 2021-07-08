@@ -10,7 +10,8 @@ distributed with a `.yar` or `.yara` filename extension, although any extension 
 
 ## YARA Configuration
 
-The configuration for osquery is simple. Here is an example config:
+The configuration for osquery is simple. Here is an example config, grouping some YARA rule files from the local
+filesystem:
 
 ```json
 {
@@ -94,9 +95,8 @@ osquery> select * from yara where path like '%' and sigurl='sig_url_2';
 YARA rule strings are omitted from output by default, to prevent disclosure in osquery's results and logs. To include
 the YARA rules in the `sigrule` column, set the `enable_yara_string` flag to `true`.
 
-#### Allowed Domains
-
-TODO
+By nature of the design described above, your source URL for YARA rules (`sigurl`) can only be one of the URLs in the
+osquery config (in the `signature_urls` section). This is your explicit list of allowed source domains for YARA rules.
 
 #### Notes
 
@@ -260,3 +260,9 @@ issue with the YARA rule(s), but, the first thing to check is whether the same r
 command-line utility: `yara64.exe myYaraRule.yar fileToScan.foo`. You will be able to get more helpful messages
 about the compile error. If, however, this actually works as intended, then perhaps you've found a bug! Please let
 the osquery team know, on Slack or by opening an issue on GitHub.
+
+### Error loading YARA rules: 8
+
+At this time, osquery only supports loading _plaintext_ YARA rules/signatures, which it compiles itself at runtime. If
+these rules have already been compiled into their binary form (_e.g._ with the `yarac` CLI tool), osquery will
+generate an error trying to load the rules.
