@@ -121,7 +121,8 @@ std::string getCacheFilename(const std::vector<std::string>& cache_file) {
 
 void genAptUrl(const std::string& source,
                const std::string& line,
-               QueryData& results) {
+               QueryData& results,
+               Logger& logger) {
   AptSource apt_source;
   if (!parseAptSourceLine(line, apt_source).ok()) {
     return;
@@ -142,7 +143,10 @@ void genAptUrl(const std::string& source,
   }
 
   std::string content;
-  if (!readFile(cache_files[0], content)) {
+  auto s = readFile(cache_files[0], content, 0, false, false, false, false);
+  if (!s.ok()) {
+    logger.log(google::GLOG_WARNING, s.getMessage());
+    logger.vlog(1, s.getMessage());
     return;
   }
 
@@ -175,9 +179,15 @@ void genAptUrl(const std::string& source,
   results.push_back(r);
 }
 
-static void genAptSource(const std::string& source, QueryData& results) {
+static void genAptSource(const std::string& source,
+                         QueryData& results,
+                         Logger& logger) {
   std::string content;
-  if (!readFile(source, content)) {
+
+  auto s = readFile(source, content, 0, false, false, false, false);
+  if (!s.ok()) {
+    logger.log(google::GLOG_WARNING, s.getMessage());
+    logger.vlog(1, s.getMessage());
     return;
   }
 
@@ -186,7 +196,7 @@ static void genAptSource(const std::string& source, QueryData& results) {
     if (line.empty()) {
       continue;
     }
-    genAptUrl(source, line, results);
+    genAptUrl(source, line, results, logger);
   }
 }
 
@@ -207,7 +217,7 @@ QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
   }
 
   for (const auto& source : sources) {
-    genAptSource(source, results);
+    genAptSource(source, results, logger);
   }
 
   return results;

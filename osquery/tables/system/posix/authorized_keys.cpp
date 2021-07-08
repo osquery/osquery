@@ -29,14 +29,19 @@ const std::vector<std::string> kSSHAuthorizedkeys = {".ssh/authorized_keys",
 void genSSHkeysForUser(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
-                       QueryData& results) {
+                       QueryData& results,
+                       Logger& logger) {
   for (const auto& kfile : kSSHAuthorizedkeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;
 
     std::string keys_content;
-    if (!forensicReadFile(keys_file, keys_content).ok()) {
+
+    auto s = forensicReadFile(keys_file, keys_content, false, false);
+    if (!s.ok()) {
       // Cannot read a specific keys file.
+      logger.log(google::GLOG_WARNING, s.getMessage());
+      logger.vlog(1, s.getMessage());
       continue;
     }
     // Protocol 1 public key consist of: options, bits, exponent, modulus,
@@ -62,7 +67,8 @@ QueryData getAuthorizedKeysImpl(QueryContext& context, Logger& logger) {
     auto gid = row.find("gid");
     auto directory = row.find("directory");
     if (uid != row.end() && gid != row.end() && directory != row.end()) {
-      genSSHkeysForUser(uid->second, gid->second, directory->second, results);
+      genSSHkeysForUser(
+          uid->second, gid->second, directory->second, results, logger);
     }
   }
 

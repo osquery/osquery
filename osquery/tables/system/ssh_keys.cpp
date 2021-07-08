@@ -27,7 +27,8 @@ const std::string kSSHUserKeysDir = ".ssh/";
 void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
-                       QueryData& results) {
+                       QueryData& results,
+                       Logger& logger) {
   // Get list of files in directory
   boost::filesystem::path keys_dir = directory;
   keys_dir /= kSSHUserKeysDir;
@@ -40,8 +41,11 @@ void genSSHkeyForHosts(const std::string& uid,
   // Go through each file
   for (const auto& kfile : files_list) {
     std::string keys_content;
-    if (!forensicReadFile(kfile, keys_content).ok()) {
+    auto s = forensicReadFile(kfile, keys_content, false, false);
+    if (!s.ok()) {
       // Cannot read a specific keys file.
+      logger.log(google::GLOG_WARNING, s.getMessage());
+      logger.vlog(1, s.getMessage());
       continue;
     }
 
@@ -68,7 +72,8 @@ QueryData getUserSshKeysImpl(QueryContext& context, Logger& logger) {
     auto gid = row.find("gid");
     auto directory = row.find("directory");
     if (uid != row.end() && gid != row.end() && directory != row.end()) {
-      genSSHkeyForHosts(uid->second, gid->second, directory->second, results);
+      genSSHkeyForHosts(
+          uid->second, gid->second, directory->second, results, logger);
     }
   }
 

@@ -66,8 +66,12 @@ QueryData genEtcHostsImpl(QueryContext& context, Logger& logger) {
   std::string content;
   QueryData qres = {};
 
-  if (readFile(kEtcHosts, content).ok()) {
+  auto s = readFile(kEtcHosts, content, 0, false, false, false, false);
+  if (s.ok()) {
     qres = parseEtcHostsContent(content);
+  } else {
+    logger.log(google::GLOG_WARNING, s.getMessage());
+    logger.vlog(1, s.getMessage());
   }
 
 #ifdef WIN32

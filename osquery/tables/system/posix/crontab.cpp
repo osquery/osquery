@@ -31,14 +31,17 @@ const std::vector<std::string> kCronSearchDirs = {
     "/var/spool/cron/crontabs/", // user linux:debian
 };
 
-std::vector<std::string> cronFromFile(const std::string& path) {
+std::vector<std::string> cronFromFile(const std::string& path, Logger& logger) {
   std::string content;
   std::vector<std::string> cron_lines;
   if (!isReadable(path).ok()) {
     return cron_lines;
   }
 
-  if (!forensicReadFile(path, content).ok()) {
+  auto s = forensicReadFile(path, content, false, false);
+  if (!s.ok()) {
+    logger.log(google::GLOG_WARNING, s.getMessage());
+    logger.vlog(1, s.getMessage());
     return cron_lines;
   }
 
@@ -112,7 +115,7 @@ QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
   }
 
   for (const auto& file_path : file_list) {
-    auto lines = cronFromFile(file_path);
+    auto lines = cronFromFile(file_path, logger);
     for (const auto& line : lines) {
       genCronLine(file_path, line, results);
     }
