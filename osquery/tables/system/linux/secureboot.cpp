@@ -16,9 +16,23 @@ namespace osquery {
 namespace tables {
 
 // Linux directory for efi vars
-const std::string efivarsPath = "/sys/firmware/efi/vars/";
+const char* efivarsPath = "/sys/firmware/efi/vars/";
 
 int readBoolEfiVar(char* guid, char* name) {
+  uint len = strlen(name) + strlen(guid)+1;
+  char efivar[len];
+  strcpy(efivar, name);
+  strcat(efivar, "-");
+  strcat(efivar, var2);
+
+  auto efivar
+  BYTE data;
+
+  if (!readFile(path, data).ok()) {
+    TLOG << "Cannot read efivar file : " << path
+      return -1;
+  }
+
   return -1;
 }
 
