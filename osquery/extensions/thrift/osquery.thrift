@@ -7,6 +7,7 @@
 
 namespace cpp osquery.extensions
 namespace py osquery.extensions
+namespace rb osquery.extensions
 
 /// Registry operations use a registry name, plugin name, request/response.
 typedef map<string, string> ExtensionPluginRequest
