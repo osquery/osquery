@@ -19,8 +19,7 @@ QueryData genTpmInfo(QueryContext& context) {
   std::string wmiclass{"SELECT * FROM Win32_Tpm"};
 
   BSTR wminamespace = ::SysAllocString(L"root\\cimv2\\Security\\MicrosoftTpm");
-  if (wminamespace == NULL) {
-    LOG(WARNING) << "failed to allocate string";
+  if (wminamespace == nullptr) {
     return {};
   }
   const WmiRequest request(wmiclass, wminamespace);
