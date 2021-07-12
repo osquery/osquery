@@ -315,6 +315,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
+      posix/ssh_keys.h
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
