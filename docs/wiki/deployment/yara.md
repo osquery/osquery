@@ -102,7 +102,8 @@ osquery config (in the `signature_urls` section). This is your explicit list of 
 
 - Retrieved YARA rules are retrieved only once and then cached; the cached copy is used until it is stale as specified
  by the HTTP `Last-Modified` header in the server's response.
-- The osquery agent currently has no support for authenticating to the server providing the YARA signatures.
+- The osquery agent always validates the HTTPS server certificate of the server providing the YARA signatures, but
+currently has no support for client authentication. YARA rule files must be accessible without authentication.
 
 ## Continuous monitoring using the yara_events table
 
