@@ -302,6 +302,11 @@ void WatcherRunner::stop() {
 }
 
 void WatcherRunner::watchExtensions() {
+  // Do not take restart actions until the delay time has passed.
+  if (getUnixTime() < delayedTime()) {
+    return;
+  }
+
   // Loop over every managed extension and check sanity.
   for (const auto& extension : watcher_->extensions()) {
     // Check the extension status, causing a wait.
@@ -312,9 +317,6 @@ void WatcherRunner::watchExtensions() {
 
     // If the extension is alive and watched, check sanity
     if (ext_valid && FLAGS_enable_extensions_watchdog) {
-      if (getUnixTime() < delayedTime()) {
-        return;
-      }
       auto s = isChildSane(*extension.second);
       if (!s.ok()) {
         std::stringstream error;
