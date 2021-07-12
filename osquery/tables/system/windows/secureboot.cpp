@@ -31,17 +31,20 @@ int readBoolEfiVar(std::wstring guid, std::wstring name) {
 
   if (bytesReturned <= 0) {
     auto lastError = GetLastError();
+    // FIXME: Consider not logging here. The no bios support is probably common
     auto errorString = lastError == 1 ? "Probably no bios support"
                                       : errorDwordToString(lastError);
 
     TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
          << ". Error: " << errorString;
+    // FIXME: Consider returning NULL instead?
     return -1;
   }
 
   if (bytesReturned != sizeof(BYTE)) {
     TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
          << ". ERROR_INVALID_DATA";
+    // FIXME: Consider returning NULL instead?
     return -1;
   }
 
