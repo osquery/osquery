@@ -143,4 +143,12 @@ std::string swapEndianess(const std::string& endian_string) {
   return swap_string;
 }
 
+std::string errorDwordToString(DWORD errorMessageID) {
+  if (errorMessageID == 0) {
+    return std::string();
+  } else {
+    return std::system_category().message(errorMessageID);
+  }
+}
+
 } // namespace osquery

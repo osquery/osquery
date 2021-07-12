@@ -13,29 +13,39 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/secureboot.hpp>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include <windows.h>
 
 namespace osquery {
 namespace tables {
 
-int readBoolEfiVar(char* guid, char* name) {
-  BYTE variableStatus;
-  auto bytesReturned =
-      GetFirmwareEnvironmentVariable(name, guid, &variableStatus, sizeof(BYTE));
+// convert to the windows LPWSTR format
+const auto kEFISecureBootNameLPWSTR = stringToWstring(kEFISecureBootName);
+const auto kEFISetupModeNameLPWSTR = stringToWstring(kEFISetupModeName);
+
+int readBoolEfiVar(std::wstring guid, std::wstring name) {
+  BYTE res;
+  auto bytesReturned = GetFirmwareEnvironmentVariable(
+      name.c_str(), guid.c_str(), &res, sizeof(res));
 
   if (bytesReturned <= 0) {
-    TLOG << "Unable to get EFI variable " << name
-         << ". Error: " << std::to_string(GetLastError());
+    auto lastError = GetLastError();
+    auto errorString = lastError == 1 ? "Probably no bios support"
+                                      : errorDwordToString(lastError);
+
+    TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
+         << ". Error: " << errorString;
     return -1;
   }
 
   if (bytesReturned != sizeof(BYTE)) {
-    TLOG << "Unable to get EFI variable " << name << ". ERROR_INVALID_DATA";
+    TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
+         << ". ERROR_INVALID_DATA";
     return -1;
   }
 
-  if (secureBootStatus == 0) {
+  if (res == 0) {
     return 0;
   }
 
@@ -46,8 +56,10 @@ QueryData genSecureBoot(QueryContext& context) {
   QueryData results;
 
   Row r;
-  r["secure_boot"] = readBoolEfiVar(kBootGUID, kSecureBootName);
-  r["setup_mode"] = readBoolEfiVar(kBootGUID, kSetupModeName);
+  r["secure_boot"] =
+      INTEGER(readBoolEfiVar(kEFIBootGUIDwin, kEFISecureBootNameLPWSTR));
+  r["setup_mode"] =
+      INTEGER(readBoolEfiVar(kEFIBootGUIDwin, kEFISetupModeNameLPWSTR));
 
   results.push_back(r);
   return results;

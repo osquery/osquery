@@ -18,17 +18,18 @@ namespace tables {
  * The secureboot variables are stored in under this guid. In string
  * form, it's 8be4df61-93ca-11d2-aa0d-00e098032b8c
  */
-const char* kBootGUID = "8be4df61-93ca-11d2-aa0d-00e098032b8c";
+const std::string kEFIBootGUID = "8be4df61-93ca-11d2-aa0d-00e098032b8c";
+const std::wstring kEFIBootGUIDwin = L"{8be4df61-93ca-11d2-aa0d-00e098032b8c}";
 
 /**
  * @brief The SecureMode variable name
  */
-const char* kSecureBootName = "SecureBoot";
+const std::string kEFISecureBootName = "SecureBoot";
 
 /**
  * @brief The SetupMode variable name
  */
 
-const char* kSetupModeName = "SecureBoot";
+const std::string kEFISetupModeName = "SecureBoot";
 } // namespace tables
 } // namespace osquery
