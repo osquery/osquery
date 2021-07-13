@@ -66,9 +66,12 @@ void genSudoersFile(const std::string& filename,
     auto header = line.substr(0, header_len);
     boost::trim_if(header, boost::is_any_of(kSudoWhitespaceChars));
 
-    // skip comments. We need to manually exlude the includes here. This
-    // duplication allows an early return
-    if (line.at(0) == '#' && header != "#include" && header != "#includedir") {
+    // We frequently check if these are include headers. Do it once here.
+    auto is_include = (header == "#include" || header == "@include");
+    auto is_includedir = (header == "#includedir" || header == "@includedir");
+
+    // skip comments.
+    if (line.at(0) == '#' && !is_include && !is_includedir) {
       continue;
     }
 
@@ -80,9 +83,7 @@ void genSudoersFile(const std::string& filename,
 
     // If an include is _missing_ the target to include, treat it like a
     // comment.
-    if (rule_details.empty() &&
-        (header == "#include" || header == "@include" ||
-         header == "#includedir" || header == "@includedir")) {
+    if (rule_details.empty() && (is_include || is_includedir)) {
       continue;
     }
 
@@ -93,7 +94,7 @@ void genSudoersFile(const std::string& filename,
     r["rule_details"] = rule_details;
     results.push_back(std::move(r));
 
-    if (header == "#includedir" || header == "@includedir") {
+    if (is_includedir) {
       // support both relative and full paths
       if (rule_details.at(0) != '/') {
         auto path = fs::path(filename).parent_path() / rule_details;
@@ -120,7 +121,7 @@ void genSudoersFile(const std::string& filename,
         genSudoersFile(inc_file, ++level, results);
       }
     }
-    if (header == "#include" || header == "@include") {
+    if (is_include) {
       // support both relative and full paths
       if (rule_details.at(0) != '/') {
         auto path = fs::path(filename).parent_path() / rule_details;
