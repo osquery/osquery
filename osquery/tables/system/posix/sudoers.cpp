@@ -30,7 +30,7 @@ const std::string kSudoFile = "/etc/sudoers";
 const std::string kSudoFile = "/usr/local/etc/sudoers";
 #endif
 
-const char* kSudoWhitespaceChars = "\t\v ";
+const std::string kSudoWhitespaceChars = "\t\v ";
 
 // sudoers(5): No more than 128 files are allowed to be nested.
 static const unsigned int kMaxNest = 128;
@@ -57,7 +57,7 @@ void genSudoersFile(const std::string& filename,
 
     boost::trim_if(line, boost::is_any_of(kSudoWhitespaceChars));
 
-    if (line.size() == 0) {
+    if (line.empty()) {
       continue;
     }
 
@@ -80,7 +80,7 @@ void genSudoersFile(const std::string& filename,
 
     // If an include is _missing_ the target to include, treat it like a
     // comment.
-    if (rule_details == "" &&
+    if (rule_details.empty() &&
         (header == "#include" || header == "@include" ||
          header == "#includedir" || header == "@includedir")) {
       continue;
@@ -102,7 +102,7 @@ void genSudoersFile(const std::string& filename,
 
       std::vector<std::string> inc_files;
       if (!listFilesInDirectory(rule_details, inc_files).ok()) {
-        TLOG << "couldn't list includedir: " << rule_details;
+        TLOG << "Could not list includedir: " << rule_details;
         continue;
       }
 
