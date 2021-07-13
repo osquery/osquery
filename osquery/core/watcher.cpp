@@ -307,14 +307,17 @@ void WatcherRunner::watchExtensions() {
   for (const auto& extension : watcher_->extensions()) {
     // Check the extension status, causing a wait.
     int process_status = 0;
-    extension.second->checkStatus(process_status);
+    ProcessState status = extension.second->checkStatus(process_status);
 
-    auto ext_valid = extension.second->isValid();
-    auto s = isChildSane(*extension.second);
+    bool ext_valid = (PROCESS_STILL_ALIVE == status);
 
-    if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
-      if (ext_valid && FLAGS_enable_extensions_watchdog) {
-        // The extension was already launched once.
+    // If the extension is alive and watched, check sanity
+    if (ext_valid && FLAGS_enable_extensions_watchdog) {
+      if (getUnixTime() < delayedTime()) {
+        return;
+      }
+      auto s = isChildSane(*extension.second);
+      if (!s.ok()) {
         std::stringstream error;
         error << "osquery extension " << extension.first << " ("
               << extension.second->pid() << ") stopping: " << s.getMessage();
@@ -323,8 +326,11 @@ void WatcherRunner::watchExtensions() {
         stopChild(*extension.second);
         pause(
             std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
+        ext_valid = false;
       }
+    }
 
+    if (!ext_valid) {
       // The extension manager also watches for extension-related failures.
       // The watchdog is more general, but may find failed extensions first.
       createExtension(extension.first);
