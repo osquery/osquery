@@ -149,7 +149,3 @@
 [submodule "libraries/cmake/source/utfcpp/src"]
 	path = libraries/cmake/source/utfcpp/src
 	url = https://github.com/nemtrif/utfcpp
-[submodule "libraries/cmake/source/leaf/src"]
-	path = libraries/cmake/source/leaf/src
-	url = https://github.com/boostorg/leaf
-	branch = 0.3.0 
