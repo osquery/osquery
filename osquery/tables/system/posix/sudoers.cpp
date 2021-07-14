@@ -10,7 +10,7 @@
 #include <locale>
 #include <vector>
 
-#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/core/tables.h>
@@ -29,6 +29,8 @@ const std::string kSudoFile = "/etc/sudoers";
 #else
 const std::string kSudoFile = "/usr/local/etc/sudoers";
 #endif
+
+const std::string kSudoWhitespaceChars = "\t\v ";
 
 // sudoers(5): No more than 128 files are allowed to be nested.
 static const unsigned int kMaxNest = 128;
@@ -49,50 +51,59 @@ void genSudoersFile(const std::string& filename,
 
   auto lines = split(contents, "\n");
   for (auto& line : lines) {
+    // sudoers uses EBNF for grammer. But for our purposes, we don't need a full
+    // parsing. We're just conveying simplified information. We can just split
+    // it into the leading token and the trailing token.
+
+    boost::trim_if(line, boost::is_any_of(kSudoWhitespaceChars));
+
+    if (line.empty()) {
+      continue;
+    }
+
+    // Find the rule header
+    auto header_len = line.find_first_of(kSudoWhitespaceChars);
+    auto header = line.substr(0, header_len);
+    boost::trim_if(header, boost::is_any_of(kSudoWhitespaceChars));
+
+    // We frequently check if these are include headers. Do it once here.
+    auto is_include = (header == "#include" || header == "@include");
+    auto is_includedir = (header == "#includedir" || header == "@includedir");
+
+    // skip comments.
+    if (line.at(0) == '#' && !is_include && !is_includedir) {
+      continue;
+    }
+
+    // Find the next field. Instead of skipping the whitespace, we
+    // include it, and then trim it.
+    auto rule_details =
+        (header_len < line.size()) ? line.substr(header_len) : "";
+    boost::trim_if(rule_details, boost::is_any_of(kSudoWhitespaceChars));
+
+    // If an include is _missing_ the target to include, treat it like a
+    // comment.
+    if (rule_details.empty() && (is_include || is_includedir)) {
+      continue;
+    }
+
     Row r;
-    boost::trim(line);
 
-    // Only add lines that are not comments or blank.
-    if (line.size() > 0 && line.at(0) != '#') {
-      r["source"] = filename;
+    r["header"] = header;
+    r["source"] = filename;
+    r["rule_details"] = rule_details;
+    results.push_back(std::move(r));
 
-      auto header_pos = line.find_first_of("\t\v ");
-      r["header"] = line.substr(0, header_pos);
-
-      if (header_pos == std::string::npos) {
-        header_pos = line.size() - 1;
+    if (is_includedir) {
+      // support both relative and full paths
+      if (rule_details.at(0) != '/') {
+        auto path = fs::path(filename).parent_path() / rule_details;
+        rule_details = path.string();
       }
-
-      r["rule_details"] = line.substr(header_pos + 1);
-
-      results.push_back(std::move(r));
-    } else if (line.find("#includedir") == 0) {
-      auto space = line.find_first_of(' ');
-
-      // If #includedir doesn't look like it's followed by
-      // a path, treat it like a normal comment.
-      if (space == std::string::npos) {
-        continue;
-      }
-
-      auto inc_dir = line.substr(space + 1);
-
-      // NOTE(ww): See sudo NEWS for 1.8.4:
-      // Both #include and #includedir support relative paths.
-      if (inc_dir.at(0) != '/') {
-        auto path = fs::path(filename).parent_path() / inc_dir;
-        inc_dir = path.string();
-      }
-
-      // Build and push the row before recursing.
-      r["source"] = filename;
-      r["header"] = "#includedir";
-      r["rule_details"] = inc_dir;
-      results.push_back(std::move(r));
 
       std::vector<std::string> inc_files;
-      if (!listFilesInDirectory(inc_dir, inc_files).ok()) {
-        TLOG << "couldn't list includedir: " << inc_dir;
+      if (!listFilesInDirectory(rule_details, inc_files).ok()) {
+        TLOG << "Could not list includedir: " << rule_details;
         continue;
       }
 
@@ -109,30 +120,15 @@ void genSudoersFile(const std::string& filename,
 
         genSudoersFile(inc_file, ++level, results);
       }
-    } else if (line.find("#include") == 0) {
-      auto space = line.find_first_of(' ');
-
-      // If #include doesn't look like it's followed by
-      // a path, treat it like a normal comment.
-      if (space == std::string::npos) {
-        continue;
+    }
+    if (is_include) {
+      // support both relative and full paths
+      if (rule_details.at(0) != '/') {
+        auto path = fs::path(filename).parent_path() / rule_details;
+        rule_details = path.string();
       }
 
-      auto inc_file = line.substr(space + 1);
-
-      // Per sudoers(5): If the included file doesn't
-      // start with /, read it relative to the current file.
-      if (inc_file.at(0) != '/') {
-        const auto path = fs::path(filename).parent_path() / inc_file;
-        inc_file = path.string();
-      }
-
-      r["source"] = filename;
-      r["header"] = "#include";
-      r["rule_details"] = inc_file;
-      results.push_back(std::move(r));
-
-      genSudoersFile(inc_file, ++level, results);
+      genSudoersFile(rule_details, ++level, results);
     }
   }
 }
