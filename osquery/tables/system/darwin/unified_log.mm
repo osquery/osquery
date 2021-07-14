@@ -15,7 +15,6 @@
 #include <osquery/logger/logger.h>
 
 #include <boost/algorithm/string/replace.hpp>
-
 namespace ba = boost::algorithm;
 
 namespace osquery {
@@ -169,44 +168,56 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     }
     for (OSLogEntryLog* entry in enumerator) {
       Row r;
+
       r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
-      r["message"] = TEXT([[entry composedMessage] UTF8String]);
+      r["message"] = SQL_TEXT(
+          std::string([[entry composedMessage] UTF8String],
+                      [[entry composedMessage]
+                          lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
       r["storage"] = INTEGER([entry storeCategory]);
 
       if ([entry respondsToSelector:@selector(activityIdentifier)]) {
-        r["activity"] = INTEGER([entry activityIdentifier]);
-        r["process"] = TEXT([[entry process] UTF8String]);
-        r["pid"] = INTEGER([entry processIdentifier]);
-        r["sender"] = TEXT([[entry sender] UTF8String]);
-        r["tid"] = INTEGER([entry threadIdentifier]);
+        r["activity"] = BIGINT([entry activityIdentifier]);
+        r["process"] = SQL_TEXT(std::string(
+            [[entry process] UTF8String],
+            [[entry process] lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+        r["pid"] = BIGINT([entry processIdentifier]);
+        r["sender"] = SQL_TEXT(std::string(
+            [[entry sender] UTF8String],
+            [[entry sender] lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+        r["tid"] = BIGINT([entry threadIdentifier]);
       }
 
       if ([entry respondsToSelector:@selector(subsystem)]) {
         NSString* subsystem = [entry subsystem];
         if (subsystem != nil) {
-          r["subsystem"] = TEXT([subsystem UTF8String]);
+          r["subsystem"] = SQL_TEXT(std::string(
+              [[entry subsystem] UTF8String],
+              [[entry subsystem]
+                  lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
         }
         NSString* category = [entry category];
         if (category != nil) {
-          r["category"] = TEXT([category UTF8String]);
+          r["category"] = SQL_TEXT(std::string(
+              [[entry category] UTF8String],
+              [[entry category]
+                  lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
         }
       }
-      if ([entry respondsToSelector:@selector(level)]) {
-        const char* logLevelNames[] = {
-            [OSLogEntryLogLevelUndefined] = "undefined",
-            [OSLogEntryLogLevelDebug] = "debug",
-            [OSLogEntryLogLevelInfo] = "info",
-            [OSLogEntryLogLevelNotice] = "default",
-            [OSLogEntryLogLevelError] = "error",
-            [OSLogEntryLogLevelFault] = "fault",
-        };
 
-        r["level"] = TEXT(logLevelNames[[entry level]]);
+      if ([entry respondsToSelector:@selector(level)]) {
+        std::vector<std::string> log_levels{
+            "undefined", "debug", "info", "default", "error", "fault"};
+        try {
+          r["level"] = log_levels.at([entry level]);
+        } catch (const std::out_of_range& oor) {
+          LOG(WARNING) << "Unknown log value: " << [entry level];
+          r["level"] = SQL_TEXT("unknown log level");
+        }
       }
       results.push_back(r);
     }
   }
-
   return results;
 }
 

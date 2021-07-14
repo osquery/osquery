@@ -5,7 +5,7 @@ schema([
   Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
   Column("storage", INTEGER, "the storage category for the entry", additional=True),
   Column("message", TEXT, "composed message", additional=True),
-  Column("activity", INTEGER, "the activity ID associate with the entry", additional=True),
+  Column("activity", BIGINT, "the activity ID associate with the entry", additional=True),
   Column("process", TEXT, "the name of the process that made the entry", additional=True),
   Column("pid", BIGINT, "the pid of the process that made the entry", additional=True),
   Column("sender", TEXT, "the name of the binary image that made the entry", additional=True),
