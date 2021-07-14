@@ -270,6 +270,24 @@ function(lief)
     thirdparty_mbedtls
     thirdparty_spdlog
     )
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp
+    DEPENDS thirdparty_utfcpp)
+
+  target_sources(thirdparty_lief PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h)
+
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/boost/leaf/all.hpp
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libraries/cmake/source/leaf/src/include/boost
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/boost
+    DEPENDS thirdparty_leaf)
+
+  target_sources(thirdparty_lief PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/boost/leaf/all.hpp)
+
 endfunction()
 
 lief()
