@@ -52,11 +52,11 @@ void genSSHkeyForHosts(const std::string& uid,
     if (keys_content.find("PRIVATE KEY") != std::string::npos) {
       // File is private key, create record for it
       Row r;
+      r["pid_with_namespace"] = "0";
       r["uid"] = uid;
       r["path"] = kfile;
       r["encrypted"] =
           (keys_content.find("ENCRYPTED") != std::string::npos) ? "1" : "0";
-      r["pid_with_namespace"] = "0";
       results.push_back(r);
     }
   }
