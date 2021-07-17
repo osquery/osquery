@@ -1,8 +1,13 @@
-# Security Issues
+# Security Vulnerability Disclosure
+
+This document contains a reference history of osquery's remediated security vulnerabilities. If you find a
+vulnerability, please see CONTRIBUTING.md#how_to_report_vulnerabilities for how to submit a vulnerability report.
+
+## Security Issues
 
 This document aggregates security issues (weaknesses and vulnerabilities) affecting osquery. It tracks issues in the format:
 
-```
+```text
 #PRNumber Title - (Optional CVE) - Fixed in Version - Optional Reporter
 ```
 

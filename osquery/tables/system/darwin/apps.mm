@@ -55,6 +55,7 @@ const std::vector<std::string> kHomeDirSearchPaths = {
 const std::vector<std::string> kSystemSearchPaths = {
     "/Applications",
     "/System/Library/Core Services/Applications",
+    "/Library/Apple/System/Library/CoreServices",
     "/Users/Shared/Applications",
 };
 

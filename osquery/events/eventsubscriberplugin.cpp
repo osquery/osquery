@@ -178,8 +178,9 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
           index_entry.end(), event_id_list.begin(), event_id_list.end());
     }
 
+    cleanup_events = (((event_count_ % kEventsCheckpoint) + row_list.size()) >
+                      kEventsCheckpoint);
     event_count_ += row_list.size();
-    cleanup_events = ((event_count_ % kEventsCheckpoint) == 0U);
   }
 
   // Use the last EventID and a checkpoint bucket size to periodically apply
