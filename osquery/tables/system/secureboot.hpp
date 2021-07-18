@@ -29,7 +29,6 @@ const std::string kEFISecureBootName = "SecureBoot";
 /**
  * @brief The SetupMode variable name
  */
-
-const std::string kEFISetupModeName = "SecureBoot";
+const std::string kEFISetupModeName = "SetupMode";
 } // namespace tables
 } // namespace osquery

@@ -24,45 +24,56 @@ namespace tables {
 const auto kEFISecureBootNameLPWSTR = stringToWstring(kEFISecureBootName);
 const auto kEFISetupModeNameLPWSTR = stringToWstring(kEFISetupModeName);
 
-int readBoolEfiVar(std::wstring guid, std::wstring name) {
+void readBoolEfiVar(Row& row,
+                    std::string column_name,
+                    std::wstring guid,
+                    std::wstring name) {
   BYTE res;
   auto bytesReturned = GetFirmwareEnvironmentVariable(
       name.c_str(), guid.c_str(), &res, sizeof(res));
 
   if (bytesReturned <= 0) {
     auto lastError = GetLastError();
-    // FIXME: Consider not logging here. The no bios support is probably common
-    auto errorString = lastError == 1 ? "Probably no bios support"
-                                      : errorDwordToString(lastError);
+    // Error 1 is documented as probably meaning there's no bios
+    // support. This is pretty common, just return
+    if (lastError == 1) {
+      return;
+    }
 
     TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
-         << ". Error: " << errorString;
-    // FIXME: Consider returning NULL instead?
-    return -1;
+         << ". Error: " << errorDwordToString(lastError);
+    row.emplace(column_name, "-1");
   }
 
   if (bytesReturned != sizeof(BYTE)) {
     TLOG << "Unable to get EFI variable " << wstringToString(name).c_str()
          << ". ERROR_INVALID_DATA";
-    // FIXME: Consider returning NULL instead?
-    return -1;
+    row.emplace(column_name, "-1");
   }
 
-  if (res == 0) {
-    return 0;
+  switch (res) {
+  case 0:
+    row.emplace(column_name, "0");
+    break;
+  case 1:
+    row.emplace(column_name, "1");
+    break;
+  default:
+    TLOG << "Unknown value in EFI variable " << wstringToString(name).c_str()
+         << ". Got: " << val;
+    row.emplace(column_name, "-1");
+    break;
   }
 
-  return 1;
+  return;
 }
 
 QueryData genSecureBoot(QueryContext& context) {
   QueryData results;
 
   Row r;
-  r["secure_boot"] =
-      INTEGER(readBoolEfiVar(kEFIBootGUIDwin, kEFISecureBootNameLPWSTR));
-  r["setup_mode"] =
-      INTEGER(readBoolEfiVar(kEFIBootGUIDwin, kEFISetupModeNameLPWSTR));
+  readBoolEfiVar(r, "secure_boot", kEFIBootGUIDwin, kEFISecureBootNameLPWSTR);
+  readBoolEfiVar(r, "setup_mode", kEFIBootGUIDwin, kEFISetupModeNameLPWSTR);
 
   results.push_back(r);
   return results;

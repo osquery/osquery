@@ -27,7 +27,10 @@ namespace tables {
 // outweighs that.
 const std::string efivarsDir = "/sys/firmware/efi/efivars/";
 
-int readBoolEfiVar(std::string guid, std::string name) {
+void readBoolEfiVar(Row& row,
+                    std::string column_name,
+                    std::string guid,
+                    std::string name) {
   const std::string efivarPath = efivarsDir + name + '-' + guid;
 
   // The first 4 bytes of efivars are attribute data, we don't need
@@ -35,27 +38,32 @@ int readBoolEfiVar(std::string guid, std::string name) {
   // boolean representation.
   std::string efiData;
   if (!readFile(efivarPath, efiData, 5).ok()) {
-    // FIXME: this is likely to mean it's unsupported by the
-    // kernel/boot/whatever. Probably don't log and return null?
-    TLOG << "Cannot read efivar file : " << efivarPath;
-    return -1;
+    // failure to read _probably_ means the kernel doesn't support EFI
+    // vars. This is not uncommon.
+    return;
   }
 
   if (efiData.length() != 5) {
     TLOG << "Under read on efivar file : " << efivarPath;
-    return -1;
+    return;
   }
 
   auto val = (int)(unsigned char)(efiData.back());
 
   switch (val) {
   case 0:
-    return 0;
+    row.emplace(column_name, "0");
+    break;
   case 1:
-    return 1;
+    row.emplace(column_name, "1");
+    break;
+  default:
+    TLOG << "Unknown value in efivar(" << efivarPath << "). Got: " << val;
+    row.emplace(column_name, "-1");
+    break;
   }
 
-  return -1;
+  return;
 }
 
 QueryData genSecureBoot(QueryContext& context) {
@@ -67,8 +75,8 @@ QueryData genSecureBoot(QueryContext& context) {
   // sleep, as a means to a rate limit (this is what the efivar tool
   // does), but this seems unlikely to be an issue in normal osquery
   // use. So we do nothing, aside from note it here.
-  r["secure_boot"] = INTEGER(readBoolEfiVar(kEFIBootGUID, kEFISecureBootName));
-  r["setup_mode"] = INTEGER(readBoolEfiVar(kEFIBootGUID, kEFISetupModeName));
+  readBoolEfiVar(r, "secure_boot", kEFIBootGUID, kEFISecureBootName);
+  readBoolEfiVar(r, "setup_mode", kEFIBootGUID, kEFISetupModeName);
 
   results.push_back(r);
   return results;
