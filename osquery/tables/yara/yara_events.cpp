@@ -129,7 +129,7 @@ void YARAEventSubscriber::configure() {
 
 Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
                                      const FileSubscriptionContextRef& sc) {
-  if (ec->action != "UPDATED" && ec->action != "CREATED" && 
+  if (ec->action != "UPDATED" && ec->action != "CREATED" &&
       ec->action != "MOVED_TO") {
     return Status(1, "Invalid action");
   }
