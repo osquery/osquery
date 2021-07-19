@@ -61,7 +61,7 @@ void readBoolEfiVar(Row& row,
     break;
   default:
     TLOG << "Unknown value in EFI variable " << wstringToString(name).c_str()
-         << ". Got: " << val;
+         << ". Got: " << res;
     row.emplace(column_name, "-1");
     break;
   }
