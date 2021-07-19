@@ -17,8 +17,8 @@
 #include <gtest/gtest.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/posix/ssh_keys.h>
-
 #include <osquery/utils/scope_guard.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace fs = boost::filesystem;
 
@@ -149,8 +149,9 @@ TEST_F(SshKeysTests, invalid_key) {
     fout << "this is an invalid key" << '\n';
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 0u);
 }
 
@@ -164,8 +165,9 @@ TEST_F(SshKeysTests, rsa_key_unencrypted) {
     fout << kRsaUnencrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
@@ -185,8 +187,9 @@ TEST_F(SshKeysTests, rsa_key_encrypted) {
     fout << kRsaEncrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
@@ -206,8 +209,9 @@ TEST_F(SshKeysTests, dsa_unencrypted) {
     fout << kDsaUnencrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
@@ -227,8 +231,9 @@ TEST_F(SshKeysTests, dsa_encrypted) {
     fout << kDsaEncrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
@@ -248,8 +253,9 @@ TEST_F(SshKeysTests, ed25519_unencrypted) {
     fout << kEd25519Unencrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
@@ -269,8 +275,9 @@ TEST_F(SshKeysTests, ed25519_encrypted) {
     fout << kEd25519Encrypted;
   }
   auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
   genSSHkeyForHosts(
-      uid, std::to_string(getegid()), directory.native(), results);
+      uid, std::to_string(getegid()), directory.native(), results, logger);
   ASSERT_EQ(results.size(), 1u);
 
   const auto& row = results[0];
