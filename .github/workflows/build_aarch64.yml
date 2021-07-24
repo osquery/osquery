@@ -30,7 +30,6 @@ on:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: 3946326992b49c4b962ef998a2c7924efa80aa26
-  CONTAINER: osquery/builder18.04:0aa3775ce
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -43,7 +42,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: ${{ jobs.check_code_style.env.CONTAINER }}
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -161,7 +160,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: ${{ jobs.build_linux.env.CONTAINER }}
+      image: osquery/builder18.04:0aa3775ce
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -238,10 +237,10 @@ jobs:
 
     - name: Clone the osquery-packaging repository
       run: |
-        git clone ${{ jobs.build_linux.env.PACKAGING_REPO }} \
+        git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
         pushd ${{ steps.build_paths.outputs.PACKAGING }}
-        git checkout ${{ jobs.build_linux.env.PACKAGING_COMMIT }}
+        git checkout ${{ env.PACKAGING_COMMIT }}
         popd
 
     # One of the tests in the test suit will spawn a Docker container
