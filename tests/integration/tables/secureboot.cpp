@@ -14,7 +14,7 @@
 namespace osquery {
 namespace table_tests {
 
-class TimeExample : public testing::Test {
+class Secureboot : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
