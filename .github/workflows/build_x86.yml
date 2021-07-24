@@ -30,6 +30,12 @@ on:
     branches:
       - '*'
 
+# Please remember to update values for both x86 and aarch64 workflows.
+env:
+  PACKAGING_REPO: https://github.com/osquery/osquery-packaging
+  PACKAGING_COMMIT: 3946326992b49c4b962ef998a2c7924efa80aa26
+  CONTAINER: osquery/builder18.04:0aa3775ce
+
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
 # and generating packages that are later attached to the commit
@@ -41,7 +47,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: osquery/builder18.04:0aa3775ce
+      image: ${{ env.CONTAINER }}
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -98,7 +104,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:0aa3775ce
+      image: ${{ env.CONTAINER }}
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -213,7 +219,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:0aa3775ce
+      image: ${{ env.CONTAINER }}
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -299,8 +305,11 @@ jobs:
 
     - name: Clone the osquery-packaging repository
       run: |
-        git clone https://github.com/osquery/osquery-packaging \
+        git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
+        pushd ${{ steps.build_paths.outputs.PACKAGING }}
+        git checkout ${{ env.PACKAGING_COMMIT }}
+        popd
 
     # One of the tests in the test suit will spawn a Docker container
     # using this socket. Allow the unprivileged user we created
@@ -543,8 +552,11 @@ jobs:
 
     - name: Clone the osquery-packaging repository
       run: |
-        git clone https://github.com/osquery/osquery-packaging \
+        git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
+        pushd ${{ steps.build_paths.outputs.PACKAGING }}
+        git checkout ${{ env.PACKAGING_COMMIT }}
+        popd
 
     - name: Update the cache (ccache)
       uses: actions/cache@v2
@@ -821,7 +833,9 @@ jobs:
     - name: Clone the osquery-packaging repository
       run: |
         cd w
-        git clone https://github.com/osquery/osquery-packaging
+        git clone ${{ env.PACKAGING_REPO }}
+        cd ${{ steps.build_paths.outputs.PACKAGING }}
+        git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v2
