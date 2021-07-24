@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: ${{ env.CONTAINER }}
+      image: ${{ jobs.check_code_style.env.CONTAINER }}
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -161,7 +161,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: ${{ env.CONTAINER }}
+      image: ${{ jobs.build_linux.env.CONTAINER }}
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -238,10 +238,10 @@ jobs:
 
     - name: Clone the osquery-packaging repository
       run: |
-        git clone ${{ env.PACKAGING_REPO }} \
+        git clone ${{ jobs.build_linux.env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
         pushd ${{ steps.build_paths.outputs.PACKAGING }}
-        git checkout ${{ env.PACKAGING_COMMIT }}
+        git checkout ${{ jobs.build_linux.env.PACKAGING_COMMIT }}
         popd
 
     # One of the tests in the test suit will spawn a Docker container
