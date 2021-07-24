@@ -239,9 +239,8 @@ jobs:
       run: |
         git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
-        pushd ${{ steps.build_paths.outputs.PACKAGING }}
+        cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
-        popd
 
     # One of the tests in the test suit will spawn a Docker container
     # using this socket. Allow the unprivileged user we created
