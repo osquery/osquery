@@ -94,20 +94,19 @@ function(mbedtls)
     "${library_root}/library/ssl_ticket.c"
     "${library_root}/library/ssl_tls.c"
     "${library_root}/library/ssl_tls13_keys.c"
-    )
+  )
   target_include_directories(thirdparty_mbedtls PUBLIC
     "${library_root}/include"
-    )
+  )
 
 target_compile_definitions(thirdparty_mbedtls PRIVATE MBEDTLS_MD2_C MBEDTLS_MD4_C MBEDTLS_PEM_PARSE_C
                 MBEDTLS_X509_CRT_PARSE_C MBEDTLS_PEM_WRITE_C
                 MBEDTLS_PKCS1_V15 MBEDTLS_PKCS1_V21
                 MBEDTLS_X509_ALLOW_UNSUPPORTED_CRITICAL_EXTENSION
-		)
+)
 target_link_libraries(thirdparty_mbedtls PRIVATE
   thirdparty_c_settings
-  )
-	      
+)	      
 endfunction()
 
 mbedtls()

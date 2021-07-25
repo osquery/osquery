@@ -9,9 +9,8 @@ function(spdlog)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
   add_library(thirdparty_spdlog INTERFACE)
   target_include_directories(thirdparty_spdlog INTERFACE
-  "${library_root}/include"
+    "${library_root}/include"
   )
-
 endfunction()
 
 spdlog()

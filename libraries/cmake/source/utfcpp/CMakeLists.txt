@@ -9,7 +9,7 @@ function(utfcpp)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
   add_library(thirdparty_utfcpp INTERFACE)
   target_include_directories(thirdparty_utfcpp INTERFACE
-  "${library_root}/source"
+    "${library_root}/source"
   )
 endfunction()
 

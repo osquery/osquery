@@ -33,7 +33,7 @@ function(lief)
     "${library_root}/src/BinaryStream/VectorStream.cpp"
     "${library_root}/src/visitors/hash.cpp"
     "${library_root}/src/hash_stream.hpp"
-    )
+  )
 
   if(DEFINED PLATFORM_MACOS)
     
@@ -82,11 +82,11 @@ function(lief)
       "${library_root}/src/MachO/TrieNode.cpp"
       "${library_root}/src/MachO/BuildVersion.cpp"
       "${library_root}/src/MachO/TrieNode.hpp"
-      )
+    )
     target_include_directories(thirdparty_lief PUBLIC
      "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos"
      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-     )
+    )
   endif()
   if(DEFINED PLATFORM_WINDOWS)
     
@@ -172,12 +172,12 @@ function(lief)
       "${library_root}/src/PE/signature/attributes/PKCS9CounterSignature.cpp"
       "${library_root}/src/PE/signature/attributes/PKCS9MessageDigest.cpp"
       "${library_root}/src/PE/signature/attributes/PKCS9SigningTime.cpp"
-      )
+    )
     target_include_directories(thirdparty_lief PRIVATE
       "${library_root}/src/PE/utils/ordinals_lookup_tables"
       "${library_root}/src/PE/utils/ordinals_lookup_tables_std"
       "${library_root}/src/PE/signatures"
-      )
+    )
 
     target_include_directories(thirdparty_lief PUBLIC
      "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows"
@@ -242,7 +242,7 @@ function(lief)
       "${library_root}/src/ELF/NoteDetails/core/CoreAuxv.tcc"
 
       "${library_root}/src/ELF/NoteDetails/core/CoreSigInfo.cpp"
-      )
+    )
     target_include_directories(thirdparty_lief PUBLIC
      "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux"
      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
@@ -253,15 +253,15 @@ function(lief)
     "${library_root}/include"
     "${library_root}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
-    )
+  )
 
    target_include_directories(thirdparty_lief PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
-    )
+   )
 
   target_include_directories(thirdparty_lief SYSTEM INTERFACE
     "${library_root}/include"
-    )
+  )
 
   target_compile_definitions(thirdparty_lief PRIVATE LIEF_STATIC)
 
@@ -269,16 +269,17 @@ function(lief)
     thirdparty_cxx_settings
     thirdparty_mbedtls
     thirdparty_spdlog
-    )
+  )
  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
   COMMAND
-    ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp
-    DEPENDS thirdparty_utfcpp)
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp
+    DEPENDS thirdparty_utfcpp
+ )
 
-  target_sources(thirdparty_lief PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h)
-
+  target_include_directories(thirdparty_lief SYSTEM INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party
+  )
 endfunction()
 
 lief()
