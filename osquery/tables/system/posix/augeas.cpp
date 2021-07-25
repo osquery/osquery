@@ -153,11 +153,14 @@ class AugeasHandle {
 
 static AugeasHandle kAugeasHandle;
 
-std::string patternFromOsquery(const std::string& input,
-                               bool isLike,
-                               bool isPath) {
+void patternsFromOsquery(std::unordered_set<std::string>& search_patterns,
+                         const std::string& input,
+                         bool isLike,
+                         bool isPath) {
+  std::unordered_set<std::string> patterns;
+
   // If this is a path, then we must prepend /files. Otherwise we
-  // assume the caller knows what it's doing.
+  // assume the caller knows what it's asking for.
   std::string pattern = isPath ? "/files" + input : input;
 
   // Augeas presents data as a slash separated tree. It uses `/*` as a
@@ -182,11 +185,16 @@ std::string patternFromOsquery(const std::string& input,
   // EQUALS case)
   if (isPath) {
     if (strncmp(&pattern.back(), "*", 1) != 0) {
+      // We also need to insert the path _as is_ so we get the top
+      // level file in the results.
+      search_patterns.insert(pattern);
+
       pattern.append("//*");
     }
   }
 
-  return pattern;
+  search_patterns.insert(pattern);
+  return;
 }
 
 QueryData genAugeas(QueryContext& context) {
@@ -244,7 +252,7 @@ QueryData genAugeas(QueryContext& context) {
       if (node.empty()) {
         continue;
       }
-      patterns.insert(patternFromOsquery(node, true, false));
+      patternsFromOsquery(patterns, node, true, false);
     }
   }
 
@@ -255,7 +263,7 @@ QueryData genAugeas(QueryContext& context) {
       if (path.empty()) {
         continue;
       }
-      patterns.insert(patternFromOsquery(path, false, true));
+      patternsFromOsquery(patterns, path, false, true);
     }
   }
 
@@ -268,7 +276,7 @@ QueryData genAugeas(QueryContext& context) {
       if (path.empty()) {
         continue;
       }
-      patterns.insert(patternFromOsquery(path, true, true));
+      patternsFromOsquery(patterns, path, true, true);
     }
   }
 
