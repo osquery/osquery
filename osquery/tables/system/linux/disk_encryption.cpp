@@ -83,6 +83,11 @@ void genFDEStatusForBlockDevice(const std::string& name,
     break;
   }
 
+    // If there's no good crypt status, check to see if we've already
+    // defined the parent_name. If so, inherit data from there. This
+    // works because the `SQL::selectAllFrom("block_devices")` is
+    // ordered enought. If that order proves inadequate, we may need
+    // to explicitely sort it.
   default:
     if (encrypted_rows.count(parent_name)) {
       auto parent_row = encrypted_rows[parent_name];
@@ -110,14 +115,26 @@ QueryData genFDEStatus(QueryContext& context) {
   }
 
   std::map<std::string, Row> encrypted_rows;
-  auto block_devices = SQL::selectAllFrom("block_devices");
-  for (const auto& row : block_devices) {
-    const auto name = (row.count("name") > 0) ? row.at("name") : "";
-    const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
-    const auto parent_name = (row.count("parent") > 0 ? row.at("parent") : "");
-    genFDEStatusForBlockDevice(
-        name, uuid, parent_name, encrypted_rows, results);
+
+  if (context.constraints.count("name") > 0 &&
+      context.constraints.at("name").exists(EQUALS)) {
+    const auto uuid(""), parent_name("");
+    for (const auto& name : context.constraints.at("name").getAll(EQUALS)) {
+      genFDEStatusForBlockDevice(
+          name, uuid, parent_name, encrypted_rows, results);
+    }
+  } else {
+    auto block_devices = SQL::selectAllFrom("block_devices");
+    for (const auto& row : block_devices) {
+      const auto name = (row.count("name") > 0) ? row.at("name") : "";
+      const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
+      const auto parent_name =
+          (row.count("parent") > 0 ? row.at("parent") : "");
+      genFDEStatusForBlockDevice(
+          name, uuid, parent_name, encrypted_rows, results);
+    }
   }
+
   return results;
 }
 }
