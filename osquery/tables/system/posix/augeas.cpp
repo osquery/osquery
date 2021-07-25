@@ -160,7 +160,7 @@ std::string patternFromOsquery(const std::string& input,
   // assume the caller knows what it's doing.
   std::string pattern = isPath ? "/files" + input : input;
 
-  // Augeas presents data as a slash seperated tree. It uses `/*` as a
+  // Augeas presents data as a slash separated tree. It uses `/*` as a
   // single level wildcard, and `//*` as a recursive wildcard. However,
   // sqlite uses % as a wildcard. To allow for LIKE expressions, we need
   // to convert.
