@@ -109,8 +109,6 @@ typedef struct {
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
-std::string lastErrorMessage(unsigned long);
-
 /**
  * @brief File access modes for PlatformFile.
  *

@@ -1,0 +1,12 @@
+table_name("secureboot")
+description("Secure Boot UEFI Settings.")
+schema([
+    Column("secure_boot", INTEGER, "Whether secure boot is enabled"),
+    Column("setup_mode", INTEGER, "Whether setup mode is enabled"),
+])
+
+implementation("secureboot@genSecureBoot")
+fuzz_paths([
+  "/sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data",
+  "/sys/firmware/efi/vars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c/data",
+])

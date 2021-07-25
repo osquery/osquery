@@ -78,6 +78,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
+      linux/secureboot.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -212,6 +213,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/programs.cpp
       windows/registry.cpp
       windows/scheduled_tasks.cpp
+      windows/secureboot.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
@@ -304,6 +306,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(public_header_files
     efi_misc.h
     intel_me.hpp
+    secureboot.hpp
     smbios_utils.h
     system_utils.h
     user_groups.h

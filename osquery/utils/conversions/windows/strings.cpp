@@ -143,4 +143,29 @@ std::string swapEndianess(const std::string& endian_string) {
   return swap_string;
 }
 
+std::string errorDwordToString(DWORD error_code) {
+  LPWSTR msg_buffer = nullptr;
+
+  FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL,
+                 error_code,
+                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 (LPWSTR)&msg_buffer,
+                 0,
+                 NULL);
+
+  if (msg_buffer != NULL) {
+    auto error_message = wstringToString(msg_buffer);
+    LocalFree(msg_buffer);
+    msg_buffer = nullptr;
+
+    return error_message;
+  }
+
+  VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code)
+          << ")";
+  return std::string("Error code " + std::to_string(error_code) + " not found");
+}
+
 } // namespace osquery

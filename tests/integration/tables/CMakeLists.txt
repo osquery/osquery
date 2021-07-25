@@ -177,6 +177,7 @@ function(generateTestsIntegrationTablesTestsTest)
       rpm_package_files.cpp
       rpm_packages.cpp
       selinux_events.cpp
+      secureboot.cpp
       shadow.cpp
       shared_memory.cpp
       smart_drive_info.cpp
@@ -306,6 +307,7 @@ function(generateTestsIntegrationTablesTestsTest)
       programs.cpp
       registry.cpp
       scheduled_tasks.cpp
+      secureboot.cpp
       services.cpp
       shared_resources.cpp
       shellbags.cpp
