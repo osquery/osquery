@@ -273,10 +273,31 @@ function(lief)
   
  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
   COMMAND
-    ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source
-    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp
-    DEPENDS thirdparty_utfcpp
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
+
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8/checked.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8/checked.h
+
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8/core.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8/core.h
+
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8/cpp11.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8/cpp11.h
+ 
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8/cpp17.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8/cpp17.h
+
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8/unchecked.h
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8/unchecked.h
+  DEPENDS thirdparty_utfcpp
  )
+ 
  target_sources(thirdparty_lief PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
  )
