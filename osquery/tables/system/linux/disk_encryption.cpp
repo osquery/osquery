@@ -116,10 +116,10 @@ QueryData genFDEStatus(QueryContext& context) {
 
   std::map<std::string, Row> encrypted_rows;
 
-  if (context.constraints.count("name") > 0 &&
-      context.constraints.at("name").exists(EQUALS)) {
+  auto constraint = context.constraints.find("name");
+  if (constraint != context.constraints.end() && constraint.exists(EQUALS)) {
     const auto uuid(""), parent_name("");
-    for (const auto& name : context.constraints.at("name").getAll(EQUALS)) {
+    for (const auto& name = constraint.getAll(EQUALS)) {
       genFDEStatusForBlockDevice(
           name, uuid, parent_name, encrypted_rows, results);
     }
