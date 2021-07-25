@@ -310,7 +310,7 @@ Status extractVendorModelFromPciDBIfPresent(
   auto status = splitVendorModelAttrs(device_ids_attr, vendor_id, model_id);
   if (!status.ok()) {
     // Legacy behavior of using value "0" being supported for backward
-    // compatability.
+    // compatibility.
     row.emplace("vendor_id", "0");
     row.emplace("model_id", "0");
 

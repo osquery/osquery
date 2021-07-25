@@ -51,7 +51,7 @@ void genSudoersFile(const std::string& filename,
 
   auto lines = split(contents, "\n");
   for (auto& line : lines) {
-    // sudoers uses EBNF for grammer. But for our purposes, we don't need a full
+    // sudoers uses EBNF for grammar. But for our purposes, we don't need a full
     // parsing. We're just conveying simplified information. We can just split
     // it into the leading token and the trailing token.
 
