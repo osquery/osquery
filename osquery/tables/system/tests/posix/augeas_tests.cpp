@@ -118,7 +118,7 @@ TEST_F(AugeasTests, select_augeas_load_wildcards) {
 
 TEST_F(AugeasTests, select_file_wildcards) {
   // These are a bit funny. Augeas doesn't do partial matches,
-  // and because file is a real file, you have to be carefuly
+  // and because file is a real file, you have to be careful
   // with trailing slashes.
   ASSERT_EQ(
       SQL("select * from augeas where path LIKE '/etc/hosts/%'").rows().size(),
