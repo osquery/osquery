@@ -912,7 +912,7 @@ It features a heavily reworked build system. This aims to provide flexibility an
 - Fix sign compare warning in `file_compression` ([b93069b3](https://github.com/osquery/osquery/commit/b93069b3))
 - Refactored `logical_drives` table on Windows ([#5400](https://github.com/osquery/osquery/pull/5400))
 - Refactored core/windows/wmi to use smart pointers ([#5492](https://github.com/osquery/osquery/pull/5492))
-- Fixed various potential crashes in the virtual table implementaion ([6ade85a5](https://github.com/osquery/osquery/commit/6ade85a5))
+- Fixed various potential crashes in the virtual table implementation ([6ade85a5](https://github.com/osquery/osquery/commit/6ade85a5))
 - Increase the amount of `MaxRecvRetries` for Thrift sockets ([#5390](https://github.com/osquery/osquery/pull/5390))
 
 

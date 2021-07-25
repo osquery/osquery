@@ -104,7 +104,7 @@ QueryData genUserAssist(QueryContext& context) {
           } else {
             std::string time_data = assist_data.substr(120, 16);
             // Sometimes Userassist artifacts have 0 as timestamp, if so skip
-            // filetime converstion
+            // filetime conversion
             time_str = (time_data == "0000000000000000")
                            ? 0LL
                            : littleEndianToUnixTime(time_data);

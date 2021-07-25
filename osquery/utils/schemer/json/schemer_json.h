@@ -31,7 +31,7 @@ namespace schemer {
  * Support only simple types as a members:
  *  - boolean;
  *  - integral types (int, short, long, long long, unsigned etc);
- *  - floating point nubmers (float, double);
+ *  - floating point numbers (float, double);
  *  - std::string;
  *  - C-string - only for serialisation;
  *  - types with defined schema, @see schemer::has_schema type trait.

@@ -444,9 +444,9 @@ TEST_F(SQLiteUtilTests, test_column_type_determination) {
 TEST_F(SQLiteUtilTests, test_enable) {
   // Shadow is not in enable_tables.
   ASSERT_TRUE(SQLiteDBManager::isDisabled("shadow"));
-  // Users is explicitely in enable_tables.
+  // Users is explicitly in enable_tables.
   ASSERT_FALSE(SQLiteDBManager::isDisabled("users"));
-  // Fake_table is explicitely in enabled_tables and
+  // Fake_table is explicitly in enabled_tables and
   // disable_tables, it should be disabled.
   ASSERT_TRUE(SQLiteDBManager::isDisabled("fake_table"));
 }

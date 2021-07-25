@@ -282,7 +282,7 @@ std::string controlPanelCategoryItem(const std::string& shell_data) {
   if (panel_id == "00") {
     return "All Control Panel Items";
   } else if (panel_id == "01") {
-    return "Appearence and Personalization";
+    return "Appearance and Personalization";
   } else if (panel_id == "02") {
     return "Hardware and Sound";
   } else if (panel_id == "03") {
