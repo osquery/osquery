@@ -270,7 +270,7 @@ function(lief)
     thirdparty_mbedtls
     thirdparty_spdlog
   )
- add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
   COMMAND
     ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8.h
     ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp
