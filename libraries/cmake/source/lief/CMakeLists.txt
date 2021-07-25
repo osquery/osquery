@@ -270,16 +270,19 @@ function(lief)
     thirdparty_mbedtls
     thirdparty_spdlog
   )
+  
  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
   COMMAND
-    ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source/utf8.h
+    ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libraries/cmake/source/utfcpp/src/source
     ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp
     DEPENDS thirdparty_utfcpp
  )
-
-  target_include_directories(thirdparty_lief SYSTEM INTERFACE
+ target_sources(thirdparty_lief PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/third-party/LIEF/third-party/utfcpp/utf8.h
+ )
+ target_include_directories(thirdparty_lief PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/third-party
-  )
+ )
 endfunction()
 
 lief()
