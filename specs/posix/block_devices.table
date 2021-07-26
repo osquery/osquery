@@ -11,5 +11,4 @@ schema([
     Column("type", TEXT, "Block device type string"),
     Column("label", TEXT, "Block device label string"),
 ])
-attributes(cacheable=True)
 implementation("block_devices@genBlockDevs")

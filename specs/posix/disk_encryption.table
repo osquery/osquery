@@ -14,5 +14,4 @@ extended_schema(DARWIN, [
     Column("user_uuid", TEXT, "UUID of authenticated user if available"),
     Column("filevault_status", TEXT, "FileVault status with one of following values: on | off | unknown"),
 ])
-attributes(cacheable=True)
 implementation("disk_encryption@genFDEStatus")
