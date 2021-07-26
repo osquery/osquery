@@ -462,7 +462,26 @@ QueryData genFDEStatus(QueryContext& context) {
     }
   }
 
-  auto block_devices = SQL::selectAllFrom("block_devices");
+  bool runSelectAll(true);
+  QueryData block_devices;
+
+  if (auto constraint_it = context.constraints.find("name");
+      constraint_it != context.constraints.end()) {
+    const auto& constraints = constraint_it->second;
+    for (const auto& name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
+
+      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+      for (const auto& row : data) {
+        block_devices.push_back(row);
+      }
+    }
+  }
+
+  if (runSelectAll) {
+    block_devices = SQL::selectAllFrom("block_devices");
+  }
+
   for (const auto& row : block_devices) {
     auto name = row.at("name");
     @autoreleasepool {

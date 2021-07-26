@@ -117,28 +117,31 @@ QueryData genFDEStatus(QueryContext& context) {
   std::map<std::string, Row> encrypted_rows;
 
   bool runSelectAll(true);
+  QueryData block_devices;
 
   if (auto constraint_it = context.constraints.find("name");
       constraint_it != context.constraints.end()) {
     const auto& constraints = constraint_it->second;
-    const auto uuid(""), parent_name("");
     for (const auto& name : constraints.getAll(EQUALS)) {
       runSelectAll = false;
-      genFDEStatusForBlockDevice(
-          name, uuid, parent_name, encrypted_rows, results);
+
+      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+      for (const auto& row : data) {
+        block_devices.push_back(row);
+      }
     }
   }
 
   if (runSelectAll) {
-    auto block_devices = SQL::selectAllFrom("block_devices");
-    for (const auto& row : block_devices) {
-      const auto name = (row.count("name") > 0) ? row.at("name") : "";
-      const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
-      const auto parent_name =
-          (row.count("parent") > 0 ? row.at("parent") : "");
-      genFDEStatusForBlockDevice(
-          name, uuid, parent_name, encrypted_rows, results);
-    }
+    block_devices = SQL::selectAllFrom("block_devices");
+  }
+
+  for (const auto& row : block_devices) {
+    const auto name = (row.count("name") > 0) ? row.at("name") : "";
+    const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
+    const auto parent_name = (row.count("parent") > 0 ? row.at("parent") : "");
+    genFDEStatusForBlockDevice(
+        name, uuid, parent_name, encrypted_rows, results);
   }
 
   return results;
