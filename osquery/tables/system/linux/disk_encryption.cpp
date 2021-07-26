@@ -116,15 +116,20 @@ QueryData genFDEStatus(QueryContext& context) {
 
   std::map<std::string, Row> encrypted_rows;
 
-  auto constraint = context.constraints["name"].getAll(EQUALS);
-  auto names = std::vector(constraint.begin(), constraint.end());
-  if (!names.empty()) {
+  bool runSelectAll(true);
+
+  if (auto constraint_it = context.constraints.find("name");
+      constraint_it != context.constraints.end()) {
+    const auto& constraints = constraint_it->second;
     const auto uuid(""), parent_name("");
-    for (const auto& name : names) {
+    for (const auto& name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
       genFDEStatusForBlockDevice(
           name, uuid, parent_name, encrypted_rows, results);
     }
-  } else {
+  }
+
+  if (runSelectAll) {
     auto block_devices = SQL::selectAllFrom("block_devices");
     for (const auto& row : block_devices) {
       const auto name = (row.count("name") > 0) ? row.at("name") : "";
@@ -138,5 +143,5 @@ QueryData genFDEStatus(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
