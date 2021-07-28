@@ -213,10 +213,9 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
     LOG(ERROR) << "Exception making HTTP "
-               << Aws::Http::HttpMethodMapper::GetNameForHttpMethod(request.GetMethod())
-               << " request to URL ("
-               << url
-               << "): " << e.what();
+               << Aws::Http::HttpMethodMapper::GetNameForHttpMethod(
+                      request.GetMethod())
+               << " request to URL (" << url << "): " << e.what();
     return nullptr;
   }
 
