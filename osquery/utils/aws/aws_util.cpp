@@ -80,6 +80,7 @@ FLAG(string,
      aws_proxy_password,
      "",
      "Proxy password for use in AWS client config");
+FLAG(bool, aws_enable_debugging, false, "Enable AWS SDK debug logging");
 
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
@@ -211,7 +212,10 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
 
   } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
-    LOG(ERROR) << "Exception making HTTP request to URL (" << url
+    LOG(ERROR) << "Exception making HTTP "
+               << Aws::Http::HttpMethodMapper::GetNameForHttpMethod(request.GetMethod())
+               << " request to URL ("
+               << url
                << "): " << e.what();
     return nullptr;
   }
@@ -365,6 +369,9 @@ void initAwsSdk() {
   try {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
+      if (FLAGS_aws_enable_debugging) {
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
+      }
       options.httpOptions.httpClientFactory_create_fn = []() {
         return std::make_shared<OsqueryHttpClientFactory>();
       };
