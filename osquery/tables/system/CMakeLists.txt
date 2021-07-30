@@ -78,6 +78,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
+      linux/secureboot.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -212,6 +213,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/programs.cpp
       windows/registry.cpp
       windows/scheduled_tasks.cpp
+      windows/secureboot.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
@@ -235,6 +237,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/wmi_filter_consumer_binding.cpp
       windows/wmi_script_event_consumers.cpp
       windows/hvci_status.cpp
+      windows/tpm_info.cpp
       windows/prefetch.cpp
     )
   endif()
@@ -303,6 +306,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(public_header_files
     efi_misc.h
     intel_me.hpp
+    secureboot.hpp
     smbios_utils.h
     system_utils.h
     user_groups.h
@@ -315,6 +319,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
+      posix/ssh_keys.h
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h

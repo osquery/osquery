@@ -60,6 +60,7 @@ function(generateOsqueryTablesSystemPosixTests)
     posix/apt_sources_tests.cpp
     posix/known_hosts_tests.cpp
     posix/shell_history_tests.cpp
+    posix/ssh_keys_tests.cpp
     posix/sudoers_tests.cpp
     posix/yum_sources_tests.cpp
     posix/last_tests.cpp

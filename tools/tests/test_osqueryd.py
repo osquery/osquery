@@ -128,7 +128,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_daemon_sigint(self):
         # First check that the pidfile does not exist.
-        # The existance will be used to check if the daemon has run.
+        # The existence will be used to check if the daemon has run.
         pidfile_path = test_base.CONFIG["options"]["pidfile"]
         def pidfile_exists():
             return os.path.exists(pidfile_path)
