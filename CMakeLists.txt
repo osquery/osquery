@@ -474,7 +474,7 @@ function(generateInstallDirectives)
 
     install(
       TARGETS osqueryd
-      DESTINATION "bin"
+      DESTINATION "/opt/osquery/bin"
     )
 
     execute_process(
@@ -484,12 +484,12 @@ function(generateInstallDirectives)
 
     install(
       FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
-      DESTINATION "bin"
+      DESTINATION "/opt/osquery/bin"
     )
 
     install(
       FILES "tools/deployment/osqueryctl"
-      DESTINATION "bin"
+      DESTINATION "/opt/osquery/bin"
     )
 
     install(
