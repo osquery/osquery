@@ -80,7 +80,7 @@ FLAG(string,
      aws_proxy_password,
      "",
      "Proxy password for use in AWS client config");
-FLAG(bool, aws_enable_debugging, false, "Enable AWS SDK debug logging");
+FLAG(bool, aws_debug, false, "Enable AWS SDK debug logging");
 
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
@@ -368,7 +368,7 @@ void initAwsSdk() {
   try {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
-      if (FLAGS_aws_enable_debugging) {
+      if (FLAGS_aws_debug) {
         options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
       }
       options.httpOptions.httpClientFactory_create_fn = []() {
