@@ -445,9 +445,9 @@ function(generateInstallDirectives)
   elseif(PLATFORM_MACOS)
 
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-      set(CMAKE_INSTALL_PREFIX "/opt" CACHE PATH "" FORCE) 
+      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
     endif()
-    
+
     install(
       FILES
         "tools/deployment/macos_packaging/osquery.entitlements"
