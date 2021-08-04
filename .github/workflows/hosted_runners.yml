@@ -656,6 +656,8 @@ jobs:
 
       run: |
         cmake -G "Unix Makefiles" \
+          -DCMAKE_C_COMPILER=clang \
+          -DCMAKE_CXX_COMPILER=clang++ \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
