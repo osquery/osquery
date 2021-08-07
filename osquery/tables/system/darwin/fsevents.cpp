@@ -149,6 +149,7 @@ void parseFsEventData(const std::vector<char>& fsevent_data,
 void parseEvents(const std::string& file, QueryData& results) {
   std::ifstream compressed_file(file,
                                 std::ios_base::in | std::ios_base::binary);
+  try {
   boost::iostreams::filtering_stream<boost::iostreams::input> decompress;
   decompress.push(boost::iostreams::gzip_decompressor());
   decompress.push(compressed_file);
@@ -159,6 +160,9 @@ void parseEvents(const std::string& file, QueryData& results) {
   compressed_file.close();
 
   parseFsEventData(decompress_data, file, results);
+  } catch (const std::exception& err){
+    LOG(WARNING) << "Failed to parse fsevent file, need to be root: " << err.what();
+  }
 }
 
 QueryData genFsevents(QueryContext& context) {
