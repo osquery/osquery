@@ -34,6 +34,7 @@ const int kDiskLoggerV2 = 0x444c5332;
 const int kDiskLoggerV1 = 0x444c5331;
 const std::string kBigSurPath = "/System/Volumes/Data/.fseventsd/";
 const std::string kOtherVolumes = "/Volumes/";
+const std::string kOldPath = "/.feventsd";
 
 const std::map<int, std::string> kFlags{{0x0, "None"},
                                         {0x01, "Created"},
@@ -163,6 +164,7 @@ void parseEvents(const std::string& file, QueryData& results) {
 QueryData genFsevents(QueryContext& context) {
   QueryData results;
   std::vector<std::string> fsevents_files;
+  // Get FS Events in Big Sur
   listFilesInDirectory(kBigSurPath, fsevents_files);
   for (const auto& file : fsevents_files) {
     if (file.find("fseventsd-uuid", 0) != std::string::npos) {
@@ -170,10 +172,12 @@ QueryData genFsevents(QueryContext& context) {
     }
     parseEvents(file, results);
   }
+  fsevents_files.clear();
 
-  std::vector<std::string> fsevents_other_volumes;
-  listDirectoriesInDirectory(kOtherVolumes, fsevents_other_volumes);
-  for (const auto& volumes : fsevents_other_volumes) {
+  // Get FS Events for connected drives (Only macOS formatted drives will have
+  // fseventsd data)
+  listDirectoriesInDirectory(kOtherVolumes, fsevents_files);
+  for (const auto& volumes : fsevents_files) {
     boost::filesystem::path path = volumes;
     boost::system::error_code ec;
     if (!boost::filesystem::is_directory(path, ec)) {
@@ -189,7 +193,16 @@ QueryData genFsevents(QueryContext& context) {
       parseEvents(file, results);
     }
   }
+  fsevents_files.clear();
 
+  // Get FS Event data on older macOS systems
+  listFilesInDirectory(kOldPath, fsevents_files);
+  for (const auto& file : fsevents_files) {
+    if (file.find("fseventsd-uuid", 0) != std::string::npos) {
+      continue;
+    }
+    parseEvents(file, results);
+  }
   return results;
 }
 } // namespace tables
