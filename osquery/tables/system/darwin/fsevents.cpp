@@ -8,7 +8,6 @@
  */
 
 #include <osquery/core/tables.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 
@@ -95,7 +94,7 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
     all_flags.pop_back();
     if (sig == kDiskLoggerV1) {
       size += path_length + 1 + sizeof(event_id) + sizeof(flags);
-      r["path"] = file_path;
+      r["path"] = "/" + file_path;
       r["event_id"] = BIGINT(event_id);
       r["source"] = filename;
       r["flags"] = all_flags;
@@ -109,7 +108,7 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
            sizeof(node_id));
     size +=
         path_length + 1 + sizeof(node_id) + sizeof(event_id) + sizeof(flags);
-    r["path"] = file_path;
+    r["path"] =  "/" + file_path;;
     r["event_id"] = BIGINT(event_id);
     r["node_id"] = BIGINT(node_id);
     r["source"] = filename;
