@@ -119,6 +119,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/event_taps.mm
       darwin/extended_attributes.cpp
       darwin/firewall.cpp
+      darwin/fsevents.cpp
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
       darwin/ibridge.cpp

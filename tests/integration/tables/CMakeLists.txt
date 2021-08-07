@@ -222,6 +222,7 @@ function(generateTestsIntegrationTablesTestsTest)
       event_taps.cpp
       extended_attributes.cpp
       fan_speed_sensors.cpp
+      fsevents.cpp
       gatekeeper.cpp
       gatekeeper_approved_apps.cpp
       homebrew_packages.cpp

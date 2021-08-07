@@ -1,0 +1,13 @@
+table_name("fsevents")
+description("Recorded file events for the system.")
+schema([
+  Column("event_id", BIGINT, "Event id of the file event."),
+  Column("node_id", BIGINT, "Node id of the file event."),
+  Column("path", TEXT, "Full path of file event."),
+  Column("flags", TEXT, "Flags for file event."),
+  Column("source", TEXT, "Source of file event.")
+])
+implementation("fsevents@genFsevents")
+examples([
+    "select * from fsevents",
+])

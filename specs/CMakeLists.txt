@@ -101,6 +101,7 @@ function(generateNativeTables)
     "darwin/es_process_events.table:macos"
     "darwin/event_taps.table:macos"
     "darwin/fan_speed_sensors.table:macos"
+    "darwin/fsevents.table:macos"
     "darwin/gatekeeper.table:macos"
     "darwin/gatekeeper_approved_apps.table:macos"
     "darwin/homebrew_packages.table:macos"
