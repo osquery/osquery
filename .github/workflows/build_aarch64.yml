@@ -29,6 +29,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
+  # TODO(sharvil): Update the packaging commit when osquery/osquery-packaging/pull/9 lands
   PACKAGING_COMMIT: 372cc337d6dfe769cfd18bf24c13093225166ae0
 
 # If the initial code sanity checks are passing, then one job
