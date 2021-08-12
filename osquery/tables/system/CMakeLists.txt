@@ -180,6 +180,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
+      windows/amcache.cpp
       windows/appcompat_shims.cpp
       windows/authenticode.cpp
       windows/autoexec.cpp
@@ -210,6 +211,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/pipes.cpp
       windows/processes.cpp
       windows/programs.cpp
+      windows/raw_registry.cpp
       windows/registry.cpp
       windows/scheduled_tasks.cpp
       windows/services.cpp
@@ -355,6 +357,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/windows_eventlog.h
+      windows/raw_registry.h
     )
   endif()
 

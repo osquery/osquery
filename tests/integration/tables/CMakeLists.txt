@@ -275,6 +275,7 @@ function(generateTestsIntegrationTablesTestsTest)
     list(APPEND source_files ${platform_source_files})
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
+      amcache.cpp
       appcompat_shims.cpp
       arp_cache.cpp
       authenticode.cpp
@@ -304,6 +305,7 @@ function(generateTestsIntegrationTablesTestsTest)
       powershell_events.cpp
       prefetch.cpp
       programs.cpp
+      raw_registry.cpp
       registry.cpp
       scheduled_tasks.cpp
       services.cpp

@@ -1,0 +1,17 @@
+table_name("raw_registry")
+description("Read and parse the raw registry files.")
+schema([
+    Column("key", TEXT, "Name of the key to search for"),
+    Column("path", TEXT, "Full path to the value"),
+    Column("name", TEXT, "Name of the registry value entry"),
+    Column("type", TEXT, "Type of the registry value, or 'subkey' if item is a subkey"),
+    Column("data", TEXT, "Data content of registry value"),
+    Column("modified_time", BIGINT, "Last modified time of registry key"),
+    Column("reg_path", TEXT, "Path to registry file", additional=True),
+    Column("reg_file", TEXT, "Registry file"),
+    Column("physical_device", TEXT, "Specify the physical disk to read", additional=True, hidden=True)
+])
+implementation("raw_registry@genRawRegistry")
+examples([
+  "select * from raw_registry",
+ ])

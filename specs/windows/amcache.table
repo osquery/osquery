@@ -1,0 +1,30 @@
+table_name("amcache")
+description("Registry file that contains artifacts of execution.")
+schema([
+    Column("path", TEXT, "Path of executable."),
+    Column("filename", TEXT, "Filename of executable."),
+    Column("first_run_time", BIGINT, "First execution time of file."),
+    Column("sha1", TEXT, "SHA1 hash of file."),
+    Column("appx_package_fullname", TEXT, "Appx name."),
+    Column("appx_package_relative_id", TEXT, "Appx id."),
+    Column("binary_type", TEXT, "Binary id."),
+    Column("bin_file_version", TEXT, "Binary file version."),
+    Column("bin_product_version", TEXT, "Binary prodcut version."),
+    Column("is_os_component", TEXT, "Is file part of OS."),
+    Column("is_pe_file", TEXT, "Is file a PE file."),
+    Column("language", TEXT, "File language."),
+    Column("link_date", TEXT, "File compile time."),
+    Column("long_path_hash", TEXT, "File path hash."),
+    Column("original_filename", TEXT, "Orignal filename."),
+    Column("product_name", TEXT, "File product name."),
+    Column("product_version", TEXT, "File product version."),
+    Column("program_id", TEXT, "File id."),
+    Column("publisher", TEXT, "File publisher."),
+    Column("size", TEXT, "File size."),
+    Column("usn", TEXT, "File USN Journal entry."),
+    Column("version", TEXT, "File version."),
+])
+implementation("amcache@genAmcache")
+examples([
+  "select * from amcache;",
+])

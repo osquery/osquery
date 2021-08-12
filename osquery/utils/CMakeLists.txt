@@ -48,6 +48,7 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/shellitem.cpp
+      windows/raw_registry.cpp
       windows/lzxpress.cpp
       windows/shelllnk.cpp
     )
@@ -70,6 +71,11 @@ function(generateOsqueryUtils)
     osquery_utils_status
     thirdparty_boost
   )
+    if(DEFINED PLATFORM_WINDOWS)
+      target_link_libraries(osquery_utils PUBLIC
+        thirdparty_sleuthkit
+       )
+    endif()
 
   set(public_header_files
     attribute.h
@@ -96,6 +102,7 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_WINDOWS)
     set(platform_public_header_files
       windows/shellitem.h
+      windows/raw_registry.h
       windows/lzxpress.h
       windows/shelllnk.h
     )
