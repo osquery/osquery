@@ -25,7 +25,8 @@
 namespace osquery {
 namespace tables {
 
-LnkData parseShortcutFiles(const LinkFileHeader& data, const std::string& short_data_string) {
+LnkData parseShortcutFiles(const LinkFileHeader& data,
+                           const std::string& short_data_string) {
   TargetInfo target_data;
   LocationInfo location_data;
   ExtraDataTracker extra_data;
@@ -118,9 +119,7 @@ LnkData parseShortcutFiles(const LinkFileHeader& data, const std::string& short_
   return data_lnk;
 }
 
-void buildLnkTable(QueryData& results,
-                   LnkData data,
-                   std::string& path) {
+void buildLnkTable(QueryData& results, LnkData data, std::string& path) {
   Row r;
   r["path"] = path;
   r["target_created"] = INTEGER(data.header.creation_time);
@@ -227,9 +226,7 @@ QueryData genShortcutFiles(QueryContext& context) {
     std::string lnk_path = lnk;
     LnkData data_lnk;
     data_lnk = parseShortcutFiles(data, data_string);
-    buildLnkTable(results,
-                  data_lnk,
-                  lnk_path);
+    buildLnkTable(results, data_lnk, lnk_path);
   }
   return results;
 }

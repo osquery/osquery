@@ -32,6 +32,7 @@ struct LnkData {
  *
  * @returns Tabel results for shortcut files
  */
-LnkData parseShortcutFiles(const LinkFileHeader& data, const std::string& data_string);
+LnkData parseShortcutFiles(const LinkFileHeader& data,
+                           const std::string& data_string);
 } // namespace tables
 } // namespace osquery
