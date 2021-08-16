@@ -26,6 +26,11 @@ on:
     tags:
       - '*'
 
+# Please remember to update values for both x86 and aarch64 workflows.
+env:
+  PACKAGING_REPO: https://github.com/osquery/osquery-packaging
+  PACKAGING_COMMIT: e345fc327f6caabac2a0381c70c8a00f19842401
+
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
 # and generating packages that are later attached to the commit
@@ -232,8 +237,10 @@ jobs:
 
     - name: Clone the osquery-packaging repository
       run: |
-        git clone https://github.com/osquery/osquery-packaging \
+        git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
+        cd ${{ steps.build_paths.outputs.PACKAGING }}
+        git checkout ${{ env.PACKAGING_COMMIT }}
 
     # One of the tests in the test suit will spawn a Docker container
     # using this socket. Allow the unprivileged user we created

@@ -244,7 +244,7 @@ If the flag is set to 0, the amount of attempts will be infinite.
 
 `--tls_enroll_max_interval=600`
 
-Maximum wait time in seconds between enroll retry attempts. This works in conjuction with `--tls_enroll_max_attempts`, and affects both the limited and the infinite attempts case.
+Maximum wait time in seconds between enroll retry attempts. This works in conjunction with `--tls_enroll_max_attempts`, and affects both the limited and the infinite attempts case.
 
 `--logger_tls_period=3`
 
