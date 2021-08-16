@@ -24,7 +24,9 @@ class RawRegistryTest : public testing::Test {
 };
 
 TEST_F(RawRegistryTest, test_sanity) {
-  QueryData const rows = execute_query("select *,physical_device from raw_registry where reg_path = 'C:\\Windows\\System32\\config\\SYSTEM'");
+  QueryData const rows = execute_query(
+      "select *,physical_device from raw_registry where reg_path = "
+      "'C:\\Windows\\System32\\config\\SYSTEM'");
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"key", NormalType},

@@ -126,6 +126,7 @@ class DeviceHelper : private boost::noncopyable {
                      std::string reg_path,
                      std::vector<char>& reg_contents,
                      TSK_INUM_T inode = 0);
+
  private:
   /// Attempt to open the provided device image and volume.
   bool open();

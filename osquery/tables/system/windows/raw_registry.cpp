@@ -13,8 +13,8 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/utils/windows/raw_registry.h>
 #include <osquery/tables/system/windows/raw_registry.h>
+#include <osquery/utils/windows/raw_registry.h>
 
 #include <boost/filesystem.hpp>
 
@@ -23,7 +23,7 @@
 
 namespace osquery {
 namespace tables {
-// Gather all the main Windows Registry files 
+// Gather all the main Windows Registry files
 const std::string kHKLM = "Windows\\System32\\config\\";
 const std::string kSystemRegistryFiles[5]{
     "SYSTEM", "SOFTWARE", "SECURITY", "SAM", "DEFAULT"};

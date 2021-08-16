@@ -24,8 +24,7 @@ class AmcacheTest : public testing::Test {
 };
 
 TEST_F(AmcacheTest, test_sanity) {
-  QueryData const rows = execute_query(
-      "select * from amcache");
+  QueryData const rows = execute_query("select * from amcache");
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"path", NormalType},
