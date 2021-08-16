@@ -33,7 +33,7 @@ const int kDiskLoggerV2 = 0x444c5332;
 const int kDiskLoggerV1 = 0x444c5331;
 const std::string kBigSurPath = "/System/Volumes/Data/.fseventsd/";
 const std::string kOtherVolumes = "/Volumes/";
-const std::string kOldPath = "/.feventsd";
+const std::string kOldPath = "/.fseventsd";
 
 const std::map<int, std::string> kFlags{{0x0, "None"},
                                         {0x01, "Created"},
