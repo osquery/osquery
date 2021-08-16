@@ -29,6 +29,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
+  # TODO: Update the SHA for when app bundle fixes land
   PACKAGING_COMMIT: e345fc327f6caabac2a0381c70c8a00f19842401
 
 # If the initial code sanity checks are passing, then one job
