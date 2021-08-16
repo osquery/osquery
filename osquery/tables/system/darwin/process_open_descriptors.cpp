@@ -148,9 +148,13 @@ void genSocketDescriptor(int pid, int descriptor, QueryData& results) {
   if (si.psi.soi_family == AF_INET || si.psi.soi_family == AF_INET6) {
     Row r;
 
+    // NOTE: the "socket" column has unclear meaning for these
+    // protocols. si.psi.soi_so is a kernel memory pointer, so we no
+    // longer resolve it. See discussion in
+    // https://github.com/osquery/osquery/pull/6546
+
     r["pid"] = INTEGER(pid);
     r["fd"] = BIGINT(descriptor);
-    r["socket"] = BIGINT(si.psi.soi_so);
     r["path"] = "";
 
     // Darwin/OSX SOCKINFO_TCP is not IPPROTO_TCP
@@ -180,6 +184,7 @@ void genSocketDescriptor(int pid, int descriptor, QueryData& results) {
     r["local_port"] = "0";
     r["remote_address"] = "";
     r["remote_port"] = "0";
+
     if ((char*)si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path != nullptr) {
       r["path"] = si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path;
     } else {

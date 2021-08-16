@@ -102,7 +102,7 @@ TEST_F(PacksTests, test_check_platform) {
   fpack.platform_ = "bad_value";
   EXPECT_FALSE(fpack.checkPlatform());
 
-  // We should execute the query if the SDK platform is specifed.
+  // We should execute the query if the SDK platform is specified.
   fpack.platform_ = kSDKPlatform;
   EXPECT_TRUE(fpack.checkPlatform());
   // But not if something other than the SDK platform is speciifed.

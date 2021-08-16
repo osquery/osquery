@@ -180,6 +180,7 @@ function(generateNativeTables)
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
     "linwin/intel_me_info.table:linux,windows"
+    "linwin/secureboot.table:linux,windows"
     "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
@@ -305,6 +306,7 @@ function(generateNativeTables)
     "windows/prefetch.table:windows"
     "windows/shortcut_files.table:windows"
     "windows/jumplists.table:windows"
+    "windows/tpm_info.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )

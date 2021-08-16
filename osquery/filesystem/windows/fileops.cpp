@@ -1619,31 +1619,6 @@ std::string getFileAttribStr(unsigned long file_attributes) {
   return attribs;
 }
 
-std::string lastErrorMessage(unsigned long error_code) {
-  LPWSTR msg_buffer = nullptr;
-
-  FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                     FORMAT_MESSAGE_IGNORE_INSERTS,
-                 NULL,
-                 error_code,
-                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                 (LPWSTR)&msg_buffer,
-                 0,
-                 NULL);
-
-  if (msg_buffer != NULL) {
-    auto error_message = wstringToString(msg_buffer);
-    LocalFree(msg_buffer);
-    msg_buffer = nullptr;
-
-    return error_message;
-  }
-
-  VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code)
-          << ")";
-  return std::string("Error code" + std::to_string(error_code) + "not found");
-}
-
 Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   auto FLAGS_AND_ATTRIBUTES = FILE_ATTRIBUTE_ARCHIVE |
                               FILE_ATTRIBUTE_ENCRYPTED | FILE_ATTRIBUTE_HIDDEN |
@@ -1702,6 +1677,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
+    LocalFree(security_descriptor);
     return Status(-1,
                   "GetFileInformationByHandle failed for " + path.string() +
                       " with " + std::to_string(GetLastError()));

@@ -374,8 +374,15 @@ function(generateInstallDirectives)
       RENAME "LICENSE.txt"
     )
 
+    # Icon for the MSI package
     install(
       FILES "tools/deployment/windows_packaging/osquery.ico"
+      DESTINATION "/control"
+    )
+
+    # Icon for the nuget package
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.png"
       DESTINATION "/control"
     )
 
@@ -436,9 +443,17 @@ function(generateInstallDirectives)
     )
 
   elseif(PLATFORM_MACOS)
+
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+    endif()
+
     install(
       FILES
         "tools/deployment/macos_packaging/osquery.entitlements"
+        "tools/deployment/macos_packaging/embedded.provisionprofile"
+        "tools/deployment/macos_packaging/Info.plist"
+        "tools/deployment/macos_packaging/PkgInfo"
 
       DESTINATION
         "/control"
@@ -504,8 +519,8 @@ function(generateInstallDirectives)
 
     install(
       FILES
-        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.conf"
-        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.plist"
+        "tools/deployment/macos_packaging/pkg/io.osquery.agent.conf"
+        "tools/deployment/macos_packaging/pkg/io.osquery.agent.plist"
 
       DESTINATION
         "/control/pkg"

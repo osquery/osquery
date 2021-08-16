@@ -115,8 +115,8 @@ function(setupBuildFlags)
       set(osquery_linux_common_defines
         LINUX=1
         OSQUERY_LINUX=1
-        OSQUERY_BUILD_DISTRO=centos7
-        OSQUERY_BUILD_PLATFORM=linux
+        OSQUERY_BUILD_DISTRO="centos7"
+        OSQUERY_BUILD_PLATFORM="linux"
       )
 
       set(osquery_linux_common_link_options
@@ -186,8 +186,8 @@ function(setupBuildFlags)
         APPLE=1
         DARWIN=1
         BSD=1
-        OSQUERY_BUILD_PLATFORM=darwin
-        OSQUERY_BUILD_DISTRO=10.12
+        OSQUERY_BUILD_PLATFORM="darwin"
+        OSQUERY_BUILD_DISTRO="10.12"
       )
 
       target_compile_options(cxx_settings INTERFACE
@@ -316,8 +316,8 @@ function(setupBuildFlags)
       WINDOWS=1
       WIN32_LEAN_AND_MEAN
       OSQUERY_WINDOWS=1
-      OSQUERY_BUILD_PLATFORM=windows
-      OSQUERY_BUILD_DISTRO=10
+      OSQUERY_BUILD_PLATFORM="windows"
+      OSQUERY_BUILD_DISTRO="10"
       BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE=1
       UNICODE
       _UNICODE

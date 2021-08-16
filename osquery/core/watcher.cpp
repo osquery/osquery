@@ -33,6 +33,7 @@
 #include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/system/time.h>
 
@@ -47,10 +48,10 @@ struct LimitDefinition {
 };
 
 struct PerformanceChange {
-  size_t sustained_latency;
-  uint64_t footprint;
-  uint64_t iv;
-  pid_t parent;
+  size_t sustained_latency{0};
+  uint64_t footprint{0};
+  uint64_t iv{0};
+  pid_t parent{0};
 };
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
@@ -163,6 +164,7 @@ void Watcher::setExtension(const std::string& extension,
 }
 
 void Watcher::reset(const PlatformProcess& child) {
+  std::unique_lock<std::mutex> lock(new_processes_mutex_);
   if (child == getWorker()) {
     worker_ = std::make_shared<PlatformProcess>();
     resetWorkerCounters(0);
@@ -179,6 +181,7 @@ void Watcher::reset(const PlatformProcess& child) {
 }
 
 void Watcher::loadExtensions() {
+  std::unique_lock<std::mutex> lock(new_processes_mutex_);
   auto autoload_paths = osquery::loadExtensions();
   for (const auto& path : autoload_paths) {
     setExtension(path, std::make_shared<PlatformProcess>());
@@ -249,6 +252,12 @@ void WatcherRunner::start() {
 
       // The watcher failed, create a worker.
       createWorker();
+
+      // The createWorker function can request a shutdown on error,
+      // or be interrupted by a stop request, do not continue if that happens.
+      if (interrupted() || shutdownRequested()) {
+        break;
+      }
     }
 
     // After inspecting the worker, check the extensions.
@@ -273,6 +282,8 @@ void WatcherRunner::start() {
 }
 
 void WatcherRunner::stop() {
+  std::unique_lock<std::mutex> lock(watcher_->new_processes_mutex_);
+
   auto stop_extension = [this](
                             const std::string& extension_name,
                             const std::shared_ptr<PlatformProcess> extension) {
@@ -292,8 +303,9 @@ void WatcherRunner::stop() {
         stop_extension, extension.first, extension.second);
   }
 
-  if (watcher_->getWorker().isValid()) {
-    stopChild(watcher_->getWorker());
+  auto& worker = watcher_->getWorker();
+  if (worker.isValid()) {
+    stopChild(worker);
   }
 
   for (auto& thread : stop_extensions_threads) {
@@ -306,14 +318,17 @@ void WatcherRunner::watchExtensions() {
   for (const auto& extension : watcher_->extensions()) {
     // Check the extension status, causing a wait.
     int process_status = 0;
-    extension.second->checkStatus(process_status);
+    ProcessState status = extension.second->checkStatus(process_status);
 
-    auto ext_valid = extension.second->isValid();
-    auto s = isChildSane(*extension.second);
+    bool ext_valid = (PROCESS_STILL_ALIVE == status);
 
-    if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
-      if (ext_valid && FLAGS_enable_extensions_watchdog) {
-        // The extension was already launched once.
+    // If the extension is alive and watched, check sanity
+    if (ext_valid && FLAGS_enable_extensions_watchdog) {
+      if (getUnixTime() < delayedTime()) {
+        return;
+      }
+      auto s = isChildSane(*extension.second);
+      if (!s.ok()) {
         std::stringstream error;
         error << "osquery extension " << extension.first << " ("
               << extension.second->pid() << ") stopping: " << s.getMessage();
@@ -322,8 +337,11 @@ void WatcherRunner::watchExtensions() {
         stopChild(*extension.second);
         pause(
             std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
+        ext_valid = false;
       }
+    }
 
+    if (!ext_valid) {
       // The extension manager also watches for extension-related failures.
       // The watchdog is more general, but may find failed extensions first.
       createExtension(extension.first);
@@ -410,7 +428,11 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
         static_cast<pid_t>(tryTo<long long>(r.at("parent")).takeOr(0LL));
     user_time = tryTo<long long>(r.at("user_time")).takeOr(0LL);
     system_time = tryTo<long long>(r.at("system_time")).takeOr(0LL);
-    change.footprint = tryTo<long long>(r.at("resident_size")).takeOr(0LL);
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      change.footprint = tryTo<long long>(r.at("total_size")).takeOr(0LL);
+    } else {
+      change.footprint = tryTo<long long>(r.at("resident_size")).takeOr(0LL);
+    }
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
@@ -501,7 +523,7 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
   p = (pid == ULONG_MAX) ? -1 : pid;
 #endif
   return SQL::selectFrom(
-      {"parent", "user_time", "system_time", "resident_size"},
+      {"parent", "user_time", "system_time", "resident_size", "total_size"},
       "processes",
       "pid",
       EQUALS,
@@ -552,6 +574,15 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
 }
 
 void WatcherRunner::createWorker() {
+  std::unique_lock<std::mutex> lock(watcher_->new_processes_mutex_);
+
+  // A stop request can arrive from a different thread,
+  // we should therefore avoid to launch a worker
+  // that will be immediately stopped.
+  if (interrupted()) {
+    return;
+  }
+
   watcher_->workerStartTime(getUnixTime());
 
   if (watcher_->getState(watcher_->getWorker()).last_respawn_time >
@@ -618,6 +649,15 @@ void WatcherRunner::createWorker() {
 }
 
 void WatcherRunner::createExtension(const std::string& extension) {
+  std::unique_lock<std::mutex> lock(watcher_->new_processes_mutex_);
+
+  // A stop request can arrive from a different thread,
+  // we should therefore avoid to launch an extension
+  // that will be immediately stopped.
+  if (interrupted()) {
+    return;
+  }
+
   {
     if (watcher_->getState(extension).last_respawn_time >
         getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
