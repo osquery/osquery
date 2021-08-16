@@ -554,6 +554,10 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/osqueryctl"
       DESTINATION "osquery.app/Contents/Resources"
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE 
     )
 
   else()
