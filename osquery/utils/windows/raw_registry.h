@@ -13,10 +13,10 @@
 #include <vector>
 
 namespace osquery {
-    struct RegTableValueData {
+struct RegTableValueData {
   std::string key_name;
-      std::string key_data;
-    };
+  std::string key_data;
+};
 struct RegTableData {
   std::string key;
   std::string key_path;
@@ -50,11 +50,11 @@ struct RegNameKey {
   short class_name_size;
 };
 std::vector<RegTableData> rawRegistry(const std::string& reg_path,
-                                             const std::string& drive_path);
+                                      const std::string& drive_path);
 
 void parseHiveCell(const std::vector<char>& reg_contents,
                    const int& hive_offset,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
                    const RegNameKey& name_key);
-}
+} // namespace osquery
