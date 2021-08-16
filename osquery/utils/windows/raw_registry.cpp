@@ -660,7 +660,6 @@ std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
   }
   const int hive_header_size = 32;
 
-  // RegHiveBin hive_bin = parseHiveBin(reg_contents, kheader_size);
   int offset = hive_header_size;
   std::vector<std::string> key_path;
   RegNameKey name_key;
