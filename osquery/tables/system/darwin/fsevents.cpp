@@ -108,7 +108,7 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
            sizeof(node_id));
     size +=
         path_length + 1 + sizeof(node_id) + sizeof(event_id) + sizeof(flags);
-    r["path"] =  "/" + file_path;;
+    r["path"] = "/" + file_path;
     r["event_id"] = BIGINT(event_id);
     r["node_id"] = BIGINT(node_id);
     r["source"] = filename;
@@ -149,18 +149,19 @@ void parseEvents(const std::string& file, QueryData& results) {
   std::ifstream compressed_file(file,
                                 std::ios_base::in | std::ios_base::binary);
   try {
-  boost::iostreams::filtering_stream<boost::iostreams::input> decompress;
-  decompress.push(boost::iostreams::gzip_decompressor());
-  decompress.push(compressed_file);
+    boost::iostreams::filtering_stream<boost::iostreams::input> decompress;
+    decompress.push(boost::iostreams::gzip_decompressor());
+    decompress.push(compressed_file);
 
-  std::vector<char> decompress_data(
-      (std::istreambuf_iterator<char>(decompress)),
-      (std::istreambuf_iterator<char>()));
-  compressed_file.close();
+    std::vector<char> decompress_data(
+        (std::istreambuf_iterator<char>(decompress)),
+        (std::istreambuf_iterator<char>()));
+    compressed_file.close();
 
-  parseFsEventData(decompress_data, file, results);
-  } catch (const std::exception& err){
-    LOG(WARNING) << "Failed to parse fsevent file, need to be root: " << err.what();
+    parseFsEventData(decompress_data, file, results);
+  } catch (const std::exception& err) {
+    LOG(WARNING) << "Failed to parse fsevent file, need to be root: "
+                 << err.what();
   }
 }
 
