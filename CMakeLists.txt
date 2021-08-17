@@ -532,6 +532,34 @@ function(generateInstallDirectives)
       RENAME "LICENSE.txt"
     )
 
+    install(
+      TARGETS osqueryd
+      DESTINATION "osquery.app/Contents/MacOS"
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE 
+    )
+
+    install(
+      FILES
+        "tools/deployment/macos_packaging/embedded.provisionprofile"
+        "tools/deployment/macos_packaging/Info.plist"
+        "tools/deployment/macos_packaging/PkgInfo"
+
+      DESTINATION
+        "osquery.app/Contents"
+    )
+
+    install(
+      FILES "tools/deployment/osqueryctl"
+      DESTINATION "osquery.app/Contents/Resources"
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE 
+    )
+
   else()
     message(FATAL_ERROR "Unsupported platform")
   endif()
