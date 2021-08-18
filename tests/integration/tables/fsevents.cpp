@@ -8,6 +8,7 @@
  */
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
@@ -19,9 +20,12 @@ class FsEventsTest : public testing::Test {
 };
 
 TEST_F(FsEventsTest, test_sanity) {
-  QueryData const rows = execute_query("select * from fsevents");
-
-  /*
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  const auto test_path = boost::filesystem::path(*test + "/darwin/fsevents/%").make_preferred().string();
+  QueryData const rows = execute_query("select * from fsevents where source like '" + test_path + "'");
   ASSERT_GT(rows.size(), 0ul);
 
   ValidationMap row_map = {
@@ -32,7 +36,6 @@ TEST_F(FsEventsTest, test_sanity) {
       {"source", NormalType},
   };
   validate_rows(rows, row_map);
-  */
 }
 } // namespace table_tests
 } // namespace osquery

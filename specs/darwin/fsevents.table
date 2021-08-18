@@ -5,7 +5,7 @@ schema([
   Column("node_id", BIGINT, "Node id of the file event."),
   Column("path", TEXT, "Full path of file event."),
   Column("flags", TEXT, "Flags for file event."),
-  Column("source", TEXT, "Source of file event.")
+  Column("source", TEXT, "Source of file event.", additional=True)
 ])
 implementation("fsevents@genFsevents")
 examples([

@@ -167,7 +167,35 @@ void parseEvents(const std::string& file, QueryData& results) {
 
 QueryData genFsevents(QueryContext& context) {
   QueryData results;
-  std::vector<std::string> fsevents_files;
+  
+  auto paths = context.constraints["source"].getAll(EQUALS);
+  // Expand constraints
+  context.expandConstraints(
+      "source",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  std::vector<std::string> fsevents_files = std::vector(paths.begin(), paths.end());
+  if (!fsevents_files.empty()) {
+    for (const auto& file : fsevents_files) {
+      if (file.find("fseventsd-uuid", 0) != std::string::npos) {
+	continue;
+      }
+      parseEvents(file, results);
+  }
+    return results;
+  }
   // Get FS Events in Big Sur
   listFilesInDirectory(kBigSurPath, fsevents_files);
   for (const auto& file : fsevents_files) {
