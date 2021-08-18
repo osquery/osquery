@@ -24,8 +24,11 @@ TEST_F(FsEventsTest, test_sanity) {
   if (!test.is_initialized()) {
     FAIL();
   }
-  const auto test_path = boost::filesystem::path(*test + "/darwin/fsevents/%").make_preferred().string();
-  QueryData const rows = execute_query("select * from fsevents where source like '" + test_path + "'");
+  const auto test_path = boost::filesystem::path(*test + "/darwin/fsevents/%")
+                             .make_preferred()
+                             .string();
+  QueryData const rows = execute_query(
+      "select * from fsevents where source like '" + test_path + "'");
   ASSERT_GT(rows.size(), 0ul);
 
   ValidationMap row_map = {

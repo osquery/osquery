@@ -167,7 +167,7 @@ void parseEvents(const std::string& file, QueryData& results) {
 
 QueryData genFsevents(QueryContext& context) {
   QueryData results;
-  
+
   auto paths = context.constraints["source"].getAll(EQUALS);
   // Expand constraints
   context.expandConstraints(
@@ -186,14 +186,15 @@ QueryData genFsevents(QueryContext& context) {
         return status;
       }));
 
-  std::vector<std::string> fsevents_files = std::vector(paths.begin(), paths.end());
+  std::vector<std::string> fsevents_files =
+      std::vector(paths.begin(), paths.end());
   if (!fsevents_files.empty()) {
     for (const auto& file : fsevents_files) {
       if (file.find("fseventsd-uuid", 0) != std::string::npos) {
-	continue;
+        continue;
       }
       parseEvents(file, results);
-  }
+    }
     return results;
   }
   // Get FS Events in Big Sur
