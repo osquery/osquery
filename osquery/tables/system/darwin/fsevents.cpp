@@ -11,6 +11,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
@@ -72,14 +73,15 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
   int size = kHeaderSize;
   while (size < stream_size) {
     Row r;
-    std::string path(fsevent_data.begin() + size + offset,
-                     fsevent_data.begin() + stream_size + size + offset);
+    std::string path(fsevent_data.begin() + size + offset, fsevent_data.end());
     size_t path_length = strnlen(path.c_str(), stream_size);
+
     std::string file_path = path.substr(0, path_length);
     long long event_id = 0;
     memcpy(&event_id,
            &fsevent_data[file_path.size() + 1 + size + offset],
            sizeof(event_id));
+
     int flags = 0;
     std::string all_flags;
     memcpy(
@@ -91,16 +93,23 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
         all_flags += flag.second + ",";
       }
     }
+
     all_flags.pop_back();
     if (sig == kDiskLoggerV1) {
       size += path_length + 1 + sizeof(event_id) + sizeof(flags);
-      r["path"] = "/" + file_path;
+      if (boost::starts_with(file_path, "/")) {
+        r["path"] = file_path;
+      } else {
+        r["path"] = "/" + file_path;
+      }
+
       r["event_id"] = BIGINT(event_id);
       r["source"] = filename;
       r["flags"] = all_flags;
       results.push_back(r);
       continue;
     }
+
     long long node_id = 0;
     memcpy(&node_id,
            &fsevent_data[file_path.size() + 1 + sizeof(event_id) +
@@ -108,7 +117,11 @@ int parseFsEvent(const std::vector<char>& fsevent_data,
            sizeof(node_id));
     size +=
         path_length + 1 + sizeof(node_id) + sizeof(event_id) + sizeof(flags);
-    r["path"] = "/" + file_path;
+    if (boost::starts_with(file_path, "/")) {
+      r["path"] = file_path;
+    } else {
+      r["path"] = "/" + file_path;
+    }
     r["event_id"] = BIGINT(event_id);
     r["node_id"] = BIGINT(node_id);
     r["source"] = filename;
