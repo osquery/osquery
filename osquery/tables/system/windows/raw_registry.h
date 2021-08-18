@@ -16,6 +16,18 @@
 
 namespace osquery {
 namespace tables {
+
+/**
+ * @brief Windows helper function for getting physical drives
+ *
+ * @returns Array of physical drives
+ */
 std::vector<std::string> getDrives();
-}
+
+/**
+ * @brief Windows helper function for formatting paths for Sleuthkit
+ *
+ */
+void cleanRegPath(std::string& reg_path);
+} // namespace tables
 } // namespace osquery

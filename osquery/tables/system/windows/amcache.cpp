@@ -9,6 +9,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/raw_registry.h>
 #include <osquery/utils/windows/raw_registry.h>
@@ -20,7 +21,8 @@ namespace osquery {
 namespace tables {
 
 void parseAmcacheExecution(QueryData& results,
-                           const std::vector<RegTableData>& amcache_data) {
+                           const std::vector<RegTableData>& amcache_data,
+                           const std::string& source_path) {
   // Loop through the registry entries until we reach
   // {GUID}\Root\InventoryApplicationFile Windows 10 1709 and higher the data is
   // in InventoryApplicationFile
@@ -33,6 +35,7 @@ void parseAmcacheExecution(QueryData& results,
         Row r;
         int i = amcache_results;
         r["first_run_time"] = BIGINT(amcache_data[i].modified_time);
+        r["source"] = source_path;
         // Get all the registry key data values associated with the registry key
         while (i < amcache_data.size()) {
           if (amcache_data[i].key != key) {
@@ -104,6 +107,7 @@ void parseAmcacheExecution(QueryData& results,
         Row r;
         int i = amcache_results;
         r["first_run_time"] = BIGINT(amcache_data[i].modified_time);
+        r["source"] = source_path;
         // Get all the registry key data values associated with the registry key
         while (i < amcache_data.size()) {
           if (amcache_data[i].key != key) {
@@ -153,17 +157,47 @@ void parseAmcacheExecution(QueryData& results,
 QueryData genAmcache(QueryContext& context) {
   QueryData results;
   std::vector<std::string> drives = getDrives();
-  const std::string reg_path = "Windows/appcompat/Programs/Amcache.hve";
+  std::string reg_path = "Windows/appcompat/Programs/Amcache.hve";
+  auto paths = context.constraints["source"].getAll(EQUALS);
+  // Expand constraints
+  context.expandConstraints(
+      "source",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  auto amcache_files = std::vector(paths.begin(), paths.end());
   std::vector<RegTableData> amcache_data;
   for (const auto& drive : drives) {
-    amcache_data = rawRegistry(reg_path, drive);
+    if (!amcache_files.empty()) {
+      for (const auto& amcache_file : amcache_files) {
+        if (amcache_file.find("Amcache.hve") != std::string::npos) {
+          reg_path = amcache_file;
+          cleanRegPath(reg_path);
+          amcache_data = rawRegistry(reg_path, drive);
+          parseAmcacheExecution(results, amcache_data, reg_path);
+        }
+      }
+    } else {
+      amcache_data = rawRegistry(reg_path, drive);
+    }
     // Stop going through physical devices if we have amcache data
     if (amcache_data.size() > 0) {
       break;
     }
   }
 
-  parseAmcacheExecution(results, amcache_data);
+  parseAmcacheExecution(results, amcache_data, reg_path);
   return results;
 }
 } // namespace tables

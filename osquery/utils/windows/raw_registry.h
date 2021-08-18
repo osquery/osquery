@@ -49,9 +49,19 @@ struct RegNameKey {
   short key_name_size;
   short class_name_size;
 };
+
+/**
+ * @brief Windows helper function for parsing raw Registry files
+ *
+ * @returns The parsed Registry data
+ */
 std::vector<RegTableData> rawRegistry(const std::string& reg_path,
                                       const std::string& drive_path);
 
+/**
+ * @brief Windows helper function for parsing raw Registry cells
+ *
+ */
 void parseHiveCell(const std::vector<char>& reg_contents,
                    const int& hive_offset,
                    std::vector<RegTableData>& raw_reg,

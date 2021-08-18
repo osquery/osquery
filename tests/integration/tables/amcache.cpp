@@ -11,6 +11,7 @@
 // Spec file: specs/windows/registry.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
@@ -24,8 +25,17 @@ class AmcacheTest : public testing::Test {
 };
 
 TEST_F(AmcacheTest, test_sanity) {
-  QueryData const rows = execute_query("select * from amcache");
-  /* ASSERT_GT(rows.size(), 0ul);
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/amcache/%")
+          .make_preferred()
+          .string();
+  QueryData const rows = execute_query(
+      "select * from amcache where source like '" + test_filepath + "'");
+  ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"path", NormalType},
       {"filename", NormalType},
@@ -52,7 +62,6 @@ TEST_F(AmcacheTest, test_sanity) {
       {"version", NormalType},
   };
   validate_rows(rows, row_map);
-  */
 }
 
 } // namespace

@@ -674,8 +674,8 @@ std::vector<RegTableData> rawRegistry(const std::string& reg_path,
   std::vector<RegTableData> raw_reg;
   std::vector<char> reg_contents = rawReadRegistry(reg_path, drive_path);
   if (reg_contents.size() == 0) {
-    LOG(WARNING) << "Failed to read registry contents, read zero bytes: "
-                 << reg_path;
+    LOG(INFO) << "Failed to read registry contents, read zero bytes: "
+              << reg_path;
     return raw_reg;
   }
   if (reg_contents.size() < kheader_size) {
