@@ -185,7 +185,7 @@ QueryData genAmcache(QueryContext& context) {
           reg_path = amcache_file;
           cleanRegPath(reg_path);
           amcache_data = rawRegistry(reg_path, drive);
-          parseAmcacheExecution(results, amcache_data, reg_path);
+          parseAmcacheExecution(results, amcache_data, amcache_file);
         }
       }
     } else {
