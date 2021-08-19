@@ -40,7 +40,9 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
          std::to_string((result & 0x000000ff));
 }
 
-bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
+bool SocketEventSubscriber::parseSockAddr(const std::string& saddr,
+                                          Row& row,
+                                          bool& unix_socket) {
   unix_socket = false;
 
   std::string address_column;
@@ -116,7 +118,8 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   std::vector<Row> emitted_row_list;
   auto status = ProcessEvents(emitted_row_list,
                               ec->audit_events,
-                              FLAGS_audit_allow_failed_socket_events);
+                              FLAGS_audit_allow_failed_socket_events,
+                              FLAGS_audit_allow_unix);
   if (!status.ok()) {
     return status;
   }
@@ -128,7 +131,8 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 Status SocketEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list,
-    bool allow_failed_socket_events) noexcept {
+    bool allow_failed_socket_events,
+    bool allow_unix_socket_events) noexcept {
   emitted_row_list.clear();
   emitted_row_list.reserve(event_list.size());
 
@@ -254,7 +258,7 @@ Status SocketEventSubscriber::ProcessEvents(
       continue;
     }
 
-    if (unix_socket && !FLAGS_audit_allow_unix) {
+    if (unix_socket && !allow_unix_socket_events) {
       continue;
     }
 

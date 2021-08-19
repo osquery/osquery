@@ -26,11 +26,43 @@ extern const AuditEvent kSucceededBindEvent;
 
 class SocketEventsTableTests : public testing::Test {};
 
+TEST_F(SocketEventsTableTests, test_parse_sock_addr) {
+  Row r;
+  std::string msg = "02001F907F0000010000000000000000";
+  bool unix_socket;
+  SocketEventSubscriber::parseSockAddr(msg, r, unix_socket);
+  ASSERT_FALSE(r["remote_address"].empty());
+  EXPECT_EQ(r["remote_address"], "127.0.0.1");
+  EXPECT_EQ(r["family"], "2");
+  EXPECT_EQ(r["remote_port"], "8080");
+
+  Row r3;
+  std::string msg2 = "0A001F9100000000FE80000000000000022522FFFEB03684000000";
+  SocketEventSubscriber::parseSockAddr(msg2, r3, unix_socket);
+  ASSERT_FALSE(r3["remote_address"].empty());
+  EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
+  EXPECT_EQ(r3["remote_port"], "8081");
+
+  Row r4;
+  std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
+  SocketEventSubscriber::parseSockAddr(msg3, r4, unix_socket);
+  ASSERT_FALSE(r4["socket"].empty());
+  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
+
+  msg3 = "0100002F746D702F6F7371756572792E656D";
+  SocketEventSubscriber::parseSockAddr(msg3, r4, unix_socket);
+  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
+}
+
 TEST_F(SocketEventsTableTests, successful_blocking_connect_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
-    auto status = SocketEventSubscriber::ProcessEvents(
-        emitted_row_list, {kSucceededConnectEvent}, allow_failed_events);
+    auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                       {kSucceededConnectEvent},
+                                                       allow_failed_events,
+                                                       kAllowUnixSocketEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
@@ -40,6 +72,8 @@ TEST_F(SocketEventsTableTests, successful_blocking_connect_syscall) {
 }
 
 TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+
   auto audit_event = kSucceededConnectEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
 
@@ -49,8 +83,10 @@ TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
 
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
-    auto status = SocketEventSubscriber::ProcessEvents(
-        emitted_row_list, {audit_event}, allow_failed_events);
+    auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                       {audit_event},
+                                                       allow_failed_events,
+                                                       kAllowUnixSocketEvents);
 
     EXPECT_TRUE(status.ok());
 
@@ -66,6 +102,8 @@ TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
 }
 
 TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+
   auto audit_event = kSucceededConnectEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
 
@@ -75,8 +113,10 @@ TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
 
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
-    auto status = SocketEventSubscriber::ProcessEvents(
-        emitted_row_list, {audit_event}, allow_failed_events);
+    auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                       {audit_event},
+                                                       allow_failed_events,
+                                                       kAllowUnixSocketEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
@@ -86,10 +126,14 @@ TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
 }
 
 TEST_F(SocketEventsTableTests, succeeded_bind_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
-    auto status = SocketEventSubscriber::ProcessEvents(
-        emitted_row_list, {kSucceededBindEvent}, allow_failed_events);
+    auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                       {kSucceededBindEvent},
+                                                       allow_failed_events,
+                                                       kAllowUnixSocketEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
@@ -99,6 +143,8 @@ TEST_F(SocketEventsTableTests, succeeded_bind_syscall) {
 }
 
 TEST_F(SocketEventsTableTests, failed_bind_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+
   auto audit_event = kSucceededBindEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
 
@@ -110,8 +156,11 @@ TEST_F(SocketEventsTableTests, failed_bind_syscall) {
 
     for (const auto& allow_failed_events : {true, false}) {
       std::vector<Row> emitted_row_list;
-      auto status = SocketEventSubscriber::ProcessEvents(
-          emitted_row_list, {audit_event}, allow_failed_events);
+      auto status =
+          SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                               {audit_event},
+                                               allow_failed_events,
+                                               kAllowUnixSocketEvents);
 
       EXPECT_TRUE(status.ok());
 
