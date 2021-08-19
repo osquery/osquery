@@ -21,6 +21,7 @@ namespace {
 
 extern const AuditEvent kSucceededConnectEvent;
 extern const AuditEvent kSucceededBindEvent;
+extern const AuditEvent kSucceededAccept4Event;
 
 } // namespace
 
@@ -54,15 +55,19 @@ TEST_F(SocketEventsTableTests, test_parse_sock_addr) {
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
 }
 
-TEST_F(SocketEventsTableTests, successful_blocking_connect_syscall) {
+TEST_F(SocketEventsTableTests, succeeded_blocking_connect_syscall) {
   const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
 
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
     auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
                                                        {kSucceededConnectEvent},
                                                        allow_failed_events,
-                                                       kAllowUnixSocketEvents);
+                                                       kAllowUnixSocketEvents,
+                                                       kAllowAcceptEvents,
+                                                       kAllowNullAcceptEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
@@ -73,6 +78,8 @@ TEST_F(SocketEventsTableTests, successful_blocking_connect_syscall) {
 
 TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
   const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
 
   auto audit_event = kSucceededConnectEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
@@ -86,7 +93,9 @@ TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
     auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
                                                        {audit_event},
                                                        allow_failed_events,
-                                                       kAllowUnixSocketEvents);
+                                                       kAllowUnixSocketEvents,
+                                                       kAllowAcceptEvents,
+                                                       kAllowNullAcceptEvents);
 
     EXPECT_TRUE(status.ok());
 
@@ -103,6 +112,8 @@ TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
 
 TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
   const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
 
   auto audit_event = kSucceededConnectEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
@@ -116,24 +127,30 @@ TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
     auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
                                                        {audit_event},
                                                        allow_failed_events,
-                                                       kAllowUnixSocketEvents);
+                                                       kAllowUnixSocketEvents,
+                                                       kAllowAcceptEvents,
+                                                       kAllowNullAcceptEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
     EXPECT_EQ(emitted_row_list.front()["success"], "1");
-    EXPECT_EQ(emitted_row_list.front()["status"], "inprogress");
+    EXPECT_EQ(emitted_row_list.front()["status"], "in_progress");
   }
 }
 
 TEST_F(SocketEventsTableTests, succeeded_bind_syscall) {
   const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
 
   for (const auto& allow_failed_events : {true, false}) {
     std::vector<Row> emitted_row_list;
     auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
                                                        {kSucceededBindEvent},
                                                        allow_failed_events,
-                                                       kAllowUnixSocketEvents);
+                                                       kAllowUnixSocketEvents,
+                                                       kAllowAcceptEvents,
+                                                       kAllowNullAcceptEvents);
 
     EXPECT_TRUE(status.ok());
     ASSERT_EQ(emitted_row_list.size(), 1);
@@ -144,6 +161,8 @@ TEST_F(SocketEventsTableTests, succeeded_bind_syscall) {
 
 TEST_F(SocketEventsTableTests, failed_bind_syscall) {
   const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
 
   auto audit_event = kSucceededBindEvent;
   auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
@@ -151,8 +170,8 @@ TEST_F(SocketEventsTableTests, failed_bind_syscall) {
   syscall_data.succeeded = false;
   audit_event.record_list.at(0).fields["success"] = "no";
 
-  for (const auto& errnor_value : {-EINPROGRESS, -EBADF}) {
-    audit_event.record_list.at(0).fields["exit"] = std::to_string(errnor_value);
+  for (const auto& errno_value : {-EINPROGRESS, -EBADF}) {
+    audit_event.record_list.at(0).fields["exit"] = std::to_string(errno_value);
 
     for (const auto& allow_failed_events : {true, false}) {
       std::vector<Row> emitted_row_list;
@@ -160,7 +179,9 @@ TEST_F(SocketEventsTableTests, failed_bind_syscall) {
           SocketEventSubscriber::ProcessEvents(emitted_row_list,
                                                {audit_event},
                                                allow_failed_events,
-                                               kAllowUnixSocketEvents);
+                                               kAllowUnixSocketEvents,
+                                               kAllowAcceptEvents,
+                                               kAllowNullAcceptEvents);
 
       EXPECT_TRUE(status.ok());
 
@@ -171,6 +192,145 @@ TEST_F(SocketEventsTableTests, failed_bind_syscall) {
 
       } else {
         EXPECT_TRUE(emitted_row_list.empty());
+      }
+    }
+  }
+}
+
+TEST_F(SocketEventsTableTests, succeeded_accept_syscall) {
+  const bool kAllowFailedEvents{false};
+  const bool kAllowUnixSocketEvents{false};
+  const bool kAllowNullAcceptEvents{false};
+
+  auto audit_event = kSucceededAccept4Event;
+  auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
+
+  for (const auto& syscall_number : {__NR_accept, __NR_accept4}) {
+    for (const auto& allow_accept_events : {false, true}) {
+      audit_event.record_list.at(0).fields["syscall"] =
+          std::to_string(syscall_number);
+
+      syscall_data.syscall_number = syscall_number;
+
+      std::vector<Row> emitted_row_list;
+      auto status =
+          SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                               {audit_event},
+                                               kAllowFailedEvents,
+                                               kAllowUnixSocketEvents,
+                                               allow_accept_events,
+                                               kAllowNullAcceptEvents);
+
+      EXPECT_TRUE(status.ok());
+
+      if (allow_accept_events) {
+        ASSERT_EQ(emitted_row_list.size(), 1);
+        EXPECT_EQ(emitted_row_list.front()["success"], "1");
+        EXPECT_EQ(emitted_row_list.front()["status"], "succeeded");
+
+      } else {
+        EXPECT_TRUE(emitted_row_list.empty());
+      }
+    }
+  }
+}
+
+TEST_F(SocketEventsTableTests, failed_accept_syscall) {
+  const bool kAllowAcceptEvents{true};
+  const bool kAllowUnixSocketEvents{false};
+  const bool kAllowNullAcceptEvents{false};
+
+  auto audit_event = kSucceededAccept4Event;
+  auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
+
+  syscall_data.succeeded = false;
+  audit_event.record_list.at(0).fields["success"] = "no";
+  audit_event.record_list.at(0).fields["exit"] = std::to_string(-EBADF);
+
+  for (const auto& syscall_number : {__NR_accept, __NR_accept4}) {
+    for (const auto& allow_failed_events : {false, true}) {
+      audit_event.record_list.at(0).fields["syscall"] =
+          std::to_string(syscall_number);
+
+      syscall_data.syscall_number = syscall_number;
+
+      std::vector<Row> emitted_row_list;
+      auto status =
+          SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                               {audit_event},
+                                               allow_failed_events,
+                                               kAllowUnixSocketEvents,
+                                               kAllowAcceptEvents,
+                                               kAllowNullAcceptEvents);
+
+      EXPECT_TRUE(status.ok());
+
+      if (allow_failed_events) {
+        ASSERT_EQ(emitted_row_list.size(), 1);
+        EXPECT_EQ(emitted_row_list.front()["success"], "0");
+        EXPECT_EQ(emitted_row_list.front()["status"], "failed");
+
+      } else {
+        EXPECT_TRUE(emitted_row_list.empty());
+      }
+    }
+  }
+}
+
+TEST_F(SocketEventsTableTests, succeeded_non_blocking_accept_syscall) {
+  const bool kAllowUnixSocketEvents{false};
+  const bool kAllowFailedEvents{false};
+  const bool kAllowAcceptEvents{true};
+
+  auto audit_event = kSucceededConnectEvent;
+  auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
+
+  for (const auto& syscall_number : {__NR_accept, __NR_accept4}) {
+    for (const auto& no_incoming_connection : {true, false}) {
+      for (const auto& allow_null_accept_events : {true, false}) {
+        audit_event.record_list.at(0).fields["syscall"] =
+            std::to_string(syscall_number);
+
+        syscall_data.syscall_number = syscall_number;
+
+        if (no_incoming_connection) {
+          syscall_data.succeeded = false;
+          audit_event.record_list.at(0).fields["success"] = "no";
+          audit_event.record_list.at(0).fields["exit"] =
+              std::to_string(-EAGAIN);
+
+        } else {
+          syscall_data.succeeded = true;
+          audit_event.record_list.at(0).fields["success"] = "yes";
+          audit_event.record_list.at(0).fields["exit"] = "10";
+        }
+
+        std::vector<Row> emitted_row_list;
+        auto status =
+            SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                 {audit_event},
+                                                 kAllowFailedEvents,
+                                                 kAllowUnixSocketEvents,
+                                                 kAllowAcceptEvents,
+                                                 allow_null_accept_events);
+
+        EXPECT_TRUE(status.ok());
+
+        if (no_incoming_connection) {
+          if (allow_null_accept_events) {
+            ASSERT_EQ(emitted_row_list.size(), 1);
+            EXPECT_EQ(emitted_row_list.front()["success"], "1");
+            EXPECT_EQ(emitted_row_list.front()["status"], "no_client");
+
+          } else {
+            EXPECT_TRUE(emitted_row_list.empty());
+          }
+
+        } else {
+          ASSERT_EQ(emitted_row_list.size(), 1);
+          EXPECT_EQ(emitted_row_list.front()["success"], "1");
+          EXPECT_EQ(emitted_row_list.front()["status"], "succeeded");
+        }
       }
     }
   }
@@ -365,6 +525,103 @@ const AuditEvent kSucceededBindEvent{
       AUDIT_EOE,
       4,
       "1629382051.394:1296",
+      { },
+      ""
+    }
+  }
+};
+// clang-format on
+
+// clang-format off
+const AuditEvent kSucceededAccept4Event{
+  AuditEvent::Type::Syscall,
+
+  SyscallAuditEventData{
+    // syscall id, and whether the 'success' field was set to 'yes'
+    __NR_accept4,
+    true,
+
+    // pid, ppid
+    93383,
+    93329,
+
+    // uid, auid, euid, fsuid, suid
+    1000,
+    1000,
+    1000,
+    1000,
+    1000,
+
+    // gid, egid, fsgid, sgid
+    1000,
+    1000,
+    1000,
+    1000,
+
+    // Binary path, from the 'exe' field
+    "/usr/bin/nc.openbsd",
+  },
+
+  {
+    {
+      AUDIT_SYSCALL,
+      1,
+      "1629395472.368:1348",
+      {
+        { "arch", "c000003e" },
+        { "syscall", "288" },
+        { "success", "yes" },
+        { "exit", "4" },
+        { "a0", "3" },
+        { "a1", "7fff4b475ec0" },
+        { "a2", "7fff4b475e54" },
+        { "a3", "800" },
+        { "items", "0" },
+        { "ppid", "93329" },
+        { "pid", "93383" },
+        { "auid", "1000" },
+        { "uid", "1000" },
+        { "gid", "1000" },
+        { "euid", "1000" },
+        { "suid", "1000" },
+        { "fsuid", "1000" },
+        { "egid", "1000" },
+        { "sgid", "1000" },
+        { "fsgid", "1000" },
+        { "tty", "pts1" },
+        { "ses", "2" },
+        { "comm", "nc" },
+        { "exe", "/usr/bin/nc.openbsd" },
+        { "subj", "unconfined" },
+        { "key", "" },
+      },
+      ""
+    },
+
+    {
+      AUDIT_SOCKADDR,
+      2,
+      "1629395472.368:1348",
+      {
+        { "saddr", "0200E8007F0000010000000000000000" },
+      },
+      ""
+    },
+
+    {
+      AUDIT_PROCTITLE,
+      3,
+      "1629395472.368:1348",
+      {
+        { "proctitle", "6E63002D6C003132372E302E302E310038303830" },
+      },
+      ""
+    },
+
+    {
+      AUDIT_EOE,
+      4,
+      "1629395472.368:1348",
       { },
       ""
     }

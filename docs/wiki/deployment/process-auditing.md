@@ -157,8 +157,8 @@ The `success` column has been deprecated and replaced with `status`:
 |-|-|
 | failed | Definitely failed |
 | succeeded | Definitely succeeded |
-| inprogress | The socket operation has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for syscalls that support non-blocking operations (O_NONBLOCK) such as `connect`. |
-
+| in_progress | The `connect`()` syscall has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for non-blocking sockets. |
+| no_client | The `accept` or `accept4` syscall returned with EAGAIN since there were not incoming connections. Reserved for non-blocking sockets. |
 
 The behavior of the socket_events table can be changed with the following boolean flags:
 
@@ -167,6 +167,8 @@ The behavior of the socket_events table can be changed with the following boolea
 | --audit_allow_sockets | Allow the audit publisher to install socket-related rules |
 | --audit_allow_unix | Allow socket events to collect domain sockets |
 | --audit_allow_failed_socket_events | Include rows for socket events that have failed |
+| --audit_allow_accept_socket_events | Include rows for accept socket events |
+| --audit_allow_null_accept_socket_events | Allow non-blocking accept() syscalls that returned EAGAIN/EWOULDBLOCK |
 
 ## Troubleshooting Audit-based process and socket auditing on Linux
 

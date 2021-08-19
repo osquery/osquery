@@ -24,6 +24,7 @@ function(generateOsqueryEvents)
       linux/inotify.cpp
       linux/syslog.cpp
       linux/udev.cpp
+      linux/socket_events.cpp
     )
 
     if(OSQUERY_BUILD_BPF)

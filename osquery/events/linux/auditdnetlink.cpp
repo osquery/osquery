@@ -352,7 +352,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
-    for (int syscall : kSocketEventsSyscalls) {
+    for (int syscall : getSocketEventsSyscalls()) {
       monitored_syscall_list_.insert(syscall);
     }
   }

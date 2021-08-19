@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <asm/unistd.h>
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/core/flags.h>
@@ -21,6 +22,7 @@
 namespace osquery {
 
 DECLARE_bool(audit_allow_sockets);
+DECLARE_bool(audit_allow_accept_socket_events);
 
 HIDDEN_FLAG(bool,
             audit_allow_unix,
@@ -31,6 +33,11 @@ FLAG(bool,
      audit_allow_failed_socket_events,
      false,
      "Include rows for socket events that have failed");
+
+FLAG(bool,
+     audit_allow_null_accept_socket_events,
+     false,
+     "Allow non-blocking accept() syscalls that returned EAGAIN/EWOULDBLOCK");
 
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
   long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
@@ -119,7 +126,9 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   auto status = ProcessEvents(emitted_row_list,
                               ec->audit_events,
                               FLAGS_audit_allow_failed_socket_events,
-                              FLAGS_audit_allow_unix);
+                              FLAGS_audit_allow_unix,
+                              FLAGS_audit_allow_accept_socket_events,
+                              FLAGS_audit_allow_null_accept_socket_events);
   if (!status.ok()) {
     return status;
   }
@@ -132,7 +141,9 @@ Status SocketEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list,
     bool allow_failed_socket_events,
-    bool allow_unix_socket_events) noexcept {
+    bool allow_unix_socket_events,
+    bool allow_accept_events,
+    bool allow_null_accept_events) noexcept {
   emitted_row_list.clear();
   emitted_row_list.reserve(event_list.size());
 
@@ -143,7 +154,29 @@ Status SocketEventSubscriber::ProcessEvents(
 
     Row row = {};
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-    if (GetSyscallSet().count(event_data.syscall_number) == 0) {
+
+    bool skip_event{false};
+    switch (event_data.syscall_number) {
+    case __NR_bind:
+      row["action"] = "bind";
+      break;
+
+    case __NR_connect:
+      row["action"] = "connect";
+      break;
+
+    case __NR_accept:
+    case __NR_accept4:
+      row["action"] = "accept";
+      skip_event = !allow_accept_events;
+      break;
+
+    default:
+      skip_event = true;
+      break;
+    }
+
+    if (skip_event) {
       continue;
     }
 
@@ -156,24 +189,26 @@ Status SocketEventSubscriber::ProcessEvents(
     }
 
     /*
-     * If the event is marked as failed, connect syscalls can end up in
-     * the following cases:
+     * Even though an event may have been marked as failed, the connect
+     * event can still be changed to "in_progress" if they are operating on
+     * non-blocking sockets and the return value was EINPROGRESS.
      *
-     * 1. Blocking socket: the syscall has definitely failed
-     * 2. Non-blocking socket: the syscall has returned -1 with errno
-     *    set to EINPROGRESS and we can't determine whether it will fail
-     *    or succeed
-     *
-     * The bind() syscall is always blocking, and will either return success
-     * or failure.
+     * accept/accept4 syscalls that reported failure with EAGAIN/EWOULDBLOCK
+     * are changed to "no_client" if the required configuration flag is
+     * present.
      */
 
-    bool has_failed{false};
+    enum class SyscallStatus {
+      Failed,
+      Succeeded,
+      InProgress,
+      NoClient,
+    } event_status{event_data.succeeded ? SyscallStatus::Succeeded
+                                        : SyscallStatus::Failed};
 
-    if (event_data.succeeded) {
-      row["status"] = "succeeded";
-
-    } else {
+    if (!event_data.succeeded && (event_data.syscall_number == __NR_connect ||
+                                  event_data.syscall_number == __NR_accept ||
+                                  event_data.syscall_number == __NR_accept4)) {
       int exit_code{};
 
       {
@@ -189,32 +224,52 @@ Status SocketEventSubscriber::ProcessEvents(
         exit_code = static_cast<int>(value);
       }
 
-      if (exit_code == -EINPROGRESS) {
-        if (event_data.syscall_number == __NR_connect) {
-          has_failed = false;
-          row["status"] = "inprogress";
-
-        } else {
-          has_failed = true;
-          row["status"] = "failed";
+      switch (event_data.syscall_number) {
+      case __NR_connect:
+        if (exit_code == -EINPROGRESS) {
+          event_status = SyscallStatus::InProgress;
         }
 
-      } else {
-        has_failed = true;
-        row["status"] = "failed";
+        break;
+
+      case __NR_accept:
+      case __NR_accept4:
+        if (exit_code == -EAGAIN && allow_null_accept_events) {
+          event_status = SyscallStatus::NoClient;
+        }
+
+        break;
       }
     }
 
-    if (has_failed && !allow_failed_socket_events) {
+    if (event_status == SyscallStatus::Failed && !allow_failed_socket_events) {
       continue;
     }
 
-    row["success"] = has_failed ? "0" : "1";
+    if (event_status == SyscallStatus::NoClient && !allow_null_accept_events) {
+      continue;
+    }
 
-    if (event_data.syscall_number == __NR_connect) {
-      row["action"] = "connect";
-    } else if (event_data.syscall_number == __NR_bind) {
-      row["action"] = "bind";
+    switch (event_status) {
+    case SyscallStatus::Failed:
+      row["status"] = "failed";
+      row["success"] = "0";
+      break;
+
+    case SyscallStatus::Succeeded:
+      row["status"] = "succeeded";
+      row["success"] = "1";
+      break;
+
+    case SyscallStatus::InProgress:
+      row["status"] = "in_progress";
+      row["success"] = "1";
+      break;
+
+    case SyscallStatus::NoClient:
+      row["status"] = "no_client";
+      row["success"] = "1";
+      break;
     }
 
     const AuditEventRecord* sockaddr_event_record =
@@ -266,9 +321,5 @@ Status SocketEventSubscriber::ProcessEvents(
   }
 
   return Status::success();
-}
-
-const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  return kSocketEventsSyscalls;
 }
 } // namespace osquery

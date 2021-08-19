@@ -6,7 +6,7 @@ schema([
     Column("path", TEXT, "Path of executed file"),
     Column("fd", TEXT, "The file description for the process socket"),
     Column("auid", BIGINT, "Audit User ID"),
-    Column("status", TEXT, "Either 'succeeded', 'failed', or 'inprogress' (reserved for non-blocking sockets)"),
+    Column("status", TEXT, "Either 'succeeded', 'failed', 'in_progress' (connect() on non-blocking socket) or 'no_client' (null accept() on non-blocking socket)"),
     Column("family", INTEGER, "The Internet protocol family ID"),
     Column("protocol", INTEGER, "The network protocol ID",
         hidden=True),
