@@ -24,7 +24,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 const std::string kLoggerModeInvalidValueError =
-    "logger_mode is not a valid UNIX permission";
+    "The logger_mode flag does not contain a valid UNIX permission";
 const std::string kLoggerModeConversionFailureError =
     "Failed to convert logger_mode string to octal";
 
