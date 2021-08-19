@@ -135,6 +135,7 @@ function(generatePluginsLoggerFilesystemlogger)
     plugins_logger_commondeps
     osquery_filesystem
     osquery_utils_config
+    osquery_utils_conversions
   )
 
   set(public_header_files

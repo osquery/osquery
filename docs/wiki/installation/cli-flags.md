@@ -403,9 +403,10 @@ The default behavior is to also write status logs to stderr. Set this flag to fa
 
 Directory path for `ERROR`/`WARN`/`INFO` and query result logging by the **filesystem** plugin.
 
-`--logger_mode=420`
+`--logger_mode=0640`
 
-File mode for output log files by the **filesystem** plugin (provided as an octal string). Note that this affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
+File mode for output log files by the **filesystem** plugin (provided as an octal string). Note that this affects both the query result log and the status logs and only works on POSIX platforms.
+**Warning**: If run as root, log files may contain sensitive information! Also, versions previous to osquery 5.0.0 were actually interpreting it as a number in decimal format, not octal.
 
 `--logger_rotate=false`
 

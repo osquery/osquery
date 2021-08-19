@@ -12,20 +12,52 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/data_logger.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <exception>
+#include <iostream>
 
 namespace fs = boost::filesystem;
-
-/**
- * This is the mode that Glog uses for logfiles.
- * Must be at the top level (i.e. outside of the `osquery` namespace).
- */
-DECLARE_int32(logfile_mode);
-
 namespace osquery {
+
+const std::string kLoggerModeInvalidValueError =
+    "logger_mode is not a valid UNIX permission";
+const std::string kLoggerModeConversionFailureError =
+    "Failed to convert logger_mode string to octal";
+
+namespace {
+bool validateLoggerMode(const char* flagname, const std::string& value) {
+  // Account for leading 0, special bit, and normal permissions
+  if (value.size() > 5) {
+    osquery::systemLog(kLoggerModeInvalidValueError);
+    std::cerr << kLoggerModeInvalidValueError << std::endl;
+
+    return false;
+  }
+
+  const auto logger_mode_octal_exp = tryTo<std::int32_t>(value, 8);
+
+  if (logger_mode_octal_exp.isError()) {
+    osquery::systemLog(kLoggerModeConversionFailureError);
+    std::cerr << kLoggerModeConversionFailureError << std::endl;
+
+    return false;
+  }
+
+  const auto logger_mode_octal = logger_mode_octal_exp.get();
+
+  if (logger_mode_octal > 07777) {
+    osquery::systemLog(kLoggerModeInvalidValueError);
+    std::cerr << kLoggerModeInvalidValueError << std::endl;
+    return false;
+  }
+
+  return true;
+}
+} // namespace
 
 FLAG(string,
      logger_path,
@@ -44,7 +76,12 @@ FLAG(uint64,
      25 * 1024 * 1024,
      "Size for each filesystem log in bytes");
 
-FLAG(int32, logger_mode, 0640, "Octal mode for log files (default '0640')");
+CLI_FLAG(string,
+         logger_mode,
+         "0640",
+         "Octal mode for log files (default '0640')");
+
+DEFINE_validator(logger_mode, &validateLoggerMode);
 
 const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
@@ -136,6 +173,19 @@ Status LogRotate::moveFiles(const std::vector<std::string>& moves,
 }
 
 struct FilesystemLoggerPlugin::impl {
+  impl() {
+    const auto logger_mode_octal_exp =
+        tryTo<std::int32_t>(FLAGS_logger_mode, 8);
+
+    /* This is here as safety, but the logger_mode flag should be already
+       validated, so no exception should be really thrown here */
+    if (logger_mode_octal_exp.isError()) {
+      throw std::runtime_error("Failed to convert logger_mode string to octal");
+    }
+
+    logger_mode_octal = logger_mode_octal_exp.get();
+  }
+
   /// The folder where Glog and the result/snapshot files are written.
   boost::filesystem::path log_path;
 
@@ -148,6 +198,10 @@ struct FilesystemLoggerPlugin::impl {
   Mutex snapshot_mutex;
   /// Filesystem snapshot log write mutex.
   Mutex results_mutex;
+
+  /// The FLAGS_logger_mode interpreted as a number in octal form, converted to
+  /// integer
+  std::int32_t logger_mode_octal;
 };
 
 FilesystemLoggerPlugin::FilesystemLoggerPlugin()
@@ -161,10 +215,6 @@ Status FilesystemLoggerPlugin::setUp() {
       (pimpl_->log_path / kFilesystemLoggerFilename).string());
   pimpl_->snapshot_rotate = std::make_unique<LogRotate>(
       (pimpl_->log_path / kFilesystemLoggerSnapshots).string());
-
-  // Ensure that the Glog status logs use the same mode as our results log.
-  // Glog 0.3.4 does not support a logfile mode.
-  // FLAGS_logfile_mode = FLAGS_logger_mode;
 
   // Ensure that we create the results log here.
   WriteLock lock(pimpl_->results_mutex);
@@ -202,8 +252,8 @@ Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
   Status status;
   try {
     auto filepath = (pimpl_->log_path / filename).string();
-    status =
-        writeTextFile(filepath, (empty) ? "" : s + '\n', FLAGS_logger_mode);
+    status = writeTextFile(
+        filepath, (empty) ? "" : s + '\n', pimpl_->logger_mode_octal);
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
