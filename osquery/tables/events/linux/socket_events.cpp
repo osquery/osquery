@@ -27,6 +27,11 @@ HIDDEN_FLAG(bool,
             false,
             "Allow socket events to collect domain sockets");
 
+FLAG(bool,
+     audit_allow_failed_socket_events,
+     false,
+     "Include rows for socket events that have failed");
+
 std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
   long const result = tryTo<long>(saddr.substr(offset, 8), 16).takeOr(0l);
   return std::to_string((result & 0xff000000) >> 24) + '.' +
@@ -109,7 +114,9 @@ Status SocketEventSubscriber::init() {
 
 Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   std::vector<Row> emitted_row_list;
-  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
+  auto status = ProcessEvents(emitted_row_list,
+                              ec->audit_events,
+                              FLAGS_audit_allow_failed_socket_events);
   if (!status.ok()) {
     return status;
   }
@@ -120,9 +127,9 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
 Status SocketEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
-    const std::vector<AuditEvent>& event_list) noexcept {
+    const std::vector<AuditEvent>& event_list,
+    bool allow_failed_socket_events) noexcept {
   emitted_row_list.clear();
-
   emitted_row_list.reserve(event_list.size());
 
   for (const auto& event : event_list) {
@@ -132,12 +139,7 @@ Status SocketEventSubscriber::ProcessEvents(
 
     Row row = {};
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-
-    if (event_data.syscall_number == __NR_connect) {
-      row["action"] = "connect";
-    } else if (event_data.syscall_number == __NR_bind) {
-      row["action"] = "bind";
-    } else {
+    if (GetSyscallSet().count(event_data.syscall_number) == 0) {
       continue;
     }
 
@@ -147,6 +149,68 @@ Status SocketEventSubscriber::ProcessEvents(
       VLOG(1) << "Malformed syscall event. The AUDIT_SYSCALL record "
                  "is missing";
       continue;
+    }
+
+    /*
+     * If the event is marked as failed, connect syscalls can end up in
+     * the following cases:
+     *
+     * 1. Blocking socket: the syscall has definitely failed
+     * 2. Non-blocking socket: the syscall has returned -1 with errno
+     *    set to EINPROGRESS and we can't determine whether it will fail
+     *    or succeed
+     *
+     * The bind() syscall is always blocking, and will either return success
+     * or failure.
+     */
+
+    bool has_failed{false};
+
+    if (event_data.succeeded) {
+      row["status"] = "succeeded";
+
+    } else {
+      int exit_code{};
+
+      {
+        std::uint64_t value{};
+        if (!GetIntegerFieldFromMap(
+                value, syscall_event_record->fields, "exit")) {
+          VLOG(1) << "Malformed syscall event. The 'exit' field in the "
+                     "AUDIT_SYSCALL record is missing";
+
+          continue;
+        }
+
+        exit_code = static_cast<int>(value);
+      }
+
+      if (exit_code == -EINPROGRESS) {
+        if (event_data.syscall_number == __NR_connect) {
+          has_failed = false;
+          row["status"] = "inprogress";
+
+        } else {
+          has_failed = true;
+          row["status"] = "failed";
+        }
+
+      } else {
+        has_failed = true;
+        row["status"] = "failed";
+      }
+    }
+
+    if (has_failed && !allow_failed_socket_events) {
+      continue;
+    }
+
+    row["success"] = has_failed ? "0" : "1";
+
+    if (event_data.syscall_number == __NR_connect) {
+      row["action"] = "connect";
+    } else if (event_data.syscall_number == __NR_bind) {
+      row["action"] = "bind";
     }
 
     const AuditEventRecord* sockaddr_event_record =
@@ -175,8 +239,6 @@ Status SocketEventSubscriber::ProcessEvents(
 
     row["path"] = DecodeAuditPathValues(syscall_event_record->fields.at("exe"));
     row["fd"] = syscall_event_record->fields.at("a0");
-    row["success"] =
-        (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
     row["uptime"] = std::to_string(getUptime());
 
     // Set some sane defaults and then attempt to parse the sockaddr value

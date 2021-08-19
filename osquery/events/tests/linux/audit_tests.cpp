@@ -20,6 +20,7 @@
 #include <osquery/core/tables.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
+#include "osquery/events/linux/socket_events.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

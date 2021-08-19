@@ -24,9 +24,9 @@ class SocketEventSubscriber final
   Status Callback(const ECRef& ec, const SCRef& sc);
 
   /// Processes the updates received from the callback
-  static Status ProcessEvents(
-      std::vector<Row>& emitted_row_list,
-      const std::vector<AuditEvent>& event_list) noexcept;
+  static Status ProcessEvents(std::vector<Row>& emitted_row_list,
+                              const std::vector<AuditEvent>& event_list,
+                              bool allow_failed_socket_events) noexcept;
 
   /// Returns the set of syscalls that this subscriber can handle
   static const std::set<int>& GetSyscallSet() noexcept;

@@ -132,7 +132,7 @@ A sample socket_event log entry looks like this:
   "action": "added",
   "columns": {
     "time": "1527895541",
-    "success": "1",
+    "status": "succeeded",
     "remote_port": "80",
     "action": "connect",
     "auid": "1000",
@@ -151,6 +151,22 @@ A sample socket_event log entry looks like this:
 ```
 
 If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow_unix`. This will put considerable strain on the system as many default actions use domain sockets. You will also need to explicitly select the `socket` column from the `socket_events` table.
+
+The `success` column has been deprecated and replaced with `status`:
+| Status value | Description |
+|-|-|
+| failed | Definitely failed |
+| succeeded | Definitely succeeded |
+| inprogress | The socket operation has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for syscalls that support non-blocking operations (O_NONBLOCK) such as `connect`. |
+
+
+The behavior of the socket_events table can be changed with the following boolean flags:
+
+| Flag | Description |
+|-|-|
+| --audit_allow_sockets | Allow the audit publisher to install socket-related rules |
+| --audit_allow_unix | Allow socket events to collect domain sockets |
+| --audit_allow_failed_socket_events | Include rows for socket events that have failed |
 
 ## Troubleshooting Audit-based process and socket auditing on Linux
 

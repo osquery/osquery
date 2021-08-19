@@ -128,6 +128,9 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     }
 
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
+    if (!event_data.succeeded) {
+      continue;
+    }
 
     bool is_exec_syscall{false};
     bool is_kill_syscall{false};
