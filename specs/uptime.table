@@ -1,5 +1,5 @@
 table_name("uptime")
-description("Track time passed since last boot.")
+description("Track time passed since last boot. Some systems track this as calendar time, some as runtime.")
 schema([
     Column("days", INTEGER, "Days of uptime"),
     Column("hours", INTEGER, "Hours of uptime"),
