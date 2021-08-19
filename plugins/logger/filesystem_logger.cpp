@@ -49,7 +49,7 @@ bool validateLoggerMode(const char* flagname, const std::string& value) {
 
   const auto logger_mode_octal = logger_mode_octal_exp.get();
 
-  if (logger_mode_octal > 07777) {
+  if (logger_mode_octal <= 0 || logger_mode_octal > 07777) {
     osquery::systemLog(kLoggerModeInvalidValueError);
     std::cerr << kLoggerModeInvalidValueError << std::endl;
     return false;
