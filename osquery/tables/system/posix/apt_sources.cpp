@@ -146,7 +146,6 @@ void genAptUrl(const std::string& source,
   auto s = readFile(cache_files[0], content, 0, false, false, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
-    logger.vlog(1, s.getMessage());
     return;
   }
 
@@ -187,7 +186,6 @@ static void genAptSource(const std::string& source,
   auto s = readFile(source, content, 0, false, false, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
-    logger.vlog(1, s.getMessage());
     return;
   }
 

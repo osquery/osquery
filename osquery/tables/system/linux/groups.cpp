@@ -13,7 +13,6 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
-#include <osquery/utils/mutex.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -29,12 +28,11 @@ void setGroupRow(Row& r, const group* grp) {
 
 QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
   QueryData results;
-  struct group* grp_result = nullptr;
+  struct group* grp_result{nullptr};
   struct group grp;
-  size_t bufsize;
 
-  bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-  if (bufsize == (size_t)-1) { /* Value was indeterminate */
+  size_t bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+  if (bufsize == 16384) { /* Value was indeterminate */
     bufsize = 16384; /* Should be more than enough */
   }
   auto buf = std::make_unique<char[]>(bufsize);

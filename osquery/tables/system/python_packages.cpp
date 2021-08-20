@@ -51,7 +51,6 @@ void genPackage(const std::string& path, Row& r, Logger& logger) {
   auto s = readFile(path, content, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
-    logger.vlog(1, s.getMessage());
     logger.vlog(1, "Cannot find info file: " + path);
     return;
   }

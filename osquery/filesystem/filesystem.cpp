@@ -138,7 +138,6 @@ Status readFile(const fs::path& path,
                           " > " + std::to_string(read_max));
       if (log) {
         LOG(WARNING) << s.getMessage();
-        VLOG(1) << s.getMessage();
       }
       return s;
     }

@@ -71,7 +71,6 @@ QueryData genEtcHostsImpl(QueryContext& context, Logger& logger) {
     qres = parseEtcHostsContent(content);
   } else {
     logger.log(google::GLOG_WARNING, s.getMessage());
-    logger.vlog(1, s.getMessage());
   }
 
 #ifdef WIN32

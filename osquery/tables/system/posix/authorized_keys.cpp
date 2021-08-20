@@ -41,7 +41,6 @@ void genSSHkeysForUser(const std::string& uid,
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_WARNING, s.getMessage());
-      logger.vlog(1, s.getMessage());
       continue;
     }
     // Protocol 1 public key consist of: options, bits, exponent, modulus,

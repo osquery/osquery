@@ -12,7 +12,6 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/mutex.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -48,11 +47,10 @@ void genUser(const struct passwd* pwd, QueryData& results) {
 QueryData genUsersImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   struct passwd pwd;
-  struct passwd* pwd_results;
-  size_t bufsize;
+  struct passwd* pwd_results{nullptr};
 
-  bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-  if (bufsize == (size_t)-1) { /* Value was indeterminate */
+  size_t bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize > 16384) { /* Value was indeterminate */
     bufsize = 16384; /* Should be more than enough */
   }
   auto buf = std::make_unique<char[]>(bufsize);

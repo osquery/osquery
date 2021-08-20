@@ -41,7 +41,6 @@ std::vector<std::string> cronFromFile(const std::string& path, Logger& logger) {
   auto s = forensicReadFile(path, content, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
-    logger.vlog(1, s.getMessage());
     return cron_lines;
   }
 
