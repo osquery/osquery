@@ -215,6 +215,10 @@ function(generateInstallDirectives)
   )
 
   if(PLATFORM_LINUX)
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+    endif()
+
     install(
       FILES "tools/deployment/linux_packaging/deb/conffiles"
       DESTINATION "/control/deb"
