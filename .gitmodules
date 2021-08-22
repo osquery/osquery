@@ -136,6 +136,6 @@
 [submodule "libraries/cmake/source/libcap/src"]
 	path = libraries/cmake/source/libcap/src
 	url = https://kernel.googlesource.com/pub/scm/libs/libcap/libcap.git
-[submodule ".\\libraries\\cmake\\source\\compoundfilereader\\src"]
-	path = .\\libraries\\cmake\\source\\compoundfilereader\\src
+[submodule "libraries/cmake/source/compoundfilereader/src"]
+	path = libraries/cmake/source/compoundfilereader/src
 	url = https://github.com/microsoft/compoundfilereader.git
