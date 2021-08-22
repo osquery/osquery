@@ -32,6 +32,9 @@ TEST_F(JumplistsTest, test_sanity) {
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"entry", NormalType},
+      {"jumplist_absolute_path", NormalType},
+      {"jumplist_entry_modified", NormalType},
+      {"pinned", NormalType},
       {"target_path", NormalType},
       {"target_modified", NormalType},
       {"target_created", NormalType},
