@@ -95,7 +95,6 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
 }
 
 TargetInfo parseTargetInfo(const std::string& target_info) {
-
   std::string original_data = target_info;
   TargetInfo target_lnk;
   std::vector<std::string> build_path;
