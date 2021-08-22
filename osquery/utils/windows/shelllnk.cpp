@@ -95,14 +95,16 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
 }
 
 TargetInfo parseTargetInfo(const std::string& target_info) {
-  // Skip the first two bytes
-  std::string data = target_info.substr(4);
+
+  std::string original_data = target_info;
   TargetInfo target_lnk;
   std::vector<std::string> build_path;
 
   ShellFileEntryData file_entry;
   file_entry.mft_entry = -1LL;
   file_entry.mft_sequence = -1;
+  // Skip the first two bytes to start at the first shellitem size
+  std::string data = target_info.substr(4);
   // Loop through all the shellitems
   while (true) {
     std::string str_item_size = data.substr(0, 4);
@@ -205,7 +207,12 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   target_lnk.path = osquery::join(build_path, "\\");
   target_lnk.mft_entry = file_entry.mft_entry;
   target_lnk.mft_sequence = file_entry.mft_sequence;
-  target_lnk.data = data;
+  // First two bytes equal the size of the whole target info data
+  std::string target_info_size = original_data.substr(0, 4);
+  target_info_size = swapEndianess(target_info_size);
+  int target_size = tryTo<int>(target_info_size, 16).takeOr(0) * 2;
+  original_data.erase(0, target_size);
+  target_lnk.data = original_data;
   return target_lnk;
 }
 

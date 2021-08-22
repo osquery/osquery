@@ -11,6 +11,7 @@
 
 #include <codecvt>
 #include <string>
+#include <vector>
 
 #include <comutil.h>
 
@@ -65,5 +66,12 @@ std::string swapEndianess(const std::string& endian_string);
  * @returns The string representation of a windows error
  */
 std::string errorDwordToString(DWORD errorMessageID);
+
+/**
+ * @brief Windows helper function to convert array of chars to hex string
+ *
+ * @returns The hex string
+ */
+std::string charToHexString(const std::vector<char>& raw_data);
 
 } // namespace osquery

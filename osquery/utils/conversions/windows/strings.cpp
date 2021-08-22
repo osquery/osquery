@@ -9,6 +9,10 @@
 
 #include <codecvt>
 #include <string>
+#include <vector>
+
+#include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <osquery/logger/logger.h>
 
@@ -166,6 +170,19 @@ std::string errorDwordToString(DWORD error_code) {
   VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code)
           << ")";
   return std::string("Error code " + std::to_string(error_code) + " not found");
+}
+
+std::string charToHexString(const std::vector<char>& raw_data) {
+  std::vector<char> data = raw_data;
+  std::stringstream data_string;
+  for (const auto& hex_char : data) {
+    std::stringstream value;
+    value << std::setfill('0') << std::setw(2);
+    value << std::hex << std::uppercase << (int)(unsigned char)(hex_char);
+    data_string << value.str();
+  }
+  std::string hex_string = data_string.str();
+  return hex_string;
 }
 
 } // namespace osquery

@@ -50,7 +50,6 @@ function(generateOsqueryUtils)
       windows/shellitem.cpp
       windows/lzxpress.cpp
       windows/shelllnk.cpp
-      windows/olecf.cpp
     )
   endif()
 
@@ -99,7 +98,6 @@ function(generateOsqueryUtils)
       windows/shellitem.h
       windows/lzxpress.h
       windows/shelllnk.h
-      windows/olecf.h
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})

@@ -30,7 +30,7 @@ struct LnkData {
 /**
  * @brief Windows helper function for parsing Shortcut files
  *
- * @returns Tabel results for shortcut files
+ * @returns Table results for shortcut files
  */
 LnkData parseShortcutFiles(const LinkFileHeader& data,
                            const std::string& data_string);

@@ -128,6 +128,7 @@ function(importLibraries)
     "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"
+    "Windows:compoundfilereader"
   )
 
   if(OSQUERY_BUILD_BPF)

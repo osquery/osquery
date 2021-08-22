@@ -10,27 +10,85 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/tables/system/windows/registry.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/shortcut_files.h>
 #include <osquery/utils/conversions/join.h>
-
-#include <osquery/logger/logger.h>
-#include <osquery/utils/windows/olecf.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shelllnk.h>
 
+#include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string/erase.hpp>
 #include <boost/filesystem.hpp>
 
+#include <compoundfilereader.h>
+#include <iomanip>
 #include <sstream>
 #include <string>
+#include <utf.h>
 
 namespace osquery {
 namespace tables {
+struct JumplistDestListHeader {
+  int version;
+  int entries;
+  int pinned_entries;
+  int unknown;
+  int last_entry;
+  int unknown2;
+  int revision;
+  int unknown3;
+};
+
+struct JumplistDestListV4 {
+  char unknown[8];
+  char droid_volume[16];
+  char droid_file[16];
+  char birth_droid_volume[16];
+  char birth_droid_file[16];
+  char hostname[16];
+  int entry_number;
+  int unknown2;
+  int unknown3;
+  FILETIME modified_time;
+  int pin_status;
+  int unknown4;
+  int interaction_count;
+  char unknown5[8];
+  short path_size;
+};
+
+struct JumplistDestListV1 {
+  char unknown[8];
+  char droid_volume[16];
+  char droid_file[16];
+  char birth_droid_volume[16];
+  char birth_droid_file[16];
+  char hostname[16];
+  int entry_number;
+  int unknown2;
+  int unknown3;
+  FILETIME modified_time;
+  int pin_status;
+  short path_size;
+};
+
+struct JumplistDestListFull {
+  JumplistDestListHeader header;
+  JumplistDestListV4 list;
+  JumplistDestListV1 listv1;
+  std::string path;
+  std::string shortcut_data;
+};
+
 const std::string kAutoJumplistLocation =
     "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\AutomaticDesti"
     "nations"
     "\\";
 const std::string kCustomJumplistLocation =
     "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\CustomDestinations\\";
+
+const enum class kType { Custom, Automatic };
 
 // Appid list pulled from Zimmermans repo at, plus a few more from testing
 // https://github.com/EricZimmerman/JumpList Licensed under MIT
@@ -738,34 +796,41 @@ const std::map<std::string, std::string> kAppIdList = {
 
 void parseJumplistFiles(QueryData& results,
                         const LinkFileHeader& data,
-                        const JumplistData& jump_data,
+                        const JumplistDestListFull& jump_data,
                         const std::string& lnk_jumpdata,
                         const std::string& path,
-                        const std::string& type) {
+                        const kType& jump_type) {
   Row r;
   std::string appid_full = path.substr(path.rfind("\\") + 1);
   std::string appid = appid_full.substr(0, appid_full.find("."));
-
+  std::string type = "automatic";
+  switch (jump_type) {
+  case (osquery::tables::kType::Custom): {
+    type = "custom";
+    break;
+  }
+  }
+  r["path"] = path;
+  r["type"] = type;
+  r["app_id"] = appid;
+  if (kAppIdList.count(appid) != 1) {
+    r["app_name"] = "unknown appid";
+  } else {
+    r["app_name"] = kAppIdList.at(appid);
+  }
   if (data.header.empty()) {
-    r["path"] = path;
-    r["type"] = type;
-    r["app_id"] = appid;
-    if (kAppIdList.count(appid) != 1) {
-      r["app_name"] = "unknown appid";
-    } else {
-      r["app_name"] = kAppIdList.at(appid);
-    }
     results.push_back(r);
     return;
   }
   LnkData data_lnk;
   const int lnk_data = 152;
   if (type == "automatic") {
-    data_lnk = parseShortcutFiles(data, jump_data.lnk_data.substr(lnk_data));
+    data_lnk =
+        parseShortcutFiles(data, jump_data.shortcut_data.substr(lnk_data));
   } else {
     data_lnk = parseShortcutFiles(data, lnk_jumpdata.substr(lnk_data));
   }
-  r["path"] = path;
+
   r["target_created"] = INTEGER(data.creation_time);
   r["target_modified"] = INTEGER(data.modified_time);
   r["target_accessed"] = INTEGER(data.access_time);
@@ -794,36 +859,187 @@ void parseJumplistFiles(QueryData& results,
     r["working_path"] = data_lnk.data_info_string.working_path;
     r["description"] = data_lnk.data_info_string.description;
   }
-  r["type"] = type;
   r["hostname"] = data_lnk.extra_data.hostname;
 
-  r["app_id"] = appid;
-  if (kAppIdList.count(appid) != 1) {
-    r["app_name"] = "unknown appid";
-  } else {
-    r["app_name"] = kAppIdList.at(appid);
-  }
   if (type == "automatic") {
-    r["entry"] = INTEGER(jump_data.entry);
-    r["interaction_count"] = INTEGER(jump_data.interaction_count);
+    r["jumplist_absolute_path"] = jump_data.path;
+    if (jump_data.header.version == 4) {
+      r["entry"] = INTEGER(jump_data.list.entry_number);
+      r["interaction_count"] = INTEGER(jump_data.list.interaction_count);
+      LONGLONG jump_modified = filetimeToUnixtime(jump_data.list.modified_time);
+      r["jumplist_entry_modified"] = INTEGER(jump_modified);
+      r["pinned"] = INTEGER(jump_data.list.pin_status);
+    } else {
+      r["entry"] = INTEGER(jump_data.listv1.entry_number);
+      LONGLONG jump_modified =
+          filetimeToUnixtime(jump_data.listv1.modified_time);
+      r["jumplist_entry_modified"] = INTEGER(jump_modified);
+      r["pinned"] = INTEGER(jump_data.listv1.pin_status);
+    }
   }
   results.push_back(r);
+}
+
+std::string getJumplistShortcutData(const CFB::CompoundFileReader& reader,
+                                    const int& jump_entry) {
+  std::string shortcut_data;
+  reader.EnumFiles(reader.GetRootEntry(),
+                   -1,
+                   [&](const CFB::COMPOUND_FILE_ENTRY* entry,
+                       const CFB::utf16string& dir,
+                       const int level) -> void {
+                     if (reader.IsStream(entry)) {
+                       std::string name = UTF16ToUTF8(entry->name);
+                       std::stringstream ss;
+                       ss << std::hex << jump_entry;
+                       if (name == ss.str()) {
+                         size_t size = static_cast<size_t>(entry->size);
+                         std::unique_ptr<char> data(new char[size]);
+                         reader.ReadFile(entry, 0, data.get(), entry->size);
+                         const unsigned char* shortcut_hex =
+                             static_cast<const unsigned char*>(
+                                 static_cast<const void*>(data.get()));
+                         std::stringstream ss;
+                         for (size_t hex_value = 0; hex_value < size;
+                              hex_value++) {
+                           ss << std::setw(2) << std::setfill('0') << std::hex
+                              << static_cast<int>(shortcut_hex[hex_value]);
+                         }
+                         shortcut_data = ss.str();
+                       }
+                     }
+                   });
+  return shortcut_data;
+}
+
+std::string jumpPath(const std::unique_ptr<char>& content,
+                     const int& size,
+                     const int& header_size,
+                     const int& offset,
+                     const int& destlist_size) {
+  std::vector<char> char_array(
+      content.get() + header_size + offset + destlist_size,
+      content.get() + header_size + offset + destlist_size + size * 2);
+  std::string path = charToHexString(char_array);
+  boost::erase_all(path, "00");
+  // Convert hex path to readable string
+  try {
+    path = boost::algorithm::unhex(path);
+  } catch (const boost::algorithm::hex_decode_error& /* e */) {
+    LOG(WARNING) << "Failed to decode jumplist path hex "
+                    "values to string: "
+                 << path;
+    path = "";
+  }
+  return path;
 }
 
 void parseAutoJumplists(const std::string& path, QueryData& results) {
   std::ifstream input_file(path, std::ios::in | std::ios::binary);
   std::vector<char> jump_data((std::istreambuf_iterator<char>(input_file)),
                               (std::istreambuf_iterator<char>()));
-  input_file.close();
 
-  std::vector<JumplistData> jumplist_data = parseOlecf(jump_data);
-  LinkFileHeader data;
-  if (jumplist_data.empty()) {
-    parseJumplistFiles(results, data, {}, "", path, "automatic");
+  input_file.close();
+  const std::string ole_sig = "D0CF11E0A1B11AE1";
+  std::vector<char> data_sig(jump_data.begin(), jump_data.begin() + 8);
+  std::string file_sig = charToHexString(data_sig);
+  if (ole_sig != file_sig) {
+    LOG(WARNING) << "Incorrect file signature: " << path;
+    return;
   }
-  for (const auto& entry : jumplist_data) {
-    data = parseShortcutHeader(entry.lnk_data);
-    parseJumplistFiles(results, data, entry, "", path, "automatic");
+  CFB::CompoundFileReader reader(jump_data.data(), jump_data.size());
+
+  // Get DestList data and streams
+  JumplistDestListHeader header;
+  JumplistDestListV4 jump_destlistv4;
+  JumplistDestListV1 jump_destlistv1;
+  std::vector<JumplistDestListFull> jump_destlist_array;
+
+  const int destlist_sizev4 = 130;
+  const int destlist_sizev1 = 114;
+  const int header_size = 32;
+  reader.EnumFiles(
+      reader.GetRootEntry(),
+      -1,
+      [&](const CFB::COMPOUND_FILE_ENTRY* entry,
+          const CFB::utf16string& dir,
+          const int level) -> void {
+        if (reader.IsStream(entry)) {
+          std::string name = UTF16ToUTF8(entry->name);
+          if (name == "DestList" && (entry->size > destlist_sizev4 ||
+                                     entry->size > destlist_sizev1)) {
+            size_t size = static_cast<size_t>(entry->size);
+            std::unique_ptr<char> content(new char[size]);
+            reader.ReadFile(entry, 0, content.get(), entry->size);
+            memcpy(&header, content.get(), header_size);
+            int i = 0;
+            int offset = 0;
+            const int padding = 4;
+            while (i < header.entries) {
+              if (header.version == 4) {
+                memcpy(&jump_destlistv4,
+                       content.get() + header_size + offset,
+                       destlist_sizev4);
+
+                std::string path = jumpPath(content,
+                                            jump_destlistv4.path_size,
+                                            header_size,
+                                            offset,
+                                            destlist_sizev4);
+                offset +=
+                    (jump_destlistv4.path_size * 2) + padding + destlist_sizev4;
+                JumplistDestListFull jumplist;
+                jumplist.list = jump_destlistv4;
+                jumplist.path = path;
+                jumplist.header = header;
+
+                // Get the shortcut data
+                jumplist.shortcut_data = getJumplistShortcutData(
+                    reader, jump_destlistv4.entry_number);
+                jump_destlist_array.push_back(jumplist);
+              } else if (header.version == 1) {
+                memcpy(&jump_destlistv1,
+                       content.get() + header_size + offset,
+                       destlist_sizev1);
+
+                std::string path = jumpPath(content,
+                                            jump_destlistv1.path_size,
+                                            header_size,
+                                            offset,
+                                            destlist_sizev1);
+                offset += (jump_destlistv1.path_size * 2) + destlist_sizev1;
+                JumplistDestListFull jumplist;
+                jumplist.listv1 = jump_destlistv1;
+                jumplist.path = path;
+                jumplist.header = header;
+
+                // Get the shortcut data
+                jumplist.shortcut_data = getJumplistShortcutData(
+                    reader, jump_destlistv1.entry_number);
+                jump_destlist_array.push_back(jumplist);
+              }
+              i++;
+            }
+          }
+        }
+      });
+  osquery::tables::kType jump_type = osquery::tables::kType::Automatic;
+  LinkFileHeader data;
+
+  if (jump_destlist_array.empty()) {
+    parseJumplistFiles(results, data, {}, "", path, jump_type);
+  }
+
+  for (const auto& jump_info : jump_destlist_array) {
+    const int shortcut_header_size = 152;
+    if ((jump_info.shortcut_data.size() < shortcut_header_size) ||
+        jump_info.header.entries == 0) {
+      parseJumplistFiles(results, data, {}, "", path, jump_type);
+      continue;
+    }
+
+    data = parseShortcutHeader(jump_info.shortcut_data);
+    parseJumplistFiles(results, data, jump_info, "", path, jump_type);
   }
 }
 
@@ -846,16 +1062,19 @@ void parseCustomJumplists(const std::string& path, QueryData& results) {
   }
 
   std::string lnk_hex = ss.str();
+  // std::string lnk_hex = charToHexString(jump_content);
+  const std::string lnk_sig = "4C0000000114020000000000C000000000000046";
+  osquery::tables::kType jump_type = osquery::tables::kType::Custom;
+
   while (true) {
-    std::size_t jump_entry =
-        lnk_hex.find("4C0000000114020000000000C000000000000046");
+    std::size_t jump_entry = lnk_hex.find(lnk_sig);
     if (jump_entry == std::string::npos) {
       break;
     }
     lnk_hex.erase(0, jump_entry);
     LinkFileHeader data = parseShortcutHeader(lnk_hex);
 
-    parseJumplistFiles(results, data, {}, lnk_hex, path, "custom");
+    parseJumplistFiles(results, data, {}, lnk_hex, path, jump_type);
     lnk_hex.erase(0, 42);
   }
 }
@@ -906,7 +1125,6 @@ QueryData genJumplists(QueryContext& context) {
     std::string user_path = (home / kAutoJumplistLocation).string();
     Status status = listFilesInDirectory(user_path, auto_jump_files);
     if (!status.ok()) {
-      LOG(WARNING) << "Failed to get automatic Jumplist files";
       return results;
     }
     for (const auto& auto_files : auto_jump_files) {
@@ -922,7 +1140,6 @@ QueryData genJumplists(QueryContext& context) {
     user_path = (home / kCustomJumplistLocation).string();
     status = listFilesInDirectory(user_path, custom_jump_files);
     if (!status.ok()) {
-      LOG(WARNING) << "Failed to get custom Jumplist files";
       return results;
     }
     for (const auto& custom_files : custom_jump_files) {

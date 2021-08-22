@@ -302,7 +302,14 @@ function(generateOsqueryTablesSystemSystemtable)
       -Wno-c99-extensions
       -Wno-undeclared-selector
     )
+
+  elseif(DEFINED PLATFORM_WINDOWS) 
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC 
+      thirdparty_compoundfilereader
+    )
   endif()
+
+
 
   set(public_header_files
     efi_misc.h

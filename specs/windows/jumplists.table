@@ -3,7 +3,10 @@ description("View data about Windows jumplist files (composed of multiple shortc
 schema([
     Column("path", TEXT, "Directory name.", additional=True),
     Column("entry", INTEGER, "Jumplist entry number."),
-    Column("target_path", TEXT, "Target file path"),
+    Column("jumplist_absolute_path", TEXT, "Absolute path for jumplist entry."),
+    Column("jumplist_entry_modified", INTEGER, "Modified time for jumplist entry."),
+    Column("pinned", INTEGER, "Is the jumplist entry pinned."),
+    Column("target_path", TEXT, "Target file path."),
     Column("target_modified", INTEGER, "Target Modified time."),
     Column("target_created", INTEGER, "Target Created time."),
     Column("target_accessed", INTEGER, "Target Accessed time."),
