@@ -12,10 +12,44 @@
 #include <osquery/events/events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
+#include <osquery/sql/sqlite_util.h>
 
 #include <boost/algorithm/string.hpp>
 
+#include <set>
+
 namespace osquery {
+
+HIDDEN_FLAG(bool,
+            events_enforce_denylist,
+            false,
+            "Enforce denylist for event-based queries");
+
+bool enforceEventsDenylist(const std::string& query) {
+  // The only exception for a denylisted query to still run is when this flag
+  // is false (the default).
+  if (FLAGS_events_enforce_denylist) {
+    return true;
+  }
+
+  auto tables = QueryPlanner(query).tables();
+  if (tables.empty()) {
+    return true;
+  }
+
+  // Check if the query only operates on event subscribers.
+  // If it does, skip the denylist enforcement.
+  std::set<std::string> table_set(tables.begin(), tables.end());
+  auto event_tables = EventFactory::subscriberNames();
+
+  std::set<std::string> overlap;
+  std::set_intersection(table_set.begin(),
+                        table_set.end(),
+                        event_tables.begin(),
+                        event_tables.end(),
+                        std::inserter(overlap, overlap.begin()));
+  return overlap.size() != table_set.size();
+}
 
 void attachEvents() {
   const auto& publishers = RegistryFactory::get().plugins("event_publisher");
