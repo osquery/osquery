@@ -236,22 +236,21 @@ void SchedulerRunner::start() {
 
   for (; (end == 0) || (i <= end); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
-    Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
-          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            TablePlugin::kCacheInterval = query.splayed_interval;
-            TablePlugin::kCacheStep = i;
-            const auto status = launchQuery(name, query);
-            monitoring::record(
-                (boost::format("scheduler.query.%s.%s.status.%s") %
-                 query.pack_name % query.name %
-                 (status.ok() ? "success" : "failure"))
-                    .str(),
-                1,
-                monitoring::PreAggregationType::Sum,
-                true);
-          }
-        }));
+    Config::get().scheduledQueries(([&i](const std::string& name,
+                                         const ScheduledQuery& query) {
+      if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+        TablePlugin::kCacheInterval = query.splayed_interval;
+        TablePlugin::kCacheStep = i;
+        const auto status = launchQuery(name, query);
+        monitoring::record((boost::format("scheduler.query.%s.%s.status.%s") %
+                            query.pack_name % query.name %
+                            (status.ok() ? "success" : "failure"))
+                               .str(),
+                           1,
+                           monitoring::PreAggregationType::Sum,
+                           true);
+      }
+    }));
 
     maybeRunDecorators(i);
     maybeReloadSchedule(i);
