@@ -93,7 +93,10 @@ function(generateOsqueryEventsTestsSyslogtestsTest)
 endfunction()
 
 function(generateOsqueryEventsTestsAudittestsTest)
-  add_osquery_executable(osquery_events_tests_audittests-test linux/audit_tests.cpp)
+  add_osquery_executable(osquery_events_tests_audittests-test
+    linux/audit_tests.cpp
+    linux/socket_events.cpp
+  )
 
   target_link_libraries(osquery_events_tests_audittests-test PRIVATE
     osquery_cxx_settings

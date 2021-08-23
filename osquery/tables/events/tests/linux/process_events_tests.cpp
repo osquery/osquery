@@ -54,6 +54,8 @@ void GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
 
 void GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
                           const RawAuditEvent& audit_event) {
+  static const std::set<int> kSyscallsAllowedToFail{};
+
   event_context.reset();
 
   std::vector<AuditEventRecord> record_list;
@@ -65,7 +67,7 @@ void GenerateEventContext(std::shared_ptr<AuditEventContext>& event_context,
   AuditTraceContext audit_trace_context;
 
   AuditEventPublisher::ProcessEvents(
-      event_context, record_list, audit_trace_context);
+      event_context, record_list, audit_trace_context, kSyscallsAllowedToFail);
 
   EXPECT_EQ(audit_trace_context.size(), 0U);
   EXPECT_EQ(event_context->audit_events.size(), 1U);

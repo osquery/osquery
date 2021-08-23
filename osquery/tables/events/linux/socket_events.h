@@ -24,12 +24,20 @@ class SocketEventSubscriber final
   Status Callback(const ECRef& ec, const SCRef& sc);
 
   /// Processes the updates received from the callback
-  static Status ProcessEvents(
-      std::vector<Row>& emitted_row_list,
-      const std::vector<AuditEvent>& event_list) noexcept;
+  static Status ProcessEvents(std::vector<Row>& emitted_row_list,
+                              const std::vector<AuditEvent>& event_list,
+                              bool allow_failed_socket_events,
+                              bool allow_unix_socket_events,
+                              bool allow_null_accept_events,
+                              bool allow_null_accept_socket_events) noexcept;
 
   /// Returns the set of syscalls that this subscriber can handle
   static const std::set<int>& GetSyscallSet() noexcept;
+
+  /// Parses the "saddr" field of an AUDIT_SOCKADDR record
+  static bool parseSockAddr(const std::string& saddr,
+                            Row& row,
+                            bool& unix_socket);
 };
 
 } // namespace osquery
