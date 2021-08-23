@@ -13,7 +13,6 @@
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/system/env.h>
 
-#include <iostream>
 namespace osquery {
 namespace table_tests {
 namespace {
@@ -34,7 +33,6 @@ TEST_F(AmcacheTest, test_sanity) {
       boost::filesystem::path(*test + "/windows/amcache/Amcache.hve")
           .make_preferred()
           .string();
-  std::cout << test_filepath << std::endl;
   QueryData const rows = execute_query(
       "select * from amcache where source = '" + test_filepath + "'");
   ASSERT_GT(rows.size(), 0ul);
