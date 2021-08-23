@@ -430,7 +430,7 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 }
 
 bool isAPFS(const std::unordered_map<std::string, bool>& lookup,
-            const std::string key) {
+            const std::string& key) {
   auto it = lookup.find(key);
 
   if (it == lookup.end()) {
