@@ -86,7 +86,7 @@ void genFDEStatusForBlockDevice(const std::string& name,
     // If there's no good crypt status, check to see if we've already
     // defined the parent_name. If so, inherit data from there. This
     // works because the `SQL::selectAllFrom("block_devices")` is
-    // ordered enought. If that order proves inadequate, we may need
+    // ordered enough. If that order proves inadequate, we may need
     // to explicitly sort it.
   default:
     if (encrypted_rows.count(parent_name)) {
