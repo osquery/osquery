@@ -45,8 +45,9 @@ QueryData genUserGroups(QueryContext& context) {
     setpwent();
     while (1) {
       getpwent_r(&pwd, buf.get(), bufsize, &pwd_results);
-      if (pwd_results == nullptr)
+      if (pwd_results == nullptr) {
         break;
+      }
       if (std::find(users_in.begin(), users_in.end(), pwd_results->pw_uid) ==
           users_in.end()) {
         user_t<uid_t, gid_t> user;

@@ -78,8 +78,9 @@ QueryData genUsersImpl(QueryContext& context, Logger& logger) {
     setpwent();
     while (1) {
       getpwent_r(&pwd, buf.get(), bufsize, &pwd_results);
-      if (pwd_results == nullptr)
+      if (pwd_results == nullptr) {
         break;
+      }
       genUser(pwd_results, results);
     }
     endpwent();

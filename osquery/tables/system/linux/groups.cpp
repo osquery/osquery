@@ -32,7 +32,7 @@ QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
   struct group grp;
 
   size_t bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-  if (bufsize == 16384) { /* Value was indeterminate */
+  if (bufsize > 16384) { /* Value was indeterminate */
     bufsize = 16384; /* Should be more than enough */
   }
   auto buf = std::make_unique<char[]>(bufsize);
