@@ -128,6 +128,12 @@ function(generateOsqueryFilesystemTest)
     )
   endif()
 
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND source_files
+      tests/linux/proc_tests.cpp
+    )
+  endif()
+
   add_osquery_executable(osquery_filesystem_filesystemtests-test ${source_files})
 
   target_link_libraries(osquery_filesystem_filesystemtests-test PRIVATE
