@@ -171,6 +171,14 @@ cmake -G "Visual Studio 16 2019" -A x64 ..
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
 
+### Optional: Configure project for Visual Studio IDE
+Configure with `-DADD_HEADERS_AS_SOURCES=ON`.
+Automatic CMake configuration may need to be disabled in Visual Studio via the **Tools > Options > CMake > General** menu.
+Then run the `prepare_for_ide` target to generate the necessary header symlinks and source files for the project.
+```PowerShell
+cmake --build . --target prepare_for_ide
+```
+
 ## Testing
 
 To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
