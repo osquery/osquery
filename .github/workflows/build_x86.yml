@@ -33,7 +33,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: f81fc5336b43d3dbdf4e5e8a22c65d940651c8d0
+  PACKAGING_COMMIT: e70ff4c41f6d8eaa95267ef363f497a17655c425
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
