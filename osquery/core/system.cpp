@@ -97,8 +97,6 @@ FLAG(string,
      "",
      "Field used to specify the host_identifier when set to \"specified\"");
 
-FLAG(bool, utc, true, "Convert all UNIX times to UTC");
-
 namespace {
 
 const std::vector<std::string> kPlaceholderHardwareUUIDList{

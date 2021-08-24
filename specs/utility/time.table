@@ -9,8 +9,6 @@ schema([
     Column("minutes", INTEGER, "Current minutes in the system"),
     Column("seconds", INTEGER, "Current seconds in the system"),
     Column("timezone", TEXT, "Current timezone in the system"),
-    Column("local_time", INTEGER, "Current local UNIX time in the system",
-        aliases=["localtime"], hidden=True),
     Column("local_timezone", TEXT, "Current local timezone in the system"),
     Column("unix_time", INTEGER, "Current UNIX time in the system"),
     Column("timestamp", TEXT, "Current timestamp (log format) in the system"),
