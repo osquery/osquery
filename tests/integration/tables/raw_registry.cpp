@@ -11,6 +11,7 @@
 // Spec file: specs/windows/registry.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
@@ -24,9 +25,19 @@ class RawRegistryTest : public testing::Test {
 };
 
 TEST_F(RawRegistryTest, test_sanity) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
+          .make_preferred()
+          .string();
   QueryData const rows = execute_query(
       "select *,physical_device from raw_registry where reg_path = "
-      "'C:\\Windows\\System32\\config\\SYSTEM'");
+      "'" +
+      test_filepath + "'");
+
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"key", NormalType},
@@ -40,6 +51,15 @@ TEST_F(RawRegistryTest, test_sanity) {
       {"physical_device", NormalType},
   };
   validate_rows(rows, row_map);
+
+  // If running tests locally try local Registry file
+  QueryData const default_rows = execute_query(
+      "select *,physical_device from raw_registry where reg_path = "
+      "'C:\\Windows\\System32\\config\\SYSTEM'");
+  if (!default_rows.empty()) {
+    ASSERT_GT(default_rows.size(), 0ul);
+    validate_rows(default_rows, row_map);
+  }
 }
 
 } // namespace

@@ -62,6 +62,13 @@ TEST_F(AmcacheTest, test_sanity) {
       {"version", NormalType},
   };
   validate_rows(rows, row_map);
+
+  // If running tests locally try local Amcache file
+  QueryData const default_rows = execute_query("select * from amcache");
+  if (!default_rows.empty()) {
+    ASSERT_GT(default_rows.size(), 0ul);
+    validate_rows(default_rows, row_map);
+  }
 }
 
 } // namespace
