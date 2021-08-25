@@ -720,7 +720,7 @@ And the following files/templates used by the recipe:
   <string><%= @domain %></string>
   <key>ProgramArguments</key>
   <array>
-      <string>/usr/local/bin/osqueryd</string>
+      <string>/opt/osquery/osquery.app/Contents/MacOS/osqueryd</string>
       <string>--config_path</string>
       <string><%= @config_path %></string>
       <string>--pidfile</string>
