@@ -10,19 +10,18 @@ The default packages create the following structure:
 /etc/init.d/osqueryd
 /etc/osquery/
 /etc/sysconfig/osqueryd
-/usr/bin/osqueryctl
-/usr/bin/osqueryd
-/usr/bin/osqueryi
+/opt/osquery/bin/osqueryctl
+/opt/osquery/bin/osqueryd
+/usr/local/bin/osqueryi -> /opt/osquery/bin/osqueryd
+/usr/local/bin/osqueryctl -> /opt/osquery/bin/osqueryctl
 /usr/lib/systemd/system/osqueryd.service
-/usr/share/osquery/certs/certs.pem
-/usr/share/osquery/lenses/{*}.aug
-/usr/share/osquery/packs/{*}.conf
-/usr/share/osquery/osquery.example.conf
+/opt/osquery/share/osquery/certs/certs.pem
+/opt/osquery/share/osquery/lenses/{*}.aug
+/opt/osquery/share/osquery/packs/{*}.conf
+/opt/osquery/share/osquery/osquery.example.conf
 /var/log/osquery/
 /var/osquery/
 ```
-
-Note: if building the TGZ "package" with CPack, `CMAKE_INSTALL_PREFIX` defaults to `/usr/local/` rather than `/usr/`, in all of the paths above. This is also true if installing directly from CMake, e.g., with a `make install` after compilation. If you plan to use `/usr/local/` as the install path prefix, you should also first edit `tools/deployment/osqueryd.service`. Using one of the packaging systems is recommended, but if you perform an install without using a packaging system, you may also receive the error `osqueryd has unsafe permissions: /usr/local/bin/osqueryd`, and it will refuse to run. To resolve this, `sudo chown root:root /usr/local/bin/osqueryd` and its other files.
 
 ## Installing osquery
 
@@ -37,7 +36,7 @@ To start a standalone osquery use: `osqueryi`. This does not need an osquery ser
 After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to `osqueryd`, the daemon, too. To start the daemon:
 
 ```sh
-sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
+sudo cp /opt/osquery/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
 # sudo service osqueryd start
 sudo systemctl start osqueryd
 ```

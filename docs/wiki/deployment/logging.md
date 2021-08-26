@@ -157,7 +157,7 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "action": "added",
   "columns": {
     "name": "osqueryd",
-    "path": "/usr/local/bin/osqueryd",
+    "path": "/opt/osquery/bin/osqueryd",
     "pid": "97830"
   },
   "name": "processes",
@@ -175,7 +175,7 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "action": "removed",
   "columns": {
     "name": "osqueryd",
-    "path": "/usr/local/bin/osqueryd",
+    "path": "/opt/osquery/bin/osqueryd",
     "pid": "97650"
   },
   "name": "processes",
@@ -245,14 +245,14 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     "added": [
       {
         "name": "osqueryd",
-        "path": "/usr/local/bin/osqueryd",
+        "path": "/opt/osquery/bin/osqueryd",
         "pid": "97830"
       }
     ],
     "removed": [
       {
         "name": "osqueryd",
-        "path": "/usr/local/bin/osqueryd",
+        "path": "/opt/osquery/bin/osqueryd",
         "pid": "97650"
       }
     ]

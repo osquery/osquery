@@ -517,9 +517,9 @@ Maximum number of logs to ingest per run (~200ms between runs). Use this as a fa
 
 ## Augeas flags
 
-`--augeas_lenses=/usr/share/osquery/lenses`
+`--augeas_lenses=/opt/osquery/share/osquery/lenses`
 
-Augeas lenses are bundled with osquery distributions. On Linux they are installed in `/usr/share/osquery/lenses`. On macOS, lenses are installed in the `/private/var/osquery/lenses` directory. Specify the path to the directory containing custom or different version lenses files.
+Augeas lenses are bundled with osquery distributions. On Linux they are installed in `/opt/osquery/share/osquery/lenses`. On macOS, lenses are installed in the `/private/var/osquery/lenses` directory. Specify the path to the directory containing custom or different version lenses files.
 
 ## Docker flags
 
