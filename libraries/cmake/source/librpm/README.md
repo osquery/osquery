@@ -36,7 +36,7 @@ export LDFLAGS="${CFLAGS} -L$OPENSSL_LINK -L$LIBMAGIC_LINK -L$POPT_LINK"
 export CC=clang
 
 ./autogen.sh
-./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb --enable-bdb-ro --enable_sqlite --without-lua --disable-plugins --disable-openmp
+./configure --enable-static --with-crypto=openssl --without-archive --enable-bdb --enable-bdb-ro --enable-sqlite --enable-ndb --without-lua --disable-plugins --disable-openmp
 ```
 
 Then copy
