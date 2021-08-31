@@ -8,7 +8,7 @@
 #define ENABLE_INHIBIT_PLUGIN 1
 
 /* Enable new rpm database format? */
-/* #undef ENABLE_NDB */
+#define ENABLE_NDB 1
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
@@ -47,7 +47,7 @@
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the <db.h> header file. */
-/* #undef HAVE_DB_H */
+#define HAVE_DB_H 1
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
@@ -173,7 +173,7 @@
 #define HAVE_MKSTEMP 1
 
 /* Define to 1 if you have the `mremap' function. */
-/* #undef HAVE_MREMAP */
+#define HAVE_MREMAP 1
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 /* #undef HAVE_NDIR_H */
@@ -304,13 +304,12 @@
 #define HAVE___PROGNAME 1
 
 /* Define to 1 if you have the `__secure_getenv' function. */
-#define HAVE___SECURE_GETENV 1
+/* #undef HAVE___SECURE_GETENV */
 
 /* Define as const if the declaration of iconv() needs const. */
 #define ICONV_CONST 
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
@@ -343,7 +342,7 @@
 #define PACKAGE_VERSION "4.16.1.2"
 
 /* canonical vendor */
-#define RPMCANONVENDOR "unknown"
+#define RPMCANONVENDOR "pc"
 
 /* run-time variable directory */
 #define RUNDIR "/run"
@@ -386,7 +385,7 @@
 /* #undef WITH_AUDIT */
 
 /* Define if BDB is available */
-/* #undef WITH_BDB */
+#define WITH_BDB 1
 
 /* Build with read-only Berkeley DB */
 #define WITH_BDB_RO 1
@@ -432,7 +431,7 @@
 
 /* A full path to a program, possibly with arguments, that will create a
    directory and all necessary parent directories, ala 'mkdir -p' */
-#define __MKDIR_P "/bin/mkdir -p"
+#define __MKDIR_P "/usr/bin/mkdir -p"
 
 /* Define to `int' if <sys/types.h> does not define. */
 /* #undef mode_t */
