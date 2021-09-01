@@ -188,6 +188,33 @@ If you would like to debug the raw audit events as `osqueryd` sees them, use the
 
 > NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`.
 
+### Avoid throttling, losing events and interpreting Audit publisher throttling messages
+
+If osquery is CPU constrained and is processing a high enough stream of events, you may receive this warning message:  
+`The Audit publisher has throttled reading records from Netlink for <N> seconds. Some events may have been lost.`.
+
+This message can only appear at most every minute and it indicates that the Audit publisher had to slow down reading records from the Netlink socket for the reported duration, since the previous throttling message.
+This happens when osquery is not processing records fast enough to prevent its internal buffers growing too much and consuming too much memory.
+
+Throttling may cause loss of events, since the Audit subsystem backlog buffer could fill up; if that happens the kernel will be forced to drop some of them.  
+You can check if this is happening looking at the `lost` field via `auditctl -s`.
+
+Throttling currently starts when more than 4096 records have been read and are still in the queue to be processed by osquery; this is a number of records
+which can support high spikes of events, and is a limit for osquery to avoid consuming memory indefinitely.  
+Keep in mind that if the high rate of events continues, even with throttling happening, you might still have to increase your default [watchdog memory limit](../installation/cli-flags.md#daemon-control-flags) or reduce the interval of the scheduled query on the evented table, due to the amount of rows that it will have to generate at once.
+
+There's also a second throttling point in the Audit publisher pipeline, which exists after the records have been read from the Netlink socket and are then parsed into a more computer friendly format.  
+When throttling happens here, another message will be logged which is:  
+`The Audit publisher has throttled record processing for <N> seconds. This may cause further throttling and loss of events.`.
+
+This message exists mostly for debugging purposes and will only appear if `--verbose` is active, because this doesn't necessarily cause loss of events: a bottleneck in this point of the pipeline will have to cause throttling in the Netlink socket reading side, before possibly causing loss of events.  
+So as long as no throttling is happening on the reading side, no loss of events should happen due to this.
+
+To avoid throttling there isn't much to be done beyond reducing constraints on the CPU or in general have osquery process less events.
+
+To attempt avoiding losing events, first of all we should ensure that throttling happens as few times as possible. Then when can try to increase the backlog buffer that the Audit subsystem is using via the `--audit_backlog_limit` flag, to attempt to support bigger/slightly longer events spikes.  
+Keep in mind that increasing this will increase the amount of memory used by the Audit subsystem and that this memory is not allocated by osquery, so it won't be accounted for by the watchdog.
+
 ## User event auditing with Audit
 
 On Linux, a companion table called `user_events` is included that provides several authentication-based events. If you are enabling process auditing it should be trivial to also include this table.
