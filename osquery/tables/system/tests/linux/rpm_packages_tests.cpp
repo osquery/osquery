@@ -216,8 +216,7 @@ TEST_F(RpmTests, test_ndb_packages) {
   std::vector<struct PackageDetails> expected = {
       {"binutils", "2.35.1", "2e706f0d18f426555620350d5c665f834ae20317"},
       {"zlib-devel", "1.2.11", "202827943881ba133a7e8ca91290dcc71083a8e1"},
-      {"ncurses-devel", "6.1", "04c2780ee303bc28ca3568233fe7310d964d3b0c"},
-  };
+      {"ncurses-devel", "6.1", "04c2780ee303bc28ca3568233fe7310d964d3b0c"}};
 
   EXPECT_EQ(expected, packages);
 };
