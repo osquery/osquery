@@ -13,6 +13,7 @@ ExecStart=/opt/osquery/bin/osqueryd \
 Restart=on-failure
 KillMode=control-group
 KillSignal=SIGTERM
+TimeoutStopSec=15
 CPUQuota=20%
 
 [Install]
