@@ -23,18 +23,18 @@ namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  auto osquery_time = getUnixTime();
-  auto osquery_timestamp = getAsciiTime();
+
+  time_t osquery_time = getUnixTime();
 
   struct tm gmt;
   gmtime_r(&osquery_time, &gmt);
   struct tm now = gmt;
+  auto osquery_timestamp = toAsciiTime(&now);
 
   char local_timezone[5] = {0};
   {
-    time_t local_time = getUnixTime();
     struct tm local;
-    localtime_r(&local_time, &local);
+    localtime_r(&osquery_time, &local);
     strftime(local_timezone, sizeof(local_timezone), "%Z", &local);
   }
 
