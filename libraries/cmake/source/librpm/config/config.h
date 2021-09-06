@@ -8,7 +8,7 @@
 #define ENABLE_INHIBIT_PLUGIN 1
 
 /* Enable new rpm database format? */
-/* #undef ENABLE_NDB */
+#define ENABLE_NDB 1
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
