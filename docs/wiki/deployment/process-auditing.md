@@ -263,7 +263,7 @@ The FDA permission (or lack thereof) is inherited from `Terminal.app` when runni
 | -------- | -------- | -------- |
 | `Terminal.app`¹   | Give Full Disk Access to `Terminal.app` only  | Success     |
 | `Terminal.app`¹  | Give FDA only to osquery only, or do nothing  |  No events |
-| `launchctl`  | Give Full Disk Access to `/usr/local/bin/osqueryd`² only | Success |
+| `launchctl`  | Give Full Disk Access to `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd`² only | Success |
 | `launchctl`  | Give FDA to `launchctl` only, or do nothing  | No events  |
 
 ¹ : if you use a third-party terminal emulator like `iTerm.app`, grant that the permission instead of `Terminal.app`.
@@ -281,9 +281,9 @@ If a macOS host is enrolled in MDM, The FDA permissions can be granted silently 
 To get the appropriate `CodeRequirement` identifier, use the `codesign` tool and then copy everything in the output after the `designated =>`.
 
 ```shell
-> codesign  -dr - /usr/local/bin/osqueryd
-Executable=/usr/local/bin/osqueryd
-designated => identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */
+> codesign  -dr - /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+Executable=/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+designated => identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"
 ```
 
 For your deployment, either generate an equivalent profile using your MDM dashboard (specifying `/usr/local/bin/osqueryd` as `Identifier` and `path` as the `Identifier Type` and setting `SystemPolicyAllFiles` to `Allow`), or just use the example configuration profile below, ensuring the correct value for the following fields:
@@ -321,13 +321,13 @@ For your deployment, either generate an equivalent profile using your MDM dashbo
       <key>Allowed</key>
       <true/>
       <key>CodeRequirement</key>
-      <string>identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+      <string>identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"</string>
       <key>Comment</key>
       <string></string>
       <key>Identifier</key>
-      <string>/usr/local/bin/osqueryd</string>
+      <string>io.osquery.agent</string>
       <key>IdentifierType</key>
-      <string>path</string>
+      <string>bundleID</string>
      </dict>
     </array>
    </dict>
