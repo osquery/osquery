@@ -3,7 +3,7 @@ description("Track current date and time in UTC.")
 schema([
     Column("weekday", TEXT, "Current weekday in UTC"),
     Column("year", INTEGER, "Current year in UTC"),
-    Column("month", INTEGER, "Current month in UTC),
+    Column("month", INTEGER, "Current month in UTC"),
     Column("day", INTEGER, "Current day in UTC"),
     Column("hour", INTEGER, "Current hour in UTC"),
     Column("minutes", INTEGER, "Current minutes in UTC"),
