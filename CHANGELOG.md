@@ -7,15 +7,15 @@
 
 Representing commits from 21 contributors! Thank you all.
 
-osquery 5.0 is a tremendously exciting release.
+osquery 5.0 is a tremendously exciting release!
 * We now install into /opt/osquery on macOS and Linux for better portability.
 * Our default and recommended installation for macOS uses an application bundle to support entitlement-based features.
 * We now use Endpoint Security APIs for various event-based tables on macOS (more to come in the future!)
 * We now use an osquery-organization macOS code signing certificate.
 
 There are several breaking changes.
-* Installation paths have changes from /usr/local to /opt/osquery on macOS and Linux (symlinks to executables are provided).
-* We removed the blacklist key (#7153) in configuration, for several months the use of this key was generating a deprecation warning.
+* Installation paths have changes from `/usr/local` to `/opt/osquery` on macOS and Linux (symlinks to executables are provided).
+* We removed the deprecated `blacklist` key from the configuration (#7153)
 * Search semantics on the augeas table have changed to be more performant, but do break the existing query API.
 
 Representing commits from 20 contributors! Thank you all.
