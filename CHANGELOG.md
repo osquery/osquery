@@ -13,8 +13,11 @@ osquery 5.0 is a tremendously exciting release!
 * We now use Endpoint Security APIs for various event-based tables on macOS (more to come in the future!)
 * We now use an osquery-organization macOS code signing certificate.
 
-There are several breaking changes.
+There are several breaking changes:
 * Installation paths have changes from `/usr/local` to `/opt/osquery` on macOS and Linux (symlinks to executables are provided).
+* macOS codesigning is now down through the Osquery Foundation account
+* If you manage macOS full disk permission through a profile, you will need to update it.
+  See [docs](https://osquery.readthedocs.io/en/latest/deployment/process-auditing/#automatically-granting-permissions-silent-installs)
 * We removed the deprecated `blacklist` key from the configuration (#7153)
 * Search semantics on the augeas table have changed to be more performant, but do break the existing query API.
 
@@ -67,16 +70,17 @@ Representing commits from 20 contributors! Thank you all.
 
 ### Build
 
+- Add TimeoutStopSec to systemd service files ([#7190](https://github.com/osquery/osquery/pull/7190))
 - Correct macOS installed app bundle path in osqueryctl and doc ([#7289](https://github.com/osquery/osquery/pull/7289))
 - Create an macOS app bundle ([#7263](https://github.com/osquery/osquery/pull/7263))
 - Fix choco packaging not failing when an error occurs during install or upgrade ([#7182](https://github.com/osquery/osquery/pull/7182))
 - Fix path in macOS launchd plist ([#7288](https://github.com/osquery/osquery/pull/7288))
 - Pin the packaging repo within GitHub workflows ([#7208](https://github.com/osquery/osquery/pull/7208))
+- Update Windows deployment icon to png ([#7163](https://github.com/osquery/osquery/pull/7163))
 - Update install paths, and remove deprecated Facebook naming ([#7210](https://github.com/osquery/osquery/pull/7210))
 - Update macOS build to include app bundle related files ([#7184](https://github.com/osquery/osquery/pull/7184))
 - Update osquery installed artifacts default paths in code ([#7285](https://github.com/osquery/osquery/pull/7285))
 - Update the installation path on Linux ([#7271](https://github.com/osquery/osquery/pull/7271))
-- Update Windows deployment icon to png ([#7163](https://github.com/osquery/osquery/pull/7163))
 - libs: Add options to AWS Optionally enable debug option and restrict content-type header size for PUT req ([#7216](https://github.com/osquery/osquery/pull/7216))
 - libs: Enable and compile the YARA macho module on macOS ([#7174](https://github.com/osquery/osquery/pull/7174))
 - libs: Update OpenSSL to version 1.1.1l ([#7293](https://github.com/osquery/osquery/pull/7293))
