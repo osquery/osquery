@@ -25,7 +25,7 @@ Representing commits from 20 contributors! Thank you all.
 - Add `secureboot` table for Linux and Windows ([#7202](https://github.com/osquery/osquery/pull/7202))
 - Add `tpm_info` for Windows ([#7107](https://github.com/osquery/osquery/pull/7107))
 - Fix `osquery_info` build_platform column value on Linux ([#7254](https://github.com/osquery/osquery/pull/7254))
-- Support pid_with_namespace in more tables ([#7132](https://github.com/osquery/osquery/pull/7132))
+- Support `pid_with_namespace` in more tables ([#7132](https://github.com/osquery/osquery/pull/7132))
 - Update `augeas` table to use native pattern matching (BREAKING) ([#6982](https://github.com/osquery/osquery/pull/6982))
 - Update `chrome_extensions` to include Edge & EdgeBeta ([#7170](https://github.com/osquery/osquery/pull/7170))
 - Update `disk_encryption` table to support QueryContext ([#7209](https://github.com/osquery/osquery/pull/7209))
@@ -33,7 +33,7 @@ Representing commits from 20 contributors! Thank you all.
 - Update `sudoers` table to support newer include syntax ([#7185](https://github.com/osquery/osquery/pull/7185))
 - Update `user_ssh_keys` to detect encryption of ed25519 keys ([#7168](https://github.com/osquery/osquery/pull/7168))
 
-### Under the Hood improvements
+### Under the Hood Improvements
 
 - Add ruby namespace to the thrift definition ([#7191](https://github.com/osquery/osquery/pull/7191))
 - Always initialize variable change in PerformanceChange ([#7176](https://github.com/osquery/osquery/pull/7176))
@@ -53,8 +53,8 @@ Representing commits from 20 contributors! Thank you all.
 - Fix issues applying ACLs during chocolatey deployment ([#7166](https://github.com/osquery/osquery/pull/7166))
 - Fix memory issue in Windows fileops ([#7179](https://github.com/osquery/osquery/pull/7179))
 - Fix `process_open_sockets` type error on darwin ([#6546](https://github.com/osquery/osquery/pull/6546))
-- Make sure that the file action "MOVED_TO" is tracked with yara events. ([#7203](https://github.com/osquery/osquery/pull/7203))
-- Prevent osquery from killing itself when the --force flag is used ([#7295](https://github.com/osquery/osquery/pull/7295))
+- Make sure that the file action `MOVED_TO` is tracked with yara events. ([#7203](https://github.com/osquery/osquery/pull/7203))
+- Prevent osquery from killing itself when the `--force` flag is used ([#7295](https://github.com/osquery/osquery/pull/7295))
 - Prevent race condition between shutdown and worker or extension launch ([#7204](https://github.com/osquery/osquery/pull/7204))
 
 ### Documentation
