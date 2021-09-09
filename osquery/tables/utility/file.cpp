@@ -20,6 +20,7 @@
 #include <osquery/worker/logging/glog/glog_logger.h>
 #include <string>
 
+#include <iostream>
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -156,7 +157,6 @@ void genFileInfo(const fs::path& path,
 void transverseFileSystem(QueryData& results,
                           const std::string& start_path,
                           const int& limit) {
-  // const fs::path start_path = "/";
   std::vector<std::string> paths;
 
   fs::recursive_directory_iterator start(start_path), end;
@@ -174,23 +174,8 @@ void transverseFileSystem(QueryData& results,
     boost::system::error_code ec;
     start.increment(ec);
     if (ec) {
-
-      if (ec.value() == 13) {
-        LOG(INFO) << "Permission denied for: " << start->path();
-        // Move on to next path/file entry
-        start.no_push();
-      } else if (ec.value() == 1) {
-        LOG(INFO) << "Operation not permitted for: " << start->path();
-        // Move on to next path/file entry
-        start.no_push();
-      } else if (ec.value() == 20) {
-        LOG(INFO) << "Not a directory: " << start->path();
-        // Move on to next path/file entry
-        start.no_push();
-      } else {
-        LOG(INFO) << "Could not access file or path: " << start->path();
-        start.no_push();
-      }
+      LOG(INFO) << ec.message() << ": " << start->path();
+      start.no_push();
     }
   }
   
@@ -219,7 +204,7 @@ QueryData genFileImpl(QueryContext& context, Logger& logger) {
       return results;
     }
     if (limit_array.empty()) {
-      transverseFileSystem(results, start_path, 8);
+      transverseFileSystem(results, start_path, 1);
     } else {
       auto limit_iter = limit_array.begin();
       int limit = std::stoi(*limit_iter);
