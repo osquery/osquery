@@ -371,7 +371,7 @@ This is a comma-separated list of UDEV types to drop. On machines with flash-bac
 
 `--disable_endpointsecurity=true`
 
-Setting to `false` (in combination with `--disable_events=false`) turns on EndpointSecurity-based event collection within osquery (supported in macOS 10.15 and newer), and enables the use of the `process_events_es` table. This feature requires running osquery as root. It also requires that the osquery executable be code-signed and notarized to have the Endpoint Security client entitlement; official release builds of osquery will be appropriately code-signed. Lastly, it requires that the host give Full Disk Access permission to the osqueryd executable; for more information see the [process auditing section of osquery's deployment documentation](../deployment/process-auditing.md) as well as [installing osquery on macOS](./install-macos.md).
+Setting to `false` (in combination with `--disable_events=false`) turns on EndpointSecurity-based event collection within osquery (supported in macOS 10.15 and newer), and enables the use of the `es_process_events` table. This feature requires running osquery as root. It also requires that the osquery executable be code-signed and notarized to have the Endpoint Security client entitlement; official release builds of osquery will be appropriately code-signed. Lastly, it requires that the host give Full Disk Access permission to the osqueryd executable; for more information see the [process auditing section of osquery's deployment documentation](../deployment/process-auditing.md) as well as [installing osquery on macOS](./install-macos.md).
 
 ## Logging/results flags
 
