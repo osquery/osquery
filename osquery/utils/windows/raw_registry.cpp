@@ -124,8 +124,7 @@ class DeviceHelper : private boost::noncopyable {
                      TskFsInfo* fs,
                      const std::string& path,
                      std::string reg_path,
-                     std::vector<char>& reg_contents,
-                     TSK_INUM_T inode = 0);
+                     std::vector<char>& reg_contents);
 
  private:
   /// Attempt to open the provided device image and volume.
@@ -172,8 +171,7 @@ void DeviceHelper::generateFiles(const std::string& partition,
                                  TskFsInfo* fs,
                                  const std::string& path,
                                  const std::string reg_path,
-                                 std::vector<char>& reg_contents,
-                                 TSK_INUM_T inode) {
+                                 std::vector<char>& reg_contents) {
   if (stack_++ > 1024) {
     return;
   }
@@ -648,7 +646,8 @@ std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
   RegHeader header;
 
   memcpy(&header, &reg_contents[0], kheader_size);
-  if (header.sig != 0x66676572) {
+  const int reg_sig = 0x66676572;
+  if (header.sig != reg_sig) {
     LOG(WARNING) << "Not a registry file, expected sig 'regf'";
     return raw_reg;
   }
