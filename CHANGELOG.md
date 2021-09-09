@@ -1,9 +1,9 @@
 # osquery Changelog
 
-<a name="5.0.2"></a>
-## [5.0.2](https://github.com/osquery/osquery/releases/tag/5.0.2)
+<a name="5.0.1"></a>
+## [5.0.1](https://github.com/osquery/osquery/releases/tag/5.0.1)
 
-[Git Commits](https://github.com/osquery/osquery/compare/4.9.0...5.0.2)
+[Git Commits](https://github.com/osquery/osquery/compare/4.9.0...5.0.1)
 
 Representing commits from 21 contributors! Thank you all.
 
@@ -75,7 +75,7 @@ Representing commits from 20 contributors! Thank you all.
 - Create an macOS app bundle ([#7263](https://github.com/osquery/osquery/pull/7263))
 - Fix choco packaging not failing when an error occurs during install or upgrade ([#7182](https://github.com/osquery/osquery/pull/7182))
 - Fix path in macOS launchd plist ([#7288](https://github.com/osquery/osquery/pull/7288))
-- Pin the packaging repo within GitHub workflows ([#7208](https://github.com/osquery/osquery/pull/7208))
+- Pin the packaging repo within GitHub workflows ([#7208](https://github.com/osquery/osquery/pull/7208), [#7255](https://github.com/osquery/osquery/pull/7255), [#7279](https://github.com/osquery/osquery/pull/7279))
 - Update Windows deployment icon to png ([#7163](https://github.com/osquery/osquery/pull/7163))
 - Update install paths, and remove deprecated Facebook naming ([#7210](https://github.com/osquery/osquery/pull/7210))
 - Update macOS build to include app bundle related files ([#7184](https://github.com/osquery/osquery/pull/7184))
