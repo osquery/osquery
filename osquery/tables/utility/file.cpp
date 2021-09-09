@@ -18,6 +18,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
+#include <string>
 
 namespace fs = boost::filesystem;
 
@@ -44,6 +45,8 @@ const std::map<fs::file_type, std::string> kTypeNames{
 void genFileInfo(const fs::path& path,
                  const fs::path& parent,
                  const std::string& pattern,
+                 const std::string& start_path,
+                 const int& limit,
                  QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
@@ -53,6 +56,8 @@ void genFileInfo(const fs::path& path,
   r["filename"] = path.filename().string();
   r["directory"] = parent.string();
   r["symlink"] = "0";
+  r["start_path"] = SQL_TEXT(start_path);
+  r["path_limit"] = INTEGER(limit);
 
 #if !defined(WIN32)
 
@@ -148,68 +153,79 @@ void genFileInfo(const fs::path& path,
   results.push_back(r);
 }
 
-QueryData genFileImpl(QueryContext& context, Logger& logger) {
-  QueryData results;
+void transverseFileSystem(QueryData& results,
+                          const std::string& start_path,
+                          const int& limit) {
+  // const fs::path start_path = "/";
+  std::vector<std::string> paths;
 
-  // Resolve file paths for EQUALS and LIKE operations.
-  auto paths = context.constraints["path"].getAll(EQUALS);
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+  fs::recursive_directory_iterator start(start_path), end;
+  while (start != end) {
 
+    // Skip firmlinks on macos
+    if (start->path().string() == "/System/Volumes/Data" ||
+        start->path().string() == "/Volumes/Macintosh HD") {
+      start.no_push();
+    }
+    paths.push_back(start->path().string());
+    if (start.level() == limit) {
+      start.no_push();
+    }
+    boost::system::error_code ec;
+    start.increment(ec);
+    if (ec) {
+
+      if (ec.value() == 13) {
+        LOG(INFO) << "Permission denied for: " << start->path();
+        // Move on to next path/file entry
+        start.no_push();
+      } else if (ec.value() == 1) {
+        LOG(INFO) << "Operation not permitted for: " << start->path();
+        // Move on to next path/file entry
+        start.no_push();
+      } else if (ec.value() == 20) {
+        LOG(INFO) << "Not a directory: " << start->path();
+        // Move on to next path/file entry
+        start.no_push();
+      } else {
+        LOG(INFO) << "Could not access file or path: " << start->path();
+        start.no_push();
+      }
+    }
+  }
+  
   // Iterate through each of the resolved/supplied paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
-    genFileInfo(path, path.parent_path(), "", results);
+    genFileInfo(path, path.parent_path(), "", start_path, limit, results);
   }
 
-  // Resolve directories for EQUALS and LIKE operations.
-  auto directories = context.constraints["directory"].getAll(EQUALS);
-  context.expandConstraints(
-      "directory",
-      LIKE,
-      directories,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_FOLDERS | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+}
 
-  // Now loop through constraints using the directory column constraint.
-  for (const auto& directory_string : directories) {
-    if (!isReadable(directory_string) || !isDirectory(directory_string)) {
-      continue;
-    }
+QueryData genFileImpl(QueryContext& context, Logger& logger) {
+  QueryData results;
+  auto start_path_array = context.constraints["start_path"].getAll(EQUALS);
+  auto limit_array = context.constraints["path_limit"].getAll(EQUALS);
 
-    try {
-      // Iterate over the directory and generate info for each regular file.
-      fs::directory_iterator begin(directory_string), end;
-      for (; begin != end; ++begin) {
-        genFileInfo(begin->path(), directory_string, "", results);
-      }
-    } catch (const fs::filesystem_error& /* e */) {
-      continue;
-    }
+  if (start_path_array.empty() || limit_array.size() > 1) {
+    LOG(INFO) << "Got empty path and/or more than one limit";
   }
 
+  for (const auto& start_path : start_path_array) {
+    boost::filesystem::path check_path = start_path;
+    auto status = pathExists(check_path);
+    if (!status.ok()) {
+      LOG(INFO) << "Path does not exist";
+      return results;
+    }
+    if (limit_array.empty()) {
+      transverseFileSystem(results, start_path, 8);
+    } else {
+      auto limit_iter = limit_array.begin();
+      int limit = std::stoi(*limit_iter);
+      transverseFileSystem(results, start_path, limit);
+    }
+  }
   return results;
 }
 
