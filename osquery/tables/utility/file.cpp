@@ -43,7 +43,6 @@ const std::map<fs::file_type, std::string> kTypeNames{
 
 void genFileInfo(const fs::path& path,
                  const fs::path& parent,
-                 const std::string& pattern,
                  const std::string& start_path,
                  const int& limit,
                  QueryData& results) {
@@ -179,7 +178,7 @@ void transverseFileSystem(QueryData& results,
   // Iterate through each of the paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
-    genFileInfo(path, path.parent_path(), "", start_path, limit, results);
+    genFileInfo(path, path.parent_path(), start_path, limit, results);
   }
 }
 
