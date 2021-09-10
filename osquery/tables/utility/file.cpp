@@ -178,7 +178,6 @@ void transverseFileSystem(QueryData& results,
   std::sort(paths.begin(), paths.end());
   paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
 
-
   // Iterate through each of the paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
