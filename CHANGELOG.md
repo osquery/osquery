@@ -21,8 +21,6 @@ There are several breaking changes:
 * We removed the deprecated `blacklist` key from the configuration (#7153)
 * Search semantics on the augeas table have changed to be more performant, but do break the existing query API.
 
-Representing commits from 20 contributors! Thank you all.
-
 ### Table Changes
 
 - Add `secureboot` table for Linux and Windows ([#7202](https://github.com/osquery/osquery/pull/7202))
@@ -85,8 +83,7 @@ Representing commits from 20 contributors! Thank you all.
 - libs: Enable and compile the YARA macho module on macOS ([#7174](https://github.com/osquery/osquery/pull/7174))
 - libs: Update OpenSSL to version 1.1.1l ([#7293](https://github.com/osquery/osquery/pull/7293))
 - libs: Update Strawberry Perl to 5.32.1.1, use HTTPS downloads ([#7199](https://github.com/osquery/osquery/pull/7199))
-- libs: Update ebpfpub ([#7219](https://github.com/osquery/osquery/pull/7219))
-- libs: Update the ebpfpub library ([#7173](https://github.com/osquery/osquery/pull/7173))
+- libs: Update ebpfpub ([#7173](https://github.com/osquery/osquery/pull/7173), [#7219](https://github.com/osquery/osquery/pull/7219))
 
 <a name="4.9.0"></a>
 ## [4.9.0](https://github.com/osquery/osquery/releases/tag/4.9.0)
