@@ -10,6 +10,7 @@
 #pragma once
 
 #include <csignal>
+#include <memory>
 #include <mutex>
 #include <string>
 
@@ -45,6 +46,8 @@ class Initializer : private boost::noncopyable {
               char**& argv,
               ToolType tool = ToolType::TEST,
               bool init_glog = true);
+
+  ~Initializer();
 
   /**
    * @brief Sets up the process as an osquery daemon.
@@ -145,6 +148,9 @@ class Initializer : private boost::noncopyable {
   static bool isResourceLimitHit();
 
  private:
+  struct PrivateData;
+  std::unique_ptr<PrivateData> d;
+
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
@@ -234,13 +240,6 @@ std::string generateHostUUID();
  * @return string to identify this machine
  */
 std::string getHostIdentifier();
-
-/**
- * @brief Create a pid file
- *
- * @return A status object indicating the success or failure of the operation
- */
-Status createPidFile();
 
 /**
  * @brief Getter for determining Admin status

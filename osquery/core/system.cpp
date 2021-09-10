@@ -73,12 +73,6 @@ namespace osquery {
 
 DECLARE_uint64(alarm_timeout);
 
-/// The path to the pidfile for osqueryd
-CLI_FLAG(string,
-         pidfile,
-         OSQUERY_PIDFILE "osqueryd.pidfile",
-         "Path to the daemon pidfile mutex");
-
 /// Should the daemon force unload previously-running osqueryd daemons.
 CLI_FLAG(bool,
          force,
@@ -359,38 +353,6 @@ Status checkStalePid(const std::string& content) {
   }
 
   return Status::success();
-}
-
-Status createPidFile() {
-  // check if pidfile exists
-  auto pidfile_path = fs::path(FLAGS_pidfile).make_preferred();
-
-  if (pathExists(pidfile_path).ok()) {
-    // if it exists, check if that pid is running.
-    std::string content;
-    auto read_status = readFile(pidfile_path, content);
-    if (!read_status.ok()) {
-      return Status(1, "Could not read pidfile: " + read_status.toString());
-    }
-
-    auto stale_status = checkStalePid(content);
-    if (!stale_status.ok()) {
-      return stale_status;
-    }
-  }
-
-  // Now the pidfile is either the wrong pid or the pid is not running.
-  if (!removePath(pidfile_path)) {
-    // Unable to remove old pidfile.
-    LOG(WARNING) << "Unable to remove the osqueryd pidfile";
-  }
-
-  // If no pidfile exists or the existing pid was stale, write, log, and run.
-  auto pid = std::to_string(PlatformProcess::getCurrentPid());
-  VLOG(1) << "Writing osqueryd pid (" << pid << ") to "
-          << pidfile_path.string();
-  auto status = writeTextFile(pidfile_path, pid, 0644);
-  return status;
 }
 
 bool PlatformProcess::cleanup(std::chrono::milliseconds timeout) const {
