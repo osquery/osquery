@@ -46,7 +46,7 @@ class FileTests : public testing::Test {
 TEST_F(FileTests, test_sanity) {
   std::string path_constraint =
       (filepath.parent_path() / boost::filesystem::path("%.txt")).string();
-  QueryData data = execute_query("select * from file where path like \"" +
+  QueryData data = execute_query("select * from file where start_path = \"" +
                                  path_constraint + "\"");
   EXPECT_EQ(data.size(), 1ul);
 
@@ -87,7 +87,7 @@ TEST_F(FileTests, test_sanity) {
 
   if (isPlatform(PlatformType::TYPE_LINUX)) {
     validate_container_rows(
-        "file", row_map, "path like \"" + path_constraint + "\"");
+        "file", row_map, "start_path = \"" + path_constraint + "\"");
   }
 }
 
