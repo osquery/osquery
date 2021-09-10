@@ -198,7 +198,12 @@ QueryData genFileImpl(QueryContext& context, Logger& logger) {
     boost::filesystem::path check_path = start_path;
     auto status = pathExists(check_path);
     if (!status.ok()) {
-      LOG(INFO) << "Path does not exist";
+      LOG(INFO) << "Path does not exist: " << start_path;
+      return results;
+    }
+    status = isReadable(check_path);
+    if (!status.ok()) {
+      LOG(INFO) << "Can't read path: " << start_path;
       return results;
     }
     if (limit_array.empty()) {
