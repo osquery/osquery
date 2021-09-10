@@ -161,7 +161,6 @@ void transverseFileSystem(QueryData& results,
 
   fs::recursive_directory_iterator start(start_path), end;
   while (start != end) {
-
     // Skip firmlinks on macos
     if (start->path().string() == "/System/Volumes/Data" ||
         start->path().string() == "/Volumes/Macintosh HD") {
@@ -178,13 +177,15 @@ void transverseFileSystem(QueryData& results,
       start.no_push();
     }
   }
-  
-  // Iterate through each of the resolved/supplied paths.
+
+  std::sort(paths.begin(), paths.end());
+  paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+
+  // Iterate each of the resolved/supplied paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
     genFileInfo(path, path.parent_path(), "", start_path, limit, results);
   }
-
 }
 
 QueryData genFileImpl(QueryContext& context, Logger& logger) {
