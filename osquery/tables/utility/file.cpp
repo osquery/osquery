@@ -176,7 +176,7 @@ void transverseFileSystem(QueryData& results,
     }
   }
 
-  // Iterate through each of the resolved/supplied paths.
+  // Iterate through each of the paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
     genFileInfo(path, path.parent_path(), "", start_path, limit, results);
