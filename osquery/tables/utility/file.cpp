@@ -18,9 +18,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
-#include <string>
 
-#include <iostream>
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -45,7 +43,6 @@ const std::map<fs::file_type, std::string> kTypeNames{
 
 void genFileInfo(const fs::path& path,
                  const fs::path& parent,
-                 const std::string& pattern,
                  const std::string& start_path,
                  const int& limit,
                  QueryData& results) {
@@ -181,10 +178,11 @@ void transverseFileSystem(QueryData& results,
   std::sort(paths.begin(), paths.end());
   paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
 
-  // Iterate each of the resolved/supplied paths.
+
+  // Iterate through each of the paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
-    genFileInfo(path, path.parent_path(), "", start_path, limit, results);
+    genFileInfo(path, path.parent_path(), start_path, limit, results);
   }
 }
 
