@@ -248,7 +248,6 @@ jobs:
 
     - name: Generate the website schema data
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      env:
       run: |
         mkdir ${{ steps.build_paths.outputs.BINARY }}/website-data
         python3 tools/codegen/genwebsitejson.py \
