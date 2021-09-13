@@ -84,6 +84,10 @@ if(DEFINED PLATFORM_WINDOWS)
   enable_language(ASM_MASM)
 endif()
 
+if(DEFINED PLATFORM_POSIX)
+  enable_language(ASM)
+endif()
+
 if(DEFINED PLATFORM_MACOS)
   enable_language(OBJCXX)
 endif()

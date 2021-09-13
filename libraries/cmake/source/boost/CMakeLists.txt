@@ -777,7 +777,7 @@ function(generateBoostContext)
 
     foreach(asm_source_file ${source_file_list})
       if(DEFINED PLATFORM_POSIX)
-        set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE C)
+        set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE ASM)
       endif()
 
       if(DEFINED PLATFORM_MACOS)

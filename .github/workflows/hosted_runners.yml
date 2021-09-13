@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: osquery/builder18.04:2c2b85cbd
+      image: osquery/builder18.04:a4961d234
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -103,7 +103,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:2c2b85cbd
+      image: osquery/builder18.04:a4961d234
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -218,7 +218,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:2c2b85cbd
+      image: osquery/builder18.04:a4961d234
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -616,7 +616,7 @@ jobs:
         ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
           "${{ steps.build_paths.outputs.DOWNLOADS }}" \
           "${{ steps.build_paths.outputs.INSTALL }}" \
-          "3.17.5"
+          "3.21.4"
 
     - name: Select the Xcode version
       shell: bash
@@ -772,7 +772,7 @@ jobs:
           ./tools/ci/scripts/macos/install_cmake.sh \
             "workspace/downloads" \
             "workspace/install" \
-            "3.17.5"
+            "3.21.4"
 
       - name: Extract the tests
         run: |
@@ -811,7 +811,7 @@ jobs:
           ./tools/ci/scripts/macos/install_cmake.sh \
             "workspace/downloads" \
             "workspace/install" \
-            "3.17.5"
+            "3.21.4"
 
       - uses: actions/download-artifact@v2
         with:
@@ -1023,10 +1023,10 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
       run: |
-        $long_cmake_ver = "3.17.5"
+        $long_cmake_ver = "3.21.4"
         $short_cmake_ver = $($long_cmake_ver.split(".")[0] + "." + $long_cmake_ver.split(".")[1])
 
-        $folder_name = $("cmake-" + $long_cmake_ver + "-win64-x64")
+        $folder_name = $("cmake-" + $long_cmake_ver + "-windows-x86_64")
         $archive_name = $($folder_name + ".zip")
 
         $url = $("https://cmake.org/files/v" + $short_cmake_ver + "/" + $archive_name)

@@ -12,7 +12,7 @@ main() {
 
   local short_version=$(echo ${long_version} | cut -d '.' -f 1-2)
 
-  local folder_name="cmake-${long_version}-Darwin-x86_64"
+  local folder_name="cmake-${long_version}-macos-universal"
   local filename="${folder_name}.tar.gz"
 
   local url="https://cmake.org/files/v${short_version}/${filename}"
