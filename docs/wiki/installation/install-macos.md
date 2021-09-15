@@ -16,13 +16,17 @@ The default package creates the following structure:
 /private/var/log/osquery/
 /private/var/osquery/lenses/{*}.aug
 /private/var/osquery/packs/{*}.conf
-/usr/local/lib/osquery/
-/usr/local/bin/osqueryctl
-/usr/local/bin/osqueryd
-/usr/local/bin/osqueryi
+/opt/osquery/lib/osquery.app
+/usr/local/bin/osqueryi -> /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+/usr/local/bin/osqueryctl -> /opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl
 ```
+**Note:** With the release of osquery 5.x, osquery is now installed as an app bundle at `/opt/osquery/lib/osquery.app`. The new location for `osqueryd` and `osqueryctl` is inside the app bundle at `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd` and `/opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl` respectively. Symlinks to `osqueryi` and `osqueryctl` are provided in `/usr/local/bin` for convenience.
 
 This package does **not** install a LaunchDaemon to start `osqueryd`. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
+
+### Note on upgrading from osquery 4.x to 5.x
+
+When upgrading from older versions to newer, osquery itself does not provide a mechanisim to stop the service of older version, upgrade osquery, and then restart the service. 
 
 ### Post installation steps
 
@@ -53,6 +57,7 @@ sudo rm /Library/LaunchDaemons/io.osquery.agent.plist
 sudo rm -rf /private/var/log/osquery
 sudo rm -rf /private/var/osquery
 sudo rm /usr/local/bin/osquery*
+sudo rm -rf /opt/osquery
 
 sudo pkgutil --forget io.osquery.agent
 ```
