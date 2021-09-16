@@ -36,7 +36,6 @@ class UniquePath final {
   static UniquePath create() {
     auto path = boost::filesystem::temp_directory_path() /
                 boost::filesystem::unique_path();
-
     return UniquePath(path.string());
   }
 
@@ -57,56 +56,16 @@ class UniquePath final {
   std::string path;
 };
 
-std::string getErrorMessage(const Expected<Pidfile, Pidfile::Error>& expected) {
+std::string getErrorMessage(Pidfile::Error error_code) {
   std::stringstream buffer;
-  buffer << expected.getErrorCode();
+  buffer << error_code;
 
   return buffer.str();
 }
 
-bool getPidFromFile(int& pid, const std::string& path) {
-  pid = 0;
-
-#ifdef WIN32
-  auto file_handle =
-      CreateFileA(path.c_str(),
-                  GENERIC_READ,
-                  FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE,
-                  nullptr,
-                  OPEN_EXISTING,
-                  FILE_ATTRIBUTE_NORMAL,
-                  nullptr);
-
-  if (file_handle == INVALID_HANDLE_VALUE) {
-    return false;
-  }
-
-  char buffer[64]{};
-  DWORD bytes_read{};
-  if (ReadFile(file_handle, buffer, sizeof(buffer) - 1, &bytes_read, nullptr) !=
-          0 &&
-      bytes_read == 0) {
-    return false;
-  }
-
-  CloseHandle(file_handle);
-
-  pid = static_cast<int>(std::strtol(buffer, nullptr, 10));
-
-#else
-  std::ifstream f(path.c_str(), std::ios::in);
-  if (!f) {
-    return false;
-  }
-
-  std::stringstream stream;
-  stream << f.rdbuf();
-
-  const auto& buffer = stream.str();
-  pid = static_cast<int>(std::strtol(buffer.c_str(), nullptr, 10));
-#endif
-
-  return true;
+template <typename Value>
+std::string getErrorMessage(const Expected<Value, Pidfile::Error>& expected) {
+  return getErrorMessage(expected.getErrorCode());
 }
 
 } // namespace
@@ -121,9 +80,13 @@ TEST_F(PidfileTests, test_pidfile) {
   ASSERT_FALSE(res1.isError()) << getErrorMessage(res1);
 
   // Attempt to create a secondary pidfile on the same path. This
-  // should always fail
-  auto res2 = Pidfile::create(path1.get());
-  ASSERT_TRUE(res2.isError());
+  // should always fail. Try this multiple times to make sure we
+  // are not changing the lock state
+  for (int i = 0; i < 5; ++i) {
+    auto res2 = Pidfile::create(path1.get());
+    ASSERT_TRUE(res2.isError());
+    ASSERT_EQ(res2.getErrorCode(), Pidfile::Error::Busy);
+  }
 
   // Create a new pidfile on a different path, this must succeed
   auto path2 = UniquePath::create();
@@ -166,11 +129,22 @@ TEST_F(PidfileTests, test_pidfile) {
   auto expected_pid = static_cast<int>(getpid());
 #endif
 
-  int actual_pid{};
-  ASSERT_TRUE(getPidFromFile(actual_pid, path3.get()));
+  auto pidfile_data_exp = Pidfile::read(path3.get());
+  ASSERT_FALSE(pidfile_data_exp.isError()) << getErrorMessage(pidfile_data_exp);
 
-  EXPECT_EQ(actual_pid, expected_pid)
+  auto pidfile_data = pidfile_data_exp.take();
+
+  EXPECT_EQ(pidfile_data, expected_pid)
       << "The fake pidfile was not correctly overwritten with the current PID";
+
+  // Release the pidfile, then try again to read the pid. This will fail
+  // because the lock operation will succeed, indicating there is no
+  // osquery process keeping the file busy
+  res5.take();
+
+  pidfile_data_exp = Pidfile::read(path3.get());
+  ASSERT_TRUE(pidfile_data_exp.isError());
+  EXPECT_EQ(pidfile_data_exp.getErrorCode(), Pidfile::Error::NotRunning);
 }
 
 } // namespace osquery

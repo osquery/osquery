@@ -45,6 +45,7 @@
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
@@ -124,6 +125,12 @@ CLI_FLAG(uint64,
          alarm_timeout,
          15,
          "Seconds to allow for shutdown. Minimum is 10");
+
+/// Should the daemon force unload previously-running osqueryd daemons.
+CLI_FLAG(bool,
+         force,
+         false,
+         "Force osqueryd to kill previously-running daemons");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
@@ -395,6 +402,51 @@ Initializer::Initializer(int& argc,
 
 Initializer::~Initializer() {}
 
+bool terminateActiveOsqueryInstance() {
+  auto pid_res = Pidfile::read(FLAGS_pidfile);
+  if (pid_res.isError()) {
+    auto error = pid_res.getErrorCode();
+
+    if (error != Pidfile::Error::NotRunning) {
+      LOG(ERROR) << "Failed to read the pidfile: " << error;
+    }
+
+    return false;
+  }
+
+  auto pid = static_cast<int>(pid_res.take());
+  if (pid == PlatformProcess::getCurrentPid()) {
+    return true;
+  }
+
+  // The pid is running, check if it is an osqueryd process by name.
+  std::stringstream query_text;
+
+  query_text << "SELECT name FROM processes WHERE pid = " << pid
+             << " AND name LIKE 'osqueryd%';";
+
+  SQL q(query_text.str());
+  if (!q.ok()) {
+    LOG(ERROR) << "Error querying processes: " << q.getMessageString();
+    return false;
+  }
+
+  if (q.rows().size() > 0) {
+    // Do not use SIGQUIT as it will cause a crash on OS X.
+    PlatformProcess target(pid);
+    auto kill_succeeded = target.kill();
+
+    LOG(ERROR) << "Killing osqueryd process: " << pid << " ("
+               << (kill_succeeded ? "succeeded" : "failed") << ")";
+
+    return true;
+
+  } else {
+    LOG(ERROR) << "Refusing to kill non-osqueryd process " << pid;
+    return false;
+  }
+}
+
 void Initializer::initDaemon() const {
   if (isWorker() || !isDaemon()) {
     // The worker process (child) will not daemonize.
@@ -422,9 +474,28 @@ void Initializer::initDaemon() const {
     auto pidfile_path = fs::path(FLAGS_pidfile).make_preferred().string();
 
     auto pidfile_res = Pidfile::create(pidfile_path);
+    if (pidfile_res.isError() &&
+        pidfile_res.getErrorCode() == Pidfile::Error::Busy && FLAGS_force) {
+      if (terminateActiveOsqueryInstance()) {
+        for (int retry = 0; retry < 5; ++retry) {
+          sleepFor(2000);
+
+          pidfile_res = Pidfile::create(pidfile_path);
+          if (pidfile_res.isValue()) {
+            break;
+          }
+
+          VLOG(1) << binary_ << " Pidfile initialization failed: "
+                  << pidfile_res.getErrorCode() << " (retry: " << retry + 1
+                  << "/5)";
+        }
+      }
+    }
+
     if (pidfile_res.isError()) {
       LOG(ERROR) << binary_
                  << " Pidfile check failed: " << pidfile_res.getErrorCode();
+
       shutdownNow(EXIT_FAILURE);
     }
 

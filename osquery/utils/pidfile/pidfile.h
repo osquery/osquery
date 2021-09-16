@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <boost/optional.hpp>
+
 #include <osquery/utils/expected/expected.h>
 
 #include <filesystem>
@@ -21,12 +23,15 @@ class Pidfile final {
   enum class Error {
     Unknown,
     Busy,
+    NotRunning,
     AccessDenied,
     MemoryAllocationFailure,
     IOError,
+    InvalidProcessID,
   };
 
   static Expected<Pidfile, Error> create(const std::string& path) noexcept;
+  static Expected<std::uint64_t, Error> read(const std::string& path) noexcept;
 
   ~Pidfile();
 
@@ -48,8 +53,16 @@ class Pidfile final {
   static Expected<FileHandle, Error> createFile(
       const std::string& path) noexcept;
 
-  static void closeFile(FileHandle file_handle,
-                        const std::string& path) noexcept;
+  static Expected<FileHandle, Error> lockFile(FileHandle file_handle) noexcept;
+
+  static Expected<std::string, Error> readFile(FileHandle file_handle) noexcept;
+
+  static boost::optional<Error> writeFile(FileHandle file_handle) noexcept;
+
+  static void closeFile(FileHandle file_handle) noexcept;
+
+  static void destroyFile(FileHandle file_handle,
+                          const std::string& path) noexcept;
 };
 
 std::ostream& operator<<(std::ostream& stream, const Pidfile::Error& error);

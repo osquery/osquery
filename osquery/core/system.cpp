@@ -73,12 +73,6 @@ namespace osquery {
 
 DECLARE_uint64(alarm_timeout);
 
-/// Should the daemon force unload previously-running osqueryd daemons.
-CLI_FLAG(bool,
-         force,
-         false,
-         "Force osqueryd to kill previously-running daemons");
-
 FLAG(string,
      host_identifier,
      "hostname",
@@ -307,52 +301,6 @@ std::string getHostIdentifier() {
     }
   }
   return ident;
-}
-
-Status checkStalePid(const std::string& content) {
-  int pid;
-  try {
-    pid = boost::lexical_cast<int>(content);
-  } catch (const boost::bad_lexical_cast& /* e */) {
-    return Status::success();
-  }
-
-  // The pid points to our own process, ignore
-  if (pid == PlatformProcess::getCurrentPid()) {
-    return Status::success();
-  }
-
-  PlatformProcess target(pid);
-  int status = 0;
-
-  // The pid is running, check if it is an osqueryd process by name.
-  std::stringstream query_text;
-
-  query_text << "SELECT name FROM processes WHERE pid = " << pid
-             << " AND name LIKE 'osqueryd%';";
-
-  SQL q(query_text.str());
-  if (!q.ok()) {
-    return Status(1, "Error querying processes: " + q.getMessageString());
-  }
-
-  if (q.rows().size() > 0) {
-    // If the process really is osqueryd, return an "error" status.
-    if (FLAGS_force) {
-      // The caller may choose to abort the existing daemon with --force.
-      // Do not use SIGQUIT as it will cause a crash on OS X.
-      status = target.kill() ? 0 : -1;
-      sleepFor(1000);
-
-      return Status(status, "Tried to force remove the existing osqueryd");
-    }
-
-    return Status(1, "osqueryd (" + content + ") is already running");
-  } else {
-    VLOG(1) << "Found stale process for osqueryd (" << content << ")";
-  }
-
-  return Status::success();
 }
 
 bool PlatformProcess::cleanup(std::chrono::milliseconds timeout) const {

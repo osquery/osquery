@@ -10,20 +10,109 @@
 #include "pidfile.h"
 
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+#include <iostream>
 
 namespace osquery {
 
 namespace {
 
-bool writeFile(Pidfile::FileHandle file_handle,
-               const std::string& buffer) noexcept {
-  if (ftruncate(file_handle, 0) != 0) {
-    return false;
+const int kLockFileMode{0600};
+
+std::string getCurrentPID() noexcept {
+  std::stringstream stream;
+  stream << std::to_string(getpid());
+
+  return stream.str();
+}
+
+} // namespace
+
+//
+// Make sure that the pidfile can't be opened by unprivileged
+// users, otherwise they can lock the file before us
+//
+// See https://man7.org/linux/man-pages/man2/flock.2.html#DESCRIPTION
+//
+// >> A shared or exclusive lock can be placed on a file regardless of
+// >> the mode in which the file was opened.
+//
+// Always create the file with the 0600 mode. The ::lockFile() method
+// will also force this mode with fchmod()
+
+Expected<Pidfile::FileHandle, Pidfile::Error> Pidfile::createFile(
+    const std::string& path) noexcept {
+  FileHandle file_handle{};
+
+  for (int retry = 0; retry < 5; ++retry) {
+    file_handle =
+        open(path.c_str(), O_CREAT | O_RDWR | O_APPEND, kLockFileMode);
+    if (file_handle == -1 && errno == EINTR) {
+      continue;
+    }
+
+    break;
   }
 
-  ssize_t buffer_size{};
-  ssize_t remaining_bytes{};
+  if (file_handle == -1) {
+    Error error{Pidfile::Error::Unknown};
+    if (errno == EACCES) {
+      error = Pidfile::Error::AccessDenied;
+    }
+
+    return createError(error);
+  }
+
+  return file_handle;
+}
+
+Expected<Pidfile::FileHandle, Pidfile::Error> Pidfile::lockFile(
+    FileHandle file_handle) noexcept {
+  int lock_status{};
+
+  for (int retry = 0; retry < 5; ++retry) {
+    lock_status = flock(file_handle, LOCK_NB | LOCK_EX);
+    if (lock_status == -1 && errno == EINTR) {
+      continue;
+    }
+
+    break;
+  }
+
+  if (lock_status != 0) {
+    Error error{Pidfile::Error::Unknown};
+    if (errno == EWOULDBLOCK) {
+      error = Pidfile::Error::Busy;
+    } else if (errno == ENOLCK) {
+      error = Pidfile::Error::MemoryAllocationFailure;
+    }
+
+    return createError(error);
+  }
+
+  if (fchmod(file_handle, kLockFileMode) != 0) {
+    return createError(Pidfile::Error::IOError);
+  }
+
+  if (fchown(file_handle, getuid(), getgid()) != 0) {
+    return createError(Pidfile::Error::IOError);
+  }
+
+  return file_handle;
+}
+
+boost::optional<Pidfile::Error> Pidfile::writeFile(
+    FileHandle file_handle) noexcept {
+  auto buffer = getCurrentPID();
+
+  if (ftruncate(file_handle, 0) != 0) {
+    return Pidfile::Error::IOError;
+  }
+
+  auto buffer_size = static_cast<ssize_t>(buffer.size());
+  auto remaining_bytes = buffer_size;
 
   buffer_size = remaining_bytes = {static_cast<ssize_t>(buffer.size())};
 
@@ -42,88 +131,59 @@ bool writeFile(Pidfile::FileHandle file_handle,
     remaining_bytes -= count;
   }
 
-  return (remaining_bytes == 0);
+  if (remaining_bytes != 0) {
+    return Pidfile::Error::IOError;
+  }
+
+  return boost::none;
 }
 
-std::string getCurrentPID() noexcept {
-  std::stringstream stream;
-  stream << std::to_string(getpid());
-
-  return stream.str();
-}
-
-} // namespace
-
-Expected<Pidfile::FileHandle, Pidfile::Error> Pidfile::createFile(
-    const std::string& path) noexcept {
-  FileHandle file_handle{};
-
-  //
-  // Make sure that the pidfile can't be opened by unprivileged
-  // users, otherwise they can lock the file before us
-  //
-  // See https://man7.org/linux/man-pages/man2/flock.2.html#DESCRIPTION
-  //
-  // >> A shared or exclusive lock can be placed on a file regardless of
-  // >> the mode in which the file was opened.
-  //
-
-  for (int retry = 0; retry < 5; ++retry) {
-    file_handle = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0400);
-    if (file_handle == -1 && errno == EINTR) {
-      continue;
-    }
-
-    break;
-  }
-
-  if (file_handle == -1) {
-    Error error{Pidfile::Error::Unknown};
-    if (errno == EACCES) {
-      error = Pidfile::Error::AccessDenied;
-    }
-
-    return createError(error);
-  }
-
-  int lock_status{};
-
-  for (int retry = 0; retry < 5; ++retry) {
-    lock_status = flock(file_handle, LOCK_NB | LOCK_EX);
-    if (lock_status == -1 && errno == EINTR) {
-      continue;
-    }
-
-    break;
-  }
-
-  if (lock_status != 0) {
-    close(file_handle);
-
-    Error error{Pidfile::Error::Unknown};
-    if (errno == EWOULDBLOCK) {
-      error = Pidfile::Error::Busy;
-    } else if (errno == ENOLCK) {
-      error = Pidfile::Error::MemoryAllocationFailure;
-    }
-
-    return createError(error);
-  }
-
-  if (!writeFile(file_handle, getCurrentPID())) {
-    close(file_handle);
+Expected<std::string, Pidfile::Error> Pidfile::readFile(
+    FileHandle file_handle) noexcept {
+  struct stat file_stats {};
+  if (fstat(file_handle, &file_stats) != 0) {
     return createError(Pidfile::Error::IOError);
   }
 
-  return file_handle;
+  auto buffer_size = std::min(static_cast<std::size_t>(file_stats.st_size),
+                              static_cast<std::size_t>(32U));
+
+  std::string buffer(buffer_size, 0);
+
+  auto remaining_bytes = buffer.size();
+
+  for (int retry = 0; retry < 5 && remaining_bytes > 0; ++retry) {
+    auto buffer_ptr = buffer.data() + buffer.size() - remaining_bytes;
+
+    auto bytes_read = ::read(file_handle, buffer_ptr, remaining_bytes);
+    if (bytes_read == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+
+      break;
+    }
+
+    remaining_bytes -= bytes_read;
+  }
+
+  if (remaining_bytes != 0) {
+    return createError(Pidfile::Error::IOError);
+  }
+
+  return buffer;
 }
 
-void Pidfile::closeFile(FileHandle file_handle,
-                        const std::string& path) noexcept {
+void Pidfile::closeFile(FileHandle file_handle) noexcept {
+  close(file_handle);
+}
+
+void Pidfile::destroyFile(FileHandle file_handle,
+                          const std::string& path) noexcept {
   unlink(path.c_str());
 
   flock(file_handle, LOCK_UN);
-  close(file_handle);
+  closeFile(file_handle);
 }
 
 } // namespace osquery

@@ -29,12 +29,47 @@ Expected<Pidfile, Pidfile::Error> Pidfile::create(
   }
 }
 
+Expected<std::uint64_t, Pidfile::Error> Pidfile::read(
+    const std::string& path) noexcept {
+  auto file_handle_exp = createFile(path);
+  if (file_handle_exp.isError()) {
+    return createError(file_handle_exp.getErrorCode());
+  }
+
+  auto file_handle = file_handle_exp.take();
+
+  file_handle_exp = lockFile(file_handle);
+  if (file_handle_exp.isValue()) {
+    file_handle = file_handle_exp.take();
+    destroyFile(file_handle, path);
+
+    return createError(Error::NotRunning);
+  }
+
+  auto buffer_exp = readFile(file_handle);
+  closeFile(file_handle);
+
+  if (buffer_exp.isError()) {
+    return createError(buffer_exp.getErrorCode());
+  }
+
+  auto buffer = buffer_exp.take();
+
+  char* terminator{nullptr};
+  auto process_id = std::strtoul(buffer.c_str(), &terminator, 10);
+  if (process_id == 0 || terminator == nullptr || *terminator != 0) {
+    return createError(Error::InvalidProcessID);
+  }
+
+  return process_id;
+}
+
 Pidfile::~Pidfile() {
   if (!d) {
     return;
   }
 
-  closeFile(d->file_handle, d->path);
+  destroyFile(d->file_handle, d->path);
 }
 
 Pidfile::Pidfile(Pidfile&& other) noexcept {
@@ -55,7 +90,24 @@ Pidfile::Pidfile(const std::string& path) : d(new PrivateData) {
     throw file_handle_exp.getErrorCode();
   }
 
-  d->file_handle = file_handle_exp.take();
+  auto file_handle = file_handle_exp.take();
+
+  file_handle_exp = lockFile(file_handle);
+  if (file_handle_exp.isError()) {
+    closeFile(file_handle);
+
+    throw file_handle_exp.getErrorCode();
+  }
+
+  file_handle = file_handle_exp.take();
+
+  auto opt_error = writeFile(file_handle);
+  if (opt_error.has_value()) {
+    destroyFile(file_handle, path);
+    throw opt_error.value();
+  }
+
+  d->file_handle = file_handle;
   d->path = path;
 }
 
@@ -69,6 +121,10 @@ std::ostream& operator<<(std::ostream& stream, const Pidfile::Error& error) {
     stream << "Pidfile::Error::Busy";
     break;
 
+  case Pidfile::Error::NotRunning:
+    stream << "Pidfile::Error::NotRunning";
+    break;
+
   case Pidfile::Error::AccessDenied:
     stream << "Pidfile::Error::AccessDenied";
     break;
@@ -79,6 +135,10 @@ std::ostream& operator<<(std::ostream& stream, const Pidfile::Error& error) {
 
   case Pidfile::Error::IOError:
     stream << "Pidfile::Error::IOError";
+    break;
+
+  case Pidfile::Error::InvalidProcessID:
+    stream << "Pidfile::Error::InvalidProcessID";
     break;
 
   default:
