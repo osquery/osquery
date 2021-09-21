@@ -135,6 +135,11 @@ TEST_F(AwsUtilTests, test_get_region) {
   ASSERT_EQ(Status(1, "Invalid aws_region specified: foo"),
             getAWSRegion(region));
 
+  // Test disabled region validation.
+  FLAGS_aws_region = "foo";
+  ASSERT_EQ(Status(0), getAWSRegion(region, false, false));
+  ASSERT_EQ("foo", region);
+
   // Reset aws_region flag.
   FLAGS_aws_region = "";
 

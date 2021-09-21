@@ -41,9 +41,13 @@ When logging to Kinesis Streams, the stream name must be specified with `aws_kin
 
 Setting `aws_kinesis_random_partition_key` to `true` will use random partition keys when sending data to Kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream. Note that using this setting will result in the logs of each host distributed across shards, so do not use it if you need logs from each host to be processed by a consistent shard. The default for this setting is `false`.
 
+Custom endpoint for non-AWS Kinesis implementations can be specified with `aws_kinesis_endpoint`.
+
 ### Kinesis Firehose
 
 Similarly for Kinesis Firehose delivery streams, the stream name must be specified with `aws_firehose_stream`, and the period can be configured with `aws_firehose_period`.
+
+Custom endpoint for non-AWS Firehose implementations can be specified with `aws_firehose_endpoint`.
 
 ### Sample Config File
 
