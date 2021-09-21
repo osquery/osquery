@@ -84,13 +84,14 @@ function(lzmaMain)
 
   target_compile_definitions(thirdparty_lzma PRIVATE
     HAVE_CONFIG_H
-    TUKLIB_GETTEXT=0
-    LZMADEC
+    TUKLIB_SYMBOL_PREFIX=lzma_
   )
 
-  target_compile_definitions(thirdparty_lzma PUBLIC
-    LZMA_API_STATIC
-  )
+  if(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_lzma PUBLIC
+      LZMA_API_STATIC
+    )
+  endif()
 
   target_link_libraries(thirdparty_lzma PRIVATE
     thirdparty_c_settings
@@ -113,15 +114,15 @@ function(lzmaMain)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_lzma PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/linux"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_lzma PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}/macos"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/${TARGET_PROCESSOR}"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     target_include_directories(thirdparty_lzma PRIVATE
-      "${library_root}/windows"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows/${TARGET_PROCESSOR}"
     )
   endif()
 
