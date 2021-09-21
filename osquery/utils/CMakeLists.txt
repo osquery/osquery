@@ -117,7 +117,10 @@ function(generateOsqueryUtils)
   generateIncludeNamespace(osquery_utils_attribute "osquery/utils" "FILE_ONLY" ${attribute_public_header_files})
 
   add_test(NAME osquery_utils_utilstests-test COMMAND osquery_utils_utilstests-test)
-
+  set_tests_properties(
+    osquery_utils_utilstests-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+  )
 endfunction()
 
 function(generateOsqueryUtilsUtilstestsTest)
@@ -136,6 +139,7 @@ function(generateOsqueryUtilsUtilstestsTest)
       tests/windows/filetime.cpp
       tests/windows/shellitems.cpp
       tests/windows/shelllnk.cpp
+      tests/windows/raw_registry.cpp
     )
   endif()
 

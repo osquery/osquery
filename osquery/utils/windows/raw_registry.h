@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <osquery/utils/system/system.h>
+
 #include <string>
 #include <vector>
 
