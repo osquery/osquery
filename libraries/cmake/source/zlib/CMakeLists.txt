@@ -32,10 +32,15 @@ function(zlibMain)
 
   if(DEFINED PLATFORM_POSIX)
     target_compile_definitions(thirdparty_zlib PRIVATE
-      _LARGEFILE64_SOURCE=1
       HAVE_HIDDEN
       HAVE_UNISTD_H
       HAVE_STDARG_H
+    )
+  endif()
+
+  if(DEFINED PLATFORM_LINUX)
+    target_compile_definitions(thirdparty_zlib PRIVATE
+      _LARGEFILE64_SOURCE=1
     )
   endif()
 
