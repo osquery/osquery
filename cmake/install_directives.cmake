@@ -1,9 +1,20 @@
+# Copyright (c) 2021-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+
 function(generateInstallDirectives)
   get_property(augeas_lenses_path
     GLOBAL PROPERTY "AUGEAS_LENSES_FOLDER_PATH"
   )
 
   if(PLATFORM_LINUX)
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+    endif()
+
     install(
       FILES "tools/deployment/linux_packaging/deb/conffiles"
       DESTINATION "/control/deb"
@@ -163,8 +174,15 @@ function(generateInstallDirectives)
       RENAME "LICENSE.txt"
     )
 
+    # Icon for the MSI package
     install(
       FILES "tools/deployment/windows_packaging/osquery.ico"
+      DESTINATION "/control"
+    )
+
+    # Icon for the nuget package
+    install(
+      FILES "tools/deployment/windows_packaging/osquery.png"
       DESTINATION "/control"
     )
 
@@ -225,9 +243,17 @@ function(generateInstallDirectives)
     )
 
   elseif(PLATFORM_MACOS)
+
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+    endif()
+
     install(
       FILES
         "tools/deployment/macos_packaging/osquery.entitlements"
+        "tools/deployment/macos_packaging/embedded.provisionprofile"
+        "tools/deployment/macos_packaging/Info.plist"
+        "tools/deployment/macos_packaging/PkgInfo"
 
       DESTINATION
         "/control"
@@ -293,8 +319,8 @@ function(generateInstallDirectives)
 
     install(
       FILES
-        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.conf"
-        "tools/deployment/macos_packaging/pkg/com.facebook.osqueryd.plist"
+        "tools/deployment/macos_packaging/pkg/io.osquery.agent.conf"
+        "tools/deployment/macos_packaging/pkg/io.osquery.agent.plist"
 
       DESTINATION
         "/control/pkg"
@@ -304,6 +330,34 @@ function(generateInstallDirectives)
       FILES "LICENSE"
       DESTINATION "/control"
       RENAME "LICENSE.txt"
+    )
+
+    install(
+      TARGETS osqueryd
+      DESTINATION "osquery.app/Contents/MacOS"
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE 
+    )
+
+    install(
+      FILES
+        "tools/deployment/macos_packaging/embedded.provisionprofile"
+        "tools/deployment/macos_packaging/Info.plist"
+        "tools/deployment/macos_packaging/PkgInfo"
+
+      DESTINATION
+        "osquery.app/Contents"
+    )
+
+    install(
+      FILES "tools/deployment/osqueryctl"
+      DESTINATION "osquery.app/Contents/Resources"
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE 
     )
 
   else()
