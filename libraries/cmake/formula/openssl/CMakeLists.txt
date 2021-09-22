@@ -75,14 +75,16 @@ function(opensslMain)
       )
     endif()
 
-    if("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+    if(TARGET_PROCESSOR STREQUAL "aarch64")
       set(target_name
         "darwin64-arm64-cc"
       )
-    else()
+    elseif(TARGET_PROCESSOR STREQUAL "x86_64")
       set(target_name
         "darwin64-x86_64-cc"
       )
+    else()
+      message(FATAL_ERROR "Unsupported target processor")
     endif()
 
     set(configure_command
