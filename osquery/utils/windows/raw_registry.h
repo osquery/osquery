@@ -52,6 +52,16 @@ struct RegNameKey {
   short class_name_size;
 };
 
+struct RegHiveBin {
+  int sig;
+  int offset;
+  int size;
+  int reserved;
+  int reserved2;
+  int64_t timestamp;
+  int unknown;
+};
+
 /**
  * @brief Windows helper function for parsing raw Registry files
  *
@@ -69,4 +79,97 @@ void parseHiveCell(const std::vector<char>& reg_contents,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
                    const RegNameKey& name_key);
+
+/**
+ * @brief Windows helper function for parsing Leaf Hash Registry cells
+ *
+ */
+void parseHiveLeafHash(const std::vector<char>& reg_contents,
+                       int& offset,
+                       std::vector<RegTableData>& raw_reg,
+                       std::vector<std::string>& key_path,
+                       const RegNameKey& name_key);
+
+/**
+ * @brief Windows helper function for parsing Leaf Index Registry cells
+ *
+ */
+void parseHiveLeafIndex(const std::vector<char>& reg_contents,
+                        int& offset,
+                        std::vector<RegTableData>& raw_reg,
+                        std::vector<std::string>& key_path,
+                        const RegNameKey& name_key);
+
+/**
+ * @brief Windows helper function for parsing list of Value Key Registry cells
+ *
+ */
+void parseValueKeyList(const std::vector<char>& reg_contents,
+                       const int& num_values,
+                       const int& offset,
+                       std::vector<RegTableData>& raw_reg,
+                       std::vector<std::string>& key_path,
+                       const RegNameKey& name_key);
+
+/**
+ * @brief Windows helper function for parsing Registry Value key data
+ *
+ * @returns a string containing the Registry Value Key data
+ */
+std::string parseDataValue(const std::vector<char>& reg_contents,
+                           const int& offset,
+                           const int& size,
+                           const std::string& reg_type);
+
+/**
+ * @brief Windows helper function for parsing Name Key Registry cells
+ *
+ */
+void parseNameKey(const std::vector<char>& reg_contents,
+                  int& offset,
+                  std::vector<RegTableData>& raw_reg,
+                  std::vector<std::string>& key_path);
+
+/**
+ * @brief Windows helper function for parsing Registry Value Key
+ *
+ */
+void parseValueKey(const std::vector<char>& reg_contents,
+                   const int& hive_bin_offset,
+                   std::vector<RegTableData>& raw_reg,
+                   std::vector<std::string>& key_path,
+                   const RegNameKey& name_key);
+
+/**
+ * @brief Windows helper function for parsing Registry Big Data cells
+ *
+ */
+void parseHiveBigData(const std::vector<char>& reg_contents,
+                      const int& offset,
+                      std::vector<RegTableData>& raw_reg,
+                      std::vector<std::string>& key_path,
+                      const RegNameKey& name_key);
+/**
+ * @brief Windows helper function for getting Registry Security Key cells
+ *
+ */
+void parseHiveSecurityKey(const std::vector<char>& reg_contents,
+                          const int& offset,
+                          std::vector<RegTableData>& raw_reg,
+                          std::vector<std::string>& key_path,
+                          const RegNameKey& name_key);
+/**
+ * @brief Windows helper function for parsing Registry Hive Bins
+ *
+ * @returns RegHiveBin struct containing the Hive Bin data
+ */
+RegHiveBin parseHiveBin(const std::vector<char>& reg_contents,
+                        const int& offset);
+
+/**
+ * @brief Windows helper function for formatting paths for Sleuthkit
+ *
+ */
+void cleanRegPath(std::string& reg_path);
+
 } // namespace osquery

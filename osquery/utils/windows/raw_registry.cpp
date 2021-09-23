@@ -28,6 +28,8 @@
 #include <sstream>
 #include <vector>
 
+#include <iostream>
+
 namespace osquery {
 
 struct RegHeader {
@@ -48,15 +50,6 @@ struct RegHeader {
   char reserved[3576];
   int boot_type;
   int boot_recover;
-};
-
-struct RegHiveBin {
-  int sig;
-  int offset;
-  int size;
-  int reserved;
-  int64_t timestamp;
-  int unknown;
 };
 
 struct RegValueKey {
@@ -209,6 +202,16 @@ void DeviceHelper::generateFiles(const std::string& partition,
     delete meta;
     return;
   }
+}
+
+// Convert args to correct format (sleuthkit expects forward
+// slashes and no drive letter)
+void cleanRegPath(std::string& reg_path) {
+  size_t path = reg_path.find(":", 0);
+  if (path != std::string::npos) {
+    reg_path = reg_path.substr(path + 2);
+  }
+  std::replace(reg_path.begin(), reg_path.end(), '\\', '/');
 }
 
 std::vector<char> rawReadRegistry(const std::string& reg_path,

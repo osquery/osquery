@@ -23,11 +23,5 @@ namespace tables {
  * @returns Array of physical drives
  */
 std::vector<std::string> getDrives();
-
-/**
- * @brief Windows helper function for formatting paths for Sleuthkit
- *
- */
-void cleanRegPath(std::string& reg_path);
 } // namespace tables
 } // namespace osquery

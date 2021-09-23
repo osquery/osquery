@@ -47,16 +47,6 @@ const std::vector<std::string> kAllRegFiles{"userdiff",
 const std::string kUserRegistryFiles[2]{
     "NTUSER.DAT", "AppData\\Local\\Microsoft\\Windows\\UsrClass.dat"};
 
-// Convert args to correct format (sleuthkit expects forward
-// slashes and no drive letter)
-void cleanRegPath(std::string& reg_path) {
-  size_t path = reg_path.find(":", 0);
-  if (path != std::string::npos) {
-    reg_path = reg_path.substr(path + 2);
-  }
-  std::replace(reg_path.begin(), reg_path.end(), '\\', '/');
-}
-
 // Use WMI to get all the physical drives (taken from disk_info table)
 std::vector<std::string> getDrives() {
   const WmiRequest wmiSystemReq("select * from Win32_DiskDrive");
