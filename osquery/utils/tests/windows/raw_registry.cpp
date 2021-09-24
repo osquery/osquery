@@ -86,6 +86,93 @@ TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   ASSERT_TRUE(raw_reg[19].key_name == "upRight");
 }
 
+TEST_F(RawRegistryTests, test_data_value) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
+          .make_preferred()
+          .string();
+
+  int offset = 13896;
+  std::string reg_type = "REG_SZ";
+  int size = 76;
+  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
+  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
+                                 (std::istreambuf_iterator<char>()));
+  input_file.close();
+
+  std::string value = parseDataValue(reg_contents, offset, size, reg_type);
+  ASSERT_TRUE(value == "Microsoft.Messaging_8wekyb3d8bbwe!App");
+}
+
+TEST_F(RawRegistryTests, test_leaf_index_cell) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/amcache/Amcache.hve")
+          .make_preferred()
+          .string();
+
+  std::vector<RegTableData> raw_reg;
+  std::vector<std::string> key_path;
+
+  int offset = 3161132;
+  RegNameKey name_key;
+  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
+  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
+                                 (std::istreambuf_iterator<char>()));
+  input_file.close();
+
+  parseHiveLeafIndex(reg_contents, offset, raw_reg, key_path, name_key);
+  if (raw_reg.size() != 36844) {
+    FAIL();
+  }
+
+  ASSERT_TRUE(raw_reg[105].key_path ==
+              "aapt2.exe|7d6d93513d5fb4e0\\ProductName");
+  ASSERT_TRUE(raw_reg[112].modified_time == 1632005732);
+  ASSERT_TRUE(raw_reg[124].key == "aapt2.exe|d6af3824d6879fce");
+  ASSERT_TRUE(raw_reg[139].key_type == "REG_SZ");
+  ASSERT_TRUE(raw_reg[140].key_data == "0");
+  ASSERT_TRUE(raw_reg[157].key_name == "OriginalFileName");
+}
+
+TEST_F(RawRegistryTests, test_name_key_cell) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
+          .make_preferred()
+          .string();
+
+  std::vector<RegTableData> raw_reg;
+  std::vector<std::string> key_path;
+
+  int offset = 5052;
+  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
+  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
+                                 (std::istreambuf_iterator<char>()));
+  input_file.close();
+  parseNameKey(reg_contents, offset, raw_reg, key_path);
+  if (raw_reg.size() != 3) {
+    FAIL();
+  }
+
+  ASSERT_TRUE(raw_reg[1].key_path == "Environment\\TEMP");
+  ASSERT_TRUE(raw_reg[2].modified_time == 1552971338);
+  ASSERT_TRUE(raw_reg[3].key == "Environment");
+  ASSERT_TRUE(raw_reg[1].key_type == "REG_EXPAND_SZ");
+  ASSERT_TRUE(raw_reg[3].key_data == "%USERPROFILE%\\AppData\\Local\\Temp");
+  ASSERT_TRUE(raw_reg[2].key_name == "TEMP");
+}
+
 TEST_F(RawRegistryTests, test_hive_bin) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
   if (!test.is_initialized()) {
