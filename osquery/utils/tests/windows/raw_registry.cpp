@@ -15,7 +15,6 @@
 
 #include <vector>
 
-#include <iostream>
 namespace osquery {
 class RawRegistryTests : public testing::Test {};
 
@@ -142,6 +141,36 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   ASSERT_TRUE(raw_reg[157].key_name == "OriginalFileName");
 }
 
+TEST_F(RawRegistryTests, test_value_key_list_cell) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
+          .make_preferred()
+          .string();
+
+  std::vector<RegTableData> raw_reg;
+  std::vector<std::string> key_path;
+
+  int offset = 29504;
+  int values = 11;
+  RegNameKey name_key;
+  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
+  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
+                                 (std::istreambuf_iterator<char>()));
+  input_file.close();
+
+  parseValueKeyList(reg_contents, values, offset, raw_reg, key_path, name_key);
+
+  ASSERT_TRUE(raw_reg.size() == 11);
+  ASSERT_TRUE(raw_reg[3].key_path == "LeaveOnWithMouse");
+  ASSERT_TRUE(raw_reg[8].key_type == "REG_DWORD");
+  ASSERT_TRUE(raw_reg[10].key_data == "1");
+  ASSERT_TRUE(raw_reg[3].key_name == "LeaveOnWithMouse");
+}
+
 TEST_F(RawRegistryTests, test_name_key_cell) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
   if (!test.is_initialized()) {
@@ -164,13 +193,12 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   if (raw_reg.size() != 3) {
     FAIL();
   }
-
   ASSERT_TRUE(raw_reg[1].key_path == "Environment\\TEMP");
   ASSERT_TRUE(raw_reg[2].modified_time == 1552971338);
-  ASSERT_TRUE(raw_reg[3].key == "Environment");
+  ASSERT_TRUE(raw_reg[2].key == "Environment");
   ASSERT_TRUE(raw_reg[1].key_type == "REG_EXPAND_SZ");
-  ASSERT_TRUE(raw_reg[3].key_data == "%USERPROFILE%\\AppData\\Local\\Temp");
-  ASSERT_TRUE(raw_reg[2].key_name == "TEMP");
+  ASSERT_TRUE(raw_reg[2].key_data == "%USERPROFILE%\\AppData\\Local\\Temp");
+  ASSERT_TRUE(raw_reg[2].key_name == "TMP");
 }
 
 TEST_F(RawRegistryTests, test_hive_bin) {

@@ -300,6 +300,8 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
                        const RegNameKey& name_key) {
+  // std::cout << "Num values: " << num_values << std::endl;
+  // std::cout << offset << std::endl;
   int value_entries = 0;
   int unknown = 4;
   int value_list_offset = 0;
@@ -543,13 +545,14 @@ void parseValueKey(const std::vector<char>& reg_contents,
   raw_reg.push_back(reg_table);
 }
 
-// Registry key cells (version 1.3+) that contain more than 16344 bytes have Big
-// data cell (DB)
+// Registry data values that contain more than 16344 bytes have Big
+// data cells (DB)
 void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& offset,
                       std::vector<RegTableData>& raw_reg,
                       std::vector<std::string>& key_path,
                       const RegNameKey& name_key) {
+  std::cout << offset << std::endl;
   RegBigData big_data;
   const int big_data_min_size = 8;
   memcpy(&big_data, &reg_contents[offset], big_data_min_size);
@@ -604,7 +607,6 @@ void parseHiveCell(const std::vector<char>& reg_contents,
   const short sk = 27507; // security key
   const short lh = 26732; // leaf hash
   const short li = 26988; // leaf index
-  const short db = 25188; // big data
   const short ri = 26994; // root index
   const short lf = 26220; // fast leaf
   memcpy(&cell_size, &reg_contents[offset], sizeof(cell_size));
@@ -626,9 +628,6 @@ void parseHiveCell(const std::vector<char>& reg_contents,
   } else if (cell_type == sk) {
     offset += sizeof(cell_size);
     parseHiveSecurityKey(reg_contents, offset, raw_reg, key_path, name_key);
-  } else if (cell_type == db) {
-    offset += sizeof(cell_size);
-    parseHiveBigData(reg_contents, offset, raw_reg, key_path, name_key);
   } else if (cell_type == lf) {
     offset += sizeof(cell_size);
     parseHiveLeafHash(reg_contents, offset, raw_reg, key_path, name_key);
