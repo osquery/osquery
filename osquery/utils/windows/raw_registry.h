@@ -26,7 +26,7 @@ struct RegTableData {
   int64_t modified_time;
   std::string key_type;
   std::string key_data;
-  std::vector<RegTableValueData> key_data_array;
+  // std::vector<RegTableValueData> key_data_array;
 };
 
 struct RegNameKey {
@@ -146,9 +146,9 @@ void parseValueKey(const std::vector<char>& reg_contents,
  */
 void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& offset,
-                      std::vector<RegTableData>& raw_reg,
-                      std::vector<std::string>& key_path,
-                      const RegNameKey& name_key);
+                      const std::string& reg_type,
+                      const int& data_size,
+                      std::string& data_string);
 /**
  * @brief Windows helper function for getting Registry Security Key cells
  *

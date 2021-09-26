@@ -28,8 +28,6 @@
 #include <sstream>
 #include <vector>
 
-#include <iostream>
-
 namespace osquery {
 
 struct RegHeader {
@@ -300,8 +298,6 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
                        const RegNameKey& name_key) {
-  // std::cout << "Num values: " << num_values << std::endl;
-  // std::cout << offset << std::endl;
   int value_entries = 0;
   int unknown = 4;
   int value_list_offset = 0;
@@ -363,13 +359,12 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
                            const int& offset,
                            const int& size,
                            const std::string& reg_type) {
-  const int data_size = size + 1;
+  int data_size = size + 1;
   int data_size_and_slack = 0;
   // The raw registry data value can contain remnants of previous entries in
   // slack space, currently ignoring slack data for now
-  memcpy(&data_size_and_slack,
-         &reg_contents[offset + kheader_size],
-         sizeof(data_size_and_slack));
+  memcpy(
+      &data_size_and_slack, &reg_contents[offset], sizeof(data_size_and_slack));
   std::string data;
   if (data_size == 0) {
     return data;
@@ -380,7 +375,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   // table)
   if (reg_type == "REG_SZ") {
     memcpy(data_buff.get(),
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
     data_buff[data_size - 1] = 0x00;
 
@@ -390,9 +385,10 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
              reg_type == "REG_RESOURCE_REQUIREMENTS_LIST" ||
              reg_type == "REG_TYPE_UNKNOWN" || reg_type == "REG_NONE") {
     memcpy(data_buff.get(),
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
     std::vector<char> reg_binary;
+    data_size--;
     for (size_t j = 0; j < data_size; j++) {
       reg_binary.push_back((char)data_buff[j]);
     }
@@ -402,25 +398,25 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   } else if (reg_type == "REG_DWORD") {
     int reg_dword = 0;
     memcpy(&reg_dword,
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            sizeof(reg_dword));
     data = std::to_string(reg_dword);
   } else if (reg_type == "REG_DWORD_BIG_ENDIAN") {
     int reg_dword = 0;
     memcpy(&reg_dword,
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            sizeof(reg_dword));
     data = std::to_string(_byteswap_ulong(reg_dword));
   } else if (reg_type == "REG_LINK") {
     memcpy(data_buff.get(),
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
     data_buff[data_size - 1] = 0x00;
 
     data = wstringToString(reinterpret_cast<wchar_t*>(data_buff.get()));
   } else if (reg_type == "REG_EXPAND_SZ") {
     memcpy(data_buff.get(),
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
     data_buff[data_size - 1] = 0x00;
 
@@ -428,12 +424,12 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   } else if (reg_type == "REG_QWORD") {
     unsigned long long reg_dword = 0;
     memcpy(&reg_dword,
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            sizeof(reg_dword));
     data = std::to_string(reg_dword);
   } else if (reg_type == "REG_MULTI_SZ") {
     memcpy(data_buff.get(),
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
     data_buff[data_size - 1] = 0x00;
 
@@ -455,7 +451,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   } else if (reg_type == "REG_FILETIME") {
     FILETIME file_time;
     memcpy(&file_time,
-           &reg_contents[offset + kheader_size + sizeof(data_size_and_slack)],
+           &reg_contents[offset + sizeof(data_size_and_slack)],
            sizeof(file_time));
     data = std::to_string(filetimeToUnixtime(file_time));
   }
@@ -528,9 +524,14 @@ void parseValueKey(const std::vector<char>& reg_contents,
     } else {
       data = "null";
     }
+  } else if (value_key.data_size > 16344) {
+    int db_offset = value_key.data_offset + kheader_size;
+    parseHiveBigData(
+        reg_contents, db_offset, reg_type, value_key.data_size, data);
   } else {
+    int data_offset = value_key.data_offset + kheader_size;
     data = parseDataValue(
-        reg_contents, value_key.data_offset, value_key.data_size, reg_type);
+        reg_contents, data_offset, value_key.data_size, reg_type);
   }
   // Now have all the data to build the table
   RegTableData reg_table;
@@ -549,25 +550,48 @@ void parseValueKey(const std::vector<char>& reg_contents,
 // data cells (DB)
 void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& offset,
-                      std::vector<RegTableData>& raw_reg,
-                      std::vector<std::string>& key_path,
-                      const RegNameKey& name_key) {
-  std::cout << offset << std::endl;
+                      const std::string& reg_type,
+                      const int& data_size,
+                      std::string& data_string) {
+  const int skip_unknown = 4;
   RegBigData big_data;
   const int big_data_min_size = 8;
-  memcpy(&big_data, &reg_contents[offset], big_data_min_size);
+  memcpy(&big_data, &reg_contents[offset + skip_unknown], big_data_min_size);
   int segments = 0;
   int segment_offset = 0;
   // Big data segments contain offset to value key offset
+  int db_list_offset = big_data.block_offset + kheader_size;
+  std::vector<char> data_contents;
+  // Add padding at beginning of contents to adjust for slack
+  data_contents.push_back('0');
+  data_contents.push_back('0');
+  data_contents.push_back('0');
+  data_contents.push_back('0');
+
+  int segment_start = 0;
+  // Loop through all segments and concat data
   while (segments < big_data.num_segments) {
-    int vk_offset = 0;
-    memcpy(&vk_offset,
-           &reg_contents[big_data.block_offset + segment_offset],
+    int db_data_offset = 0;
+    memcpy(&db_data_offset,
+           &reg_contents[db_list_offset + skip_unknown + segment_start],
            sizeof(int));
-    parseHiveCell(reg_contents, vk_offset, raw_reg, key_path, name_key);
-    segment_offset += 4;
+    int db_data_size = 0;
+    memcpy(&db_data_size,
+           &reg_contents[db_data_offset + kheader_size],
+           sizeof(int));
+    if (db_data_size < 0) {
+      db_data_size = db_data_size * -1;
+    }
+
+    data_contents.insert(
+        data_contents.end(),
+        reg_contents.begin() + db_data_offset + sizeof(int) + kheader_size,
+        reg_contents.begin() + db_data_offset + sizeof(int) + kheader_size +
+            db_data_size - 8);
     segments++;
+    segment_start += 4;
   }
+  data_string = parseDataValue(data_contents, 0, data_size, reg_type);
 }
 
 // Complex Registry key that contains Access Control Entries (ACE), permissions
