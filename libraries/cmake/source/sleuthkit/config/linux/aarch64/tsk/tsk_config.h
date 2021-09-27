@@ -17,31 +17,34 @@
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
-/* #undef HAVE_ALLOCA_H */
+#define HAVE_ALLOCA_H 1
+
+/* define if the compiler supports basic C++14 syntax */
+#define HAVE_CXX14 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
-/* #undef HAVE_DLFCN_H */
+#define HAVE_DLFCN_H 1
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 /* #undef HAVE_DOPRNT */
 
 /* Define to 1 if you have the `err' function. */
-/* #undef HAVE_ERR */
+#define HAVE_ERR 1
 
 /* Define to 1 if you have the `errx' function. */
-/* #undef HAVE_ERRX */
+#define HAVE_ERRX 1
 
 /* Define to 1 if you have the <err.h> header file. */
-/* #undef HAVE_ERR_H */
+#define HAVE_ERR_H 1
 
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
-/* #undef HAVE_FSEEKO */
+#define HAVE_FSEEKO 1
 
 /* Define to 1 if you have the `getline' function. */
-/* #undef HAVE_GETLINE */
+#define HAVE_GETLINE 1
 
 /* Define to 1 if you have the `getrusage' function. */
-/* #undef HAVE_GETRUSAGE */
+#define HAVE_GETRUSAGE 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -53,7 +56,7 @@
 /* #undef HAVE_LIBAFFLIB */
 
 /* Define to 1 if you have the `dl' library (-ldl). */
-/* #undef HAVE_LIBDL */
+#define HAVE_LIBDL 1
 
 /* Define to 1 if you have the `ewf' library (-lewf). */
 /* #undef HAVE_LIBEWF */
@@ -61,14 +64,8 @@
 /* Define to 1 if you have the <libewf.h> header file. */
 /* #undef HAVE_LIBEWF_H */
 
-/* Define to 1 if you have the `pq' library (-lpq). */
-/* #undef HAVE_LIBPQ */
-
-/* Define if using libpq. */
-/* #undef HAVE_LIBPQ_ */
-
-/* Define to 1 if you have the <libpq-fe.h> header file. */
-/* #undef HAVE_LIBPQ_FE_H */
+/* Define if using opensll */
+/* #undef HAVE_LIBOPENSSL */
 
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
 /* #undef HAVE_LIBSQLITE3 */
@@ -104,23 +101,20 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
-/* Define to 1 if you have the <postgresql/libpq-fe.h> header file. */
-/* #undef HAVE_POSTGRESQL_LIBPQ_FE_H */
-
 /* Define if you have POSIX threads libraries and header files. */
-/* #undef HAVE_PTHREAD */
+#define HAVE_PTHREAD 1
 
 /* Define to 1 if you have the <queue> header file. */
-#define HAVE_QUEUE 1
+/* #undef HAVE_QUEUE */
 
 /* Define to 1 if you have the <set> header file. */
-#define HAVE_SET 1
+/* #undef HAVE_SET */
 
 /* Define to 1 if you have the <sqlite3.h> header file. */
 /* #undef HAVE_SQLITE3_H */
 
 /* Define to 1 if you have the <stack> header file. */
-#define HAVE_STACK 1
+/* #undef HAVE_STACK */
 
 /* Define to 1 if stdbool.h conforms to C99. */
 #define HAVE_STDBOOL_H 1
@@ -132,10 +126,10 @@
 #define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the <streambuf> header file. */
-#define HAVE_STREAMBUF 1
+/* #undef HAVE_STREAMBUF */
 
 /* Define to 1 if you have the <string> header file. */
-#define HAVE_STRING 1
+/* #undef HAVE_STRING */
 
 /* Define to 1 if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H 1
@@ -150,16 +144,16 @@
 /* #undef HAVE_STRLCPY */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
-/* #undef HAVE_SYS_PARAM_H */
+#define HAVE_SYS_PARAM_H 1
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
-/* #undef HAVE_SYS_RESOURCE_H */
+#define HAVE_SYS_RESOURCE_H 1
 
 /* Define to 1 if you have the <sys/select.h> header file. */
-/* #undef HAVE_SYS_SELECT_H */
+#define HAVE_SYS_SELECT_H 1
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
-/* #undef HAVE_SYS_SOCKET_H */
+#define HAVE_SYS_SOCKET_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -168,28 +162,28 @@
 #define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
-/* #undef HAVE_UNISTD_H 1 */
+#define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the <utime.h> header file. */
-/* #undef HAVE_UTIME_H */
+#define HAVE_UTIME_H 1
 
 /* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
-/* #undef HAVE_UTIME_NULL */
+#define HAVE_UTIME_NULL 1
 
 /* Define to 1 if you have the `vasprintf' function. */
 #define HAVE_VASPRINTF 1
 
 /* Define to 1 if you have the <vector> header file. */
-#define HAVE_VECTOR 1
+/* #undef HAVE_VECTOR */
 
 /* Define to 1 if you have the `vprintf' function. */
 #define HAVE_VPRINTF 1
 
 /* Define to 1 if you have the `warn' function. */
-/* #undef HAVE_WARN */
+#define HAVE_WARN 1
 
 /* Define to 1 if you have the `warnx' function. */
-/* #undef HAVE_WARNX */
+#define HAVE_WARNX 1
 
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
@@ -199,7 +193,7 @@
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
-/* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
+#define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -214,7 +208,7 @@
 #define PACKAGE_NAME "sleuthkit"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "sleuthkit 4.6.1"
+#define PACKAGE_STRING "sleuthkit 4.11.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "sleuthkit"
@@ -223,7 +217,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.6.1"
+#define PACKAGE_VERSION "4.11.0"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -250,10 +244,12 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "4.6.1"
+#define VERSION "4.11.0"
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
-/*#undef _DARWIN_USE_64_BIT_INODE */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
+#endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
