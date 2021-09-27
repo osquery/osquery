@@ -51,6 +51,7 @@ function(generateOsqueryUtils)
       windows/raw_registry.cpp
       windows/lzxpress.cpp
       windows/shelllnk.cpp
+      sleuthkit/sleuthkit.cpp
     )
   endif()
 
@@ -105,6 +106,7 @@ function(generateOsqueryUtils)
       windows/raw_registry.h
       windows/lzxpress.h
       windows/shelllnk.h
+      sleuthkit/sleuthkit.h
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})

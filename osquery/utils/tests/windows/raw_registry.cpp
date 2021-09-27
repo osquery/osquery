@@ -37,8 +37,9 @@ TEST_F(RawRegistryTests, test_hive_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-
-  parseHiveCell(reg_contents, offset, raw_reg, key_path, name_key);
+  std::unordered_map<int, int> offset_tracker;
+  parseHiveCell(
+      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   if (raw_reg.size() != 1404) {
     FAIL();
   }
@@ -70,8 +71,10 @@ TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
+  std::unordered_map<int, int> offset_tracker;
 
-  parseHiveLeafHash(reg_contents, offset, raw_reg, key_path, name_key);
+  parseHiveLeafHash(
+      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
 
   if (raw_reg.size() != 20) {
     FAIL();
@@ -102,8 +105,10 @@ TEST_F(RawRegistryTests, test_data_value) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
+  std::unordered_map<int, int> offset_tracker;
 
-  std::string value = parseDataValue(reg_contents, offset, size, reg_type);
+  std::string value =
+      parseDataValue(reg_contents, offset, size, reg_type, offset_tracker);
   ASSERT_TRUE(value == "Microsoft.Messaging_8wekyb3d8bbwe!App");
 }
 
@@ -126,8 +131,10 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
+  std::unordered_map<int, int> offset_tracker;
 
-  parseHiveLeafIndex(reg_contents, offset, raw_reg, key_path, name_key);
+  parseHiveLeafIndex(
+      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   if (raw_reg.size() != 36844) {
     FAIL();
   }
@@ -161,8 +168,15 @@ TEST_F(RawRegistryTests, test_value_key_list_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
+  std::unordered_map<int, int> offset_tracker;
 
-  parseValueKeyList(reg_contents, values, offset, raw_reg, key_path, name_key);
+  parseValueKeyList(reg_contents,
+                    values,
+                    offset,
+                    raw_reg,
+                    key_path,
+                    name_key,
+                    offset_tracker);
 
   ASSERT_TRUE(raw_reg.size() == 11);
   ASSERT_TRUE(raw_reg[3].key_path == "LeaveOnWithMouse");
@@ -189,7 +203,9 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  parseNameKey(reg_contents, offset, raw_reg, key_path);
+  std::unordered_map<int, int> offset_tracker;
+
+  parseNameKey(reg_contents, offset, raw_reg, key_path, offset_tracker);
   if (raw_reg.size() != 3) {
     FAIL();
   }
@@ -216,8 +232,9 @@ TEST_F(RawRegistryTests, test_hive_bin) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
+  std::unordered_map<int, int> offset_tracker;
 
-  RegHiveBin hive_bin = parseHiveBin(reg_contents, offset);
+  RegHiveBin hive_bin = parseHiveBin(reg_contents, offset, offset_tracker);
 
   ASSERT_TRUE(hive_bin.sig == 1852400232);
   ASSERT_TRUE(hive_bin.size == 4096);

@@ -20,14 +20,17 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-
+#include <osquery/utils/expected/expected.h>
+#include <osquery/utils/sleuthkit/sleuthkit.h>
 #include <osquery/utils/windows/raw_registry.h>
+
 #include <tsk/libtsk.h>
 
 #include <iomanip>
 #include <sstream>
 #include <vector>
 
+#include <iostream>
 namespace osquery {
 
 struct RegHeader {
@@ -82,126 +85,6 @@ struct RegSecurityKey {
 
 const int kheader_size = 4096;
 
-// Paritally taken from Sleuthkit table
-class DeviceHelper : private boost::noncopyable {
- public:
-  explicit DeviceHelper(const std::string& device_path)
-      : image_(std::make_shared<TskImgInfo>()),
-        volume_(std::make_shared<TskVsInfo>()),
-        device_path_(device_path) {}
-
-  /// Volume partition iterator.
-  void partitions(std::function<void(const TskVsPartInfo* part)> predicate) {
-    if (open()) {
-      for (TSK_PNUM_T i = 0; i < volume_->getPartCount(); ++i) {
-        auto* part = volume_->getPart(i);
-        if (part == nullptr) {
-          continue;
-        }
-        // Windows requires min of 32GB of space, check for min number of NTFS
-        // sectors
-        if (part->getLen() <= 8388608) {
-          delete part;
-          continue;
-        }
-        predicate(part);
-        delete part;
-      }
-    }
-  }
-
-  /// Provide a partition description for context and iterate from path.
-  void generateFiles(const std::string& partition,
-                     TskFsInfo* fs,
-                     const std::string& path,
-                     std::string reg_path,
-                     std::vector<char>& reg_contents);
-
- private:
-  /// Attempt to open the provided device image and volume.
-  bool open();
-
- private:
-  /// Has the device open been attempted.
-  bool opened_{false};
-
-  /// The result of the opened request.
-  bool opened_result_{false};
-
-  /// Image structure.
-  std::shared_ptr<TskImgInfo> image_{nullptr};
-
-  /// Volume structure.
-  std::shared_ptr<TskVsInfo> volume_{nullptr};
-
-  /// Filesystem path to the device node.
-  std::string device_path_;
-
-  size_t stack_{0};
-};
-
-bool DeviceHelper::open() {
-  if (opened_) {
-    return opened_result_;
-  }
-
-  // Attempt to open the device image.
-  opened_result_ = true;
-  auto status = image_->open(device_path_.c_str(), TSK_IMG_TYPE_DETECT, 0);
-  if (status) {
-    opened_result_ = false;
-    return opened_result_;
-  }
-  // Attempt to open the device image volumn.
-  status = volume_->open(&*image_, 0, TSK_VS_TYPE_DETECT);
-  opened_result_ = (status == 0);
-  return opened_result_;
-}
-
-void DeviceHelper::generateFiles(const std::string& partition,
-                                 TskFsInfo* fs,
-                                 const std::string& path,
-                                 const std::string reg_path,
-                                 std::vector<char>& reg_contents) {
-  if (stack_++ > 1024) {
-    return;
-  }
-  TskFsFile* file_struct = nullptr;
-  TskFsFile* new_file = new TskFsFile();
-  auto result = new_file->open(fs, new_file, reg_path.c_str());
-
-  if (result) {
-    delete new_file;
-    return;
-  } else {
-    auto* meta = new_file->getMeta();
-    TSK_OFF_T size = meta->getSize();
-    auto* buffer = (char*)malloc(size);
-    if (buffer != nullptr) {
-      ssize_t chunk_size = 0;
-      chunk_size = new_file->read(
-          0, (char*)&buffer[0], size, TSK_FS_FILE_READ_FLAG_NONE);
-      if (chunk_size == -1 || chunk_size != size) {
-        free(buffer);
-        delete meta;
-        delete new_file;
-        return;
-      }
-      std::vector<char> reg(buffer, buffer + size);
-      reg_contents = reg;
-      delete meta;
-      delete new_file;
-      free(buffer);
-      return;
-    }
-    free(buffer);
-
-    delete new_file;
-    delete meta;
-    return;
-  }
-}
-
 // Convert args to correct format (sleuthkit expects forward
 // slashes and no drive letter)
 void cleanRegPath(std::string& reg_path) {
@@ -212,38 +95,75 @@ void cleanRegPath(std::string& reg_path) {
   std::replace(reg_path.begin(), reg_path.end(), '\\', '/');
 }
 
+// Keep track of registry offsets in case there is a infinite offset loop
+// (should not exist in legit registry files)
+ExpectedOffsetTracker checkOffsetTracker(
+    const std::size_t& reg_contents_size,
+    const int& offset,
+    std::unordered_map<int, int>& offset_tracker) {
+  if (offset_tracker.find(offset) != offset_tracker.end()) {
+    LOG(INFO) << "Duplicate offset: " << offset;
+    return ExpectedOffsetTracker::failure(ConversionError::InvalidArgument,
+                                          "Duplicate registry offset");
+  }
+  offset_tracker.insert({offset, offset});
+  return ExpectedOffsetTracker::success(offset_tracker);
+}
+
+// Check all offsets to compare with registry contents size. Offsets should
+// always be smaller
+ExpectedOffset checkOffset(const std::size_t& reg_contents_size,
+                           const int& offset) {
+  if (offset > reg_contents_size) {
+    LOG(INFO) << "Offset is greater than Registry contents, offset: " << offset
+              << " registry contents: " << reg_contents_size;
+    return ExpectedOffset::failure(ConversionError::InvalidArgument,
+                                   "Offset is greater than Registry contents");
+  }
+
+  return ExpectedOffset::success(true);
+}
+
 std::vector<char> rawReadRegistry(const std::string& reg_path,
                                   const std::string& drive_path) {
-  DeviceHelper dh(drive_path);
+  SleuthkitHelper dh(drive_path);
   std::vector<char> reg_contents;
-  dh.partitions(([&dh, &reg_path, &reg_contents](const TskVsPartInfo* part) {
-    if (part->getFlags() != TSK_VS_PART_FLAG_ALLOC) {
-      return;
-    }
+  dh.partitionsMinOsSize(
+      ([&dh, &reg_path, &reg_contents](const TskVsPartInfo* part) {
+        if (part->getFlags() != TSK_VS_PART_FLAG_ALLOC) {
+          return;
+        }
 
-    std::string address = std::to_string(part->getAddr());
-    auto* fs = new TskFsInfo();
-    TSK_OFF_T offset = 0;
-    auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-    // Cannot retrieve file information without accessing the filesystem.
-    if (status) {
-      delete fs;
-      return;
-    }
+        std::string address = std::to_string(part->getAddr());
+        auto* fs = new TskFsInfo();
+        TSK_OFF_T offset = 0;
+        auto status = fs->open(part, TSK_FS_TYPE_DETECT);
+        // Cannot retrieve file information without accessing the filesystem.
+        if (status) {
+          delete fs;
+          return;
+        }
 
-    dh.generateFiles(address, fs, "/", reg_path, reg_contents);
-    if (reg_contents.size() > 0) {
-      delete fs;
-      return;
-    }
-    delete fs;
-  }));
+        dh.readFile(address, fs, reg_path, reg_contents);
+        if (reg_contents.size() > 0) {
+          delete fs;
+          return;
+        }
+        delete fs;
+      }));
   return reg_contents;
 }
 
 RegHiveBin parseHiveBin(const std::vector<char>& reg_contents,
-                        const int& offset) {
-  RegHiveBin hive_bin;
+                        const int& offset,
+                        std::unordered_map<int, int>& offset_tracker) {
+  RegHiveBin hive_bin{};
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return hive_bin;
+  }
+
   const int hive_bin_size = 32;
   memcpy(&hive_bin, &reg_contents[offset], hive_bin_size);
   return hive_bin;
@@ -253,7 +173,14 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
                        int& offset,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
-                       const RegNameKey& name_key) {
+                       const RegNameKey& name_key,
+                       std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
+
   RegLeafHash leaf_hash;
   int leaf_hash_min_size = 4;
   memcpy(&leaf_hash, &reg_contents[offset], leaf_hash_min_size);
@@ -267,7 +194,12 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
            sizeof(named_key_offset));
     elements++;
     elememnt_offset += 8;
-    parseHiveCell(reg_contents, named_key_offset, raw_reg, key_path, name_key);
+    parseHiveCell(reg_contents,
+                  named_key_offset,
+                  raw_reg,
+                  key_path,
+                  name_key,
+                  offset_tracker);
   }
 }
 
@@ -275,7 +207,13 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
                         int& offset,
                         std::vector<RegTableData>& raw_reg,
                         std::vector<std::string>& key_path,
-                        const RegNameKey& name_key) {
+                        const RegNameKey& name_key,
+                        std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   RegLeafHash leaf_index;
   int leaf_index_min_size = 4;
   memcpy(&leaf_index, &reg_contents[offset], leaf_index_min_size);
@@ -288,7 +226,12 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
            sizeof(named_key_offset));
     elements++;
     elememnt_offset += 4;
-    parseHiveCell(reg_contents, named_key_offset, raw_reg, key_path, name_key);
+    parseHiveCell(reg_contents,
+                  named_key_offset,
+                  raw_reg,
+                  key_path,
+                  name_key,
+                  offset_tracker);
   }
 }
 
@@ -297,7 +240,13 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
                        const int& offset,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
-                       const RegNameKey& name_key) {
+                       const RegNameKey& name_key,
+                       std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   int value_entries = 0;
   int unknown = 4;
   int value_list_offset = 0;
@@ -307,7 +256,12 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
            &reg_contents[offset + kheader_size + unknown + value_list_offset],
            sizeof(value_offset));
     value_list_offset += 4;
-    parseHiveCell(reg_contents, value_offset, raw_reg, key_path, name_key);
+    parseHiveCell(reg_contents,
+                  value_offset,
+                  raw_reg,
+                  key_path,
+                  name_key,
+                  offset_tracker);
     value_entries++;
   }
 }
@@ -315,7 +269,13 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
 void parseNameKey(const std::vector<char>& reg_contents,
                   int& offset,
                   std::vector<RegTableData>& raw_reg,
-                  std::vector<std::string>& key_path) {
+                  std::vector<std::string>& key_path,
+                  std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   RegNameKey name_key;
   const int name_key_min_size = 76;
   memcpy(&name_key, &reg_contents[offset], name_key_min_size);
@@ -326,11 +286,12 @@ void parseNameKey(const std::vector<char>& reg_contents,
 
   // Check if Security Key exists
   if (name_key.security_key_offset != -1) {
-    parseHiveCell(reg_contents,
-                  name_key.security_key_offset,
-                  raw_reg,
-                  key_path,
-                  name_key);
+    // parseHiveCell(reg_contents,
+    //               name_key.security_key_offset,
+    //               raw_reg,
+    //               key_path,
+    //               name_key,
+    //               offset_tracker);
   }
 
   if (name_key.number_values == 0) {
@@ -347,10 +308,18 @@ void parseNameKey(const std::vector<char>& reg_contents,
                       name_key.value_list_offset,
                       raw_reg,
                       key_path,
-                      name_key);
+                      name_key,
+                      offset_tracker);
   }
-  parseHiveCell(
-      reg_contents, name_key.sub_key_list_offset, raw_reg, key_path, name_key);
+  if (offset == 1128376) {
+    std::cout << key_name << std::endl;
+  }
+  parseHiveCell(reg_contents,
+                name_key.sub_key_list_offset,
+                raw_reg,
+                key_path,
+                name_key,
+                offset_tracker);
   key_path.pop_back();
 }
 
@@ -358,18 +327,29 @@ void parseNameKey(const std::vector<char>& reg_contents,
 std::string parseDataValue(const std::vector<char>& reg_contents,
                            const int& offset,
                            const int& size,
-                           const std::string& reg_type) {
+                           const std::string& reg_type,
+                           std::unordered_map<int, int>& offset_tracker) {
+  std::string data;
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return data;
+  }
   int data_size = size + 1;
   int data_size_and_slack = 0;
   // The raw registry data value can contain remnants of previous entries in
   // slack space, currently ignoring slack data for now
   memcpy(
       &data_size_and_slack, &reg_contents[offset], sizeof(data_size_and_slack));
-  std::string data;
   if (data_size == 0) {
     return data;
   }
-
+  expected =
+      checkOffset(reg_contents.size(), offset + sizeof(data_size_and_slack));
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return data;
+  }
   auto data_buff = std::make_unique<BYTE[]>(data_size);
   // Format data base on Registry Type (similar to the existing api registry
   // table)
@@ -464,7 +444,13 @@ void parseValueKey(const std::vector<char>& reg_contents,
                    const int& hive_bin_offset,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
-                   const RegNameKey& name_key) {
+                   const RegNameKey& name_key,
+                   std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), hive_bin_offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   RegValueKey value_key;
   const int value_min_size = 20;
   std::map<int, std::string> reg_types{{0, "REG_NONE"},
@@ -526,12 +512,19 @@ void parseValueKey(const std::vector<char>& reg_contents,
     }
   } else if (value_key.data_size > 16344) {
     int db_offset = value_key.data_offset + kheader_size;
-    parseHiveBigData(
-        reg_contents, db_offset, reg_type, value_key.data_size, data);
+    parseHiveBigData(reg_contents,
+                     db_offset,
+                     reg_type,
+                     value_key.data_size,
+                     data,
+                     offset_tracker);
   } else {
     int data_offset = value_key.data_offset + kheader_size;
-    data = parseDataValue(
-        reg_contents, data_offset, value_key.data_size, reg_type);
+    data = parseDataValue(reg_contents,
+                          data_offset,
+                          value_key.data_size,
+                          reg_type,
+                          offset_tracker);
   }
   // Now have all the data to build the table
   RegTableData reg_table;
@@ -552,7 +545,13 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& offset,
                       const std::string& reg_type,
                       const int& data_size,
-                      std::string& data_string) {
+                      std::string& data_string,
+                      std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   const int skip_unknown = 4;
   RegBigData big_data;
   const int big_data_min_size = 8;
@@ -591,7 +590,8 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
     segments++;
     segment_start += 4;
   }
-  data_string = parseDataValue(data_contents, 0, data_size, reg_type);
+  data_string =
+      parseDataValue(data_contents, 0, data_size, reg_type, offset_tracker);
 }
 
 // Complex Registry key that contains Access Control Entries (ACE), permissions
@@ -600,7 +600,13 @@ void parseHiveSecurityKey(const std::vector<char>& reg_contents,
                           const int& offset,
                           std::vector<RegTableData>& raw_reg,
                           std::vector<std::string>& key_path,
-                          const RegNameKey& name_key) {
+                          const RegNameKey& name_key,
+                          std::unordered_map<int, int>& offset_tracker) {
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   const int security_key_min_size = 20;
   RegSecurityKey security_key;
   memcpy(&security_key, &reg_contents[offset], security_key_min_size);
@@ -616,15 +622,30 @@ void parseHiveCell(const std::vector<char>& reg_contents,
                    const int& hive_offset,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
-                   const RegNameKey& name_key) {
+                   const RegNameKey& name_key,
+                   std::unordered_map<int, int>& offset_tracker) {
   // Offset of negative one (0xffffffff) means an empty subkey
   if (hive_offset == -1) {
     return;
   }
-  int cell_size = 0;
 
   // Always add 4096/0x1000 (header size) to any registry offset
   int offset = hive_offset + kheader_size;
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
+  auto expected_tracker =
+      checkOffsetTracker(reg_contents.size(), offset, offset_tracker);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
+  offset_tracker = expected_tracker.take();
+  if (offset == 1128376) {
+    std::cout << "hi?" << std::endl;
+  }
   // Registry key types
   const short vk = 27510; // value key
   const short nk = 27502; // name key
@@ -633,6 +654,7 @@ void parseHiveCell(const std::vector<char>& reg_contents,
   const short li = 26988; // leaf index
   const short ri = 26994; // root index
   const short lf = 26220; // fast leaf
+  int cell_size = 0;
   memcpy(&cell_size, &reg_contents[offset], sizeof(cell_size));
   // Allocated cells have negative values, if the value is greater than zero its
   // unallocated
@@ -645,32 +667,38 @@ void parseHiveCell(const std::vector<char>& reg_contents,
 
   if (cell_type == nk) {
     offset += sizeof(cell_size);
-    parseNameKey(reg_contents, offset, raw_reg, key_path);
+    parseNameKey(reg_contents, offset, raw_reg, key_path, offset_tracker);
   } else if (cell_type == vk) {
     offset += sizeof(cell_size);
-    parseValueKey(reg_contents, offset, raw_reg, key_path, name_key);
+    parseValueKey(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == sk) {
     offset += sizeof(cell_size);
-    parseHiveSecurityKey(reg_contents, offset, raw_reg, key_path, name_key);
+    // parseHiveSecurityKey(
+    //    reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == lf) {
     offset += sizeof(cell_size);
-    parseHiveLeafHash(reg_contents, offset, raw_reg, key_path, name_key);
+    parseHiveLeafHash(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == li) {
     offset += sizeof(cell_size);
-    parseHiveLeafIndex(reg_contents, offset, raw_reg, key_path, name_key);
+    parseHiveLeafIndex(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == lh) {
     offset += sizeof(cell_size);
-    parseHiveLeafHash(reg_contents, offset, raw_reg, key_path, name_key);
+    parseHiveLeafHash(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == ri) {
     offset += sizeof(cell_size);
-    parseHiveLeafIndex(reg_contents, offset, raw_reg, key_path, name_key);
+    parseHiveLeafIndex(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   }
 }
 
 std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
   std::vector<RegTableData> raw_reg;
   RegHeader header;
-
+  std::unordered_map<int, int> offset_tracker;
   memcpy(&header, &reg_contents[0], kheader_size);
   const int reg_sig = 0x66676572;
   if (header.sig != reg_sig) {
@@ -687,15 +715,22 @@ std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
 
   int offset = hive_header_size;
   std::vector<std::string> key_path;
+  auto expected = checkOffset(reg_contents.size(), offset);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return raw_reg;
+  }
   RegNameKey name_key;
   // From the first Registry Hive cell we can parse and build the whole registry
   // tree
-  parseHiveCell(reg_contents, offset, raw_reg, key_path, name_key);
+  parseHiveCell(
+      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   return raw_reg;
 }
 
 std::vector<RegTableData> rawRegistry(const std::string& reg_path,
                                       const std::string& drive_path) {
+  std::cout << reg_path << std::endl;
   std::vector<RegTableData> raw_reg;
   std::vector<char> reg_contents = rawReadRegistry(reg_path, drive_path);
   if (reg_contents.size() == 0) {
@@ -707,6 +742,7 @@ std::vector<RegTableData> rawRegistry(const std::string& reg_path,
     LOG(WARNING) << "Registry file too small: " << reg_path;
     return raw_reg;
   }
+  std::cout << reg_contents.size() << std::endl;
   raw_reg = buildRegistry(reg_contents);
   return raw_reg;
 }
