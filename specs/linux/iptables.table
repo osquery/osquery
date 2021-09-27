@@ -1,7 +1,7 @@
 table_name("iptables")
 description("Linux IP packet filtering and NAT tool.")
 schema([
-    Column("filter_name", TEXT, "Packet matching filter table name."),
+    Column("filter_name", TEXT, "Packet matching filter table name.", index=True),
     Column("chain", TEXT, "Size of module content."),
     Column("policy", TEXT, "Policy that applies for this rule."),
     Column("target", TEXT, "Target that applies for this rule."),

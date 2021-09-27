@@ -150,19 +150,32 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
 QueryData genIptables(QueryContext &context) {
   QueryData results;
 
-  // Read in table names
-  std::string content;
-  auto s = osquery::readFile(kLinuxIpTablesNames, content);
-  if (s.ok()) {
-    for (auto &line : split(content, "\n")) {
-      boost::trim(line);
-      if (line.size() > 0) {
-        genIPTablesRules(line, results);
-      }
+  bool runSelectAll(true);
+
+  if (auto constraint_it = context.constraints.find("filter_name");
+      constraint_it != context.constraints.end()) {
+    const auto& constraints = constraint_it->second;
+    for (const auto& filter_name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
+      genIPTablesRules(filter_name, results);
     }
-  } else {
-    // Permissions issue or iptables modules are not loaded.
-    TLOG << "Error reading " << kLinuxIpTablesNames << " : " << s.toString();
+  }
+
+  if (runSelectAll) {
+    // Read in table names
+    std::string content;
+    auto s = osquery::readFile(kLinuxIpTablesNames, content);
+    if (s.ok()) {
+      for (auto& line : split(content, "\n")) {
+        boost::trim(line);
+        if (line.size() > 0) {
+          genIPTablesRules(line, results);
+        }
+      }
+    } else {
+      // Permissions issue or iptables modules are not loaded.
+      TLOG << "Error reading " << kLinuxIpTablesNames << " : " << s.toString();
+    }
   }
 
   return results;
