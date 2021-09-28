@@ -307,12 +307,12 @@ void parseNameKey(const std::vector<char>& reg_contents,
 
   // Check if Security Key exists
   if (name_key.security_key_offset != -1) {
-    // parseHiveCell(reg_contents,
-    //               name_key.security_key_offset,
-    //               raw_reg,
-    //               key_path,
-    //               name_key,
-    //               offset_tracker);
+    parseHiveCell(reg_contents,
+                  name_key.security_key_offset,
+                  raw_reg,
+                  key_path,
+                  name_key,
+                  offset_tracker);
   }
 
   if (name_key.number_values == 0) {
@@ -414,7 +414,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
     data_buff[data_size - 1] = 0x00;
 
     data = wstringToString(reinterpret_cast<wchar_t*>(data_buff.get()));
-  } else if (reg_type == "REG_EXPAND_SZ0") {
+  } else if (reg_type == "REG_EXPAND_SZ") {
     memcpy(data_buff.get(),
            &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
@@ -427,7 +427,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
            &reg_contents[offset + sizeof(data_size_and_slack)],
            sizeof(reg_dword));
     data = std::to_string(reg_dword);
-  } else if (reg_type == "REG_MULTI_SZ") {
+  } else if (reg_type == "REG_MULTI_SZ0") {
     memcpy(data_buff.get(),
            &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
@@ -584,7 +584,6 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
   }
   memcpy(&big_data, &reg_contents[offset + skip_unknown], big_data_min_size);
   int segments = 0;
-  int segment_offset = 0;
   // Big data segments contain offset to value key offset
   int db_list_offset = big_data.block_offset + kheader_size;
   std::vector<char> data_contents;
@@ -721,8 +720,8 @@ void parseHiveCell(const std::vector<char>& reg_contents,
         reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == sk) {
     offset += sizeof(cell_size);
-    // parseHiveSecurityKey(
-    //    reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
+    parseHiveSecurityKey(
+        reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   } else if (cell_type == lf) {
     offset += sizeof(cell_size);
     parseHiveLeafHash(
@@ -785,7 +784,6 @@ std::vector<RegTableData> rawRegistry(const std::string& reg_path,
     LOG(WARNING) << "Registry file too small: " << reg_path;
     return raw_reg;
   }
-  std::cout << reg_contents.size() << std::endl;
   raw_reg = buildRegistry(reg_contents);
   return raw_reg;
 }

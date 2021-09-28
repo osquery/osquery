@@ -98,7 +98,7 @@ TEST_F(RawRegistryTests, test_data_value) {
           .make_preferred()
           .string();
 
-  int offset = 13896;
+  int offset = 17992;
   std::string reg_type = "REG_SZ";
   int size = 76;
   std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
@@ -209,6 +209,7 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   if (raw_reg.size() != 3) {
     FAIL();
   }
+
   ASSERT_TRUE(raw_reg[1].key_path == "Environment\\TEMP");
   ASSERT_TRUE(raw_reg[2].modified_time == 1552971338);
   ASSERT_TRUE(raw_reg[2].key == "Environment");

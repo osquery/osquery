@@ -13,12 +13,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <osquery/utils/sleuthkit/sleuthkit.h>
-#include <tsk/libtsk.h>
-
-//#include <osquery/filesystem/filesystem.h>
-//#include <osquery/hashing/hashing.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/sleuthkit/sleuthkit.h>
+
+#include <tsk/libtsk.h>
 
 namespace osquery {
 
