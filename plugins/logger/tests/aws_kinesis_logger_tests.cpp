@@ -57,7 +57,8 @@ using IDummyLogForwarder =
 
 class DummyLogForwarder final : public IDummyLogForwarder {
  public:
-  DummyLogForwarder() : IDummyLogForwarder("dummy", 10, 50) {}
+  DummyLogForwarder()
+      : IDummyLogForwarder("dummy", 10, 50, "http://example.com") {}
 
  protected:
   Status internalSetup() override {

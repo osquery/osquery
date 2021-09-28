@@ -36,8 +36,9 @@ class KinesisLogForwarder final : public IKinesisLogForwarder {
  public:
   KinesisLogForwarder(const std::string& name,
                       uint64_t log_period,
-                      uint64_t max_lines)
-      : IKinesisLogForwarder(name, log_period, max_lines) {}
+                      uint64_t max_lines,
+                      const std::string& endpoint_override)
+      : IKinesisLogForwarder(name, log_period, max_lines, endpoint_override) {}
 
  protected:
   Status internalSetup() override;

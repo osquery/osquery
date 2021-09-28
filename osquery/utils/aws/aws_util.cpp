@@ -491,11 +491,11 @@ bool isEc2Instance() {
   return is_ec2_instance;
 }
 
-Status getAWSRegion(std::string& region, bool sts) {
+Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
   // First try using the explicit region flags (STS or otherwise).
   if (sts && !FLAGS_aws_sts_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_sts_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
       region = FLAGS_aws_sts_region;
       return Status(0);
@@ -506,7 +506,7 @@ Status getAWSRegion(std::string& region, bool sts) {
 
   if (!FLAGS_aws_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
       region = FLAGS_aws_region;
       return Status(0);

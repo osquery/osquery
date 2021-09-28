@@ -37,12 +37,16 @@ class AwsLogForwarder : public BufferedLogForwarder {
   using Result = ResultType;
 
  public:
-  AwsLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
+  AwsLogForwarder(const std::string& name,
+                  size_t log_period,
+                  size_t max_lines,
+                  const std::string& endpoint_override)
       : BufferedLogForwarder(std::string("AwsLogForwarder:") + name,
                              name,
                              std::chrono::seconds(log_period),
                              max_lines),
-        name_(name) {}
+        name_(name),
+        endpoint_override_(endpoint_override) {}
 
   /// Common plugin initialization
   Status setUp() override {
@@ -51,7 +55,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
       return s;
     }
 
-    s = makeAWSClient<Client>(client_);
+    s = makeAWSClient<Client>(client_, "", true, endpoint_override_);
     if (!s.ok()) {
       return s;
     }
@@ -331,5 +335,8 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
   /// Logger name; used when printing messages
   std::string name_;
+
+  /// Service endpoint override
+  std::string endpoint_override_;
 };
 }
