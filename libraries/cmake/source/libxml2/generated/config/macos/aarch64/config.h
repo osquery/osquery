@@ -1,11 +1,11 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define if __attribute__((destructor)) is accepted */
+#define ATTRIBUTE_DESTRUCTOR 1
+
 /* Type cast for the gethostbyname() argument */
 #define GETHOSTBYNAME_ARG_CAST /**/
-
-/* Define to 1 if you have the <ansidecl.h> header file. */
-/* #undef HAVE_ANSIDECL_H */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
@@ -15,9 +15,6 @@
 
 /* Whether struct sockaddr::__ss_family exists */
 /* #undef HAVE_BROKEN_SS_FAMILY */
-
-/* Define to 1 if you have the `class' function. */
-/* #undef HAVE_CLASS */
 
 /* Define to 1 if you have the <ctype.h> header file. */
 #define HAVE_CTYPE_H 1
@@ -29,7 +26,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Have dlopen based dso */
-#define HAVE_DLOPEN /**/
+#define HAVE_DLOPEN 1
 
 /* Define to 1 if you have the <dl.h> header file. */
 /* #undef HAVE_DL_H */
@@ -40,35 +37,20 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
 
-/* Define to 1 if you have the `finite' function. */
-#define HAVE_FINITE 1
-
 /* Define to 1 if you have the <float.h> header file. */
 #define HAVE_FLOAT_H 1
 
-/* Define to 1 if you have the `fpclass' function. */
-/* #undef HAVE_FPCLASS */
-
 /* Define to 1 if you have the `fprintf' function. */
 #define HAVE_FPRINTF 1
-
-/* Define to 1 if you have the `fp_class' function. */
-/* #undef HAVE_FP_CLASS */
-
-/* Define to 1 if you have the <fp_class.h> header file. */
-/* #undef HAVE_FP_CLASS_H */
 
 /* Define to 1 if you have the `ftime' function. */
 #define HAVE_FTIME 1
 
 /* Define if getaddrinfo is there */
-#define HAVE_GETADDRINFO /**/
+#define HAVE_GETADDRINFO 1
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #define HAVE_GETTIMEOFDAY 1
-
-/* Define to 1 if you have the <ieeefp.h> header file. */
-/* #undef HAVE_IEEEFP_H */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -77,28 +59,19 @@
 #define HAVE_ISASCII 1
 
 /* Define if isinf is there */
-#define HAVE_ISINF /**/
+#define HAVE_ISINF 1
 
 /* Define if isnan is there */
-#define HAVE_ISNAN /**/
-
-/* Define to 1 if you have the `isnand' function. */
-/* #undef HAVE_ISNAND */
+#define HAVE_ISNAN 1
 
 /* Define if history library is there (-lhistory) */
 /* #undef HAVE_LIBHISTORY */
 
-/* Have compression library */
-/* #undef HAVE_LIBLZMA */
-
 /* Define if pthread library is there (-lpthread) */
-#define HAVE_LIBPTHREAD /**/
+#define HAVE_LIBPTHREAD 1
 
 /* Define if readline library is there (-lreadline) */
-/* #undef HAVE_LIBREADLINE */
-
-/* Have compression library */
-#define HAVE_LIBZ 1
+#define HAVE_LIBREADLINE 1
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
@@ -110,7 +83,7 @@
 /* #undef HAVE_LZMA_H */
 
 /* Define to 1 if you have the <malloc.h> header file. */
-#define HAVE_MALLOC_H 1
+/* #undef HAVE_MALLOC_H */
 
 /* Define to 1 if you have the <math.h> header file. */
 #define HAVE_MATH_H 1
@@ -129,9 +102,6 @@
 #  undef /**/ HAVE_MMAP
 #endif
 
-/* Define to 1 if you have the <nan.h> header file. */
-/* #undef HAVE_NAN_H */
-
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 /* #undef HAVE_NDIR_H */
 
@@ -148,7 +118,7 @@
 #define HAVE_PRINTF 1
 
 /* Define if <pthread.h> is there */
-#define HAVE_PTHREAD_H /**/
+#define HAVE_PTHREAD_H 1
 
 /* Define to 1 if you have the `putenv' function. */
 #define HAVE_PUTENV 1
@@ -195,12 +165,6 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
 
-/* Define to 1 if you have the `strdup' function. */
-#define HAVE_STRDUP 1
-
-/* Define to 1 if you have the `strerror' function. */
-#define HAVE_STRERROR 1
-
 /* Define to 1 if you have the `strftime' function. */
 #define HAVE_STRFTIME 1
 
@@ -209,9 +173,6 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
-
-/* Define to 1 if you have the `strndup' function. */
-#define HAVE_STRNDUP 1
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
@@ -252,7 +213,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Whether va_copy() is available */
-#define HAVE_VA_COPY 1
+/* #undef HAVE_VA_COPY */
 
 /* Define to 1 if you have the `vfprintf' function. */
 #define HAVE_VFPRINTF 1
@@ -264,10 +225,7 @@
 #define HAVE_VSPRINTF 1
 
 /* Define to 1 if you have the <zlib.h> header file. */
-#define HAVE_ZLIB_H 1
-
-/* Define to 1 if you have the `_stat' function. */
-/* #undef HAVE__STAT */
+/* #undef HAVE_ZLIB_H */
 
 /* Whether __va_copy() is available */
 /* #undef HAVE___VA_COPY */
@@ -275,30 +233,29 @@
 /* Define as const if the declaration of iconv() needs const. */
 #define ICONV_CONST 
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */
 #define PACKAGE "libxml2"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ""
+#define PACKAGE_BUGREPORT "xml@gnome.org"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME ""
+#define PACKAGE_NAME "libxml2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING ""
+#define PACKAGE_STRING "libxml2 2.9.10"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ""
+#define PACKAGE_TARNAME "libxml2"
 
 /* Define to the home page for this package. */
-#define PACKAGE_URL ""
+#define PACKAGE_URL "http://www.xmlsoft.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION ""
+#define PACKAGE_VERSION "2.9.10"
 
 /* Type cast for the send() function 2nd arg */
 #define SEND_ARG2_CAST /**/
@@ -307,13 +264,13 @@
 #define STDC_HEADERS 1
 
 /* Support for IPv6 */
-#define SUPPORT_IP6 /**/
+/* #undef SUPPORT_IP6 */
 
 /* Define if va_list is an array type */
-#define VA_LIST_IS_ARRAY 1
+/* #undef VA_LIST_IS_ARRAY */
 
 /* Version number of package */
-#define VERSION "2.9.7"
+#define VERSION "2.9.10"
 
 /* Determine what socket length (socklen_t) data type is */
 #define XML_SOCKLEN_T socklen_t
