@@ -22,22 +22,7 @@ class SleuthkitHelper : private boost::noncopyable {
         volume_(std::make_shared<TskVsInfo>()),
         device_path_(device_path) {}
 
-  /// Volume partition iterator.
-  void partitions(
-      std::function<void(const TskVsPartInfo* partition)> predicate) {
-    if (open()) {
-      for (TSK_PNUM_T i = 0; i < volume_->getPartCount(); ++i) {
-        auto* part = volume_->getPart(i);
-        if (part == nullptr) {
-          continue;
-        }
-        predicate(part);
-        delete part;
-      }
-    }
-  }
-
-  // Volume partition iterator for minimum Windows OS size.
+  // Volume partition iterator to identify minimum Windows OS size.
   void partitionsMinOsSize(
       std::function<void(const TskVsPartInfo* part)> predicate) {
     if (open()) {
@@ -61,32 +46,10 @@ class SleuthkitHelper : private boost::noncopyable {
   // Provide a path and read data.
   void readFile(const std::string& partition,
                 TskFsInfo* fs,
-                std::string reg_path,
-                std::vector<char>& reg_contents);
+                std::string file_path,
+                std::vector<char>& file_contents);
   bool open();
-  /*
-  void inodes(
-      const std::set<std::string>& inodes,
-      TskFsInfo* fs,
-      std::function<void(const std::string&, TskFsFile*, const std::string&)>
-          predicate);
 
-  /// Volume accessor, used for computing offsets using block/sector size.
-  const std::shared_ptr<TskVsInfo>& getVolume() {
-    return volume_;
-  }
-
-  /// Reset stack counting for directory iteration.
-  void resetStack() {
-    stack_ = 0;
-    count_ = 0;
-    std::set<std::string>().swap(loops_);
-  }
-
- //private:
-  /// Attempt to open the provided device image and volume.
-  //bool open();
-  */
  private:
   /// Has the device open been attempted.
   bool opened_{false};
@@ -102,9 +65,5 @@ class SleuthkitHelper : private boost::noncopyable {
 
   /// Filesystem path to the device node.
   std::string device_path_;
-
-  size_t stack_{0};
-  size_t count_{0};
-  std::set<std::string> loops_;
 };
 } // namespace osquery

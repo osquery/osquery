@@ -37,7 +37,7 @@ TEST_F(RawRegistryTests, test_hive_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
   parseHiveCell(
       reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
   if (raw_reg.size() != 1404) {
@@ -71,7 +71,7 @@ TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   parseHiveLeafHash(
       reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
@@ -105,7 +105,7 @@ TEST_F(RawRegistryTests, test_data_value) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   std::string value =
       parseDataValue(reg_contents, offset, size, reg_type, offset_tracker);
@@ -131,7 +131,7 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   parseHiveLeafIndex(
       reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
@@ -168,7 +168,7 @@ TEST_F(RawRegistryTests, test_value_key_list_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   parseValueKeyList(reg_contents,
                     values,
@@ -203,7 +203,7 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   parseNameKey(reg_contents, offset, raw_reg, key_path, offset_tracker);
   if (raw_reg.size() != 3) {
@@ -232,7 +232,7 @@ TEST_F(RawRegistryTests, test_hive_bin) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
 
   RegHiveBin hive_bin = parseHiveBin(reg_contents, offset, offset_tracker);
 

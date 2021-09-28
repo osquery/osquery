@@ -97,17 +97,18 @@ void cleanRegPath(std::string& reg_path) {
 
 // Keep track of registry offsets in case there is a infinite offset loop
 // (should not exist in legit registry files)
-ExpectedOffsetTracker checkOffsetTracker(
-    const std::size_t& reg_contents_size,
-    const int& offset,
-    std::unordered_map<int, int>& offset_tracker) {
-  if (offset_tracker.find(offset) != offset_tracker.end()) {
-    LOG(INFO) << "Duplicate offset: " << offset;
-    return ExpectedOffsetTracker::failure(ConversionError::InvalidArgument,
-                                          "Duplicate registry offset");
+ExpectedOffsetTracker checkOffsetTracker(const std::size_t& reg_contents_size,
+                                         const int& offset,
+                                         std::vector<int>& offset_tracker) {
+  try {
+    offset_tracker.at(offset);
+  } catch (std::out_of_range) {
+    offset_tracker.push_back(offset);
+    return ExpectedOffsetTracker::success(offset_tracker);
   }
-  offset_tracker.insert({offset, offset});
-  return ExpectedOffsetTracker::success(offset_tracker);
+  LOG(INFO) << "Duplicate offset: " << offset;
+  return ExpectedOffsetTracker::failure(ConversionError::InvalidArgument,
+                                        "Duplicate registry offset");
 }
 
 // Check all offsets to compare with registry contents size. Offsets should
@@ -156,7 +157,7 @@ std::vector<char> rawReadRegistry(const std::string& reg_path,
 
 RegHiveBin parseHiveBin(const std::vector<char>& reg_contents,
                         const int& offset,
-                        std::unordered_map<int, int>& offset_tracker) {
+                        std::vector<int>& offset_tracker) {
   RegHiveBin hive_bin{};
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
@@ -174,7 +175,7 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
                        const RegNameKey& name_key,
-                       std::unordered_map<int, int>& offset_tracker) {
+                       std::vector<int>& offset_tracker) {
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
@@ -185,15 +186,21 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
   int leaf_hash_min_size = 4;
   memcpy(&leaf_hash, &reg_contents[offset], leaf_hash_min_size);
   int elements = 0;
-  int elememnt_offset = 0;
+  int element_offset = 0;
   int named_key_offset = 0;
 
   while (elements < leaf_hash.num_elements) {
+    expected = checkOffset(reg_contents.size(),
+                           offset + leaf_hash_min_size + element_offset);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     memcpy(&named_key_offset,
-           &reg_contents[offset + leaf_hash_min_size + elememnt_offset],
+           &reg_contents[offset + leaf_hash_min_size + element_offset],
            sizeof(named_key_offset));
     elements++;
-    elememnt_offset += 8;
+    element_offset += 8;
     parseHiveCell(reg_contents,
                   named_key_offset,
                   raw_reg,
@@ -208,7 +215,7 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
                         std::vector<RegTableData>& raw_reg,
                         std::vector<std::string>& key_path,
                         const RegNameKey& name_key,
-                        std::unordered_map<int, int>& offset_tracker) {
+                        std::vector<int>& offset_tracker) {
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
@@ -218,14 +225,20 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
   int leaf_index_min_size = 4;
   memcpy(&leaf_index, &reg_contents[offset], leaf_index_min_size);
   int elements = 0;
-  int elememnt_offset = 0;
+  int element_offset = 0;
   int named_key_offset = 0;
   while (elements < leaf_index.num_elements) {
+    expected = checkOffset(reg_contents.size(),
+                           offset + leaf_index_min_size + element_offset);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     memcpy(&named_key_offset,
-           &reg_contents[offset + leaf_index_min_size + elememnt_offset],
+           &reg_contents[offset + leaf_index_min_size + element_offset],
            sizeof(named_key_offset));
     elements++;
-    elememnt_offset += 4;
+    element_offset += 4;
     parseHiveCell(reg_contents,
                   named_key_offset,
                   raw_reg,
@@ -241,16 +254,18 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
                        const RegNameKey& name_key,
-                       std::unordered_map<int, int>& offset_tracker) {
-  auto expected = checkOffset(reg_contents.size(), offset);
-  if (expected.isError()) {
-    LOG(INFO) << expected.getError();
-    return;
-  }
+                       std::vector<int>& offset_tracker) {
   int value_entries = 0;
   int unknown = 4;
   int value_list_offset = 0;
   while (value_entries < num_values) {
+    auto expected =
+        checkOffset(reg_contents.size(),
+                    offset + kheader_size + unknown + value_list_offset);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     int value_offset = 0;
     memcpy(&value_offset,
            &reg_contents[offset + kheader_size + unknown + value_list_offset],
@@ -270,7 +285,7 @@ void parseNameKey(const std::vector<char>& reg_contents,
                   int& offset,
                   std::vector<RegTableData>& raw_reg,
                   std::vector<std::string>& key_path,
-                  std::unordered_map<int, int>& offset_tracker) {
+                  std::vector<int>& offset_tracker) {
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
@@ -279,6 +294,12 @@ void parseNameKey(const std::vector<char>& reg_contents,
   RegNameKey name_key;
   const int name_key_min_size = 76;
   memcpy(&name_key, &reg_contents[offset], name_key_min_size);
+  expected = checkOffset(reg_contents.size(),
+                         offset + name_key_min_size + name_key.key_name_size);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return;
+  }
   std::string key_name(reg_contents.begin() + offset + name_key_min_size,
                        reg_contents.begin() + offset + name_key_min_size +
                            name_key.key_name_size);
@@ -311,9 +332,7 @@ void parseNameKey(const std::vector<char>& reg_contents,
                       name_key,
                       offset_tracker);
   }
-  if (offset == 1128376) {
-    std::cout << key_name << std::endl;
-  }
+
   parseHiveCell(reg_contents,
                 name_key.sub_key_list_offset,
                 raw_reg,
@@ -328,7 +347,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
                            const int& offset,
                            const int& size,
                            const std::string& reg_type,
-                           std::unordered_map<int, int>& offset_tracker) {
+                           std::vector<int>& offset_tracker) {
   std::string data;
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
@@ -344,8 +363,8 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   if (data_size == 0) {
     return data;
   }
-  expected =
-      checkOffset(reg_contents.size(), offset + sizeof(data_size_and_slack));
+  expected = checkOffset(reg_contents.size(),
+                         offset + sizeof(data_size_and_slack) + data_size);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
     return data;
@@ -353,6 +372,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
   auto data_buff = std::make_unique<BYTE[]>(data_size);
   // Format data base on Registry Type (similar to the existing api registry
   // table)
+  // std::cout << reg_type << std::endl;
   if (reg_type == "REG_SZ") {
     memcpy(data_buff.get(),
            &reg_contents[offset + sizeof(data_size_and_slack)],
@@ -360,7 +380,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
     data_buff[data_size - 1] = 0x00;
 
     data = wstringToString(reinterpret_cast<wchar_t*>(data_buff.get()));
-  } else if (reg_type == "REG_BINARY" || reg_type == "REG_RESOURCE_LIST" ||
+  } else if (reg_type == "REG_BINARY0" || reg_type == "REG_RESOURCE_LIST" ||
              reg_type == "REG_FULL_RESOURCE_DESCRIPTOR" ||
              reg_type == "REG_RESOURCE_REQUIREMENTS_LIST" ||
              reg_type == "REG_TYPE_UNKNOWN" || reg_type == "REG_NONE") {
@@ -394,7 +414,7 @@ std::string parseDataValue(const std::vector<char>& reg_contents,
     data_buff[data_size - 1] = 0x00;
 
     data = wstringToString(reinterpret_cast<wchar_t*>(data_buff.get()));
-  } else if (reg_type == "REG_EXPAND_SZ") {
+  } else if (reg_type == "REG_EXPAND_SZ0") {
     memcpy(data_buff.get(),
            &reg_contents[offset + sizeof(data_size_and_slack)],
            data_size);
@@ -445,7 +465,7 @@ void parseValueKey(const std::vector<char>& reg_contents,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
                    const RegNameKey& name_key,
-                   std::unordered_map<int, int>& offset_tracker) {
+                   std::vector<int>& offset_tracker) {
   auto expected = checkOffset(reg_contents.size(), hive_bin_offset);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
@@ -478,6 +498,13 @@ void parseValueKey(const std::vector<char>& reg_contents,
   if (value_key.value_name_size == 0) {
     name = "(default)";
   } else {
+    expected = checkOffset(
+        reg_contents.size(),
+        value_min_size + hive_bin_offset + value_key.value_name_size);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     // Name is in ASCII otherwise its UTF16
     if (value_key.flags == 1) {
       std::string reg_value_name(
@@ -546,15 +573,15 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
                       const std::string& reg_type,
                       const int& data_size,
                       std::string& data_string,
-                      std::unordered_map<int, int>& offset_tracker) {
-  auto expected = checkOffset(reg_contents.size(), offset);
+                      std::vector<int>& offset_tracker) {
+  const int skip_unknown = 4;
+  RegBigData big_data;
+  const int big_data_min_size = 8;
+  auto expected = checkOffset(reg_contents.size(), offset + skip_unknown);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
     return;
   }
-  const int skip_unknown = 4;
-  RegBigData big_data;
-  const int big_data_min_size = 8;
   memcpy(&big_data, &reg_contents[offset + skip_unknown], big_data_min_size);
   int segments = 0;
   int segment_offset = 0;
@@ -570,10 +597,21 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
   int segment_start = 0;
   // Loop through all segments and concat data
   while (segments < big_data.num_segments) {
+    expected =
+        checkOffset(reg_contents.size(), offset + skip_unknown + segment_start);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     int db_data_offset = 0;
     memcpy(&db_data_offset,
            &reg_contents[db_list_offset + skip_unknown + segment_start],
            sizeof(int));
+    expected = checkOffset(reg_contents.size(), db_data_offset + kheader_size);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     int db_data_size = 0;
     memcpy(&db_data_size,
            &reg_contents[db_data_offset + kheader_size],
@@ -581,7 +619,13 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
     if (db_data_size < 0) {
       db_data_size = db_data_size * -1;
     }
-
+    expected = checkOffset(
+        reg_contents.size(),
+        db_data_offset + sizeof(int) + kheader_size + db_data_size - 8);
+    if (expected.isError()) {
+      LOG(INFO) << expected.getError();
+      return;
+    }
     data_contents.insert(
         data_contents.end(),
         reg_contents.begin() + db_data_offset + sizeof(int) + kheader_size,
@@ -601,7 +645,7 @@ void parseHiveSecurityKey(const std::vector<char>& reg_contents,
                           std::vector<RegTableData>& raw_reg,
                           std::vector<std::string>& key_path,
                           const RegNameKey& name_key,
-                          std::unordered_map<int, int>& offset_tracker) {
+                          std::vector<int>& offset_tracker) {
   auto expected = checkOffset(reg_contents.size(), offset);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
@@ -623,7 +667,7 @@ void parseHiveCell(const std::vector<char>& reg_contents,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
                    const RegNameKey& name_key,
-                   std::unordered_map<int, int>& offset_tracker) {
+                   std::vector<int>& offset_tracker) {
   // Offset of negative one (0xffffffff) means an empty subkey
   if (hive_offset == -1) {
     return;
@@ -636,16 +680,14 @@ void parseHiveCell(const std::vector<char>& reg_contents,
     LOG(INFO) << expected.getError();
     return;
   }
-  auto expected_tracker =
-      checkOffsetTracker(reg_contents.size(), offset, offset_tracker);
-  if (expected.isError()) {
-    LOG(INFO) << expected.getError();
-    return;
-  }
-  offset_tracker = expected_tracker.take();
-  if (offset == 1128376) {
-    std::cout << "hi?" << std::endl;
-  }
+  // auto expected_tracker =
+  //    checkOffsetTracker(reg_contents.size(), offset, offset_tracker);
+  // if (expected_tracker.isError()) {
+  //  LOG(INFO) << expected.getError();
+  //  return;
+  //}
+  // offset_tracker = expected_tracker.take();
+
   // Registry key types
   const short vk = 27510; // value key
   const short nk = 27502; // name key
@@ -659,6 +701,11 @@ void parseHiveCell(const std::vector<char>& reg_contents,
   // Allocated cells have negative values, if the value is greater than zero its
   // unallocated
   if (cell_size > 0) {
+    return;
+  }
+  expected = checkOffset(reg_contents.size(), offset + sizeof(cell_size));
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
     return;
   }
   unsigned short cell_type = 0;
@@ -698,7 +745,7 @@ void parseHiveCell(const std::vector<char>& reg_contents,
 std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
   std::vector<RegTableData> raw_reg;
   RegHeader header;
-  std::unordered_map<int, int> offset_tracker;
+  std::vector<int> offset_tracker;
   memcpy(&header, &reg_contents[0], kheader_size);
   const int reg_sig = 0x66676572;
   if (header.sig != reg_sig) {
@@ -715,11 +762,7 @@ std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
 
   int offset = hive_header_size;
   std::vector<std::string> key_path;
-  auto expected = checkOffset(reg_contents.size(), offset);
-  if (expected.isError()) {
-    LOG(INFO) << expected.getError();
-    return raw_reg;
-  }
+
   RegNameKey name_key;
   // From the first Registry Hive cell we can parse and build the whole registry
   // tree
