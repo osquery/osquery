@@ -37,6 +37,11 @@ void genSSHkeysForUser(const std::string& uid,
 
     std::string keys_content;
 
+    if (!pathExists(keys_file).ok()) {
+      // no authorized key file present, keep going
+      continue;
+    }
+
     auto s = forensicReadFile(keys_file, keys_content, false, false);
     if (!s.ok()) {
       // Cannot read a specific keys file.
