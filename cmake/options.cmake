@@ -103,6 +103,8 @@ set(third_party_source_list "source;formula")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" CACHE STRING "A list of paths containing CMake module files")
 set(OSQUERY_THIRD_PARTY_SOURCE "${third_party_source_list}" CACHE STRING "Sources used to acquire third-party dependencies")
 
+set(OSQUERY_INSTALL_DIRECTIVES "${CMAKE_SOURCE_DIR}/cmake/install_directives.cmake" CACHE FILEPATH "Install directives")
+
 # This is the default S3 storage used by Facebook to store 3rd party dependencies; it
 # is provided here as a configuration option
 if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
