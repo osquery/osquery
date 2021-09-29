@@ -64,7 +64,7 @@ TEST_F(JumplistsTest, test_sanity) {
           .make_preferred()
           .string();
   std::string query =
-      "select * from jumplists where path like '" + test_filepath + "'";
+      "SELECT * FROM jumplists WHERE path LIKE '" + test_filepath + "'";
   QueryData const rows = execute_query(query);
 
   ASSERT_GT(rows.size(), 0ul);
@@ -79,7 +79,7 @@ TEST_F(JumplistsTest, test_sanity) {
   validate_rows(specific_rows, row_map);
 
   // If running tests locally try local Jumplist files
-  QueryData const default_rows = execute_query("select * from jumplists");
+  QueryData const default_rows = execute_query("SELECT * FROM jumplists");
   if (!default_rows.empty()) {
     ASSERT_GT(default_rows.size(), 0ul);
     validate_rows(default_rows, row_map);

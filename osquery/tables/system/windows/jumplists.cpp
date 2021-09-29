@@ -1062,7 +1062,6 @@ void parseCustomJumplists(const std::string& path, QueryData& results) {
   }
 
   std::string lnk_hex = ss.str();
-  // std::string lnk_hex = charToHexString(jump_content);
   const std::string lnk_sig = "4C0000000114020000000000C000000000000046";
   osquery::tables::kType jump_type = osquery::tables::kType::Custom;
 

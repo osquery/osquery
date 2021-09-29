@@ -102,7 +102,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   ShellFileEntryData file_entry;
   file_entry.mft_entry = -1LL;
   file_entry.mft_sequence = -1;
-  // Skip the first two bytes to start at the first shellitem size
+  // Skip the first four bytes to start at the first shellitem size
   std::string data = target_info.substr(4);
   // Loop through all the shellitems
   while (true) {
@@ -206,7 +206,7 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
   target_lnk.path = osquery::join(build_path, "\\");
   target_lnk.mft_entry = file_entry.mft_entry;
   target_lnk.mft_sequence = file_entry.mft_sequence;
-  // First two bytes equal the size of the whole target info data
+  // First four bytes equal the size of the whole target info data
   std::string target_info_size = original_data.substr(0, 4);
   target_info_size = swapEndianess(target_info_size);
   int target_size = tryTo<int>(target_info_size, 16).takeOr(0) * 2;
