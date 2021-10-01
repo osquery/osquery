@@ -8,6 +8,7 @@
  */
 
 #include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 #include <gtest/gtest.h>
 
 #include <osquery/utils/system/env.h>
