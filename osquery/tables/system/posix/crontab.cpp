@@ -109,7 +109,7 @@ QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
 
   file_list.push_back(kSystemCron);
 
-  for (const auto cron_dir : kCronSearchDirs) {
+  for (const auto& cron_dir : kCronSearchDirs) {
     osquery::listFilesInDirectory(cron_dir, file_list);
   }
 
