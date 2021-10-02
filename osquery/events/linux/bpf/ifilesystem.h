@@ -60,6 +60,11 @@ class IFilesystem {
   /// \brief Enumerates all the files in the given directory
   virtual bool enumFiles(int dirfd, EnumFilesCallback callback) const = 0;
 
+  /// \brief Checks whether the given file exists or not
+  virtual bool fileExists(bool& exists,
+                          int dirfd,
+                          const std::string& name) const = 0;
+
   IFilesystem(const IFilesystem&) = delete;
   IFilesystem& operator=(const IFilesystem&) = delete;
 };
