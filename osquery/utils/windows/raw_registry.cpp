@@ -590,10 +590,6 @@ void parseValueKey(const std::vector<char>& reg_contents,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
                    const RegNameKey& name_key) {
-  // Offset of negative one (0xffffffff) means an empty subkey
-  if (reg_offset == -1) {
-    return;
-  }
   // Always add 4096/0x1000 (header size) to any registry offset
   int hive_bin_offset = reg_offset + kheader_size;
 

@@ -13,7 +13,6 @@
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 
-#include <unordered_set>
 #include <vector>
 
 namespace osquery {
@@ -37,7 +36,7 @@ TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_set<int> offset_tracker;
+  std::vector<int> offset_tracker;
   int depth_tracker = 0;
   parseHiveLeafHash(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
@@ -94,7 +93,7 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_set<int> offset_tracker;
+  std::vector<int> offset_tracker;
   int depth_tracker = 0;
   parseHiveLeafIndex(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
@@ -159,7 +158,7 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::unordered_set<int> offset_tracker;
+  std::vector<int> offset_tracker;
   int depth_tracker = 0;
   parseNameKey(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
