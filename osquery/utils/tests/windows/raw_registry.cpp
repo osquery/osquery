@@ -75,7 +75,7 @@ TEST_F(RawRegistryTests, test_data_value) {
   ASSERT_TRUE(value == "Microsoft.Messaging_8wekyb3d8bbwe!App");
 }
 
-TEST_F(RawRegistryTests, test_leaf_index_cell) {
+TEST_F(RawRegistryTests, test_root_index_cell) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
   if (!test.is_initialized()) {
     FAIL();
@@ -95,9 +95,10 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   input_file.close();
   std::vector<int> offset_tracker;
   int depth_tracker = 0;
-  parseHiveLeafIndex(
+  parseHiveRootIndex(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 36844) {
+    std::cout << raw_reg.size() << std::endl;
     FAIL();
   }
 
@@ -153,7 +154,7 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   std::vector<RegTableData> raw_reg;
   std::vector<std::string> key_path;
 
-  int offset = 5052;
+  int offset = 952;
   std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
@@ -163,6 +164,7 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   parseNameKey(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 3) {
+    std::cout << raw_reg.size() << std::endl;
     FAIL();
   }
 

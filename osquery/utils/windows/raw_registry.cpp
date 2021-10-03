@@ -307,7 +307,7 @@ void parseHiveRootIndex(const std::vector<char>& reg_contents,
 
   RegHeader header;
   memcpy(&header, &reg_contents[0], kheader_size);
-  // Loop through list of offsets. Compare offset size and check for duplicates
+  // Loop through list of offsets. Compare offset size
   while (elements < root_index.num_elements) {
     expected = checkOffset(reg_contents.size(),
                            offset + root_index_min_size + element_offset);
@@ -322,16 +322,17 @@ void parseHiveRootIndex(const std::vector<char>& reg_contents,
     elements++;
     element_offset += 4;
     list_offset += 4;
+    int list_real_offset = list_offset + kheader_size;
     if (header.minor_version == 3) {
       parseHiveLeafIndex(reg_contents,
-                         list_offset,
+                         list_real_offset,
                          raw_reg,
                          key_path,
                          offset_tracker,
                          depth_tracker);
     } else {
       parseHiveLeafHash(reg_contents,
-                        list_offset,
+                        list_real_offset,
                         raw_reg,
                         key_path,
                         offset_tracker,

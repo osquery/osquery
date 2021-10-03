@@ -105,6 +105,16 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
                         std::vector<std::string>& key_path,
                         std::vector<int>& offset_tracker,
                         int& depth_tracker);
+/**
+ * @brief Windows helper function for parsing Root Index Registry cells
+ *
+ */
+void parseHiveRootIndex(const std::vector<char>& reg_contents,
+                        const int& offset,
+                        std::vector<RegTableData>& raw_reg,
+                        std::vector<std::string>& key_path,
+                        std::vector<int>& offset_tracker,
+                        int& depth_tracker);
 
 /**
  * @brief Windows helper function for parsing list of Value Key Registry cells
