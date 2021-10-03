@@ -809,7 +809,7 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
 }
 
 // Complex Registry key that contains Access Control Entries (ACE), permissions
-// for registry keys. Currently not utilized due to complexity
+// for registry keys. Currently not utilized due to complexity and limited value
 void parseHiveSecurityKey(const std::vector<char>& reg_contents,
                           const int& reg_offset,
                           std::vector<RegTableData>& raw_reg,
