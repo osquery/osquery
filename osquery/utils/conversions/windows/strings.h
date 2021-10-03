@@ -11,6 +11,7 @@
 
 #include <codecvt>
 #include <string>
+#include <vector>
 
 #include <comutil.h>
 
@@ -65,5 +66,15 @@ std::string swapEndianess(const std::string& endian_string);
  * @returns The string representation of a windows error
  */
 std::string errorDwordToString(DWORD errorMessageID);
+
+/**
+ * @brief Windows helper function to convert a vector of wide char (CHAR) values
+ * to string
+ *
+ * @returns The string of the wide char vector
+ */
+std::string wideLiteralCharToString(const std::vector<char>& contents,
+                                    const int& offset,
+                                    const int& size);
 
 } // namespace osquery

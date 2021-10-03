@@ -13,7 +13,6 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/system/windows/raw_registry.h>
 #include <osquery/utils/windows/raw_registry.h>
 
 #include <boost/filesystem.hpp>
@@ -46,24 +45,6 @@ const std::vector<std::string> kAllRegFiles{"userdiff",
                                             "UsrClass.dat"};
 const std::string kUserRegistryFiles[2]{
     "NTUSER.DAT", "AppData\\Local\\Microsoft\\Windows\\UsrClass.dat"};
-
-// Use WMI to get all the physical drives (taken from disk_info table)
-std::vector<std::string> getDrives() {
-  const WmiRequest wmiSystemReq("select * from Win32_DiskDrive");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  std::vector<std::string> drives;
-
-  if (wmiResults.empty()) {
-    LOG(WARNING) << "Error retrieving physical drives from WMI.";
-    return drives;
-  }
-  for (const auto& wmi_data : wmiResults) {
-    std::string drive_id;
-    wmi_data.GetString("DeviceID", drive_id);
-    drives.push_back(drive_id);
-  }
-  return drives;
-}
 
 std::vector<std::string> getDefaultRegFiles() {
   std::vector<std::string> reg_files;
@@ -128,20 +109,13 @@ void parseRegistryFiles(QueryData& results,
 }
 
 void startRegParser(QueryData& results,
-                    const std::vector<std::string>& physical_drives,
+                    const std::string& physical_drive,
                     const std::vector<std::string>& reg_files) {
-  for (const auto& drives : physical_drives) {
-    for (const auto& files : reg_files) {
-      std::string reg_path = files;
-      cleanRegPath(reg_path);
+  for (const auto& files : reg_files) {
+    std::string reg_path = files;
+    cleanRegPath(reg_path);
 
-      parseRegistryFiles(results, reg_path, drives, files);
-    }
-    // If we have results, we parsed the registry file, dont continue
-    // looping through devices
-    if (results.size() > 0) {
-      break;
-    }
+    parseRegistryFiles(results, reg_path, physical_drive, files);
   }
 }
 
@@ -165,43 +139,30 @@ QueryData genRawRegistry(QueryContext& context) {
         return status;
       }));
   auto devices = context.constraints["physical_device"].getAll(EQUALS);
-  context.expandConstraints(
-      "physical_device",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+
   std::vector<std::string> query_regs = std::vector(paths.begin(), paths.end());
   std::vector<std::string> query_devices =
       std::vector(devices.begin(), devices.end());
+  std::string physical_drive = "\\\\.\\PhysicalDrive0";
 
   // Check for user specified registry file
   if (query_regs.empty()) {
     std::vector<std::string> reg_files;
     // Check for user specified device
     if (query_devices.empty()) {
-      std::vector<std::string> physical_drives = getDrives();
       reg_files = getDefaultRegFiles();
-      startRegParser(results, physical_drives, reg_files);
+      startRegParser(results, physical_drive, reg_files);
     } else {
       reg_files = getDefaultRegFiles();
-      startRegParser(results, query_devices, reg_files);
+      physical_drive = query_devices[0];
+      startRegParser(results, physical_drive, reg_files);
     }
   } else {
     if (query_devices.empty()) {
-      std::vector<std::string> physical_drives = getDrives();
-      startRegParser(results, physical_drives, query_regs);
+      startRegParser(results, physical_drive, query_regs);
     } else {
-      startRegParser(results, query_devices, query_regs);
+      physical_drive = query_devices[0];
+      startRegParser(results, physical_drive, query_regs);
     }
   }
   return results;

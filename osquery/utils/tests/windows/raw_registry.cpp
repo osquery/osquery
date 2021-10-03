@@ -13,44 +13,11 @@
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 
+#include <unordered_set>
 #include <vector>
 
 namespace osquery {
 class RawRegistryTests : public testing::Test {};
-
-TEST_F(RawRegistryTests, test_hive_cell) {
-  auto test = getEnvVar("TEST_CONF_FILES_DIR");
-  if (!test.is_initialized()) {
-    FAIL();
-  }
-  auto const test_filepath =
-      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
-          .make_preferred()
-          .string();
-
-  std::vector<RegTableData> raw_reg;
-  std::vector<std::string> key_path;
-
-  int offset = 32;
-  RegNameKey name_key;
-  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
-  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
-                                 (std::istreambuf_iterator<char>()));
-  input_file.close();
-  std::vector<int> offset_tracker;
-  parseHiveCell(
-      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
-  if (raw_reg.size() != 1404) {
-    FAIL();
-  }
-
-  ASSERT_TRUE(raw_reg[0].key_path == "ROOT");
-  ASSERT_TRUE(raw_reg[8].modified_time == 1552971338);
-  ASSERT_TRUE(raw_reg[3].key == "ROOT\\AppEvents\\EventLabels\\.Default");
-  ASSERT_TRUE(raw_reg[5].key_type == "REG_SZ");
-  ASSERT_TRUE(raw_reg[7].key_data == "Program Error");
-  ASSERT_TRUE(raw_reg[9].key_name == "(default)");
-}
 
 TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
@@ -66,15 +33,14 @@ TEST_F(RawRegistryTests, test_leaf_hash_cell) {
   std::vector<std::string> key_path;
 
   int offset = 10668;
-  RegNameKey name_key;
   std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
-
+  std::unordered_set<int> offset_tracker;
+  int depth_tracker = 0;
   parseHiveLeafHash(
-      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
+      reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
 
   if (raw_reg.size() != 20) {
     FAIL();
@@ -105,10 +71,8 @@ TEST_F(RawRegistryTests, test_data_value) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
 
-  std::string value =
-      parseDataValue(reg_contents, offset, size, reg_type, offset_tracker);
+  std::string value = parseDataValue(reg_contents, offset, size, reg_type);
   ASSERT_TRUE(value == "Microsoft.Messaging_8wekyb3d8bbwe!App");
 }
 
@@ -126,15 +90,14 @@ TEST_F(RawRegistryTests, test_leaf_index_cell) {
   std::vector<std::string> key_path;
 
   int offset = 3161132;
-  RegNameKey name_key;
   std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
-
+  std::unordered_set<int> offset_tracker;
+  int depth_tracker = 0;
   parseHiveLeafIndex(
-      reg_contents, offset, raw_reg, key_path, name_key, offset_tracker);
+      reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 36844) {
     FAIL();
   }
@@ -168,15 +131,8 @@ TEST_F(RawRegistryTests, test_value_key_list_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
 
-  parseValueKeyList(reg_contents,
-                    values,
-                    offset,
-                    raw_reg,
-                    key_path,
-                    name_key,
-                    offset_tracker);
+  parseValueKeyList(reg_contents, values, offset, raw_reg, key_path, name_key);
 
   ASSERT_TRUE(raw_reg.size() == 11);
   ASSERT_TRUE(raw_reg[3].key_path == "LeaveOnWithMouse");
@@ -203,9 +159,10 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
-
-  parseNameKey(reg_contents, offset, raw_reg, key_path, offset_tracker);
+  std::unordered_set<int> offset_tracker;
+  int depth_tracker = 0;
+  parseNameKey(
+      reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 3) {
     FAIL();
   }
@@ -233,9 +190,8 @@ TEST_F(RawRegistryTests, test_hive_bin) {
   std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
                                  (std::istreambuf_iterator<char>()));
   input_file.close();
-  std::vector<int> offset_tracker;
 
-  RegHiveBin hive_bin = parseHiveBin(reg_contents, offset, offset_tracker);
+  RegHiveBin hive_bin = parseHiveBin(reg_contents, offset);
 
   ASSERT_TRUE(hive_bin.sig == 1852400232);
   ASSERT_TRUE(hive_bin.size == 4096);

@@ -168,4 +168,28 @@ std::string errorDwordToString(DWORD error_code) {
   return std::string("Error code " + std::to_string(error_code) + " not found");
 }
 
+std::string wideLiteralCharToString(const std::vector<char>& contents,
+                                    const int& offset,
+                                    const int& size) {
+  auto data_contents = (PWCHAR)(&contents[0] + offset);
+  size_t total_length{0};
+
+  while (*data_contents != L'\0') {
+    auto length =
+        wcsnlen_s(data_contents, (size - total_length) / sizeof(WCHAR));
+    if (length == 0 || length == (size - total_length) / sizeof(WCHAR)) {
+      // A null wide character was not found.
+      break;
+    }
+
+    total_length += (length + 1) * sizeof(WCHAR);
+    if (total_length >= size) {
+      break;
+    }
+    data_contents += length + 1;
+  }
+  std::string data = wstringToString(data_contents);
+  return data;
+}
+
 } // namespace osquery

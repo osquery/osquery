@@ -11,7 +11,6 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/system/windows/raw_registry.h>
 #include <osquery/utils/windows/raw_registry.h>
 
 #include <string>
@@ -156,47 +155,10 @@ void parseAmcacheExecution(QueryData& results,
 
 QueryData genAmcache(QueryContext& context) {
   QueryData results;
-  std::vector<std::string> drives = getDrives();
+  std::string physical_device = "\\\\.\\PhysicalDrive0";
   std::string reg_path = "Windows/appcompat/Programs/Amcache.hve";
-  auto paths = context.constraints["source"].getAll(EQUALS);
-  // Expand constraints
-  context.expandConstraints(
-      "source",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
-
-  auto amcache_files = std::vector(paths.begin(), paths.end());
-  std::vector<RegTableData> amcache_data;
-  for (const auto& drive : drives) {
-    if (!amcache_files.empty()) {
-      for (const auto& amcache_file : amcache_files) {
-        if (amcache_file.find("Amcache.hve") != std::string::npos) {
-          reg_path = amcache_file;
-          cleanRegPath(reg_path);
-          amcache_data = rawRegistry(reg_path, drive);
-          parseAmcacheExecution(results, amcache_data, amcache_file);
-        }
-      }
-      return results;
-    } else {
-      amcache_data = rawRegistry(reg_path, drive);
-    }
-    // Stop going through physical devices if we have amcache data
-    if (amcache_data.size() > 0) {
-      break;
-    }
-  }
+  std::vector<RegTableData> amcache_data =
+      rawRegistry(reg_path, physical_device);
 
   parseAmcacheExecution(results, amcache_data, reg_path);
   return results;

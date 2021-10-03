@@ -9,9 +9,9 @@
 
 #pragma once
 
+#include <map>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/system.h>
-
 #include <string>
 #include <vector>
 
@@ -27,7 +27,6 @@ struct RegTableData {
   int64_t modified_time;
   std::string key_type;
   std::string key_data;
-  // std::vector<RegTableValueData> key_data_array;
 };
 
 struct RegNameKey {
@@ -75,26 +74,26 @@ std::vector<RegTableData> rawRegistry(const std::string& reg_path,
                                       const std::string& drive_path);
 
 /**
- * @brief Windows helper function for parsing raw Registry cells
+ * @brief Windows helper function for parsing raw Registry cell lists
  *
  */
-void parseHiveCell(const std::vector<char>& reg_contents,
+void parseCellList(const std::vector<char>& reg_contents,
                    const int& hive_offset,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
-                   const RegNameKey& name_key,
-                   std::vector<int>& offset_tracker);
+                   std::vector<int>& offset_tracker,
+                   int& level_tracker);
 
 /**
  * @brief Windows helper function for parsing Leaf Hash Registry cells
  *
  */
 void parseHiveLeafHash(const std::vector<char>& reg_contents,
-                       int& offset,
+                       const int& offset,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
-                       const RegNameKey& name_key,
-                       std::vector<int>& offset_tracker);
+                       std::vector<int>& offset_tracker,
+                       int& level_tracker);
 
 /**
  * @brief Windows helper function for parsing Leaf Index Registry cells
@@ -104,8 +103,8 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
                         int& offset,
                         std::vector<RegTableData>& raw_reg,
                         std::vector<std::string>& key_path,
-                        const RegNameKey& name_key,
-                        std::vector<int>& offset_tracker);
+                        std::vector<int>& offset_tracker,
+                        int& level_tracker);
 
 /**
  * @brief Windows helper function for parsing list of Value Key Registry cells
@@ -116,8 +115,7 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
                        const int& offset,
                        std::vector<RegTableData>& raw_reg,
                        std::vector<std::string>& key_path,
-                       const RegNameKey& name_key,
-                       std::vector<int>& offset_tracker);
+                       const RegNameKey& name_key);
 
 /**
  * @brief Windows helper function for parsing Registry Value key data
@@ -127,8 +125,7 @@ void parseValueKeyList(const std::vector<char>& reg_contents,
 std::string parseDataValue(const std::vector<char>& reg_contents,
                            const int& offset,
                            const int& size,
-                           const std::string& reg_type,
-                           std::vector<int>& offset_tracker);
+                           const std::string& reg_type);
 
 /**
  * @brief Windows helper function for parsing Name Key Registry cells
@@ -138,7 +135,8 @@ void parseNameKey(const std::vector<char>& reg_contents,
                   int& offset,
                   std::vector<RegTableData>& raw_reg,
                   std::vector<std::string>& key_path,
-                  std::vector<int>& offset_tracker);
+                  std::vector<int>& offset_tracker,
+                  int& level_tracker);
 
 /**
  * @brief Windows helper function for parsing Registry Value Key
@@ -148,8 +146,7 @@ void parseValueKey(const std::vector<char>& reg_contents,
                    const int& hive_bin_offset,
                    std::vector<RegTableData>& raw_reg,
                    std::vector<std::string>& key_path,
-                   const RegNameKey& name_key,
-                   std::vector<int>& offset_tracker);
+                   const RegNameKey& name_key);
 
 /**
  * @brief Windows helper function for parsing Registry Big Data cells
@@ -159,8 +156,7 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& offset,
                       const std::string& reg_type,
                       const int& data_size,
-                      std::string& data_string,
-                      std::vector<int>& offset_tracker);
+                      std::string& data_string);
 /**
  * @brief Windows helper function for getting Registry Security Key cells
  *
@@ -168,17 +164,14 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
 void parseHiveSecurityKey(const std::vector<char>& reg_contents,
                           const int& offset,
                           std::vector<RegTableData>& raw_reg,
-                          std::vector<std::string>& key_path,
-                          const RegNameKey& name_key,
-                          std::vector<int>& offset_tracker);
+                          std::vector<std::string>& key_path);
 /**
  * @brief Windows helper function for parsing Registry Hive Bins
  *
  * @returns RegHiveBin struct containing the Hive Bin data
  */
 RegHiveBin parseHiveBin(const std::vector<char>& reg_contents,
-                        const int& offset,
-                        std::vector<int>& offset_tracker);
+                        const int& offset);
 
 /**
  * @brief Windows helper function for formatting paths for Sleuthkit
