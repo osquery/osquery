@@ -201,7 +201,9 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
   int leaf_hash_min_size = 4;
   memcpy(&leaf_hash, &reg_contents[offset], leaf_hash_min_size);
   const short lh = 26732; // leaf hash
-  if (leaf_hash.sig != lh) {
+  const short lf = 26220; // fast leaf
+
+  if (leaf_hash.sig != lh || leaf_hash.sig != lf) {
     return;
   }
   int elements = 0;
