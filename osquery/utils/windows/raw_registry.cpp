@@ -70,6 +70,11 @@ struct RegLeafHash {
   short num_elements;
 };
 
+struct RegLeafIndex {
+  short sig;
+  short num_elements;
+};
+
 struct RegRootIndex {
   short sig;
   short num_elements;
@@ -241,7 +246,7 @@ void parseHiveLeafIndex(const std::vector<char>& reg_contents,
     return;
   }
 
-  RegLeafHash leaf_index;
+  RegLeafIndex leaf_index;
   int leaf_index_min_size = 4;
   memcpy(&leaf_index, &reg_contents[offset], leaf_index_min_size);
   const short li = 26988; // leaf index
