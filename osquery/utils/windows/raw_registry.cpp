@@ -203,7 +203,7 @@ void parseHiveLeafHash(const std::vector<char>& reg_contents,
   const short lh = 26732; // leaf hash
   const short lf = 26220; // fast leaf
 
-  if (leaf_hash.sig != lh || leaf_hash.sig != lf) {
+  if (leaf_hash.sig != lh && leaf_hash.sig != lf) {
     return;
   }
   int elements = 0;
