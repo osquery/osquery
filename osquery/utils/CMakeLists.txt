@@ -142,6 +142,7 @@ function(generateOsqueryUtilsUtilstestsTest)
       tests/windows/shellitems.cpp
       tests/windows/shelllnk.cpp
       tests/windows/raw_registry.cpp
+     # tests/windows/sleuthkit.cpp
     )
   endif()
 

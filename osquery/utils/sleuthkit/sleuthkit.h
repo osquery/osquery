@@ -28,6 +28,7 @@ class SleuthkitHelper : private boost::noncopyable {
     if (open()) {
       for (TSK_PNUM_T i = 0; i < volume_->getPartCount(); ++i) {
         auto* part = volume_->getPart(i);
+        // std::unique_ptr<TskVsPartInfo> part(volume_->getPart(i));
         if (part == nullptr) {
           continue;
         }
@@ -45,8 +46,8 @@ class SleuthkitHelper : private boost::noncopyable {
 
   // Provide a path and read data.
   void readFile(const std::string& partition,
-                TskFsInfo* fs,
-                std::string file_path,
+                std::unique_ptr<TskFsInfo>& fs,
+                const std::string& file_path,
                 std::vector<char>& file_contents);
   bool open();
 
