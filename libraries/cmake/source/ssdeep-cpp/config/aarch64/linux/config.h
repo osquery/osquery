@@ -61,8 +61,7 @@
 /* Define to 1 if you have the <wchar.h> header file. */
 #define HAVE_WCHAR_H 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */
@@ -75,7 +74,7 @@
 #define PACKAGE_NAME "ssdeep"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "ssdeep 2.14.1"
+#define PACKAGE_STRING "ssdeep 2.14.2"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "ssdeep"
@@ -84,7 +83,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.14.1"
+#define PACKAGE_VERSION "2.14.2"
 
 /* Define to 1 if the user chose to disable bit-parallel string operations. */
 /* #undef SSDEEP_DISABLE_POSITION_ARRAY */
@@ -93,7 +92,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "2.14.1"
+#define VERSION "2.14.2"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
