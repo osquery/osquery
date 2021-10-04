@@ -33,8 +33,14 @@ TEST_F(AmcacheTest, test_sanity) {
       boost::filesystem::path(*test + "/windows/amcache/Amcache.hve")
           .make_preferred()
           .string();
-  QueryData const rows = execute_query(
-      "select * from amcache where source = '" + test_filepath + "'");
+  QueryData rows =
+      execute_query("select * from amcache where source = '" + test_filepath +
+                    "' and physical_device = '\\\\.\\PhysicalDrive1'");
+  if (rows.empty()) {
+    rows =
+        execute_query("select * from amcache where source = '" + test_filepath +
+                      "' and physical_device = '\\\\.\\PhysicalDrive0'");
+  }
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"path", NormalType},
