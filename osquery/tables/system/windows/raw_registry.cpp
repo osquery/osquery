@@ -138,30 +138,30 @@ QueryData genRawRegistry(QueryContext& context) {
         }
         return status;
       }));
-  auto devices = context.constraints["physical_device"].getAll(EQUALS);
+  auto device = context.constraints["physical_device"].getAll(EQUALS);
 
   std::vector<std::string> query_regs = std::vector(paths.begin(), paths.end());
-  std::vector<std::string> query_devices =
-      std::vector(devices.begin(), devices.end());
   std::string physical_drive = "\\\\.\\PhysicalDrive0";
 
   // Check for user specified registry file
   if (query_regs.empty()) {
     std::vector<std::string> reg_files;
     // Check for user specified device
-    if (query_devices.empty()) {
+    if (device.empty()) {
       reg_files = getDefaultRegFiles();
       startRegParser(results, physical_drive, reg_files);
     } else {
       reg_files = getDefaultRegFiles();
-      physical_drive = query_devices[0];
+      auto value = std::next(device.begin(), 0);
+      physical_drive = *value;
       startRegParser(results, physical_drive, reg_files);
     }
   } else {
-    if (query_devices.empty()) {
+    if (device.empty()) {
       startRegParser(results, physical_drive, query_regs);
     } else {
-      physical_drive = query_devices[0];
+      auto value = std::next(device.begin(), 0);
+      physical_drive = *value;
       startRegParser(results, physical_drive, query_regs);
     }
   }

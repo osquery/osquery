@@ -21,7 +21,8 @@ namespace tables {
 
 void parseAmcacheExecution(QueryData& results,
                            const std::vector<RegTableData>& amcache_data,
-                           const std::string& source_path) {
+                           const std::string& source_path,
+                           const std::string& physical_device) {
   // Loop through the registry entries until we reach
   // {GUID}\Root\InventoryApplicationFile Windows 10 1709 and higher the data is
   // in InventoryApplicationFile
@@ -35,6 +36,8 @@ void parseAmcacheExecution(QueryData& results,
         int i = amcache_results;
         r["first_run_time"] = BIGINT(amcache_data[i].modified_time);
         r["source"] = source_path;
+        r["physical_device"] = physical_device;
+
         // Get all the registry key data values associated with the registry key
         while (i < amcache_data.size()) {
           if (amcache_data[i].key != key) {
@@ -107,6 +110,7 @@ void parseAmcacheExecution(QueryData& results,
         int i = amcache_results;
         r["first_run_time"] = BIGINT(amcache_data[i].modified_time);
         r["source"] = source_path;
+        r["physical_device"] = physical_device;
         // Get all the registry key data values associated with the registry key
         while (i < amcache_data.size()) {
           if (amcache_data[i].key != key) {
@@ -155,12 +159,30 @@ void parseAmcacheExecution(QueryData& results,
 
 QueryData genAmcache(QueryContext& context) {
   QueryData results;
+  auto device = context.constraints["physical_device"].getAll(EQUALS);
+
   std::string physical_device = "\\\\.\\PhysicalDrive0";
+  if (!device.empty()) {
+    auto value = std::next(device.begin(), 0);
+    physical_device = *value;
+  }
   std::string reg_path = "Windows/appcompat/Programs/Amcache.hve";
+
+  auto source = context.constraints["source"].getAll(EQUALS);
+  if (!source.empty()) {
+    auto value = std::next(source.begin(), 0);
+    reg_path = *value;
+    std::string original_path = reg_path;
+    cleanRegPath(reg_path);
+    std::vector<RegTableData> amcache_data =
+        rawRegistry(reg_path, physical_device);
+    parseAmcacheExecution(
+        results, amcache_data, original_path, physical_device);
+    return results;
+  }
   std::vector<RegTableData> amcache_data =
       rawRegistry(reg_path, physical_device);
-
-  parseAmcacheExecution(results, amcache_data, reg_path);
+  parseAmcacheExecution(results, amcache_data, reg_path, physical_device);
   return results;
 }
 } // namespace tables

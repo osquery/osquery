@@ -33,10 +33,16 @@ TEST_F(RawRegistryTest, test_sanity) {
       boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
           .make_preferred()
           .string();
-  QueryData const rows = execute_query(
+  QueryData rows = execute_query(
       "select *,physical_device from raw_registry where reg_path = "
       "'" +
-      test_filepath + "'");
+      test_filepath + "' and physical_device = '\\\\.\\PhysicalDrive1'");
+  if (rows.empty()) {
+    rows = execute_query(
+        "select *,physical_device from raw_registry where reg_path = "
+        "'" +
+        test_filepath + "' and physical_device = '\\\\.\\PhysicalDrive0'");
+  }
 
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{

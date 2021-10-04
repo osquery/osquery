@@ -24,6 +24,8 @@ schema([
     Column("usn", TEXT, "File USN Journal entry."),
     Column("version", TEXT, "File version."),
     Column("source", TEXT, "Amcache hive path", additional=True, hidden=True),
+    Column("physical_device", TEXT, "Specify the physical disk to read", additional=True, hidden=True)
+
 ])
 implementation("amcache@genAmcache")
 examples([
