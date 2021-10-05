@@ -10,7 +10,7 @@ RUN apt install -q -y wget gcc g++ libssl-dev make
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.17.5/cmake-3.17.5.tar.gz
 RUN tar zxvf cmake-3.17.5.tar.gz
 RUN cd cmake-3.17.5 \
-	&& ./bootstrap -- -DCMAKE_BUILD_TYPE:STRING=Release \
+	&& ./bootstrap --parallel=`nproc` -- -DCMAKE_BUILD_TYPE:STRING=Release \
 	&& make -j`nproc` \
 	&& make install
 
