@@ -132,7 +132,7 @@ A sample socket_event log entry looks like this:
   "action": "added",
   "columns": {
     "time": "1527895541",
-    "success": "1",
+    "status": "succeeded",
     "remote_port": "80",
     "action": "connect",
     "auid": "1000",
@@ -151,6 +151,24 @@ A sample socket_event log entry looks like this:
 ```
 
 If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow_unix`. This will put considerable strain on the system as many default actions use domain sockets. You will also need to explicitly select the `socket` column from the `socket_events` table.
+
+The `success` column has been deprecated and replaced with `status`:
+| Status value | Description |
+|-|-|
+| failed | Definitely failed |
+| succeeded | Definitely succeeded |
+| in_progress | The `connect`()` syscall has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for non-blocking sockets. |
+| no_client | The `accept` or `accept4` syscall returned with EAGAIN since there were not incoming connections. Reserved for non-blocking sockets. |
+
+The behavior of the socket_events table can be changed with the following boolean flags:
+
+| Flag | Description |
+|-|-|
+| --audit_allow_sockets | Allow the audit publisher to install socket-related rules |
+| --audit_allow_unix | Allow socket events to collect domain sockets |
+| --audit_allow_failed_socket_events | Include rows for socket events that have failed |
+| --audit_allow_accept_socket_events | Include rows for accept socket events |
+| --audit_allow_null_accept_socket_events | Allow non-blocking accept() syscalls that returned EAGAIN/EWOULDBLOCK |
 
 ## Troubleshooting Audit-based process and socket auditing on Linux
 
@@ -245,7 +263,7 @@ The FDA permission (or lack thereof) is inherited from `Terminal.app` when runni
 | -------- | -------- | -------- |
 | `Terminal.app`¹   | Give Full Disk Access to `Terminal.app` only  | Success     |
 | `Terminal.app`¹  | Give FDA only to osquery only, or do nothing  |  No events |
-| `launchctl`  | Give Full Disk Access to `/usr/local/bin/osqueryd`² only | Success |
+| `launchctl`  | Give Full Disk Access to `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd`² only | Success |
 | `launchctl`  | Give FDA to `launchctl` only, or do nothing  | No events  |
 
 ¹ : if you use a third-party terminal emulator like `iTerm.app`, grant that the permission instead of `Terminal.app`.
@@ -263,9 +281,9 @@ If a macOS host is enrolled in MDM, The FDA permissions can be granted silently 
 To get the appropriate `CodeRequirement` identifier, use the `codesign` tool and then copy everything in the output after the `designated =>`.
 
 ```shell
-> codesign  -dr - /usr/local/bin/osqueryd
-Executable=/usr/local/bin/osqueryd
-designated => identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */
+> codesign  -dr - /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+Executable=/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+designated => identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"
 ```
 
 For your deployment, either generate an equivalent profile using your MDM dashboard (specifying `/usr/local/bin/osqueryd` as `Identifier` and `path` as the `Identifier Type` and setting `SystemPolicyAllFiles` to `Allow`), or just use the example configuration profile below, ensuring the correct value for the following fields:
@@ -303,13 +321,13 @@ For your deployment, either generate an equivalent profile using your MDM dashbo
       <key>Allowed</key>
       <true/>
       <key>CodeRequirement</key>
-      <string>identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+      <string>identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"</string>
       <key>Comment</key>
       <string></string>
       <key>Identifier</key>
-      <string>/usr/local/bin/osqueryd</string>
+      <string>io.osquery.agent</string>
       <key>IdentifierType</key>
-      <string>path</string>
+      <string>bundleID</string>
      </dict>
     </array>
    </dict>

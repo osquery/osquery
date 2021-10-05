@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <string>
+#include <thread>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -216,6 +217,9 @@ class Watcher : private boost::noncopyable {
   /// Record the exit status of the most recent worker.
   std::atomic<int> worker_status_{-1};
 
+  /// Used to synchronize a process start with an attempt to stop such process
+  std::mutex new_processes_mutex_;
+
  private:
   friend class WatcherRunner;
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
@@ -331,4 +335,4 @@ class WatcherWatcherRunner : public InternalRunnable {
 
 /// Get a performance limit by name and optional level.
 uint64_t getWorkerLimit(WatchdogLimitType limit);
-}
+} // namespace osquery

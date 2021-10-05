@@ -1230,6 +1230,10 @@ Status ProcessFileEventSubscriber::ProcessEvents(
     }
 
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
+    if (!event_data.succeeded) {
+      continue;
+    }
+
     if (!L_ShouldHandle(event_data.syscall_number)) {
       continue;
     }

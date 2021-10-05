@@ -82,7 +82,7 @@ PlatformType operator|(PlatformType a, PlatformType b);
 #error The build must define OSQUERY_BUILD_DISTRO.
 #endif
 
-#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
+#define OSQUERY_PLATFORM OSQUERY_BUILD_PLATFORM
 
 /// Identifies the build platform of either the core extension.
 extern const std::string kSDKPlatform;

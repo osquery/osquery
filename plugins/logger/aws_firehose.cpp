@@ -32,11 +32,16 @@ FLAG(uint64,
 
 FLAG(string, aws_firehose_stream, "", "Name of Firehose stream for logging")
 
+FLAG(string, aws_firehose_endpoint, "", "Custom Firehose endpoint");
+
 Status FirehoseLoggerPlugin::setUp() {
   initAwsSdk();
 
-  forwarder_ = std::make_shared<FirehoseLogForwarder>(
-      "aws_firehose", FLAGS_aws_firehose_period, 500);
+  forwarder_ =
+      std::make_shared<FirehoseLogForwarder>("aws_firehose",
+                                             FLAGS_aws_firehose_period,
+                                             500,
+                                             FLAGS_aws_firehose_endpoint);
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing Firehose logger: " << s.getMessage();

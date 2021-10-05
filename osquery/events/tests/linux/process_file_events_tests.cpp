@@ -53,6 +53,8 @@ void DumpRowList(const std::vector<Row>& row_list) {
 }
 
 TEST_F(AuditdFimTests, row_emission) {
+  static const std::set<int> kSyscallsAllowedToFail{};
+
   std::vector<AuditEventRecord> event_record_list;
 
   // Parse the raw messages and make sure we get the right amount
@@ -81,8 +83,10 @@ TEST_F(AuditdFimTests, row_emission) {
   auto event_context = std::make_shared<AuditEventContext>();
   AuditTraceContext audit_trace_context;
 
-  AuditEventPublisher::ProcessEvents(
-      event_context, event_record_list, audit_trace_context);
+  AuditEventPublisher::ProcessEvents(event_context,
+                                     event_record_list,
+                                     audit_trace_context,
+                                     kSyscallsAllowedToFail);
 
   EXPECT_EQ(audit_trace_context.size(), 0U);
   EXPECT_EQ(event_context->audit_events.size(), 71U);

@@ -80,6 +80,8 @@ const std::unordered_set<std::string> kAllowedSQLitePragmas = {
     "table_xinfo",
     "function_list",
     "journal_mode",
+    "case_sensitive_like",
+    "collation_list",
 };
 
 class SQLiteDBManager;

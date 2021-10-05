@@ -128,7 +128,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_daemon_sigint(self):
         # First check that the pidfile does not exist.
-        # The existance will be used to check if the daemon has run.
+        # The existence will be used to check if the daemon has run.
         pidfile_path = test_base.CONFIG["options"]["pidfile"]
         def pidfile_exists():
             return os.path.exists(pidfile_path)
@@ -157,16 +157,16 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_logger_mode(self):
         logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
-        test_mode = 0o754  # Strange mode that should never exist
+        test_mode = "0754" # Strange mode that should never exist
         daemon = self._run_daemon(
             {
                 "disable_watchdog": True,
                 "disable_extensions": True,
                 "disable_logging": False,
+                "logger_mode": test_mode,
             },
             options_only={
                 "logger_path": logger_path,
-                "logger_mode": test_mode,
                 "verbose": True,
             },
         )
@@ -196,7 +196,10 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             if pth.find('.log') > 0 and os.name != "nt":
                 rpath = os.path.realpath(pth)
                 mode = os.stat(rpath).st_mode & 0o777
-                self.assertEqual(mode, test_mode)
+                # NOTE: We are converting test_mode in this way because
+                # the python integer to octal string conversion
+                # uses a format ("0o754") that's not supported by C++
+                self.assertEqual(mode, int(test_mode, 8))
 
         daemon.kill()
 

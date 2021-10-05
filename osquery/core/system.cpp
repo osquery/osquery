@@ -313,6 +313,11 @@ Status checkStalePid(const std::string& content) {
     return Status::success();
   }
 
+  // The pid points to our own process, ignore
+  if (pid == PlatformProcess::getCurrentPid()) {
+    return Status::success();
+  }
+
   PlatformProcess target(pid);
   int status = 0;
 

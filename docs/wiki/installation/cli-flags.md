@@ -244,7 +244,7 @@ If the flag is set to 0, the amount of attempts will be infinite.
 
 `--tls_enroll_max_interval=600`
 
-Maximum wait time in seconds between enroll retry attempts. This works in conjuction with `--tls_enroll_max_attempts`, and affects both the limited and the infinite attempts case.
+Maximum wait time in seconds between enroll retry attempts. This works in conjunction with `--tls_enroll_max_attempts`, and affects both the limited and the infinite attempts case.
 
 `--logger_tls_period=3`
 
@@ -337,6 +337,14 @@ Since event rows are only "added" it does not make sense to emit "removed" resul
 
 Maximum number of events to buffer in the backing store while waiting for a query to "drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for *your* osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
 
+`--events_enforce_denylist=false`
+
+This controls whether watchdog denylisting is enforced on queries using "*_events" (event-based) tables. As these these queries operate on meta-generated table logic, performance issues are unavoidable. It does not make sense to denylist. Enforcing this may lead to adverse and opposite effects because events will buffer longer and impact RocksDB storage.
+
+This only considers queries that are entirely event-based. For example `SELECT * FROM process_events` is considered, but `SELECT * FROM process_events join time` is not.
+
+It is not recommended to set this to `true`.
+
 ### Windows-only events control flags
 
 `--enable_ntfs_event_publisher           Enables the NTFS event publisher`
@@ -363,7 +371,7 @@ This is a comma-separated list of UDEV types to drop. On machines with flash-bac
 
 `--disable_endpointsecurity=true`
 
-Setting to `false` (in combination with `--disable_events=false`) turns on EndpointSecurity-based event collection within osquery (supported in macOS 10.15 and newer), and enables the use of the `process_events_es` table. This feature requires running osquery as root. It also requires that the osquery executable be code-signed and notarized to have the Endpoint Security client entitlement; official release builds of osquery will be appropriately code-signed. Lastly, it requires that the host give Full Disk Access permission to the osqueryd executable; for more information see the [process auditing section of osquery's deployment documentation](../deployment/process-auditing.md) as well as [installing osquery on macOS](./install-macos.md).
+Setting to `false` (in combination with `--disable_events=false`) turns on EndpointSecurity-based event collection within osquery (supported in macOS 10.15 and newer), and enables the use of the `es_process_events` table. This feature requires running osquery as root. It also requires that the osquery executable be code-signed and notarized to have the Endpoint Security client entitlement; official release builds of osquery will be appropriately code-signed. Lastly, it requires that the host give Full Disk Access permission to the osqueryd executable; for more information see the [process auditing section of osquery's deployment documentation](../deployment/process-auditing.md) as well as [installing osquery on macOS](./install-macos.md).
 
 ## Logging/results flags
 
@@ -403,9 +411,10 @@ The default behavior is to also write status logs to stderr. Set this flag to fa
 
 Directory path for `ERROR`/`WARN`/`INFO` and query result logging by the **filesystem** plugin.
 
-`--logger_mode=420`
+`--logger_mode=0640`
 
-File mode for output log files by the **filesystem** plugin (provided as an octal string). Note that this affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
+File mode for output log files by the **filesystem** plugin, provided as an octal string. Note that this affects both the query result log and the status logs and only works on POSIX platforms. (Versions previous to osquery 5.0.0 were incorrectly interpreting `logger_mode` as a number in decimal format, not octal.)
+**Warning**: If run as root, log files may contain sensitive information! 
 
 `--logger_rotate=false`
 
@@ -508,9 +517,9 @@ Maximum number of logs to ingest per run (~200ms between runs). Use this as a fa
 
 ## Augeas flags
 
-`--augeas_lenses=/usr/share/osquery/lenses`
+`--augeas_lenses=/opt/osquery/share/osquery/lenses`
 
-Augeas lenses are bundled with osquery distributions. On Linux they are installed in `/usr/share/osquery/lenses`. On macOS, lenses are installed in the `/private/var/osquery/lenses` directory. Specify the path to the directory containing custom or different version lenses files.
+Augeas lenses are bundled with osquery distributions. On Linux they are installed in `/opt/osquery/share/osquery/lenses`. On macOS, lenses are installed in the `/private/var/osquery/lenses` directory. Specify the path to the directory containing custom or different version lenses files.
 
 ## Docker flags
 

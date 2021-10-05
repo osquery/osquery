@@ -211,8 +211,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["config_valid"] = Config::get().isValid() ? INTEGER(1) : INTEGER(0);
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
-  r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
-  r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
+  r["build_platform"] = OSQUERY_BUILD_PLATFORM;
+  r["build_distro"] = OSQUERY_BUILD_DISTRO;
   r["start_time"] = INTEGER(getStartTime());
   if (Initializer::isWorker()) {
     r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());

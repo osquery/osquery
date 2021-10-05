@@ -35,7 +35,7 @@ FLAG(string,
 #else
 FLAG(string,
      augeas_lenses,
-     "/usr/share/osquery/lenses",
+     "/opt/osquery/share/osquery/lenses",
      "Directory that contains augeas lenses files");
 #endif
 
@@ -153,6 +153,50 @@ class AugeasHandle {
 
 static AugeasHandle kAugeasHandle;
 
+void patternsFromOsquery(std::unordered_set<std::string>& search_patterns,
+                         const std::string& input,
+                         bool isLike,
+                         bool isPath) {
+  std::unordered_set<std::string> patterns;
+
+  // If this is a path, then we must prepend /files. Otherwise we
+  // assume the caller knows what it's asking for.
+  std::string pattern = isPath ? "/files" + input : input;
+
+  // Augeas presents data as a slash separated tree. It uses `/*` as a
+  // single level wildcard, and `//*` as a recursive wildcard. However,
+  // sqlite uses % as a wildcard. To allow for LIKE expressions, we need
+  // to convert.
+  if (isLike) {
+    size_t pos;
+    while ((pos = pattern.find("%%")) != std::string::npos) {
+      pattern.replace(pos, 2, "/*");
+    }
+    while ((pos = pattern.find("%")) != std::string::npos) {
+      pattern.replace(pos, 1, "*");
+    }
+  }
+
+  // augues blurs filename and contents into the node. So when
+  // dealing with files, osquery must append the recuse wildcard. To
+  // allow a LIKE query some flexibility, and to prevent augeas
+  // syntax errors on extra wildcards, we only do this if there is
+  // not already a wildcard there. (This handles both the LIKE and
+  // EQUALS case)
+  if (isPath) {
+    if (strncmp(&pattern.back(), "*", 1) != 0) {
+      // We also need to insert the path _as is_ so we get the top
+      // level file in the results.
+      search_patterns.insert(pattern);
+
+      pattern.append("//*");
+    }
+  }
+
+  search_patterns.insert(pattern);
+  return;
+}
+
 QueryData genAugeas(QueryContext& context) {
   // Strategy for handling augeas
   // (As informed by forensic examination of the underlying code)
@@ -202,23 +246,37 @@ QueryData genAugeas(QueryContext& context) {
     patterns.insert(nodes.begin(), nodes.end());
   }
 
+  if (context.hasConstraint("node", LIKE)) {
+    auto nodes = context.constraints["node"].getAll(LIKE);
+    for (const auto& node : nodes) {
+      if (node.empty()) {
+        continue;
+      }
+      patternsFromOsquery(patterns, node, true, false);
+    }
+  }
+
   if (context.hasConstraint("path", EQUALS)) {
     // Allow requests via filesystem path.
     auto paths = context.constraints["path"].getAll(EQUALS);
-    std::ostringstream pattern;
-
     for (const auto& path : paths) {
-      pattern << "/files" << path;
-      patterns.insert(pattern.str());
+      if (path.empty()) {
+        continue;
+      }
+      patternsFromOsquery(patterns, path, false, true);
+    }
+  }
 
-      pattern.clear();
-      pattern.str(std::string());
-
-      pattern << "/files" << path << "//*";
-      patterns.insert(pattern.str());
-
-      pattern.clear();
-      pattern.str(std::string());
+  // This LIKE strategy only works because we've loaded the entire
+  // augeas system. If we ever move to loading by explicit files, this
+  // will break.
+  if (context.hasConstraint("path", LIKE)) {
+    auto paths = context.constraints["path"].getAll(LIKE);
+    for (const auto& path : paths) {
+      if (path.empty()) {
+        continue;
+      }
+      patternsFromOsquery(patterns, path, true, true);
     }
   }
 
@@ -231,5 +289,5 @@ QueryData genAugeas(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

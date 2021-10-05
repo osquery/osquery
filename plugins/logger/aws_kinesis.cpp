@@ -49,10 +49,12 @@ FLAG(bool,
      false,
      "Disable status logs processing");
 
+FLAG(string, aws_kinesis_endpoint, "", "Custom Kinesis endpoint");
+
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
   forwarder_ = std::make_shared<KinesisLogForwarder>(
-      "aws_kinesis", FLAGS_aws_kinesis_period, 500);
+      "aws_kinesis", FLAGS_aws_kinesis_period, 500, FLAGS_aws_kinesis_endpoint);
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing Kinesis logger: " << s.getMessage();

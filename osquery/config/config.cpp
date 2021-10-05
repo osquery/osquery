@@ -29,6 +29,7 @@
 #include <osquery/database/database.h>
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/events/eventfactory.h>
+#include <osquery/events/events.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
@@ -408,6 +409,12 @@ void Config::removeFiles(const std::string& source) {
  */
 static inline bool denylistExpired(uint64_t blt, const ScheduledQuery& query) {
   if (getUnixTime() > blt) {
+    return true;
+  }
+
+  if (!enforceEventsDenylist(query.query)) {
+    // This is an events-based query and denylisting is not being enforced for
+    // these types of queries.
     return true;
   }
 
