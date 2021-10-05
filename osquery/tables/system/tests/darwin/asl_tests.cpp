@@ -180,15 +180,16 @@ TEST_F(AslTests, test_actual_query) {
   ASSERT_TRUE(minor_version.isValue());
   ASSERT_TRUE(major_version.isValue());
 
-  // In macOS before 10.12, it was possible to write to the ASL using
-  // '/usr/bin/logger', but since 10.12, invoking 'logger' sends the log entry
-  // to the Unified Logging system, and ASL is deprecated. Because osquery
-  // actually reads the syslog downstream of ASL, not ASL logs directly,
-  // we can use syslog() to write a log entry and then read it back via
-  // the `asl` virtual table.
+  // As of 10.12, ASL is a legacy logging subsystem and the associated
+  // deprecated ASL APIs for writing log entries now redirect to the
+  // Unified Logging system. Because osquery never actually read ASL
+  // logs directly, but rather the syslog downstream of ASL, we similarly
+  // use syslog() to write a log entry and then read it back via
+  // the `asl` virtual table as a test of "ASL" (actually syslog).
 
   if ((major_version.get() == 10) && (minor_version.get() < 12)) {
-    // osquery no longer supports macOS 10.11 and earlier
+    LOG(WARNING)
+        << "osquery no longer supports macOS 10.11 and earlier. Skipping test.";
     return;
   }
 
