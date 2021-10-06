@@ -195,6 +195,7 @@ function(generateNativeTables)
     "posix/disk_encryption.table:linux,macos"
     "posix/dns_resolvers.table:linux,macos,freebsd"
     "posix/docker_container_labels.table:linux,macos,freebsd"
+    "posix/docker_container_envs.table:linux,macos,freebsd"
     "posix/docker_container_mounts.table:linux,macos,freebsd"
     "posix/docker_container_networks.table:linux,macos,freebsd"
     "posix/docker_container_ports.table:linux,macos,freebsd"

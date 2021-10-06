@@ -1,0 +1,13 @@
+table_name("docker_container_envs")
+description("Docker container environment variables.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("key", TEXT, "Environment variable name"),
+    Column("value", TEXT, "Environment variable value")
+])
+implementation("applications/docker@genContainerEnvs")
+examples([
+  "select * from docker_container_envs",
+  "select * from docker_container_envs where id = '1234567890abcdef'",
+  "select * from docker_container_envs where id = '11b2399e1426d906e62a0c657650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])
