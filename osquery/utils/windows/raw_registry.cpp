@@ -7,12 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <map>
-#include <set>
-
 #include <boost/algorithm/hex.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/noncopyable.hpp>
 
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
@@ -25,10 +20,6 @@
 #include <osquery/utils/windows/raw_registry.h>
 
 #include <tsk/libtsk.h>
-
-#include <iomanip>
-#include <sstream>
-#include <vector>
 
 #include <iostream>
 #include <vector>
@@ -151,22 +142,18 @@ std::vector<char> rawReadRegistry(const std::string& reg_path,
         }
 
         std::string address = std::to_string(part->getAddr());
-        // auto* fs = new TskFsInfo();
         std::unique_ptr<TskFsInfo> fs(new TskFsInfo);
         TSK_OFF_T offset = 0;
         auto status = fs->open(part, TSK_FS_TYPE_DETECT);
         // Cannot retrieve file information without accessing the filesystem.
         if (status) {
-          // delete fs;
           return;
         }
         // Read the registry file
         dh.readFile(address, fs, reg_path, reg_contents);
         if (reg_contents.size() > 0) {
-          // delete fs;
           return;
         }
-        // delete fs;
       }));
   return reg_contents;
 }

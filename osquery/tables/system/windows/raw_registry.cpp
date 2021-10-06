@@ -9,7 +9,6 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
-#include <osquery/core/windows/wmi.h>
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>

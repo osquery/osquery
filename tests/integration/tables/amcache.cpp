@@ -7,15 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-// Sanity check integration test for registry
-// Spec file: specs/windows/registry.table
-
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
-namespace {
 
 class AmcacheTest : public testing::Test {
  protected:
@@ -77,6 +73,5 @@ TEST_F(AmcacheTest, test_sanity) {
   //}
 }
 
-} // namespace
 } // namespace table_tests
 } // namespace osquery
