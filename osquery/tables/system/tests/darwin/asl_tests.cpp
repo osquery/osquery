@@ -14,6 +14,7 @@
 #include <thread>
 
 #include <gtest/gtest.h>
+#include <syslog.h>
 
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
@@ -174,33 +175,40 @@ TEST_F(AslTests, test_convert_like_regex) {
 
 TEST_F(AslTests, test_actual_query) {
   auto version = SQL::selectAllFrom("os_version");
-  auto minor_version_exp = tryTo<unsigned long int>(version[0]["minor"], 10);
-  ASSERT_TRUE(minor_version_exp.isValue());
-  if (minor_version_exp.get() >= 12) {
-    // macOS Sierra and above do not support ASL.
+  auto minor_version = tryTo<unsigned long int>(version[0]["minor"], 10);
+  auto major_version = tryTo<unsigned long int>(version[0]["major"], 10);
+  ASSERT_TRUE(minor_version.isValue());
+  ASSERT_TRUE(major_version.isValue());
+
+  // As of 10.12, ASL is a legacy logging subsystem and the associated
+  // deprecated ASL APIs for writing log entries now redirect to the
+  // Unified Logging system. Because osquery never actually read ASL
+  // logs directly, but rather the syslog downstream of ASL, we similarly
+  // use syslog() to write a log entry and then read it back via
+  // the `asl` virtual table as a test of "ASL" (actually syslog).
+
+  if ((major_version.get() == 10) && (minor_version.get() < 12)) {
+    LOG(WARNING)
+        << "osquery no longer supports macOS 10.11 and earlier. Skipping test.";
     return;
   }
 
-  // An integration test, this test writes to ASL, and then verifies that we
-  // can query for the written log
   std::string time_str = std::to_string(std::time(nullptr));
-  std::string command =
-      "logger -p user.notice -t osquery_test 'osquery_test: "
-      "test_actual_query " +
-      time_str + "'";
-  std::system(command.c_str());
+  std::string log_entry = "osquery_test: test_actual_query " + time_str;
+  syslog(LOG_NOTICE, "%s", log_entry.c_str());
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  // Check for our written log
+  // Check for our written log entry
   auto results =
       SQL("select * from asl where facility = 'user' and level = 5 and sender "
-          "= 'osquery_test' and message like '%" +
+          "= 'osquery_tables_system_darwin_tests-test' and message like '%" +
           time_str + "' and time >= " + time_str);
   ASSERT_GT(results.rows().size(), (size_t)0);
-  ASSERT_EQ("osquery_test", results.rows()[0].at("sender"));
+  ASSERT_EQ("osquery_tables_system_darwin_tests-test",
+            results.rows()[0].at("sender"));
   ASSERT_EQ("user", results.rows()[0].at("facility"));
 }
 
 _Pragma("clang diagnostic pop");
-}
-}
+} // namespace tables
+} // namespace osquery
