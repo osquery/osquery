@@ -14,7 +14,6 @@
 #include <gtest/gtest.h>
 
 #include <vector>
-
 namespace osquery {
 class RawRegistryTests : public testing::Test {};
 
@@ -98,7 +97,6 @@ TEST_F(RawRegistryTests, test_root_index_cell) {
   parseHiveRootIndex(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 36844) {
-    std::cout << raw_reg.size() << std::endl;
     FAIL();
   }
 
@@ -141,6 +139,27 @@ TEST_F(RawRegistryTests, test_value_key_list_cell) {
   ASSERT_TRUE(raw_reg[3].key_name == "LeaveOnWithMouse");
 }
 
+TEST_F(RawRegistryTests, test_big_data_cell) {
+  auto test = getEnvVar("TEST_CONF_FILES_DIR");
+  if (!test.is_initialized()) {
+    FAIL();
+  }
+  auto const test_filepath =
+      boost::filesystem::path(*test + "/windows/registry/NTUSER.DAT")
+          .make_preferred()
+          .string();
+
+  int offset = 5808;
+  std::ifstream input_file(test_filepath, std::ios::in | std::ios::binary);
+  std::vector<char> reg_contents((std::istreambuf_iterator<char>(input_file)),
+                                 (std::istreambuf_iterator<char>()));
+  input_file.close();
+
+  std::string data_string;
+  parseHiveBigData(reg_contents, offset, "REG_SZ", 135662, data_string);
+  ASSERT_TRUE(data_string.size() == 67830);
+}
+
 TEST_F(RawRegistryTests, test_name_key_cell) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
   if (!test.is_initialized()) {
@@ -164,7 +183,6 @@ TEST_F(RawRegistryTests, test_name_key_cell) {
   parseNameKey(
       reg_contents, offset, raw_reg, key_path, offset_tracker, depth_tracker);
   if (raw_reg.size() != 3) {
-    std::cout << raw_reg.size() << std::endl;
     FAIL();
   }
 
@@ -210,14 +228,14 @@ TEST_F(RawRegistryTests, test_raw_registry) {
           .make_preferred()
           .string();
   cleanRegPath(test_filepath);
-  std::string drive_path = "\\\\.\\PHYSICALDRIVE0";
+  std::string drive_path = "\\\\.\\PhysicalDrive1";
 
   std::vector<RegTableData> raw_reg = rawRegistry(test_filepath, drive_path);
   if (raw_reg.empty()) {
-    drive_path = "\\\\.\\PHYSICALDRIVE1";
+    drive_path = "\\\\.\\PhysicalDrive0";
     raw_reg = rawRegistry(test_filepath, drive_path);
   }
-  if (raw_reg.size() != 1404) {
+  if (raw_reg.size() != 1405) {
     FAIL();
   }
 

@@ -21,7 +21,6 @@
 #include <tsk/libtsk.h>
 
 #include <vector>
-
 namespace osquery {
 
 struct RegHeader {
@@ -708,7 +707,6 @@ void parseHiveBigData(const std::vector<char>& reg_contents,
                       const int& data_size,
                       std::string& data_string) {
   const int size = 4;
-
   auto expected = checkOffset(reg_contents.size(), offset + size);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();
