@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/algorithm/hex.hpp>
-
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
@@ -19,9 +17,9 @@
 #include <osquery/utils/sleuthkit/sleuthkit.h>
 #include <osquery/utils/windows/raw_registry.h>
 
+#include <boost/algorithm/hex.hpp>
 #include <tsk/libtsk.h>
 
-#include <iostream>
 #include <vector>
 
 namespace osquery {
@@ -937,7 +935,6 @@ std::vector<RegTableData> buildRegistry(std::vector<char>& reg_contents) {
 
 std::vector<RegTableData> rawRegistry(const std::string& reg_path,
                                       const std::string& drive_path) {
-  std::cout << reg_path << std::endl;
   std::vector<RegTableData> raw_reg;
   std::vector<char> reg_contents = rawReadRegistry(reg_path, drive_path);
   if (reg_contents.size() == 0) {
@@ -949,7 +946,6 @@ std::vector<RegTableData> rawRegistry(const std::string& reg_path,
     LOG(WARNING) << "Registry file too small: " << reg_path;
     return raw_reg;
   }
-  std::cout << reg_contents.size() << std::endl;
   raw_reg = buildRegistry(reg_contents);
   return raw_reg;
 }
