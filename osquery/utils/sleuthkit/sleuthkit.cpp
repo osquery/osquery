@@ -43,7 +43,6 @@ void SleuthkitHelper::readFile(const std::string& partition,
   if (result) {
     return;
   } else {
-    // auto* meta = new_file->getMeta();
     std::unique_ptr<TskFsMeta> meta(new_file->getMeta());
     TSK_OFF_T size = meta->getSize();
     auto* buffer = (char*)malloc(size);

@@ -55,13 +55,13 @@ TEST_F(RawRegistryTest, test_sanity) {
   validate_rows(rows, row_map);
 
   // If running tests locally try local Registry file
-  QueryData const default_rows = execute_query(
-      "select *,physical_device from raw_registry where reg_path = "
-      "'C:\\Windows\\System32\\config\\SYSTEM'");
-  if (!default_rows.empty()) {
-    ASSERT_GT(default_rows.size(), 0ul);
-    validate_rows(default_rows, row_map);
-  }
+  // QueryData const default_rows = execute_query(
+  //    "select *,physical_device from raw_registry where reg_path = "
+  //    "'C:\\Windows\\System32\\config\\SYSTEM'");
+  // if (!default_rows.empty()) {
+  //  ASSERT_GT(default_rows.size(), 0ul);
+  //  validate_rows(default_rows, row_map);
+  //}
 }
 
 } // namespace table_tests

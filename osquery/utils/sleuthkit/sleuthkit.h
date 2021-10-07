@@ -27,7 +27,6 @@ class SleuthkitHelper : private boost::noncopyable {
       std::function<void(const TskVsPartInfo* part)> predicate) {
     if (open()) {
       for (TSK_PNUM_T i = 0; i < volume_->getPartCount(); ++i) {
-        // auto* part = volume_->getPart(i);
         std::unique_ptr<const TskVsPartInfo> part(volume_->getPart(i));
         if (part == nullptr) {
           continue;
@@ -35,11 +34,9 @@ class SleuthkitHelper : private boost::noncopyable {
         // Windows requires min of 32GB of space, check for min number of NTFS
         // sectors
         if (part->getLen() <= 8388608) {
-          // delete part;
           continue;
         }
         predicate(part.get());
-        // delete part;
       }
     }
   }
