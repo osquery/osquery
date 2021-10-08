@@ -103,18 +103,6 @@
 [submodule "libraries/cmake/source/gflags/src"]
 	path = libraries/cmake/source/gflags/src
 	url = https://github.com/gflags/gflags
-[submodule "libraries/cmake/source/aws-sdk-cpp/aws-c-common_src"]
-	path = libraries/cmake/source/aws-sdk-cpp/aws-c-common_src
-	url = https://github.com/awslabs/aws-c-common
-[submodule "libraries/cmake/source/aws-sdk-cpp/aws-c-event-stream_src"]
-	path = libraries/cmake/source/aws-sdk-cpp/aws-c-event-stream_src
-	url = https://github.com/awslabs/aws-c-event-stream
-[submodule "libraries/cmake/source/aws-sdk-cpp/aws-checksums_src"]
-	path = libraries/cmake/source/aws-sdk-cpp/aws-checksums_src
-	url = https://github.com/awslabs/aws-checksums
-[submodule "libraries/cmake/source/aws-sdk-cpp/aws-sdk-cpp_src"]
-	path = libraries/cmake/source/aws-sdk-cpp/aws-sdk-cpp_src
-	url = https://github.com/aws/aws-sdk-cpp
 [submodule "libraries/cmake/source/boost/src"]
 	path = libraries/cmake/source/boost/src
 	url = https://github.com/boostorg/boost
@@ -136,3 +124,45 @@
 [submodule "libraries/cmake/source/libcap/src"]
 	path = libraries/cmake/source/libcap/src
 	url = https://kernel.googlesource.com/pub/scm/libs/libcap/libcap.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-crt-cpp"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-crt-cpp
+	url = https://github.com/awslabs/aws-crt-cpp.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-auth"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-auth
+	url = https://github.com/awslabs/aws-c-auth.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-cal"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-cal
+	url = https://github.com/awslabs/aws-c-cal.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-common"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-common
+	url = https://github.com/awslabs/aws-c-common.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-compression"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-compression
+	url = https://github.com/awslabs/aws-c-compression.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-event-stream"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-event-stream
+	url = https://github.com/awslabs/aws-c-event-stream.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-http"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-http
+	url = https://github.com/awslabs/aws-c-http.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-io"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-io
+	url = https://github.com/awslabs/aws-c-io.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-mqtt"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-mqtt
+	url = https://github.com/awslabs/aws-c-mqtt.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-c-s3"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-c-s3
+	url = https://github.com/awslabs/aws-c-s3.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-checksums"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-checksums
+	url = https://github.com/awslabs/aws-checksums.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-lc"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-lc
+	url = https://github.com/awslabs/aws-lc.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/s2n"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/s2n
+	url = https://github.com/awslabs/s2n.git
+[submodule "libraries/cmake/source/aws-sdk-cpp/src/aws-sdk-cpp"]
+	path = libraries/cmake/source/aws-sdk-cpp/src/aws-sdk-cpp
+	url = https://github.com/aws/aws-sdk-cpp
