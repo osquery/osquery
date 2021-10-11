@@ -414,8 +414,10 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   // clang-format on
 
   if (rule_add_error < 0) {
+    const char* errno_message = audit_errno_to_name(-rule_add_error);
     LOG(ERROR) << "Failed to install the audit rule due to one or more "
-               << "syscalls with error " << audit_errno_to_name(rule_add_error)
+               << "syscalls with error "
+               << (errno_message ? errno_message : "NULL")
                << ", Audit-based tables may not function as expected";
 
   } else if (FLAGS_audit_debug) {
@@ -584,8 +586,9 @@ void AuditdNetlinkReader::restoreAuditServiceConfiguration() noexcept {
     int rule_delete_error = audit_delete_rule_data(
         audit_netlink_handle_, &rule, AUDIT_FILTER_EXIT, AUDIT_ALWAYS);
     if (FLAGS_audit_debug && rule_delete_error < 0) {
+      const char* errno_message = audit_errno_to_name(-rule_delete_error);
       VLOG(1) << "Error code returned by delete rule "
-              << audit_errno_to_name(rule_delete_error);
+              << (errno_message ? errno_message : "NULL");
     }
   }
 
