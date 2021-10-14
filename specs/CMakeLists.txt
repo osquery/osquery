@@ -254,7 +254,6 @@ function(generateNativeTables)
     "sleuthkit/device_file.table:linux,macos,freebsd,windows"
     "sleuthkit/device_hash.table:linux,macos,freebsd,windows"
     "sleuthkit/device_partitions.table:linux,macos,freebsd,windows"
-    "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
     "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
@@ -314,6 +313,7 @@ function(generateNativeTables)
   if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
     list(APPEND platform_dependent_spec_files
       "lldpd/lldp_neighbors.table:linux,macos,freebsd"
+      "smart/smart_drive_info.table:linux,macos"
     )
   endif()
 
