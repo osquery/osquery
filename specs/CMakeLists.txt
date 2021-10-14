@@ -181,7 +181,6 @@ function(generateNativeTables)
     "linux/systemd_units.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "linwin/secureboot.table:linux,windows"
-    "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
     "posix/extended_attributes.table:linux,macos"
@@ -310,6 +309,13 @@ function(generateNativeTables)
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )
+
+  # We want to remove support for lldpd, so skip support for M1
+  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    list(APPEND platform_dependent_spec_files
+      "lldpd/lldp_neighbors.table:linux,macos,freebsd"
+    )
+  endif()
 
   if(OSQUERY_BUILD_BPF)
     list(APPEND platform_dependent_spec_files

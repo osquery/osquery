@@ -112,7 +112,6 @@ function(generateTestsIntegrationTablesTestsTest)
       interface_ipv6.cpp
       known_hosts.cpp
       last.cpp
-      lldp_neighbors.cpp
       load_average.cpp
       magic.cpp
       memory_array_mapped_addresses.cpp
@@ -139,6 +138,10 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
+
+    if(DEFINED PLATFORM_MACOS AND NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+      list(APPEND source_files lldp_neighbors.cpp)
+    endif()
   endif()
 
   if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))

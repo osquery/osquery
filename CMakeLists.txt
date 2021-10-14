@@ -110,7 +110,6 @@ function(importLibraries)
     "Linux:libudev"
     "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
-    "Linux,Darwin:lldpd"
     "Linux,Darwin,Windows:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
@@ -146,6 +145,13 @@ function(importLibraries)
   if(OSQUERY_BUILD_DPKG)
     list(APPEND library_descriptor_list
       "Linux:libdpkg"
+    )
+  endif()
+
+  # We want to remove support for lldpd, so skip support for M1
+  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    list(APPEND library_descriptor_list
+      "Linux,Darwin:lldpd"
     )
   endif()
 
