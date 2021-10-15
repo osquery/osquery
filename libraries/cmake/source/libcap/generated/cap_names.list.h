@@ -36,3 +36,6 @@
 {"cap_wake_alarm",35},
 {"cap_block_suspend",36},
 {"cap_audit_read",37},
+{"cap_perfmon",38},
+{"cap_bpf",39},
+{"cap_checkpoint_restore",40},
