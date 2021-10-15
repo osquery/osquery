@@ -111,6 +111,11 @@ if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
   set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages")
 endif()
 
+# OSQUERY_UA_PREFIX sets the user-agent prefix, with the default of osquery/
+# osquery will append the version to this, resulting in ex osquery/4.1.1
+set(OSQUERY_UA_PREFIX "osquery/" CACHE STRING "Override the default useragent with this value")
+
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+message(STATUS "osquery user-agent prefix: ${OSQUERY_UA_PREFIX}")
