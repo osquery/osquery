@@ -171,8 +171,11 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   }
 
   // seed . saddr . daddr . proto . 0 . sport . dport
+  std::array<char, 2> buffer;
+  std::memcpy(buffer.data(), seed.data(), buffer.size());
+
   std::stringstream bytes;
-  bytes.write(seed.data(), 2);
+  bytes.write(buffer.data(), buffer.size());
   if (saddr.is_v4()) {
     bytes.write(reinterpret_cast<const char*>(saddr.to_v4().to_bytes().data()),
                 4);
@@ -189,8 +192,12 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   }
   bytes.write(reinterpret_cast<const char*>(&proto), 1);
   bytes.put(0);
-  bytes.write(sport.data(), 2);
-  bytes.write(dport.data(), 2);
+
+  std::memcpy(buffer.data(), sport.data(), buffer.size());
+  bytes.write(buffer.data(), buffer.size());
+
+  std::memcpy(buffer.data(), dport.data(), buffer.size());
+  bytes.write(buffer.data(), buffer.size());
 
   std::string res = bytes.str();
 

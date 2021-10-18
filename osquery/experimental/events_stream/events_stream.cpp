@@ -14,7 +14,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 namespace osquery {
 

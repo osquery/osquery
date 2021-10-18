@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include "osquery/numeric_monitoring/pre_aggregation_cache.h"
 #include <osquery/logger/logger.h>

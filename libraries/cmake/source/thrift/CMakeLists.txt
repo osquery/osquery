@@ -106,7 +106,7 @@ function(thriftMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(thirdparty_thrift PRIVATE
-      thirdparty_boost_scopeexit
+      thirdparty_boost_scope_exit
     )
   endif()
 

@@ -14,7 +14,7 @@
 
 #include <osquery/utils/info/platform_type.h>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <algorithm>
 #include <cstdlib>
