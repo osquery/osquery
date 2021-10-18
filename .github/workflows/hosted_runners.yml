@@ -502,7 +502,12 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
-        os: [macos-10.15]
+        architecture: [x86_64, arm64]
+        os: [macos-11]
+
+        exclude:
+          - build_type: Debug
+            architecture: arm64
 
     steps:
     - name: Select the build job count
@@ -548,23 +553,16 @@ jobs:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
 
-    - name: Clone the osquery-packaging repository
-      run: |
-        git clone ${{ env.PACKAGING_REPO }} \
-          ${{ steps.build_paths.outputs.PACKAGING }}
-        cd ${{ steps.build_paths.outputs.PACKAGING }}
-        git checkout ${{ env.PACKAGING_COMMIT }}
-
     - name: Update the cache (ccache)
       uses: actions/cache@v2
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
         key: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
         restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v2
@@ -572,10 +570,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ matrix.os }}_${{ github.sha }}
+          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}
+          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v2
@@ -583,10 +581,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
         key: |
-          downloads_${{ matrix.os }}_${{ github.sha }}
+          downloads_${{ matrix.os }}_${{ matrix.architecture }}_${{ github.sha }}
 
         restore-keys: |
-          downloads_${{ matrix.os }}
+          downloads_${{ matrix.os }}_${{ matrix.architecture }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -595,7 +593,12 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        brew install ccache flex bison
+        brew install \
+          ccache \
+          flex \
+          bison \
+          coreutils \
+          gnu-sed
 
     - name: Install tests dependencies
       run: |
@@ -607,37 +610,28 @@ jobs:
                      thrift==0.11.0 \
                      osquery
 
-    # We have to download CMake from the official website; a simple
-    # caching mechanism has been implemented so that we don't keep
-    # hitting the cmake.org website over and over again at each run
     - name: Install CMake
       shell: bash
       run: |
-        long_ver=3.17.5
-        short_ver=$(echo ${long_ver} | cut -d '.' -f 1-2)
-
-        folder_name="cmake-${long_ver}-Darwin-x86_64"
-        filename="${folder_name}.tar.gz"
-
-        url="https://cmake.org/files/v${short_ver}/${filename}"
-        local_path="${{ steps.build_paths.outputs.DOWNLOADS }}/${filename}"
-
-        if [[ ! -f "${local_path}" ]]; then
-          wget "${url}" -O "${local_path}"
-
-          ls -t ${{ steps.build_paths.outputs.DOWNLOADS }}/cmake* | tail -n +2 | while read archive_file ; do
-            rm "${archive_file}"
-          done
-        fi
-
-        tar xf "${local_path}" \
-            -C "${{ steps.build_paths.outputs.INSTALL }}"
-
-        echo "${{ steps.build_paths.outputs.INSTALL }}/${folder_name}/CMake.app/Contents/bin" >> $GITHUB_PATH
+        ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
+          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
+          "${{ steps.build_paths.outputs.INSTALL }}" \
+          "3.17.5"
 
     - name: Select the Xcode version
+      shell: bash
+      id: xcode_selector
       run: |
-        sudo xcode-select -s /Applications/Xcode_12.3.app/Contents/Developer
+        xcode_path="/Applications/Xcode_13.0.app/Contents/Developer"
+        echo ::set-output name=PATH::${path}
+
+        sudo xcode-select -s "${xcode_path}"
+
+        if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
+          echo ::set-output name=DEPLOYMENT_TARGET::10.12
+        else
+          echo ::set-output name=DEPLOYMENT_TARGET::10.15
+        fi
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -661,7 +655,8 @@ jobs:
 
       run: |
         cmake -G "Unix Makefiles" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
@@ -677,6 +672,7 @@ jobs:
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Run the tests
+      if: matrix.architecture == 'x86_64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         ctest --build-nocmake -V
@@ -694,67 +690,192 @@ jobs:
           --target install \
           -j ${{ steps.build_job_count.outputs.VALUE }}
 
-    - name: Create the packages
-      if: matrix.build_type == 'Release'
+    - name: Create the package data
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
-
-      shell: bash
-
       run: |
-        osquery_version=$(cd ${{ steps.build_paths.outputs.SOURCE }} && git describe --tags --always )
-
         tar pcvzf package_data.tar.gz \
           -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} \
           .
 
-        package_format_list=( "productbuild" "TGZ" )
-
-        for package_format in "${package_format_list[@]}" ; do
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCPACK_GENERATOR=${package_format} \
-            -DOSQUERY_PACKAGE_VERSION=${osquery_version} \
-            -DOSQUERY_DATA_PATH=${{ steps.build_paths.outputs.PACKAGE_DATA }} \
-            ${{ steps.build_paths.outputs.PACKAGING }}
-
-          cmake --build . \
-            --target package
-        done
-
-    - name: Locate the packages
+    - name: Locate the package data
       if: matrix.build_type == 'Release'
       id: packages
       shell: bash
       run: |
         echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_PKG_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.pkg)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.tar.gz | grep -v package_data)
 
-    - name: Store the unsigned release package data artifact
+    - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v1
       with:
-        name: macos_unsigned_release_package_data
+        name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Store the unsigned release PKG artifact
-      if: matrix.build_type == 'Release'
-      uses: actions/upload-artifact@v1
-      with:
-        name: macos_unsigned_release_pkg
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PKG_PATH }}
+    - name: Package the tests for the x86_64 macOS-10.15 worker
+      if: matrix.architecture == 'x86_64'
+      run: |
+        ( cd workspace && ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} )
 
-    - name: Store the unsigned release TGZ artifact
-      if: matrix.build_type == 'Release'
+    - name: Store the packaged tests for the x86_64 macOS-10.15 worker
+      if: matrix.architecture == 'x86_64'
       uses: actions/upload-artifact@v1
       with:
-        name: macos_unsigned_release_tgz
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
+        name: macos_tests_${{ matrix.build_type }}
+        path: workspace/macos_tests_${{ matrix.build_type }}.tar.gz
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
+
+
+
+
+  # This job takes the packaged tests (Release + Debug) from the big sur
+  # builder and runs them on Catalina
+  test_macos_catalina:
+    needs: build_macos
+
+    runs-on: macos-10.15
+
+    steps:
+      - name: Clone the osquery repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: macos_tests_Release
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: macos_tests_Debug
+
+      - name: Install tests dependencies
+        run: |
+          pip3 install setuptools \
+                       pexpect==3.3 \
+                       psutil \
+                       timeout_decorator \
+                       six \
+                       thrift==0.11.0 \
+                       osquery
+
+      - name: Install CMake
+        shell: bash
+        run: |
+          mkdir -p "workspace/downloads" \
+                   "workspace/install"
+
+          ./tools/ci/scripts/macos/install_cmake.sh \
+            "workspace/downloads" \
+            "workspace/install" \
+            "3.17.5"
+
+      - name: Extract the tests
+        run: |
+          tar xzf macos_tests_Release.tar.gz
+          tar xzf macos_tests_Debug.tar.gz
+
+      - name: Run the Debug tests
+        run: |
+          ( cd macos_tests_Debug && ./run.sh )
+
+      - name: Run the Release tests
+        run: |
+          ( cd macos_tests_Release && ./run.sh )
+
+
+
+
+  # This job builds the universal macOS artifacts
+  build_universal_macos_artifacts:
+    needs: test_macos_catalina
+
+    runs-on: macos-11
+
+    steps:
+      - name: Clone the osquery repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install CMake
+        shell: bash
+        run: |
+          mkdir -p "workspace/downloads" \
+                   "workspace/install"
+
+          ./tools/ci/scripts/macos/install_cmake.sh \
+            "workspace/downloads" \
+            "workspace/install" \
+            "3.17.5"
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: macos_unsigned_release_package_data_x86_64
+          path: macos_unsigned_release_package_data_x86_64
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: macos_unsigned_release_package_data_arm64
+          path: macos_unsigned_release_package_data_arm64
+
+      - name: Create the universal package data
+        run: |
+          tools/ci/scripts/macos/build_universal_package_data.sh
+
+      - name: Store the universal unsigned release package data artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: macos_unsigned_release_package_data_universal
+          path: package_data.tar.gz
+
+      - name: Clone the osquery-packaging repository
+        run: |
+          git clone ${{ env.PACKAGING_REPO }} osquery-packaging
+
+          cd osquery-packaging
+          git checkout ${{ env.PACKAGING_COMMIT }}
+
+      - name: Create the packages
+        shell: bash
+        run: |
+          osquery_version=$(git describe --tags --always )
+          package_format_list=( "productbuild" "TGZ" )
+
+          for package_format in "${package_format_list[@]}" ; do
+            cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCPACK_GENERATOR=${package_format} \
+              -DOSQUERY_PACKAGE_VERSION=${osquery_version} \
+              -DOSQUERY_DATA_PATH=$(pwd)/universal \
+              -S osquery-packaging \
+              -B package_build
+
+            cmake --build package_build \
+              --target package
+          done
+
+      - name: Locate the packages
+        id: packages
+        shell: bash
+        run: |
+          echo ::set-output name=REL_UNSIGNED_RELEASE_PKG_PATH::$(ls package_build/*.pkg)
+          echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls package_build/*.tar.gz)
+
+      - name: Store the PKG unsigned release packages
+        uses: actions/upload-artifact@v1
+        with:
+          name: macos_unsigned_pkg_universal
+          path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PKG_PATH }}
+
+      - name: Store the TGZ unsigned release packages
+        uses: actions/upload-artifact@v1
+        with:
+          name: macos_unsigned_tgz_universal
+          path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
 
 
