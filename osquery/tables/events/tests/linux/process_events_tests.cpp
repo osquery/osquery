@@ -14,10 +14,14 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/events/linux/process_events.h>
 #include <osquery/tables/events/linux/process_events.h>
 
 namespace osquery {
+
+DECLARE_bool(audit_allow_kill_process_events);
+
 namespace {
 using RawAuditEvent = const std::vector<std::pair<int, std::string>>;
 
@@ -200,6 +204,8 @@ TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
   };
   // clang-format on
 
+  FLAGS_audit_allow_kill_process_events = true;
+
   Row event_row;
   GenerateEventRow(event_row, kSampleKillEvent);
 
@@ -241,6 +247,29 @@ TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
     const auto& actual_value = it->second;
     EXPECT_EQ(expected_value, actual_value);
   }
+}
+
+TEST_F(ProcessEventsTests, kill_syscall_without_obj_pid_record) {
+  // clang-format off
+  const RawAuditEvent kSampleKillEvent = {
+#if defined(__x86_64__)
+    { 1300, "audit(1588703361.452:26860): arch=c000003e syscall=62 success=yes exit=0 a0=6334 a1=f a2=0 a3=7f8b95cbbcc0 items=0 ppid=6198 pid=6199 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts3 ses=5 comm=\"bash\" exe=\"/bin/bash\" key=226B696C6C73686F7422" },
+#elif defined(__aarch64__)
+    { 1300, "audit(1588703361.452:26860): arch=c00000b7 syscall=129 success=yes exit=0 a0=6334 a1=f a2=0 a3=7f8b95cbbcc0 items=0 ppid=6198 pid=6199 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts3 ses=5 comm=\"bash\" exe=\"/bin/bash\" key=226B696C6C73686F7422" },
+#else
+    #error Unsupported architecture
+#endif
+    { 1307, "audit(1588703361.452:26860): proctitle=\"-bash\"" },
+    { 1320, "audit(1588703361.452:26860): " }
+  };
+  // clang-format on
+
+  FLAGS_audit_allow_kill_process_events = true;
+
+  Row event_row;
+
+  // Check that osquery does not crash when AUDIT_OBJ_PID record not captured
+  GenerateEventRow(event_row, kSampleKillEvent);
 }
 
 TEST_F(ProcessEventsTests, thread_detection) {

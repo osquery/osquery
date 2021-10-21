@@ -149,6 +149,11 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
+    // Skip kill events if not subscribed to them
+    if (!FLAGS_audit_allow_kill_process_events && is_kill_syscall) {
+      continue;
+    }
+
     // Acquire the base syscall record, which is common to all the different
     // events we are handling here
     const AuditEventRecord* syscall_event_record =
@@ -228,15 +233,22 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       }
 
     } else if (is_kill_syscall) {
-      const AuditEventRecord* obj_pid_recod =
+      const AuditEventRecord* obj_pid_record =
           GetEventRecord(event, AUDIT_OBJ_PID);
+      if (obj_pid_record == nullptr) {
+        VLOG(1) << "Failed to parse the event: malformed or absent "
+                   "AUDIT_OBJ_PID record, using defaults";
+      }
+      using ObjPidType = decltype(obj_pid_record->fields);
+      const auto&& obj_pid_fields =
+          (obj_pid_record ? obj_pid_record->fields : ObjPidType{});
 
       CopyFieldFromMap(row, syscall_event_record->fields, "tty", "");
       CopyFieldFromMap(row, syscall_event_record->fields, "ses", "-1");
       CopyFieldFromMap(row, syscall_event_record->fields, "comm", "");
-      CopyFieldFromMap(row, obj_pid_recod->fields, "ocomm", "-1");
-      CopyFieldFromMap(row, obj_pid_recod->fields, "oses", "-1");
-      CopyFieldFromMap(row, obj_pid_recod->fields, "oauid", "-1");
+      CopyFieldFromMap(row, obj_pid_fields, "ocomm", "");
+      CopyFieldFromMap(row, obj_pid_fields, "oses", "-1");
+      CopyFieldFromMap(row, obj_pid_fields, "oauid", "-1");
 
     } else {
       row["owner_uid"] = "0";
