@@ -39,10 +39,10 @@
 /* #undef PACKAGE_URL */
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.13.0"
+#define PACKAGE_VERSION "0.15.0"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING " 0.13.0"
+#define PACKAGE_STRING " 0.15.0"
 
 /************************** DEFINES *************************/
 
@@ -64,14 +64,8 @@
    see: aclocal/ac_prog_bison.m4 */
 /* #undef BISON_USE_PARSER_H_EXTENSION */
 
-/* replaces POSIX pthread by boost::thread */
-/* #undef USE_BOOST_THREAD */
-
-/* replaces POSIX pthread by std::thread */
-/* #undef USE_STD_THREAD */
-
 /* Define to 1 if strerror_r returns char *. */
-/* #undef STRERROR_R_CHAR_P */
+#define STRERROR_R_CHAR_P 1
 
 
 /************************** HEADER FILES *************************/
@@ -145,7 +139,7 @@
 #define HAVE_GETHOSTBYNAME 1
 
 /* Define to 1 if you have the `gethostbyname_r' function. */
-/* #undef HAVE_GETHOSTBYNAME_R */
+#define HAVE_GETHOSTBYNAME_R 1
 
 /* Define to 1 if you have the `strerror_r' function. */
 #define HAVE_STRERROR_R 1
@@ -158,6 +152,6 @@
 
 
 /* Define to 1 if strerror_r returns char *. */
-/* #undef STRERROR_R_CHAR_P */
+#define STRERROR_R_CHAR_P 1
 
 #endif
