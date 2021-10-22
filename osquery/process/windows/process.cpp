@@ -99,6 +99,10 @@ bool PlatformProcess::killGracefully() const {
 
 ProcessState PlatformProcess::checkStatus(int& status) const {
   unsigned long exit_code = 0;
+  if (!isValid()) {  // see issue #7324
+    return PROCESS_ERROR;
+  }
+
   if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
     unsigned long last_error = GetLastError();
     if (last_error == ERROR_WAIT_NO_CHILDREN) {
