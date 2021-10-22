@@ -106,9 +106,6 @@
 [submodule "libraries/cmake/source/boost/src"]
 	path = libraries/cmake/source/boost/src
 	url = https://github.com/boostorg/boost
-[submodule "libraries/cmake/source/icu/src"]
-	path = libraries/cmake/source/icu/src
-	url = https://github.com/unicode-org/icu
 [submodule "libraries/cmake/source/augeas/gnulib/src"]
 	path = libraries/cmake/source/augeas/gnulib/src
 	url = https://github.com/osquery/third-party-gnulib

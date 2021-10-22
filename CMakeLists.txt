@@ -123,7 +123,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
-    "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"
