@@ -99,7 +99,7 @@ bool PlatformProcess::killGracefully() const {
 
 ProcessState PlatformProcess::checkStatus(int& status) const {
   unsigned long exit_code = 0;
-  if (!isValid()) {  // see issue #7324
+  if (!isValid()) { // see issue #7324
     return PROCESS_ERROR;
   }
 
