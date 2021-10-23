@@ -182,7 +182,7 @@ TEST_F(AslTests, test_actual_query) {
 
   // As of 10.12, ASL is a legacy logging subsystem and the associated
   // deprecated ASL APIs for writing log entries now redirect to the
-  // Unified Logging system. Because osquery never actually read ASL
+  // Unified Logging system. Because osquery never actually reads ASL
   // logs directly, but rather the syslog downstream of ASL, we similarly
   // use syslog() to write a log entry and then read it back via
   // the `asl` virtual table as a test of "ASL" (actually syslog).
@@ -195,18 +195,28 @@ TEST_F(AslTests, test_actual_query) {
 
   std::string time_str = std::to_string(std::time(nullptr));
   std::string log_entry = "osquery_test: test_actual_query " + time_str;
+
+  // Note: when this test is built with the 10.13 SDK or newer, even syslog()
+  // writes to the Unified Log instead, and reading results from 'asl' (or
+  // the /private/var/log/system.log file) will not include this logline.
   syslog(LOG_NOTICE, "%s", log_entry.c_str());
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  // Check for our written log entry
+  // Check for our written log entry, but just skip the test if it isn't there.
   auto results =
       SQL("select * from asl where facility = 'user' and level = 5 and sender "
           "= 'osquery_tables_system_darwin_tests-test' and message like '%" +
           time_str + "' and time >= " + time_str);
-  ASSERT_GT(results.rows().size(), (size_t)0);
-  ASSERT_EQ("osquery_tables_system_darwin_tests-test",
-            results.rows()[0].at("sender"));
-  ASSERT_EQ("user", results.rows()[0].at("facility"));
+
+  if (results.rows().size() > (size_t)0) {
+    ASSERT_EQ("osquery_tables_system_darwin_tests-test",
+              results.rows()[0].at("sender"));
+    ASSERT_EQ("user", results.rows()[0].at("facility"));
+  } else {
+    LOG(WARNING)
+        << "macOS SDK 10.13+ no longer provides a way to write loglines outside"
+           " of Unified Log. Skipping ASL write-and-readback test.";
+  }
 }
 
 _Pragma("clang diagnostic pop");
