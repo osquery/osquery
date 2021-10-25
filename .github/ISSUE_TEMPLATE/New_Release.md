@@ -11,7 +11,7 @@ about: Checklist of Release actions
 
 ## Before creating a GitHub tag
 
-- [ ] Review the [milestones](https://github.com/osquery/osquery/milestones, move unfinished issues to the next release, close the milestone.
+- [ ] Review the [milestones](https://github.com/osquery/osquery/milestones), move unfinished issues to the next release, close the milestone.
 - [ ] Update the `CHANGELOG.md`, review and merge the change.
 - [ ] Assure that testable packages are available for the `#core` channel on Slack.
 - [ ] Ask for a volunteer to make a GitHub tag.
