@@ -19,9 +19,6 @@
 #include <osquery/tables/events/linux/process_events.h>
 
 namespace osquery {
-
-DECLARE_bool(audit_allow_kill_process_events);
-
 namespace {
 using RawAuditEvent = const std::vector<std::pair<int, std::string>>;
 
@@ -204,8 +201,6 @@ TEST_F(ProcessEventsTests, kill_syscall_event_processing) {
   };
   // clang-format on
 
-  FLAGS_audit_allow_kill_process_events = true;
-
   Row event_row;
   GenerateEventRow(event_row, kSampleKillEvent);
 
@@ -263,8 +258,6 @@ TEST_F(ProcessEventsTests, kill_syscall_without_obj_pid_record) {
     { 1320, "audit(1588703361.452:26860): " }
   };
   // clang-format on
-
-  FLAGS_audit_allow_kill_process_events = true;
 
   Row event_row;
 

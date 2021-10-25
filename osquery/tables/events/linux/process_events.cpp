@@ -149,11 +149,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
       continue;
     }
 
-    // Skip kill events if not subscribed to them
-    if (!FLAGS_audit_allow_kill_process_events && is_kill_syscall) {
-      continue;
-    }
-
     // Acquire the base syscall record, which is common to all the different
     // events we are handling here
     const AuditEventRecord* syscall_event_record =
