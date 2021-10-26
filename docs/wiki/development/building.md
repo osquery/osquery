@@ -14,9 +14,15 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux
+## Mozilla CA Certificates
 
-The root folder is assumed to be `/home/<user>`.
+osquery bundles a Mozilla CA certificate store. During building the file `$osquery_code/tools/deployment/certs.pem` is packaged and used as the default TLS CA certificates store.
+
+Published Mozilla CA certificates can be found [here](https://curl.se/docs/caextract.html).
+
+A script `$osquery_code/tools/deployment/update_cacerts.sh` is provided to ensure an up-to-date CA certificate store.
+
+To update osquery's CA certificate store post-build on Linux the file location is `/opt/osquery/share/osquery/certs/certs.pem`.
 
 **Ubuntu 18.04/18.10**
 
@@ -184,10 +190,10 @@ GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory t
 Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
 using custom scripts.
 
-On Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.  
+On Linux the `clang-format` executable is shipped along with the osquery toolchain, and it is the recommended way to run it.
 For the other platforms please refer to their **Install the prerequisites** section if you haven't already.
 
-On Windows remember to update the PATH environment variable with the `clang-format` root folder, so that the scripts can find it.  
+On Windows remember to update the PATH environment variable with the `clang-format` root folder, so that the scripts can find it.
 You should be able to find `clang-format` folder in the path where you installed either the Build Tools or the full Visual Studio, and from there `VC\Tools\Llvm\bin`.
 
 To verify that all the commits that are present on the branch but not on master are properly formatted, run the following command from the build folder:
