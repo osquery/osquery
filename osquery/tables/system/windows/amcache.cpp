@@ -9,6 +9,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/windows/raw_registry.h>
@@ -160,8 +161,9 @@ void parseAmcacheExecution(QueryData& results,
 QueryData genAmcache(QueryContext& context) {
   QueryData results;
   auto device = context.constraints["physical_device"].getAll(EQUALS);
-
-  std::string physical_device = "\\\\.\\PhysicalDrive0";
+  std::string root = getSystemRoot().string();
+  std::string drive(root.begin(), root.begin() + 2);
+  std::string physical_device = ("\\\\.\\" + drive);
   if (!device.empty()) {
     auto value = std::next(device.begin(), 0);
     physical_device = *value;

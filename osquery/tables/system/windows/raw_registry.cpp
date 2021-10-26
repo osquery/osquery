@@ -140,7 +140,9 @@ QueryData genRawRegistry(QueryContext& context) {
   auto device = context.constraints["physical_device"].getAll(EQUALS);
 
   std::vector<std::string> query_regs = std::vector(paths.begin(), paths.end());
-  std::string physical_drive = "\\\\.\\PhysicalDrive0";
+  std::string root = getSystemRoot().string();
+  std::string drive(root.begin(), root.begin() + 2);
+  std::string physical_drive = ("\\\\.\\" + drive);
 
   // Check for user specified registry file
   if (query_regs.empty()) {

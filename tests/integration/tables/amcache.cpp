@@ -29,14 +29,12 @@ TEST_F(AmcacheTest, test_sanity) {
       boost::filesystem::path(*test + "/windows/amcache/Amcache.hve")
           .make_preferred()
           .string();
+  std::string drive(test_filepath.begin(), test_filepath.begin() + 2);
+  std::string physical_drive = ("\\\\.\\" + drive);
   QueryData rows =
       execute_query("select * from amcache where source = '" + test_filepath +
-                    "' and physical_device = '\\\\.\\PhysicalDrive1'");
-  if (rows.empty()) {
-    rows =
-        execute_query("select * from amcache where source = '" + test_filepath +
-                      "' and physical_device = '\\\\.\\PhysicalDrive0'");
-  }
+                    "' and physical_device = '" + physical_drive + "'");
+
   ASSERT_GT(rows.size(), 0ul);
   auto const row_map = ValidationMap{
       {"path", NormalType},

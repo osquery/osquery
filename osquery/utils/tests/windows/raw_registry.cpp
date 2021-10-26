@@ -229,11 +229,11 @@ TEST_F(RawRegistryTests, test_raw_registry) {
           .make_preferred()
           .string();
   cleanRegPath(test_filepath);
-  std::string drive_path = "\\\\.\\PhysicalDrive1";
+  std::string drive_path = "\\\\.\\C:";
 
   std::vector<RegTableData> raw_reg = rawRegistry(test_filepath, drive_path);
   if (raw_reg.empty()) {
-    drive_path = "\\\\.\\PhysicalDrive0";
+    drive_path = "\\\\.\\C:";
     raw_reg = rawRegistry(test_filepath, drive_path);
   }
   if (raw_reg.size() != 1405) {

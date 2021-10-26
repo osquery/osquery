@@ -18,7 +18,6 @@
 #include <osquery/utils/windows/raw_registry.h>
 
 #include <boost/algorithm/hex.hpp>
-#include <tsk/libtsk.h>
 
 #include <vector>
 namespace osquery {
@@ -124,34 +123,23 @@ ExpectedOffset checkOffset(const std::size_t& reg_contents_size,
   return ExpectedOffset::success(true);
 }
 
-// Read Registry file using sleuthkit, using registry path and physical drive
-// (ex: \\.\PhysicalDrive0)
+// Read Registry file using sleuthkit, using registry path and logical volume
+// (ex: \\.\C:)
 std::vector<char> rawReadRegistry(const std::string& reg_path,
                                   const std::string& drive_path) {
-  SleuthkitHelper dh(drive_path);
   std::vector<char> reg_contents;
-  // Only search for registry file on partitions that meet Windows OS storage
-  // requirements
-  dh.partitionsMinOsSize(
-      ([&dh, &reg_path, &reg_contents](const TskVsPartInfo* part) {
-        if (part->getFlags() != TSK_VS_PART_FLAG_ALLOC) {
-          return;
-        }
+  std::shared_ptr<TskImgInfo> image(new TskImgInfo);
+  auto expected = openLogical(drive_path, image);
+  if (expected.isError()) {
+    LOG(INFO) << expected.getError();
+    return reg_contents;
+  }
 
-        std::string address = std::to_string(part->getAddr());
-        std::unique_ptr<TskFsInfo> fs(new TskFsInfo);
-        TSK_OFF_T offset = 0;
-        auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-        // Cannot retrieve file information without accessing the filesystem.
-        if (status) {
-          return;
-        }
-        // Read the registry file
-        dh.readFile(address, fs, reg_path, reg_contents);
-        if (reg_contents.size() > 0) {
-          return;
-        }
-      }));
+  auto file_expected = readRawFile(image, reg_path, reg_contents);
+  if (file_expected.isError()) {
+    LOG(INFO) << file_expected.getError();
+    return reg_contents;
+  }
   return reg_contents;
 }
 
