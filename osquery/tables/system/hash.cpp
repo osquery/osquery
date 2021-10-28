@@ -199,7 +199,8 @@ Status genSsdeepForFile(const std::string& path, std::string& ssdeep_hash) {
 #ifdef OSQUERY_POSIX
   auto size = std::filesystem::file_size(path);
   if (size > FLAGS_read_max) {
-    return Status::failure("ssdeep failed because file size exceeds read_max: " + path);
+    return Status::failure(
+        "ssdeep failed because file size exceeds read_max: " + path);
   }
   ssdeep_hash.resize(FUZZY_MAX_RESULT, '\0');
   auto did_ssdeep_fail =
