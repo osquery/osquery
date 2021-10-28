@@ -135,6 +135,32 @@ function(generateOsqueryTablesSystemDarwinTests)
     tests_helper
     thirdparty_googletest
   )
+
+  add_executable(unsigned_test darwin/unsigned_test.cpp)
+
+  add_custom_command(
+    OUTPUT "${TEST_CONFIGS_DIR}/unsigned_test"
+    DEPENDS unsigned_test
+    COMMAND "${CMAKE_COMMAND}" -E copy $<TARGET_FILE:unsigned_test> "${TEST_CONFIGS_DIR}/unsigned_test_temp"
+    COMMAND codesign --remove-signature --deep "${TEST_CONFIGS_DIR}/unsigned_test_temp"
+    COMMAND "${CMAKE_COMMAND}" -E rename "${TEST_CONFIGS_DIR}/unsigned_test_temp" "${TEST_CONFIGS_DIR}/unsigned_test"
+    VERBATIM
+    COMMENT "Generating unsigned_test..."
+  )
+
+  add_custom_target(unsigned_test_builder
+    DEPENDS "${TEST_CONFIGS_DIR}/unsigned_test"
+  )
+
+  # Make sure that the data directory is generated before the unsigned_test data
+  add_dependencies(unsigned_test_builder
+    osquery_tools_tests_configfiles
+  )
+
+  # Make sure that the data is built before the test
+  add_dependencies(osquery_tables_system_darwin_tests-test
+    unsigned_test_builder
+  )
 endfunction()
 
 function(generateOsqueryTablesSystemWindowsTests)
