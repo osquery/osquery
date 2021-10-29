@@ -197,7 +197,8 @@ bool FileHashCache::load(const std::string& path,
 
 Status genSsdeepForFile(const std::string& path, std::string& ssdeep_hash) {
 #ifdef OSQUERY_POSIX
-  auto size = std::filesystem::file_size(path);
+  boost::filesystem::path p = path;
+  auto size = boost::filesystem::file_size(p);
   if (size > FLAGS_read_max) {
     return Status::failure(
         "ssdeep failed because file size exceeds read_max: " + path);
