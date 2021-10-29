@@ -128,7 +128,7 @@ ExpectedOffset checkOffset(const std::size_t& reg_contents_size,
 std::vector<char> rawReadRegistry(const std::string& reg_path,
                                   const std::string& drive_path) {
   std::vector<char> reg_contents;
-  std::shared_ptr<TskImgInfo> image(new TskImgInfo);
+  std::shared_ptr<TskImgInfo> image(new TskImgInfo(nullptr));
   auto expected = openLogical(drive_path, image);
   if (expected.isError()) {
     LOG(INFO) << expected.getError();

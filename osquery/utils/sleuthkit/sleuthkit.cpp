@@ -17,7 +17,7 @@ namespace osquery {
 
 ExpectedImage openLogical(const std::string& device_path,
                           std::shared_ptr<TskImgInfo>& image) {
-  std::cout << "open volume" << std::endl;
+  //std::cout << "open volume" << std::endl;
   auto status = image->open(device_path.c_str(), TSK_IMG_TYPE_DETECT, 0);
   if (status) {
     return ExpectedImage::failure(ConversionError::InvalidArgument,
@@ -29,45 +29,27 @@ ExpectedImage openLogical(const std::string& device_path,
 ExpectedFileContent readRawFile(std::shared_ptr<TskImgInfo>& image,
                                 const std::string& file_path,
                                 std::vector<char>& file_contents) {
-  std::shared_ptr<TskFsInfo> fs(new TskFsInfo());
-  // auto* fs = new TskFsInfo();
+  std::shared_ptr<TskFsInfo> fs(new TskFsInfo(nullptr));
 
   TSK_OFF_T offset = 0;
   auto status = fs->open(image.get(), 0, TSK_FS_TYPE_DETECT);
-  std::cout << "open fs" << std::endl;
-  std::cout << unsigned(status) << std::endl;
+  //std::cout << "open fs" << std::endl;
   if (status) {
     return ExpectedFileContent::failure(ConversionError::InvalidArgument,
                                         "Failed to open filesystem");
   }
-  // std::unique_ptr<TSK_INUM_T> inum(new TSK_INUM_T);
-  // std::unique_ptr<TSK_FS_NAME> fs_(new TSK_FS_NAME);
+  
+  std::shared_ptr<TskFsFile> new_file(new TskFsFile(nullptr));
 
-  // std::unique_ptr<TskFsName> fs_name(new TskFsName(fs_.get()));
-  // std::cout << "inum made" << std::endl;
-  /* status = fs->path2INum(file_path.c_str(), inum.get(), fs_name.get());
-  std::cout << unsigned(status) << std::endl;
-
-  if (status || status == -1) {
-    return ExpectedFileContent::failure(ConversionError::InvalidArgument,
-                                        "Failed to get metadata address");
-  }
-  */
-  std::shared_ptr<TskFsFile> new_file(new TskFsFile());
-  // auto* new_file = new TskFsFile();
-
-  std::cout << file_path << std::endl;
+  //std::cout << file_path << std::endl;
   auto result = new_file->open(fs.get(), new_file.get(), file_path.c_str());
-  std::cout << unsigned(result) << std::endl;
+
+
   if (result) {
-    std::cout << "no file info?" << std::endl;
     return ExpectedFileContent::failure(ConversionError::InvalidArgument,
                                         "Failed to get file metadata");
   }
-
-  // auto result = new_file->open(fs.get(), new_file.get(), *inum.get());
-
-  std::cout << "getting meta?" << std::endl;
+  //std::cout << "getting meta?" << std::endl;
 
   std::unique_ptr<TskFsMeta> meta(new_file->getMeta());
   TSK_OFF_T size = meta->getSize();
@@ -77,8 +59,7 @@ ExpectedFileContent readRawFile(std::shared_ptr<TskImgInfo>& image,
     chunk_size =
         new_file->read(0, (char*)&buffer[0], size, TSK_FS_FILE_READ_FLAG_NONE);
     if (chunk_size == -1 || chunk_size != size) {
-      std::cout << "hi?" << std::endl;
-      // free(buffer);
+      free(buffer);
       return ExpectedFileContent::failure(ConversionError::InvalidArgument,
                                           "Got improper data size");
     }
@@ -87,7 +68,7 @@ ExpectedFileContent readRawFile(std::shared_ptr<TskImgInfo>& image,
     file_contents = contents;
     free(buffer);
   }
-  std::cout << file_contents.size() << std::endl;
+  //std::cout << file_contents.size() << std::endl;
   return ExpectedFileContent::success(status);
 }
 
