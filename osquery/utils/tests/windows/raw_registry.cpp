@@ -219,7 +219,6 @@ TEST_F(RawRegistryTests, test_hive_bin) {
   ASSERT_TRUE(hive_bin.offset == 0);
 }
 
-
 TEST_F(RawRegistryTests, test_raw_registry) {
   auto test = getEnvVar("TEST_CONF_FILES_DIR");
   if (!test.is_initialized()) {
