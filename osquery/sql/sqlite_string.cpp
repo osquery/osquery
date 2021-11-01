@@ -23,6 +23,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/system/env.h>
 
 #include <sqlite3.h>
 
@@ -303,6 +304,31 @@ static void ip4StringToDecimalFunc(sqlite3_context* context,
   }
 }
 
+static void expandEnvFunc(sqlite3_context* context,
+                          int argc,
+                          sqlite3_value** argv) {
+  assert(argc == 1);
+
+  if (SQLITE_NULL == sqlite3_value_type(argv[0])) {
+    sqlite3_result_null(context);
+    return;
+  }
+
+  std::string envString(
+      reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
+
+  const auto expanded_path = expandEnvString(envString);
+  if (!expanded_path) {
+    sqlite3_result_error(context, "Failed to get expanded string", -1);
+    return;
+  }
+
+  sqlite3_result_text(context,
+                      expanded_path->c_str(),
+                      static_cast<int>(expanded_path->size()),
+                      SQLITE_TRANSIENT);
+}
+
 void registerStringExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "split",
@@ -350,6 +376,14 @@ void registerStringExtensions(sqlite3* db) {
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           concatWSStringFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "expand_env",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          expandEnvFunc,
                           nullptr,
                           nullptr);
 }

@@ -13,7 +13,7 @@
 #include <boost/optional.hpp>
 
 #include <stdlib.h>
-
+#include <wordexp.h>
 
 namespace osquery {
 
@@ -33,6 +33,25 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
     return std::string(value);
   }
   return boost::none;
+}
+
+boost::optional<std::string> expandEnvString(const std::string& input) {
+  wordexp_t p;
+  int result = wordexp(input.c_str(), &p, WRDE_NOCMD | WRDE_UNDEF);
+  if (result) {
+    VLOG(1) << "Failed to expand environment string: " << result;
+    return boost::none;
+  }
+  std::stringstream expandedString;
+  for (size_t i = 0; i < p.we_wordc; i++) {
+    if (i > 0) {
+      expandedString << " ";
+    }
+    expandedString << p.we_wordv[i];
+  }
+
+  wordfree(&p);
+  return expandedString.str();
 }
 
 } // namespace osquery

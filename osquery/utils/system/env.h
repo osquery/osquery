@@ -28,7 +28,6 @@ bool unsetEnvVar(const std::string& name);
  */
 boost::optional<std::string> getEnvVar(const std::string& name);
 
-#ifdef WINDOWS
 /**
  * @brief Returns the input, with any environment variables present expanded.
  *
@@ -36,6 +35,7 @@ boost::optional<std::string> getEnvVar(const std::string& name);
  */
 boost::optional<std::string> expandEnvString(const std::string& input);
 
+#ifdef WINDOWS
 /**
  * Splits the input into command line arguments, according to the system's
  * rules.
