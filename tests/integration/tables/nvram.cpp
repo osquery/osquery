@@ -28,7 +28,7 @@ TEST_F(NvramTest, test_sanity) {
   ValidationMap row_map = {
       {"name", NonEmptyString},
       {"type", NonEmptyString},
-      {"value", NonEmptyString},
+      {"value", NormalType},
   };
   validate_rows(data, row_map);
 }
