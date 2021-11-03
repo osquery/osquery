@@ -52,6 +52,7 @@ function(generateOsqueryMain)
     osquery_registry
     osquery_remote_enroll_tlsenroll
     osquery_sql
+    osquery_sqlite_plugin
     plugins_config_filesystemconfig
     plugins_config_tlsconfig
     plugins_config_parsers

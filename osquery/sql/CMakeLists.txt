@@ -12,6 +12,7 @@ function(osquerySqlMain)
   endif()
 
   generateOsquerySql()
+  generateOsquerySqlitePlugin()
 endfunction()
 
 function(generateOsquerySql)
@@ -37,8 +38,6 @@ function(generateOsquerySql)
   add_osquery_library(osquery_sql EXCLUDE_FROM_ALL
     ${source_files}
   )
-
-  enableLinkWholeArchive(osquery_sql)
 
   target_link_libraries(osquery_sql PUBLIC
     osquery_cxx_settings
@@ -74,6 +73,23 @@ function(generateOsquerySql)
   add_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
   add_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
   add_test(NAME osquery_sql_tests_sqlitehashingstests-test COMMAND osquery_sql_tests_sqlitehashingtests-test)
+endfunction()
+
+function(generateOsquerySqlitePlugin)
+  set(source_files
+    sqlite_plugin.cpp
+  )
+
+  add_osquery_library(osquery_sqlite_plugin EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  enableLinkWholeArchive(osquery_sqlite_plugin)
+
+  target_link_libraries(osquery_sqlite_plugin PUBLIC
+    osquery_cxx_settings
+    osquery_sql
+  )
 endfunction()
 
 osquerySqlMain()
