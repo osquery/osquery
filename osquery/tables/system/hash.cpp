@@ -51,6 +51,8 @@ HIDDEN_FLAG(uint32,
             20,
             "Number of milliseconds to delay after hashing");
 
+DECLARE_uint64(read_max);
+
 namespace tables {
 
 /// Clear this amount of rows every time cache eviction is triggered.
@@ -195,6 +197,16 @@ bool FileHashCache::load(const std::string& path,
 
 Status genSsdeepForFile(const std::string& path, std::string& ssdeep_hash) {
 #ifdef OSQUERY_POSIX
+  boost::system::error_code ec;
+  boost::filesystem::path p = path;
+  auto size = boost::filesystem::file_size(p, ec);
+  if (ec.value() != boost::system::errc::success) {
+    return Status::failure("failed to determine file size: " + path);
+  }
+  if (size > FLAGS_read_max) {
+    return Status::failure(
+        "ssdeep failed because file size exceeds read_max: " + path);
+  }
   ssdeep_hash.resize(FUZZY_MAX_RESULT, '\0');
   auto did_ssdeep_fail =
       fuzzy_hash_filename(path.c_str(), &ssdeep_hash.front());
