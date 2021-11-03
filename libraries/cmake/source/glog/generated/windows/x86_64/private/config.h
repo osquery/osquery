@@ -79,14 +79,8 @@
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
 
-/* Define to 1 if you have the <stdlib.h> header file. */
-#define HAVE_STDLIB_H
-
 /* Define to 1 if you have the <strings.h> header file. */
 /* #undef HAVE_STRINGS_H */
-
-/* Define to 1 if you have the <string.h> header file. */
-#define HAVE_STRING_H
 
 /* Define to 1 if you have the <syscall.h> header file. */
 /* #undef HAVE_SYSCALL_H */
@@ -111,6 +105,9 @@
 
 /* Define to 1 if you have the <sys/utsname.h> header file. */
 /* #undef HAVE_SYS_UTSNAME_H */
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+/* #undef HAVE_SYS_WAIT_H */
 
 /* Define to 1 if you have the <ucontext.h> header file. */
 /* #undef HAVE_UCONTEXT_H */
@@ -138,6 +135,9 @@
 
 /* define if localtime_r is available in time.h */
 /* #undef HAVE_LOCALTIME_R */
+
+/* define if gmtime_r is available in time.h */
+/* #undef HAVE_GMTIME_R */
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -167,7 +167,7 @@
 /* How to access the PC from a struct ucontext */
 /* #undef PC_FROM_UCONTEXT */
 
-/* define if we should print raw pc values on symbolization failure. */
+/* define if we should print file offsets in traces instead of symbolizing. */
 /* #undef PRINT_UNSYMBOLIZED_STACK_TRACES */
 
 /* Define to necessary symbol if this constant uses a non-standard name on
@@ -191,6 +191,12 @@
 
 /* Check whether aligned_storage and alignof present */
 #define HAVE_ALIGNED_STORAGE 1
+
+/* Check whether C++11 atomic is available */
+#define HAVE_CXX11_ATOMIC 1
+
+/* Check whether C++11 nullptr_t is available */
+#define HAVE_CXX11_NULLPTR_T 1
 
 /* Version number of package */
 /* #undef VERSION */

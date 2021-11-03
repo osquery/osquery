@@ -41,7 +41,7 @@
 //     // that can't be accomplished e.g. via just VLOG(2) << ...;
 //   }
 //
-// The truth value that VLOG_IS_ON(level) returns is determined by 
+// The truth value that VLOG_IS_ON(level) returns is determined by
 // the three verbosity level flags:
 //   --v=<n>  Gives the default maximal active V-logging level;
 //            0 is the default.
@@ -81,12 +81,11 @@
 // parsing of --vmodule flag and/or SetVLOGLevel calls.
 #define VLOG_IS_ON(verboselevel)                                \
   __extension__  \
-  ({ static google::int32* vlocal__ = &google::kLogSiteUninitialized;           \
+  ({ static google::int32* vlocal__ = NULL;           \
      google::int32 verbose_level__ = (verboselevel);                    \
-     (*vlocal__ >= verbose_level__) &&                          \
-     ((vlocal__ != &google::kLogSiteUninitialized) ||                   \
-      (google::InitVLOG3__(&vlocal__, &FLAGS_v,                         \
-                   __FILE__, verbose_level__))); })
+     (vlocal__ == NULL ? google::InitVLOG3__(&vlocal__, &FLAGS_v, \
+                        __FILE__, verbose_level__) : *vlocal__ >= verbose_level__); \
+  })
 #else
 // GNU extensions not available, so we do not support --vmodule.
 // Dynamic value of FLAGS_v always controls the logging level.
@@ -105,12 +104,6 @@ extern GOOGLE_GLOG_DLL_DECL int SetVLOGLevel(const char* module_pattern,
                                              int log_level);
 
 // Various declarations needed for VLOG_IS_ON above: =========================
-
-// Special value used to indicate that a VLOG_IS_ON site has not been
-// initialized.  We make this a large value, so the common-case check
-// of "*vlocal__ >= verbose_level__" in VLOG_IS_ON definition
-// passes in such cases and InitVLOG3__ is then triggered.
-extern google::int32 kLogSiteUninitialized;
 
 // Helper routine which determines the logging info for a particalur VLOG site.
 //   site_flag     is the address of the site-local pointer to the controlling

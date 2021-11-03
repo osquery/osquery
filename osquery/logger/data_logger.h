@@ -139,4 +139,14 @@ size_t queuedStatuses();
  * Event Log.
  */
 void systemLog(const std::string& line);
+
+/**
+ * @brief Construct a custom prefix for each google log line
+ *
+ * With newer Google Log versions the log lines have acquired the year in their
+ * prefix. We want to use the old format without it for now.
+ */
+void googleLogCustomPrefix(std::ostream& s,
+                           const LogMessageInfo& l,
+                           void* data);
 } // namespace osquery

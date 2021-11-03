@@ -36,7 +36,7 @@
 #ifndef BASE_RAW_LOGGING_H_
 #define BASE_RAW_LOGGING_H_
 
-#include <time.h>
+#include <ctime>
 
 namespace google {
 
@@ -64,8 +64,8 @@ namespace google {
 //   RAW_LOG(ERROR, "Failed foo with %i: %s", status, error);
 //   RAW_VLOG(3, "status is %i", status);
 // These will print an almost standard log lines like this to stderr only:
-//   E0821 211317 file.cc:123] RAW: Failed foo with 22: bad_file
-//   I0821 211317 file.cc:142] RAW: status is 20
+//   E20200821 211317 file.cc:123] RAW: Failed foo with 22: bad_file
+//   I20200821 211317 file.cc:142] RAW: status is 20
 #define RAW_LOG(severity, ...) \
   do { \
     switch (google::GLOG_ ## severity) {  \
