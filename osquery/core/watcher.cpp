@@ -63,15 +63,20 @@ const auto kNumOfCPUs = boost::thread::physical_concurrency();
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
+
     // % of (User + System + Idle) CPU time worker can utilize
     // for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {10, 5, 100}},
+
     // Number of seconds the worker should run, else consider the exit fatal.
     {WatchdogLimitType::RESPAWN_LIMIT, {4, 4, 1000}},
+
     // If the worker respawns too quickly, backoff on creating additional.
     {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
+
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
     {WatchdogLimitType::LATENCY_LIMIT, {12, 6, 1000}},
+
     // How often to poll for performance limit violations.
     {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
@@ -94,6 +99,11 @@ CLI_FLAG(uint64,
          watchdog_utilization_limit,
          0,
          "Override watchdog profile CPU utilization limit");
+
+CLI_FLAG(uint64,
+         watchdog_latency_limit,
+         0,
+         "Override watchdog profile CPU utilization latency limit");
 
 CLI_FLAG(uint64,
          watchdog_delay,
@@ -726,6 +736,11 @@ uint64_t getWorkerLimit(WatchdogLimitType name) {
   if (name == WatchdogLimitType::UTILIZATION_LIMIT &&
       FLAGS_watchdog_utilization_limit > 0) {
     return FLAGS_watchdog_utilization_limit;
+  }
+
+  if (name == WatchdogLimitType::LATENCY_LIMIT &&
+      FLAGS_watchdog_latency_limit > 0) {
+    return FLAGS_watchdog_latency_limit;
   }
 
   auto level = FLAGS_watchdog_level;

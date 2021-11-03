@@ -88,7 +88,7 @@ Performance limit level (`0`=normal, `1`=restrictive, `-1`=disabled). The watchd
 
 The level limits are as follows:
 Memory: default 200M, restrictive 100M
-CPU: default 25% (for 9 seconds), restrictive 18% (for 9 seconds)
+CPU: default 10% (for 12 seconds), restrictive 5% (for 6 seconds)
 
 The normal level allows for 10 restarts if the limits are violated. The restrictive allows for only 4, then the service will be disabled. For both there is a linear backoff of 5 seconds, doubling each retry.
 
@@ -102,9 +102,19 @@ If this value is >0 then the watchdog level (`--watchdog_level`) for maximum mem
 
 `--watchdog_utilization_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 30% of a thread for more than 9 seconds of wall time. The length of sustained utilization is not independently configurable.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of a thread for more than `--watchdog_latency_limit` seconds of wall time. The length of sustained utilization is configurable with `--watchdog_latency_limit`.
 
 This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
+
+`--watchdog_latency_limit=0`
+
+If this value is >0 then the watchdog level (`--watchdog_level`) for time
+allowed to spend at maximum sustained CPU utilization is overridden. Use this
+if you would like to allow the `osqueryd` process to use more than the cpu
+utilization limit for longer than the defaults.
+
+This value is a duration in seconds that the watchdog allows osquery to spend
+at maximum sustained CPU utilization.
 
 `--watchdog_delay=60`
 
