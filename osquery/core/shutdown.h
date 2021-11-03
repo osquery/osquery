@@ -23,6 +23,14 @@ namespace osquery {
 int getShutdownExitCode();
 
 /**
+ * @brief Reset the shutdown state to false.
+ *
+ * This is for internal and testing purposes.
+ * This allows for another state transition from waiting to shutdown.
+ */
+void resetShutdown();
+
+/**
  * @brief Set the requested exit code.
  *
  * Use requestShutdown to request shutdown in most cases.
