@@ -100,7 +100,6 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
     if (r0.size() > 0 && r1.size() > 0) {
       // Always called while processes table is working.
       uint64_t size = sql.getSize();
-      for (const auto& row : sql.rowsTyped())
       Config::get().recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
     }
     return sql;
