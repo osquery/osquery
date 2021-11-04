@@ -432,7 +432,6 @@ class SQLInternal : private only_movable {
    */
   explicit SQLInternal(const std::string& query, bool use_cache = false);
 
-
  public:
   /**
    * @brief Const accessor for the rows returned by the query.

@@ -223,9 +223,9 @@ class StringEscaperVisitor : public boost::static_visitor<> {
   }
 };
 
-class SizeVisitor: public boost::static_visitor<> {
+class SizeVisitor : public boost::static_visitor<> {
  public:
-  template<typename T>
+  template <typename T>
   void operator()(T& t) const {
     size += sizeof(t);
   }
@@ -237,6 +237,7 @@ class SizeVisitor: public boost::static_visitor<> {
   SizeVisitor() {
     size = 0;
   }
+
  private:
   mutable uint64_t size;
 };

@@ -264,4 +264,4 @@ TEST_F(SchedulerTests, test_scheduler_reload) {
   SchedulerRunner runner(expire, 1);
   FLAGS_schedule_reload = backup_reload;
 }
-}
+} // namespace osquery
