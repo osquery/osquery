@@ -432,6 +432,7 @@ class SQLInternal : private only_movable {
    */
   explicit SQLInternal(const std::string& query, bool use_cache = false);
 
+
  public:
   /**
    * @brief Const accessor for the rows returned by the query.
@@ -457,6 +458,9 @@ class SQLInternal : private only_movable {
 
   /// ASCII escape the results of the query.
   void escapeResults();
+
+  /// Returns the size
+  uint64_t getSize();
 
  private:
   /// The internal member which holds the typed results of the query.

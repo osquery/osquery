@@ -68,6 +68,7 @@ TEST_F(SchedulerTests, test_monitor) {
   // There is no pack for this query within the config, that is fine as these
   // performance stats are tracked independently.
   EXPECT_EQ(perf.executions, 1U);
+  EXPECT_GT(perf.output_size, 0U);
 
   // A bit more testing, potentially redundant, check the database results.
   // Since we are only monitoring, no 'actual' results are stored.

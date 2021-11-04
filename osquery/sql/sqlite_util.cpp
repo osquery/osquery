@@ -223,6 +223,24 @@ class StringEscaperVisitor : public boost::static_visitor<> {
   }
 };
 
+class SizeVisitor: public boost::static_visitor<> {
+ public:
+  template<typename T>
+  void operator()(T& t) const {
+    size += sizeof(t);
+  }
+
+  uint64_t get_size() const {
+    return size;
+  }
+
+  SizeVisitor() {
+    size = 0;
+  }
+ private:
+  mutable uint64_t size;
+};
+
 void SQLInternal::escapeResults() {
   StringEscaperVisitor visitor;
   for (auto& rowTyped : resultsTyped_) {
@@ -230,6 +248,19 @@ void SQLInternal::escapeResults() {
       boost::apply_visitor(visitor, column.second);
     }
   }
+}
+
+uint64_t SQLInternal::getSize() {
+  SizeVisitor visitor;
+  uint64_t size = 0;
+  for (const auto& row : rowsTyped()) {
+    for (const auto& column : row) {
+      size += column.first.size();
+      boost::apply_visitor(visitor, column.second);
+      size += visitor.get_size();
+    }
+  }
+  return size;
 }
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {
