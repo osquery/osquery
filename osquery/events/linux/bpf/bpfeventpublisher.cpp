@@ -17,6 +17,8 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/time.h>
 
+#include <tob/utils/kernel.h>
+
 #include <fcntl.h>
 #include <sys/sysinfo.h>
 
@@ -29,6 +31,7 @@ HIDDEN_FLAG(uint32,
 
 namespace ebpfpub = tob::ebpfpub;
 namespace ebpf = tob::ebpf;
+namespace utils = tob::utils;
 
 namespace {
 
@@ -50,33 +53,18 @@ struct FunctionTracerAllocator final {
   bool kprobe{false};
 };
 
-std::unordered_set<std::string> kOptionalSyscallList{"openat2",
-
+std::unordered_set<std::string> kOptionalSyscallList{
 #ifdef __aarch64__
-                                                     "fork",
-                                                     "vfork",
-                                                     "dup2",
-                                                     "dup3",
-                                                     "creat",
-                                                     "mknod",
-                                                     "open"
-#endif
-};
-
-const std::string kKprobeSyscallPrefix{
-#ifdef __aarch64__
-    "__arm64_sys_"
-#else
-    "__x64_sys_"
+    "fork", "vfork", "dup2", "dup3", "creat", "mknod", "open"
 #endif
 };
 
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
 const FunctionTracerAllocatorList kFunctionTracerAllocators = {
-    {"fork", &BPFEventPublisher::processForkEvent, 0U, false},
-    {"vfork", &BPFEventPublisher::processVforkEvent, 0U, false},
-    {"clone", &BPFEventPublisher::processCloneEvent, 0U, false},
+    {"fork", &BPFEventPublisher::processForkEvent, 0U, true},
+    {"vfork", &BPFEventPublisher::processVforkEvent, 0U, true},
+    {"clone", &BPFEventPublisher::processCloneEvent, 0U, true},
     {"close", &BPFEventPublisher::processCloseEvent, 0U, false},
     {"dup", &BPFEventPublisher::processDupEvent, 0U, false},
     {"dup2", &BPFEventPublisher::processDup2Event, 0U, false},
@@ -147,6 +135,26 @@ Status BPFEventPublisher::setUp() {
     return status;
   }
 
+  auto kernel_version_exp = utils::getKernelVersion();
+  if (!kernel_version_exp.succeeded()) {
+    throw std::runtime_error("Failed to determine the kernel version: " +
+                             kernel_version_exp.error().message());
+  }
+
+  auto kernel_version = kernel_version_exp.takeValue();
+  if (kernel_version.major <= 3) {
+    kOptionalSyscallList.insert("execveat");
+  }
+
+  bool openat2_is_optional{kernel_version.major < 5};
+  if (kernel_version.major == 5) {
+    openat2_is_optional = kernel_version.minor < 6;
+  }
+
+  if (openat2_is_optional) {
+    kOptionalSyscallList.insert("openat2");
+  }
+
   auto perf_event_array_exp =
       ebpf::PerfEventArray::create(FLAGS_bpf_perf_event_array_exp);
 
@@ -205,7 +213,8 @@ Status BPFEventPublisher::setUp() {
       const auto& parameter_list = parameter_list_it->second;
 
       function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
-          kKprobeSyscallPrefix + tracer_allocator.syscall_name,
+          tracer_allocator.syscall_name,
+          true,
           parameter_list,
           buffer_storage,
           *d->perf_event_array.get(),
