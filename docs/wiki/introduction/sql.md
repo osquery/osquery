@@ -482,6 +482,6 @@ There are also encoding functions available, to process query results.
 
 ### Table and column name deprecations
 
-Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
+Over time it may make sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
 osquery makes an effort to mark deprecated tables and create 'clone' `VIEW`s so that previously scheduled queries continue to work. Similarly, for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/osquery/osquery/releases) on GitHub.
