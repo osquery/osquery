@@ -9,6 +9,8 @@
 
 #include <unistd.h>
 
+#include <algorithm>
+#include <set>
 #include <vector>
 
 #include <osquery/core/core.h>
@@ -29,6 +31,33 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
+
+// Helper class to track of device parents and ensure that
+// devices are queried no more than once.
+class DeviceParentIndex {
+  std::set<std::string> unresolved;
+  std::set<std::string> resolved;
+
+ public:
+  void requestDevice(const std::string& name) {
+    if (!resolved.count(name)) {
+      unresolved.insert(name);
+    }
+  }
+
+  void addDevice(const std::string& name) {
+    resolved.insert(name);
+    unresolved.erase(name);
+  }
+
+  bool hasUnresolved() const {
+    return unresolved.size() > 0;
+  }
+
+  std::string nextUnresolved() const {
+    return *unresolved.cbegin();
+  }
+};
 
 void genFDEStatusForBlockDevice(const std::string& name,
                                 const std::string& uuid,
@@ -85,9 +114,7 @@ void genFDEStatusForBlockDevice(const std::string& name,
 
     // If there's no good crypt status, check to see if we've already
     // defined the parent_name. If so, inherit data from there. This
-    // works because the `SQL::selectAllFrom("block_devices")` is
-    // ordered enough. If that order proves inadequate, we may need
-    // to explicitly sort it.
+    // works because the devices have been sorted by depth.
   default:
     if (encrypted_rows.count(parent_name)) {
       auto parent_row = encrypted_rows[parent_name];
@@ -106,6 +133,39 @@ void genFDEStatusForBlockDevice(const std::string& name,
   results.push_back(r);
 }
 
+// Sorts devices by depth such that parent devices are ordered before child
+// devices.
+static void sortDevicesByDepth(QueryData& block_devices) {
+  std::map<std::string, const Row*> devices_by_name;
+  std::map<const Row*, int> depth;
+  for (const auto& row : block_devices) {
+    if (row.count("name")) {
+      devices_by_name[row.at("name")] = &row;
+      depth[&row] = -1;
+    }
+  }
+
+  for (auto& pair : depth) {
+    const Row* row = pair.first;
+    pair.second = -1;
+    while (row) {
+      pair.second++;
+      const Row* next_row = nullptr;
+      if (row->count("parent")) {
+        const auto& parent_name = row->at("parent");
+        if (devices_by_name.count(parent_name)) {
+          next_row = devices_by_name.at(parent_name);
+        }
+      }
+      row = next_row;
+    }
+  }
+
+  std::sort(block_devices.begin(),
+            block_devices.end(),
+            [&](const Row& a, const Row& b) { return depth[&a] < depth[&b]; });
+}
+
 QueryData genFDEStatus(QueryContext& context) {
   QueryData results;
 
@@ -114,27 +174,51 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
-  std::map<std::string, Row> encrypted_rows;
-
   bool runSelectAll(true);
   QueryData block_devices;
 
   if (auto constraint_it = context.constraints.find("name");
       constraint_it != context.constraints.end()) {
+    DeviceParentIndex device_parent_index;
     const auto& constraints = constraint_it->second;
     for (const auto& name : constraints.getAll(EQUALS)) {
       runSelectAll = false;
+      device_parent_index.requestDevice(name);
+    }
 
-      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+    while (device_parent_index.hasUnresolved()) {
+      const auto name = device_parent_index.nextUnresolved();
+      const auto data =
+          SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+      if (!data.size()) {
+        VLOG(1) << "Failed to find name " << name << " in table block_devices";
+        break;
+      }
+
       for (const auto& row : data) {
         block_devices.push_back(row);
+        if (!row.count("name")) {
+          // Should never happen
+          VLOG(1) << "Row in block_devices has no name, expecting " << name;
+          break;
+        }
+        device_parent_index.addDevice(row.at("name"));
+        if (row.count("parent")) {
+          device_parent_index.requestDevice(row.at("parent"));
+        }
       }
     }
   }
 
   if (runSelectAll) {
-    block_devices = SQL::selectAllFrom("block_devices");
+    for (const auto& row : SQL::selectAllFrom("block_devices")) {
+      block_devices.push_back(row);
+    }
   }
+
+  sortDevicesByDepth(block_devices);
+
+  std::map<std::string, Row> encrypted_rows;
 
   for (const auto& row : block_devices) {
     const auto name = (row.count("name") > 0) ? row.at("name") : "";
