@@ -9,13 +9,14 @@
 
 #pragma once
 
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/system.h>
 
 #include <string>
 #include <vector>
 
 namespace osquery {
-
+using ExpectedSize = Expected<bool, ConversionError>;
 struct LinkFlags {
   bool has_target_id_list;
   bool has_link_info;
@@ -138,4 +139,12 @@ DataStringInfo parseDataString(const std::string& data,
  * @returns The shortcut extra data tracker structure
  */
 ExtraDataTracker parseExtraDataTracker(const std::string& data);
+
+/**
+ * @brief Windows helper function to check shortcut data size
+ *
+ * @returns Status of shortcut data size
+ */
+ExpectedSize checkShortcutDataSize(const size_t& shortdata_size, const int& size);
+
 } // namespace osquery

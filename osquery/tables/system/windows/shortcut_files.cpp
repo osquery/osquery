@@ -211,6 +211,11 @@ QueryData genShortcutFiles(QueryContext& context) {
       continue;
     }
     const int lnk_data = 152;
+    auto check_size = checkShortcutDataSize(lnk_hex.size(), lnk_data);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      continue;
+    }
     std::string data_string = lnk_hex.substr(lnk_data);
     std::string lnk_path = lnk;
     parseShortcutFiles(results, data, data_string, lnk_path);

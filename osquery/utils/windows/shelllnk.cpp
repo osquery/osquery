@@ -18,6 +18,13 @@
 #include <boost/algorithm/hex.hpp>
 
 namespace osquery {
+ExpectedSize checkShortcutDataSize(const size_t& shortdata_size, const int& size) {
+  if (size > shortdata_size) {
+    return ExpectedSize::failure(ConversionError::InvalidArgument,
+                                 "Invalid shortcut data size");
+  }
+  return ExpectedSize::success(true);
+}
 
 LinkFlags parseShortcutFlags(const std::string& flags) {
   std::string flags_swap = swapEndianess(flags);
@@ -95,9 +102,15 @@ LinkFileHeader parseShortcutHeader(const std::string& header) {
 }
 
 TargetInfo parseTargetInfo(const std::string& target_info) {
+  TargetInfo target_lnk;
+
+  auto check_size = checkShortcutDataSize(target_info.size(), 10);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    return target_lnk;
+  }
   // Skip the first two bytes
   std::string data = target_info.substr(4);
-  TargetInfo target_lnk;
   std::vector<std::string> build_path;
 
   ShellFileEntryData file_entry;
@@ -114,6 +127,12 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       break;
     }
     std::string sig = data.substr(4, 2);
+    auto check_size = checkShortcutDataSize(target_info.size(), item_size);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return target_lnk;
+    }
+
     std::string item_string = data.substr(0, item_size);
     if (sig == "1F") {
       if (item_string.substr(8, 2) == "2F") { // User Property View Drive
@@ -127,6 +146,13 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       if (item_string.find("31535053") != std::string::npos) {
         if (item_string.find("D5DFA323") !=
             std::string::npos) { // User Property View
+
+          auto check_size = checkShortcutDataSize(target_info.size(), 258);
+          if (check_size.isError()) {
+            LOG(INFO) << check_size.getError();
+            return target_lnk;
+          }
+
           std::string property_guid = item_string.substr(226, 32);
           std::string guid_string = guidParse(property_guid);
           target_lnk.property_guid = guid_string;
@@ -162,6 +188,13 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
           (item_string.find("2600EFBE") != std::string::npos ||
            item_string.find("2500EFBE") !=
                std::string::npos)) { // Check if a GUID exists
+
+        auto check_size = checkShortcutDataSize(target_info.size(), 40);
+        if (check_size.isError()) {
+          LOG(INFO) << check_size.getError();
+          return target_lnk;
+        }
+
         std::string guid_little = item_string.substr(8, 32);
         std::string guid_string = guidParse(guid_little);
 
@@ -187,6 +220,12 @@ TargetInfo parseTargetInfo(const std::string& target_info) {
       continue;
     } else if (sig == "00") { // Variable shell item, can contain a variety of
                               // shell item formats
+      auto check_size = checkShortcutDataSize(target_info.size(), 20);
+      if (check_size.isError()) {
+        LOG(INFO) << check_size.getError();
+        return target_lnk;
+      }
+
       if (item_string.find("EEBBFE23") != std::string::npos) {
         std::string guid_string = variableGuid(item_string);
         build_path.push_back('{' + guid_string + '}');
@@ -301,7 +340,14 @@ std::string getLocationType(std::string& type) {
 
 LocationInfo parseLocationData(const std::string& location_data) {
   LocationInfo location_info;
+
   std::string data = location_data;
+  auto check_size = checkShortcutDataSize(data.size(), 24);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    return location_info;
+  }
+
   // Previous lnk data may have extra zeros (due to Unicode null termination?)
   if (data.substr(0, 4) == "0000") {
     data = data.substr(4);
@@ -314,9 +360,21 @@ LocationInfo parseLocationData(const std::string& location_data) {
   location_type = swapEndianess(location_type);
 
   if (location_type == "00000001") {
+    auto check_size = checkShortcutDataSize(data.size(), 32);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string volume_offset = data.substr(24, 8);
     volume_offset = swapEndianess(volume_offset);
     int offset = tryTo<int>(volume_offset, 16).takeOr(0);
+    check_size = checkShortcutDataSize(data.size(), (offset * 2) + 16);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string type = data.substr((offset * 2) + 8, 8);
     if (type == "03000000") {
       location_info.type = "Fixed storage media (harddisk)";
@@ -338,6 +396,12 @@ LocationInfo parseLocationData(const std::string& location_data) {
       location_info.data = data;
       return location_info;
     }
+    check_size = checkShortcutDataSize(data.size(), 40);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string local_path_offset = data.substr(32, 8);
     local_path_offset = swapEndianess(local_path_offset);
     int path_offset = tryTo<int>(local_path_offset, 16).takeOr(0) * 2;
@@ -346,6 +410,13 @@ LocationInfo parseLocationData(const std::string& location_data) {
     if (local_path_size % 2 != 0) {
       local_path_size++;
     }
+    check_size = checkShortcutDataSize(
+        data.size(), (path_offset + (local_path_size - path_offset)));
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string local_path =
         data.substr(path_offset, local_path_size - path_offset);
     try {
@@ -354,12 +425,29 @@ LocationInfo parseLocationData(const std::string& location_data) {
       LOG(WARNING) << "Failed to decode local path hex values to string: "
                    << local_path;
     }
+    check_size = checkShortcutDataSize(data.size(), (offset * 2) + 24);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string serial = data.substr((offset * 2) + 16, 8);
     location_info.serial = swapEndianess(serial);
   } else if (location_type == "00000002") {
+    auto check_size = checkShortcutDataSize(data.size(), 48);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
     std::string network_offset = data.substr(40, 8);
     network_offset = swapEndianess(network_offset);
     int offset = tryTo<int>(network_offset, 16).takeOr(0);
+    check_size = checkShortcutDataSize(data.size(), (offset * 2) + 40);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string type = data.substr((offset * 2) + 32, 8);
     std::string location_type = getLocationType(type);
     if (location_type.empty()) {
@@ -368,6 +456,12 @@ LocationInfo parseLocationData(const std::string& location_data) {
       return location_info;
     }
     location_info.type = location_type;
+    check_size = checkShortcutDataSize(data.size(), 56);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string common_path_offset = data.substr(48, 8);
     common_path_offset = swapEndianess(common_path_offset);
     int path_offset = tryTo<int>(common_path_offset, 16).takeOr(0) * 2;
@@ -384,10 +478,26 @@ LocationInfo parseLocationData(const std::string& location_data) {
       LOG(WARNING) << "Failed to decode common path hex values to string: "
                    << common_path;
     }
+    check_size = checkShortcutDataSize(data.size(), (offset * 2) + 24);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string share_name_offset = data.substr((offset * 2) + 16, 8);
     share_name_offset = swapEndianess(share_name_offset);
     int share_offset = tryTo<int>(share_name_offset, 16).takeOr(0);
     size_t share_name_size = data.find("00", (offset * 2) + share_offset * 2);
+
+    check_size = checkShortcutDataSize(
+        location_data.size(),
+        ((offset * 2) + share_offset * 2 +
+         (share_name_size - ((offset * 2) + share_offset * 2))));
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return location_info;
+    }
+
     std::string share_name =
         data.substr((offset * 2) + share_offset * 2,
                     share_name_size - ((offset * 2) + share_offset * 2));
@@ -412,6 +522,12 @@ std::string parseLnkData(const std::string& data_string,
   if (unicode) {
     data_size = data_size * 4;
   }
+  auto check_size = checkShortcutDataSize(data_string.size(), data_size + 4);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    return "";
+  }
+
   std::string data_str_type = data_string.substr(4, data_size);
   if (unicode) {
     boost::erase_all(data_str_type, "00");
@@ -437,6 +553,12 @@ DataStringInfo parseDataString(const std::string& data,
                                const bool command_args) {
   std::string data_string = data;
   DataStringInfo data_info;
+  auto check_size = checkShortcutDataSize(data_string.size(), 8);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    return data_info;
+  }
+
   std::string str_data_size = data_string.substr(0, 4);
   // Previous lnk data may have extra zeros (due to Unicode null termination?)
   if (str_data_size == "0000") {
@@ -452,6 +574,12 @@ DataStringInfo parseDataString(const std::string& data,
     if (unicode) {
       data_size = data_size * 4;
     }
+    auto check_size = checkShortcutDataSize(data_string.size(), data_size + 4);
+    if (check_size.isError()) {
+      LOG(INFO) << check_size.getError();
+      return;
+    }
+
     data_string.erase(0, data_size + 4);
     auto str_data_size = data_string.substr(0, 4);
     str_data_size = swapEndianess(str_data_size);
@@ -488,6 +616,13 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data) {
     return data_tracker;
   }
   size_t extra_offset = data.find("030000A0") + 24;
+  auto check_size = checkShortcutDataSize(data.size(), extra_offset + 32);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    data_tracker.hostname = "";
+    return data_tracker;
+  }
+
   std::string hostname = data.substr(extra_offset, 32);
   boost::erase_all(hostname, "00");
   // Size should be even but if values end in base 10 it will be odd
@@ -501,6 +636,12 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data) {
     LOG(WARNING) << "Failed to decode extra data tracker hex values to string: "
                  << hostname;
   }
+  check_size = checkShortcutDataSize(data.size(), extra_offset + 64);
+  if (check_size.isError()) {
+    LOG(INFO) << check_size.getError();
+    return data_tracker;
+  }
+
   std::string guid = data.substr(extra_offset + 32, 32);
   data_tracker.droid_volume = guidParse(guid);
   guid = data.substr(extra_offset + 64, 32);
