@@ -667,6 +667,17 @@ jobs:
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
+    - name: Insert version string in Info.plist
+      shell: bash
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        osquery_version=$(cd ${{ steps.build_paths.outputs.SOURCE }} && git describe --tags --always )
+
+        plutil -insert CFBundleVersion -string $osquery_version workspace/src/tools/deployment/macos_packaging/Info.plist
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
