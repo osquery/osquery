@@ -676,7 +676,7 @@ jobs:
       run: |
         osquery_version=$(cd ${{ steps.build_paths.outputs.SOURCE }} && git describe --tags --always )
 
-        plutil -insert CFBundleVersion -string $osquery_version workspace/src/tools/deployment/macos_packaging/Info.plist
+        plutil -insert CFBundleShortVersionString -string $osquery_version workspace/src/tools/deployment/macos_packaging/Info.plist
 
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
