@@ -10,6 +10,7 @@
 #include <sstream>
 #include <utility>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
