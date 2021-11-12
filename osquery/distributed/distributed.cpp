@@ -118,8 +118,8 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   while (getPendingQueryCount() > 0) {
     auto request = popRequest();
-    LOG(INFO) << "Executing distributed query: " << request.id << ": "
-              << request.query;
+    VLOG(1) << "Executing distributed query: " << request.id << ": "
+	    << request.query;
 
     // Keep track of the currently executing request
     Distributed::setCurrentRequestId(request.id);
