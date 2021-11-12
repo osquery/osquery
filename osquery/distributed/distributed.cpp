@@ -39,6 +39,8 @@ FLAG(bool,
      false,
      "Log the running distributed queries name at INFO level");
 
+DECLARE_bool(verbose);
+
 const std::string kDistributedQueryPrefix{"distributed."};
 
 std::string Distributed::currentRequestId_{""};
