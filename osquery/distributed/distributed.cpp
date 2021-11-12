@@ -33,6 +33,11 @@ FLAG(bool,
      true,
      "Disable distributed queries (default true)");
 
+FLAG(bool,
+     distributed_loginfo,
+     false,
+     "Log the running distributed queries name at INFO level");
+
 const std::string kDistributedQueryPrefix{"distributed."};
 
 std::string Distributed::currentRequestId_{""};
@@ -118,8 +123,13 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   while (getPendingQueryCount() > 0) {
     auto request = popRequest();
-    VLOG(1) << "Executing distributed query: " << request.id << ": "
-	    << request.query;
+    if (FLAGS_verbose) {
+      VLOG(1) << "Executing distributed query: " << request.id << ": "
+              << request.query;
+    } else if (FLAGS_distributed_loginfo) {
+      LOG(INFO) << "Executing distributed query: " << request.id << ": "
+                << request.query;
+    }
 
     // Keep track of the currently executing request
     Distributed::setCurrentRequestId(request.id);
