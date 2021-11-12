@@ -145,6 +145,7 @@ ExtraDataTracker parseExtraDataTracker(const std::string& data);
  *
  * @returns Status of shortcut data size
  */
-ExpectedSize checkShortcutDataSize(const size_t& shortdata_size, const int& size);
+ExpectedSize checkShortcutDataSize(const size_t& shortdata_size,
+                                   const int& size);
 
 } // namespace osquery

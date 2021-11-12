@@ -18,7 +18,8 @@
 #include <boost/algorithm/hex.hpp>
 
 namespace osquery {
-ExpectedSize checkShortcutDataSize(const size_t& shortdata_size, const int& size) {
+ExpectedSize checkShortcutDataSize(const size_t& shortdata_size,
+                                   const int& size) {
   if (size > shortdata_size) {
     return ExpectedSize::failure(ConversionError::InvalidArgument,
                                  "Invalid shortcut data size");
