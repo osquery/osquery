@@ -238,6 +238,11 @@ function(generateInstallDirectives)
     )
 
     install(
+      DIRECTORY "packs"
+      DESTINATION "."
+    )
+
+    install(
       DIRECTORY
       DESTINATION "log"
     )
