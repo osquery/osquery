@@ -33,7 +33,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: e70ff4c41f6d8eaa95267ef363f497a17655c425
+  PACKAGING_COMMIT: ad9f6883810db431feb33dd14209543a774be37e
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -826,7 +826,6 @@ jobs:
 
         echo "::set-output name=VALUE::$osquery_version"
 
-    # TODO: The osquery-packaging version must be pinned
     - name: Clone the osquery-packaging repository
       run: |
         cd w
