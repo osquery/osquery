@@ -495,6 +495,14 @@ Enable thrift global output.
 
 Maximum returned row value size.
 
+`--schedule_lognames=false`
+
+Log executing scheduled query names at the `INFO` level, and not the `VERBOSE` level
+
+`--distributed_loginfo=false`
+
+Log executing distributed queries at the `INFO` level, and not the `VERBOSE` level
+
 ## Distributed query service flags
 
 `--distributed_plugin=tls`
