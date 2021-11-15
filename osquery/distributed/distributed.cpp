@@ -10,6 +10,7 @@
 #include <sstream>
 #include <utility>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
@@ -32,6 +33,13 @@ FLAG(bool,
      disable_distributed,
      true,
      "Disable distributed queries (default true)");
+
+FLAG(bool,
+     distributed_loginfo,
+     false,
+     "Log the running distributed queries name at INFO level");
+
+DECLARE_bool(verbose);
 
 const std::string kDistributedQueryPrefix{"distributed."};
 
@@ -118,8 +126,13 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   while (getPendingQueryCount() > 0) {
     auto request = popRequest();
-    LOG(INFO) << "Executing distributed query: " << request.id << ": "
+    if (FLAGS_verbose) {
+      VLOG(1) << "Executing distributed query: " << request.id << ": "
               << request.query;
+    } else if (FLAGS_distributed_loginfo) {
+      LOG(INFO) << "Executing distributed query: " << request.id << ": "
+                << request.query;
+    }
 
     // Keep track of the currently executing request
     Distributed::setCurrentRequestId(request.id);
