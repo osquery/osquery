@@ -36,6 +36,10 @@ class Filesystem final : public IFilesystem {
 
   virtual bool enumFiles(int dirfd, EnumFilesCallback callback) const override;
 
+  virtual bool fileExists(bool& exists,
+                          int dirfd,
+                          const std::string& name) const override;
+
  private:
   Filesystem() = default;
 

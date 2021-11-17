@@ -27,6 +27,8 @@ class SystemStateTracker final : public ISystemStateTracker {
 
   virtual ~SystemStateTracker() override;
 
+  virtual Status restart() override;
+
   virtual bool createProcess(
       const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
       pid_t process_id,
@@ -131,6 +133,8 @@ class SystemStateTracker final : public ISystemStateTracker {
       Context& context,
       IProcessContextFactory& process_context_factory,
       pid_t process_id);
+
+  static Status expireProcessContexts(Context& context, IFilesystem& fs);
 
   static bool createProcess(
       Context& context,

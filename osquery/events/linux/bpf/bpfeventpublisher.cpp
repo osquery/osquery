@@ -8,7 +8,9 @@
  */
 
 #include <osquery/core/flags.h>
+#include <osquery/events/linux/bpf/bpferrorstate.h>
 #include <osquery/events/linux/bpf/bpfeventpublisher.h>
+#include <osquery/events/linux/bpf/serializers.h>
 #include <osquery/events/linux/bpf/setrlimit.h>
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 #include <osquery/logger/logger.h>
@@ -19,6 +21,11 @@
 #include <sys/sysinfo.h>
 
 namespace osquery {
+
+HIDDEN_FLAG(uint32,
+            bpf_state_tracker_reset_time,
+            10,
+            "Number of minutes between BPF system state tracker resets");
 
 namespace ebpfpub = tob::ebpfpub;
 namespace ebpf = tob::ebpf;
@@ -41,7 +48,6 @@ struct FunctionTracerAllocator final {
   EventHandler event_handler;
   std::uint8_t buffer_storage_pool{0U};
   bool kprobe{false};
-  const ebpfpub::IFunctionTracer::ParameterList* parameter_list{nullptr};
 };
 
 std::unordered_set<std::string> kOptionalSyscallList{"openat2",
@@ -67,96 +73,39 @@ const std::string kKprobeSyscallPrefix{
 
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
-const ebpfpub::IFunctionTracer::ParameterList kExecveKprobeParameterList = {
-    {"filename",
-     ebpfpub::IFunctionTracer::Parameter::Type::String,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     {}},
-
-    {"argv",
-     ebpfpub::IFunctionTracer::Parameter::Type::Argv,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     10U},
-
-    {"envp",
-     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     8U}};
-
-const ebpfpub::IFunctionTracer::ParameterList kExecveatKprobeParameterList = {
-    {"fd",
-     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     8U},
-
-    {"filename",
-     ebpfpub::IFunctionTracer::Parameter::Type::String,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     {}},
-
-    {"argv",
-     ebpfpub::IFunctionTracer::Parameter::Type::Argv,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     10U},
-
-    {"envp",
-     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     8U},
-
-    {"flags",
-     ebpfpub::IFunctionTracer::Parameter::Type::Integer,
-     ebpfpub::IFunctionTracer::Parameter::Mode::In,
-     8U}};
-
 const FunctionTracerAllocatorList kFunctionTracerAllocators = {
-    {"fork", &BPFEventPublisher::processForkEvent, 0U, false, nullptr},
-    {"vfork", &BPFEventPublisher::processVforkEvent, 0U, false, nullptr},
-    {"clone", &BPFEventPublisher::processCloneEvent, 0U, false, nullptr},
-    {"close", &BPFEventPublisher::processCloseEvent, 0U, false, nullptr},
-    {"dup", &BPFEventPublisher::processDupEvent, 0U, false, nullptr},
-    {"dup2", &BPFEventPublisher::processDup2Event, 0U, false, nullptr},
-    {"dup3", &BPFEventPublisher::processDup3Event, 0U, false, nullptr},
-    {"creat", &BPFEventPublisher::processCreatEvent, 1U, false, nullptr},
-    {"mknod", &BPFEventPublisher::processMknodatEvent, 1U, false, nullptr},
-    {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U, false, nullptr},
-    {"open", &BPFEventPublisher::processOpenEvent, 2U, false, nullptr},
-    {"openat", &BPFEventPublisher::processOpenatEvent, 2U, false, nullptr},
-    {"openat2", &BPFEventPublisher::processOpenat2Event, 1U, false, nullptr},
-    {"socket", &BPFEventPublisher::processSocketEvent, 4U, false, nullptr},
-    {"fcntl", &BPFEventPublisher::processFcntlEvent, 4U, false, nullptr},
-    {"connect", &BPFEventPublisher::processConnectEvent, 4U, false, nullptr},
-    {"accept", &BPFEventPublisher::processAcceptEvent, 4U, false, nullptr},
-    {"accept4", &BPFEventPublisher::processAccept4Event, 4U, false, nullptr},
-    {"bind", &BPFEventPublisher::processBindEvent, 4U, false, nullptr},
-    {"listen", &BPFEventPublisher::processListenEvent, 4U, false, nullptr},
-    {"chdir", &BPFEventPublisher::processChdirEvent, 5U, false, nullptr},
-    {"fchdir", &BPFEventPublisher::processFchdirEvent, 5U, false, nullptr},
-
+    {"fork", &BPFEventPublisher::processForkEvent, 0U, false},
+    {"vfork", &BPFEventPublisher::processVforkEvent, 0U, false},
+    {"clone", &BPFEventPublisher::processCloneEvent, 0U, false},
+    {"close", &BPFEventPublisher::processCloseEvent, 0U, false},
+    {"dup", &BPFEventPublisher::processDupEvent, 0U, false},
+    {"dup2", &BPFEventPublisher::processDup2Event, 0U, false},
+    {"dup3", &BPFEventPublisher::processDup3Event, 0U, false},
+    {"creat", &BPFEventPublisher::processCreatEvent, 1U, false},
+    {"mknod", &BPFEventPublisher::processMknodatEvent, 1U, false},
+    {"mknodat", &BPFEventPublisher::processMknodatEvent, 1U, false},
+    {"open", &BPFEventPublisher::processOpenEvent, 2U, false},
+    {"openat", &BPFEventPublisher::processOpenatEvent, 2U, false},
+    {"openat2", &BPFEventPublisher::processOpenat2Event, 1U, false},
+    {"socket", &BPFEventPublisher::processSocketEvent, 4U, false},
+    {"fcntl", &BPFEventPublisher::processFcntlEvent, 4U, false},
+    {"connect", &BPFEventPublisher::processConnectEvent, 4U, false},
+    {"accept", &BPFEventPublisher::processAcceptEvent, 4U, false},
+    {"accept4", &BPFEventPublisher::processAccept4Event, 4U, false},
+    {"bind", &BPFEventPublisher::processBindEvent, 4U, false},
+    {"listen", &BPFEventPublisher::processListenEvent, 4U, false},
+    {"chdir", &BPFEventPublisher::processChdirEvent, 5U, false},
+    {"fchdir", &BPFEventPublisher::processFchdirEvent, 5U, false},
     {"name_to_handle_at",
      &BPFEventPublisher::processNameToHandleAtEvent,
      1U,
-     false,
-     nullptr},
-
+     false},
     {"open_by_handle_at",
      &BPFEventPublisher::processOpenByHandleAtEvent,
      1U,
-     false,
-     nullptr},
-
-    {kKprobeSyscallPrefix + "execve",
-     &BPFEventPublisher::processExecveEvent,
-     3U,
-     true,
-     &kExecveKprobeParameterList},
-
-    {kKprobeSyscallPrefix + "execveat",
-     &BPFEventPublisher::processExecveatEvent,
-     3U,
-     true,
-     &kExecveatKprobeParameterList}};
-
+     false},
+    {"execve", &BPFEventPublisher::processExecveEvent, 3U, true},
+    {"execveat", &BPFEventPublisher::processExecveatEvent, 3U, true}};
 } // namespace
 
 FLAG(bool,
@@ -241,40 +190,43 @@ Status BPFEventPublisher::setUp() {
 
     tob::StringErrorOr<ebpfpub::IFunctionTracer::Ref> function_tracer_exp;
 
+    const auto& parameter_list_it =
+        kParameterListMap.find(tracer_allocator.syscall_name);
+
     if (tracer_allocator.kprobe) {
-      if (tracer_allocator.parameter_list == nullptr) {
-        LOG(WARNING) << "Skipping the kprobe for "
-                     << tracer_allocator.syscall_name
-                     << " due to missing parameter list";
+      if (parameter_list_it == kParameterListMap.end()) {
+        LOG(ERROR) << "Skipping the kprobe tracer for "
+                   << tracer_allocator.syscall_name
+                   << " due to missing parameter list";
 
         continue;
       }
 
-      auto& parameter_list = *tracer_allocator.parameter_list;
+      const auto& parameter_list = parameter_list_it->second;
 
       function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
-          tracer_allocator.syscall_name,
+          kKprobeSyscallPrefix + tracer_allocator.syscall_name,
           parameter_list,
           buffer_storage,
           *d->perf_event_array.get(),
           kEventMapSize);
 
     } else {
-      if (tracer_allocator.parameter_list != nullptr) {
-        auto& parameter_list = *tracer_allocator.parameter_list;
-
+      if (parameter_list_it == kParameterListMap.end()) {
         function_tracer_exp =
             ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
                 tracer_allocator.syscall_name,
-                parameter_list,
                 buffer_storage,
                 *d->perf_event_array.get(),
                 kEventMapSize);
 
       } else {
+        const auto& parameter_list = parameter_list_it->second;
+
         function_tracer_exp =
             ebpfpub::IFunctionTracer::createFromSyscallTracepoint(
                 tracer_allocator.syscall_name,
+                parameter_list,
                 buffer_storage,
                 *d->perf_event_array.get(),
                 kEventMapSize);
@@ -289,6 +241,7 @@ Status BPFEventPublisher::setUp() {
 
       auto optional =
           kOptionalSyscallList.count(tracer_allocator.syscall_name) != 0;
+
       if (optional) {
         verbose_message << ". This syscall may not be available on this "
                            "system, continuing despite the error";
@@ -349,57 +302,52 @@ Status BPFEventPublisher::run() {
         "Halting the publisher since initialization has failed");
   }
 
-  ebpfpub::IPerfEventReader::ErrorCounters error_counters{};
-  auto last_error_counters_report = getUnixTime();
+  BPFErrorState bpf_error_state;
+
+  auto last_error_report = getUnixTime();
+  auto last_tracker_restart = getUnixTime();
 
   while (!isEnding()) {
+    auto current_time = getUnixTime();
+    if (last_tracker_restart + (FLAGS_bpf_state_tracker_reset_time * 60) <
+        current_time) {
+      auto status = d->system_state_tracker->restart();
+      if (!status.ok()) {
+        LOG(ERROR) << "The BPF system state tracker could not be successfully "
+                      "restarted: "
+                   << status.getMessage();
+      } else {
+        VLOG(1)
+            << "The BPF system state tracker has been successfully restarted";
+      }
+
+      last_tracker_restart = current_time;
+    }
+
     d->perf_event_reader->exec(
         std::chrono::seconds(1U),
 
         [&](const ebpfpub::IFunctionTracer::EventList& event_list,
             const ebpfpub::IPerfEventReader::ErrorCounters&
-                new_error_counters) {
-          error_counters.invalid_event += new_error_counters.invalid_event;
-          error_counters.lost_events += new_error_counters.lost_events;
-
-          error_counters.invalid_probe_output +=
-              new_error_counters.invalid_probe_output;
-
-          error_counters.invalid_event_data +=
-              new_error_counters.invalid_event_data;
+                perf_error_counters) {
+          updateBpfErrorState(bpf_error_state, perf_error_counters);
 
           for (auto& event : event_list) {
+            if (event.header.probe_error) {
+              ++bpf_error_state.probe_error_counter;
+            }
+
             auto rel_timestamp = event.header.timestamp;
             d->event_queue.insert({rel_timestamp, std::move(event)});
           }
         });
 
-    auto current_time = getUnixTime();
-    if (last_error_counters_report + 5U < current_time) {
-      if (error_counters.invalid_probe_output != 0U) {
-        VLOG(1) << "Invalid BPF probe output counter: "
-                << error_counters.invalid_probe_output;
-      }
-
-      if (error_counters.invalid_event != 0U) {
-        VLOG(1) << "Invalid BPF event types counter: "
-                << error_counters.invalid_event;
-      }
-
-      if (error_counters.invalid_event_data != 0U) {
-        VLOG(1) << "Invalid BPF event data counter: "
-                << error_counters.invalid_event_data;
-      }
-
-      if (error_counters.lost_events != 0U) {
-        VLOG(1) << "Lost BPF events counter: " << error_counters.lost_events;
-      }
-
-      error_counters = {};
-      last_error_counters_report = current_time;
+    current_time = getUnixTime();
+    if (last_error_report + 5U < current_time) {
+      reportAndClearBpfErrorState(bpf_error_state);
+      last_error_report = current_time;
     }
 
-    std::size_t invalid_event_count = 0U;
     auto& state = *d->system_state_tracker.get();
 
     struct sysinfo system_info {};
@@ -418,22 +366,15 @@ Status BPFEventPublisher::run() {
 
       auto event_handler_it = d->event_handler_map.find(event.identifier);
       if (event_handler_it == d->event_handler_map.end()) {
-        VLOG(1) << "Unhandled event received in BPFEventPublisher: "
-                << event.identifier;
+        LOG(ERROR) << "Unhandled event received in BPFEventPublisher: "
+                   << event.identifier;
         continue;
       }
 
       const auto& event_handler = event_handler_it->second;
       if (!event_handler(state, event)) {
-        VLOG(1) << "BPFEventPublisher failed to process event from tracer #"
-                << event.identifier;
-        ++invalid_event_count;
+        bpf_error_state.errored_tracer_list.insert(event.identifier);
       }
-    }
-
-    if (invalid_event_count != 0U) {
-      LOG(ERROR) << "BPFEventPublisher has encountered " << invalid_event_count
-                 << " malformed events";
     }
 
     auto event_list = state.eventList();
@@ -672,7 +613,7 @@ bool BPFEventPublisher::processCreatEvent(
   }
 
   std::string path;
-  if (!getEventMapValue(path, event.in_field_map, "pathname")) {
+  if (!getEventMapValue(path, event.out_field_map, "pathname")) {
     return false;
   }
 
@@ -718,7 +659,7 @@ bool BPFEventPublisher::processMknodatEvent(
   }
 
   std::string pathname;
-  if (!getEventMapValue(pathname, event.in_field_map, "filename")) {
+  if (!getEventMapValue(pathname, event.out_field_map, "filename")) {
     return false;
   }
 
@@ -849,7 +790,7 @@ bool BPFEventPublisher::processOpenEvent(
   }
 
   std::string filename;
-  if (!getEventMapValue(filename, event.in_field_map, "filename")) {
+  if (!getEventMapValue(filename, event.out_field_map, "filename")) {
     return false;
   }
 
@@ -879,14 +820,6 @@ bool BPFEventPublisher::processOpenatEvent(
     return false;
   }
 
-  // It is possible for the memory page containing the filename string to
-  // not be mapped when we start executing our probe. Since BPF can't handle
-  // page faults, we would get back an empty string.
-  //
-  // To work around this issue, this parameter has been switch from IN to OUT
-  // in the tracepointserializers.cpp file, so that we capture this when exiting
-  // the syscall. This makes sure that the string is readable by the
-  // bpf_read_str helper
   std::string filename;
   if (!getEventMapValue(filename, event.out_field_map, "filename")) {
     return false;
@@ -948,7 +881,7 @@ bool BPFEventPublisher::processChdirEvent(
   }
 
   std::string filename;
-  if (!getEventMapValue(filename, event.in_field_map, "filename")) {
+  if (!getEventMapValue(filename, event.out_field_map, "filename")) {
     return false;
   }
 

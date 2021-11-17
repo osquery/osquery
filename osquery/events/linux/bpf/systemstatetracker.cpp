@@ -8,11 +8,13 @@
  */
 
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
+#include <osquery/utils/system/time.h>
 
 #include <linux/fcntl.h>
 #include <linux/netlink.h>
@@ -25,12 +27,15 @@ namespace osquery {
 namespace {
 
 const std::size_t kMaxFileHandleEntryCount{512U};
-
+const std::uint64_t kExpirationTime{180U};
+const std::size_t kEventsBeforeExpiration{10000U};
 }
 
 struct SystemStateTracker::PrivateData final {
   Context context;
   IProcessContextFactory::Ref process_context_factory;
+  std::uint64_t last_expiration{};
+  std::size_t event_count_since_expiration{};
 };
 
 SystemStateTracker::Ref SystemStateTracker::create() {
@@ -59,6 +64,15 @@ SystemStateTracker::Ref SystemStateTracker::create(
 }
 
 SystemStateTracker::~SystemStateTracker() {}
+
+Status SystemStateTracker::restart() {
+  if (!d->process_context_factory->captureAllProcesses(
+          d->context.process_map)) {
+    return Status::failure("Failed to scan the procfs folder");
+  }
+
+  return Status::success();
+}
 
 bool SystemStateTracker::createProcess(
     const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
@@ -226,17 +240,41 @@ SystemStateTracker::EventList SystemStateTracker::eventList() {
   auto event_list = std::move(d->context.event_list);
   d->context.event_list = {};
 
+  d->event_count_since_expiration += event_list.size();
+
+  auto current_time = getUnixTime();
+  if (d->last_expiration + kExpirationTime < current_time ||
+      d->event_count_since_expiration >= kEventsBeforeExpiration) {
+    IFilesystem::Ref fs;
+    auto status = IFilesystem::create(fs);
+    if (status.ok()) {
+      status = expireProcessContexts(d->context, *fs.get());
+      if (!status.ok()) {
+        LOG(ERROR) << "BPF system state tracker cleanup error: "
+                   << status.getMessage();
+      }
+
+    } else {
+      LOG(ERROR) << "BPF system state tracker cleanup error: "
+                 << status.getMessage();
+    }
+
+    d->last_expiration = current_time;
+    d->event_count_since_expiration = 0;
+  }
+
   return event_list;
 }
 
 SystemStateTracker::SystemStateTracker(
     IProcessContextFactory::Ref process_context_factory)
     : d(new PrivateData) {
+  d->last_expiration = getUnixTime();
   d->process_context_factory = std::move(process_context_factory);
 
-  if (!d->process_context_factory->captureAllProcesses(
-          d->context.process_map)) {
-    throw Status::failure("Failed to scan the procfs folder");
+  auto status = restart();
+  if (!status.ok()) {
+    throw status;
   }
 }
 
@@ -264,6 +302,38 @@ ProcessContext& SystemStateTracker::getProcessContext(
   }
 
   return process_it->second;
+}
+
+Status SystemStateTracker::expireProcessContexts(Context& context,
+                                                 IFilesystem& fs) {
+  tob::utils::UniqueFd procfs_root;
+  if (!fs.open(procfs_root, "/proc", O_DIRECTORY)) {
+    return Status::failure("Failed to open the procfs root: /proc");
+  }
+
+  bool return_error{false};
+  for (auto process_map_it = context.process_map.begin();
+       process_map_it != context.process_map.end();) {
+    auto process_id = std::to_string(process_map_it->first);
+
+    bool exists{false};
+    if (!fs.fileExists(exists, procfs_root.get(), process_id.c_str())) {
+      return_error = true;
+    }
+
+    if (!exists) {
+      process_map_it = context.process_map.erase(process_map_it);
+    } else {
+      ++process_map_it;
+    }
+  }
+
+  if (return_error) {
+    return Status::failure(
+        "Failed to access one or more entries in the procfs directory");
+  }
+
+  return Status::success();
 }
 
 bool SystemStateTracker::createProcess(

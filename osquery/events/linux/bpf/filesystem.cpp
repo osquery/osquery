@@ -11,6 +11,7 @@
 #include <osquery/events/linux/bpf/uniquedir.h>
 
 #include <fcntl.h>
+#include <sys/stat.h>
 
 namespace osquery {
 
@@ -137,6 +138,23 @@ bool Filesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
   }
 
   return true;
+}
+
+bool Filesystem::fileExists(bool& exists,
+                            int dirfd,
+                            const std::string& name) const {
+  struct stat file_stats {};
+  if (fstatat(dirfd, name.c_str(), &file_stats, 0) == 0) {
+    exists = true;
+    return true;
+
+  } else if (errno == ENOENT) {
+    exists = false;
+    return true;
+
+  } else {
+    return false;
+  }
 }
 
 Status IFilesystem::create(Ref& obj) {
