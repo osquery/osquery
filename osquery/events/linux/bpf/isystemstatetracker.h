@@ -95,6 +95,9 @@ class ISystemStateTracker {
   ISystemStateTracker(const ISystemStateTracker&) = delete;
   ISystemStateTracker& operator=(const ISystemStateTracker&) = delete;
 
+  /// \brief Resets the internal state, taking a new /proc snapshot
+  virtual Status restart() = 0;
+
   /// \brief Creates a new process, in response to an fork, vfork or clone
   /// syscall Once the method has updated the internal state, it will also emit
   /// a new event

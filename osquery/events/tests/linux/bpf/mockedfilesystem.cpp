@@ -33,7 +33,7 @@ bool MockedFilesystem::open(tob::utils::UniqueFd& fd,
   if (path == "/proc/1001") {
     fd.reset(0xFFFFFF1);
 
-  } else if (path == "/proc/") {
+  } else if (path == "/proc/" || path == "/proc") {
     fd.reset(0xFFFFFF2);
 
   } else if (path == "/proc/1234567") {
@@ -137,6 +137,18 @@ bool MockedFilesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
   } else {
     throw std::logic_error(
         "Invalid dirfd specified in MockedFilesystem::enumFiles");
+  }
+
+  return true;
+}
+
+bool MockedFilesystem::fileExists(bool& exists,
+                                  int dirfd,
+                                  const std::string& name) const {
+  if (dirfd == 0xFFFFFF2 && (name == "1000" || name == "1001")) {
+    exists = true;
+  } else {
+    exists = false;
   }
 
   return true;
