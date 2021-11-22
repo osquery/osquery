@@ -47,6 +47,11 @@ void setShutdownExitCode(int retcode) {
   kShutdownData.retcode = retcode;
 }
 
+void resetShutdown() {
+  std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
+  kShutdownData.requested = false;
+}
+
 void waitForShutdown() {
   std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
   kShutdownData.request_signal.wait(
@@ -60,15 +65,14 @@ bool waitTimeoutOrShutdown(std::chrono::milliseconds timeout) {
 }
 
 void requestShutdown(int retcode) {
-  static std::once_flag thrown;
-  std::call_once(thrown, [&retcode]() {
-    // Can be called from any thread, attempt a graceful shutdown.
-    std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
+  // Can be called from any thread, attempt a graceful shutdown.
+  std::unique_lock<std::mutex> lock(kShutdownData.request_mutex);
 
+  if (!kShutdownData.requested) {
     setShutdownExitCode(retcode);
     kShutdownData.requested = true;
     kShutdownData.request_signal.notify_all();
-  });
+  }
 }
 
 void requestShutdown(int retcode, const std::string& message) {
