@@ -30,6 +30,7 @@ on:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: 8168fd7213b23447f1bfbe0b54d4e8b61730b08d
+  SUBMODULE_CACHE_VERSION: 1
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -266,10 +267,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ matrix.cache_key }}_${{ github.sha }}
+          gitmodules_${{ matrix.cache_key }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.cache_key }}
+          gitmodules_${{ matrix.cache_key }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
