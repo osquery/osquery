@@ -43,9 +43,7 @@ Status SELinuxEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
+  addBatch(emitted_row_list);
 
   return Status::success();
 }
