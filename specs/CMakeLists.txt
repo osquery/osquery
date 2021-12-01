@@ -299,6 +299,7 @@ function(generateNativeTables)
     "windows/windows_security_center.table:windows"
     "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
+    "windows/defender_firewall_rules.table:windows"
     "windows/userassist.table:windows"
     "windows/dns_cache.table:windows"
     "windows/hvci_status.table:windows"

@@ -1,0 +1,15 @@
+table_name("defender_firewall_rules")
+description("Provides the list of firewall rules.")
+schema([
+    Column("name", TEXT, "Friendly name of this rule"),
+    Column("app_name", TEXT, "Friendly name of the application to which this rule applies"),
+    Column("action", TEXT, "Action for a rule or default setting"),
+    Column("enabled", INTEGER, "1 if enabled"),
+    Column("direction", TEXT, "Direction of traffic for which the rule applies"),
+    Column("protocol", TEXT, "IP protocol of this rule"),
+    Column("profiles", TEXT, "Profiles to which the rule belongs, comma separated if multiple"),
+])
+implementation("defender_firewall_rules@genDefenderFirewallRules")
+examples([
+    "select * from defender_firewall_rules",
+])

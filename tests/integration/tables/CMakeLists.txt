@@ -284,6 +284,7 @@ function(generateTestsIntegrationTablesTestsTest)
       bitlocker_info.cpp
       certificates.cpp
       connectivity.cpp
+      defender_firewall_rules.cpp
       chassis_info.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
