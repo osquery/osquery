@@ -23,7 +23,7 @@ namespace tables {
 
 HRESULT populateRow(INetFwRule* rule, Row& r);
 
-QueryData genDefenderFirewallRules(QueryContext& context) {
+QueryData genFirewallRules(QueryContext& context) {
   QueryData results;
 
   CComPtr<INetFwPolicy2> netFwPolicy;
@@ -153,6 +153,38 @@ HRESULT populateRow(INetFwRule* rule, Row& r) {
   case NET_FW_IP_PROTOCOL_ANY:
     r["protocol"] = "Any";
     break;
+  }
+
+  CComBSTR localAddresses;
+  if (FAILED(hr = rule->get_LocalAddresses(&localAddresses))) {
+    return hr;
+  }
+  r["local_addresses"] = bstrToString(localAddresses);
+
+  CComBSTR remoteAddresses;
+  if (FAILED(hr = rule->get_RemoteAddresses(&remoteAddresses))) {
+    return hr;
+  }
+  r["remote_addresses"] = bstrToString(remoteAddresses);
+
+  if (protocol != NET_FW_IP_VERSION_V4 && protocol != NET_FW_IP_VERSION_V6) {
+    CComBSTR localPorts;
+    if (FAILED(hr = rule->get_LocalPorts(&localPorts))) {
+      return hr;
+    }
+    r["local_ports"] = bstrToString(localPorts);
+
+    CComBSTR remotePorts;
+    if (FAILED(hr = rule->get_RemotePorts(&remotePorts))) {
+      return hr;
+    }
+    r["remote_ports"] = bstrToString(remotePorts);
+  } else {
+    CComBSTR icmpTypesCodes;
+    if (FAILED(hr = rule->get_IcmpTypesAndCodes(&icmpTypesCodes))) {
+      return hr;
+    }
+    r["icmp_types_codes"] = bstrToString(icmpTypesCodes);
   }
 
   long profileBitmask = 0;
