@@ -1,5 +1,5 @@
 table_name("defender_firewall_rules")
-description("Provides the list of firewall rules.")
+description("Provides the list of Windows Defender firewall rules.")
 schema([
     Column("name", TEXT, "Friendly name of this rule"),
     Column("app_name", TEXT, "Friendly name of the application to which this rule applies"),
