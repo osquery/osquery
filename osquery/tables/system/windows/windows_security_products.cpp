@@ -88,9 +88,10 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
   if (provider != WSC_SECURITY_PROVIDER_FIREWALL &&
       provider != WSC_SECURITY_PROVIDER_ANTIVIRUS &&
       provider != WSC_SECURITY_PROVIDER_ANTISPYWARE) {
-    std::string errMsg = "Invalid security provider code: " + provider;
-    VLOG(1) << errMsg;
-    return Status::failure(errMsg);
+    std::stringstream err_msg;
+    err_msg << "Invalid security provider code: 0x" << std::hex << provider;
+    VLOG(1) << err_msg.rdbuf();
+    return Status::failure(err_msg.str());
   }
 
   // Initialize can only be called once per instance, so you need to
@@ -101,26 +102,29 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
                         __uuidof(IWSCProductList),
                         reinterpret_cast<LPVOID*>(&PtrProductList));
   if (FAILED(hr)) {
-    std::string errMsg = "Failed to create provider instances: " + hr;
-    VLOG(1) << errMsg;
-    return Status::failure(errMsg);
+    std::stringstream err_msg;
+    err_msg << "Failed to create provider instances: 0x" << std::hex << hr;
+    VLOG(1) << err_msg.rdbuf();
+    return Status::failure(err_msg.str());
   }
 
   // Initialize the product list with the type of security product you're
   // interested in.
   hr = PtrProductList->Initialize(provider);
   if (FAILED(hr)) {
-    std::string errMsg = "Failed to initialize provider: " + hr;
-    VLOG(1) << errMsg;
-    return Status::failure(errMsg);
+    std::stringstream err_msg;
+    err_msg << "Failed to initialize provider: 0x" << std::hex << hr;
+    VLOG(1) << err_msg.rdbuf();
+    return Status::failure(err_msg.str());
   }
 
   // Get the number of security products of that type.
   hr = PtrProductList->get_Count(&ProductCount);
   if (FAILED(hr)) {
-    std::string errMsg = "Failed to get products count: " + hr;
-    VLOG(1) << errMsg;
-    return Status::failure(errMsg);
+    std::stringstream err_msg;
+    err_msg << "Failed to get products count: 0x" << std::hex << hr;
+    VLOG(1) << err_msg.rdbuf();
+    return Status::failure(err_msg.str());
   }
 
   // Loop over each product, querying the specific attributes.
@@ -128,9 +132,10 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the next security product
     hr = PtrProductList->get_Item(i, &PtrProduct);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get product item: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get product item: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     wsc_entry tmp;
     tmp.provider = provider;
@@ -138,9 +143,10 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the product name
     hr = PtrProduct->get_ProductName(&PtrVal);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get product name: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get product name: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     tmp.product_name = PtrVal;
     SysFreeString(PtrVal);
@@ -149,18 +155,20 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the product state
     hr = PtrProduct->get_ProductState(&ProductState);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get product state: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get product state: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     tmp.product_state = ProductState;
 
     // Get the remediation path for the security product
     hr = PtrProduct->get_RemediationPath(&PtrVal);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get remediation path: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get remediation path: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     tmp.remediation_path = PtrVal;
     SysFreeString(PtrVal);
@@ -169,18 +177,20 @@ Status GetSecurityProducts(WSC_SECURITY_PROVIDER provider,
     // Get the signature status
     hr = PtrProduct->get_SignatureStatus(&SignatureStatus);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get signature status: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get signature status: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     tmp.signature_status = SignatureStatus;
 
     // Get the state timestamp
     hr = PtrProduct->get_ProductStateTimestamp(&PtrVal);
     if (FAILED(hr)) {
-      std::string errMsg = "Failed to get product state timestamp: " + hr;
-      VLOG(1) << errMsg;
-      return Status::failure(errMsg);
+      std::stringstream err_msg;
+      err_msg << "Failed to get product state timestamp: 0x" << std::hex << hr;
+      VLOG(1) << err_msg.rdbuf();
+      return Status::failure(err_msg.str());
     }
     tmp.product_state_timestamp = PtrVal;
     SysFreeString(PtrVal);
