@@ -160,30 +160,11 @@ HRESULT populateRow(INetFwRule* rule, Row& r) {
     return hr;
   }
 
-  std::string profiles;
-  if (profileBitmask == NET_FW_PROFILE2_ALL) {
-    r["profiles"] = "Any";
-  } else {
-    std::string profile;
-    if (profileBitmask & NET_FW_PROFILE2_DOMAIN) {
-      profiles = "Domain";
-    }
-    if (profileBitmask & NET_FW_PROFILE2_PRIVATE) {
-      if (!profiles.empty()) {
-        profiles += ",";
-      }
-      profiles += "Private";
-    }
-    if (profileBitmask & NET_FW_PROFILE2_PUBLIC) {
-      if (!profiles.empty()) {
-        profiles += ",";
-      }
-      profiles += "Public";
-    }
-    if (!profiles.empty()) {
-      r["profiles"] = profiles;
-    }
-  }
+  r["profile_domain"] = INTEGER(bool(profileBitmask & NET_FW_PROFILE2_DOMAIN));
+  r["profile_private"] =
+      INTEGER(bool(profileBitmask & NET_FW_PROFILE2_PRIVATE));
+  r["profile_public"] = INTEGER(bool(profileBitmask & NET_FW_PROFILE2_PUBLIC));
+
   return hr;
 }
 

@@ -7,7 +7,9 @@ schema([
     Column("enabled", INTEGER, "1 if enabled"),
     Column("direction", TEXT, "Direction of traffic for which the rule applies"),
     Column("protocol", TEXT, "IP protocol of this rule"),
-    Column("profiles", TEXT, "Profiles to which the rule belongs, comma separated if multiple"),
+    Column("profile_domain", INTEGER, "1 if profile type is domain"),
+    Column("profile_private", INTEGER, "1 if profile type is private"),
+    Column("profile_public", INTEGER, "1 if profile type is public"),
 ])
 implementation("defender_firewall_rules@genDefenderFirewallRules")
 examples([
