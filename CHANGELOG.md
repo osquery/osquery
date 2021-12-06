@@ -27,19 +27,19 @@ Representing commits from 20 contributors! Thank you all.
 
 - Detect when an extension has not started correctly on Windows ([#7355](https://github.com/osquery/osquery/pull/7355))
 - Fix crash #7353 when osquery captures kill syscall when not subscribed to them ([#7354](https://github.com/osquery/osquery/pull/7354))
-- Fix crash in AuditdNetlinkReader::configureAuditService when audit_add_rule_data returns an error. ([#7337](https://github.com/osquery/osquery/pull/7337))
-- Fix crash when windows_security_products errors out ([#7401](https://github.com/osquery/osquery/pull/7401))
+- Fix crash in AuditdNetlinkReader::configureAuditService when audit_add_rule_data returns an error ([#7337](https://github.com/osquery/osquery/pull/7337))
+- Fix crash when `windows_security_products` errors out ([#7401](https://github.com/osquery/osquery/pull/7401))
 - Fix for #7394 where cleanup of some event tables never occures ([#7395](https://github.com/osquery/osquery/pull/7395))
 - Improve BPF publisher reliability ([#7302](https://github.com/osquery/osquery/pull/7302))
-- Lower log level of `executing distributed query` ([#7386](https://github.com/osquery/osquery/pull/7386))
-- Reduce excessive log messages from authorized_keys table implementation ([#7318](https://github.com/osquery/osquery/pull/7318))
+- Lower log level of "executing distributed query" ([#7386](https://github.com/osquery/osquery/pull/7386))
+- Reduce excessive log messages from `authorized_keys` table implementation ([#7318](https://github.com/osquery/osquery/pull/7318))
 
 ### Documentation
 
 - Add 5.0.1 CHANGELOG ([#7284](https://github.com/osquery/osquery/pull/7284))
 - Fix typo in Everything in SQL docs ([#7338](https://github.com/osquery/osquery/pull/7338))
 - Fix typo in SQL docs ([#7376](https://github.com/osquery/osquery/pull/7376))
-- Update github issue templates ([#7361](https://github.com/osquery/osquery/pull/7361), [#7396](https://github.com/osquery/osquery/pull/7396))
+- Update GitHub issue templates ([#7361](https://github.com/osquery/osquery/pull/7361), [#7396](https://github.com/osquery/osquery/pull/7396))
 - Update installation guide to use newer macOS paths ([#7311](https://github.com/osquery/osquery/pull/7311))
 - Update macOS ESF documentation ([#7303](https://github.com/osquery/osquery/pull/7303))
 
@@ -55,7 +55,7 @@ Representing commits from 20 contributors! Thank you all.
 - Customizable installation logic ([#7315](https://github.com/osquery/osquery/pull/7315))
 - Fix ASL test on macOS 11 and later ([#7320](https://github.com/osquery/osquery/pull/7320))
 - Restore query packs in Windows packaging ([#7388](https://github.com/osquery/osquery/pull/7388))
-- Skip deprecated ASL test when targeting 10.13+ SDK ([#7358](https://github.com/osquery/osquery/pull/7358))
+- Skip deprecated ASL test when targeting macOS 10.13+ SDK ([#7358](https://github.com/osquery/osquery/pull/7358))
 - Update packaging commit to fix Linux symlinks ([#7404](https://github.com/osquery/osquery/pull/7404))
 - Update the CI Linux Docker image ([#7332](https://github.com/osquery/osquery/pull/7332))
 
