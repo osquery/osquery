@@ -71,8 +71,7 @@ QueryData genFirewallRules(QueryContext& context) {
       }
 
       CComPtr<INetFwRule> rule;
-      hr = (V_DISPATCH(&value))
-               ->QueryInterface(__uuidof(INetFwRule), (void**)&rule);
+      hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
       if (FAILED(hr)) {
         TLOG << "Failed to get firewall rule interface";
         break;
