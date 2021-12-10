@@ -377,7 +377,7 @@ git describe --tags --abbrev=0
 set OSQUERY_VERSION=<version_here>
 ```
 
-### Preparing to build the the osquery-packaging repository
+### Preparing to build the osquery-packaging repository
 
 Pre-requisites (for RPM builds):
 
