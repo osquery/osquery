@@ -18,131 +18,51 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
+#include "windows_firewall_rules.h"
+
 namespace osquery {
 namespace tables {
 
-HRESULT populateRow(INetFwRule* rule, Row& r);
+enum class SystemError {
+  COMError = 1,
+};
 
-QueryData genFirewallRules(QueryContext& context) {
-  QueryData results;
+// Implementation
+namespace {
 
-  CComPtr<INetFwPolicy2> netFwPolicy;
-  HRESULT hr = netFwPolicy.CoCreateInstance(CLSID_NetFwPolicy2);
-  if (FAILED(hr)) {
-    TLOG << "Failed to instantiate INetFwPolicy2";
-    return results;
-  }
+Row renderFirewallRule(const FirewallRule& rule) {
+  Row r;
 
-  CComPtr<INetFwRules> rules;
-  hr = netFwPolicy->get_Rules(&rules);
-  if (FAILED(hr)) {
-    TLOG << "Failed to get firewall rules";
-    return results;
-  }
+  r["name"] = rule.name;
+  r["app_name"] = rule.appName;
 
-  CComPtr<IUnknown> enumerator;
-  hr = rules->get__NewEnum(&enumerator);
-  if (FAILED(hr)) {
-    TLOG << "Failed to get firewall rules enumerator";
-    return results;
-  }
-
-  CComPtr<IEnumVARIANT> enumvar;
-  hr = enumerator->QueryInterface(IID_PPV_ARGS(&enumvar));
-  if (FAILED(hr)) {
-    TLOG << "Failed to get firewall rules enumerator interface";
-    return results;
-  }
-
-  do {
-    CComVariant value;
-    ULONG fetched = 0;
-    hr = enumvar->Next(1, &value, &fetched);
-    if (FAILED(hr)) {
-      TLOG << "Failed to enumerate next firewall rule";
-      break;
-    }
-
-    if (hr != S_FALSE) {
-      hr = value.ChangeType(VT_DISPATCH);
-      if (FAILED(hr)) {
-        TLOG << "Failed to get IDispatch for enumerated rule";
-        break;
-      }
-
-      CComPtr<INetFwRule> rule;
-      hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
-      if (FAILED(hr)) {
-        TLOG << "Failed to get firewall rule interface";
-        break;
-      }
-
-      Row r;
-      hr = populateRow(rule, r);
-      if (FAILED(hr)) {
-        TLOG << "Failed to convert firewall rule to row";
-        break;
-      }
-
-      results.push_back(std::move(r));
-    }
-  } while (SUCCEEDED(hr) && hr != S_FALSE);
-
-  return results;
-}
-
-HRESULT populateRow(INetFwRule* rule, Row& r) {
-  HRESULT hr = S_OK;
-
-  CComBSTR name;
-  if (FAILED(hr = rule->get_Name(&name))) {
-    return hr;
-  }
-  r["name"] = bstrToString(name);
-
-  CComBSTR appname;
-  if (FAILED(hr = rule->get_ApplicationName(&appname))) {
-    return hr;
-  }
-  r["app_name"] = bstrToString(appname);
-
-  NET_FW_ACTION action;
-  if (FAILED(hr = rule->get_Action(&action))) {
-    return hr;
-  }
-  switch (action) {
+  switch (rule.action) {
   case NET_FW_ACTION_BLOCK:
     r["action"] = "Block";
     break;
   case NET_FW_ACTION_ALLOW:
     r["action"] = "Allow";
     break;
+  default:
+    r["action"] = "";
+    break;
   }
 
-  VARIANT_BOOL enabled;
-  if (FAILED(hr = rule->get_Enabled(&enabled))) {
-    return hr;
-  }
-  r["enabled"] = INTEGER(bool(enabled));
+  r["enabled"] = INTEGER(bool(rule.enabled));
 
-  NET_FW_RULE_DIRECTION direction;
-  if (FAILED(hr = rule->get_Direction(&direction))) {
-    return hr;
-  }
-  switch (direction) {
+  switch (rule.direction) {
   case NET_FW_RULE_DIR_IN:
     r["direction"] = "In";
     break;
   case NET_FW_RULE_DIR_OUT:
     r["direction"] = "Out";
     break;
+  default:
+    r["direction"] = "";
+    break;
   }
 
-  long protocol = 0;
-  if (FAILED(hr = rule->get_Protocol(&protocol))) {
-    return hr;
-  }
-  switch (protocol) {
+  switch (rule.protocol) {
   case NET_FW_IP_PROTOCOL_TCP:
     r["protocol"] = "TCP";
     break;
@@ -152,51 +72,209 @@ HRESULT populateRow(INetFwRule* rule, Row& r) {
   case NET_FW_IP_PROTOCOL_ANY:
     r["protocol"] = "Any";
     break;
+  default:
+    r["protocol"] = "";
+    break;
   }
 
-  CComBSTR localAddresses;
-  if (FAILED(hr = rule->get_LocalAddresses(&localAddresses))) {
-    return hr;
-  }
-  r["local_addresses"] = bstrToString(localAddresses);
+  r["local_addresses"] = rule.localAddresses;
+  r["remote_addresses"] = rule.remoteAddresses;
 
-  CComBSTR remoteAddresses;
-  if (FAILED(hr = rule->get_RemoteAddresses(&remoteAddresses))) {
-    return hr;
-  }
-  r["remote_addresses"] = bstrToString(remoteAddresses);
-
-  if (protocol != NET_FW_IP_VERSION_V4 && protocol != NET_FW_IP_VERSION_V6) {
-    CComBSTR localPorts;
-    if (FAILED(hr = rule->get_LocalPorts(&localPorts))) {
-      return hr;
-    }
-    r["local_ports"] = bstrToString(localPorts);
-
-    CComBSTR remotePorts;
-    if (FAILED(hr = rule->get_RemotePorts(&remotePorts))) {
-      return hr;
-    }
-    r["remote_ports"] = bstrToString(remotePorts);
+  if (rule.protocol != NET_FW_IP_VERSION_V4 &&
+      rule.protocol != NET_FW_IP_VERSION_V6) {
+    r["local_ports"] = rule.localPorts;
+    r["remote_ports"] = rule.remotePorts;
+    r["icmp_types_codes"] = "";
   } else {
-    CComBSTR icmpTypesCodes;
-    if (FAILED(hr = rule->get_IcmpTypesAndCodes(&icmpTypesCodes))) {
-      return hr;
-    }
-    r["icmp_types_codes"] = bstrToString(icmpTypesCodes);
+    r["local_ports"] = "";
+    r["remote_ports"] = "";
+    r["icmp_types_codes"] = rule.icmpTypesCodes;
   }
 
-  long profileBitmask = 0;
-  if (FAILED(hr = rule->get_Profiles(&profileBitmask))) {
+  r["profile_domain"] =
+      INTEGER(bool(rule.profileBitmask & NET_FW_PROFILE2_DOMAIN));
+  r["profile_private"] =
+      INTEGER(bool(rule.profileBitmask & NET_FW_PROFILE2_PRIVATE));
+  r["profile_public"] =
+      INTEGER(bool(rule.profileBitmask & NET_FW_PROFILE2_PUBLIC));
+
+  return r;
+}
+
+Expected<FirewallRules, SystemError> createRulesCOMError(
+    HRESULT hr, const std::string& msg) {
+  return createError(SystemError::COMError)
+         << msg << ", HRESULT=0x" << std::hex << hr;
+}
+
+Expected<FirewallRule, SystemError> createRuleCOMError(HRESULT hr,
+                                                       const std::string& msg) {
+  return createError(SystemError::COMError)
+         << msg << ", HRESULT=0x" << std::hex << hr;
+}
+
+typedef HRESULT (STDMETHODCALLTYPE INetFwRule::*BSTRFunc)(BSTR*);
+HRESULT getString(INetFwRule* rule, BSTRFunc fn, std::string* s) {
+  HRESULT hr = S_OK;
+
+  CComBSTR bstr;
+  if (FAILED(hr = (rule->*fn)(&bstr))) {
     return hr;
   }
-
-  r["profile_domain"] = INTEGER(bool(profileBitmask & NET_FW_PROFILE2_DOMAIN));
-  r["profile_private"] =
-      INTEGER(bool(profileBitmask & NET_FW_PROFILE2_PRIVATE));
-  r["profile_public"] = INTEGER(bool(profileBitmask & NET_FW_PROFILE2_PUBLIC));
-
+  *s = bstrToString(bstr);
   return hr;
+}
+
+Expected<FirewallRule, SystemError> populateFirewallRule(INetFwRule* rule) {
+  FirewallRule r;
+  HRESULT hr = S_OK;
+
+  if (FAILED(hr = getString(rule, &INetFwRule::get_Name, &r.name))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule name");
+  }
+
+  if (FAILED(
+          hr = getString(rule, &INetFwRule::get_ApplicationName, &r.appName))) {
+    return createRuleCOMError(hr,
+                              "Failed to get firewall rule application name");
+  }
+
+  if (FAILED(hr = rule->get_Action(&r.action))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule action");
+  }
+
+  VARIANT_BOOL enabled;
+  if (FAILED(hr = rule->get_Enabled(&enabled))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule enabled");
+  }
+  r.enabled = enabled;
+
+  if (FAILED(hr = rule->get_Direction(&r.direction))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule direction");
+  }
+
+  if (FAILED(hr = rule->get_Protocol(&r.protocol))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule protocol");
+  }
+
+  if (FAILED(hr = getString(
+                 rule, &INetFwRule::get_LocalAddresses, &r.localAddresses))) {
+    return createRuleCOMError(hr,
+                              "Failed to get firewall rule local addresses");
+  }
+
+  if (FAILED(hr = getString(
+                 rule, &INetFwRule::get_RemoteAddresses, &r.remoteAddresses))) {
+    return createRuleCOMError(hr,
+                              "Failed to get firewall rule remote addresses");
+  }
+
+  if (r.protocol != NET_FW_IP_VERSION_V4 &&
+      r.protocol != NET_FW_IP_VERSION_V6) {
+    if (FAILED(
+            hr = getString(rule, &INetFwRule::get_LocalPorts, &r.localPorts))) {
+      return createRuleCOMError(hr, "Failed to get firewall rule local ports");
+    }
+
+    if (FAILED(hr = getString(
+                   rule, &INetFwRule::get_RemotePorts, &r.remotePorts))) {
+      return createRuleCOMError(hr, "Failed to get firewall rule remote ports");
+    }
+
+  } else {
+    if (FAILED(hr = getString(rule,
+                              &INetFwRule::get_IcmpTypesAndCodes,
+                              &r.icmpTypesCodes))) {
+      return createRuleCOMError(
+          hr, "Failed to get firewall rule ICMP types and codes");
+    }
+  }
+
+  if (FAILED(hr = rule->get_Profiles(&r.profileBitmask))) {
+    return createRuleCOMError(hr, "Failed to get firewall rule profiles");
+  }
+
+  return r;
+}
+
+Expected<FirewallRules, SystemError> getFirewallRules(QueryContext& context) {
+  FirewallRules results;
+
+  CComPtr<INetFwPolicy2> netFwPolicy;
+  HRESULT hr = netFwPolicy.CoCreateInstance(CLSID_NetFwPolicy2);
+  if (FAILED(hr)) {
+    return createRulesCOMError(hr, "Failed to instantiate INetFwPolicy2");
+  }
+
+  CComPtr<INetFwRules> rules;
+  hr = netFwPolicy->get_Rules(&rules);
+  if (FAILED(hr)) {
+    return createRulesCOMError(hr, "Failed to get firewall rules from policy");
+  }
+
+  CComPtr<IUnknown> enumerator;
+  hr = rules->get__NewEnum(&enumerator);
+  if (FAILED(hr)) {
+    return createRulesCOMError(hr, "Failed to get firewall rules enumerator");
+  }
+
+  CComPtr<IEnumVARIANT> enumvar;
+  hr = enumerator->QueryInterface(IID_PPV_ARGS(&enumvar));
+  if (FAILED(hr)) {
+    return createRulesCOMError(
+        hr, "Failed to get firewall rules enumerator interface");
+  }
+
+  do {
+    CComVariant value;
+    ULONG fetched = 0;
+    hr = enumvar->Next(1, &value, &fetched);
+    if (FAILED(hr)) {
+      return createRulesCOMError(hr, "Failed to enumerate next firewall rule");
+    }
+
+    if (hr != S_FALSE) {
+      hr = value.ChangeType(VT_DISPATCH);
+      if (FAILED(hr)) {
+        return createRulesCOMError(
+            hr, "Failed to get IDispatch for enumerated rule");
+      }
+
+      CComPtr<INetFwRule> rule;
+      hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
+      if (FAILED(hr)) {
+        return createRulesCOMError(hr, "Failed to get firewall rule interface");
+      }
+
+      auto r = populateFirewallRule(rule);
+      if (r.isError()) {
+        return r.takeError();
+      }
+
+      results.push_back(std::move(r.get()));
+    }
+  } while (SUCCEEDED(hr) && hr != S_FALSE);
+
+  return results;
+}
+
+} // namespace
+
+QueryData renderFirewallRules(const FirewallRules& rules) {
+  QueryData results;
+  std::for_each(rules.cbegin(), rules.cend(), [&](const FirewallRule& rule) {
+    results.push_back(renderFirewallRule(rule));
+  });
+  return results;
+}
+
+QueryData genFirewallRules(QueryContext& context) {
+  auto rules = getFirewallRules(context);
+  if (rules.isError()) {
+    TLOG << "Failed to get firewall rules: " << rules.getError().getMessage();
+    return QueryData();
+  }
+  return renderFirewallRules(rules.get());
 }
 
 } // namespace tables
