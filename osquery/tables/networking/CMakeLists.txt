@@ -116,6 +116,7 @@ function(generateOsqueryTablesNetworking)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND public_header_files
       windows/interfaces.h
+      windows/windows_firewall_rules.h
     )
   endif()
 
