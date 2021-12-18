@@ -144,6 +144,8 @@ function(generateOsqueryTablesNetworking)
     )
   elseif(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_tables_networking_tests_iptablestests-test COMMAND osquery_tables_networking_tests_iptablestests-test)
+  elseif(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_tables_networking_tests_windowsfirewallrulestests-test COMMAND osquery_tables_networking_tests_windowsfirewallrulestests-test)
   endif()
 
 endfunction()

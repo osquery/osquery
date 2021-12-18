@@ -16,7 +16,7 @@ schema([
     Column("profile_private", INTEGER, "1 if the rule profile type is private"),
     Column("profile_public", INTEGER, "1 if the rule profile type is public"),
 ])
-implementation("windows_firewall_rules@genFirewallRules")
+implementation("windows_firewall_rules@genWindowsFirewallRules")
 examples([
     "select * from windows_firewall_rules",
 ])

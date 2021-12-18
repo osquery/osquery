@@ -17,22 +17,46 @@
 namespace osquery {
 namespace tables {
 
-struct FirewallRule {
+enum class WindowsFirewallError {
+  NetFwPolicyError,
+  PolicyRulesError,
+  PolicyRulesEnumError,
+  PolicyRulesEnumInterfaceError,
+  PolicyRulesEnumNextError,
+  PolicyRulesEnumIDispatchError,
+  PolicyRuleInterfaceError,
+  RuleNameError,
+  RuleAppNameError,
+  RuleActionError,
+  RuleEnabledError,
+  RuleDirectionError,
+  RuleProtocolError,
+  RuleLocalAddressesError,
+  RuleRemoteAddressesError,
+  RuleLocalPortsError,
+  RuleRemotePortsError,
+  RuleICMPTypesCodesError,
+  RuleProfilesError,
+};
+
+struct WindowsFirewallRule {
   std::string name;
   std::string appName;
-  NET_FW_ACTION action;
-  bool enabled;
-  NET_FW_RULE_DIRECTION direction;
-  long protocol;
+  NET_FW_ACTION action = NET_FW_ACTION_BLOCK;
+  bool enabled = false;
+  NET_FW_RULE_DIRECTION direction = NET_FW_RULE_DIR_IN;
+  long protocol = 0;
   std::string localAddresses;
   std::string remoteAddresses;
   std::string localPorts;
   std::string remotePorts;
   std::string icmpTypesCodes;
-  long profileBitmask;
+  long profileBitmask = 0;
 };
 
-using FirewallRules = std::vector<FirewallRule>;
+using WindowsFirewallRules = std::vector<WindowsFirewallRule>;
+
+QueryData renderWindowsFirewallRules(const WindowsFirewallRules& rules);
 
 } // namespace tables
 } // namespace osquery
