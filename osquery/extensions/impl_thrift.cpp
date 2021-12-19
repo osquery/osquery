@@ -19,9 +19,10 @@
 
 #ifdef WIN32
 #include <osquery/filesystem/fileops.h>
-#include <osquery/process/windows/process_ops.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
+
 #else
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>

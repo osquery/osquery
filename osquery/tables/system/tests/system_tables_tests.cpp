@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <future>
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
@@ -23,6 +24,9 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
 #ifdef OSQUERY_WINDOWS
+#include <osquery/core/windows/global_users_groups_cache.h>
+#include <osquery/system/usersgroups/windows/groups_service.h>
+#include <osquery/system/usersgroups/windows/users_service.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
 #include <osquery/utils/info/platform_type.h>
@@ -37,6 +41,33 @@ class SystemsTablesTests : public testing::Test {
     registryAndPluginInit();
     initDatabasePluginForTesting();
   }
+
+#ifdef OSQUERY_WINDOWS
+  static void SetUpTestSuite() {
+    // For the users and groups table we need to start services
+    // to fill up the caches
+    std::promise<void> users_cache_promise;
+    std::promise<void> groups_cache_promise;
+    GlobalUsersGroupsCache::global_users_cache_future_ =
+        users_cache_promise.get_future();
+    GlobalUsersGroupsCache::global_groups_cache_future_ =
+        groups_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<UsersService>(
+        std::move(users_cache_promise),
+        GlobalUsersGroupsCache::global_users_cache_));
+    Dispatcher::addService(std::make_shared<GroupsService>(
+        std::move(groups_cache_promise),
+        GlobalUsersGroupsCache::global_groups_cache_));
+  }
+
+  static void TearDownTestSuite() {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+    GlobalUsersGroupsCache::global_users_cache_->clear();
+    GlobalUsersGroupsCache::global_groups_cache_->clear();
+  }
+#endif
 };
 
 TEST_F(SystemsTablesTests, test_os_version) {
