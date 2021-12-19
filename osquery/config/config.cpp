@@ -352,7 +352,12 @@ void Config::addPack(const std::string& name,
     RecursiveLock wlock(config_schedule_mutex_);
     try {
       schedule_->add(std::make_unique<Pack>(pack_name, source, pack_obj));
-      if (schedule_->last()->shouldPackExecute()) {
+#ifndef OSQUERY_IS_FUZZING
+      bool should_pack_execute = schedule_->last()->shouldPackExecute();
+#else
+      bool should_pack_execute = true;
+#endif
+      if (should_pack_execute) {
         applyParsers(source + FLAGS_pack_delimiter + pack_name, pack_obj, true);
       }
     } catch (const std::exception& e) {
