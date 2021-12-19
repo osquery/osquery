@@ -9,7 +9,6 @@
 
 #include <string>
 
-#include <atlbase.h>
 #include <netfw.h>
 #include <windows.h>
 
@@ -169,11 +168,12 @@ typedef HRESULT (STDMETHODCALLTYPE INetFwRule::*BSTRFunc)(BSTR*);
 HRESULT getString(INetFwRule* rule, BSTRFunc fn, std::string& s) {
   HRESULT hr = S_OK;
 
-  CComBSTR bstr;
-  if (FAILED(hr = (rule->*fn)(&bstr))) {
-    return hr;
+  BSTR bstr = NULL;
+  if (SUCCEEDED(hr = (rule->*fn)(&bstr))) {
+    s = bstrToString(bstr);
   }
-  s = bstrToString(bstr);
+  SysFreeString(bstr);
+
   return hr;
 }
 
@@ -258,78 +258,133 @@ Expected<WindowsFirewallRule, WindowsFirewallError> populateFirewallRule(
   return r;
 }
 
+Expected<WindowsFirewallRule, WindowsFirewallError> getNext(
+    IEnumVARIANT* enumvar, bool& found) {
+  found = false;
+
+  WindowsFirewallRule winFwRule;
+  Expected<WindowsFirewallRule, WindowsFirewallError> r(winFwRule);
+
+  ULONG fetched = 0;
+
+  VARIANT value;
+  VariantInit(&value);
+
+  INetFwRule* rule = NULL;
+
+  HRESULT hr = enumvar->Next(1, &value, &fetched);
+  if (FAILED(hr)) {
+    r = createWindowsFirewallRuleError(
+        WindowsFirewallError::PolicyRulesEnumNextError, hr);
+  } else {
+    if (hr != S_FALSE) {
+      found = true;
+      hr = VariantChangeType(&value, &value, 0, VT_DISPATCH);
+      if (FAILED(hr)) {
+        // Log only
+        auto err = createWindowsFirewallRuleError(
+            WindowsFirewallError::PolicyRulesEnumIDispatchError, hr);
+        TLOG << err.getError().getMessage();
+      } else {
+        hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
+        if (FAILED(hr)) {
+          // Log only
+          auto err = createWindowsFirewallRuleError(
+              WindowsFirewallError::PolicyRuleInterfaceError, hr);
+          TLOG << err.getError().getMessage();
+        } else {
+          r = populateFirewallRule(rule);
+        }
+      }
+    }
+  }
+
+  // Cleanup
+  if (rule != NULL) {
+    rule->Release();
+  }
+
+  VariantClear(&value);
+
+  return r;
+}
+
 Expected<WindowsFirewallRules, WindowsFirewallError> getFirewallRules(
     QueryContext& context) {
   WindowsFirewallRules results;
+  Expected<WindowsFirewallRules, WindowsFirewallError> r(results);
 
-  CComPtr<INetFwPolicy2> netFwPolicy;
-  HRESULT hr = netFwPolicy.CoCreateInstance(CLSID_NetFwPolicy2);
+  INetFwPolicy2* netFwPolicy = NULL;
+  INetFwRules* rules = NULL;
+  IUnknown* enumerator = NULL;
+  IEnumVARIANT* enumvar = NULL;
+
+  HRESULT hr = CoCreateInstance(__uuidof(NetFwPolicy2),
+                                NULL,
+                                CLSCTX_INPROC_SERVER,
+                                IID_PPV_ARGS(&netFwPolicy));
   if (FAILED(hr)) {
-    return createWindowsFirewallRulesError(
-        WindowsFirewallError::NetFwPolicyError, hr);
+    r = createWindowsFirewallRulesError(WindowsFirewallError::NetFwPolicyError,
+                                        hr);
+    goto Cleanup;
   }
 
-  CComPtr<INetFwRules> rules;
   hr = netFwPolicy->get_Rules(&rules);
   if (FAILED(hr)) {
-    return createWindowsFirewallRulesError(
-        WindowsFirewallError::PolicyRulesError, hr);
+    r = createWindowsFirewallRulesError(WindowsFirewallError::PolicyRulesError,
+                                        hr);
+    goto Cleanup;
   }
 
-  CComPtr<IUnknown> enumerator;
   hr = rules->get__NewEnum(&enumerator);
   if (FAILED(hr)) {
-    return createWindowsFirewallRulesError(
+    r = createWindowsFirewallRulesError(
         WindowsFirewallError::PolicyRulesEnumError, hr);
+    goto Cleanup;
   }
 
-  CComPtr<IEnumVARIANT> enumvar;
   hr = enumerator->QueryInterface(IID_PPV_ARGS(&enumvar));
   if (FAILED(hr)) {
-    return createWindowsFirewallRulesError(
+    r = createWindowsFirewallRulesError(
         WindowsFirewallError::PolicyRulesEnumInterfaceError, hr);
+    goto Cleanup;
   }
 
-  for (; (hr != S_FALSE);) {
-    CComVariant value;
-    ULONG fetched = 0;
-    hr = enumvar->Next(1, &value, &fetched);
-    if (FAILED(hr)) {
-      return createWindowsFirewallRulesError(
-          WindowsFirewallError::PolicyRulesEnumNextError, hr);
+  bool found = true;
+  while (found) {
+    auto res = getNext(enumvar, found);
+    if (res.isError()) {
+      r = res.takeError();
+      break;
     }
-
-    if (hr != S_FALSE) {
-      hr = value.ChangeType(VT_DISPATCH);
-      if (FAILED(hr)) {
-        // Log and continue
-        auto err = createWindowsFirewallRulesError(
-            WindowsFirewallError::PolicyRulesEnumIDispatchError, hr);
-        TLOG << err.getError().getMessage();
-        hr = S_OK;
-        continue;
-      }
-
-      CComPtr<INetFwRule> rule;
-      hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
-      if (FAILED(hr)) {
-        auto err = createWindowsFirewallRulesError(
-            WindowsFirewallError::PolicyRuleInterfaceError, hr);
-        TLOG << err.getError().getMessage();
-        hr = S_OK;
-        continue;
-      }
-
-      auto r = populateFirewallRule(rule);
-      if (r.isError()) {
-        return r.takeError();
-      }
-
-      results.push_back(std::move(r.get()));
+    if (found) {
+      results.push_back(std::move(res.get()));
     }
   }
 
-  return results;
+  if (!r.isError()) {
+    r = results;
+  }
+
+Cleanup:
+
+  if (enumvar != NULL) {
+    enumvar->Release();
+  }
+
+  if (enumerator != NULL) {
+    enumerator->Release();
+  }
+
+  if (rules != NULL) {
+    rules->Release();
+  }
+
+  if (netFwPolicy != NULL) {
+    netFwPolicy->Release();
+  }
+
+  return r;
 }
 
 } // namespace
