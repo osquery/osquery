@@ -25,7 +25,6 @@ namespace tables {
 // Implementation
 namespace {
 
-// Map lookup for error messages per code review request
 const std::unordered_map<WindowsFirewallError, std::string>
     kWindowsFirewallErrorDescriptions{
         {WindowsFirewallError::NetFwPolicyError,
@@ -164,11 +163,12 @@ Row renderFirewallRule(const WindowsFirewallRule& rule) {
   return r;
 }
 
-typedef HRESULT (STDMETHODCALLTYPE INetFwRule::*BSTRFunc)(BSTR*);
+using BSTRFunc = HRESULT (STDMETHODCALLTYPE INetFwRule::*)(BSTR*);
+
 HRESULT getString(INetFwRule* rule, BSTRFunc fn, std::string& s) {
   HRESULT hr = S_OK;
 
-  BSTR bstr = NULL;
+  BSTR bstr = nullptr;
   if (SUCCEEDED(hr = (rule->*fn)(&bstr))) {
     s = bstrToString(bstr);
   }
@@ -258,133 +258,120 @@ Expected<WindowsFirewallRule, WindowsFirewallError> populateFirewallRule(
   return r;
 }
 
+template <typename T>
+struct InterfaceReleaser final {
+  void operator()(T* p) {
+    if (p != nullptr) {
+      p->Release();
+    }
+  }
+};
+
+struct VariantClearer final {
+  void operator()(VARIANT* p) {
+    if (p != nullptr) {
+      VariantClear(p);
+    }
+  }
+};
+
 Expected<WindowsFirewallRule, WindowsFirewallError> getNext(
     IEnumVARIANT* enumvar, bool& found) {
   found = false;
-
-  WindowsFirewallRule winFwRule;
-  Expected<WindowsFirewallRule, WindowsFirewallError> r(winFwRule);
 
   ULONG fetched = 0;
 
   VARIANT value;
   VariantInit(&value);
-
-  INetFwRule* rule = NULL;
+  std::unique_ptr<VARIANT, VariantClearer> varc(&value, VariantClearer());
 
   HRESULT hr = enumvar->Next(1, &value, &fetched);
   if (FAILED(hr)) {
-    r = createWindowsFirewallRuleError(
+    return createWindowsFirewallRuleError(
         WindowsFirewallError::PolicyRulesEnumNextError, hr);
-  } else {
-    if (hr != S_FALSE) {
-      found = true;
-      hr = VariantChangeType(&value, &value, 0, VT_DISPATCH);
+  }
+
+  if (hr != S_FALSE) {
+    found = true;
+    hr = VariantChangeType(&value, &value, 0, VT_DISPATCH);
+    if (FAILED(hr)) {
+      // Log only
+      auto err = createWindowsFirewallRuleError(
+          WindowsFirewallError::PolicyRulesEnumIDispatchError, hr);
+      TLOG << err.getError().getMessage();
+    } else {
+      INetFwRule* pRule = nullptr;
+      hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&pRule));
       if (FAILED(hr)) {
         // Log only
         auto err = createWindowsFirewallRuleError(
-            WindowsFirewallError::PolicyRulesEnumIDispatchError, hr);
+            WindowsFirewallError::PolicyRuleInterfaceError, hr);
         TLOG << err.getError().getMessage();
       } else {
-        hr = (V_DISPATCH(&value))->QueryInterface(IID_PPV_ARGS(&rule));
-        if (FAILED(hr)) {
-          // Log only
-          auto err = createWindowsFirewallRuleError(
-              WindowsFirewallError::PolicyRuleInterfaceError, hr);
-          TLOG << err.getError().getMessage();
-        } else {
-          r = populateFirewallRule(rule);
-        }
+        std::unique_ptr<INetFwRule, InterfaceReleaser<INetFwRule>> rule(
+            pRule, InterfaceReleaser<INetFwRule>());
+        return populateFirewallRule(pRule);
       }
     }
   }
 
-  // Cleanup
-  if (rule != NULL) {
-    rule->Release();
-  }
-
-  VariantClear(&value);
-
-  return r;
+  return WindowsFirewallRule();
 }
 
 Expected<WindowsFirewallRules, WindowsFirewallError> getFirewallRules(
     QueryContext& context) {
-  WindowsFirewallRules results;
-  Expected<WindowsFirewallRules, WindowsFirewallError> r(results);
-
-  INetFwPolicy2* netFwPolicy = NULL;
-  INetFwRules* rules = NULL;
-  IUnknown* enumerator = NULL;
-  IEnumVARIANT* enumvar = NULL;
-
+  INetFwPolicy2* pNetFwPolicy = nullptr;
   HRESULT hr = CoCreateInstance(__uuidof(NetFwPolicy2),
                                 NULL,
                                 CLSCTX_INPROC_SERVER,
-                                IID_PPV_ARGS(&netFwPolicy));
+                                IID_PPV_ARGS(&pNetFwPolicy));
   if (FAILED(hr)) {
-    r = createWindowsFirewallRulesError(WindowsFirewallError::NetFwPolicyError,
-                                        hr);
-    goto Cleanup;
+    return createWindowsFirewallRulesError(
+        WindowsFirewallError::NetFwPolicyError, hr);
   }
+  std::unique_ptr<INetFwPolicy2, InterfaceReleaser<INetFwPolicy2>> netFwPolicy(
+      pNetFwPolicy, InterfaceReleaser<INetFwPolicy2>());
 
-  hr = netFwPolicy->get_Rules(&rules);
+  INetFwRules* pRules = nullptr;
+  hr = netFwPolicy->get_Rules(&pRules);
   if (FAILED(hr)) {
-    r = createWindowsFirewallRulesError(WindowsFirewallError::PolicyRulesError,
-                                        hr);
-    goto Cleanup;
+    return createWindowsFirewallRulesError(
+        WindowsFirewallError::PolicyRulesError, hr);
   }
+  std::unique_ptr<INetFwRules, InterfaceReleaser<INetFwRules>> rules(
+      pRules, InterfaceReleaser<INetFwRules>());
 
-  hr = rules->get__NewEnum(&enumerator);
+  IUnknown* pEnumerator = nullptr;
+  hr = rules->get__NewEnum(&pEnumerator);
   if (FAILED(hr)) {
-    r = createWindowsFirewallRulesError(
+    return createWindowsFirewallRulesError(
         WindowsFirewallError::PolicyRulesEnumError, hr);
-    goto Cleanup;
   }
+  std::unique_ptr<IUnknown, InterfaceReleaser<IUnknown>> enumerator(
+      pEnumerator, InterfaceReleaser<IUnknown>());
 
-  hr = enumerator->QueryInterface(IID_PPV_ARGS(&enumvar));
+  IEnumVARIANT* pEnumvar = nullptr;
+  hr = enumerator->QueryInterface(IID_PPV_ARGS(&pEnumvar));
   if (FAILED(hr)) {
-    r = createWindowsFirewallRulesError(
+    return createWindowsFirewallRulesError(
         WindowsFirewallError::PolicyRulesEnumInterfaceError, hr);
-    goto Cleanup;
   }
+  std::unique_ptr<IEnumVARIANT, InterfaceReleaser<IEnumVARIANT>> enumvar(
+      pEnumvar, InterfaceReleaser<IEnumVARIANT>());
 
+  WindowsFirewallRules results;
   bool found = true;
   while (found) {
-    auto res = getNext(enumvar, found);
+    auto res = getNext(enumvar.get(), found);
     if (res.isError()) {
-      r = res.takeError();
-      break;
+      return res.takeError();
     }
     if (found) {
       results.push_back(std::move(res.get()));
     }
   }
 
-  if (!r.isError()) {
-    r = results;
-  }
-
-Cleanup:
-
-  if (enumvar != NULL) {
-    enumvar->Release();
-  }
-
-  if (enumerator != NULL) {
-    enumerator->Release();
-  }
-
-  if (rules != NULL) {
-    rules->Release();
-  }
-
-  if (netFwPolicy != NULL) {
-    netFwPolicy->Release();
-  }
-
-  return r;
+  return results;
 }
 
 } // namespace
