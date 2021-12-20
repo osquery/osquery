@@ -11,6 +11,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <osquery/events/linux/bpf/ifilesystem.h>
@@ -59,6 +60,7 @@ struct ProcessContext final {
   };
 
   using FileDescriptorMap = std::unordered_map<int, FileDescriptor>;
+  using PtraceRequestSet = std::unordered_set<std::uint64_t>;
 
   /// Parent process id
   pid_t parent_process_id{};
@@ -74,6 +76,12 @@ struct ProcessContext final {
 
   /// File descriptor map, automatically inherited when forking
   FileDescriptorMap fd_map;
+
+  /// Capabilities we have already captured with cap_capabilities
+  std::unordered_set<int> capabilities;
+
+  /// List of requests performed on each thread identifier
+  std::unordered_map<pid_t, PtraceRequestSet> ptrace_request_map;
 };
 
 using ProcessContextMap = std::unordered_map<pid_t, ProcessContext>;

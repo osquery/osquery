@@ -31,8 +31,21 @@ class ISystemStateTracker {
   struct Event final {
     using BPFHeader = tob::ebpfpub::IFunctionTracer::Event::Header;
 
-    /// Event groups. Fork; fork/vfork/clone, Exec: execve/execveat
-    enum class Type { Fork, Exec, Connect, Bind, Listen, Accept };
+    /// Event types (fork: fork/vfork/clone, exec: execve/execveat)
+    enum class Type {
+      Fork,
+      Exec,
+      Connect,
+      Bind,
+      Listen,
+      Accept,
+      Capable,
+      Ptrace,
+      InitModule,
+      FinitModule,
+      Ioctl,
+      DeleteModule,
+    };
 
     /// Event data for execve and execveat events
     struct ExecData final {
@@ -66,7 +79,78 @@ class ISystemStateTracker {
       std::uint16_t remote_port{};
     };
 
-    using Data = std::variant<std::monostate, ExecData, SocketData>;
+    /// cap_capability data
+    struct CapableData final {
+      /// Capability ID (example: CAP_SYS_ADMIN)
+      int capability{};
+    };
+
+    /// ptrace data
+    struct PtraceData final {
+      /// Ptrace action
+      std::uint64_t request{};
+
+      /// The thread id passed to the ptrace syscall
+      pid_t thread_id{};
+    };
+
+    /// init_module data
+    struct InitModuleData final {
+      /// Address of the module
+      std::uint64_t module_image{};
+
+      /// Length of the module data
+      std::uint64_t len{};
+
+      /// Parameters passed to the syscall
+      std::string param_values;
+    };
+
+    /// finit_module data
+    struct FinitModuleData final {
+      /// File descriptor of the kernel module
+      std::uint64_t fd{};
+
+      /// Kernel module path; may be missing in case of an fd lookup miss
+      std::optional<std::string> opt_path;
+
+      /// Parameters passed to the syscall
+      std::string param_values;
+
+      /// Flag list
+      std::uint64_t flags{};
+    };
+
+    /// ioctl data
+    struct IoctlData final {
+      /// File descriptor of the device
+      std::uint64_t fd{};
+
+      /// Device path; may be missing in case of an fd lookup miss
+      std::optional<std::string> opt_path;
+
+      /// Device-dependant request
+      std::uint64_t request{};
+    };
+
+    /// delete_module data
+    struct DeleteModuleData final {
+      /// Name of the kernel module to unload
+      std::string name;
+
+      /// Unload options
+      std::uint64_t flags{};
+    };
+
+    using Data = std::variant<std::monostate,
+                              ExecData,
+                              SocketData,
+                              CapableData,
+                              PtraceData,
+                              InitModuleData,
+                              FinitModuleData,
+                              IoctlData,
+                              DeleteModuleData>;
 
     /// Event type
     Type type;
@@ -209,6 +293,50 @@ class ISystemStateTracker {
                               int handle_type,
                               const std::vector<std::uint8_t>& handle,
                               int newfd) = 0;
+
+  /// \brief Includes the given capability in the row list. Only called if
+  /// exit=0
+  virtual bool capCapable(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int capability) = 0;
+
+  /// \brief Process tracing
+  virtual bool ptrace(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t request,
+      pid_t thread_id) = 0;
+
+  /// \brief Loading a kernel module from a buffer
+  virtual bool initModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t module_image,
+      std::uint64_t len,
+      const std::string& param_values) = 0;
+
+  /// \brief Loading a kernel module from a file descriptor
+  virtual bool finitModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      const std::string& param_values,
+      std::uint64_t flags) = 0;
+
+  /// \brief Device manipulation
+  virtual bool ioctl(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      std::uint64_t request) = 0;
+
+  /// \brief Used to unload kernel modules
+  virtual bool deleteModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      const std::string& name,
+      std::uint64_t flags) = 0;
 
   /// Returns the list of generated events
   virtual EventList eventList() = 0;

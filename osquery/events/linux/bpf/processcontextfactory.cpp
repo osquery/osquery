@@ -7,12 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/events/linux/bpf/processcontextfactory.h>
-#include <osquery/events/linux/bpf/uniquedir.h>
-#include <osquery/utils/conversions/tryto.h>
-
 #include <dirent.h>
 #include <fcntl.h>
+#include <osquery/events/linux/bpf/processcontextfactory.h>
+#include <osquery/events/linux/bpf/uniquedir.h>
+#include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -185,7 +185,6 @@ bool ProcessContextFactory::captureAllProcesses(
       ProcessContext process_context = {};
       if (captureSingleProcess(fs, process_context, pid)) {
         output.insert({pid, std::move(process_context)});
-      } else {
       }
     }
   );

@@ -198,6 +198,15 @@ When osquery is running on a recent kernel (>= 4.18), the BPF eventing framework
 
 In order to start the publisher and enable the subscribers, the following flags must be passed: `--disable_events=false --enable_bpf_events=true`. The `--verbose` flag can also be extremely useful when setting up the configuration for the first time, since it emit more debug information when something fails.
 
+Additional events in `bpf_process_events` can be enabled by setting the `--bpf_additional_process_events` flag:
+ * cap_capable
+ * init_module (also enables finit_module)
+ * delete_module
+ * ptrace
+ * ioctl (warning: depending on the system type and its activity, this can cause a massive amount of events)
+
+By default, it is empty. The following line for example will enable events for ptrace and kernel module loading: `--bpf_additional_process_events=ptrace,init_module`.
+
 The BPF framework will make use of a perf event array and several per-cpu maps in order to receive events and correctly capture strings and buffers. These structures can be configured using the following command line flags:
 
 - **bpf_perf_event_array_exp**: size of the perf event array, as a power of two

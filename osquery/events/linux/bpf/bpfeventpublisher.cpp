@@ -17,10 +17,34 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/time.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <fcntl.h>
 #include <sys/sysinfo.h>
 
 namespace osquery {
+
+FLAG(bool,
+     enable_bpf_events,
+     false,
+     "Enables the bpf_process_events publisher");
+
+FLAG(uint64,
+     bpf_perf_event_array_exp,
+     10ULL,
+     "Size of the perf event array as a power of 2");
+
+FLAG(uint64,
+     bpf_buffer_storage_size,
+     512ULL,
+     "How many slots each buffer storage should have");
+
+FLAG(string,
+     bpf_additional_process_events,
+     "",
+     "Additional syscalls for bpf_process_events: cap_capable, ptrace, "
+     "init_module (includes finit_module), delete_module, ioctl. Defaults to "
+     "empty");
 
 HIDDEN_FLAG(uint32,
             bpf_state_tracker_reset_time,
@@ -104,24 +128,63 @@ const FunctionTracerAllocatorList kFunctionTracerAllocators = {
      &BPFEventPublisher::processOpenByHandleAtEvent,
      1U,
      false},
+
     {"execve", &BPFEventPublisher::processExecveEvent, 3U, true},
     {"execveat", &BPFEventPublisher::processExecveatEvent, 3U, true}};
+
+FunctionTracerAllocatorList getFunctionTracerAllocators() {
+  auto func_tracer_allocators = kFunctionTracerAllocators;
+
+  std::vector<std::string> additional_event_list;
+  boost::split(additional_event_list,
+               FLAGS_bpf_additional_process_events,
+               boost::is_any_of(","));
+
+  auto L_containsEvent =
+      [&additional_event_list](const std::string& event_name) -> bool {
+    return (std::find(additional_event_list.begin(),
+                      additional_event_list.end(),
+                      event_name) != additional_event_list.end());
+  };
+
+  if (L_containsEvent("cap_capable")) {
+    func_tracer_allocators.push_back(
+        {"cap_capable", &BPFEventPublisher::processCapCapableEvent, 0U, true});
+  }
+
+  if (L_containsEvent("ptrace")) {
+    func_tracer_allocators.push_back(
+        {"ptrace", &BPFEventPublisher::processPtraceEvent, 0U, false});
+  }
+
+  if (L_containsEvent("init_module")) {
+    func_tracer_allocators.push_back(
+        {"init_module", &BPFEventPublisher::processInitModuleEvent, 0U, false});
+
+    func_tracer_allocators.push_back(
+        {"finit_module",
+         &BPFEventPublisher::processFinitModuleEvent,
+         0U,
+         false});
+  }
+
+  if (L_containsEvent("ioctl")) {
+    func_tracer_allocators.push_back(
+        {"ioctl", &BPFEventPublisher::processIoctlEvent, 0U, false});
+  }
+
+  if (L_containsEvent("delete_module")) {
+    func_tracer_allocators.push_back(
+        {"delete_module",
+         &BPFEventPublisher::processDeleteModuleEvent,
+         0U,
+         false});
+  }
+
+  return func_tracer_allocators;
+}
+
 } // namespace
-
-FLAG(bool,
-     enable_bpf_events,
-     false,
-     "Enables the bpf_process_events publisher");
-
-FLAG(uint64,
-     bpf_perf_event_array_exp,
-     10ULL,
-     "Size of the perf event array as a power of 2");
-
-FLAG(uint64,
-     bpf_buffer_storage_size,
-     512ULL,
-     "How many slots each buffer storage should have");
 
 REGISTER(BPFEventPublisher, "event_publisher", "BPFEventPublisher");
 
@@ -167,7 +230,7 @@ Status BPFEventPublisher::setUp() {
 
   d->perf_event_reader = perf_event_reader_exp.takeValue();
 
-  for (const auto& tracer_allocator : kFunctionTracerAllocators) {
+  for (const auto& tracer_allocator : getFunctionTracerAllocators()) {
     auto buffer_storage_it =
         d->buffer_storage_map.find(tracer_allocator.buffer_storage_pool);
 
@@ -204,12 +267,23 @@ Status BPFEventPublisher::setUp() {
 
       const auto& parameter_list = parameter_list_it->second;
 
+      // Attempt to create the kprobe; if it doesn't work, try again one more
+      // time using the syscall prefix
       function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
-          kKprobeSyscallPrefix + tracer_allocator.syscall_name,
+          tracer_allocator.syscall_name,
           parameter_list,
           buffer_storage,
           *d->perf_event_array.get(),
           kEventMapSize);
+
+      if (!function_tracer_exp.succeeded()) {
+        function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
+            kKprobeSyscallPrefix + tracer_allocator.syscall_name,
+            parameter_list,
+            buffer_storage,
+            *d->perf_event_array.get(),
+            kEventMapSize);
+      }
 
     } else {
       if (parameter_list_it == kParameterListMap.end()) {
@@ -1087,4 +1161,124 @@ bool BPFEventPublisher::processListenEvent(
   auto process_id = static_cast<pid_t>(event.header.process_id);
   return state.listen(event.header, process_id, static_cast<int>(fd));
 }
+
+bool BPFEventPublisher::processCapCapableEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  if (event.header.exit_code != 0) {
+    return true;
+  }
+
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::uint64_t cap{};
+  if (!getEventMapValue(cap, event.in_field_map, "cap")) {
+    return false;
+  }
+
+  return state.capCapable(event.header, process_id, static_cast<int>(cap));
+}
+
+bool BPFEventPublisher::processPtraceEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::uint64_t request{};
+  if (!getEventMapValue(request, event.in_field_map, "request")) {
+    return false;
+  }
+
+  std::uint64_t thread_id{};
+  if (!getEventMapValue(thread_id, event.in_field_map, "pid")) {
+    return false;
+  }
+
+  return state.ptrace(
+      event.header, process_id, request, static_cast<pid_t>(thread_id));
+}
+
+bool BPFEventPublisher::processInitModuleEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::uint64_t module_image{};
+  if (!getEventMapValue(module_image, event.in_field_map, "module_image")) {
+    return false;
+  }
+
+  std::uint64_t len{};
+  if (!getEventMapValue(len, event.in_field_map, "len")) {
+    return false;
+  }
+
+  std::string param_values{};
+  if (!getEventMapValue(len, event.out_field_map, "param_values")) {
+    return false;
+  }
+
+  return state.initModule(
+      event.header, process_id, module_image, len, param_values);
+}
+
+bool BPFEventPublisher::processFinitModuleEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  std::string param_values{};
+  if (!getEventMapValue(param_values, event.out_field_map, "param_values")) {
+    return false;
+  }
+
+  std::uint64_t flags{};
+  if (!getEventMapValue(flags, event.in_field_map, "flags")) {
+    return false;
+  }
+
+  return state.finitModule(event.header, process_id, fd, param_values, flags);
+}
+
+bool BPFEventPublisher::processIoctlEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::uint64_t fd{};
+  if (!getEventMapValue(fd, event.in_field_map, "fd")) {
+    return false;
+  }
+
+  std::uint64_t request{};
+  if (!getEventMapValue(request, event.in_field_map, "request")) {
+    return false;
+  }
+
+  return state.ioctl(event.header, process_id, fd, request);
+}
+
+bool BPFEventPublisher::processDeleteModuleEvent(
+    ISystemStateTracker& state,
+    const tob::ebpfpub::IFunctionTracer::Event& event) {
+  auto process_id = static_cast<pid_t>(event.header.process_id);
+
+  std::string name;
+  if (!getEventMapValue(name, event.out_field_map, "name")) {
+    return false;
+  }
+
+  std::uint64_t flags{};
+  if (!getEventMapValue(flags, event.in_field_map, "flags")) {
+    return false;
+  }
+
+  return state.deleteModule(event.header, process_id, name, flags);
+}
+
 } // namespace osquery

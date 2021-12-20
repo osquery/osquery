@@ -109,6 +109,7 @@ function(generateOsqueryTablesEventsEventstable)
     add_test(NAME osquery_tables_events_tests_seccompeventstests-test COMMAND osquery_tables_events_tests_seccompeventstests-test)
     add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
     add_test(NAME osquery_tables_events_tests_processeventstests-test COMMAND osquery_tables_events_tests_processeventstests-test)
+    add_test(NAME osquery_tables_events_tests_bpftests-test COMMAND osquery_tables_events_tests_bpftests-test)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)

@@ -101,6 +101,43 @@ class SystemStateTracker final : public ISystemStateTracker {
                               const std::vector<std::uint8_t>& handle,
                               int newfd) override;
 
+  virtual bool capCapable(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int capability) override;
+
+  virtual bool ptrace(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t request,
+      pid_t thread_id) override;
+
+  virtual bool initModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t module_image,
+      std::uint64_t len,
+      const std::string& param_values) override;
+
+  virtual bool finitModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      const std::string& param_values,
+      std::uint64_t flags) override;
+
+  virtual bool ioctl(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      std::uint64_t request) override;
+
+  virtual bool deleteModule(
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      const std::string& name,
+      std::uint64_t flags) override;
+
   virtual EventList eventList() override;
 
   struct Context;
@@ -232,6 +269,55 @@ class SystemStateTracker final : public ISystemStateTracker {
                              int handle_type,
                              const std::vector<std::uint8_t>& handle,
                              int newfd);
+
+  static bool capCapable(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      int capability);
+
+  static bool ptrace(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t request,
+      pid_t thread_id);
+
+  static bool initModule(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t module_image,
+      std::uint64_t len,
+      const std::string& param_values);
+
+  static bool finitModule(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      const std::string& param_values,
+      std::uint64_t flags);
+
+  static bool ioctl(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      std::uint64_t fd,
+      std::uint64_t request);
+
+  static bool deleteModule(
+      Context& context,
+      IProcessContextFactory& process_context_factory,
+      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      pid_t process_id,
+      const std::string& name,
+      std::uint64_t flags);
 
   static bool parseUnixSockaddr(std::string& path,
                                 const std::vector<std::uint8_t>& sockaddr);
