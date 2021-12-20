@@ -428,10 +428,11 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
   for (const auto& key : rKeys) {
     QueryData regResults;
     auto ret = queryKey(key, regResults);
-    if (!ret.ok() && ret.getCode() == ERROR_FILE_NOT_FOUND) {
-      continue;
-    }
     if (!ret.ok()) {
+      if(ret.getCode() == ERROR_FILE_NOT_FOUND) {
+        continue;
+      }
+
       return ret;
     }
     for (const auto& r : regResults) {
