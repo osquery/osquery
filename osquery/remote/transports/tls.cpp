@@ -22,7 +22,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::string kTLSUserAgentBase = "osquery/";
+const std::string kTLSUserAgentBase = STR(OSQUERY_UA_PREFIX);
 
 /// TLS server hostname.
 CLI_FLAG(string,
