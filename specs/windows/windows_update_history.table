@@ -14,7 +14,7 @@ schema([
     Column("update_id", TEXT, "Revision-independent identifier of an update"),
     Column("update_revision", BIGINT, "Revision number of an update"),
 ])
-implementation("windows_update_history@genUpdateHistory")
+implementation("windows_update_history@genWindowsUpdateHistory")
 examples([
     "select * from windows_update_history",
 ])

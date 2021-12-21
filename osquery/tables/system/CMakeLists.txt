@@ -360,6 +360,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/users.h
       windows/windows_eventlog.h
+      windows/windows_update_history.h
     )
   endif()
 
