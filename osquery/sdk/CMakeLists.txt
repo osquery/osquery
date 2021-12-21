@@ -15,7 +15,13 @@ function(osquerySdkMain)
 endfunction()
 
 function(generateOsquerySdkPluginsdk)
-  add_osquery_library(osquery_sdk_pluginsdk EXCLUDE_FROM_ALL empty_register_foreign_tables.cpp)
+  add_library(osquery_sdk_pluginsdk_emptyforeigntables OBJECT EXCLUDE_FROM_ALL
+    empty_register_foreign_tables.cpp
+  )
+
+  add_library(osquery_sdk_pluginsdk
+    "$<TARGET_OBJECTS:osquery_sdk_pluginsdk_emptyforeigntables>"
+  )
 
   target_link_libraries(osquery_sdk_pluginsdk INTERFACE
     osquery_cxx_settings

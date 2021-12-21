@@ -61,19 +61,50 @@ function(osqueryMainHarnesses)
 
   generateIncludeNamespace(osquery_harnesses "osquery/main/harnesses" "FILE_ONLY" ${public_header_files})
 
-  generateOsqueryFuzzHarness(osqueryfuzz-config fuzz_config.cpp)
-  generateOsqueryFuzzHarness(osqueryfuzz-sqlquery fuzz_sqlquery.cpp)
+  generateOsqueryFuzzHarness(NAME osqueryfuzz-config SOURCES fuzz_config.cpp)
+  generateOsqueryFuzzHarness(NAME osqueryfuzz-sqlquery SOURCES fuzz_sqlquery.cpp)
+
+  set(osqueryfuzz_auditparser_deps
+    osquery_core_init
+    osquery_extensions_implthrift
+    osquery_sdk_pluginsdk_emptyforeigntables
+    osquery_tables_events_eventstable
+  )
+  generateOsqueryFuzzHarness(
+    NAME osqueryfuzz-auditparser
+    SOURCES fuzz_auditparser.cpp
+    DEPS ${osqueryfuzz_auditparser_deps}
+  )
+
+  generateIncludeNamespace(osqueryfuzz-auditparser "osquery/main/harnesses" "FILE_ONLY" ${public_header_files})
+
 endfunction()
 
-function(generateOsqueryFuzzHarness harness_name source_files)
-  add_osquery_executable(${harness_name} ${source_files})
+function(generateOsqueryFuzzHarness)
+  set(oneValueArgs NAME)
+  set(multiValueArgs SOURCES DEPS INCLUDES)
+
+  cmake_parse_arguments(HARNESS "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  add_osquery_executable(${HARNESS_NAME} ${HARNESS_SOURCES})
   # TODO: osquery-toolchain libFuzzer is not compiled with -fPIC support,
   # temporarily disable PIE until the toolchain is fixed.
   if(DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
-    set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
+    set_target_properties(${HARNESS_NAME} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
   endif()
-  target_link_libraries(${harness_name} PRIVATE osquery_harnesses)
-  target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
+
+  if("${HARNESS_DEPS}" STREQUAL "")
+    target_link_libraries(${HARNESS_NAME} PRIVATE osquery_harnesses)
+  else()
+    list(APPEND HARNESS_DEPS osquery_cxx_settings)
+    target_link_libraries(${HARNESS_NAME} PRIVATE ${HARNESS_DEPS})
+  endif()
+
+  target_link_options(${HARNESS_NAME} PRIVATE -fsanitize=fuzzer)
+
+  if(NOT "${HARNESS_INCLUDES}" STREQUAL "")
+    target_include_directories(${HARNESS_NAME} PRIVATE ${HARNESS_INCLUDES})
+  endif()
 endfunction()
 
 osqueryMainHarnesses()
