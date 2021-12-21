@@ -125,6 +125,7 @@ void validateRendered(const tables::WindowsFirewallRule& rule, Row& row) {
   }
 
   ASSERT_EQ(INTEGER(rule.enabled), row["enabled"]);
+  ASSERT_EQ(rule.grouping, row["grouping"]);
 
   switch (rule.direction) {
   case NET_FW_RULE_DIR_IN:
@@ -165,6 +166,7 @@ void validateRendered(const tables::WindowsFirewallRule& rule, Row& row) {
             row["profile_private"]);
   ASSERT_EQ(INTEGER(bool(rule.profileBitmask & NET_FW_PROFILE2_PUBLIC)),
             row["profile_public"]);
+  ASSERT_EQ(rule.serviceName, row["service_name"]);
 }
 
 } // namespace
