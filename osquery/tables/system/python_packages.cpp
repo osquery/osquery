@@ -39,9 +39,12 @@ const std::set<std::string> kPythonPath = {
     "/Library/Python/%/site-packages",
 };
 
+// clang-format off
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions",
+    "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions",
 };
+// clang-format on
 
 const std::string kWinPythonInstallKey =
     "SOFTWARE\\Python\\PythonCore\\%\\InstallPath";

@@ -9,7 +9,7 @@
 
 #include <unordered_map>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/core/flags.h>
 #include <osquery/dispatcher/dispatcher.h>

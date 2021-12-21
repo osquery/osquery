@@ -11,7 +11,7 @@
 #include <ctime>
 
 #include <boost/format.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/carver/carver.h>
 #include <osquery/config/config.h>

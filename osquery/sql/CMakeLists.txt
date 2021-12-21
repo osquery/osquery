@@ -57,7 +57,7 @@ function(generateOsquerySql)
 
   if(NOT DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_sql PUBLIC
-      thirdparty_ssdeep-cpp
+      thirdparty_ssdeep
     )
   endif()
 

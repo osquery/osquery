@@ -22,7 +22,7 @@
 #include <sys/time.h>
 
 #include <boost/format.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/logger/logger.h>
 #include <osquery/numeric_monitoring/numeric_monitoring.h>

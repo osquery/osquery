@@ -18,6 +18,7 @@
 #include <boost/make_unique.hpp>
 
 #include "osquery/tests/test_util.h"
+#include <osquery/config/tests/test_utils.h>
 
 namespace fs = boost::filesystem;
 
@@ -28,26 +29,10 @@ void genSignatureForFile(const std::string& path,
                          bool hashResources,
                          QueryData& results);
 
-// Gets the full path to the current executable (only works on Darwin)
-std::string getExecutablePath() {
-  uint32_t size = 1024;
-
-  while (true) {
-    auto buf = boost::make_unique<char[]>(size);
-
-    if (_NSGetExecutablePath(buf.get(), &size) == 0) {
-      return std::string(buf.get());
-    }
-
-    // If we get here, the buffer wasn't large enough, and we need to
-    // reallocate.  We just continue the loop and will reallocate above.
-  }
-}
-
-// Get the full, real path to the current executable (only works on Darwin).
-std::string getRealExecutablePath() {
-  auto path = getExecutablePath();
-  return fs::canonical(path).string();
+// Get the full, real path to the unsigned test executable (only works on
+// Darwin).
+std::string getUnsignedExecutablePath() {
+  return (getTestConfigDirectory() / "unsigned_test").string();
 }
 
 class SignatureTest : public testing::Test {
@@ -107,7 +92,7 @@ TEST_F(SignatureTest, test_get_valid_signature) {
  * relying on a particular binary to be present.
  */
 TEST_F(SignatureTest, test_get_unsigned) {
-  std::string path = getRealExecutablePath();
+  std::string path = getUnsignedExecutablePath();
 
   QueryData results;
   genSignatureForFile(path, true, results);
@@ -125,13 +110,51 @@ TEST_F(SignatureTest, test_get_unsigned) {
   }
 }
 
+/**
+ * Invalidate a universal binary's signature by modifying one byte in each
+ * architecture section.
+ */
+void invalidateUniversalBinarySignature(std::vector<uint8_t>& binary) {
+  uint32_t sliceCount;
+  uint32_t offset;
+  uint32_t sliceSize;
+
+  // offset 4 = uint32 number of architecture slices
+  sliceCount = CFSwapInt32BigToHost(*(uint32_t*)&binary[4]);
+
+  // offset 8 = uint32 start of first slice header
+  uint32_t sliceHeader = 8;
+  for (uint32_t i = 0; i < sliceCount; ++i) {
+    // slice header offset 8 = offset to slice data
+    offset = CFSwapInt32BigToHost(*(uint32_t*)&binary[sliceHeader + 8]);
+    // slice header offset 12 = size of slice data, in bytes
+    sliceSize = CFSwapInt32BigToHost(*(uint32_t*)&binary[sliceHeader + 12]);
+
+    // slice headers are 20 bytes in length, go to the next slice header
+    sliceHeader += 20;
+    if (offset && sliceSize) {
+      // Modify the middle most byte in the architecture slice
+      uint32_t target = offset + (sliceSize / 2);
+      binary[target] = ~binary[target];
+    }
+  }
+}
+
+/**
+ * Invalidate a Mach-O binary by modifying one byte in the middle of the file.
+ */
+void invalidateMachOBinarySignature(std::vector<uint8_t>& binary) {
+  uint32_t offset = binary.size() / 2;
+  binary[offset] = ~binary[offset];
+}
+
 /*
  * Ensures that the results for a signed but invalid binary are correct.
  *
  * This test is a bit of a hack - we copy an existing signed binary (/bin/ls,
- * like above), and then modify one byte in the middle of the file by XORing it
- * with 0xBA.  This should ensure that it differs from whatever the original
- * byte was, and should thus invalidate the signature.
+ * like above), and then modify one byte in each architecture slice. This should
+ * ensure that it differs from whatever the original byte was, and should thus
+ * invalidate the signature for the slice.
  */
 TEST_F(SignatureTest, test_get_invalid_signature) {
   std::string originalPath = "/bin/ls";
@@ -151,9 +174,12 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   fclose(f);
   ASSERT_EQ(nread, binary.size());
 
-  // Actually modify a byte.
-  size_t offset = binary.size() / 2;
-  binary[offset] = binary[offset] ^ 0xBA;
+  uint32_t magic = *(uint32_t*)&binary[0];
+  if (magic == 0xCAFEBABE || magic == 0xBEBAFECA) {
+    invalidateUniversalBinarySignature(binary);
+  } else {
+    invalidateMachOBinarySignature(binary);
+  }
 
   // Write it back to a file.
   f = fopen(newPath.c_str(), "wb");

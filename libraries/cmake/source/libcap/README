@@ -1,0 +1,42 @@
+# Linux
+
+## Common
+
+Prepare the environment
+
+```bash
+export PATH="/opt/osquery-toolchain/usr/bin:${PATH}"
+export CFLAGS="--sysroot /opt/osquery-toolchain"
+export CXXFLAGS="${CFLAGS}"
+export CPPFLAGS="${CFLAGS}"
+export LDFLAGS="${CFLAGS}"
+export CC=clang
+```
+
+Force the makefile to use clang instead of gcc
+
+```
+sed 's/gcc/clang/g' -i Make.Rules
+```
+
+In case you are using `llvm-as`, you will have to wrap it so that it can correctly ignore the `-Qy` parameter (standard `as` does the same).
+
+Place this script in a folder, then mark it executable and add it at the start of your PATH variable:
+
+```
+#!/usr/bin/env bash
+
+/opt/osquery-toolchain/usr/bin/llvm-as $(echo $@ | sed 's/-Qy//g')
+exit $?
+```
+
+Build the library
+
+```
+PAM_CAP=no make -j $(nproc)
+```
+
+Copy the generated augeas files:
+
+ - `libcap/cap_names.h`
+ - `libcap/cap_names.list.h`

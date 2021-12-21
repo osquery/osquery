@@ -9,13 +9,6 @@
 
 #pragma once
 
-#ifdef WIN32
-#ifndef GLOG_NO_ABBREVIATED_SEVERITIES
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-#endif
-#define GOOGLE_GLOG_DLL_DECL
-#endif
-
 #include <glog/logging.h>
 
 namespace osquery {

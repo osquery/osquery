@@ -8,7 +8,7 @@ The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, 
 
 ## Prerequisites
 
-Git (>= 2.14.0), CMake (>= 3.17.5), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+Git (>= 2.14.0), CMake (>= 3.21.4), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -38,11 +38,8 @@ sudo tar xvf osquery-toolchain-1.1.0-${ARCH}.tar.xz -C /usr/local
 
 # Download and install a newer CMake.
 # Afterward, verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`.
-# Please see the note below for building CMake on aarch64.
-if [[ "${ARCH}" = "x86_64" ]]; then
-  wget https://cmake.org/files/v3.17/cmake-3.17.5-Linux-${ARCH}.tar.gz
-  sudo tar xvf cmake-3.17.5-Linux-${ARCH}.tar.gz -C /usr/local --strip 1
-fi
+wget https://cmake.org/files/v3.21/cmake-3.21.4-linux-${ARCH}.tar.gz
+sudo tar xvf cmake-3.21.4-linux-${ARCH}.tar.gz -C /usr/local --strip 1
 
 # Download source
 git clone https://github.com/osquery/osquery
@@ -52,24 +49,6 @@ cd osquery
 mkdir build; cd build
 cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
-```
-
-**CMake on aarch64**
-
-If you are building for aarch64 then please notes CMake > 3.19.3 includes aarch64 Linux binaries,
-however it also has a bug that prevents creating RPMs properly.
-
-Prefer to build and install CMake from source:
-
-```bash
-wget https://github.com/Kitware/CMake/releases/download/v3.17.5/cmake-3.17.5.tar.gz
-sudo apt install gcc g++ libssl-dev
-tar zxvf cmake-3.17.5.tar.gz
-pushd cmake-3.17.5/
-./bootstrap -- -DCMAKE_BUILD_TYPE:STRING=Release
-make -j`nproc`
-sudo make install
-popd
 ```
 
 ## macOS
@@ -134,7 +113,7 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CMake](https://cmake.org/) (>= 3.17.5): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
+- [CMake](https://cmake.org/) (>= 3.21.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
 - Visual Studio 2019 (2 options)
   1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
   2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".

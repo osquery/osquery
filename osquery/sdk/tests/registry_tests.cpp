@@ -11,7 +11,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <unordered_set>
 #include <vector>

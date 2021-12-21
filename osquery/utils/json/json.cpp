@@ -11,6 +11,8 @@
 
 #include <osquery/utils/conversions/tryto.h>
 
+#include <algorithm>
+
 namespace rj = rapidjson;
 
 namespace osquery {
