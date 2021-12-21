@@ -291,7 +291,7 @@ void FilesystemLoggerPlugin::init(const std::string& name,
   }
 
   // Restart the Glog facilities using the name `init` was provided.
-  google::InitGoogleLogging(name.c_str());
+  google::InitGoogleLogging(name.c_str(), &googleLogCustomPrefix);
 
   // We may violate Glog global object assumptions. So set names manually.
   auto basename = (pimpl_->log_path / name).string();

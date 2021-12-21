@@ -75,9 +75,21 @@ function(opensslMain)
       )
     endif()
 
+    if(TARGET_PROCESSOR STREQUAL "aarch64")
+      set(target_name
+        "darwin64-arm64-cc"
+      )
+    elseif(TARGET_PROCESSOR STREQUAL "x86_64")
+      set(target_name
+        "darwin64-x86_64-cc"
+      )
+    else()
+      message(FATAL_ERROR "Unsupported target processor")
+    endif()
+
     set(configure_command
       "${CMAKE_COMMAND}" -E env "CC=${CMAKE_C_COMPILER}" "AR=${CMAKE_AR}"
-      perl ./Configure darwin64-x86_64-cc
+      perl ./Configure "${target_name}"
         ${common_options}
         ${OSQUERY_FORMULA_CFLAGS}
 

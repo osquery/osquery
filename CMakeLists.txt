@@ -5,9 +5,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.17.5 FATAL_ERROR)
-
-cmake_policy(SET CMP0083 NEW)
+cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
 
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
@@ -110,22 +108,19 @@ function(importLibraries)
     "Linux:libudev"
     "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
-    "Linux,Darwin:lldpd"
     "Linux,Darwin,Windows:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
     "Linux,Darwin,Windows:sleuthkit"
-    "Linux,Darwin:smartmontools"
     "Linux,Darwin,Windows:sqlite"
-    "Linux,Darwin:ssdeep-cpp"
+    "Linux,Darwin:ssdeep"
     "Linux,Darwin,Windows:thrift"
     "Linux:util-linux"
     "Linux,Darwin,Windows:yara"
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
-    "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"
@@ -146,6 +141,14 @@ function(importLibraries)
   if(OSQUERY_BUILD_DPKG)
     list(APPEND library_descriptor_list
       "Linux:libdpkg"
+    )
+  endif()
+
+  # We want to remove support for lldpd and smartmontools, so skip support for M1
+  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    list(APPEND library_descriptor_list
+      "Linux,Darwin:lldpd"
+      "Linux,Darwin:smartmontools"
     )
   endif()
 

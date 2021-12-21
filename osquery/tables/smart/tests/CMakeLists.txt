@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSmartTestsMain)
-  if(DEFINED PLATFORM_POSIX)
+  # We want to remove support for smartmontools, so skip support for M1
+  if(DEFINED PLATFORM_LINUX OR (DEFINED PLATFORM_MACOS AND NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64"))
     generateOsqueryTablesSmartTestsSmartdrivestestsTest()
   endif()
 endfunction()

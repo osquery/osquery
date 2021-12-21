@@ -8,7 +8,7 @@
  */
 
 #include <boost/algorithm/string.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/linux/cpu.h>

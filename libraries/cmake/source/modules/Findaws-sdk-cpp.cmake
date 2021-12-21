@@ -1,3 +1,4 @@
+
 # Copyright (c) 2014-present, The osquery authors
 #
 # This source code is licensed as defined by the LICENSE file found in the
@@ -8,11 +9,23 @@
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 importSourceSubmodule(
-  NAME "aws-sdk-cpp"
+  NAME
+    "aws-sdk-cpp"
+
+  NO_RECURSIVE
 
   SHALLOW_SUBMODULES
-    "aws-c-common_src"
-    "aws-c-event-stream_src"
-    "aws-checksums_src"
-    "aws-sdk-cpp_src"
+    "src/aws-c-auth"
+    "src/aws-c-cal"
+    "src/aws-c-common"
+    "src/aws-c-compression"
+    "src/aws-c-event-stream"
+    "src/aws-checksums"
+    "src/aws-c-http"
+    "src/aws-c-io"
+    "src/aws-c-mqtt"
+    "src/aws-crt-cpp"
+    "src/aws-c-s3"
+    "src/aws-sdk-cpp"
+    "src/s2n"
 )

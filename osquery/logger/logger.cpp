@@ -250,7 +250,7 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
   if (init_glog) {
-    google::InitGoogleLogging(name.c_str());
+    google::InitGoogleLogging(name.c_str(), &googleLogCustomPrefix);
   }
 
   if (!FLAGS_disable_logging) {
@@ -543,5 +543,16 @@ void systemLog(const std::string& line) {
 #ifndef WIN32
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
+}
+
+void googleLogCustomPrefix(std::ostream& s,
+                           const LogMessageInfo& l,
+                           void* data) {
+  s << l.severity[0] << std::setw(2) << (l.time.month() + 1) << std::setw(2)
+    << l.time.day() << ' ' << std::setw(2) << l.time.hour() << ':'
+    << std::setw(2) << l.time.min() << ':' << std::setw(2) << l.time.sec()
+    << '.' << std::setw(6) << l.time.usec() << ' ' << std::setfill(' ')
+    << std::setw(5) << l.thread_id << std::setfill('0') << ' ' << l.filename
+    << ':' << l.line_number << ']';
 }
 } // namespace osquery

@@ -8,15 +8,15 @@
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 importSourceSubmodule(
-  NAME "augeas"
-
-  NO_RECURSIVE
+  NAME "augeas/gnulib"
 
   SHALLOW_SUBMODULES "src"
 )
 
 importSourceSubmodule(
-  NAME "augeas/gnulib"
+  NAME "augeas"
+
+  NO_RECURSIVE
 
   SHALLOW_SUBMODULES "src"
 )

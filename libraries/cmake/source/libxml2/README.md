@@ -1,29 +1,200 @@
-# libxml2
+# Linux
 
-## Linux
+## Common
 
-Using Ubuntu 14.04 (glibc 2.12)
+Make sure you are working on a clean source folder
 
-```sh
-ldd --version
-ldd (GNU libc) 2.12.2
+```
+git reset --hard ; git clean -ffdx
 ```
 
-Generated with the following commands:
+Integrate the osquery-toolchain in the main CMakeLists.txt file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
 
-```sh
-export PATH=/usr/local/osquery-toolchain/usr/bin:$PATH
-export CFLAGS="--sysroot /usr/local/osquery-toolchain"
-export CXXFLAGS="${CFLAGS}"
-export LDFLAGS="${CFLAGS}"
-export CC=clang
+Force the following `check_include_files()` checks: `stdint.h`, `math.h`, `ctype.h`, `unistd.h`.
 
-./autogen.sh
-./configure --enable-static
+```
+cmake \
+  -S . \
+  -B build \
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DLIBXML2_WITH_C14N=ON \
+  -DLIBXML2_WITH_CATALOG=OFF \
+  -DLIBXML2_WITH_DEBUG=OFF \
+  -DLIBXML2_WITH_DOCB=OFF \
+  -DLIBXML2_WITH_FTP=OFF \
+  -DLIBXML2_WITH_HTML=OFF \
+  -DLIBXML2_WITH_HTTP=OFF \
+  -DLIBXML2_WITH_ICONV=OFF \
+  -DLIBXML2_WITH_ICU=OFF \
+  -DLIBXML2_WITH_ISO8859X=OFF \
+  -DLIBXML2_WITH_LEGACY=OFF \
+  -DLIBXML2_WITH_LZMA=OFF \
+  -DLIBXML2_WITH_MEM_DEBUG=OFF \
+  -DLIBXML2_WITH_MODULES=OFF \
+  -DLIBXML2_WITH_OUTPUT=ON \
+  -DLIBXML2_WITH_PATTERN=ON \
+  -DLIBXML2_WITH_PROGRAMS=OFF \
+  -DLIBXML2_WITH_PUSH=ON \
+  -DLIBXML2_WITH_PYTHON=OFF \
+  -DLIBXML2_WITH_READER=ON \
+  -DLIBXML2_WITH_REGEXPS=ON \
+  -DLIBXML2_WITH_RUN_DEBUG=OFF \
+  -DLIBXML2_WITH_SAX1=OFF \
+  -DLIBXML2_WITH_SCHEMAS=OFF \
+  -DLIBXML2_WITH_SCHEMATRON=OFF \
+  -DLIBXML2_WITH_TESTS=OFF \
+  -DLIBXML2_WITH_THREADS=ON \
+  -DLIBXML2_WITH_THREAD_ALLOC=OFF \
+  -DLIBXML2_WITH_TREE=ON \
+  -DLIBXML2_WITH_VALID=OFF \
+  -DLIBXML2_WITH_WRITER=ON \
+  -DLIBXML2_WITH_XINCLUDE=OFF \
+  -DLIBXML2_WITH_XPATH=ON \
+  -DLIBXML2_WITH_XPTR=ON \
+  -DLIBXML2_WITH_ZLIB=ON \
+  -DHAVE_STDINT_H:BOOL=true \
+  -DHAVE_MATH_H:BOOL=true \
+  -DHAVE_CTYPE_H:BOOL=true \
+  -DHAVE_UNISTD_H:BOOL=true \
+  -DHAVE_VA_COPY:BOOL=true
 ```
 
-Then copy
+Build the project
 
-```sh
-cp ./config.h ../config/posix
 ```
+cmake \
+  --build build \
+  -j $(nproc)
+```
+
+
+# macOS
+
+## Common
+
+Make sure you are working on a clean source folder
+
+```
+git reset --hard ; git clean -ffdx
+```
+
+When building for M1, also pass the following parameter: `-DCMAKE_OSX_ARCHITECTURES=arm64` and change `-DCMAKE_OSX_DEPLOYMENT_TARGET` to `10.15`
+
+```
+cmake \
+  -S . \
+  -B build \
+  -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DLIBXML2_WITH_C14N=ON \
+  -DLIBXML2_WITH_CATALOG=OFF \
+  -DLIBXML2_WITH_DEBUG=OFF \
+  -DLIBXML2_WITH_DOCB=OFF \
+  -DLIBXML2_WITH_FTP=OFF \
+  -DLIBXML2_WITH_HTML=OFF \
+  -DLIBXML2_WITH_HTTP=OFF \
+  -DLIBXML2_WITH_ICONV=OFF \
+  -DLIBXML2_WITH_ICU=OFF \
+  -DLIBXML2_WITH_ISO8859X=OFF \
+  -DLIBXML2_WITH_LEGACY=OFF \
+  -DLIBXML2_WITH_LZMA=OFF \
+  -DLIBXML2_WITH_MEM_DEBUG=OFF \
+  -DLIBXML2_WITH_MODULES=OFF \
+  -DLIBXML2_WITH_OUTPUT=ON \
+  -DLIBXML2_WITH_PATTERN=ON \
+  -DLIBXML2_WITH_PROGRAMS=OFF \
+  -DLIBXML2_WITH_PUSH=ON \
+  -DLIBXML2_WITH_PYTHON=OFF \
+  -DLIBXML2_WITH_READER=ON \
+  -DLIBXML2_WITH_REGEXPS=ON \
+  -DLIBXML2_WITH_RUN_DEBUG=OFF \
+  -DLIBXML2_WITH_SAX1=OFF \
+  -DLIBXML2_WITH_SCHEMAS=OFF \
+  -DLIBXML2_WITH_SCHEMATRON=OFF \
+  -DLIBXML2_WITH_TESTS=OFF \
+  -DLIBXML2_WITH_THREADS=ON \
+  -DLIBXML2_WITH_THREAD_ALLOC=OFF \
+  -DLIBXML2_WITH_TREE=ON \
+  -DLIBXML2_WITH_VALID=OFF \
+  -DLIBXML2_WITH_WRITER=ON \
+  -DLIBXML2_WITH_XINCLUDE=OFF \
+  -DLIBXML2_WITH_XPATH=ON \
+  -DLIBXML2_WITH_XPTR=ON \
+  -DLIBXML2_WITH_ZLIB=ON
+```
+
+Build the project
+
+```
+cmake \
+  --build build \
+  -j $(nproc)
+```
+
+
+# Windows
+
+Make sure you are working on a clean source folder
+
+```
+git reset --hard ; git clean -ffdx
+```
+
+```
+cmake ^
+  -S . ^
+  -B build ^
+  -DBUILD_SHARED_LIBS=OFF ^
+  -DLIBXML2_WITH_C14N=ON ^
+  -DLIBXML2_WITH_CATALOG=OFF ^
+  -DLIBXML2_WITH_DEBUG=OFF ^
+  -DLIBXML2_WITH_DOCB=OFF ^
+  -DLIBXML2_WITH_FTP=OFF ^
+  -DLIBXML2_WITH_HTML=OFF ^
+  -DLIBXML2_WITH_HTTP=OFF ^
+  -DLIBXML2_WITH_ICONV=OFF ^
+  -DLIBXML2_WITH_ICU=OFF ^
+  -DLIBXML2_WITH_ISO8859X=OFF ^
+  -DLIBXML2_WITH_LEGACY=OFF ^
+  -DLIBXML2_WITH_LZMA=OFF ^
+  -DLIBXML2_WITH_MEM_DEBUG=OFF ^
+  -DLIBXML2_WITH_MODULES=OFF ^
+  -DLIBXML2_WITH_OUTPUT=ON ^
+  -DLIBXML2_WITH_PATTERN=ON ^
+  -DLIBXML2_WITH_PROGRAMS=OFF ^
+  -DLIBXML2_WITH_PUSH=ON ^
+  -DLIBXML2_WITH_PYTHON=OFF ^
+  -DLIBXML2_WITH_READER=ON ^
+  -DLIBXML2_WITH_REGEXPS=ON ^
+  -DLIBXML2_WITH_RUN_DEBUG=OFF ^
+  -DLIBXML2_WITH_SAX1=OFF ^
+  -DLIBXML2_WITH_SCHEMAS=OFF ^
+  -DLIBXML2_WITH_SCHEMATRON=OFF ^
+  -DLIBXML2_WITH_TESTS=OFF ^
+  -DLIBXML2_WITH_THREADS=ON ^
+  -DLIBXML2_WITH_THREAD_ALLOC=OFF ^
+  -DLIBXML2_WITH_TREE=ON ^
+  -DLIBXML2_WITH_VALID=OFF ^
+  -DLIBXML2_WITH_WRITER=ON ^
+  -DLIBXML2_WITH_XINCLUDE=OFF ^
+  -DLIBXML2_WITH_XPATH=ON ^
+  -DLIBXML2_WITH_XPTR=ON ^
+  -DLIBXML2_WITH_ZLIB=ON
+```
+
+Build the project
+
+```
+cmake ^
+  --build build ^
+  --config Release
+```
+
+# All Platforms
+
+Copy the generated config files:
+
+`build/config.h` -> `config/<os>/<arch>/`
+`build/libxml/xmlversion.h` -> `version/<os>/<arch>/libxml/`

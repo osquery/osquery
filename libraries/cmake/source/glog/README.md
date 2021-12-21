@@ -1,62 +1,50 @@
-# glog
+# Linux
 
-Notes to reproduce the library configuration and generated files
+## x86
 
-## Linux
-
-Using CentOS 6.10 (glibc 2.12)
+Generated with the following commands:
 
 ```sh
-ldd --version
-ldd (GNU libc) 2.12
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_SYSROOT=/usr/local/osquery-toolchain -DCMAKE_CXX_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread"
 ```
 
-Install CMake
+## AArch64
+
+Generated with the following commands:
 
 ```sh
-wget https://cmake.org/files/v3.17/cmake-3.17.5-Linux-x86_64.tar.gz
-sudo tar xvf cmake-3.17.5-Linux-x86_64.tar.gz -C /usr/local --strip 1
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_SYSROOT=/usr/local/osquery-toolchain -DCMAKE_CXX_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread"
 ```
 
-Install the osquery toolchain
-
-```sh
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-x86_64.tar.xz
-sudo tar xvf osquery-toolchain-1.1.0-x86_64.tar.xz -C /usr/local
-```
+# Windows
 
 Configure with
 
 ```sh
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DCMAKE_SYSROOT=/usr/local/osquery-toolchain -DCMAKE_CXX_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/osquery-toolchain/usr/bin/clang -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread"
+cmake -G "Visual Studio 16 2019" -A x64 ../ -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON
 ```
 
 
-## Windows
+# macOS
 
-Configure with
+## x86
 
 ```sh
-cmake -G "Visual Studio 16 2019" -A x64 ../ -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12
 ```
-
-
-## macOS
-
-Configure with
+## M1
 
 ```sh
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
 ```
 
-
-## All platforms
+# All platforms
 
 Copy the generated files from the build folder, to the respective folders in the osquery source under `libraries/cmake/source/glog/generated`
 
 ```
-glog -> libraries/cmake/source/glog/generated/<os>/public/glog
-config.h -> libraries/cmake/source/glog/generated/<os>/private/config.h
+glog -> libraries/cmake/source/glog/generated/<os>/<architecture>/public/glog
+config.h -> libraries/cmake/source/glog/generated/<os>/<architecture>private/config.h
 ```
 
-Edit `TEST_SRC_DIR` in `generated/<os>/private/config.h` and set it to `""`, since it's not necessary
+Edit `TEST_SRC_DIR` in `generated/<os>/<architecture>/private/config.h` and set it to `""`, since it's not necessary

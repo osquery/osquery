@@ -11,6 +11,8 @@
 #include <grp.h>
 #include <sys/stat.h>
 
+#include <sstream>
+
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/tables.h>
@@ -73,52 +75,38 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   return Status::success();
 }
 
-bool isSuidBin(const fs::path& path, int perms) {
-  if (!fs::is_regular_file(path)) {
-    return false;
-  }
-
-  if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
-    return true;
-  }
-  return false;
-}
-
 void genSuidBinsFromPath(const std::string& path,
                          QueryData& results,
                          Logger& logger) {
   if (!pathExists(path).ok()) {
-    // Creating an iterator on a missing path will except.
     return;
   }
 
-  auto it = fs::recursive_directory_iterator(fs::path(path));
-  fs::recursive_directory_iterator end;
-  while (it != end) {
-    fs::path subpath = *it;
-    try {
-      // Do not traverse symlinked directories.
-      if (fs::is_directory(subpath) && fs::is_symlink(subpath)) {
-        it.no_push();
+  boost::filesystem::path dir_entry_path;
+
+  try {
+    auto dir_entry_it = fs::recursive_directory_iterator(fs::path(path));
+
+    for (const auto& dir_entry : dir_entry_it) {
+      dir_entry_path = dir_entry.path();
+
+      boost::system::error_code error_code{};
+      if (!fs::is_regular_file(dir_entry_path, error_code)) {
+        continue;
       }
 
-      int perms = it.status().permissions();
-      if (isSuidBin(subpath, perms)) {
-        // Only emit suid bins.
-        genBin(subpath, perms, results);
-      }
-
-      ++it;
-    } catch (fs::filesystem_error& e) {
-      logger.vlog(1, "Cannot read binary from " + subpath.string());
-      it.no_push();
-      // Try to recover, otherwise break.
-      try {
-        ++it;
-      } catch (fs::filesystem_error& e) {
-        break;
+      auto perms = dir_entry.status().permissions();
+      if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
+        genBin(dir_entry_path, perms, results);
       }
     }
+
+  } catch (fs::filesystem_error& e) {
+    std::stringstream buffer;
+    buffer << "Failed to iterate through the setuid/setgid binaries in "
+           << buffer.str() << " Error: " << e.what();
+
+    logger.vlog(1, buffer.str());
   }
 }
 

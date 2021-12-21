@@ -111,6 +111,14 @@ if("${THIRD_PARTY_REPOSITORY_URL}" STREQUAL "")
   set(THIRD_PARTY_REPOSITORY_URL "https://s3.amazonaws.com/osquery-packages")
 endif()
 
+# When building on macOS, make sure we are only building one architecture at a time
+if(PLATFORM_MACOS)
+  list(LENGTH CMAKE_OSX_ARCHITECTURES osx_arch_count)
+  if(osx_arch_count GREATER 1)
+    message(FATAL_ERROR "The CMAKE_OSX_ARCHITECTURES setting can only contain one architecture at a time")
+  endif()
+endif()
+
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
