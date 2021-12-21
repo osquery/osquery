@@ -27,6 +27,7 @@ tables::WindowsFirewallRules generateTestRules() {
       "TestAppName",
       NET_FW_ACTION_BLOCK,
       false,
+      "Grouping",
       NET_FW_RULE_DIR_IN,
       NET_FW_IP_VERSION_V4,
       "",
@@ -35,6 +36,7 @@ tables::WindowsFirewallRules generateTestRules() {
       "",
       "",
       0,
+      "ServiceName",
   };
 
   tables::WindowsFirewallRule rule;

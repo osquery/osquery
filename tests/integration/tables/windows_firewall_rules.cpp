@@ -38,6 +38,7 @@ TEST_F(windows_firewall_rules, test_sanity) {
       {"app_name", NormalType},
       {"action", NormalType},
       {"enabled", IntType},
+      {"grouping", NormalType},
       {"direction", NormalType},
       {"protocol", NormalType},
       {"local_addresses", NormalType},
@@ -48,6 +49,7 @@ TEST_F(windows_firewall_rules, test_sanity) {
       {"profile_domain", IntType},
       {"profile_private", IntType},
       {"profile_public", IntType},
+      {"service_name", NormalType},
   };
 
   validate_rows(data, row_map);

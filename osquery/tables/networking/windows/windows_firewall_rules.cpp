@@ -49,6 +49,8 @@ const std::unordered_map<WindowsFirewallError, std::string>
          "Failed to get firewall rule action name"},
         {WindowsFirewallError::RuleEnabledError,
          "Failed to get firewall rule enabled"},
+        {WindowsFirewallError::RuleGroupingError,
+         "Failed to get firewall rule grouping"},
         {WindowsFirewallError::RuleDirectionError,
          "Failed to get firewall rule direction"},
         {WindowsFirewallError::RuleProtocolError,
@@ -65,6 +67,8 @@ const std::unordered_map<WindowsFirewallError, std::string>
          "Failed to get firewall rule ICMP types and codes"},
         {WindowsFirewallError::RuleProfilesError,
          "Failed to get firewall rule profiles"},
+        {WindowsFirewallError::RuleServiceNameError,
+         "Failed to get firewall rule service name"},
     };
 
 std::string getErrorDescription(const WindowsFirewallError& error) {
@@ -111,6 +115,8 @@ Row renderFirewallRule(const WindowsFirewallRule& rule) {
   }
 
   r["enabled"] = INTEGER(rule.enabled);
+
+  r["grouping"] = rule.grouping;
 
   switch (rule.direction) {
   case NET_FW_RULE_DIR_IN:
@@ -160,6 +166,8 @@ Row renderFirewallRule(const WindowsFirewallRule& rule) {
   r["profile_public"] =
       INTEGER((rule.profileBitmask & NET_FW_PROFILE2_PUBLIC) != 0);
 
+  r["service_name"] = rule.serviceName;
+
   return r;
 }
 
@@ -204,6 +212,11 @@ Expected<WindowsFirewallRule, WindowsFirewallError> populateFirewallRule(
         WindowsFirewallError::RuleEnabledError, hr);
   }
   r.enabled = enabled;
+
+  if (FAILED(hr = getString(rule, &INetFwRule::get_Grouping, r.grouping))) {
+    return createWindowsFirewallRuleError(
+        WindowsFirewallError::RuleGroupingError, hr);
+  }
 
   if (FAILED(hr = rule->get_Direction(&r.direction))) {
     return createWindowsFirewallRuleError(
@@ -253,6 +266,12 @@ Expected<WindowsFirewallRule, WindowsFirewallError> populateFirewallRule(
   if (FAILED(hr = rule->get_Profiles(&r.profileBitmask))) {
     return createWindowsFirewallRuleError(
         WindowsFirewallError::RuleProfilesError, hr);
+  }
+
+  if (FAILED(
+          hr = getString(rule, &INetFwRule::get_ServiceName, r.serviceName))) {
+    return createWindowsFirewallRuleError(
+        WindowsFirewallError::RuleServiceNameError, hr);
   }
 
   return r;

@@ -29,6 +29,7 @@ enum class WindowsFirewallError {
   RuleAppNameError,
   RuleActionError,
   RuleEnabledError,
+  RuleGroupingError,
   RuleDirectionError,
   RuleProtocolError,
   RuleLocalAddressesError,
@@ -37,6 +38,7 @@ enum class WindowsFirewallError {
   RuleRemotePortsError,
   RuleICMPTypesCodesError,
   RuleProfilesError,
+  RuleServiceNameError,
 };
 
 struct WindowsFirewallRule {
@@ -44,6 +46,7 @@ struct WindowsFirewallRule {
   std::string appName;
   NET_FW_ACTION action = NET_FW_ACTION_BLOCK;
   bool enabled = false;
+  std::string grouping;
   NET_FW_RULE_DIRECTION direction = NET_FW_RULE_DIR_IN;
   long protocol = 0;
   std::string localAddresses;
@@ -52,6 +55,7 @@ struct WindowsFirewallRule {
   std::string remotePorts;
   std::string icmpTypesCodes;
   long profileBitmask = 0;
+  std::string serviceName;
 };
 
 using WindowsFirewallRules = std::vector<WindowsFirewallRule>;

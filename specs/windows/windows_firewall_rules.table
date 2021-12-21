@@ -5,6 +5,7 @@ schema([
     Column("app_name", TEXT, "Friendly name of the application to which the rule applies"),
     Column("action", TEXT, "Action for the rule or default setting"),
     Column("enabled", INTEGER, "1 if the rule is enabled"),
+    Column("grouping", TEXT, "Group to which an individual rule belongs"),
     Column("direction", TEXT, "Direction of traffic for which the rule applies"),
     Column("protocol", TEXT, "IP protocol of the rule"),
     Column("local_addresses", TEXT, "Local addresses for the rule"),
@@ -15,6 +16,7 @@ schema([
     Column("profile_domain", INTEGER, "1 if the rule profile type is domain"),
     Column("profile_private", INTEGER, "1 if the rule profile type is private"),
     Column("profile_public", INTEGER, "1 if the rule profile type is public"),
+    Column("service_name", TEXT, "Service name property of the application"),
 ])
 implementation("windows_firewall_rules@genWindowsFirewallRules")
 examples([
