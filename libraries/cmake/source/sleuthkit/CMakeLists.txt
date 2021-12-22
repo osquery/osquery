@@ -263,7 +263,7 @@ function(sleuthkitMain)
   )
 
   # fs library
-  add_library(thirdparty_sleuthkit_fs_cpp OBJECT
+  add_library(thirdparty_sleuthkit_fs_cpp
     "${library_root}/tsk/fs/apfs_compat.cpp"
     "${library_root}/tsk/fs/apfs.cpp"
     "${library_root}/tsk/fs/apfs_fs.cpp"
@@ -277,6 +277,7 @@ function(sleuthkitMain)
   target_link_libraries(thirdparty_sleuthkit_fs_cpp PRIVATE
     thirdparty_sleuthkit_settings
     thirdparty_cxx_settings
+    thirdparty_sleuthkit_auto
   )
 
   add_library(thirdparty_sleuthkit_fs
