@@ -1244,3 +1244,13 @@ jobs:
       shell: powershell
       run: |
         rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
+
+  # This job is here as a github status check -- it allows us to move the dependacy from
+  # being on all the jobs to this single one.
+  mergable:
+    needs:
+      - build_macos
+      - build_linux
+      - build_windows
+      - build_universal_macos_artifacts
+    run: true
