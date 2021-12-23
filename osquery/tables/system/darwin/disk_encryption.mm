@@ -58,7 +58,7 @@ const std::set<std::string> kHardcodedDiskUUIDs = {
 
 Status genUnlockIdent(CFDataRef& uuid) {
   auto chosen =
-      IORegistryEntryFromPath(kIOMasterPortDefault, kIODeviceTreeChosenPath_);
+      IORegistryEntryFromPath(kIOMainPortDefault, kIODeviceTreeChosenPath_);
   if (chosen == MACH_PORT_NULL) {
     return Status(1, "Could not open IOKit DeviceTree");
   }
@@ -371,13 +371,12 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
                             bool isAPFS,
                             QueryData& results) {
   auto matching_dict =
-      IOBSDNameMatching(kIOMasterPortDefault, kNilOptions, bsd_name.c_str());
+      IOBSDNameMatching(kIOMainPortDefault, kNilOptions, bsd_name.c_str());
   if (matching_dict == nullptr) {
     return;
   }
 
-  auto service =
-      IOServiceGetMatchingService(kIOMasterPortDefault, matching_dict);
+  auto service = IOServiceGetMatchingService(kIOMainPortDefault, matching_dict);
   if (!service) {
     return;
   }

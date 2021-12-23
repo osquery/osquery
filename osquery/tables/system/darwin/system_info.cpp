@@ -72,7 +72,7 @@ static inline void genHostInfo(Row& r) {
 }
 
 static inline void genHardwareInfo(Row& r) {
-  auto root = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
+  auto root = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/");
   if (root == MACH_PORT_NULL) {
     VLOG(1) << "Cannot get hardware information from IOKit";
     return;
@@ -105,8 +105,7 @@ static inline void genHardwareInfo(Row& r) {
   // Mac ARM / M1 machines have the hardware_model one level deeper, in the
   // IODeviceTree:/product key.
   if (r["hardware_model"].empty()) {
-    root =
-        IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/product");
+    root = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/product");
     if (root == MACH_PORT_NULL) {
       VLOG(1) << "Cannot get ARM hardware information from IOKit";
       return;

@@ -29,7 +29,7 @@ static const std::unordered_map<uint32_t, std::string> kCoprocessorVersions = {
 
 static inline void genBootUuid(Row& r) {
   auto chosen = IORegistryEntryFromPath(
-      kIOMasterPortDefault, kIODeviceTreePlane kIODeviceChosenPath_);
+      kIOMainPortDefault, kIODeviceTreePlane kIODeviceChosenPath_);
   if (chosen == MACH_PORT_NULL) {
     return;
   }
@@ -52,7 +52,7 @@ static inline void genBootUuid(Row& r) {
 }
 
 static inline void genAppleCoprocessorVersion(Row& r) {
-  auto asoc = IORegistryEntryFromPath(kIOMasterPortDefault,
+  auto asoc = IORegistryEntryFromPath(kIOMainPortDefault,
                                       kIODeviceTreePlane kIODeviceEfiPath_);
   if (asoc == MACH_PORT_NULL) {
     LOG(WARNING) << "Cannot open EFI Device Tree";
@@ -104,7 +104,7 @@ QueryData genIBridgeInfo(QueryContext& context) {
     return results;
   }
 
-  auto service = IOServiceGetMatchingService(kIOMasterPortDefault, eos);
+  auto service = IOServiceGetMatchingService(kIOMainPortDefault, eos);
   CFMutableDictionaryRef properties = nullptr;
   auto kr = IORegistryEntryCreateCFProperties(
       service, &properties, kCFAllocatorDefault, kNilOptions);

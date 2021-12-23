@@ -163,7 +163,7 @@ QueryData genDeviceFirmware(QueryContext& context) {
   QueryData qd;
 
   // Start with the services root node.
-  auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
+  auto service = IORegistryGetRootEntry(kIOMainPortDefault);
   genIOKitDeviceChildren(&genIOKitFirmware, service, kIOServicePlane, 0, qd);
   IOObjectRelease(service);
 
@@ -174,7 +174,7 @@ QueryData genIOKitDeviceTree(QueryContext& context) {
   QueryData qd;
 
   // Get the IO registry root node.
-  auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
+  auto service = IORegistryGetRootEntry(kIOMainPortDefault);
   // Begin recursing along the IODeviceTree "plane".
   genIOKitDeviceChildren(&genIOKitDevice, service, kIODeviceTreePlane, 0, qd);
   IOObjectRelease(service);
@@ -186,7 +186,7 @@ QueryData genIOKitRegistry(QueryContext& context) {
   QueryData qd;
 
   // Get the IO registry root node.
-  auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
+  auto service = IORegistryGetRootEntry(kIOMainPortDefault);
   // Begin recursing along the IODeviceTree "plane".
   genIOKitDeviceChildren(&genIOKitDevice, service, kIOServicePlane, 0, qd);
   IOObjectRelease(service);

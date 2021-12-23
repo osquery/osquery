@@ -54,7 +54,7 @@ bool DarwinSMBIOSParser::discover() {
     return false;
   }
 
-  auto service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+  auto service = IOServiceGetMatchingService(kIOMainPortDefault, matching);
   if (service == 0) {
     return false;
   }
@@ -224,7 +224,7 @@ QueryData genOEMStrings(QueryContext& context) {
 }
 
 QueryData genPlatformInfo(QueryContext& context) {
-  auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
+  auto rom = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/rom");
   if (rom == 0) {
     return {};
   }

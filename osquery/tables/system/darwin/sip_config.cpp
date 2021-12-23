@@ -47,7 +47,7 @@ int csr_get_active_config(csr_config_t* config);
 
 Status genCsrConfigFromNvram(uint32_t& config) {
   auto chosen =
-      IORegistryEntryFromPath(kIOMasterPortDefault, kIODeviceTreeChosenPath_);
+      IORegistryEntryFromPath(kIOMainPortDefault, kIODeviceTreeChosenPath_);
   if (chosen == MACH_PORT_NULL) {
     return Status(1, "Could not open IOKit DeviceTree");
   }

@@ -83,7 +83,7 @@ QueryData genUSBDevices(QueryContext& context) {
   }
 
   io_iterator_t it;
-  auto kr = IOServiceGetMatchingServices(kIOMasterPortDefault, matching, &it);
+  auto kr = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &it);
   if (kr != KERN_SUCCESS) {
     return results;
   }

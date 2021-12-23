@@ -41,7 +41,7 @@ QueryData genACPITables(QueryContext& context) {
     return {};
   }
 
-  auto service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+  auto service = IOServiceGetMatchingService(kIOMainPortDefault, matching);
   if (service == 0) {
     return {};
   }

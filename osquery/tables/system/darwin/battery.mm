@@ -60,7 +60,7 @@ NSDictionary* getIopmBatteryInfo() {
 NSDictionary* getIopmpsBatteryInfo() {
   CFMutableDictionaryRef matching = IOServiceNameMatching("AppleSmartBattery");
   io_service_t entry =
-      IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+      IOServiceGetMatchingService(kIOMainPortDefault, matching);
   matching = nullptr; // Dictionary consumed by IOServiceGetMatchingService
   // From Apple docs:
   // IOService is a subclass of IORegistryEntry, which means any of the

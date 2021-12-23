@@ -47,7 +47,7 @@ void IOKitEventPublisher::restart() {
 
   {
     WriteLock lock(mutex_);
-    port_ = IONotificationPortCreate(kIOMasterPortDefault);
+    port_ = IONotificationPortCreate(kIOMainPortDefault);
     // Get a run loop source from the created IOKit notification port.
     auto run_loop_source = IONotificationPortGetRunLoopSource(port_);
     CFRunLoopAddSource(run_loop_, run_loop_source, kCFRunLoopDefaultMode);

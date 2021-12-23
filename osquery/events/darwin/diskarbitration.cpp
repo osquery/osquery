@@ -93,8 +93,7 @@ void DiskArbitrationEventPublisher::DiskAppearedCallback(DADiskRef disk,
   auto device_path = stringFromCFString((CFStringRef)devicePathKey);
   ec->device_path = device_path;
 
-  auto entry =
-      IORegistryEntryFromPath(kIOMasterPortDefault, device_path.c_str());
+  auto entry = IORegistryEntryFromPath(kIOMainPortDefault, device_path.c_str());
   if (entry == MACH_PORT_NULL) {
     CFRelease(disk_properties);
     return;
