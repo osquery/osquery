@@ -512,8 +512,8 @@ QueryPlanner::QueryPlanner(const std::string& query,
 
   for (const auto& row : plan) {
     auto details = osquery::split(row.at("detail"));
-    if (details.size() > 2 && details[0] == "SCAN") {
-      tables_.push_back(details[2]);
+    if (details.size() > 1 && details[0] == "SCAN") {
+      tables_.push_back(details[1]);
     }
   }
 }
