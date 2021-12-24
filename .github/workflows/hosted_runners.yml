@@ -1256,3 +1256,4 @@ jobs:
       - build_linux
       - build_windows
       - build_universal_macos_artifacts
+      - check_source_code
