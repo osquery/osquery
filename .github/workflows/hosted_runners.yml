@@ -1249,7 +1249,7 @@ jobs:
   # being on all the jobs to this single one.
   mergable:
     steps:
-      run: true
+      - run: true
     needs:
       - build_macos
       - build_linux
