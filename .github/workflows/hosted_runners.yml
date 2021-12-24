@@ -1248,6 +1248,7 @@ jobs:
   # This job is here as a github status check -- it allows us to move the dependacy from
   # being on all the jobs to this single one.
   mergable:
+    runs-on: ubuntu-latest
     steps:
       - run: true
     needs:
