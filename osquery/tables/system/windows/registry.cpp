@@ -418,8 +418,7 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
               std::inserter(rKeys, rKeys.end()));
 }
 
-inline Status populateSubkeys(std::set<std::string>& rKeys,
-                              bool replaceKeys) {
+inline Status populateSubkeys(std::set<std::string>& rKeys, bool replaceKeys) {
   bool atLeastOneKeyExists = false;
   std::set<std::string> newKeys;
   if (!replaceKeys) {

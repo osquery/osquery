@@ -244,21 +244,18 @@ TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_middle_key) {
   keys.erase(validKey1);
   keys.erase(invalidKey);
   keys.erase(validKey2);
-  EXPECT_TRUE(std::any_of(keys.begin(),
-                         keys.end(),
-                         [&](const std::string& key) {
-                           return boost::starts_with(key, validKey1);
-                         }));
-  EXPECT_TRUE(std::none_of(keys.begin(),
-                         keys.end(),
-                         [&](const std::string& key) {
-                           return boost::starts_with(key, invalidKey);
-                         }));
-  EXPECT_TRUE(std::any_of(keys.begin(),
-                         keys.end(),
-                         [&](const std::string& key) {
-                           return boost::starts_with(key, validKey2);
-                         }));
+  EXPECT_TRUE(
+      std::any_of(keys.begin(), keys.end(), [&](const std::string& key) {
+        return boost::starts_with(key, validKey1);
+      }));
+  EXPECT_TRUE(
+      std::none_of(keys.begin(), keys.end(), [&](const std::string& key) {
+        return boost::starts_with(key, invalidKey);
+      }));
+  EXPECT_TRUE(
+      std::any_of(keys.begin(), keys.end(), [&](const std::string& key) {
+        return boost::starts_with(key, validKey2);
+      }));
 }
 } // namespace tables
 } // namespace osquery
