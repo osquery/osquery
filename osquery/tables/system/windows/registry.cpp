@@ -418,8 +418,9 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
               std::inserter(rKeys, rKeys.end()));
 }
 
-static inline Status populateSubkeys(std::set<std::string>& rKeys,
-                                     bool replaceKeys = false) {
+inline Status populateSubkeys(std::set<std::string>& rKeys,
+                              bool replaceKeys) {
+  bool isOneSubkeyQueried = false;
   std::set<std::string> newKeys;
   if (!replaceKeys) {
     newKeys = rKeys;
@@ -435,6 +436,7 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
 
       return ret;
     }
+    isOneSubkeyQueried = true;
     for (const auto& r : regResults) {
       if (r.at("type") == "subkey") {
         newKeys.insert(r.at("path"));
@@ -442,6 +444,10 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
     }
   }
   rKeys = std::move(newKeys);
+  if (!isOneSubkeyQueried) {
+    return Status(1, "Failed to query registry keys");
+  }
+
   return Status::success();
 }
 

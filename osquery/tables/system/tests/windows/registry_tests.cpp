@@ -208,5 +208,57 @@ TEST_F(RegistryTablesTest, test_get_username_from_key) {
     EXPECT_FALSE(status.ok());
   }
 }
+
+TEST_F(RegistryTablesTest, test_populate_subkeys_valid_key) {
+  Status status;
+  std::set<std::string> validKey = {"HKEY_CURRENT_USER\\AppEvents"};
+
+  status = populateSubkeys(validKey, false);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_key) {
+  Status status;
+  std::set<std::string> badKey = {"HKEY_LOCAL_MACHINE\\Some\\Key"};
+
+  status = populateSubkeys(badKey, false);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_middle_key) {
+  Status status;
+  std::string validKey1 = "HKEY_LOCAL_MACHINE\\SYSTEM\\ResourceManager";
+  std::string validKey2 = "HKEY_USERS\\.DEFAULT\\System";
+  std::string invalidKey = "HKEY_LOCAL_MACHINE\\Some\\Key";
+  const std::set<std::string> origKeys = {
+      validKey1,
+      invalidKey,
+      validKey2,
+  };
+
+  std::set<std::string> keys{origKeys.cbegin(), origKeys.cend()};
+
+  status = populateSubkeys(keys, false);
+  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(origKeys.size() < keys.size());
+  keys.erase(validKey1);
+  keys.erase(invalidKey);
+  keys.erase(validKey2);
+  EXPECT_TRUE(std::any_of(keys.begin(),
+                         keys.end(),
+                         [&](const std::string& key) {
+                           return boost::starts_with(key, validKey1);
+                         }));
+  EXPECT_TRUE(std::none_of(keys.begin(),
+                         keys.end(),
+                         [&](const std::string& key) {
+                           return boost::starts_with(key, invalidKey);
+                         }));
+  EXPECT_TRUE(std::any_of(keys.begin(),
+                         keys.end(),
+                         [&](const std::string& key) {
+                           return boost::starts_with(key, validKey2);
+                         }));
+}
 } // namespace tables
 } // namespace osquery
