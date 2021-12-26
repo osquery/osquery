@@ -8,7 +8,7 @@ schema([
     Column("hour", INTEGER, "Current hour in UTC"),
     Column("minutes", INTEGER, "Current minutes in UTC"),
     Column("seconds", INTEGER, "Current seconds in UTC"),
-    Column("timezone", TEXT, "Current timezone in UTC"),
+    Column("timezone", TEXT, "Timezone for reported time (hardcoded to UTC)"),
     Column("local_timezone", TEXT, "Current local timezone in of the system"),
     Column("unix_time", INTEGER, "Current UNIX time in UTC"),
     Column("timestamp", TEXT, "Current timestamp (log format) in UTC"),
