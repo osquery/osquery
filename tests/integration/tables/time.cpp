@@ -38,7 +38,6 @@ TEST_F(Time, test_sanity) {
       {"minutes", IntMinMaxCheck(0, 59)},
       {"seconds", IntMinMaxCheck(0, 59)},
       {"timezone", NonEmptyString},
-      {"local_time", NonNegativeInt},
       {"local_timezone", NonEmptyString},
       {"unix_time", NonNegativeInt},
       {"timestamp", NonEmptyString},
