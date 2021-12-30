@@ -419,7 +419,6 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
 }
 
 inline Status populateSubkeys(std::set<std::string>& rKeys, bool replaceKeys) {
-  bool atLeastOneKeyExists = false;
   std::set<std::string> newKeys;
   if (!replaceKeys) {
     newKeys = rKeys;
@@ -435,7 +434,6 @@ inline Status populateSubkeys(std::set<std::string>& rKeys, bool replaceKeys) {
 
       return ret;
     }
-    atLeastOneKeyExists = true;
     for (const auto& r : regResults) {
       if (r.at("type") == "subkey") {
         newKeys.insert(r.at("path"));
@@ -443,10 +441,6 @@ inline Status populateSubkeys(std::set<std::string>& rKeys, bool replaceKeys) {
     }
   }
   rKeys = std::move(newKeys);
-  if (!atLeastOneKeyExists) {
-    return Status(1, "Failed to query registry keys");
-  }
-
   return Status::success();
 }
 

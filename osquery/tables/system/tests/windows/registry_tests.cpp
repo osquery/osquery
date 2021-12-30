@@ -215,14 +215,18 @@ TEST_F(RegistryTablesTest, test_populate_subkeys_valid_key) {
 
   status = populateSubkeys(validKey, false);
   EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(validKey.size() > 1);
 }
 
 TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_key) {
   Status status;
-  std::set<std::string> badKey = {"HKEY_LOCAL_MACHINE\\Some\\Key"};
+  std::string invalidKey = "HKEY_LOCAL_MACHINE\\Some\\Key";
+  std::set<std::string> badKey = {invalidKey};
 
   status = populateSubkeys(badKey, false);
-  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(badKey.size() == 1);
+  EXPECT_TRUE(badKey.count(invalidKey));
 }
 
 TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_middle_key) {
