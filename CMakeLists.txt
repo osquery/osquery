@@ -28,22 +28,6 @@ if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
 endif()
 
-# clang-tidy needs to be initialized in global scope, before any
-# target is created
-if(OSQUERY_ENABLE_CLANG_TIDY)
-  find_package(clang-tidy)
-  if(TARGET clang-tidy::clang-tidy)
-    foreach(language C CXX)
-      set("CMAKE_${language}_CLANG_TIDY"
-        "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
-      )
-    endforeach()
-
-  else()
-    message(WARNING "clang-tidy: Disabled because it was not found")
-  endif()
-endif()
-
 function(main)
 
   findClangFormat()
@@ -71,6 +55,20 @@ function(main)
 
   add_subdirectory("libraries")
   importLibraries()
+
+  # Enable clang-tidy only after having created the third party targets,
+  # so it won't run with those and slow down the build.
+  if(OSQUERY_ENABLE_CLANG_TIDY)
+    find_package(clang-tidy)
+
+    if(TARGET clang-tidy::clang-tidy)
+      set(CMAKE_CXX_CLANG_TIDY
+          "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
+      )
+    else()
+      message(WARNING "clang-tidy: Disabled because it was not found")
+    endif()
+  endif()
 
   add_subdirectory("osquery")
   add_subdirectory("plugins")
