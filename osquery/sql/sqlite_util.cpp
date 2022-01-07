@@ -234,12 +234,10 @@ class SizeVisitor : public boost::static_visitor<> {
   }
 
   void operator()(const std::string& t) {
-    VLOG(1) << "visistor string operator called, len is " << t.length();
     size = t.length();
   }
 
   uint64_t get_size() const {
-    VLOG(1) << "Get size called, size is: " << size;
     return size;
   }
 
