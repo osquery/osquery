@@ -225,12 +225,21 @@ class StringEscaperVisitor : public boost::static_visitor<> {
 
 class SizeVisitor : public boost::static_visitor<> {
  public:
-  template <typename T>
-  void operator()(T& t) const {
-    size += sizeof(t);
+  void operator()(const long long& i) {
+    size = sizeof(i);
+  }
+
+  void operator()(const double& d) {
+    size = sizeof(d);
+  }
+
+  void operator()(const std::string& t) {
+    VLOG(1) << "visistor string operator called, len is " << t.length();
+    size = t.length();
   }
 
   uint64_t get_size() const {
+    VLOG(1) << "Get size called, size is: " << size;
     return size;
   }
 
@@ -239,7 +248,7 @@ class SizeVisitor : public boost::static_visitor<> {
   }
 
  private:
-  mutable uint64_t size;
+  uint64_t size;
 };
 
 void SQLInternal::escapeResults() {
