@@ -82,6 +82,28 @@ TEST_F(SchedulerTests, test_monitor) {
   EXPECT_FALSE(timestamp.empty());
 }
 
+TEST_F(SchedulerTests, test_output_size) {
+  auto query_name = "output_size_test_query";
+  ScheduledQuery query("time_pack", "time", "select 1");
+  query.interval = 10;
+  query.splayed_interval = 11;
+
+  auto results = monitor(query_name, query);
+  EXPECT_EQ(results.rowsTyped().size(), 1U);
+
+  // Ask the config instance for the monitored performance.
+  QueryPerformance perf;
+  Config::get().getPerformanceStats(
+      query_name, ([&perf](const QueryPerformance& r) { perf = r; }));
+  // Make sure it was recorded query ran.
+  // There is no pack for this query within the config, that is fine as these
+  // performance stats are tracked independently.
+  EXPECT_EQ(perf.executions, 1U);
+  EXPECT_EQ(perf.output_size, 0U);
+
+
+}
+
 TEST_F(SchedulerTests, test_config_results_purge) {
   // Set a query time for now (time is only important relative to a week ago).
   auto query_time = osquery::getUnixTime();
