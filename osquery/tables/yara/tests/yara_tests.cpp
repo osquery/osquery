@@ -142,4 +142,20 @@ TEST_F(YARATest, test_match_string_false) {
   EXPECT_TRUE(r["count"] == "0");
 }
 
+TEST_F(YARATest, test_rule_compilation_failures) {
+  int result = yr_initialize();
+  EXPECT_TRUE(result == ERROR_SUCCESS);
+
+  /* This comes from a regression where Yara internal functions
+     like strlcpy are incorrectly called, causing a segfault;
+     strlcpy is used to copy the error message. */
+  YR_RULES* rules = nullptr;
+  Status status = compileSingleFile("/tmp", &rules);
+  EXPECT_FALSE(status.ok());
+
+  // Simple test to verify that the API handles non existing files cleanly
+  status = compileSingleFile("/tmp/this_path_doesnt_exists", &rules);
+  EXPECT_FALSE(status.ok());
+}
+
 } // namespace osquery
