@@ -63,10 +63,15 @@ void genSudoersFile(const std::string& filename,
     }
 
     // if last line contains a backslash as the last character,
-    // treat current line as part of long line.
+    // treat current line as part of previous line and
+    // append it to appropriate column.
     if (isLongLine) {
       isLongLine = (line.at(line.size() - 1) == '\\');
-      results.back()["rule_details"].pop_back();
+      if (results.back()["rule_details"].empty()) {
+        results.back()["header"].pop_back();
+      } else {
+        results.back()["rule_details"].pop_back();
+      }
       results.back()["rule_details"].append(line);
       continue;
     }
