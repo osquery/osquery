@@ -22,6 +22,7 @@ namespace osquery {
 
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
+const std::string invalidRule = "rule invalid { Not a valid rule }";
 
 class YARATest : public testing::Test {
  protected:
@@ -32,7 +33,12 @@ class YARATest : public testing::Test {
   Row scanFile(const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
-    EXPECT_TRUE(result == ERROR_SUCCESS);
+    bool init_succeeded = result == ERROR_SUCCESS;
+    EXPECT_TRUE(init_succeeded);
+
+    if (!init_succeeded) {
+      return {};
+    }
 
     const auto rule_file = fs::temp_directory_path() /
                            fs::unique_path("osquery.tests.yara.%%%%.%%%%.sig");
@@ -40,6 +46,10 @@ class YARATest : public testing::Test {
 
     Status status = compileSingleFile(rule_file.string(), &rules);
     EXPECT_TRUE(status.ok()) << status.what();
+
+    if (!status.ok()) {
+      return {};
+    }
 
     Row r;
     r["count"] = "0";
@@ -70,10 +80,19 @@ class YARATest : public testing::Test {
   Row scanString(const std::string& rule_defs) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
-    EXPECT_TRUE(result == ERROR_SUCCESS);
+    bool init_succeeded = result == ERROR_SUCCESS;
+    EXPECT_TRUE(init_succeeded);
+
+    if (!init_succeeded) {
+      return {};
+    }
 
     Status status = compileFromString(rule_defs, &rules);
     EXPECT_TRUE(status.ok()) << status.what();
+
+    if (!status.ok()) {
+      return {};
+    }
 
     Row r;
     r["count"] = "0";
@@ -150,7 +169,12 @@ TEST_F(YARATest, test_rule_compilation_failures) {
      like strlcpy are incorrectly called, causing a segfault;
      strlcpy is used to copy the error message. */
   YR_RULES* rules = nullptr;
-  Status status = compileSingleFile("/tmp", &rules);
+  Status status = compileSingleFile(fs::temp_directory_path().string(), &rules);
+  EXPECT_FALSE(status.ok());
+
+  /* Same as above, but this will cause a crash also on Windows
+     (due to the syntax error), if there are issues with those functions. */
+  status = compileFromString(invalidRule, &rules);
   EXPECT_FALSE(status.ok());
 
   // Simple test to verify that the API handles non existing files cleanly
