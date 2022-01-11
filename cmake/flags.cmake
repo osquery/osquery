@@ -324,6 +324,7 @@ function(setupBuildFlags)
       shell32.lib
       gdi32.lib
       mswsock.lib
+      psapi.lib
     )
 
     if(OSQUERY_ENABLE_INCREMENTAL_LINKING)
@@ -346,6 +347,7 @@ function(setupBuildFlags)
       BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE=1
       UNICODE
       _UNICODE
+      PSAPI_VERSION=1
     )
 
     set(windows_common_defines

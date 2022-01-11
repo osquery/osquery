@@ -9,7 +9,6 @@
 
 #include <osquery/filesystem/fileops.h>
 #include <osquery/logger/logger.h>
-#include <osquery/process/process.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>

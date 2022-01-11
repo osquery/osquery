@@ -97,6 +97,33 @@ typedef struct win_stat {
 
 } WINDOWS_STAT;
 
+/**
+ * @brief Handles the resource lifetime of a PSECURITY_DESCRIPTOR
+ *
+ * Class to handle the scope of a PSECURITY_DESCRIPTOR from
+ * GetSecurityInfo/GetNamedSecurityInfo class of functions (or any
+ * PSECURITY_DESCRIPTOR pointer where the buffer is allocated via LocalAlloc)
+ */
+class SecurityDescriptor {
+ public:
+  explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
+
+  SecurityDescriptor(SecurityDescriptor&& src) noexcept {
+    sd_ = src.sd_;
+    std::swap(sd_, src.sd_);
+  }
+
+  ~SecurityDescriptor() {
+    if (sd_ != nullptr) {
+      ::LocalFree(sd_);
+      sd_ = nullptr;
+    }
+  }
+
+ private:
+  PSECURITY_DESCRIPTOR sd_{nullptr};
+};
+
 #else
 
 using PlatformHandle = int;

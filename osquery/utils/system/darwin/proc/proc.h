@@ -7,8 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
+#include <optional>
+#include <vector>
+
+#include <libproc.h>
+
 namespace osquery {
-namespace tables {
-std::string parseProcCGroup(const std::string& content);
-} // namespace tables
-} // namespace osquery
+std::optional<std::vector<pid_t>> procProcesses();
+}

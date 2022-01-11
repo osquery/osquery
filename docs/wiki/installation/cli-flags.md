@@ -287,6 +287,22 @@ The URI path which will be used, in conjunction with `--tls_hostname`, to create
 
 The total number of attempts that will be made to the remote distributed query server if a request fails when using the **tls** distributed plugin.
 
+`--enable_processes_stats`
+
+Enables the service that periodically collect processes stats (cpu usage and cpu peak usage). When a user queries the `processes` table, the `cpu_usage` and `cpu_peak_usage` (after at least two samples) columns will present the most recently sampled data.
+
+`--processes_stats_interval=2`
+
+Seconds that the processes stats service waits between scans.
+
+`--processes_stats_cpu_peak_samples=30`
+
+How many past cpu usage samples to use to calculate the cpu peak usage. Default 30, to cover 1 minute of time with the default interval.
+
+`--processes_stats_worker_only`
+
+Enables process stats collection only for the osquery worker process. By default collection happens on all processes.
+
 ## Daemon runtime control flags
 
 `--schedule_splay_percent=10`

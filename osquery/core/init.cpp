@@ -44,6 +44,7 @@
 #include <osquery/logger/data_logger.h>
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
+#include <osquery/process/processes_stats_service.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/config/default_paths.h>
@@ -117,6 +118,7 @@ DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
 DECLARE_bool(enable_numeric_monitoring);
+DECLARE_bool(enable_processes_stats);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -558,6 +560,9 @@ void Initializer::initWatcher() const {
   if (isWatcher()) {
     setDatabaseAllowOpen();
     initDatabasePlugin();
+  } else if (FLAGS_enable_processes_stats) {
+    Dispatcher::addService(
+        std::make_shared<ProcessesStatsService>(ProcessesStats::getInstance()));
   }
 
   // The watcher takes a list of paths to autoload extensions from.
@@ -598,6 +603,11 @@ void Initializer::initWorker(const std::string& name) const {
   // In this case the parent process is called the 'watcher' process.
   Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(
       PlatformProcess::getLauncherProcess()));
+
+  if (FLAGS_enable_processes_stats) {
+    Dispatcher::addService(
+        std::make_shared<ProcessesStatsService>(ProcessesStats::getInstance()));
+  }
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) const {

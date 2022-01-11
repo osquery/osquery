@@ -7,6 +7,11 @@
 
 function(osqueryProcessMain)
   generateOsqueryProcess()
+  generateOsqueryProcessesStats()
+
+  if(OSQUERY_BUILD_TESTS)
+    add_subdirectory("tests")
+  endif()
 endfunction()
 
 function(generateOsqueryProcess)
@@ -46,5 +51,56 @@ function(generateOsqueryProcess)
 
   generateIncludeNamespace(osquery_process "osquery/process" "FILE_ONLY" ${public_header_files})
 endfunction()
+
+function(generateOsqueryProcessesStats)
+
+  set(sources
+    processes_stats.cpp
+  )
+
+  set(public_header_files
+    processes_stats.h
+    processes_stats_service.h
+  )
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND sources
+      linux/processes_stats_service.cpp
+    )
+  elseif(DEFINED PLATFORM_MACOS)
+    list(APPEND sources
+      darwin/processes_stats_service.cpp
+    )
+  elseif(DEFINED PLATFORM_WINDOWS)
+    list(APPEND sources
+      windows/processes_stats_service.cpp
+    )
+  endif()
+
+  add_osquery_library(osquery_processes_stats
+    ${sources}
+  )
+
+  generateIncludeNamespace(osquery_processes_stats "osquery/process" "FILE_ONLY" ${public_header_files})
+
+  target_link_libraries(osquery_processes_stats PRIVATE
+    osquery_cxx_settings
+    osquery_dispatcher
+    osquery_filesystem
+    osquery_process
+    thirdparty_boost
+  )
+
+  if(DEFINED PLATFORM_MACOS)
+    target_link_libraries(osquery_processes_stats PRIVATE
+      osquery_utils_system_darwin_proc
+    )
+  endif()
+
+  if(OSQUERY_BUILD_TESTS)
+    add_test(NAME osquery_process_tests_processesstats-test COMMAND osquery_process_tests_processesstats-test)
+  endif()
+endfunction()
+
 
 osqueryProcessMain()

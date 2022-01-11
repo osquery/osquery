@@ -29,6 +29,8 @@ schema([
     Column("pgroup", BIGINT, "Process group"),
     Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
+    Column("cpu_usage", INTEGER, "Percentage of CPU usage. Relative to one core."),
+    Column("cpu_peak_usage", INTEGER, "Peak percentage of CPU usage found in the configured number of previous samples. Relative to one core.")
 ])
 extended_schema(WINDOWS, [
     Column("elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),

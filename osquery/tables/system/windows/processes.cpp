@@ -30,10 +30,10 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
+#include <osquery/core/windows/wmi.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-
-#include <osquery/core/windows/wmi.h>
+#include <osquery/process/processes_stats.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -43,6 +43,9 @@
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace osquery {
+
+DECLARE_bool(enable_processes_stats);
+DECLARE_uint32(processes_stats_cpu_peak_samples);
 namespace tables {
 
 const std::map<unsigned long, std::string> kMemoryConstants = {
@@ -68,6 +71,8 @@ const PROCESSINFOCLASS ProcessCommandLine = static_cast<PROCESSINFOCLASS>(60);
 // https://docs.microsoft.com/en-us/windows/win32/procthread/zwqueryinformationprocess
 const PROCESSINFOCLASS ProcessProtectionInformation =
     static_cast<PROCESSINFOCLASS>(61);
+
+constexpr std::uint64_t kTicksToMsRatio = 10000;
 
 typedef struct {
   USHORT Length;
@@ -483,15 +488,11 @@ void genProcessTimeInfo(HANDLE& proc, DynamicTableRowHolder& r) {
                << GetProcessId(proc);
   } else {
     // Windows stores proc times in 100 nanosecond ticks
-    ULARGE_INTEGER utime;
-    utime.HighPart = user_time.dwHighDateTime;
-    utime.LowPart = user_time.dwLowDateTime;
-    auto user_time_total = utime.QuadPart;
-    r["user_time"] = BIGINT(user_time_total / 10000);
-    utime.HighPart = kernel_time.dwHighDateTime;
-    utime.LowPart = kernel_time.dwLowDateTime;
-    r["system_time"] = BIGINT(utime.QuadPart / 10000);
-    r["percent_processor_time"] = BIGINT(user_time_total + utime.QuadPart);
+    auto user_time_total = filetimeToTicks(user_time);
+    auto system_time_total = filetimeToTicks(kernel_time);
+    r["user_time"] = BIGINT(user_time_total / kTicksToMsRatio);
+    r["system_time"] = BIGINT(system_time_total / kTicksToMsRatio);
+    r["percent_processor_time"] = BIGINT(user_time_total + system_time_total);
 
     auto proc_create_time = osquery::filetimeToUnixtime(create_time);
     r["start_time"] = BIGINT(proc_create_time);
@@ -617,6 +618,8 @@ TableRows genProcesses(QueryContext& context) {
     r["secure_process"] = BIGINT(-1);
     r["protection_type"] = SQL_TEXT("");
     r["virtual_process"] = BIGINT(-1);
+    r["cpu_usage"] = INTEGER(-1);
+    r["cpu_peak_usage"] = INTEGER(-1);
 
     if (pid == 0) {
       results.push_back(r);
@@ -639,6 +642,20 @@ TableRows genProcesses(QueryContext& context) {
       results.push_back(r);
       ret = Process32NextW(proc_snap, &proc);
       continue;
+    }
+
+    if (FLAGS_enable_processes_stats) {
+      auto processes_stats = ProcessesStats::getInstance();
+
+      auto opt_process_stats = processes_stats->getProcessStats(pid);
+
+      if (opt_process_stats.has_value()) {
+        r["cpu_usage"] = INTEGER(opt_process_stats->cpu_usage);
+
+        if (FLAGS_processes_stats_cpu_peak_samples > 0) {
+          r["cpu_peak_usage"] = INTEGER(opt_process_stats->cpu_peak_usage);
+        }
+      }
     }
 
     auto nice = GetPriorityClass(proc_handle);

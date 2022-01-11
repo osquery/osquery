@@ -35,6 +35,7 @@ function(generateOsqueryCoreInit)
     osquery_extensions
     osquery_distributed
     osquery_utils_pidfile
+    osquery_processes_stats
   )
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -61,7 +62,6 @@ function(generateOsqueryCoreInit)
   endif()
 
   add_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
-
 endfunction()
 
 function(generateOsqueryCore)

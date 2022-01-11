@@ -26,22 +26,21 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger/logger.h>
+#include <osquery/process/processes_stats.h>
 #include <osquery/sql/dynamic_table_row.h>
-#include <osquery/tables/system/linux/processes.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/boottime.h>
 
 #include <ctime>
 
 namespace osquery {
+
+DECLARE_bool(enable_processes_stats);
+DECLARE_uint32(processes_stats_cpu_peak_samples);
+
 namespace tables {
 
 const int kMSIn1CLKTCK = (1000 / sysconf(_SC_CLK_TCK));
-
-inline std::string getProcAttr(const std::string& attr,
-                               const std::string& pid) {
-  return "/proc/" + pid + "/" + attr;
-}
 
 inline std::string readProcCMDLine(const std::string& pid) {
   auto attr = getProcAttr("cmdline", pid);
@@ -57,37 +56,6 @@ inline std::string readProcCMDLine(const std::string& pid) {
   // Remove trailing delimiter.
   boost::algorithm::trim(content);
   return content;
-}
-
-std::string parseProcCGroup(const std::string& content) {
-  // Get only the first line
-  // with v1 cgroups we'll have separate lines for different cgroup types
-  auto end_pos = content.find('\n');
-
-  // We should always get something like:
-  // 0::user.slice (for cgroup v2) or
-  // 2:cpu:user.slice (for cgroup v1)
-  // Note that a cgroup name may have colons
-  auto first_colon = content.find(':');
-  if (first_colon == std::string::npos) {
-    return {};
-  }
-  auto second_colon = content.find(':', first_colon + 1);
-  if (second_colon != std::string::npos && second_colon < end_pos) {
-    return content.substr(second_colon + 1, end_pos - second_colon - 1);
-  } else {
-    return {};
-  }
-}
-
-inline std::string readProcCgroup(const std::string& pid) {
-  auto attr = getProcAttr("cgroup", pid);
-
-  std::string content;
-  if (!readFile(attr, content).ok()) {
-    return {};
-  };
-  return parseProcCGroup(content);
 }
 
 inline std::string readProcLink(const std::string& attr,
@@ -516,6 +484,30 @@ void genProcess(const std::string& pid,
 
     r["disk_bytes_written"] =
         std::to_string(write_bytes - cancelled_write_bytes);
+  }
+
+  r["cpu_usage"] = "-1";
+  r["cpu_peak_usage"] = "-1";
+
+  if (FLAGS_enable_processes_stats) {
+    auto processes_stats = ProcessesStats::getInstance();
+
+    auto pid_num_exp = tryTo<pid_t>(pid);
+
+    if (pid_num_exp.isValue()) {
+      auto opt_process_stats =
+          processes_stats->getProcessStats(pid_num_exp.take());
+
+      if (opt_process_stats.has_value()) {
+        r["cpu_usage"] = INTEGER(opt_process_stats->cpu_usage);
+
+        if (FLAGS_processes_stats_cpu_peak_samples > 0) {
+          r["cpu_peak_usage"] = INTEGER(opt_process_stats->cpu_peak_usage);
+        }
+      }
+    } else {
+      VLOG(1) << "Failed to convert pid " << pid << " to a number";
+    }
   }
 
   results.push_back(r);

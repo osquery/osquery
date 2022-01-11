@@ -84,6 +84,11 @@ const std::vector<std::string> tcp_states = {"UNKNOWN",
 
 using ProcessNamespaceList = std::map<std::string, ino_t>;
 
+inline std::string getProcAttr(const std::string& attr,
+                               const std::string& pid) {
+  return "/proc/" + pid + "/" + attr;
+}
+
 Status procGetProcessNamespaces(
     const std::string& process_id,
     ProcessNamespaceList& namespace_list,
@@ -273,5 +278,16 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
 
 enum class ProcError { GenericError };
 Expected<std::uint64_t, ProcError> getProcRSS(const std::string& process);
+
+std::string parseProcCGroup(const std::string& content);
+inline std::string readProcCgroup(const std::string& pid) {
+  auto attr = getProcAttr("cgroup", pid);
+
+  std::string content;
+  if (!readFile(attr, content).ok()) {
+    return {};
+  };
+  return parseProcCGroup(content);
+}
 
 } // namespace osquery

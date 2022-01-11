@@ -429,4 +429,25 @@ Expected<std::uint64_t, ProcError> getProcRSS(const std::string& process) {
   return rss_pages_res.take() * kMemoryPageSize;
 }
 
+std::string parseProcCGroup(const std::string& content) {
+  // Get only the first line
+  // with v1 cgroups we'll have separate lines for different cgroup types
+  auto end_pos = content.find('\n');
+
+  // We should always get something like:
+  // 0::user.slice (for cgroup v2) or
+  // 2:cpu:user.slice (for cgroup v1)
+  // Note that a cgroup name may have colons
+  auto first_colon = content.find(':');
+  if (first_colon == std::string::npos) {
+    return {};
+  }
+  auto second_colon = content.find(':', first_colon + 1);
+  if (second_colon != std::string::npos && second_colon < end_pos) {
+    return content.substr(second_colon + 1, end_pos - second_colon - 1);
+  } else {
+    return {};
+  }
+}
+
 } // namespace osquery

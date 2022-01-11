@@ -23,6 +23,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/process/processes_stats.h>
 #include <osquery/rows/processes.h>
 
 #include <chrono>
@@ -30,6 +31,10 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+DECLARE_bool(enable_processes_stats);
+DECLARE_uint32(processes_stats_cpu_peak_samples);
+
 namespace tables {
 
 // The maximum number of expected memory regions per process.
@@ -500,32 +505,49 @@ TableRows genProcesses(QueryContext& context) {
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    ProcessesRow* r = new ProcessesRow();
-    r->pid_col = pid;
+    std::unique_ptr<ProcessesRow> row_ptr = std::make_unique<ProcessesRow>();
+    auto& row = *row_ptr.get();
 
-    genProcCmdline(context, pid, *r);
+    row.pid_col = pid;
+
+    genProcCmdline(context, pid, row);
 
     // The process relative root and current working directory.
-    genProcRootAndCWD(context, pid, *r);
+    genProcRootAndCWD(context, pid, row);
 
     proc_cred cred;
-    if (!genProcCredAndStartTime(context, pid, cred, *r)) {
+    if (!genProcCredAndStartTime(context, pid, cred, row)) {
       continue;
     }
 
-    genProcNamePathAndOnDisk(context, pid, cred, *r);
+    genProcNamePathAndOnDisk(context, pid, cred, row);
 
     // systems usage and time information
-    genProcResourceUsage(context, pid, *r);
+    genProcResourceUsage(context, pid, row);
 
-    genProcNumThreads(context, pid, *r);
+    row.cpu_usage_col = -1;
+    row.cpu_peak_usage_col = -1;
 
-    genProcUniquePid(context, pid, *r);
+    if (FLAGS_enable_processes_stats) {
+      auto processes_stats = ProcessesStats::getInstance();
+      auto opt_proc_stats = processes_stats->getProcessStats(pid);
 
-    genProcArch(context, pid, *r);
+      if (opt_proc_stats.has_value()) {
+        row.cpu_usage_col = opt_proc_stats->cpu_usage;
 
-    std::unique_ptr<TableRow> tr(r);
-    results.push_back(std::move(tr));
+        if (FLAGS_processes_stats_cpu_peak_samples > 0) {
+          row.cpu_peak_usage_col = opt_proc_stats->cpu_peak_usage;
+        }
+      }
+    }
+
+    genProcNumThreads(context, pid, row);
+
+    genProcUniquePid(context, pid, row);
+
+    genProcArch(context, pid, row);
+
+    results.push_back(std::move(row_ptr));
   }
 
   return results;

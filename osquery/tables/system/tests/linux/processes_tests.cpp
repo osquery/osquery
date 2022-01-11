@@ -8,7 +8,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <osquery/tables/system/linux/processes.h>
+#include <osquery/filesystem/linux/proc.h>
 
 namespace osquery {
 namespace tables {

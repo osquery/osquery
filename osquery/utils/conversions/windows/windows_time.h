@@ -23,6 +23,15 @@ namespace osquery {
 LONGLONG filetimeToUnixtime(const FILETIME& ft);
 
 /**
+ * @brief Windows helper function for converting FILETIME to an absolute values
+ * of ticks
+ *
+ * @param ft
+ * @return The absolute time in 100 nanosecond ticks
+ */
+ULONGLONG filetimeToTicks(const FILETIME& ft);
+
+/**
  * @brief Windows helper function for converting LARGE INTs to Unix epoch
  *
  * @returns The unix epoch timestamp representation of the LARGE int value
@@ -30,8 +39,9 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
 LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 
 /**
- * @brief Windows helper function for converting Little Endian FILETIME to Unix
- * epoch. Windows Registry sometimes stores FILETIME in little endian format
+ * @brief Windows helper function for converting Little Endian FILETIME to
+ * Unix epoch. Windows Registry sometimes stores FILETIME in little endian
+ * format
  *
  * @returns The unix epoch timestamp representation of the FILETIME
  */

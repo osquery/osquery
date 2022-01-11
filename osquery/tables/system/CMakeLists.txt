@@ -244,6 +244,8 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_hashing
     osquery_logger
     osquery_process
+    osquery_processes_stats
+    osquery_rows_processes_header
     osquery_utils
     osquery_utils_conversions
     osquery_utils_expected
@@ -254,7 +256,7 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_system_uptime
     osquery_worker_ipc_platformtablecontaineripc
     thirdparty_boost
-    osquery_rows_processes_header
+
   )
 
   if(NOT DEFINED PLATFORM_WINDOWS)
@@ -332,7 +334,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apt_sources.h
       linux/md_tables.h
       linux/pci_devices.h
-      linux/processes.h
       linux/smbios_utils.h
     )
 

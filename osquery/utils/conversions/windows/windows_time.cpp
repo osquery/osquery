@@ -31,6 +31,13 @@ LONGLONG longIntToUnixtime(LARGE_INTEGER& li) {
   return ull.QuadPart / 10000000ULL - 11644473600ULL;
 }
 
+ULONGLONG filetimeToTicks(const FILETIME& ft) {
+  ULARGE_INTEGER utime;
+  utime.HighPart = ft.dwHighDateTime;
+  utime.LowPart = ft.dwLowDateTime;
+  return utime.QuadPart;
+}
+
 // Convert little endian Windows FILETIME to unix timestamp
 LONGLONG littleEndianToUnixTime(const std::string& time_data) {
   std::string time_string = time_data;

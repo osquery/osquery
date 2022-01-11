@@ -26,6 +26,7 @@ function(generateOsqueryDistributed)
     osquery_core_plugins
     osquery_database
     osquery_logger
+    osquery_sql
     osquery_utils_json
     osquery_utils_system_time
     osquery_worker_system_linux_memory

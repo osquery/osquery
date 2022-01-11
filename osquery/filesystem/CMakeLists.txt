@@ -62,7 +62,6 @@ function(generateOsqueryFilesystem)
 
   target_link_libraries(osquery_filesystem PUBLIC
     osquery_cxx_settings
-    osquery_process
     osquery_sql
     osquery_utils_conversions
     osquery_utils_status
