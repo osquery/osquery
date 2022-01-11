@@ -162,15 +162,12 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     std::string columns_value;
     columns_value.reserve(256);
 
-    // Always add the implicit path column
-    columns.push_back(
-        make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
-    columns_value += "path,";
-
     if (!params.HasMember("columns") || !params["columns"].IsArray()) {
       LOG(WARNING) << "ATC Table: " << table_name
                    << " is misconfigured (no columns)";
     }
+
+    std::string user_defined_path_column = "";
 
     for (const auto& column : params["columns"].GetArray()) {
       if (!column.IsString()) {
@@ -179,16 +176,25 @@ Status ATCConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
-      if (std::string(column.GetString()) == std::string("path")) {
-        LOG(WARNING) << "ATC Table: " << table_name
-                     << " is misconfigured. The configuration include `path`,"
-                     << " which is a reserved column";
-        continue;
+      if (strcasecmp(std::string(column.GetString()).c_str(), "path") == 0) {
+        user_defined_path_column = std::string(column.GetString());
       }
 
       columns.push_back(make_tuple(
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
+    }
+
+    if (user_defined_path_column != "") {
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " is misconfigured. The configuration include `"
+                   << user_defined_path_column
+                   << "`. This is a reserved column name";
+    } else {
+      // Add implicit path column
+      columns.push_back(
+          make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
+      columns_value += "path,";
     }
 
     registered.erase(table_name);
