@@ -44,7 +44,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
 
-    if (boost::iequals(column_name.c_str(), "path")) {
+    if (boost::iequals(column_name, "path")) {
       user_defined_path_column = true;
     }
 

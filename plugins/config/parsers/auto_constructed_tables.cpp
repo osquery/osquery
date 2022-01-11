@@ -178,8 +178,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
-      if (boost::iequals(std::string(column.GetString()).c_str(), "path")) {
-        user_defined_path_column = std::string(column.GetString());
+      if (boost::iequals(column.GetString(), "path")) {
+        user_defined_path_column = column.GetString();
       }
 
       columns.push_back(make_tuple(
@@ -187,7 +187,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       columns_value += std::string(column.GetString()) + ",";
     }
 
-    if (user_defined_path_column.empty()) {
+    if (!user_defined_path_column.empty()) {
       LOG(WARNING) << "ATC Table: " << table_name
                    << " is misconfigured. The configuration includes `"
                    << user_defined_path_column
