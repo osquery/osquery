@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/config/config.h>
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
@@ -167,7 +169,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
                    << " is misconfigured (no columns)";
     }
 
-    std::string user_defined_path_column = "";
+    std::string user_defined_path_column;
 
     for (const auto& column : params["columns"].GetArray()) {
       if (!column.IsString()) {
@@ -176,7 +178,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
-      if (strcasecmp(std::string(column.GetString()).c_str(), "path") == 0) {
+      if (boost::iequals(std::string(column.GetString()).c_str(), "path")) {
         user_defined_path_column = std::string(column.GetString());
       }
 
@@ -185,9 +187,9 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       columns_value += std::string(column.GetString()) + ",";
     }
 
-    if (user_defined_path_column != "") {
+    if (user_defined_path_column.empty()) {
       LOG(WARNING) << "ATC Table: " << table_name
-                   << " is misconfigured. The configuration include `"
+                   << " is misconfigured. The configuration includes `"
                    << user_defined_path_column
                    << "`. This is a reserved column name";
     } else {
