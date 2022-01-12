@@ -241,12 +241,8 @@ class SizeVisitor : public boost::static_visitor<> {
     return size;
   }
 
-  SizeVisitor() {
-    size = 0;
-  }
-
- private:
-  uint64_t size;
+private:
+  uint64_t size{0};
 };
 
 void SQLInternal::escapeResults() {
