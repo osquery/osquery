@@ -241,7 +241,7 @@ class SizeVisitor : public boost::static_visitor<> {
     return size;
   }
 
-private:
+ private:
   uint64_t size{0};
 };
 
