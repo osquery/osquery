@@ -27,6 +27,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 
 namespace osquery {
 namespace tables {
@@ -70,9 +71,11 @@ static inline std::string kNormalizeImage(std::string& path) {
                              static_cast<unsigned int>(sys_root.size()));
   }
   if (path.find("system32") != std::string::npos) {
-    boost::regex_replace(path, boost::regex("^.*?system32"), "");
+    path = boost::regex_replace(path, boost::regex("^.*?system32"), "");
   }
-  return wstringToString(sys_root.append(stringToWstring(path)));
+  boost::filesystem::path normalized_path(wstringToString(sys_root));
+  normalized_path /= path;
+  return normalized_path.string();
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -170,22 +173,28 @@ Status getDeviceProperty(const device_infoset_t& infoset,
 
 std::string getDriverImagePath(const std::string& service_key) {
   QueryData results;
+  std::string path;
   queryMultipleRegistryPaths({service_key + kRegSep + "ImagePath"}, results);
 
   if (results.empty()) {
     return "";
   }
 
-  auto data_it = results[0].find("data");
-  if (data_it == results[0].end()) {
-    return "";
+  for (auto& it : results) {
+    auto data_it = it.find("data");
+    auto name_it = it.find("name");
+    if (data_it == it.end() || name_it == it.end()) {
+      continue;
+    }
+    if (name_it->second == "ImagePath") {
+      path = data_it->second;
+      break;
+    }
   }
 
-  auto path = data_it->second;
   if (path.empty()) {
     return "";
   }
-
   return kNormalizeImage(path);
 }
 
@@ -203,9 +212,14 @@ Status genServiceKeyMap(
   for (auto& row : results) {
     auto key_it = row.find("key");
     auto data_it = row.find("data");
-    if (key_it == row.end() || data_it == row.end()) {
+    auto name_it = row.find("name");
+    if (key_it == row.end() || data_it == row.end() || name_it == row.end()) {
       continue;
     }
+    if (name_it->second != "ImagePath") {
+      continue;
+    }
+
     services_image_map[key_it->second] = kNormalizeImage(data_it->second);
   }
   return Status::success();
