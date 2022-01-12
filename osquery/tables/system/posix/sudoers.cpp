@@ -67,12 +67,13 @@ void genSudoersFile(const std::string& filename,
     // append it to appropriate column.
     if (is_long_line) {
       is_long_line = (line.back() == '\\');
-      if (results.back()["rule_details"].empty()) {
-        results.back()["header"].pop_back();
+      auto& last_line = results.back();
+      if (last_line["rule_details"].empty()) {
+        last_line["header"].pop_back();
       } else {
-        results.back()["rule_details"].pop_back();
+        last_line["rule_details"].pop_back();
       }
-      results.back()["rule_details"].append(line);
+      last_line["rule_details"].append(line);
       continue;
     }
 
