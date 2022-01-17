@@ -1177,21 +1177,39 @@ bool SystemStateTracker::parseSocketAddress(
     family = socket_data.opt_domain.value();
   }
 
+  if (family == AF_UNSPEC) {
+    if (sockaddr.size() == sizeof(sockaddr_in)) {
+      family = AF_INET;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_in6)) {
+      family = AF_INET6;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_nl)) {
+      family = AF_NETLINK;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_un)) {
+      family = AF_UNIX;
+    }
+  }
+
   std::string address;
   std::uint16_t port{};
 
   bool succeeded{false};
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
+    succeeded = parseInetSockaddr(address, port, sockaddr);
+  }
+
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
+    succeeded = parseInet6Sockaddr(address, port, sockaddr);
+  }
+
+  if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
+    succeeded = parseNetlinkSockaddr(address, port, sockaddr);
+  }
+
   if (family == AF_UNSPEC || family == AF_UNIX) {
     succeeded = parseUnixSockaddr(address, sockaddr);
-
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
-    succeeded = parseInetSockaddr(address, port, sockaddr);
-
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
-    succeeded = parseInet6Sockaddr(address, port, sockaddr);
-
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
-    succeeded = parseNetlinkSockaddr(address, port, sockaddr);
   }
 
   if (succeeded) {
