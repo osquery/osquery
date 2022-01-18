@@ -63,6 +63,7 @@ function(generateOsqueryTablesNetworking)
     list(APPEND source_files
       windows/arp_cache.cpp
       windows/connectivity.cpp
+      windows/windows_firewall_rules.cpp
       windows/interfaces.cpp
       windows/process_open_sockets.cpp
       windows/routes.cpp
@@ -115,6 +116,7 @@ function(generateOsqueryTablesNetworking)
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND public_header_files
       windows/interfaces.h
+      windows/windows_firewall_rules.h
     )
   endif()
 
@@ -142,6 +144,8 @@ function(generateOsqueryTablesNetworking)
     )
   elseif(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_tables_networking_tests_iptablestests-test COMMAND osquery_tables_networking_tests_iptablestests-test)
+  elseif(DEFINED PLATFORM_WINDOWS)
+    add_test(NAME osquery_tables_networking_tests_windowsfirewallrulestests-test COMMAND osquery_tables_networking_tests_windowsfirewallrulestests-test)
   endif()
 
 endfunction()
