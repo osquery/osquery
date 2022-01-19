@@ -6,9 +6,12 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/5.1.0...5.2.1)
 
-Osquery 5.2.1 brings native m1 support to the macOS platform. 
+Osquery 5.2.1 brings native Apple Silicon (M1) support to the macOS
+platform. It also represents a comprehensive review and update of our
+third-party dependancies. To support this work, the developer docs
+have been updated, as have several parts of the build system
 
-Representing commits from 9 contributors! Thank you all.
+This release represents commits from 9 contributors! Thank you all.
 
 ### New Features
 
@@ -19,14 +22,10 @@ Representing commits from 9 contributors! Thank you all.
 - Update `time` table to reflect UTC values ([#7276](https://github.com/osquery/osquery/pull/7276))
 - Hide the deprecated `antispyware` column in `windows_security_center` ([#7411](https://github.com/osquery/osquery/pull/7411))
 
-### Under the Hood improvements
-
-
 ### Bug Fixes
 
-
 - Update the ATC table `path` column check to be case insensitive ([#7442](https://github.com/osquery/osquery/pull/7442))
-- Fix a crash when Yara uses its own strutils functions ([#7439](https://github.com/osquery/osquery/pull/7439))
+- Fix a crash introduced by 5.2.0 when Yara uses its own strutils functions ([#7439](https://github.com/osquery/osquery/pull/7439))
 
 ### Documentation
 
