@@ -17,7 +17,7 @@ Representing commits from 9 contributors! Thank you all.
 ### Table Changes
 
 - Update `time` table to reflect UTC values ([#7276](https://github.com/osquery/osquery/pull/7276))
-- Hide the deprecate `antispyware` column in `windows_security_center` ([#7411](https://github.com/osquery/osquery/pull/7411))
+- Hide the deprecated `antispyware` column in `windows_security_center` ([#7411](https://github.com/osquery/osquery/pull/7411))
 
 ### Under the Hood improvements
 
