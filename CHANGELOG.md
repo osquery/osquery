@@ -1,5 +1,45 @@
 # osquery Changelog
 
+
+<a name="5.2.1"></a>
+## [5.2.1](https://github.com/osquery/osquery/releases/tag/5.2.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.1.0...5.2.1)
+
+Osquery 5.2.1 brings native m1 support to the macOS platform. 
+
+Representing commits from 9 contributors! Thank you all.
+
+### New Features
+
+- Apple Silicon support ([#7330](https://github.com/osquery/osquery/pull/7330))
+
+### Table Changes
+
+- Update `time` table to reflect UTC values ([#7276](https://github.com/osquery/osquery/pull/7276))
+- Hide the deprecate `antispyware` column in `windows_security_center` ([#7411](https://github.com/osquery/osquery/pull/7411))
+
+### Under the Hood improvements
+
+
+### Bug Fixes
+
+
+- Update the ATC table `path` column check to be case insensitive ([#7442](https://github.com/osquery/osquery/pull/7442))
+- Fix a crash when Yara uses its own strutils functions ([#7439](https://github.com/osquery/osquery/pull/7439))
+
+### Documentation
+
+- Fix typos in documentation ([#7443](https://github.com/osquery/osquery/pull/7443), [#7412](https://github.com/osquery/osquery/pull/7412))
+- CHANGELOG 5.1.0 ([#7406](https://github.com/osquery/osquery/pull/7406))
+
+### Build
+
+- Update sqlite to version 3.37.0 ([#7426](https://github.com/osquery/osquery/pull/7426))
+- Fix linking of thirdparty_sleuthkit ([#7425](https://github.com/osquery/osquery/pull/7425))
+- Fix how we disable tables in the fuzzer init method ([#7419](https://github.com/osquery/osquery/pull/7419))
+- Prevent running discovery queries when fuzzing ([#7418](https://github.com/osquery/osquery/pull/7418))
+
 <a name="5.1.0"></a>
 ## [5.1.0](https://github.com/osquery/osquery/releases/tag/5.1.0)
 
