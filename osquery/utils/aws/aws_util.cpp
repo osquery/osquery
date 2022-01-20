@@ -155,7 +155,9 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   uri.SetPath(Aws::Http::URI::URLEncodePath(uri.GetPath()));
   Aws::String url = uri.GetURIString();
 
-  http::Client client(TLSTransport().getInternalOptions());
+  http::Client::Options options;
+  options.timeout(10);
+  http::Client client(options);
   http::Request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {
