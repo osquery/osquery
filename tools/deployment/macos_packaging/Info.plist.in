@@ -12,5 +12,9 @@
 	<string>osqueryd</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>${OSQUERY_PLIST_VERSION}</string>
+	<key>CFBundleVersion</key>
+	<string>${OSQUERY_PLIST_VERSION}</string>
 </dict>
 </plist>

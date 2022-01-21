@@ -214,6 +214,15 @@ function(add_osquery_executable)
 
   add_executable(${osquery_exe_name} ${osquery_exe_args})
 
+  if(DEFINED PLATFORM_MACOS)
+    getCleanedOsqueryVersion("OSQUERY_PLIST_VERSION")
+
+    configure_file(
+      "${CMAKE_SOURCE_DIR}/tools/deployment/macos_packaging/Info.plist.in"
+      "${CMAKE_SOURCE_DIR}/tools/deployment/macos_packaging/Info.plist"
+    )
+  endif()
+
   if(DEFINED PLATFORM_WINDOWS)
     set(OSQUERY_MANIFEST_TARGET_NAME "${osquery_exe_name}")
 
