@@ -34,28 +34,11 @@ namespace tables {
 std::set<std::string> kCheckedArches{
     "", "i386", "ppc", "arm", "x86_64", "arm64"};
 
-int getOSMinorVersion() {
-  auto qd = SQL::selectAllFrom("os_version");
-  if (qd.size() != 1) {
-    return -1;
-  }
-
-  return tryTo<int>(qd.front().at("minor")).takeOr(-1);
-}
-
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
 // the OS version.
 Status getVerifyFlags(SecCSFlags& flags, bool hashResources) {
-  static const auto minorVersion = getOSMinorVersion();
-  if (minorVersion == -1) {
-    return Status(-1, "Couldn't determine OS X version");
-  }
-
   flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures |
           kSecCSCheckNestedCode;
-  if (minorVersion > 8) {
-    flags |= kSecCSCheckNestedCode;
-  }
 
   if (!hashResources) {
     flags |= kSecCSDoNotValidateResources;
