@@ -4,7 +4,6 @@ RUN apt upgrade -q -y
 RUN apt install -q -y --no-install-recommends \
 	git \
 	make \
-	cppcheck \
 	ccache \
 	python \
 	python3 \
@@ -45,6 +44,19 @@ RUN case $(uname -m) in aarch64) ARCH="aarch64" ;; amd64|x86_64) ARCH="x86_64" ;
 FROM base2 AS base3
 RUN locale-gen en_US.UTF-8
 
+FROM base3 AS cppcheck
+ENV cppcheckVer 2.6.3
+WORKDIR /root
+RUN case $(uname -m) in amd64|x86_64) git clone https://github.com/danmar/cppcheck.git \
+		&& apt install -q -y --no-install-recommends clang-9 libpcre3-dev \
+		&& update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 20 \
+		&& update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 20 \
+		&& cd cppcheck && git checkout ${cppcheckVer} && mkdir build && cd build \
+		&& cmake ../ -DCMAKE_BUILD_TYPE=Release -DHAVE_RULES=ON -DUSE_MATCHCOMPILER=ON \
+		&& cmake --build . --target cppcheck -j $(nproc) \
+		&& DESTDIR=../install cmake --build . --target install ;; \
+		*) mkdir -p /root/cppcheck/install/usr/local/ ;; esac
+
 RUN apt autoremove --purge -y
 RUN rm -rf /usr/local/doc /usr/local/bin/cmake-gui
 RUN apt clean
@@ -55,4 +67,5 @@ RUN rm -rf /var/lib/apt/lists/*
 # image.
 FROM scratch AS builder
 COPY --from=base3 / /
+COPY --from=cppcheck /root/cppcheck/install/usr/local/ /usr/local/
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
