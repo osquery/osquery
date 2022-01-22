@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: osquery/builder18.04:a4961d234
+      image: osquery/builder18.04:e583eee2a
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -161,7 +161,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:a4961d234
+      image: osquery/builder18.04:e583eee2a
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
