@@ -15,8 +15,7 @@
 
 #include <chrono>
 #include <iostream>
-
-#include <boost/utility/string_ref.hpp>
+#include <string>
 
 #include <osquery/core/flags.h>
 #include <osquery/events/linux/apparmor_events.h>
@@ -76,40 +75,42 @@ constexpr std::uint64_t kUnprocessedRecordsThreshold{4096};
 constexpr std::uint64_t kThrottlingMessageInterval{60};
 // How much to wait for each throttling loop in millseconds
 constexpr std::uint64_t kThrottlingDuration{100};
+const std::string kAuditPreamblePrefix{"audit("};
+constexpr std::size_t kAuditMinPreambleEndPos{13};
+constexpr std::size_t kAuditMaxPreambleEndPos{28};
 
-bool IsSELinuxRecord(const audit_reply& reply) noexcept {
+bool IsSELinuxRecord(int type, std::string_view message) noexcept {
   static const auto& selinux_event_set = kSELinuxEventList;
-  return (selinux_event_set.find(reply.type) != selinux_event_set.end()) &&
-         (std::string(reply.message).find(kAppArmorRecordMarker) ==
-          std::string::npos);
+
+  return (selinux_event_set.find(type) != selinux_event_set.end()) &&
+         (message.find(kAppArmorRecordMarker) == std::string::npos);
 }
 
-bool isAppArmorRecord(const audit_reply& reply) noexcept {
+bool isAppArmorRecord(int type, std::string_view message) noexcept {
   static const auto& apparmor_event_set = kAppArmorEventSet;
 
-  return (apparmor_event_set.find(reply.type) != apparmor_event_set.end()) &&
-         (std::string(reply.message).find(kAppArmorRecordMarker) !=
-          std::string::npos);
+  return (apparmor_event_set.find(type) != apparmor_event_set.end()) &&
+         (message.find(kAppArmorRecordMarker) != std::string::npos);
 }
 
 /**
  * User messages should be filtered. Also, we should handle the 2nd user
  * message type.
  */
-bool ShouldHandle(const audit_reply& reply) noexcept {
-  if (isAppArmorRecord(reply)) {
-    return FLAGS_audit_allow_apparmor_events;
-  }
-
-  if (IsSELinuxRecord(reply)) {
-    return FLAGS_audit_allow_selinux_events;
-  }
-
-  if (reply.type == AUDIT_SECCOMP) {
+bool ShouldHandle(int type, AuditRecordSubtype subtype) noexcept {
+  if (type == AUDIT_SECCOMP) {
     return FLAGS_audit_allow_seccomp_events;
   }
 
-  switch (reply.type) {
+  if (subtype == AuditRecordSubtype::AppArmor) {
+    return FLAGS_audit_allow_apparmor_events;
+  }
+
+  if (subtype == AuditRecordSubtype::SELinux) {
+    return FLAGS_audit_allow_selinux_events;
+  }
+
+  switch (type) {
   case NLMSG_NOOP:
   case NLMSG_DONE:
   case NLMSG_ERROR:
@@ -776,14 +777,19 @@ void AuditdNetlinkParser::start() {
         continue;
       }
 
+      std::string_view message_view(reply.message,
+                                    static_cast<std::size_t>(reply.len));
+
+      auto subtype = ParseAuditRecordSubtype(reply.type, message_view);
+
       // We are not interested in all messages; only get the ones related to
       // user events, seccomp, syscalls, SELinux events and AppArmor events
-      if (!ShouldHandle(reply)) {
+      if (!ShouldHandle(reply.type, subtype)) {
         continue;
       }
 
       AuditEventRecord audit_event_record = {};
-      if (!ParseAuditReply(reply, audit_event_record)) {
+      if (!ParseAuditReply(reply, subtype, audit_event_record)) {
         VLOG(1) << "Malformed audit record received";
         continue;
       }
@@ -847,8 +853,22 @@ void AuditdNetlinkParser::start() {
   }
 }
 
+AuditRecordSubtype AuditdNetlinkParser::ParseAuditRecordSubtype(
+    int record_type, std::string_view message_view) {
+  AuditRecordSubtype subtype{};
+  if (isAppArmorRecord(record_type, message_view)) {
+    subtype = AuditRecordSubtype::AppArmor;
+  } else if (IsSELinuxRecord(record_type, message_view)) {
+    subtype = AuditRecordSubtype::SELinux;
+  }
+
+  return subtype;
+}
+
 bool AuditdNetlinkParser::ParseAuditReply(
-    const audit_reply& reply, AuditEventRecord& event_record) noexcept {
+    const audit_reply& reply,
+    AuditRecordSubtype subtype,
+    AuditEventRecord& event_record) noexcept {
   event_record = {};
 
   if (FLAGS_audit_debug) {
@@ -857,32 +877,67 @@ bool AuditdNetlinkParser::ParseAuditReply(
 
   // Parse the record header
   event_record.type = reply.type;
-  boost::string_ref message_view(reply.message,
-                                 static_cast<unsigned int>(reply.len));
+  std::string_view message_view(reply.message,
+                                static_cast<std::size_t>(reply.len));
 
-  auto preamble_end = message_view.find("): ");
-  if (preamble_end == std::string::npos) {
+  /* NOTE: The preamble is "audit(%llu.%03lu:%u): ",
+     this means that there are 6 fixed characters,
+     1 to 19 characters for the time, 3 characters for the nanoseconds,
+     1 to 10 characters for the serial, 2 for the separators. */
+
+  // Verify that the message starts with the correct prefix
+  if (message_view.compare(
+          0, kAuditPreamblePrefix.size(), kAuditPreamblePrefix) != 0) {
+    return false;
+  }
+
+  /* Verify that the preamble end is found, that there are enough characters
+     for the smallest preamble and that the preamble isn't
+     bigger than the biggest one possible. */
+  auto preamble_end = message_view.find("): ", kAuditPreamblePrefix.size());
+  if (preamble_end < kAuditMinPreambleEndPos ||
+      preamble_end > kAuditMaxPreambleEndPos) {
+    return false;
+  }
+
+  // The time should end at least 1 character beyond the end of the prefix
+  auto time_end = message_view.find(".", kAuditPreamblePrefix.size() + 1);
+
+  /* Make sure that the time doesn't somehow consume all the characters.
+     A minimum of 5 characters should be present before the end of the
+     preamble, for the nanoseconds,
+     the separator and the shortest possible serial. */
+  if (time_end >= (preamble_end - 5)) {
     return false;
   }
 
   event_record.time =
-      tryTo<unsigned long int>(message_view.substr(6, 10).to_string(), 10)
+      tryTo<std::uint64_t>(std::string(message_view.substr(
+                               kAuditPreamblePrefix.size(),
+                               time_end - kAuditPreamblePrefix.size())),
+                           10)
           .takeOr(event_record.time);
-  event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
+
+  event_record.audit_id = message_view.substr(
+      kAuditPreamblePrefix.size(), preamble_end - kAuditPreamblePrefix.size());
 
   // SELinux doesn't output valid audit records; just save them as they are
-  if (IsSELinuxRecord(reply)) {
-    event_record.raw_data = reply.message;
+  if (subtype == AuditRecordSubtype::SELinux) {
+    event_record.raw_data = message_view;
     return true;
   }
 
   // Save the whole message for AppArmor too
-  if (isAppArmorRecord(reply)) {
-    event_record.raw_data = reply.message;
+  if (subtype == AuditRecordSubtype::AppArmor) {
+    event_record.raw_data = message_view;
+  }
+
+  if (message_view.size() < (preamble_end + 3)) {
+    return false;
   }
 
   // Tokenize the message
-  boost::string_ref field_view(message_view.substr(preamble_end + 3));
+  std::string_view field_view(message_view.substr(preamble_end + 3));
 
   // The linear search will construct series of key value pairs.
   std::string key, value;
@@ -905,8 +960,7 @@ bool AuditdNetlinkParser::ParseAuditReply(
       // tok.
       if (!key.empty()) {
         // Multiple space tokens are supported.
-        event_record.fields.emplace(
-            std::make_pair(std::move(key), std::move(value)));
+        event_record.fields.emplace(std::move(key), std::move(value));
       }
 
       found_enclose = false;
@@ -936,8 +990,7 @@ bool AuditdNetlinkParser::ParseAuditReply(
 
   // Last step, if there was no trailing tokenizer.
   if (!key.empty()) {
-    event_record.fields.emplace(
-        std::make_pair(std::move(key), std::move(value)));
+    event_record.fields.emplace(std::move(key), std::move(value));
   }
 
   return true;

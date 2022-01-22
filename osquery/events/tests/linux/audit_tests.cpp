@@ -54,17 +54,19 @@ TEST_F(AuditTests, test_handle_reply) {
   struct audit_reply reply;
   reply.type = 1;
   reply.len = message.size();
-  reply.message = (char*)malloc(sizeof(char) * (message.size() + 1));
-  memset((void*)reply.message, 0, message.size() + 1);
-  memcpy((void*)reply.message, message.c_str(), message.size());
+  reply.message = message.c_str();
+
+  std::string_view message_view(reply.message,
+                                static_cast<std::size_t>(reply.len));
+
+  auto subtype =
+      AuditdNetlinkParser::ParseAuditRecordSubtype(reply.type, message_view);
 
   // Perform the parsing.
   AuditEventRecord audit_event_record = {};
   bool parser_status =
-      AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
+      AuditdNetlinkParser::ParseAuditReply(reply, subtype, audit_event_record);
   EXPECT_EQ(parser_status, true);
-
-  free((char*)reply.message);
 
   EXPECT_EQ(reply.type, audit_event_record.type);
   EXPECT_EQ("1440542781.644:403030", audit_event_record.audit_id);
@@ -100,4 +102,4 @@ bool SimpleUpdate(size_t t, const StringMap& f, StringMap& m) {
   return true;
 }
 
-}
+} // namespace osquery

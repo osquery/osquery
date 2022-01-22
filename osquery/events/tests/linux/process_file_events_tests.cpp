@@ -9,13 +9,13 @@
 
 #include <gtest/gtest.h>
 
-#include <linux/audit.h>
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
+#include <linux/audit.h>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
@@ -67,10 +67,16 @@ TEST_F(AuditdFimTests, row_emission) {
     reply.len = audit_message_copy.size();
     reply.message = &audit_message_copy[0];
 
+    std::string_view message_view(reply.message,
+                                  static_cast<std::size_t>(reply.len));
+
+    auto subtype =
+        AuditdNetlinkParser::ParseAuditRecordSubtype(reply.type, message_view);
+
     AuditEventRecord audit_event_record = {};
 
-    bool parser_status =
-        AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
+    bool parser_status = AuditdNetlinkParser::ParseAuditReply(
+        reply, subtype, audit_event_record);
     EXPECT_EQ(parser_status, true);
 
     event_record_list.push_back(audit_event_record);

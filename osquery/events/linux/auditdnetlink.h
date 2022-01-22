@@ -29,6 +29,8 @@ namespace osquery {
 /// Netlink status, used by AuditNetlink::acquireHandle()
 enum class NetlinkStatus { ActiveMutable, ActiveImmutable, Disabled, Error };
 
+enum class AuditRecordSubtype { None, AppArmor, SELinux };
+
 /// Contains an audit_rule_data structure
 using AuditRuleDataObject = std::vector<std::uint8_t>;
 
@@ -157,8 +159,12 @@ class AuditdNetlinkParser final : public InternalRunnable {
   explicit AuditdNetlinkParser(AuditdContextRef context);
   virtual void start() override;
 
+  static AuditRecordSubtype ParseAuditRecordSubtype(
+      int record_type, std::string_view message_view);
+
   /// Parses an audit_reply structure into an AuditEventRecord object
   static bool ParseAuditReply(const audit_reply& reply,
+                              AuditRecordSubtype subtype,
                               AuditEventRecord& event_record) noexcept;
 
   /// Adjusts the internal pointers of the audit_reply object

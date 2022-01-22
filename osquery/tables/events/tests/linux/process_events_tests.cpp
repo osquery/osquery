@@ -32,7 +32,13 @@ bool GenerateAuditEventRecord(AuditEventRecord& event_record,
   reply.len = contents.size();
   reply.message = &contents[0];
 
-  return AuditdNetlinkParser::ParseAuditReply(reply, event_record);
+  std::string_view message_view(reply.message,
+                                static_cast<std::size_t>(reply.len));
+
+  auto subtype =
+      AuditdNetlinkParser::ParseAuditRecordSubtype(reply.type, message_view);
+
+  return AuditdNetlinkParser::ParseAuditReply(reply, subtype, event_record);
 }
 
 void GenerateAuditEvent(std::vector<AuditEventRecord>& record_list,
