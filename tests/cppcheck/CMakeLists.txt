@@ -37,10 +37,10 @@ function(cppcheckMain)
   # this only works for source files, while included headers will still cause warnings,
   # which will be covered by the suppression list.
   set(ignored_folders
-    "-i \"*/libraries/*\""
-    "-i \"*/libs/src/*\""
-    "-i \"*/installed_formulas/*\""
-    "-i \"*/openssl/*\""
+    -i "*/libraries/*"
+    -i "*/libs/src/*"
+    -i "*/installed_formulas/*"
+    -i "*/openssl/*"
   )
 
   # We don't care if multithreading disables the unusedFunction check, since that would turn off
