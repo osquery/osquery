@@ -574,7 +574,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}__${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v2
