@@ -8,7 +8,7 @@
 
 Osquery 5.2.1 brings native Apple Silicon (M1) support to the macOS
 platform. It also represents a comprehensive review and update of our
-third-party dependancies. To support this work, the developer docs
+third-party dependencies. To support this work, the developer docs
 have been updated, as have several parts of the build system
 
 This release represents commits from 9 contributors! Thank you all.
