@@ -1953,4 +1953,23 @@ fs::path getSystemRoot() {
 Status platformLstat(const std::string& path, struct stat& d_stat) {
   return Status(1);
 }
+
+boost::optional<bool> platformIsFile(int fd) {
+  struct _stat64 d_stat {};
+  if (::_fstat64(fd, &d_stat) < 0) {
+    return boost::none;
+  }
+
+  return (d_stat.st_mode & _S_IFREG);
+}
+
+Status platformFileno(FILE* file, int& fd) {
+  fd = ::_fileno(file);
+
+  if (fd < 0) {
+    return Status(errno);
+  }
+
+  return Status::success();
+}
 } // namespace osquery
