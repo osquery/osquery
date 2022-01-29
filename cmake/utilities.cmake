@@ -470,3 +470,40 @@ function(findClangFormat)
     message(STATUS "Found clang-format: ${OSQUERY_CLANG_FORMAT}")
   endif()
 endfunction()
+
+
+# Like add_dependencies but if an INTERFACE library is passed,
+# it will drill down to the non INTERFACE target and add a dependency to that.
+function(add_real_target_dependencies target root_target_dependency)
+  set(targets_to_process ${root_target_dependency})
+
+  while(true)
+    list(LENGTH targets_to_process targets_to_process_length)
+
+    if(targets_to_process_length EQUAL 0)
+      break()
+    endif()
+
+    list(POP_FRONT targets_to_process current_target)
+
+    get_target_property(thirdparty_target_type ${current_target} TYPE)
+
+    # If it's not an interface library, we have arrived at our needed target
+    if(NOT thirdparty_target_type STREQUAL "INTERFACE_LIBRARY")
+      add_dependencies(${target} ${current_target})
+    else()
+      # Otherwise get all the public dependencies and add them to be processed
+      get_target_property(thirdparty_dependency_list
+        ${current_target}
+        INTERFACE_LINK_LIBRARIES
+      )
+
+      if(thirdparty_dependency_list STREQUAL "thirdparty_dependency_list-NOTFOUND")
+        continue()
+      endif()
+
+      list(APPEND targets_to_process ${thirdparty_dependency_list})
+      list(REMOVE_DUPLICATES targets_to_process)
+    endif()
+  endwhile()
+endfunction()

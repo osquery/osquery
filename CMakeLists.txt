@@ -152,6 +152,9 @@ function(importLibraries)
     )
   endif()
 
+  # Create a target that builds all the third party libraries for convenience
+  add_custom_target(thirdparty_libraries)
+
   foreach(library_descriptor ${library_descriptor_list})
     # Expand the library descriptor
     string(REPLACE ":" ";" library_descriptor "${library_descriptor}")
@@ -170,12 +173,14 @@ function(importLibraries)
 
     # Skip libraries which already use our internal target name
     if(TARGET "thirdparty_${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
       continue()
 
     # For generic libraries that import the library name, let's create
     # an alias
     elseif(TARGET "${library}")
       add_library("thirdparty_${library}" ALIAS "${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
     # Legacy libraries will just export variables; build a new INTERFACE
     # target with them
@@ -185,6 +190,7 @@ function(importLibraries)
       endif()
 
       add_library("thirdparty_${library}" INTERFACE)
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
       target_link_libraries("thirdparty_${library}" INTERFACE
         ${library}_LIBRARIES
