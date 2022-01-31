@@ -41,10 +41,7 @@ RUN case $(uname -m) in aarch64) ARCH="aarch64" ;; amd64|x86_64) ARCH="x86_64" ;
 	&& sudo tar xvf cmake-${cmakeVer}-Linux-${ARCH}.tar.gz -C /usr/local --strip 1 \
 	&& rm cmake-${cmakeVer}-Linux-${ARCH}.tar.gz
 
-FROM base2 AS base3
-RUN locale-gen en_US.UTF-8
-
-FROM base3 AS cppcheck
+FROM base2 AS cppcheck
 ENV cppcheckVer 2.6.3
 WORKDIR /root
 RUN case $(uname -m) in amd64|x86_64) git clone https://github.com/danmar/cppcheck.git \
@@ -57,15 +54,20 @@ RUN case $(uname -m) in amd64|x86_64) git clone https://github.com/danmar/cppche
 		&& DESTDIR=../install cmake --build . --target install ;; \
 		*) mkdir -p /root/cppcheck/install/usr/local/ ;; esac
 
+FROM base2 AS base3
+RUN locale-gen en_US.UTF-8
+
 RUN apt autoremove --purge -y
 RUN rm -rf /usr/local/doc /usr/local/bin/cmake-gui
 RUN apt clean
 RUN rm -rf /var/lib/apt/lists/*
 
+FROM base3 AS base4
+COPY --from=cppcheck /root/cppcheck/install/usr/local/ /usr/local/
+
 # Squash all layers down using a giant COPY. It's kinda gross, but it
 # works. Though the layers are only adding about 50 megs on a 1gb
 # image.
 FROM scratch AS builder
-COPY --from=base3 / /
-COPY --from=cppcheck /root/cppcheck/install/usr/local/ /usr/local/
+COPY --from=base4 / /
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
