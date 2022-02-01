@@ -71,14 +71,24 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require root access")
 
-if(DEFINED PLATFORM_LINUX)
-  option(OSQUERY_BUILD_FUZZERS "Whether to build fuzzing harnesses")
-  option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
-  # This is required for Boost coroutines/context to be built in a way that are compatible to Valgrind
-  option(OSQUERY_ENABLE_VALGRIND_SUPPORT "Whether to enable support for osquery to be run under Valgrind")
+option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
 
-  if(OSQUERY_ENABLE_VALGRIND_SUPPORT AND OSQUERY_ENABLE_ADDRESS_SANITIZER)
-    message(FATAL_ERROR "Cannot mix Vagrind and ASAN sanitizers, please choose only one.")
+if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
+  option(OSQUERY_BUILD_FUZZERS "Whether to build fuzzing harnesses")
+
+  if(DEFINED PLATFORM_WINDOWS AND OSQUERY_BUILD_FUZZERS)
+    if(OSQUERY_MSVC_TOOLSET_VERSION LESS 143)
+      message(FATAL_ERROR "Fuzzers are not supported on MSVC toolset version less than 143")
+    endif()
+  endif()
+
+  if(DEFINED PLATFORM_LINUX)
+    # This is required for Boost coroutines/context to be built in a way that are compatible to Valgrind
+    option(OSQUERY_ENABLE_VALGRIND_SUPPORT "Whether to enable support for osquery to be run under Valgrind")
+
+    if(OSQUERY_ENABLE_VALGRIND_SUPPORT AND OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      message(FATAL_ERROR "Cannot mix Vagrind and ASAN sanitizers, please choose only one.")
+    endif()
   endif()
 endif()
 

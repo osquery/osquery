@@ -715,7 +715,7 @@ function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
   set(context_backend "fcontext")
-  if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+  if(OSQUERY_ENABLE_ADDRESS_SANITIZER AND NOT PLATFORM_WINDOWS)
     set(context_backend "ucontext")
   endif()
 
