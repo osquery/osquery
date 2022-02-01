@@ -824,6 +824,12 @@ function(generateBoostContext)
       BOOST_USE_UCONTEXT
     )
 
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      target_compile_definitions(thirdparty_boost_context PUBLIC
+        BOOST_USE_ASAN
+      )
+    endif()
+
   elseif(context_backend STREQUAL "winfib")
     target_compile_definitions(thirdparty_boost_context PUBLIC
       BOOST_USE_WINFIB
