@@ -436,26 +436,30 @@ void genProcResourceUsage(const QueryContext& context,
       proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
+    // Initialize time conversions.
+    static mach_timebase_info_data_t time_base;
+    if (time_base.denom == 0) {
+      mach_timebase_info(&time_base);
+    }
+
     // size/memory information
     r.wired_size_col = rusage_info_data.ri_wired_size;
     r.resident_size_col = rusage_info_data.ri_resident_size;
     r.total_size_col = rusage_info_data.ri_phys_footprint;
 
     // time information
-    r.user_time_col = rusage_info_data.ri_user_time / CPU_TIME_RATIO;
-    r.system_time_col = rusage_info_data.ri_system_time / CPU_TIME_RATIO;
+    r.user_time_col =
+        ((rusage_info_data.ri_user_time * time_base.numer) / time_base.denom) /
+        CPU_TIME_RATIO;
+    r.system_time_col = ((rusage_info_data.ri_system_time * time_base.numer) /
+                         time_base.denom) /
+                        CPU_TIME_RATIO;
 
     // disk i/o information
     r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
     r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
 
     if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
-      // Initialize time conversions.
-      static mach_timebase_info_data_t time_base;
-      if (time_base.denom == 0) {
-        mach_timebase_info(&time_base);
-      }
-
       uint64_t const absoluteTime = mach_absolute_time();
       auto const process_age = std::chrono::nanoseconds{
           (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
@@ -786,5 +790,5 @@ QueryData genProcessMemoryMap(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
