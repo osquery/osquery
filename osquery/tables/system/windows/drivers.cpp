@@ -174,7 +174,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
 std::string getDriverImagePath(const std::string& service_key) {
   QueryData results;
   std::string path;
-  queryMultipleRegistryPaths({service_key + kRegSep + "ImagePath"}, results);
+  queryKey(service_key, results);
 
   if (results.empty()) {
     return "";
@@ -196,33 +196,6 @@ std::string getDriverImagePath(const std::string& service_key) {
     return "";
   }
   return kNormalizeImage(path);
-}
-
-Status genServiceKeyMap(
-    std::map<std::string, std::string>& services_image_map) {
-  QueryData results;
-  queryMultipleRegistryPaths({kServiceKeyPath + '%' + kRegSep + "ImagePath"},
-                             results);
-
-  // Something went wrong
-  if (results.empty()) {
-    return Status::failure("Failed to retrieve services image path cache");
-  }
-
-  for (auto& row : results) {
-    auto key_it = row.find("key");
-    auto data_it = row.find("data");
-    auto name_it = row.find("name");
-    if (key_it == row.end() || data_it == row.end() || name_it == row.end()) {
-      continue;
-    }
-    if (name_it->second != "ImagePath") {
-      continue;
-    }
-
-    services_image_map[key_it->second] = kNormalizeImage(data_it->second);
-  }
-  return Status::success();
 }
 
 QueryData genDrivers(QueryContext& context) {
@@ -251,12 +224,6 @@ QueryData genDrivers(QueryContext& context) {
     return results;
   }
 
-  std::map<std::string, std::string> svc_image_map;
-  auto s = genServiceKeyMap(svc_image_map);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to construct service image path cache";
-  }
-
   // Then, leverage the Windows APIs to get whatever remains
   for (auto& device : devices) {
     WCHAR devId[MAX_DEVICE_ID_LEN] = {0};
@@ -280,18 +247,9 @@ QueryData genDrivers(QueryContext& context) {
     if (r.count("service") > 0 && !r.at("service").empty()) {
       auto svc_key = kServiceKeyPath + r["service"];
       r["service_key"] = svc_key;
-
-      // If the image map doesn't exist in the cache, manually look it up
-      auto svc_key_it = svc_image_map.find(svc_key);
-      if (svc_key_it != svc_image_map.end()) {
-        r["image"] = svc_key_it->second;
-      } else {
-        // Manual lookups of the service keys image path are _very_ slow
-        VLOG(1) << r["service"]
-                << " not found in image cache, performing manual lookup";
-        r["image"] = getDriverImagePath(svc_key);
-      }
+      r["image"] = getDriverImagePath(svc_key);
     }
+
     api_devices[devId] = r;
   }
 
