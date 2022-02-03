@@ -1,31 +1,38 @@
 # osquery Changelog
 
+<a name="5.2.2"></a>
+## [5.2.2](https://github.com/osquery/osquery/releases/tag/5.2.2)
 
-<a name="5.2.1"></a>
-## [5.2.1](https://github.com/osquery/osquery/releases/tag/5.2.1)
+[Git Commits](https://github.com/osquery/osquery/compare/5.1.0...5.2.2)
 
-[Git Commits](https://github.com/osquery/osquery/compare/5.1.0...5.2.1)
-
-Osquery 5.2.1 brings native Apple Silicon (M1) support to the macOS
+Osquery 5.2.2 brings native Apple Silicon (M1) support to the macOS
 platform. It also represents a comprehensive review and update of our
 third-party dependencies. To support this work, the developer docs
 have been updated, as have several parts of the build system
 
-This release represents commits from 9 contributors! Thank you all.
+This release represents commits from 24 contributors! Thank you all.
 
 ### New Features
 
 - Apple Silicon support ([#7330](https://github.com/osquery/osquery/pull/7330))
 
+### Deprecation Notices
+
+- The `cpuid` table is x86 only. See [#7462](https://github.com/osquery/osquery/issues/7462)
+- The `smart_drive_info` table has been deprecated, and is not included in the m1 builds. See [#7464](https://github.com/osquery/osquery/issues/7464)
+- The `lldp_neighbors` table has been deprecated, and is not included in the m1 builds. See [#7463](https://github.com/osquery/osquery/issues/7463)
+
 ### Table Changes
 
-- Update `time` table to reflect UTC values ([#7276](https://github.com/osquery/osquery/pull/7276))
+- Update `time` table to always reflect UTC values ([#7276](https://github.com/osquery/osquery/pull/7276), [#7460](https://github.com/osquery/osquery/pull/7460), [#7437](https://github.com/osquery/osquery/pull/7437))
 - Hide the deprecated `antispyware` column in `windows_security_center` ([#7411](https://github.com/osquery/osquery/pull/7411))
+- Add `windows_firewall_rules` table for windows ([#7403](https://github.com/osquery/osquery/pull/7403))
 
 ### Bug Fixes
 
 - Update the ATC table `path` column check to be case insensitive ([#7442](https://github.com/osquery/osquery/pull/7442))
 - Fix a crash introduced by 5.2.0 when Yara uses its own strutils functions ([#7439](https://github.com/osquery/osquery/pull/7439))
+- Fix `user_time` and `system_time` unit in processes table on M1 ([#7473](https://github.com/osquery/osquery/pull/7473))
 
 ### Documentation
 
@@ -38,6 +45,10 @@ This release represents commits from 9 contributors! Thank you all.
 - Fix linking of thirdparty_sleuthkit ([#7425](https://github.com/osquery/osquery/pull/7425))
 - Fix how we disable tables in the fuzzer init method ([#7419](https://github.com/osquery/osquery/pull/7419))
 - Prevent running discovery queries when fuzzing ([#7418](https://github.com/osquery/osquery/pull/7418))
+- Add BOOST_USE_ASAN define when enabling Asan ([#7469](https://github.com/osquery/osquery/pull/7469))
+- Removing unnecessary macOS version check ([#7451](https://github.com/osquery/osquery/pull/7451))
+- Fix submodule cache for macOS CI runner ([#7456](https://github.com/osquery/osquery/pull/7456))
+- Add osquery version to macOS app bundle Info.plist ([#7452](https://github.com/osquery/osquery/pull/7452))
 
 <a name="5.1.0"></a>
 ## [5.1.0](https://github.com/osquery/osquery/releases/tag/5.1.0)
