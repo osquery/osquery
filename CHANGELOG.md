@@ -49,7 +49,27 @@ This release represents commits from 24 contributors! Thank you all.
 - Removing unnecessary macOS version check ([#7451](https://github.com/osquery/osquery/pull/7451))
 - Fix submodule cache for macOS CI runner ([#7456](https://github.com/osquery/osquery/pull/7456))
 - Add osquery version to macOS app bundle Info.plist ([#7452](https://github.com/osquery/osquery/pull/7452))
-
+- libs: Update OpenSSL to verion 1.1.1l ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update augeas to version 1.12.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update aws-sdk to version 1.9.116 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update boost to version 1.77 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update gflags to 2.2.2 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update glog to version 0.5.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update googletest to version 1.11.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update libarchive to version 3.5.2 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update libcap to version 1.2.59 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update libmagic to version 5.40 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update librdkafka to version 1.8.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update libxml2 to version 2.9.12 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update linenoise-ng to the latest commit ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update lzma to version 5.2.5 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update rocksdb to version 6.22.1 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update sleuthkit to version 4.11.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update ssdeep-cpp to the latest commit (d8705da) ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update thrift to version 0.15.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update yara to version 4.1.3 ([#7330](https://github.com/osquery/osquery/pull/7330))
+- libs: Update zstd to version 1.4.0 ([#7330](https://github.com/osquery/osquery/pull/7330))
+	
 <a name="5.1.0"></a>
 ## [5.1.0](https://github.com/osquery/osquery/releases/tag/5.1.0)
 
