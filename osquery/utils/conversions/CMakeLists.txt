@@ -87,7 +87,7 @@ function(generateOsqueryUtilsConversions)
     generateIncludeNamespace(osquery_utils_conversions "osquery/utils/conversions" "FULL_PATH" ${platform_public_header_files})
   endif()
 
-  add_test(NAME osquery_utils_conversions_conversionstests-test COMMAND osquery_utils_conversions_conversionstests-test)
+  add_osquery_test(NAME osquery_utils_conversions_conversionstests-test COMMAND osquery_utils_conversions_conversionstests-test)
 endfunction()
 
 function(generateOsqueryUtilsConversionsTo)
@@ -101,7 +101,7 @@ function(generateOsqueryUtilsConversionsTo)
 
   generateIncludeNamespace(osquery_utils_conversions_to "osquery/utils/conversions" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_conversions_totests-test COMMAND osquery_utils_conversions_totests-test)
+  add_osquery_test(NAME osquery_utils_conversions_totests-test COMMAND osquery_utils_conversions_totests-test)
 endfunction()
 
 function(generateOsqueryUtilsConversionsConversionstestsTest)

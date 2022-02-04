@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osquerySystemNetworkMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -30,7 +29,7 @@ function(generateOsquerySystemNetworkHostname)
 
   generateIncludeNamespace(osquery_system_network_hostname "osquery/system/network" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_system_network_tests_hostnamehostidentitytests-test COMMAND osquery_system_network_tests_hostnamehostidentitytests-test)
+  add_osquery_test(NAME osquery_system_network_tests_hostnamehostidentitytests-test COMMAND osquery_system_network_tests_hostnamehostidentitytests-test)
 endfunction()
 
 osquerySystemNetworkMain()

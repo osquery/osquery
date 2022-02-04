@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsSystemLinuxProcMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -15,7 +14,6 @@ function(osqueryUtilsSystemLinuxProcMain)
 endfunction()
 
 function(generateOsqueryUtilsSystemLinuxProc)
-
   if(DEFINED PLATFORM_LINUX)
     add_osquery_library(osquery_utils_system_linux_proc EXCLUDE_FROM_ALL proc.cpp)
 
@@ -35,7 +33,7 @@ function(generateOsqueryUtilsSystemLinuxProc)
     add_library(osquery_utils_system_linux_proc INTERFACE)
   endif()
 
-  add_test(NAME osquery_utils_system_linux_proc_proctests-test COMMAND osquery_utils_system_linux_proc_proctests-test)
+  add_osquery_test(NAME osquery_utils_system_linux_proc_proctests-test COMMAND osquery_utils_system_linux_proc_proctests-test)
 endfunction()
 
 osqueryUtilsSystemLinuxProcMain()

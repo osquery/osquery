@@ -37,7 +37,7 @@ function(generateOsqueryExtensions)
 
   generateIncludeNamespace(osquery_extensions "osquery/extensions" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_extensions_extensiontests-test COMMAND osquery_extensions_extensiontests-test)
+  add_osquery_test(NAME osquery_extensions_extensiontests-test COMMAND osquery_extensions_extensiontests-test)
 endfunction()
 
 function(generateOsqueryExtensionsImplthrift)

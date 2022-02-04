@@ -39,18 +39,15 @@ function(generateOsqueryRemoteEnrollTlsenroll)
 
   generateIncludeNamespace(osquery_remote_enroll_tlsenroll "osquery/remote/enroll" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_remote_enroll_remoteenrolltests-test COMMAND osquery_remote_enroll_remoteenrolltests-test)
-
   set(remoteenrolltests-test_env
-    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
     "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
   )
-
-  set_tests_properties(
-    osquery_remote_enroll_remoteenrolltests-test
-    PROPERTIES ENVIRONMENT "${remoteenrolltests-test_env}"
+  add_osquery_test(NAME osquery_remote_enroll_remoteenrolltests-test
+    COMMAND osquery_remote_enroll_remoteenrolltests-test
+    ENVIRONMENT "${remoteenrolltests-test_env}"
   )
+
 endfunction()
 
 function(generateOsqueryRemoteenrolltestsTest)

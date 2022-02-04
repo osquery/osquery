@@ -81,6 +81,10 @@ function(main)
     enableOsqueryWEL()
   endif()
 
+  if(OSQUERY_ENABLE_COVERAGE)
+    include(cmake/coverage.cmake)
+  endif()
+
   generateInstallDirectives()
 endfunction()
 

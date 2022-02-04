@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsErrorMain)
-
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsErrorErrortestsTest()
   endif()
@@ -29,8 +28,7 @@ function(generateOsqueryUtilsError)
 
   generateIncludeNamespace(osquery_utils_error "osquery/utils/error" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_error_errortests-test COMMAND osquery_utils_error_errortests-test)
-
+  add_osquery_test(NAME osquery_utils_error_errortests-test COMMAND osquery_utils_error_errortests-test)
 endfunction()
 
 function(generateOsqueryUtilsErrorErrortestsTest)

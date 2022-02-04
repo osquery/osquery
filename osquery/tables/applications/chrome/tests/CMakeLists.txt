@@ -23,7 +23,7 @@ function(osqueryTablesApplicationsChromeTestsMain)
     thirdparty_googletest
   )
 
-  add_test(
+  add_osquery_test(
     NAME osquery_tables_applications_chrome_tests-test
     COMMAND osquery_tables_applications_chrome_tests-test
   )

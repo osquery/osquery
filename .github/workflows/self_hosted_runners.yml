@@ -30,7 +30,7 @@ on:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: 4caa2c54f0d893c1efa47932571046bbce156c52
-  SUBMODULE_CACHE_VERSION: 1
+  SUBMODULE_CACHE_VERSION: 2
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     container:
-      image: osquery/builder18.04:c7a9d706d
+      image: osquery/builder18.04:45fac6984
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     steps:
@@ -161,7 +161,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:c7a9d706d
+      image: osquery/builder18.04:45fac6984
       options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
 
     strategy:
@@ -194,14 +194,6 @@ jobs:
           echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
-    # When we spawn in the container, we are root; create an unprivileged
-    # user now so that we can later use it to launch the normal user tests
-    - name: Create a non-root user
-      id: unprivileged_user
-      run: |
-        useradd -m -s /bin/bash unprivileged_user
-        echo "NAME=unprivileged_user" >> $GITHUB_OUTPUT
-
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
     #
@@ -222,8 +214,6 @@ jobs:
                  ${rel_src_path} \
                  ${rel_package_data_path} \
                  ${rel_package_build_path}
-
-        chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
 
         mv .git "${rel_src_path}"
         ( cd "${rel_src_path}" && git reset --hard )
@@ -300,11 +290,12 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+        chown -R unprivileged_user:unprivileged_user .
 
     - name: Run the tests as normal user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
+        sudo -u unprivileged_user ctest --build-nocmake -LE "root-required" -V
 
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}

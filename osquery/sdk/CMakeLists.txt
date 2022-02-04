@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osquerySdkMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -56,7 +55,7 @@ function(generateOsquerySdkPluginsdk)
 
   generateIncludeNamespace(osquery_sdk_pluginsdk "osquery/sdk" "FILE_ONLY" ${public_headers})
 
-  add_test(NAME osquery_sdk_tests_pluginsdktests-test COMMAND osquery_sdk_tests_pluginsdktests-test)
+  add_osquery_test(NAME osquery_sdk_tests_pluginsdktests-test COMMAND osquery_sdk_tests_pluginsdktests-test)
 endfunction()
 
 osquerySdkMain()

@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryPluginsDatabaseMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -38,7 +37,7 @@ function(generatePluginsDatabaseRocksdbplugin)
 
   generateIncludeNamespace(plugins_database_rocksdbplugin "plugins/database" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_database_tests_rocksdbtests-test COMMAND plugins_database_tests_rocksdbtests-test)
+  add_osquery_test(NAME plugins_database_tests_rocksdbtests-test COMMAND plugins_database_tests_rocksdbtests-test)
 endfunction()
 
 function(generatePluginsDatabaseSqliteplugin)
@@ -64,7 +63,7 @@ function(generatePluginsDatabaseSqliteplugin)
 
   generateIncludeNamespace(plugins_database_sqliteplugin "plugins/database" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_database_tests_sqliteplugintests-test COMMAND plugins_database_tests_sqliteplugintests-test)
+  add_osquery_test(NAME plugins_database_tests_sqliteplugintests-test COMMAND plugins_database_tests_sqliteplugintests-test)
 endfunction()
 
 osqueryPluginsDatabaseMain()

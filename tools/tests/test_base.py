@@ -21,6 +21,7 @@ import time
 import threading
 import unittest
 import utils
+from pathlib import Path
 
 
 # TODO: Find an implementation that will work for Windows, for now, disable.
@@ -171,6 +172,15 @@ class OsqueryWrapper(REPLWrapper):
         if os.name == "nt":
             proc = WinExpectSpawn(command, env=env, cwd=TEST_CONFIGS_DIR)
         else:
+            if os.environ.get("LLVM_PROFILE_FILE") is not None:
+                if env is None:
+                    env = os.environ.copy()
+
+                profile_file_path = Path(os.environ["LLVM_PROFILE_FILE"])
+                filename = profile_file_path.stem
+                parent_dir = profile_file_path.parent
+                env["LLVM_PROFILE_FILE"] = os.path.join(parent_dir, filename + "_%p.profraw")
+
             proc = pexpect.spawn(command, env=env, cwd=TEST_CONFIGS_DIR)
 
         super().__init__(
@@ -244,13 +254,20 @@ class ProcRunner(object):
 
     def run(self):
         try:
+            env = os.environ.copy()
+            if env.get("LLVM_PROFILE_FILE") is not None:
+                profile_file_path = Path(env["LLVM_PROFILE_FILE"])
+                filename = profile_file_path.stem
+                parent_dir = profile_file_path.parent
+                env["LLVM_PROFILE_FILE"] = os.path.join(parent_dir, filename + "_%p.profraw")
+
             if self.silent:
                 self.proc = subprocess.Popen(
                     [self.path] + self.args,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE)
+                    stderr=subprocess.PIPE, env=env)
             else:
-                self.proc = subprocess.Popen([self.path] + self.args)
+                self.proc = subprocess.Popen([self.path] + self.args, env=env)
             self.started = True
         except Exception as e:
             print(utils.red("Process start failed:") + " %s" % self.name)
@@ -541,11 +558,18 @@ class TimeoutRunner(object):
         options = copy.deepcopy(CONFIG)["options"]
         args = ["--%s=%s" % (k, v) for k, v in options.items()]
         cmd = [cmd[0]] + args + cmd[1:]
+        env = os.environ.copy()
+
+        if env.get("LLVM_PROFILE_FILE") is not None:
+            profile_file_path = Path(env["LLVM_PROFILE_FILE"])
+            filename = profile_file_path.stem
+            parent_dir = profile_file_path.parent
+            env["LLVM_PROFILE_FILE"] = os.path.join(parent_dir, filename + "_%p.profraw")
 
         self.stdout = None
         self.stderr = None
         self.proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         kill_proc = lambda p: p.kill()
         timer = threading.Timer(timeout_sec, kill_proc, [self.proc])
         timer.start()

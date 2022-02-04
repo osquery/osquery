@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryDatabaseMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -36,8 +35,8 @@ function(generateOsqueryDatabase)
 
   generateIncludeNamespace(osquery_database "osquery/database" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
-  add_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
+  add_osquery_test(NAME osquery_database_tests-test COMMAND osquery_database_tests-test)
+  add_osquery_test(NAME osquery_database_tests_results-test COMMAND osquery_database_tests_results-test)
 endfunction()
 
 function(generateOsqueryDatabaseEphemeral)

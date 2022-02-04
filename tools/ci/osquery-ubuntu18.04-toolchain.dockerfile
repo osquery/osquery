@@ -24,7 +24,8 @@ RUN apt install -q -y --no-install-recommends \
 	file \
 	elfutils \
 	locales \
-	python3-wheel
+	python3-wheel \
+	lcov
 
 RUN pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
@@ -61,6 +62,10 @@ RUN apt autoremove --purge -y
 RUN rm -rf /usr/local/doc /usr/local/bin/cmake-gui
 RUN apt clean
 RUN rm -rf /var/lib/apt/lists/*
+
+# When we spawn in the container, we are root; create an unprivileged
+# user now so that we can later use it to launch the normal user tests
+RUN useradd -m -s /bin/bash unprivileged_user
 
 FROM base3 AS base4
 COPY --from=cppcheck /root/cppcheck/install/usr/local/ /usr/local/

@@ -1,0 +1,284 @@
+#
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+#
+
+name: coverage
+
+on:
+  # Run this workflow once every day against the master branch
+  schedule:
+   - cron: "0 0 * * *"
+
+  workflow_dispatch:
+
+env:
+  SUBMODULE_CACHE_VERSION: 2
+
+jobs:
+  linux_generate_coverage:
+    strategy:
+      matrix:
+        build_type: [RelWithDebInfo]
+        architecture: [x86_64]
+        os: [ubuntu-20.04]
+
+    runs-on: ${{ matrix.os }}
+
+    container:
+      image: osquery/builder18.04:45fac6984
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+
+    # We are using checkout@v1 because the checkout@v2 action downloads
+    # the source code without cloning if the installed git is < v2.18.
+    # Once we update the image we will also be able to select the clone
+    # destination; right now we are moving the .git folder manually.
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: |
+        echo ::set-output name=VALUE::$(($(nproc) + 1))
+
+    - name: Setup the build paths
+      id: build_paths
+      run: |
+        rel_build_path="workspace/osquery/build"
+        rel_src_path="workspace/osquery/src"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_src_path} \
+
+        mv .git "${rel_src_path}"
+        ( cd "${rel_src_path}" && git reset --hard )
+
+        echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
+        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+
+    # One of the tests in the test suit will spawn a Docker container
+    # using this socket. Allow the unprivileged user we created
+    # to access it.
+    - name: Update the Docker socket permissions
+      run: |
+        chmod 666 /var/run/docker.sock
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Configure the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
+          -DCMAKE_BUILD_TYPE:STRING="RelWithDebInfo" \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_BUILD_ROOT_TESTS=ON \
+          -DOSQUERY_ENABLE_COVERAGE=ON \
+          -DOSQUERY_ENABLE_CCACHE=OFF \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+        chown -R unprivileged_user:unprivileged_user .
+
+    - name: Run the tests as normal user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        sudo -u unprivileged_user ctest --build-nocmake -LE "root-required" -V
+
+    - name: Run the tests as root user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        sudo -u root ctest --build-nocmake -L "root-required" -V
+
+    - name: Generate code coverage
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        sudo -u unprivileged_user cmake --build . --target generate_coverage
+        tar -cf ${{ steps.build_paths.outputs.BINARY }}/coverage/html-out.tar -C ${{ steps.build_paths.outputs.BINARY }}/coverage html-out
+
+    - name: Store the code coverage artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux_code_coverage
+        path: ${{ steps.build_paths.outputs.BINARY }}/coverage/html-out.tar
+
+
+
+
+  macos_code_coverage:
+    strategy:
+      matrix:
+        build_type: [RelWithDebInfo]
+        architecture: [x86_64]
+        os: [macos-11]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: |
+        echo ::set-output name=VALUE::$(($(sysctl -n hw.logicalcpu) + 1))
+
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_src_path="workspace/src"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_downloads_path} \
+                 ${rel_install_path}
+
+        echo ::set-output name=SOURCE::$(pwd)/${rel_src_path}
+        echo ::set-output name=REL_SOURCE::${rel_src_path}
+        echo ::set-output name=BINARY::$(pwd)/${rel_build_path}
+        echo ::set-output name=DOWNLOADS::$(pwd)/${rel_downloads_path}
+        echo ::set-output name=INSTALL::$(pwd)/${rel_install_path}
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Update the cache (git submodules)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+
+        key: |
+          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+
+        restore-keys: |
+          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
+
+    - name: Update the cache (downloads)
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+
+        key: |
+          downloads_${{ matrix.os }}_${{ matrix.architecture }}_${{ github.sha }}
+
+        restore-keys: |
+          downloads_${{ matrix.os }}_${{ matrix.architecture }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        git submodule sync --recursive
+
+    - name: Install build dependencies
+      run: |
+        brew install \
+          flex \
+          bison \
+          coreutils \
+          gnu-sed \
+          lcov
+
+    - name: Install tests dependencies
+      run: |
+        pip3 install setuptools \
+                     pexpect==3.3 \
+                     psutil \
+                     timeout_decorator \
+                     six \
+                     thrift==0.11.0 \
+                     osquery
+
+    - name: Install CMake
+      shell: bash
+      run: |
+        ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
+          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
+          "${{ steps.build_paths.outputs.INSTALL }}" \
+          "3.21.4"
+
+    - name: Select the Xcode version
+      shell: bash
+      id: xcode_selector
+      run: |
+        xcode_path="/Applications/Xcode_13.0.app/Contents/Developer"
+
+        sudo xcode-select -s "${xcode_path}"
+
+        if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
+          echo ::set-output name=DEPLOYMENT_TARGET::10.12
+        else
+          echo ::set-output name=DEPLOYMENT_TARGET::10.15
+        fi
+
+        echo ::set-output name=TOOLCHAIN_BIN_DIR::${xcode_path}/Toolchains/XcodeDefault.xctoolchain/usr/bin
+
+    - name: Configure the project
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_C_COMPILER=clang \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
+          -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_ENABLE_COVERAGE=ON \
+          -DOSQUERY_ENABLE_CCACHE=OFF \
+          -Dllvm_profdata="${{ steps.xcode_selector.outputs.TOOLCHAIN_BIN_DIR }}/llvm-profdata" \
+          -Dllvm_cov="${{ steps.xcode_selector.outputs.TOOLCHAIN_BIN_DIR }}/llvm-cov" \
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      run: |
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        ctest --build-nocmake -V
+
+    - name: Generate code coverage
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake --build . --target generate_coverage
+        tar -cf ${{ steps.build_paths.outputs.BINARY }}/coverage/html-out.tar -C ${{ steps.build_paths.outputs.BINARY }}/coverage html-out
+
+    - name: Store the code coverage artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos_code_coverage
+        path: ${{ steps.build_paths.outputs.BINARY }}/coverage/html-out.tar

@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsSchemerMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -25,7 +24,7 @@ function(generateOsqueryUtilsSchemer)
 
   generateIncludeNamespace(osquery_utils_schemer "osquery/utils/schemer" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_schemer_tests_schemertests-test COMMAND osquery_utils_schemer_tests_schemertests-test)
+  add_osquery_test(NAME osquery_utils_schemer_tests_schemertests-test COMMAND osquery_utils_schemer_tests_schemertests-test)
 endfunction()
 
 osqueryUtilsSchemerMain()

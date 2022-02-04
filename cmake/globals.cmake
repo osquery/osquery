@@ -69,6 +69,7 @@ if(DEFINED PLATFORM_WINDOWS)
 endif()
 
 set(TEST_CONFIGS_DIR "${CMAKE_BINARY_DIR}/test_configs")
+set(COVERAGE_DIR "${CMAKE_BINARY_DIR}/coverage")
 
 # Cache variables
 set(PACKAGING_SYSTEM "" CACHE STRING "Packaging system to generate when building packages")

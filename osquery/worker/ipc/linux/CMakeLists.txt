@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryWorkerIpcLinuxMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -36,7 +35,7 @@ function(generateOsqueryWorkerIpcLinuxTableContainerIpc)
   generateIncludeNamespace(osquery_worker_ipc_linux_tablecontaineripc "osquery/worker/ipc/linux" FILE_ONLY ${public_header_files})
 
   if(OSQUERY_BUILD_ROOT_TESTS)
-    add_test(NAME osquery_worker_ipc_linux_tests_tablecontainer-test COMMAND osquery_worker_ipc_linux_tests_tablecontainer-test)
+    add_osquery_test(NAME osquery_worker_ipc_linux_tests_tablecontainer-test COMMAND osquery_worker_ipc_linux_tests_tablecontainer-test)
     set_tests_properties(osquery_worker_ipc_linux_tests_tablecontainer-test PROPERTIES LABELS "root-required")
   endif()
 endfunction()
@@ -60,7 +59,6 @@ function(generateOSqueryWorkerIpcLinuxTableIpc)
   )
 
   generateIncludeNamespace(osquery_worker_ipc_linux_tableipc "osquery/worker/ipc/linux" FILE_ONLY ${public_header_files})
-
 endfunction()
 
 function(generateOsqueryWorkerIpcLinuxPlatformTableContainerIpc)
@@ -77,6 +75,5 @@ function(generateOsqueryWorkerIpcLinuxPlatformTableContainerIpc)
 
   generateIncludeNamespace(osquery_worker_ipc_linux_platformtablecontaineripc "osquery/worker/ipc" FILE_ONLY ${public_header_files})
 endfunction()
-
 
 osqueryWorkerIpcLinuxMain()

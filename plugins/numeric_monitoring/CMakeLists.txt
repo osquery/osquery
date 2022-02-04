@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryNumericmonitoringPluginsMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -34,7 +33,7 @@ function(generateOsqueryNumericmonitoringPluginsNumericmonitoringfilesystem)
 
   generateIncludeNamespace(plugins_numericmonitoring_filesystem "plugins/numeric_monitoring" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_numericmonitoring_tests_filesystem-test COMMAND plugins_numericmonitoring_tests_filesystem-test)
+  add_osquery_test(NAME plugins_numericmonitoring_tests_filesystem-test COMMAND plugins_numericmonitoring_tests_filesystem-test)
 endfunction()
 
 osqueryNumericmonitoringPluginsMain()

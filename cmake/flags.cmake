@@ -2,8 +2,9 @@
 if(DEFINED PLATFORM_POSIX)
   include(CheckPIESupported)
   check_pie_supported()
+
   if(NOT CMAKE_C_LINK_PIE_SUPPORTED OR NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-      message(FATAL_ERROR "The linker for the current compiler does not support -fPIE or -pie")
+    message(FATAL_ERROR "The linker for the current compiler does not support -fPIE or -pie")
   endif()
 
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -35,7 +36,6 @@ function(setupBuildFlags)
   endif()
 
   if(DEFINED PLATFORM_POSIX)
-
     set(posix_common_compile_options
       -Qunused-arguments
       -Wno-shadow-field
@@ -131,6 +131,16 @@ function(setupBuildFlags)
       )
     endif()
 
+    if(OSQUERY_ENABLE_COVERAGE)
+      set(osquery_posix_common_compile_options
+        -fprofile-instr-generate -fcoverage-mapping
+      )
+
+      set(osquery_posix_common_link_options
+        -fprofile-instr-generate -fcoverage-mapping
+      )
+    endif()
+
     target_compile_options(cxx_settings INTERFACE
       ${posix_common_compile_options}
       ${posix_cxx_compile_options}
@@ -157,6 +167,9 @@ function(setupBuildFlags)
       ${posix_common_defines}
     )
 
+    list(APPEND osquery_compile_options ${osquery_posix_common_compile_options})
+    list(APPEND osquery_link_options ${osquery_posix_common_link_options})
+
     if(DEFINED PLATFORM_LINUX)
       set(osquery_linux_common_defines
         LINUX=1
@@ -165,7 +178,7 @@ function(setupBuildFlags)
         OSQUERY_BUILD_PLATFORM="linux"
       )
 
-      set(osquery_linux_common_link_options
+      set(linux_common_link_options
         -Wl,-z,relro,-z,now
         -Wl,--build-id=sha1
       )
@@ -204,7 +217,7 @@ function(setupBuildFlags)
       )
 
       target_link_options(cxx_settings INTERFACE
-        ${osquery_linux_common_link_options}
+        ${linux_common_link_options}
         ${linux_cxx_link_options}
       )
 
@@ -217,9 +230,8 @@ function(setupBuildFlags)
       )
 
       target_link_options(c_settings INTERFACE
-        ${osquery_linux_common_link_options}
+        ${linux_common_link_options}
       )
-
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
         -x objective-c++
@@ -279,12 +291,11 @@ function(setupBuildFlags)
 
     if(OSQUERY_NO_DEBUG_SYMBOLS AND
       ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR
-       "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+      "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
       target_compile_options(cxx_settings INTERFACE -g0)
       target_compile_options(c_settings INTERFACE -g0)
     endif()
   elseif(DEFINED PLATFORM_WINDOWS)
-
     set(windows_common_compile_options
       "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Gs;/GS>"
       "$<$<CONFIG:Debug>:/Od;/UNDEBUG>$<$<NOT:$<CONFIG:Debug>>:/Ot>"
@@ -441,6 +452,9 @@ function(setupBuildFlags)
     ${osquery_defines}
   )
 
+  target_link_options(osquery_cxx_settings INTERFACE
+    ${osquery_link_options}
+  )
 
   add_library(osquery_c_settings INTERFACE)
   target_link_libraries(osquery_c_settings INTERFACE
@@ -455,6 +469,9 @@ function(setupBuildFlags)
     ${osquery_defines}
   )
 
+  target_link_options(osquery_c_settings INTERFACE
+    ${osquery_link_options}
+  )
 endfunction()
 
 setupBuildFlags()

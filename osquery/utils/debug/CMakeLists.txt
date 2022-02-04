@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsDebugMain)
-
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsDebugDebugtestsTest()
   endif()
@@ -28,8 +27,7 @@ function(generateOsqueryUtilsDebug)
 
   generateIncludeNamespace(osquery_utils_debug "osquery/utils/debug" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_debug_debugtests-test COMMAND osquery_utils_debug_debugtests-test)
-
+  add_osquery_test(NAME osquery_utils_debug_debugtests-test COMMAND osquery_utils_debug_debugtests-test)
 endfunction()
 
 function(generateOsqueryUtilsDebugDebugtestsTest)

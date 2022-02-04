@@ -5,7 +5,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-if(OSQUERY_ENABLE_CCACHE)
+# Use ccache when available
+if(DEFINED PLATFORM_POSIX AND OSQUERY_ENABLE_CCACHE)
   find_program(ccache_command ccache)
 
   if(NOT "${ccache_command}" STREQUAL "ccache_command-NOTFOUND")

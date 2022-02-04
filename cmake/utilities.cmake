@@ -538,3 +538,24 @@ function(add_real_target_dependencies target root_target_dependency)
     endif()
   endwhile()
 endfunction()
+
+function(add_osquery_test)
+  set(oneValueArgs NAME ENVIRONMENT)
+  set(multiValueArgs COMMAND)
+  cmake_parse_arguments(PARSE_ARGV 0 osquery_test "" "${oneValueArgs}" "${multiValueArgs}")
+
+  add_test(NAME ${osquery_test_NAME} COMMAND ${osquery_test_COMMAND})
+
+  list(APPEND environment "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}")
+
+  if(NOT "${osquery_test_ENVIRONMENT}" STREQUAL "")
+    list(APPEND environment ${osquery_test_ENVIRONMENT})
+  endif()
+
+  if(OSQUERY_ENABLE_COVERAGE)
+    list(APPEND environment "LLVM_PROFILE_FILE=${COVERAGE_DIR}/${osquery_test_NAME}.profraw")
+  endif()
+
+  set_tests_properties(${osquery_test_NAME} PROPERTIES ENVIRONMENT "${environment}")
+
+endfunction()

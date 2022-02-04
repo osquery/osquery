@@ -116,8 +116,7 @@ function(generateOsqueryUtils)
 
   generateIncludeNamespace(osquery_utils_attribute "osquery/utils" "FILE_ONLY" ${attribute_public_header_files})
 
-  add_test(NAME osquery_utils_utilstests-test COMMAND osquery_utils_utilstests-test)
-
+  add_osquery_test(NAME osquery_utils_utilstests-test COMMAND osquery_utils_utilstests-test)
 endfunction()
 
 function(generateOsqueryUtilsUtilstestsTest)

@@ -100,6 +100,11 @@ if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS)
   endif()
 endif()
 
+# Coverage
+if(DEFINED PLATFORM_POSIX)
+  option(OSQUERY_ENABLE_COVERAGE "Enable generation of coverage information. LLVM Only")
+endif()
+
 if(DEFINED PLATFORM_WINDOWS)
   option(OSQUERY_ENABLE_INCREMENTAL_LINKING "Whether to enable or disable incremental linking (/INCREMENTAL or /INCREMENTAL:NO). Enabling it greatly increases disk usage")
 endif()

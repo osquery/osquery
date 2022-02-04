@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsStatusMain)
-
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsStatusStatustestsTest()
   endif()
@@ -31,8 +30,7 @@ function(generateOsqueryUtilsStatus)
 
   generateIncludeNamespace(osquery_utils_status "osquery/utils/status" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_status_statustests-test COMMAND osquery_utils_status_statustests-test)
-
+  add_osquery_test(NAME osquery_utils_status_statustests-test COMMAND osquery_utils_status_statustests-test)
 endfunction()
 
 function(generateOsqueryUtilsStatusStatustestsTest)

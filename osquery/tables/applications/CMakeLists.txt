@@ -81,7 +81,7 @@ function(generateOsqueryTablesApplications)
   generateIncludeNamespace(osquery_tables_applications "osquery/tables/applications" "FULL_PATH" ${public_header_files})
 
   if(DEFINED PLATFORM_POSIX)
-    add_test(NAME osquery_tables_applications_posix_tests_prometheusmetricstests-test COMMAND osquery_tables_applications_posix_tests_prometheusmetricstests-test)
+    add_osquery_test(NAME osquery_tables_applications_posix_tests_prometheusmetricstests-test COMMAND osquery_tables_applications_posix_tests_prometheusmetricstests-test)
   endif()
 endfunction()
 

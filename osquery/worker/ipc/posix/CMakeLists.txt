@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryWorkerIpcPosixMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -37,13 +36,12 @@ function(generateOsqueryWorkerIpcPosixPipeChannel)
 
   generateIncludeNamespace(osquery_worker_ipc_posix_pipechannel "osquery/worker/ipc/posix" FILE_ONLY ${public_header_files})
 
-  add_test(NAME osquery_worker_ipc_posix_tests_pipechannel-test COMMAND osquery_worker_ipc_posix_tests_pipechannel-test --gtest_filter=-WorkerIPCChannelsTest.test_pipe_ticket_leak)
+  add_osquery_test(NAME osquery_worker_ipc_posix_tests_pipechannel-test COMMAND osquery_worker_ipc_posix_tests_pipechannel-test --gtest_filter=-WorkerIPCChannelsTest.test_pipe_ticket_leak)
 
   if(OSQUERY_BUILD_ROOT_TESTS)
-    add_test(NAME osquery_worker_ipc_posix_tests_pipechannel_root-test COMMAND osquery_worker_ipc_posix_tests_pipechannel-test --gtest_filter=WorkerIPCChannelsTest.test_pipe_ticket_leak)
+    add_osquery_test(NAME osquery_worker_ipc_posix_tests_pipechannel_root-test COMMAND osquery_worker_ipc_posix_tests_pipechannel-test --gtest_filter=WorkerIPCChannelsTest.test_pipe_ticket_leak)
     set_tests_properties(osquery_worker_ipc_posix_tests_pipechannel_root-test PROPERTIES LABELS "root-required")
   endif()
-
 endfunction()
 
 osqueryWorkerIpcPosixMain()

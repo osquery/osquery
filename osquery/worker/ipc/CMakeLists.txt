@@ -45,11 +45,10 @@ function(generateOsqueryWorkerIpcTableIpcJsonConverter)
 
   generateIncludeNamespace(osquery_worker_ipc_tableipcjsonconverter "osquery/worker/ipc" FULL_PATH ${public_header_files})
 
-  add_test(NAME osquery_worker_ipc_tests_jsonconversions-test COMMAND osquery_worker_ipc_tests_jsonconversions-test)
+  add_osquery_test(NAME osquery_worker_ipc_tests_jsonconversions-test COMMAND osquery_worker_ipc_tests_jsonconversions-test)
 endfunction()
 
 function(generateOsqueryWorkerIpcPlatformTableContainerIpc)
-
   add_osquery_library(osquery_worker_ipc_platformtablecontaineripc INTERFACE)
 
   if(DEFINED PLATFORM_LINUX)
@@ -88,7 +87,6 @@ function(generateOsqueryWorkerIpcTableChannel)
 endfunction()
 
 function(generateOsqueryWorkerIpcTableIpc)
-
   set(public_header_files
     include/table_ipc_base.h
     include/table_ipc_message_handler.h
@@ -107,7 +105,6 @@ function(generateOsqueryWorkerIpcTableIpc)
     osquery_worker_ipc_tableipcjsonconverter
     osquery_worker_logging_logger
   )
-
 endfunction()
 
 osqueryWorkerIpcMain()

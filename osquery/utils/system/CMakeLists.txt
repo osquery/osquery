@@ -123,8 +123,7 @@ function(generateOsqueryUtilsSystemErrno)
 
   generateIncludeNamespace(osquery_utils_system_errno "osquery/utils/system" "FULL_PATH" ${public_header_files})
 
-  add_test(NAME osquery_utils_system_errno_errnotests-test COMMAND osquery_utils_system_errno_errnotests-test)
-
+  add_osquery_test(NAME osquery_utils_system_errno_errnotests-test COMMAND osquery_utils_system_errno_errnotests-test)
 endfunction()
 
 function(generateOsqueryUtilsSystemCputopology)
@@ -146,7 +145,7 @@ function(generateOsqueryUtilsSystemCputopology)
 
     generateIncludeNamespace(osquery_utils_system_cputopology "osquery/utils/system" "FULL_PATH" ${public_header_files})
 
-    add_test(NAME osquery_utils_system_cputopologytests-test COMMAND osquery_utils_system_cputopologytests-test)
+    add_osquery_test(NAME osquery_utils_system_cputopologytests-test COMMAND osquery_utils_system_cputopologytests-test)
 
   else()
     add_osquery_library(osquery_utils_system_cputopology INTERFACE)
@@ -188,8 +187,7 @@ function(generateOsqueryUtilsSystemTime)
 
   generateIncludeNamespace(osquery_utils_system_time "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_system_time_timetest-test COMMAND osquery_utils_system_time_timetest-test)
-
+  add_osquery_test(NAME osquery_utils_system_time_timetest-test COMMAND osquery_utils_system_time_timetest-test)
 endfunction()
 
 function(generateOsqueryUtilsSystem)

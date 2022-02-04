@@ -29,8 +29,7 @@ function(generateOsqueryUtilsExpected)
 
   generateIncludeNamespace(osquery_utils_expected "osquery/utils/expected" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_expected_expectedtests-test COMMAND osquery_utils_expected_expectedtests-test)
-
+  add_osquery_test(NAME osquery_utils_expected_expectedtests-test COMMAND osquery_utils_expected_expectedtests-test)
 endfunction()
 
 function(generateOsqueryUtilsExpectedExpectedtestsTest)

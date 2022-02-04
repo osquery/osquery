@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsJsonMain)
-
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsJsonJsontestsTest()
   endif()
@@ -38,8 +37,7 @@ function(generateOsqueryUtilsJson)
 
   generateIncludeNamespace(osquery_utils_json "osquery/utils/json" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_json_jsontests-test COMMAND osquery_utils_json_jsontests-test)
-
+  add_osquery_test(NAME osquery_utils_json_jsontests-test COMMAND osquery_utils_json_jsontests-test)
 endfunction()
 
 function(generateOsqueryUtilsJsonJsontestsTest)

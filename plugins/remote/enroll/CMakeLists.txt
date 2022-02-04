@@ -31,19 +31,15 @@ function(generatePluginsRemoteEnrollTlsenroll)
 
   generateIncludeNamespace(plugins_remote_enroll_tlsenroll "plugins/remote/enroll" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_remote_enroll_tlsenrolltests-test COMMAND plugins_remote_enroll_tlsenrolltests-test)
-
   set(tlsenrolltests-test_env
-    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
     "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
   )
 
-  set_tests_properties(
-    plugins_remote_enroll_tlsenrolltests-test
-    PROPERTIES ENVIRONMENT "${tlsenrolltests-test_env}"
+  add_osquery_test(NAME plugins_remote_enroll_tlsenrolltests-test
+    COMMAND plugins_remote_enroll_tlsenrolltests-test
+    ENVIRONMENT "${tlsenrolltests-test_env}"
   )
-
 endfunction()
 
 pluginsRemoteEnrollMain()

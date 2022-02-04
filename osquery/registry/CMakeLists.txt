@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryRegistryMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -38,7 +37,7 @@ function(generateOsqueryRegistry)
 
   generateIncludeNamespace(osquery_registry "osquery/registry" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_registry_tests-test COMMAND osquery_registry_tests-test)
+  add_osquery_test(NAME osquery_registry_tests-test COMMAND osquery_registry_tests-test)
 endfunction()
 
 osqueryRegistryMain()

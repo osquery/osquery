@@ -88,12 +88,7 @@ function(generateOsqueryFilesystem)
 
   generateIncludeNamespace(osquery_filesystem "osquery/filesystem" "FULL_PATH" ${public_header_files})
 
-  add_test(NAME osquery_filesystem_filesystemtests-test COMMAND osquery_filesystem_filesystemtests-test)
-
-  set_tests_properties(
-    osquery_filesystem_filesystemtests-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-  )
+  add_osquery_test(NAME osquery_filesystem_filesystemtests-test COMMAND osquery_filesystem_filesystemtests-test)
 endfunction()
 
 function(generateOsqueryFilesystemMockfilestructure)

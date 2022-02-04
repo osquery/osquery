@@ -46,7 +46,7 @@ function(addPythonTest)
     "${test_args}"
   )
 
-  add_test(NAME ${osquery_test_NAME}
+  add_osquery_test(NAME ${osquery_test_NAME}
     COMMAND ${python_test_command}
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -85,7 +85,6 @@ function(preparePythonTestsEnvironment)
 endfunction()
 
 function(generatePythonTests)
-
   preparePythonTestsEnvironment()
 
   # Tests
@@ -101,7 +100,6 @@ function(generatePythonTests)
 
   # TODO: Uncomment me when the query packs test is fully fixed
   # addPythonTest(NAME tools_tests_testquerypacks SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_query_packs.py")
-
   if(PLATFORM_LINUX)
     addPythonTest(NAME tools_tests_testfschangestable SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_docker_container_fs_changes_table.py")
   endif()

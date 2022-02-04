@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryRemoteSerializersMain)
-
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryRemoteserializersjsontestsTest()
   endif()
@@ -32,7 +31,7 @@ function(generateOsqueryRemoteSerializersSerializerjson)
 
   generateIncludeNamespace(osquery_remote_serializers_serializerjson "osquery/remote/serializers" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_remote_serializers_remotejsonserializerstests-test COMMAND osquery_remote_serializers_remotejsonserializerstests-test)
+  add_osquery_test(NAME osquery_remote_serializers_remotejsonserializerstests-test COMMAND osquery_remote_serializers_remotejsonserializerstests-test)
 endfunction()
 
 function(generateOsqueryRemoteserializersjsontestsTest)

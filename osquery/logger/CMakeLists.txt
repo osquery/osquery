@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryLoggerMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -50,7 +49,7 @@ function(generateOsqueryLoggerDatalogger)
     osquery_logger
   )
 
-  add_test(NAME osquery_logger_tests-test COMMAND osquery_logger_tests-test)
+  add_osquery_test(NAME osquery_logger_tests-test COMMAND osquery_logger_tests-test)
 endfunction()
 
 osqueryLoggerMain()

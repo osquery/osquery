@@ -164,27 +164,27 @@ function(generateOsqueryEvents)
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
-  add_test(NAME osquery_events_tests_eventsdatabasetests-test COMMAND osquery_events_tests_eventsdatabasetests-test)
+  add_osquery_test(NAME osquery_events_tests_eventsdatabasetests-test COMMAND osquery_events_tests_eventsdatabasetests-test)
 
   if(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_events_tests_syslogtests-test COMMAND osquery_events_tests_syslogtests-test)
-    add_test(NAME osquery_events_tests_audittests-test COMMAND osquery_events_tests_audittests-test)
-    add_test(NAME osquery_events_tests_processfileeventstests-test COMMAND osquery_events_tests_processfileeventstests-test)
-    add_test(NAME osquery_events_tests_inotifytests-test COMMAND osquery_events_tests_inotifytests-test)
+    add_osquery_test(NAME osquery_events_tests_syslogtests-test COMMAND osquery_events_tests_syslogtests-test)
+    add_osquery_test(NAME osquery_events_tests_audittests-test COMMAND osquery_events_tests_audittests-test)
+    add_osquery_test(NAME osquery_events_tests_processfileeventstests-test COMMAND osquery_events_tests_processfileeventstests-test)
+    add_osquery_test(NAME osquery_events_tests_inotifytests-test COMMAND osquery_events_tests_inotifytests-test)
 
     if(OSQUERY_BUILD_BPF)
-      add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
+      add_osquery_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
     endif()
   endif()
 
   if(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
+    add_osquery_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
-    add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
-    add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
+    add_osquery_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
+    add_osquery_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
+    add_osquery_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
   endif()
 endfunction()
 
@@ -223,7 +223,7 @@ function(generateOsqueryEventsEventsregistry)
 
   generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
+  add_osquery_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
 endfunction()
 
 osqueryEventsMain()

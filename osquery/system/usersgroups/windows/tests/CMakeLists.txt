@@ -13,7 +13,7 @@ function(generateOsquerySystemUsersGroupsWindowsTestsUsersgroupscachetest)
         thirdparty_googletest
     )
 
-    add_test(NAME osquery_system_usersgroups_tests_cache-test COMMAND osquery_system_usersgroups_tests_cache-test)
+    add_osquery_test(NAME osquery_system_usersgroups_tests_cache-test COMMAND osquery_system_usersgroups_tests_cache-test)
 endfunction()
 
 osquerySystemUsersGroupsWindowsTestsMain()

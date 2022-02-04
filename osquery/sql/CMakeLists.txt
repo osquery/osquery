@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osquerySqlMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -65,11 +64,11 @@ function(generateOsquerySql)
 
   generateIncludeNamespace(osquery_sql "osquery/sql" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_sql_tests-test COMMAND osquery_sql_tests-test)
-  add_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
-  add_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
-  add_test(NAME osquery_sql_tests_sqlitehashingstests-test COMMAND osquery_sql_tests_sqlitehashingtests-test)
-  add_test(NAME osquery_sql_tests_sqlitenetworktests-test COMMAND osquery_sql_tests_sqlitenetworktests-test)
+  add_osquery_test(NAME osquery_sql_tests-test COMMAND osquery_sql_tests-test)
+  add_osquery_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
+  add_osquery_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
+  add_osquery_test(NAME osquery_sql_tests_sqlitehashingstests-test COMMAND osquery_sql_tests_sqlitehashingtests-test)
+  add_osquery_test(NAME osquery_sql_tests_sqlitenetworktests-test COMMAND osquery_sql_tests_sqlitenetworktests-test)
 endfunction()
 
 osquerySqlMain()

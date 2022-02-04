@@ -57,11 +57,10 @@ function(generateOsqueryCoreInit)
 
   # TODO: This test should actually run as root, but it's currently broken when using that user
   if(DEFINED PLATFORM_POSIX)
-    add_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
+    add_osquery_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
   endif()
 
-  add_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
-
+  add_osquery_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
 endfunction()
 
 function(generateOsqueryCore)
@@ -148,14 +147,14 @@ function(generateOsqueryCore)
 
   generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${public_header_files})
 
-  add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
-  add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
-  add_test(NAME osquery_core_tests_tablestests-test COMMAND osquery_core_tests_tablestests-test)
-  add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
-  add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
+  add_osquery_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
+  add_osquery_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
+  add_osquery_test(NAME osquery_core_tests_tablestests-test COMMAND osquery_core_tests_tablestests-test)
+  add_osquery_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
+  add_osquery_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
 
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_core_tests_wmitests-test COMMAND osquery_core_tests_wmitests-test)
+    add_osquery_test(NAME osquery_core_tests_wmitests-test COMMAND osquery_core_tests_wmitests-test)
   endif()
 endfunction()
 

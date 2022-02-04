@@ -40,9 +40,8 @@ function(generateOsqueryCarver)
 
   generateIncludeNamespace(osquery_carver "osquery/carver" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_carver_tests-test COMMAND osquery_carver_tests-test)
+  add_osquery_test(NAME osquery_carver_tests-test COMMAND osquery_carver_tests-test)
 endfunction()
-
 
 function(generateOsqueryCarverUtils)
   add_osquery_library(osquery_carver_utils EXCLUDE_FROM_ALL

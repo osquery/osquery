@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryUtilsVersioningMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -29,7 +28,7 @@ function(generateOsqueryUtilsVersioningSemantic)
 
   generateIncludeNamespace(osquery_utils_versioning_semantic "osquery/utils/versioning" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_utils_versioning_semanticversiontest-test COMMAND osquery_utils_versioning_semanticversiontest-test)
+  add_osquery_test(NAME osquery_utils_versioning_semanticversiontest-test COMMAND osquery_utils_versioning_semanticversiontest-test)
 endfunction()
 
 osqueryUtilsVersioningMain()

@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsLoggerMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -27,6 +26,7 @@ function(pluginsLoggerMain)
     generatePluginsLoggerAwskinesis()
     generatePluginsLoggerAwslogforwarder()
   endif()
+
   generatePluginsLoggerBuffered()
   generatePluginsLoggerFilesystemlogger()
   generatePluginsLoggerKafkaproducer()
@@ -78,7 +78,7 @@ function(generatePluginsLoggerAwskinesis)
   )
 
   generateIncludeNamespace(plugins_logger_awskinesis "plugins/logger" "FILE_ONLY" ${public_header_files})
-  add_test(NAME plugins_logger_tests_awskinesisloggertests-test COMMAND plugins_logger_tests_awskinesisloggertests-test)
+  add_osquery_test(NAME plugins_logger_tests_awskinesisloggertests-test COMMAND plugins_logger_tests_awskinesisloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerAwslogforwarder)
@@ -118,7 +118,7 @@ function(generatePluginsLoggerBuffered)
   )
 
   generateIncludeNamespace(plugins_logger_buffered "plugins/logger" "FILE_ONLY" ${public_header_files})
-  add_test(NAME plugins_logger_tests_bufferedloggertests-test COMMAND plugins_logger_tests_bufferedloggertests-test)
+  add_osquery_test(NAME plugins_logger_tests_bufferedloggertests-test COMMAND plugins_logger_tests_bufferedloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerFilesystemlogger)
@@ -141,11 +141,10 @@ function(generatePluginsLoggerFilesystemlogger)
   )
 
   generateIncludeNamespace(plugins_logger_filesystemlogger "plugins/logger" "FILE_ONLY" ${public_header_files})
-  add_test(NAME plugins_logger_tests_filesystemloggertests-test COMMAND plugins_logger_tests_filesystemloggertests-test)
+  add_osquery_test(NAME plugins_logger_tests_filesystemloggertests-test COMMAND plugins_logger_tests_filesystemloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerKafkaproducer)
-
   add_osquery_library(plugins_logger_kafkaproducer EXCLUDE_FROM_ALL
     kafka_producer.cpp
   )
@@ -168,7 +167,7 @@ function(generatePluginsLoggerKafkaproducer)
   )
 
   generateIncludeNamespace(plugins_logger_kafkaproducer "plugins/logger" "FILE_ONLY" ${public_header_files})
-  add_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
+  add_osquery_test(NAME plugins_logger_tests_kafkaproducerloggertests-test COMMAND plugins_logger_tests_kafkaproducerloggertests-test)
 endfunction()
 
 function(generatePluginsLoggerStdout)
@@ -191,7 +190,6 @@ function(generatePluginsLoggerStdout)
 endfunction()
 
 function(generatePluginsLoggerSyslog)
-
   if(DEFINED PLATFORM_POSIX)
     add_osquery_library(plugins_logger_syslog EXCLUDE_FROM_ALL
       syslog_logger.cpp
@@ -208,14 +206,9 @@ function(generatePluginsLoggerSyslog)
 
     generateIncludeNamespace(plugins_logger_syslog "plugins/logger" "FILE_ONLY" ${public_header_files})
 
-    add_test(NAME plugins_logger_tests_syslogloggertests-test COMMAND plugins_logger_tests_syslogloggertests-test)
-
-    set_tests_properties(
-      plugins_logger_tests_syslogloggertests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
+    add_osquery_test(NAME plugins_logger_tests_syslogloggertests-test COMMAND plugins_logger_tests_syslogloggertests-test)
   else()
-     add_osquery_library(plugins_logger_syslog INTERFACE)
+    add_osquery_library(plugins_logger_syslog INTERFACE)
   endif()
 endfunction()
 
@@ -242,19 +235,15 @@ function(generatePluginsLoggerTlslogger)
 
   generateIncludeNamespace(plugins_logger_tlslogger "plugins/logger" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_logger_tests_tlsloggertests-test COMMAND plugins_logger_tests_tlsloggertests-test)
-
   set(tlsloggertests-test_env
-    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
     "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
   )
 
-  set_tests_properties(
-    plugins_logger_tests_tlsloggertests-test
-    PROPERTIES ENVIRONMENT "${tlsloggertests-test_env}"
+  add_osquery_test(NAME plugins_logger_tests_tlsloggertests-test
+    COMMAND plugins_logger_tests_tlsloggertests-test
+    ENVIRONMENT "${tlsloggertests-test_env}"
   )
-
 endfunction()
 
 function(generatePluginsLoggerWindowseventlog)

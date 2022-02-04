@@ -35,7 +35,7 @@ function(generateOsqueryDispatcher)
 
   generateIncludeNamespace(osquery_dispatcher "osquery/dispatcher" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_dispatcher_tests-test COMMAND osquery_dispatcher_tests-test)
+  add_osquery_test(NAME osquery_dispatcher_tests-test COMMAND osquery_dispatcher_tests-test)
 endfunction()
 
 function(generateOsqueryDistributedAndScheduler)
@@ -69,7 +69,7 @@ function(generateOsqueryDistributedAndScheduler)
 
   generateIncludeNamespace(osquery_dispatcher_scheduler "osquery/dispatcher" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_dispatcher_tests_scheduler-test COMMAND osquery_dispatcher_tests_scheduler-test)
+  add_osquery_test(NAME osquery_dispatcher_tests_scheduler-test COMMAND osquery_dispatcher_tests_scheduler-test)
 endfunction()
 
 osqueryDispatcherMain()

@@ -368,7 +368,7 @@ function(generateTestsIntegrationTablesTestsTest)
       set(gtest_filter "${gtest_filter}${root_test_name}")
     endforeach()
 
-    add_test(NAME tests_integration_tables-test
+    add_osquery_test(NAME tests_integration_tables-test
       COMMAND tests_integration_tables-test "--gtest_filter=-${gtest_filter}"
     )
 
@@ -378,7 +378,7 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     if(OSQUERY_BUILD_ROOT_TESTS)
-      add_test(NAME tests_integration_tables_root-test
+      add_osquery_test(NAME tests_integration_tables_root-test
         COMMAND tests_integration_tables-test "--gtest_filter=${gtest_filter}"
       )
 
@@ -393,7 +393,7 @@ function(generateTestsIntegrationTablesTestsTest)
     endif()
 
   else()
-      add_test(NAME tests_integration_tables-test
+      add_osquery_test(NAME tests_integration_tables-test
         COMMAND tests_integration_tables-test
       )
 

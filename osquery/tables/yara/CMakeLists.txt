@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesYaraMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -15,7 +14,6 @@ function(osqueryTablesYaraMain)
 endfunction()
 
 function(generateOsqueryTablesYaraYaratable)
-
   if(DEFINED PLATFORM_FREEBSD)
     add_osquery_library(osquery_tables_yara_yaratable INTERFACE)
     return()
@@ -58,8 +56,7 @@ function(generateOsqueryTablesYaraYaratable)
 
   generateIncludeNamespace(osquery_tables_yara_yaratable "osquery/tables/yara" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_tables_yara_tests-test COMMAND osquery_tables_yara_tests-test)
-  
+  add_osquery_test(NAME osquery_tables_yara_tests-test COMMAND osquery_tables_yara_tests-test)
 endfunction()
 
 osqueryTablesYaraMain()
