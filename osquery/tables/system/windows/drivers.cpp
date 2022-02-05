@@ -32,6 +32,8 @@
 namespace osquery {
 namespace tables {
 
+auto close_reg_handle = [](HKEY handle) { RegCloseKey(handle); };
+using reg_handle_t = std::unique_ptr<HKEY__, decltype(close_reg_handle)>;
 const auto kCloseInfoSet = [](auto infoset) {
   SetupDiDestroyDeviceInfoList(infoset);
 };
@@ -171,31 +173,44 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   return Status::success();
 }
 
-std::string getDriverImagePath(const std::string& service_key) {
-  QueryData results;
-  std::string path;
-  queryKey(service_key, results);
-
-  if (results.empty()) {
-    return "";
+Status getDriverImagePath(const std::string& svc_name, std::string& result) {
+  HKEY hkey;
+  const auto image_path_value = L"ImagePath";
+  const auto svc_key = "SYSTEM\\CurrentControlSet\\Services\\" + svc_name;
+  auto ret = RegOpenKeyExW(
+      HKEY_LOCAL_MACHINE, stringToWstring(svc_key).c_str(), 0, KEY_READ, &hkey);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to open registry handle");
   }
 
-  for (auto& it : results) {
-    auto data_it = it.find("data");
-    auto name_it = it.find("name");
-    if (data_it == it.end() || name_it == it.end()) {
-      continue;
-    }
-    if (name_it->second == "ImagePath") {
-      path = data_it->second;
-      break;
-    }
+  reg_handle_t registry_handle(hkey, close_reg_handle);
+  DWORD buff_size;
+  ret = RegGetValueW(hkey,
+                     nullptr,
+                     image_path_value,
+                     RRF_RT_REG_SZ,
+                     nullptr,
+                     nullptr,
+                     &buff_size);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to query registry value(length)");
   }
 
-  if (path.empty()) {
-    return "";
+  auto buff = std::make_unique<BYTE[]>(buff_size);
+  ret = RegGetValueW(hkey,
+                     nullptr,
+                     image_path_value,
+                     RRF_RT_REG_SZ,
+                     nullptr,
+                     buff.get(),
+                     &buff_size);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to query registry value");
   }
-  return kNormalizeImage(path);
+
+  auto path = wstringToString(reinterpret_cast<wchar_t*>(buff.get()));
+  result = kNormalizeImage(path);
+  return Status::success();
 }
 
 QueryData genDrivers(QueryContext& context) {
@@ -245,9 +260,12 @@ QueryData genDrivers(QueryContext& context) {
     }
 
     if (r.count("service") > 0 && !r.at("service").empty()) {
-      auto svc_key = kServiceKeyPath + r["service"];
-      r["service_key"] = svc_key;
-      r["image"] = getDriverImagePath(svc_key);
+      std::string path;
+      r["service_key"] = kServiceKeyPath + r["service"];
+      auto ret = getDriverImagePath(r["service"], path);
+      if (ret.ok()) {
+        r["image"] = std::move(path);
+      }
     }
 
     api_devices[devId] = r;
