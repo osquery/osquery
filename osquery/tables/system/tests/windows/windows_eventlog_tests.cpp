@@ -38,9 +38,9 @@ TEST_F(WindowsEventLogTests, parse_wel_xml) {
       "<Data>10.0.19041.1</Data><Data>e7caee08</Data>"
       "<Data>c0000005</Data><Data>00000000000c265c</Data>"
       "<Data>b04</Data><Data>01d6750999d2deee</Data>"
-      "<Data>C:\Users\Administrator\Documents\wel_table\osquery-"
-      "wel\build\osquery\Debug\osqueryi.exe</Data>"
-      "<Data>C:\Windows\SYSTEM32\ucrtbased.dll</Data>"
+      "<Data>C:\\Users\\Administrator\\Documents\\wel_table\\osquery-"
+      "wel\\build\\osquery\\Debug\\osqueryi.exe</Data>"
+      "<Data>C:\\Windows\\SYSTEM32\\ucrtbased.dll</Data>"
       "<Data>3bcbd6a4-60e5-4474-be94-90c7a987d03b</Data>"
       "<Data></Data><Data></Data></EventData></Event>";
 
@@ -52,14 +52,16 @@ TEST_F(WindowsEventLogTests, parse_wel_xml) {
   Row row;
   parseWelXml(context, stringToWstring(xml_event), row);
 
+  /* NOTE: The escaping of the backslash doesn't match the original xml event
+     because JSON is also escaping the backslash, so there are two levels. */
   std::string expect_data =
       "{\"EventData\":[\"osqueryi.exe\",\"4.4.0.0\",\"5f3b4065\",\"ucrtbased."
       "dll\",\"10.0.19041.1\",\"e7caee08\",\"c0000005\",\"00000000000c265c\","
       "\"b04\",\"01d6750999d2deee\","
-      "\"C:UsersAdministratorDocumentswel_tableosquery-wel\\"
-      "buildosqueryDebugosqueryi.exe\","
-      "\"C:WindowsSYSTEM32ucrtbased.dll\",\"3bcbd6a4-60e5-4474-be94-"
-      "90c7a987d03b\",\"\",\"\"]}";
+      "\"C:\\\\Users\\\\Administrator\\\\Documents\\\\wel_table\\\\osquery-"
+      "wel\\\\build\\\\osquery\\\\Debug\\\\osqueryi.exe\","
+      "\"C:\\\\Windows\\\\SYSTEM32\\\\ucrtbased.dll\",\"3bcbd6a4-60e5-4474-"
+      "be94-90c7a987d03b\",\"\",\"\"]}";
 
   EXPECT_EQ(row["datetime"], "2020-08-18T02:45:18.854092300Z");
   EXPECT_EQ(row["channel"], "Application");
