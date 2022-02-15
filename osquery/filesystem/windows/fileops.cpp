@@ -190,7 +190,7 @@ static std::wstring globToRegex(const std::wstring& glob) {
   std::wstring regex(L"^");
 
   for (size_t i = 0; i < glob.size(); i++) {
-    char c = glob[i];
+    const wchar_t c = glob[i];
 
     switch (c) {
     case L'?':
