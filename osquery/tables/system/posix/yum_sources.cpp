@@ -43,7 +43,7 @@ void parseYumConf(std::istream& source,
       // Option
       if ("baseurl" == it2.first || "enabled" == it2.first ||
           "gpgcheck" == it2.first || "name" == it2.first ||
-          "gpgkey" == it2.first) {
+          "gpgkey" == it2.first || "mirrorlist" == it2.first) {
         r[it2.first] = it2.second.data();
       }
     }
