@@ -43,6 +43,7 @@ void genSudoersFile(const std::string& filename,
     return;
   }
 
+  bool is_long_line = false;
   std::string contents;
   if (!forensicReadFile(filename, contents).ok()) {
     TLOG << "couldn't read sudoers file: " << filename;
@@ -58,6 +59,21 @@ void genSudoersFile(const std::string& filename,
     boost::trim_if(line, boost::is_any_of(kSudoWhitespaceChars));
 
     if (line.empty()) {
+      continue;
+    }
+
+    // if last line contains a backslash as the last character,
+    // treat current line as part of previous line and
+    // append it to appropriate column.
+    if (is_long_line) {
+      is_long_line = (line.back() == '\\');
+      auto& last_line = results.back();
+      if (last_line["rule_details"].empty()) {
+        last_line["header"].pop_back();
+      } else {
+        last_line["rule_details"].pop_back();
+      }
+      last_line["rule_details"].append(line);
       continue;
     }
 
@@ -85,6 +101,11 @@ void genSudoersFile(const std::string& filename,
     // comment.
     if (rule_details.empty() && (is_include || is_includedir)) {
       continue;
+    }
+
+    // Check if a blackslash is the last character on this line.
+    if (!is_include && !is_includedir && line.back() == '\\') {
+      is_long_line = true;
     }
 
     Row r;
