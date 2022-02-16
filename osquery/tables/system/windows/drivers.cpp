@@ -196,7 +196,7 @@ Status getDriverImagePath(const std::string& svc_name, std::string& result) {
     return Status(ret, "Failed to query registry value(length)");
   }
 
-  auto buff = std::make_unique<BYTE[]>(buff_size);
+  auto buff = std::make_unique<WCHAR[]>(buff_size / sizeof(WCHAR));
   ret = RegGetValueW(hkey,
                      nullptr,
                      image_path_value,
@@ -208,7 +208,7 @@ Status getDriverImagePath(const std::string& svc_name, std::string& result) {
     return Status(ret, "Failed to query registry value");
   }
 
-  auto path = wstringToString(reinterpret_cast<wchar_t*>(buff.get()));
+  auto path = wstringToString(buff.get());
   result = kNormalizeImage(path);
   return Status::success();
 }
@@ -252,6 +252,11 @@ QueryData genDrivers(QueryContext& context) {
     for (const auto& elem : kAdditionalDeviceProps) {
       std::string val;
       ret = getDeviceProperty(dev_info_set, device, elem.second, val);
+      if (!ret.ok()) {
+        VLOG(1) << "Failed to get element type" << r[elem.first]
+                << " with " << ret.getMessage();
+        continue;
+      }
       r[elem.first] = std::move(val);
     }
 
@@ -263,9 +268,12 @@ QueryData genDrivers(QueryContext& context) {
       std::string path;
       r["service_key"] = kServiceKeyPath + r["service"];
       auto ret = getDriverImagePath(r["service"], path);
-      if (ret.ok()) {
-        r["image"] = std::move(path);
+      if (!ret.ok()) {
+        VLOG(1) << "Failed to get image path for driver" << r["service"]
+                << " with " << ret.getMessage();
+        continue;
       }
+      r["image"] = std::move(path);
     }
 
     api_devices[devId] = r;
