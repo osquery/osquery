@@ -426,9 +426,7 @@ function(rocksdbMain)
     endif()
   endif()
 
-  set(library_list
-    thirdparty_cxx_settings
-  )
+  set(library_list)
 
   if(PLATFORM_LINUX)
     find_package(Threads REQUIRED)
@@ -443,8 +441,12 @@ function(rocksdbMain)
     )
   endif()
 
-  target_link_libraries(thirdparty_rocksdb PUBLIC
-    ${library_list}
+  target_link_libraries(thirdparty_rocksdb
+    PRIVATE
+      thirdparty_cxx_settings
+
+    PUBLIC
+      ${library_list}
   )
 
   target_include_directories(thirdparty_rocksdb PRIVATE
