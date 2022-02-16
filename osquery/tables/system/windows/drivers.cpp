@@ -253,8 +253,8 @@ QueryData genDrivers(QueryContext& context) {
       std::string val;
       ret = getDeviceProperty(dev_info_set, device, elem.second, val);
       if (!ret.ok()) {
-        VLOG(1) << "Failed to get element type" << r[elem.first]
-                << " with " << ret.getMessage();
+        VLOG(1) << "Failed to get element type" << r[elem.first] << " with "
+                << ret.getMessage();
         continue;
       }
       r[elem.first] = std::move(val);
