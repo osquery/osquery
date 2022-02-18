@@ -58,6 +58,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
       linux/block_devices.cpp
+      linux/cpu_info.cpp
       linux/disk_encryption.cpp
       linux/elf_info.cpp
       linux/extended_attributes.cpp
@@ -328,6 +329,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND platform_public_header_files
+      linux/cpu_info.h
       linux/dbus/methods/dbusmethod.h
       linux/dbus/methods/listunitsmethodhandler.h
       linux/dbus/methods/getstringproperty.h
