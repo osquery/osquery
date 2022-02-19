@@ -254,7 +254,7 @@ QueryData genDrivers(QueryContext& context) {
       ret = getDeviceProperty(dev_info_set, device, elem.second, val);
       if (!ret.ok()) {
         VLOG(1) << "Failed to get element type " << r[elem.first]
-                << " with error: "<< ret.getCode();
+                << " with error code: " << ret.getCode();
         continue;
       }
       r[elem.first] = std::move(val);
@@ -270,7 +270,7 @@ QueryData genDrivers(QueryContext& context) {
       auto ret = getDriverImagePath(r["service"], path);
       if (!ret.ok()) {
         VLOG(1) << "Failed to get image path for driver " << r["service"]
-                << " with error: " << ret.getCode();
+                << " with error code: " << ret.getCode();
         continue;
       }
       r["image"] = std::move(path);
