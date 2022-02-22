@@ -81,13 +81,13 @@ bool hasFlag(const std::string_view& flags,
   std::vector<std::string_view> all_flags;
   size_t start = 0;
   size_t end = 0;
-  do {
+  while (end <= flags.size()) {
     if (flags[end] == ' ' || end == flags.size()) {
       all_flags.push_back(std::string_view(flags.data() + start, end - start));
       start = end + 1;
     }
     end += 1;
-  } while (end <= flags.size());
+  }
   for (const auto& str : all_flags) {
     if (str == potential_flag) {
       return true;
