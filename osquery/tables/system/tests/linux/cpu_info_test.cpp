@@ -143,24 +143,14 @@ TEST_F(CpuInfoTest, parsesText) {
   EXPECT_EQ(cpu_info.size(), 0);
   cpu_info = parseCpuInfo(kProcCpuInfoSample);
   EXPECT_EQ(cpu_info.size(), 1);
-  CpuInfo expected = {
-      .device_id = "0",
-      .socket_designation = "0",
-      .model = "Intel(R) Core(TM) i5-2400 CPU @ 3.10GHz",
-      .manufacturer = "GenuineIntel",
-      .number_of_cores = "4",
-      .logical_processors = "4",
-      .address_width = "64",
-      .current_clock_speed = "3400.000",
-  };
-  EXPECT_EQ(cpu_info[0].device_id, expected.device_id);
-  EXPECT_EQ(cpu_info[0].socket_designation, expected.socket_designation);
-  EXPECT_EQ(cpu_info[0].model, expected.model);
-  EXPECT_EQ(cpu_info[0].manufacturer, expected.manufacturer);
-  EXPECT_EQ(cpu_info[0].number_of_cores, expected.number_of_cores);
-  EXPECT_EQ(cpu_info[0].logical_processors, expected.logical_processors);
-  EXPECT_EQ(cpu_info[0].address_width, expected.address_width);
-  EXPECT_EQ(cpu_info[0].current_clock_speed, expected.current_clock_speed);
+  EXPECT_EQ(cpu_info[0].device_id, "0");
+  EXPECT_EQ(cpu_info[0].socket_designation, "0");
+  EXPECT_EQ(cpu_info[0].model, "Intel(R) Core(TM) i5-2400 CPU @ 3.10GHz");
+  EXPECT_EQ(cpu_info[0].manufacturer, "GenuineIntel");
+  EXPECT_EQ(cpu_info[0].number_of_cores, "4");
+  EXPECT_EQ(cpu_info[0].logical_processors, "4");
+  EXPECT_EQ(cpu_info[0].address_width, "64");
+  EXPECT_EQ(cpu_info[0].current_clock_speed, "3400.000");
 }
 
 } // namespace tables

@@ -39,7 +39,7 @@ std::vector<FileLine> readLines(const std::string& info_file) {
   int state = 0;
   int key_start = 0;
   int value_start = 0;
-  for (int i = 0; i < info_file.size(); ++i) {
+  for (size_t i = 0; i < info_file.size(); ++i) {
     if (info_file[i] == '\n') {
       current_line.value =
           std::string_view(info_file.data() + value_start, i - value_start);
@@ -79,8 +79,8 @@ std::vector<FileLine> readLines(const std::string& info_file) {
 bool hasFlag(const std::string_view& flags,
              const std::string_view& potential_flag) {
   std::vector<std::string_view> all_flags;
-  int start = 0;
-  int end = 0;
+  size_t start = 0;
+  size_t end = 0;
   do {
     if (flags[end] == ' ' || end == flags.size()) {
       all_flags.push_back(std::string_view(flags.data() + start, end - start));
@@ -110,7 +110,7 @@ std::vector<CpuInfo> parseCpuInfo(const std::string& info_file) {
   std::vector<CpuInfo> result;
   CpuInfo current_info = {};
   bool discard_on_reset = false;
-  for (int i = 0; i < lines.size(); ++i) {
+  for (size_t i = 0; i < lines.size(); ++i) {
     FileLine line = lines[i];
     if (strStartsWith(line.key, "physical id")) {
       for (const CpuInfo& info : result) {
