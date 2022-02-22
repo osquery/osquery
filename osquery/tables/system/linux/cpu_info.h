@@ -27,6 +27,7 @@ struct CpuInfo {
   std::string max_clock_speed;
   std::string socket_designation;
 };
+
 /**
  * @brief parse /proc/cpuinfo file into organized struct
  *
@@ -34,7 +35,7 @@ struct CpuInfo {
  *
  * @return std::vector<CpuInfo> with each element as one physical cpu
  */
-std::vector<CpuInfo> parseCpuInfo(const std::string& info_file)
+std::vector<CpuInfo> parseCpuInfo(const std::string& info_file);
 
 } // namespace tables
 } // namespace osquery

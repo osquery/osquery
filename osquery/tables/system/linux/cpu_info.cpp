@@ -14,13 +14,14 @@
 
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 
 namespace osquery {
 namespace tables {
 
-static constexpr std::string kCpuInfoFile = "/proc/cpuinfo";
+static const std::string kCpuInfoFile = "/proc/cpuinfo";
 
 struct FileLine {
   std::string_view key;
@@ -38,7 +39,7 @@ std::vector<FileLine> readLines(const std::string& info_file) {
   int state = 0;
   int key_start = 0;
   int value_start = 0;
-  for (int i = 0; i < info_file.size; ++i) {
+  for (int i = 0; i < info_file.size(); ++i) {
     if (info_file[i] == '\n') {
       current_line.value =
           std::string_view(info_file.data() + value_start, i - value_start);
@@ -51,6 +52,7 @@ std::vector<FileLine> readLines(const std::string& info_file) {
       if (state != 0) {
         // This is an error because we should only see a colon in the key.
         // Return empty vector as error.
+        VLOG(0) << "Saw colon in state: " << state << ". At offset :" << i;
         return {};
       }
       current_line.key =
@@ -63,13 +65,44 @@ std::vector<FileLine> readLines(const std::string& info_file) {
       if (state == 1) {
         // Start of value because we were at the colon.
         value_start = i;
+        state = 2; // In value now.
       } else if (state == 3) {
         // Start of key because we were at the newline.
         key_start = i;
+        state = 0; // In key now.
       }
     }
   }
   return result;
+}
+
+bool hasFlag(const std::string_view& flags,
+             const std::string_view& potential_flag) {
+  std::vector<std::string_view> all_flags;
+  int start = 0;
+  int end = 0;
+  do {
+    if (flags[end] == ' ' || end == flags.size()) {
+      all_flags.push_back(std::string_view(flags.data() + start, end - start));
+      start = end + 1;
+    }
+    end += 1;
+  } while (end <= flags.size());
+  for (const auto& str : all_flags) {
+    if (str == potential_flag) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool strStartsWith(const std::string_view& string,
+                   const std::string_view& potential_substring) {
+  auto pos = string.find(potential_substring);
+  if (pos == string.npos || pos != 0) {
+    return false;
+  }
+  return true;
 }
 
 std::vector<CpuInfo> parseCpuInfo(const std::string& info_file) {
@@ -79,7 +112,7 @@ std::vector<CpuInfo> parseCpuInfo(const std::string& info_file) {
   bool discard_on_reset = false;
   for (int i = 0; i < lines.size(); ++i) {
     FileLine line = lines[i];
-    if (line.key.contains("physical id")) {
+    if (strStartsWith(line.key, "physical id")) {
       for (const CpuInfo& info : result) {
         if (info.device_id == line.value) {
           discard_on_reset = true;
@@ -88,23 +121,31 @@ std::vector<CpuInfo> parseCpuInfo(const std::string& info_file) {
       }
       current_info.device_id = line.value;
       current_info.socket_designation = line.value;
-    } else if (line.key.contains("model name")) {
+    } else if (strStartsWith(line.key, "model name")) {
       current_info.model = line.value;
-    } else if (line.key.contains("vendor_id")) {
-      current_info.manufacture = line.value;
-    } else if (line.key.contains("cpu cores")) {
+    } else if (strStartsWith(line.key, "vendor_id")) {
+      current_info.manufacturer = line.value;
+    } else if (strStartsWith(line.key, "cpu cores")) {
       current_info.number_of_cores = line.value;
-    } else if (line.key.contains("siblings")) {
+    } else if (strStartsWith(line.key, "siblings")) {
       current_info.logical_processors = line.value;
-    } else if (line.key.contains("address sizes")) {
-      // TODO(joesweeney): Address width should be a number, this will need to
-      // do more work to get the number.
-      current_info.address_width = line.value;
-    } else if (line.key.contains("cpu MHz")) {
+    } else if (strStartsWith(line.key, "flags")) {
+      // Address width on Windows indicates whether the CPU is 32 bits or 64
+      // bits. In /proc/cpuinfo the flags field will contain the "lm" flag (long
+      // mode) if it is 64 bit, otherwise it will be 32 bit. So we check for
+      // that flag.
+      std::string width = "32";
+      if (hasFlag(line.value, "lm")) {
+        width = "64";
+      }
+      current_info.address_width = width;
+    } else if (strStartsWith(line.key, "cpu MHz")) {
       current_info.current_clock_speed = line.value;
     } else if (line.key.empty()) {
       if (!discard_on_reset) {
-        result.push_back(current_info);
+        if (!current_info.device_id.empty()) {
+          result.push_back(current_info);
+        }
       }
       current_info = {};
       discard_on_reset = false;
@@ -116,21 +157,27 @@ std::vector<CpuInfo> parseCpuInfo(const std::string& info_file) {
 QueryData genCpuInfo(QueryContext& context) {
   Row r;
   QueryData results;
-
-  // TODO(joesweeney): Actually implement the functionality to get this info.
-  r["device_id"] = "";
-  r["socket_designation"] = "";
-  r["model"] = "";
-  r["manufacturer"] = "";
-  r["processor_type"] = "-1";
-  r["availability"] = "-1";
-  r["cpu_status"] = "-1";
-  r["number_of_cores"] = "-1";
-  r["logical_processors"] = "-1";
-  r["address_width"] = "-1";
-  r["current_clock_speed"] = "-1";
-  r["max_clock_speed"] = "-1";
-  results.push_back(r);
+  std::string info_file;
+  Status status = readFile(kCpuInfoFile, info_file);
+  if (!status.ok()) {
+    return results;
+  }
+  std::vector<CpuInfo> cpu_infos = parseCpuInfo(info_file);
+  for (const CpuInfo& info : cpu_infos) {
+    r["device_id"] = info.device_id;
+    r["socket_designation"] = info.socket_designation;
+    r["model"] = info.model;
+    r["manufacturer"] = info.manufacturer;
+    r["processor_type"] = info.processor_type;
+    r["availability"] = info.availability;
+    r["cpu_status"] = info.cpu_status;
+    r["number_of_cores"] = info.number_of_cores;
+    r["logical_processors"] = info.logical_processors;
+    r["address_width"] = info.address_width;
+    r["current_clock_speed"] = info.current_clock_speed;
+    r["max_clock_speed"] = info.max_clock_speed;
+    results.push_back(r);
+  }
 
   return results;
 }

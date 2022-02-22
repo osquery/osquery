@@ -179,6 +179,7 @@ function(generateNativeTables)
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
+    "linwin/cpu_info.table:linux,windows"
     "linwin/intel_me_info.table:linux,windows"
     "linwin/secureboot.table:linux,windows"
     "kernel_info.table:linux,macos,windows"

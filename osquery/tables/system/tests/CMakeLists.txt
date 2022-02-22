@@ -29,6 +29,7 @@ endfunction()
 
 function(generateOsqueryTablesSystemLinuxTests)
   add_osquery_executable(osquery_tables_system_linux_tests-test
+    linux/cpu_info_test.cpp
     linux/extended_attributes_tests.cpp
     linux/md_tables_tests.cpp
     linux/pci_devices_tests.cpp
