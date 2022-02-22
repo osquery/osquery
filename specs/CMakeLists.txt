@@ -287,7 +287,6 @@ function(generateNativeTables)
     "windows/ntfs_journal_events.table:windows"
     "windows/powershell_events.table:windows"
     "windows/winbaseobj.table:windows"
-    "windows/cpu_info.table:windows"
     "windows/wmi_bios_info.table:windows"
     "windows/programs.table:windows"
     "windows/wmi_script_event_consumers.table:windows"
