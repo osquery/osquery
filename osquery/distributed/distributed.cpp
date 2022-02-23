@@ -20,6 +20,7 @@
 #include <osquery/sql/sql.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
+#include <osquery/worker/system/memory.h>
 
 namespace rj = rapidjson;
 
@@ -175,6 +176,12 @@ Status Distributed::flushCompleted() {
   if (s.ok()) {
     results_.clear();
   }
+
+#ifdef OSQUERY_LINUX
+  // Attempt to release some unused memory kept by malloc internal caching
+  releaseRetainedMemory();
+#endif
+
   return s;
 }
 

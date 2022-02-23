@@ -21,6 +21,9 @@ namespace osquery {
 const std::vector<std::string> kUserNamespaceList = {
     "cgroup", "ipc", "mnt", "net", "pid", "user", "uts"};
 
+constexpr std::uint64_t kStatmElementsCount = 7;
+constexpr std::uint64_t kMemoryPageSize = 4096;
+
 Status procGetNamespaceInode(ino_t& inode,
                              const std::string& namespace_name,
                              const std::string& process_namespace_root) {
@@ -394,6 +397,36 @@ Status procReadDescriptor(const std::string& process,
   } else {
     return Status(1, "Could not call readlink: " + kLinuxProcPath);
   }
+}
+
+Expected<std::uint64_t, ProcError> getProcRSS(const std::string& process) {
+  using ProcExpected = Expected<std::uint64_t, ProcError>;
+
+  std::string statm_content;
+  auto status = osquery::readFile(kLinuxProcPath + "/" + process + "/statm",
+                                  statm_content);
+
+  if (!status.ok()) {
+    return ProcExpected::failure(
+        ProcError::GenericError,
+        "Failed to read statm: " + status.getMessage());
+  }
+
+  auto statm_elements = osquery::split(statm_content, " ");
+
+  if (statm_elements.size() != kStatmElementsCount) {
+    return ProcExpected::failure(ProcError::GenericError,
+                                 "statm has an unexpected format");
+  }
+
+  auto rss_pages_res = tryTo<std::uint64_t>(statm_elements[1]);
+
+  if (rss_pages_res.isError()) {
+    return ProcExpected::failure(ProcError::GenericError,
+                                 "Failed to convert rss pages to a number");
+  }
+
+  return rss_pages_res.take() * kMemoryPageSize;
 }
 
 } // namespace osquery

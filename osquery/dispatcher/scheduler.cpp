@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include "osquery/dispatcher/scheduler.h"
+
 #include <algorithm>
 #include <ctime>
 
@@ -24,12 +26,11 @@
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
-
+#include <osquery/sql/sqlite_util.h>
+#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/time.h>
-
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/sql/sqlite_util.h"
-#include "plugins/config/parsers/decorators.h"
+#include <osquery/worker/system/memory.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
@@ -258,6 +259,11 @@ void SchedulerRunner::start() {
                            1,
                            monitoring::PreAggregationType::Sum,
                            true);
+
+#ifdef OSQUERY_LINUX
+        // Attempt to release some unused memory kept by malloc internal caching
+        releaseRetainedMemory();
+#endif
       }
     }));
 

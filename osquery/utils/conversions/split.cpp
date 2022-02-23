@@ -50,4 +50,4 @@ std::vector<std::string> split(const std::string& s,
   return elems;
 }
 
-}
+} // namespace osquery

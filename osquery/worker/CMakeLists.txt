@@ -6,8 +6,9 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryWorkerMain)
-    add_subdirectory("ipc")
-    add_subdirectory("logging")
+  add_subdirectory("ipc")
+  add_subdirectory("logging")
+  add_subdirectory("system")
 endfunction()
 
 osqueryWorkerMain()
