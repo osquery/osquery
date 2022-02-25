@@ -44,11 +44,12 @@ QueryData genBitlockerInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  const WmiRequest wmiSystemReq(
-      "SELECT * FROM Win32_EncryptableVolume",
-      (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.empty()) {
+  const Expected<WmiRequest, WmiError> wmiSystemReq =
+      WmiRequest::CreateWmiRequest(
+          "SELECT * FROM Win32_EncryptableVolume",
+          (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
+  if (!wmiSystemReq || wmiResults.empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
     return results;
   }
@@ -83,14 +84,14 @@ QueryData genBitlockerInfo(QueryContext& context) {
     r["encryption_method"] = emethod_str;
 
     fetchMethodResultLong(
-        r["version"], wmiSystemReq, data, "GetVersion", "Version");
+        r["version"], *wmiSystemReq, data, "GetVersion", "Version");
     fetchMethodResultLong(r["percentage_encrypted"],
-                          wmiSystemReq,
+                          *wmiSystemReq,
                           data,
                           "GetConversionStatus",
                           "EncryptionPercentage");
     fetchMethodResultLong(
-        r["lock_status"], wmiSystemReq, data, "GetLockStatus", "LockStatus");
+        r["lock_status"], *wmiSystemReq, data, "GetLockStatus", "LockStatus");
 
     results.push_back(r);
   }

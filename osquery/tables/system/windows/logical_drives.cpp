@@ -11,29 +11,39 @@
 
 #include "osquery/core/windows/wmi.h"
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 namespace tables {
 
 QueryData genLogicalDrives(QueryContext& context) {
   QueryData results;
-
-  const WmiRequest wmiLogicalDiskReq(
-      "select DeviceID, Description, FreeSpace, Size, FileSystem from "
-      "Win32_LogicalDisk");
-  auto const& logicalDisks = wmiLogicalDiskReq.results();
-
-  const WmiRequest wmiBootConfigurationReq(
-      "select BootDirectory from Win32_BootConfiguration");
-  auto const& bootConfigurations = wmiBootConfigurationReq.results();
   std::unordered_set<char> bootDeviceIds;
 
-  for (const auto& bootConfiguration : bootConfigurations) {
-    std::string bootDirectory;
-    bootConfiguration.GetString("BootDirectory", bootDirectory);
-    bootDeviceIds.insert(bootDirectory.at(0));
+  const auto wmiBootConfigurationReq = WmiRequest::CreateWmiRequest(
+      "select BootDirectory from Win32_BootConfiguration");
+  if (wmiBootConfigurationReq) {
+    auto const& bootConfigurations = wmiBootConfigurationReq->results();
+
+    for (const auto& bootConfiguration : bootConfigurations) {
+      std::string bootDirectory;
+      bootConfiguration.GetString("BootDirectory", bootDirectory);
+      bootDeviceIds.insert(bootDirectory.at(0));
+    }
+  } else {
+    LOG(WARNING) << "Failed to query BootConfiguration via WMI";
   }
 
+  const auto wmiLogicalDiskReq = WmiRequest::CreateWmiRequest(
+      "select DeviceID, Description, FreeSpace, Size, FileSystem from "
+      "Win32_LogicalDisk");
+  if (!wmiLogicalDiskReq) {
+    // WMI reqest failed, which would mean an empty vector for logicalDisks
+    // so just return the empty results early.
+    LOG(WARNING) << "Failed to query LogicalDisk via WMI";
+    return results;
+  }
+  auto const& logicalDisks = wmiLogicalDiskReq->results();
   for (const auto& logicalDisk : logicalDisks) {
     Row r;
     std::string deviceId;

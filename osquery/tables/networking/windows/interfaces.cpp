@@ -65,9 +65,9 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       "Name = \"" +
       r["description"] + "\"";
 
-  const WmiRequest req1(query);
-  if (req1.getStatus().ok()) {
-    const auto& results = req1.results();
+  const auto req1 = WmiRequest::CreateWmiRequest(query);
+  if (req1 && req1->getStatus().ok()) {
+    const auto& results = req1->results();
     if (!results.empty()) {
       std::string sPlaceHolder;
 
@@ -108,9 +108,9 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       "SELECT * FROM Win32_NetworkAdapter WHERE "
       "InterfaceIndex = " +
       r["interface"];
-  const WmiRequest req2(query);
-  if (req2.getStatus().ok()) {
-    const auto& results = req2.results();
+  const auto req2 = WmiRequest::CreateWmiRequest(query);
+  if (req2 && req2->getStatus().ok()) {
+    const auto& results = req2->results();
     if (!results.empty()) {
       bool bPlaceHolder;
       long lPlaceHolder = 0;
@@ -136,9 +136,9 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       "SELECT * FROM win32_networkadapterconfiguration WHERE "
       "InterfaceIndex = " +
       r["interface"];
-  const WmiRequest req3(query);
-  if (req3.getStatus().ok()) {
-    const auto& results = req3.results();
+  const auto req3 = WmiRequest::CreateWmiRequest(query);
+  if (req3 && req3->getStatus().ok()) {
+    const auto& results = req3->results();
     if (!results.empty()) {
       bool bPlaceHolder = false;
       std::vector<std::string> vPlaceHolder;

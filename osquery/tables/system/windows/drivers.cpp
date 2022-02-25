@@ -214,11 +214,12 @@ Status genServiceKeyMap(
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
 
-  const WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
-  const auto& wmi_results = wmiSignedDriverReq.results();
+  const Expected<WmiRequest, WmiError> wmiSignedDriverReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_PnPSignedDriver");
+  const auto& wmi_results = wmiSignedDriverReq->results();
 
   // As our list relies on the WMI set we first query and bail if no results
-  if (wmi_results.empty()) {
+  if (!wmiSignedDriverReq || wmi_results.empty()) {
     LOG(WARNING) << "Failed to query device drivers via WMI";
     return {};
   }

@@ -20,11 +20,12 @@ namespace tables {
 QueryData genChassisInfo(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiSystemReq("SELECT * FROM Win32_SystemEnclosure");
-  const auto& wmiResults = wmiSystemReq.results();
+  Expected<WmiRequest, WmiError> wmiSystemReq =
+      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_SystemEnclosure");
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
 
   // check if the results are empty and return a warning if so
-  if (wmiResults.empty()) {
+  if (!wmiSystemReq || wmiResults.empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
     return results;
   }
