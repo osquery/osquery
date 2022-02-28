@@ -395,6 +395,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
             << ") stopping: " << status.getMessage();
       systemLog(error.str());
       LOG(WARNING) << error.str();
+      warnWorkerResourceLimitHit(child);
       stopChild(child, true);
       return false;
     }
@@ -443,6 +444,11 @@ void WatcherRunner::stopChild(const PlatformProcess& child, bool force) const {
                    std::to_string(child_pid) + ").";
     requestShutdown(EXIT_CATASTROPHIC, message);
   }
+}
+
+void WatcherRunner::warnWorkerResourceLimitHit(
+    const PlatformProcess& child) const {
+  child.warnResourceLimitHit();
 }
 
 PerformanceChange getChange(const Row& r, PerformanceState& state) {

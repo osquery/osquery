@@ -75,6 +75,10 @@ bool PlatformProcess::killGracefully() const {
   return (status == 0);
 }
 
+void PlatformProcess::warnResourceLimitHit() const {
+  ::kill(nativeHandle(), SIGUSR1);
+}
+
 ProcessState PlatformProcess::checkStatus(int& status) const {
   int process_status = 0;
   if (!isValid()) {
