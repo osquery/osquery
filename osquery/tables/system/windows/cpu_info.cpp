@@ -24,11 +24,11 @@ QueryData genCpuInfo(QueryContext& context) {
 
   const Expected<WmiRequest, WmiError> wmiSystemReq =
       WmiRequest::CreateWmiRequest("SELECT * FROM Win32_Processor");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
-  if (!wmiSystemReq || wmiResults.empty()) {
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
     long number = 0;
     data.GetString("DeviceID", r["device_id"]);

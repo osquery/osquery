@@ -38,7 +38,7 @@ QueryData genLogicalDrives(QueryContext& context) {
       "select DeviceID, Description, FreeSpace, Size, FileSystem from "
       "Win32_LogicalDisk");
   if (!wmiLogicalDiskReq) {
-    // WMI reqest failed, which would mean an empty vector for logicalDisks
+    // WMI request failed, which would mean an empty vector for logicalDisks
     // so just return the empty results early.
     LOG(WARNING) << "Failed to query LogicalDisk via WMI";
     return results;

@@ -27,7 +27,7 @@ QueryData genVideoInfo(QueryContext& context) {
 
   const auto wmiSystemReq =
       WmiRequest::CreateWmiRequest("SELECT * FROM Win32_VideoController");
-  if (wmiSystemReq || wmiSystemReq->results().empty()) {
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Failed to retrieve video information";
     return {};
   } else {

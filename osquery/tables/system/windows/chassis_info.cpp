@@ -22,13 +22,13 @@ QueryData genChassisInfo(QueryContext& context) {
 
   Expected<WmiRequest, WmiError> wmiSystemReq =
       WmiRequest::CreateWmiRequest("SELECT * FROM Win32_SystemEnclosure");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
 
   // check if the results are empty and return a warning if so
-  if (!wmiSystemReq || wmiResults.empty()) {
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
 
   // DSP0134: System Management BIOS (SMBIOS) Reference Specification
   // Section: Enclosure/chassis types.

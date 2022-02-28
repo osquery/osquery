@@ -48,11 +48,11 @@ QueryData genBitlockerInfo(QueryContext& context) {
       WmiRequest::CreateWmiRequest(
           "SELECT * FROM Win32_EncryptableVolume",
           (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
-  if (!wmiSystemReq || wmiResults.empty()) {
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
     long status = 0;
     long emethod;

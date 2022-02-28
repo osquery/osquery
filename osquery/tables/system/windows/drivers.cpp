@@ -216,13 +216,13 @@ QueryData genDrivers(QueryContext& context) {
 
   const Expected<WmiRequest, WmiError> wmiSignedDriverReq =
       WmiRequest::CreateWmiRequest("select * from Win32_PnPSignedDriver");
-  const auto& wmi_results = wmiSignedDriverReq->results();
 
   // As our list relies on the WMI set we first query and bail if no results
-  if (!wmiSignedDriverReq || wmi_results.empty()) {
+  if (!wmiSignedDriverReq || wmiSignedDriverReq->results().empty()) {
     LOG(WARNING) << "Failed to query device drivers via WMI";
     return {};
   }
+  const auto& wmi_results = wmiSignedDriverReq->results();
 
   auto dev_info_set = setupDevInfoSet(DIGCF_ALLCLASSES | DIGCF_PRESENT);
   if (dev_info_set == nullptr) {
