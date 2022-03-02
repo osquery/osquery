@@ -281,7 +281,9 @@ class WatcherRunner : public InternalRunnable {
   /// Signal the worker or extension process to close cleanly.
   /// If enough time has passed, and the process hasn't closed yet,
   /// the process will be killed.
-  /// The force argument is used to skip the clean shutdown part.
+  /// The force argument is used to request a faster timeout
+  /// for the clean shutdown, which is based on the flag
+  /// watchdog_forced_shutdown_delay
   virtual void stopChild(const PlatformProcess& child,
                          bool force = false) const;
 
