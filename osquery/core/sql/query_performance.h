@@ -34,6 +34,9 @@ struct QueryPerformance {
 
   /// Average memory differentials. This should be near 0.
   unsigned long long int average_memory{0};
+
+  /// Total bytes for the query
+  unsigned long long int output_size{0};
 };
 
 } // namespace osquery

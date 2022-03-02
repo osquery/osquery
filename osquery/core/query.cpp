@@ -125,7 +125,7 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   bool new_query = false;
   getQueryStatus(current_epoch, fresh_results, new_query);
   if (fresh_results) {
-    auto status = setDatabaseValue(kQueries, name_, "{}");
+    auto status = setDatabaseValue(kQueries, name_, "[]");
     if (!status.ok()) {
       return status;
     }
@@ -374,4 +374,4 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
   return Status::success();
 }
 
-}
+} // namespace osquery

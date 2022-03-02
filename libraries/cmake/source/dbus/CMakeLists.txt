@@ -75,7 +75,6 @@ function(dbusMain)
 
   target_link_libraries(thirdparty_dbus
     PRIVATE
-      c_settings
       thirdparty_c_settings
 
     PUBLIC

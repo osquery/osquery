@@ -28,22 +28,6 @@ if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
 endif()
 
-# clang-tidy needs to be initialized in global scope, before any
-# target is created
-if(OSQUERY_ENABLE_CLANG_TIDY)
-  find_package(clang-tidy)
-  if(TARGET clang-tidy::clang-tidy)
-    foreach(language C CXX)
-      set("CMAKE_${language}_CLANG_TIDY"
-        "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
-      )
-    endforeach()
-
-  else()
-    message(WARNING "clang-tidy: Disabled because it was not found")
-  endif()
-endif()
-
 function(main)
 
   findClangFormat()
@@ -71,6 +55,20 @@ function(main)
 
   add_subdirectory("libraries")
   importLibraries()
+
+  # Enable clang-tidy only after having created the third party targets,
+  # so it won't run with those and slow down the build.
+  if(OSQUERY_ENABLE_CLANG_TIDY)
+    find_package(clang-tidy)
+
+    if(TARGET clang-tidy::clang-tidy)
+      set(CMAKE_CXX_CLANG_TIDY
+          "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
+      )
+    else()
+      message(WARNING "clang-tidy: Disabled because it was not found")
+    endif()
+  endif()
 
   add_subdirectory("osquery")
   add_subdirectory("plugins")
@@ -152,6 +150,9 @@ function(importLibraries)
     )
   endif()
 
+  # Create a target that builds all the third party libraries for convenience
+  add_custom_target(thirdparty_libraries)
+
   foreach(library_descriptor ${library_descriptor_list})
     # Expand the library descriptor
     string(REPLACE ":" ";" library_descriptor "${library_descriptor}")
@@ -170,12 +171,14 @@ function(importLibraries)
 
     # Skip libraries which already use our internal target name
     if(TARGET "thirdparty_${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
       continue()
 
     # For generic libraries that import the library name, let's create
     # an alias
     elseif(TARGET "${library}")
       add_library("thirdparty_${library}" ALIAS "${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
     # Legacy libraries will just export variables; build a new INTERFACE
     # target with them
@@ -185,6 +188,7 @@ function(importLibraries)
       endif()
 
       add_library("thirdparty_${library}" INTERFACE)
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
       target_link_libraries("thirdparty_${library}" INTERFACE
         ${library}_LIBRARIES

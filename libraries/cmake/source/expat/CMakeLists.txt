@@ -18,7 +18,6 @@ function(expatMain)
   )
 
   target_link_libraries(thirdparty_expat PRIVATE
-    cxx_settings
     thirdparty_cxx_settings
   )
 

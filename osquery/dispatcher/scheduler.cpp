@@ -89,6 +89,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
     auto t0 = getUnixTime();
     Config::get().recordQueryStart(name);
     SQLInternal sql(query.query, true);
+
     // Snapshot the performance after, and compare.
     auto t1 = getUnixTime();
     auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
@@ -98,7 +99,8 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               pid);
     if (r0.size() > 0 && r1.size() > 0) {
       // Always called while processes table is working.
-      Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
+      uint64_t size = sql.getSize();
+      Config::get().recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
     }
     return sql;
   }
