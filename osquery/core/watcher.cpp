@@ -120,6 +120,12 @@ CLI_FLAG(bool,
          false,
          "Enable userland watchdog for extensions processes");
 
+CLI_FLAG(uint64,
+         watchdog_forced_shutdown_delay,
+         4,
+         "Seconds that the watchdog will wait to do a forced shutdown after a "
+         "graceful shutdown request, when a resource limit is hit");
+
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 DECLARE_uint64(alarm_timeout);
@@ -344,7 +350,7 @@ void WatcherRunner::watchExtensions() {
               << extension.second->pid() << ") stopping: " << s.getMessage();
         systemLog(error.str());
         LOG(WARNING) << error.str();
-        stopChild(*extension.second);
+        stopChild(*extension.second, true);
         pause(
             std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
         ext_valid = false;
@@ -389,7 +395,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
             << ") stopping: " << status.getMessage();
       systemLog(error.str());
       LOG(WARNING) << error.str();
-      stopChild(child);
+      stopChild(child, true);
       return false;
     }
     return true;
@@ -404,26 +410,38 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   return true;
 }
 
-void WatcherRunner::stopChild(const PlatformProcess& child) const {
-  /* We leave 2 seconds for the rest of the logic to shutdown,
-   and 2 seconds for the forced kill to do the reaping */
-  auto timeout = (FLAGS_alarm_timeout - 4) * 1000;
+void WatcherRunner::stopChild(const PlatformProcess& child, bool force) const {
+  auto child_pid = child.pid();
 
-  child.killGracefully();
+  /* In the normal shutdown case we use alarm_timeout,
+     we leave 2 seconds for the rest of the logic to shutdown,
+     and 2 seconds for the forced kill to do the reaping.
+     Otherwise use the forced shutdown timeout directly */
+  auto timeout = (force ? FLAGS_watchdog_forced_shutdown_delay
+                        : (FLAGS_alarm_timeout - 4)) *
+                 1000;
 
-  // Clean up the defunct (zombie) process.
-  if (!child.cleanup(std::chrono::milliseconds(timeout))) {
-    auto child_pid = child.pid();
+  // Attempt a clean shutdown
+  if (timeout > 0) {
+    child.killGracefully();
+
+    // Clean up the defunct (zombie) process.
+    if (child.cleanup(std::chrono::milliseconds(timeout))) {
+      // The process exited cleanly
+      return;
+    }
 
     LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
                  << ") could not be stopped. Sending kill signal.";
+  }
 
-    child.kill();
-    if (!child.cleanup(std::chrono::milliseconds(2000))) {
-      auto message = std::string("Watcher cannot stop worker process (") +
-                     std::to_string(child_pid) + ").";
-      requestShutdown(EXIT_CATASTROPHIC, message);
-    }
+  // If the process hasn't exited cleanly yet, or we need to immediately kill
+  // a misbehaving worker/extension, send a kill signal
+  child.kill();
+  if (!child.cleanup(std::chrono::milliseconds(2000))) {
+    auto message = std::string("Watcher cannot stop worker process (") +
+                   std::to_string(child_pid) + ").";
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
 }
 
