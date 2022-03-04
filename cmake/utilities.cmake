@@ -471,6 +471,37 @@ function(findClangFormat)
   endif()
 endfunction()
 
+function(detectMSVCToolsetVersion)
+  set(error_message_missing_toolset "Could not detect the MSVC toolset version. Some build functionality may be disabled")
+
+  if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    if(MSVC_TOOLSET_VERSION STREQUAL "")
+      message(WARNING "${error_message_missing_toolset}")
+      return()
+    endif()
+
+    set(detectMSVCToolsetVersion_OUTPUT ${MSVC_TOOLSET_VERSION} PARENT_SCOPE)
+  elseif(CMAKE_GENERATOR STREQUAL "Ninja")
+    set(raw_toolset_version "$ENV{VCToolsVersion}")
+
+    if(raw_toolset_version STREQUAL "")
+      message(WARNING "${error_message_missing_toolset}")
+      return()
+    endif()
+
+    string(REPLACE "." "" cleaned_toolset_version ${raw_toolset_version})
+    string(SUBSTRING "${cleaned_toolset_version}" 0 3 cleaned_toolset_version)
+
+    if(cleaned_toolset_version STREQUAL "" OR NOT cleaned_toolset_version MATCHES "[0-9][0-9][0-9]")
+      message(WARNING "Could not extract MSVC toolset version from ${raw_toolset_version}. Some build functionality may be disabled")
+      return()
+    endif()
+
+    set(detectMSVCToolsetVersion_OUTPUT ${cleaned_toolset_version} PARENT_SCOPE)
+  else()
+    message(WARNING "Unsupported generator to detect the MSVC toolset version. Some build functionality may be disabled")
+  endif()
+endfunction()
 
 # Like add_dependencies but if an INTERFACE library is passed,
 # it will drill down to the non INTERFACE target and add a dependency to that.

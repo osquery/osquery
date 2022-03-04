@@ -58,6 +58,15 @@ else()
   message(FATAL_ERROR "Unrecognized platform")
 endif()
 
+# Detect MSVC toolset version
+if(DEFINED PLATFORM_WINDOWS)
+  detectMSVCToolsetVersion()
+  if(NOT detectMSVCToolsetVersion_OUTPUT STREQUAL "")
+    message(STATUS "MSVC toolset version: ${detectMSVCToolsetVersion_OUTPUT}")
+    set(OSQUERY_MSVC_TOOLSET_VERSION ${detectMSVCToolsetVersion_OUTPUT})
+  endif()
+endif()
+
 # Use ccache when available
 if(DEFINED PLATFORM_POSIX)
   find_program(ccache_command ccache)
