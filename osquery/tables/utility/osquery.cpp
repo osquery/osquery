@@ -245,9 +245,14 @@ QueryData genOsquerySchedule(QueryContext& context) {
         r["executions"] = "0";
         r["output_size"] = "0";
         r["wall_time"] = "0";
+        r["wall_time_ms"] = "0";
+        r["last_wall_time_ms"] = "0";
         r["user_time"] = "0";
+        r["last_user_time"] = "0";
         r["system_time"] = "0";
+        r["last_system_time"] = "0";
         r["average_memory"] = "0";
+        r["last_memory"] = "0";
         r["last_executed"] = "0";
 
         // Report optional performance information.
@@ -257,9 +262,14 @@ QueryData genOsquerySchedule(QueryContext& context) {
               r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);
               r["wall_time"] = BIGINT(perf.wall_time);
+              r["wall_time_ms"] = BIGINT(perf.wall_time_ms);
+              r["last_wall_time_ms"] = BIGINT(perf.last_wall_time_ms);
               r["user_time"] = BIGINT(perf.user_time);
+              r["last_user_time"] = BIGINT(perf.last_user_time);
               r["system_time"] = BIGINT(perf.system_time);
+              r["last_system_time"] = BIGINT(perf.last_system_time);
               r["average_memory"] = BIGINT(perf.average_memory);
+              r["last_memory"] = BIGINT(perf.last_memory);
             });
 
         results.push_back(r);
