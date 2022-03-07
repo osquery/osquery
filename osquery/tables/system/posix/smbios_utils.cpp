@@ -577,6 +577,34 @@ void genSMBIOSOEMStrings(const SMBStructHeader* hdr,
   }
 }
 
+void genSMBIOSProcessor(size_t index,
+                        const SMBStructHeader* hdr,
+                        uint8_t* address,
+                        uint8_t* textAddrs,
+                        size_t size,
+                        QueryData& results) {
+  const size_t maxOffset = 0x2e + 2;
+  if (hdr->type != kSMBIOSTypeProcessor || size < maxOffset) {
+    return;
+  }
+
+  Row r;
+  auto maxlen = size - hdr->length;
+  r["device_id"] = "CPU" + std::to_string(0);
+  r["socket_designation"] = dmiString(textAddrs, address[0x04], maxlen);
+  r["model"] = dmiString(textAddrs, address[0x10], maxlen);
+  r["manufacturer"] = dmiString(textAddrs, address[0x07], maxlen);
+  r["processor_type"] = INTEGER(static_cast<int>(address[0x05]));
+  r["availability"] = "";
+  r["cpu_status"] = INTEGER(static_cast<int>(address[0x18]));
+  r["number_of_cores"] = INTEGER(static_cast<int>(address[0x23]));
+  r["logical_processors"] = INTEGER(static_cast<int>(address[0x25]));
+  r["address_width"] = INTEGER(static_cast<int>(address[0x26]));
+  r["current_clock_speed"] = std::to_string(dmiToWord(address, 0x16));
+  r["max_clock_speed"] = std::to_string(dmiToWord(address, 0x14));
+  results.push_back(r);
+}
+
 std::string dmiString(uint8_t* data, uint8_t index, size_t maxlen) {
   // Guard against faulty SMBIOS data.
   if (index == 0 || maxlen == 0 || data[maxlen - 1] != '\0') {

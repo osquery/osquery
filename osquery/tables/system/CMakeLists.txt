@@ -91,6 +91,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
+      linux/cpu_info.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
