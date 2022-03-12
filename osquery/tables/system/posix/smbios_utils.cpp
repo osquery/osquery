@@ -584,22 +584,22 @@ void genSMBIOSProcessor(size_t index,
                         size_t size,
                         QueryData& results) {
   const size_t maxOffset = 0x2e + 2;
-  if (hdr->type != kSMBIOSTypeProcessor || size < maxOffset) {
+  if (hdr->type != kSMBIOSTypeProcessor || size < maxOffset || index < 4) {
     return;
   }
 
   Row r;
   auto maxlen = size - hdr->length;
-  r["device_id"] = "CPU" + std::to_string(0);
+  r["device_id"] = "CPU" + std::to_string(index - 4);
   r["socket_designation"] = dmiString(textAddrs, address[0x04], maxlen);
   r["model"] = dmiString(textAddrs, address[0x10], maxlen);
   r["manufacturer"] = dmiString(textAddrs, address[0x07], maxlen);
   r["processor_type"] = INTEGER(static_cast<int>(address[0x05]));
-  r["availability"] = "";
   r["cpu_status"] = INTEGER(static_cast<int>(address[0x18]));
   r["number_of_cores"] = INTEGER(static_cast<int>(address[0x23]));
   r["logical_processors"] = INTEGER(static_cast<int>(address[0x25]));
-  r["address_width"] = INTEGER(static_cast<int>(address[0x26]));
+  uint16_t processorChar = dmiToWord(address, 0x26);
+  r["address_width"] = (processorChar & (1 << 2)) != 0 ? "64" : "32";
   r["current_clock_speed"] = std::to_string(dmiToWord(address, 0x16));
   r["max_clock_speed"] = std::to_string(dmiToWord(address, 0x14));
   results.push_back(r);
