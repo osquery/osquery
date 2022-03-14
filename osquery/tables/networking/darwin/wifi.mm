@@ -82,22 +82,6 @@ Status getKnownNetworksKey(std::string& key) {
   return Status(0, "ok");
 }
 
-Status getAirPortPreferenceFilePath(std::string& path) {
-  auto qd = SQL::selectAllFrom("os_version");
-  if (qd.size() != 1) {
-    return Status(-1, "Couldn't determine macOS version");
-  }
-
-  if ((qd.front().at("major") >= "11") ||
-      (qd.front().at("major") == "10" && qd.front().at("minor") == "16")) {
-    path = "/Library/Preferences/com.apple.wifi.known-networks.plist";
-    return Status(0, "ok");
-  }
-
-  path = kAirPortPreferencesPath;
-  return Status(0, "ok");
-}
-
 std::string extractNetworkProperties(const CFTypeRef& property) {
   if (CFGetTypeID(property) == CFDataGetTypeID()) {
     return extractSsid((CFDataRef)property);
