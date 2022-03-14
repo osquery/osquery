@@ -22,11 +22,8 @@ namespace osquery {
 namespace tables {
 
 static const std::string kAirPortPreferencesPath =
-    //"/Library/Preferences/SystemConfiguration/"
-    //"com.apple.airport.preferences.plist";
-    //"/Library/Preferences/com.apple.wifi.known-networks.plist";
-    //"/tmp/com.apple.wifi.known-networks.plist";
-    "/tmp/com.wifi.binary.plist";
+    "/Library/Preferences/SystemConfiguration/"
+    "com.apple.airport.preferences.plist";
 
 static const std::string kAirPortPrefPathPostCatalina =
     "/Library/Preferences/com.apple.wifi.known-networks.plist";
@@ -244,13 +241,11 @@ inline bool isBigSurOrHigher() {
 
 QueryData genKnownWifiNetworks(QueryContext& context) {
   std::string key;
-  //auto status = getKnownNetworksKey(key);
-  //if (!status.ok()) {
-  //  VLOG(1) << status.getMessage();
-  //  return {};
-  //}
-
-  key = "";
+  auto status = getKnownNetworksKey(key);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+    return {};
+  }
 
   std::string p = isBigSurOrHigher() ? kAirPortPrefPathPostCatalina
                                      : kAirPortPreferencesPath;
@@ -280,16 +275,14 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
     if (plist == nullptr || CFDictionaryGetCount(plist) == 0) {
       return {};
     }
-    CFShow(plist);
     auto cfkey = CFStringCreateWithCString(
         kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
     CFTypeRef networks = CFDictionaryGetValue(plist, cfkey);
     CFRelease(cfkey);
     if (networks == nullptr) {
       VLOG(1) << "Key not found : " << key;
-      //return {};
+      return {};
     }
-    networks = plist;
 
     if (CFGetTypeID(networks) == CFArrayGetTypeID()) {
       auto count = CFArrayGetCount((CFArrayRef)networks);

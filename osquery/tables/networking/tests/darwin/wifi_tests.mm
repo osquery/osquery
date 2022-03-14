@@ -21,6 +21,7 @@ namespace osquery {
 namespace tables {
 
 void parseNetworks(const CFDictionaryRef& network, QueryData& results);
+QueryData parseBigSur(const std::string& path);
 
 class WifiNetworksTest : public testing::Test {
  protected:
@@ -29,6 +30,80 @@ class WifiNetworksTest : public testing::Test {
     registryAndPluginInit();
   }
 };
+
+TEST_F(WifiNetworksTest, test_parse_big_sur) {
+  auto file = "test_airport_big_sur.plist";
+  std::string path = (getTestConfigDirectory() / file).string();
+
+  auto results = parseBigSur(path);
+  ASSERT_EQ(results.size(), 3U);
+
+  Row expected1 = {
+      {"ssid", "4e657477 6f726b"},
+      {"network_name", "Network"},
+      {"security_type", "WPA/WPA2 Personal"},
+      {"possibly_hidden", "0"},
+      {"roaming_profile", "Dual"},
+      {"temporarily_disabled", "0"},
+      {"add_reason", "WiFi Menu"},
+      {"added_at", "1640281275"},
+      {"captive_portal", "0"},
+      {"captive_login_date", ""},
+      {"was_captive_network", ""},
+      {"auto_join", "1"},
+      {"personal_hotspot", ""},
+  };
+
+  Row expected2 = {
+      {"ssid", "53746172 6275636b 7320496e 646961"},
+      {"network_name", "Starbucks India"},
+      {"security_type", "Open"},
+      {"possibly_hidden", "0"},
+      {"roaming_profile", "Dual"},
+      {"temporarily_disabled", "0"},
+      {"add_reason", "WiFi Menu"},
+      {"added_at", "1643096288"},
+      {"captive_portal", "1"},
+      {"captive_login_date", ""},
+      {"was_captive_network", ""},
+      {"auto_join", "0"},
+      {"personal_hotspot", ""},
+  };
+
+  Row expected3 = {
+      {"ssid", "534253"},
+      {"network_name", "SBS"},
+      {"security_type", "WPA2/WPA3 Personal"},
+      {"possibly_hidden", "0"},
+      {"roaming_profile", "Multi"},
+      {"temporarily_disabled", "0"},
+      {"add_reason", "WiFi Menu"},
+      {"added_at", "1638682885"},
+      {"captive_portal", "0"},
+      {"captive_login_date", ""},
+      {"was_captive_network", ""},
+      {"auto_join", "1"},
+      {"personal_hotspot", ""},
+  };
+
+  for (auto&& testRow : results) {
+    if (testRow["ssid"] == "4e657477 6f726b") {
+      for (const auto& column : expected1) {
+        EXPECT_EQ(testRow[column.first], column.second);
+      }
+    } else if (testRow["ssid"] == "53746172 6275636b 7320496e 646961") {
+      for (const auto& column : expected2) {
+        EXPECT_EQ(testRow[column.first], column.second);
+      }
+    } else if (testRow["ssid"] == "534253") {
+      for (const auto& column : expected3) {
+        EXPECT_EQ(testRow[column.first], column.second);
+      }
+    } else {
+      FAIL() << "Unexpected data was read from airport.plist.";
+    }
+  }
+}
 
 TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   // the keys and values of the plist file have changed with new versions of
