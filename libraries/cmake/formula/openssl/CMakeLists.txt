@@ -1,7 +1,7 @@
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1l")
-set(OPENSSL_ARCHIVE_SHA256 "0b7a3e5e59c34827fe0c3a74b7ec8baef302b98fa80088d7f9153aa16fa76bd1")
+set(OPENSSL_VERSION "1.1.1n")
+set(OPENSSL_ARCHIVE_SHA256 "40dceb51a4f6a5275bde0e6bf20ef4b91bfc32ed57c0552e2e8e15463372b17a")
 
 include(ExternalProject)
 
