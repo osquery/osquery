@@ -292,7 +292,8 @@ void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
 
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
-                               ProcessesRow::CPU_SUBTYPE)) {
+                               ProcessesRow::CPU_SUBTYPE |
+                               ProcessesRow::KIND)) {
     return;
   }
 
@@ -320,18 +321,19 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   }
 
   if (archinfo.p_cputype == CPU_TYPE_ARM64) {
-    r.kind_col = "apple silicon";
+    r.kind_col = "apple";
 
-    struct kinfo_proc kinfo{};
+    struct kinfo_proc kinfo {};
     int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
     size_t size = sizeof(kinfo);
 
-    if (sysctl(mib, 4, &kinfo, &size, nullptr, 0) != 0 || size < sizeof(kinfo)) {
+    if (sysctl(mib, 4, &kinfo, &size, nullptr, 0) != 0 ||
+        size < sizeof(kinfo)) {
       return;
     }
 
-    // proc_bsdinfo also has pbi_flags, but that seems to be not always populated
-    // kinfo_proc works better to get at the process flags
+    // proc_bsdinfo also has pbi_flags, but that seems to be not always
+    // populated, instead kinfo_proc works better to get at the process flags
     if (kinfo.kp_proc.p_flag & P_TRANSLATED) {
       r.kind_col = "intel";
     }
@@ -528,7 +530,7 @@ TableRows genProcesses(QueryContext& context) {
 
     genProcUniquePid(context, pid, *r);
 
-    genProcArch(context, pid,*r);
+    genProcArch(context, pid, *r);
 
     std::unique_ptr<TableRow> tr(r);
     results.push_back(std::move(tr));
