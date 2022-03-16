@@ -21,7 +21,6 @@ nav:
   - Install on MacOS: installation/install-macos.md
   - Install on Linux: installation/install-linux.md
   - Install on Windows: installation/install-windows.md
-  - Install on FreeBSD: installation/install-freebsd.md
   - Command Line Flags: installation/cli-flags.md
 - Deployment:
   - Configuration: deployment/configuration.md
