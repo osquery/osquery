@@ -103,6 +103,7 @@ TEST_F(ProcessesTest, test_sanity) {
     row_map.emplace("uppid", IntType);
     row_map.emplace("cpu_type", IntType);
     row_map.emplace("cpu_subtype", IntType);
+    row_map.emplace("kind", NormalType);
   }
   validate_rows(data, row_map);
 }
