@@ -26,9 +26,6 @@
 /* Define to 1 if you have the `basename' function. */
 #define HAVE_BASENAME 1
 
-/* Define to 1 if you have the <beecrypt/api.h> header file. */
-/* #undef HAVE_BEECRYPT_API_H */
-
 /* Define to 1 if OpenSSL has BN_bn2binpad */
 #define HAVE_BN2BINPAD 1
 
@@ -38,16 +35,13 @@
 /* Have cap_compare function? */
 /* #undef HAVE_CAP_COMPARE */
 
-/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
+/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
 /* #undef HAVE_CFLOCALECOPYCURRENT */
 
-/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
+/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
-
-/* Define to 1 if you have the <db.h> header file. */
-/* #undef HAVE_DB_H */
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
@@ -75,9 +69,6 @@
 
 /* Define to 1 if OpenSSL has DSA_SIG_set0 */
 #define HAVE_DSA_SIG_SET0 1
-
-/* Define to 1 if you have the <dwarf.h> header file. */
-/* #undef HAVE_DWARF_H */
 
 /* Have dwelf_elf_begin? */
 /* #undef HAVE_DWELF_ELF_BEGIN */
@@ -148,6 +139,9 @@
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
+/* Define to 1 if you have the <linux/fsverity.h> header file. */
+/* #undef HAVE_LINUX_FSVERITY_H */
+
 /* Define to 1 if you have the `localtime_r' function. */
 #define HAVE_LOCALTIME_R 1
 
@@ -173,19 +167,10 @@
 #define HAVE_MKSTEMP 1
 
 /* Define to 1 if you have the `mremap' function. */
-/* #undef HAVE_MREMAP */
+#define HAVE_MREMAP 1
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 /* #undef HAVE_NDIR_H */
-
-/* Define to 1 if you have the <nspr.h> header file. */
-/* #undef HAVE_NSPR_H */
-
-/* Define to 1 if you have the <nss.h> header file. */
-/* #undef HAVE_NSS_H */
-
-/* Define to 1 if NSS has NSS_InitContext */
-/* #undef HAVE_NSS_INITCONTEXT */
 
 /* Define to 1 if you have the <openssl/dsa.h> header file. */
 #define HAVE_OPENSSL_DSA_H 1
@@ -213,9 +198,6 @@
 
 /* Define to 1 if you have the `sched_getaffinity' function. */
 #define HAVE_SCHED_GETAFFINITY 1
-
-/* Define to 1 if you have the <sechash.h> header file. */
-/* #undef HAVE_SECHASH_H */
 
 /* Define to 1 if you have the `secure_getenv' function. */
 /* #undef HAVE_SECURE_GETENV */
@@ -331,7 +313,7 @@
 #define PACKAGE_NAME "rpm"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rpm 4.16.1.2"
+#define PACKAGE_STRING "rpm 4.17.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rpm"
@@ -340,7 +322,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.16.1.2"
+#define PACKAGE_VERSION "4.17.0"
 
 /* canonical vendor */
 #define RPMCANONVENDOR "unknown"
@@ -377,7 +359,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.16.1.2"
+#define VERSION "4.17.0"
 
 /* Build with acl support? */
 /* #undef WITH_ACL */
@@ -385,23 +367,17 @@
 /* libaudit support */
 /* #undef WITH_AUDIT */
 
-/* Define if BDB is available */
-/* #undef WITH_BDB */
-
 /* Build with read-only Berkeley DB */
 #define WITH_BDB_RO 1
-
-/* Build with beecrypt instead of nss3 support? */
-/* #undef WITH_BEECRYPT */
 
 /* Build with capability support? */
 /* #undef WITH_CAP */
 
+/* Build with fsverity support? */
+/* #undef WITH_FSVERITY */
+
 /* Build with imaevm support? */
 /* #undef WITH_IMAEVM */
-
-/* Build with lua support? */
-/* #undef WITH_LUA */
 
 /* Build with selinux support? */
 /* #undef WITH_SELINUX */
