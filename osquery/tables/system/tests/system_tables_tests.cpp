@@ -318,11 +318,10 @@ class HashTableTest : public testing::Test {
     tmpPath = boost::filesystem::temp_directory_path();
     tmpPath /= boost::filesystem::unique_path(
         "osquery_hash_t_test-%%%%-%%%%-%%%%-%%%%");
-    auto maybe_ssdeep = isPlatform(PlatformType::TYPE_POSIX) ? ", ssdeep" : "";
     std::stringstream qry_stream;
     qry_stream << boost::format(
-                      "select md5, sha1, sha256%s from hash where path='%s'") %
-                      maybe_ssdeep % tmpPath.string();
+                      "select md5, sha1, sha256 from hash where path='%s'") %
+                      tmpPath.string();
     qry = qry_stream.str();
   }
 
@@ -342,9 +341,6 @@ TEST_F(HashTableTest, hashes_are_correct) {
   EXPECT_EQ(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("sha1"), contentSha1);
   EXPECT_EQ(rows[0].at("sha256"), contentSha256);
-  if (isPlatform(PlatformType::TYPE_POSIX)) {
-    EXPECT_EQ(rows[0].at("ssdeep"), contentSsdeep);
-  }
 }
 
 TEST_F(HashTableTest, test_cache_works) {
