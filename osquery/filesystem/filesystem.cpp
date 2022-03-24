@@ -92,14 +92,6 @@ struct OpenReadableFile : private boost::noncopyable {
 
     // Open the file descriptor and allow caller to perform error checking.
     fd = std::make_unique<PlatformFile>(path, mode);
-
-    if (!blocking && fd->isSpecialFile()) {
-      // A special file cannot be read in non-blocking mode, reopen in blocking
-      // mode
-      mode &= ~PF_NONBLOCK;
-      blocking_io = true;
-      fd = std::make_unique<PlatformFile>(path, mode);
-    }
   }
 
  public:
