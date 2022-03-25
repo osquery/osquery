@@ -280,9 +280,8 @@ if __name__ == "__main__":
         help="Run the profile for N rounds and use the average."
     )
     group.add_argument(
-        "--shell", metavar="PATH", default="./build/%s/osquery/osqueryi" % (
-            utils.platform()),
-        help="Path to osqueryi shell (./build/<sys>/osquery/osqueryi)."
+        "--shell", metavar="PATH", default="./build/osquery/osqueryi",
+        help="Path to osqueryi shell (./build/osquery/osqueryi)."
     )
     group.add_argument(
         "--force", action="store_true", default=False,
