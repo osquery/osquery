@@ -84,13 +84,13 @@ def check_leaks_darwin(shell, query, count=1):
         if args.verbose:
             print(stdout)
         try:
-            for line in stdout.split("\n"):
-                if line.find("total leaked bytes") >= 0:
-                    leak_checks = line.split(":")[1].strip()
+            for line in stdout.split(b"\n"):
+                if line.find(b"total leaked bytes") >= 0:
+                    leak_checks = line.split(b":")[1].strip()
         except:
             print("Encountered exception while running leaks:")
-            print(stdout)
-    return {"definitely": leak_checks}
+            print("stdout")
+    return {"definitely": leak_checks.decode("utf-8")}
 
 
 def check_leaks(shell, query, count=1, supp_file=None):
