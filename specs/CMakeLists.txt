@@ -49,6 +49,7 @@ function(generateNativeTables)
     interface_details.table
     listening_ports.table
     logged_in_users.table
+    npm_packages.table
     os_version.table
     platform_info.table
     process_memory_map.table

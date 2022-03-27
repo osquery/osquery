@@ -48,6 +48,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
     osquery_extensions.cpp
@@ -170,7 +171,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
-      npm_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp
