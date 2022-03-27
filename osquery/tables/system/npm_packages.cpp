@@ -16,9 +16,9 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
-#include <osquery/utils/json/json.h>
 
 #ifdef WIN32
 #include "windows/registry.h"
@@ -35,14 +35,12 @@ const std::set<std::string> kNodeModulesPath = {
     "/usr/lib",
     "/home/%/.npm-global/lib",
     "/Users/%/.npm-global/lib",
-    "C:\\Users\\%\\AppData\\Roaming\\npm"
-};
+    "C:\\Users\\%\\AppData\\Roaming\\npm"};
 
 const std::vector<std::string> kPackageKeys{
     "name", "version", "description", "homepage"};
 
-const std::string kWinNodeInstallKey =
-    "SOFTWARE\\Node.js\\InstallPath";
+const std::string kWinNodeInstallKey = "SOFTWARE\\Node.js\\InstallPath";
 
 void genNodePackage(const std::string& file, Row& r, Logger& logger) {
   std::string json;
@@ -70,7 +68,7 @@ void genNodePackage(const std::string& file, Row& r, Logger& logger) {
   if (doc.doc().HasMember("author")) {
     const auto& author = doc.doc()["author"];
     if (author.IsString()) {
-        r["author"] = author.GetString();
+      r["author"] = author.GetString();
     } else if (author.IsObject()) {
       if (author.HasMember("name")) {
         const auto& author_name = author["name"];
@@ -101,9 +99,8 @@ void genNodePackage(const std::string& file, Row& r, Logger& logger) {
 }
 
 void genNodeSiteDirectories(const std::string& site,
-                        QueryData& results,
-                        Logger& logger) {
-
+                            QueryData& results,
+                            Logger& logger) {
   std::vector<std::string> manifest_paths;
   resolveFilePattern(site + "/node_modules/%/package.json", manifest_paths);
 
@@ -118,8 +115,8 @@ void genNodeSiteDirectories(const std::string& site,
 }
 
 void genWinNodePackages(const std::string& keyGlob,
-                          QueryData& results,
-                          Logger& logger) {
+                        QueryData& results,
+                        Logger& logger) {
 #ifdef WIN32
   std::set<std::string> installPathKeys;
   expandRegistryGlobs(keyGlob, installPathKeys);
@@ -171,8 +168,7 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
 
 QueryData genNodePackages(QueryContext& context) {
   if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(
-        context, "npm_packages", genNodePackagesImpl);
+    return generateInNamespace(context, "npm_packages", genNodePackagesImpl);
   } else {
     GLOGLogger logger;
     return genNodePackagesImpl(context, logger);
