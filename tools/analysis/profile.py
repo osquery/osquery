@@ -89,7 +89,7 @@ def check_leaks_darwin(shell, query, count=1):
                     leak_checks = line.split(b":")[1].strip()
         except:
             print("Encountered exception while running leaks:")
-            print("stdout")
+            print(stdout)
     return {"definitely": leak_checks.decode("utf-8")}
 
 
