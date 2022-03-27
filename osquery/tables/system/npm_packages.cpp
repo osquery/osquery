@@ -34,7 +34,8 @@ const std::set<std::string> kNodeModulesPath = {
     "/opt/homebrew/lib",
     "/usr/lib",
     "/home/%/.npm-global/lib",
-    "/Users/%/.npm-global/lib"
+    "/Users/%/.npm-global/lib",
+    "C:\\Users\\%\\AppData\\Roaming\\npm"
 };
 
 const std::vector<std::string> kPackageKeys{
@@ -156,11 +157,11 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
   }
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    // Enumerate any system installed python packages
+    // Enumerate any system installed npm packages
     auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinNodeInstallKey;
     genWinNodePackages(installPathKey, results, logger);
 
-    // Enumerate any user installed python packages
+    // Enumerate any user installed npm packages
     installPathKey = "HKEY_USERS\\%\\" + kWinNodeInstallKey;
     genWinNodePackages(installPathKey, results, logger);
   }
