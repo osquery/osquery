@@ -8,7 +8,6 @@
  */
 
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/join.hpp>
 
 #include <stdlib.h>
 #include <string>
@@ -86,20 +85,12 @@ void genPackage(const std::string& path, Row& r, Logger& logger) {
 void genSiteDirectories(const std::string& site,
                         QueryData& results,
                         Logger& logger) {
-  logger.vlog(1, "genSiteDirectories: " + site);
-
   std::vector<std::string> directories;
-
   if (!listDirectoriesInDirectory(site, directories, true).ok()) {
     return;
   }
 
-  logger.vlog(1, "genSiteDirectories2 " + boost::algorithm::join(directories, "\n"));
-
-
   for (const auto& directory : directories) {
-    logger.vlog(1, "directory: " + directory);
-
     if (!isDirectory(directory).ok()) {
       continue;
     }
@@ -153,7 +144,6 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
       std::vector<std::string> sites;
       resolveFilePattern(path, sites);
       for (const auto& site : sites) {
-        logger.vlog(1, "site: " + site);
         paths.insert(site);
       }
     }
