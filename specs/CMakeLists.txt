@@ -166,7 +166,6 @@ function(generateNativeTables)
     "linux/portage_packages.table:linux"
     "linux/process_file_events.table:linux"
     "linux/md_drives.table:linux"
-    "linux/npm_packages.table:linux"
     "linux/elf_info.table:linux"
     "linux/md_personalities.table:linux"
     "linux/kernel_modules.table:linux"
