@@ -55,7 +55,6 @@ You may be wondering how osquery handles cross-platform support while still allo
 - General Linux: [specs/linux/](https://github.com/osquery/osquery/tree/master/specs/linux)
 - Windows: [specs/windows/](https://github.com/osquery/osquery/tree/master/specs/windows)
 - POSIX: [specs/posix/](https://github.com/osquery/osquery/tree/master/specs/posix)
-- FreeBSD: [specs/freebsd/](https://github.com/osquery/osquery/tree/master/specs/freebsd)
 - You get the picture ;)
 
 > NOTICE: the CMake build provides custom defines for each platform and platform version.
