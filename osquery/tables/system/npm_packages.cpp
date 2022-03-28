@@ -30,12 +30,16 @@ namespace osquery {
 namespace tables {
 
 const std::set<std::string> kNodeModulesPath = {
+#ifdef WIN32
+    "C:\\Users\\%\\AppData\\Roaming\\npm"
+#else
     "/usr/local/lib",
     "/opt/homebrew/lib",
     "/usr/lib",
     "/home/%/.npm-global/lib",
-    "/Users/%/.npm-global/lib",
-    "C:\\Users\\%\\AppData\\Roaming\\npm"};
+    "/Users/%/.npm-global/lib"
+#endif
+};
 
 const std::vector<std::string> kPackageKeys{
     "name", "version", "description", "homepage"};
@@ -102,7 +106,8 @@ void genNodeSiteDirectories(const std::string& site,
                             QueryData& results,
                             Logger& logger) {
   std::vector<std::string> manifest_paths;
-  resolveFilePattern(site + "/node_modules/%/package.json", manifest_paths);
+  boost::filesystem::path pattern("node_modules/%/package.json");
+  resolveFilePattern(site / pattern, manifest_paths);
 
   for (const auto& path : manifest_paths) {
     Row r;
@@ -148,19 +153,18 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
         paths.insert(site);
       }
     }
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      // Enumerate any system installed npm packages
+      auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinNodeInstallKey;
+      genWinNodePackages(installPathKey, results, logger);
+
+      // Enumerate any user installed npm packages
+      installPathKey = "HKEY_USERS\\%\\" + kWinNodeInstallKey;
+      genWinNodePackages(installPathKey, results, logger);
+    }
   }
   for (const auto& key : paths) {
     genNodeSiteDirectories(key, results, logger);
-  }
-
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    // Enumerate any system installed npm packages
-    auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinNodeInstallKey;
-    genWinNodePackages(installPathKey, results, logger);
-
-    // Enumerate any user installed npm packages
-    installPathKey = "HKEY_USERS\\%\\" + kWinNodeInstallKey;
-    genWinNodePackages(installPathKey, results, logger);
   }
 
   return results;
