@@ -59,7 +59,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/acpi_tables.cpp
       linux/block_devices.cpp
       linux/disk_encryption.cpp
-      linux/elf_info.cpp
       linux/extended_attributes.cpp
       linux/groups.cpp
       linux/intel_me.cpp
@@ -278,7 +277,6 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
-      thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
       thirdparty_popt
