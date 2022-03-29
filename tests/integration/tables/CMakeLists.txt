@@ -155,11 +155,6 @@ function(generateTestsIntegrationTablesTestsTest)
     set(platform_source_files
       arp_cache.cpp
       atom_packages.cpp
-      elf_dynamic.cpp
-      elf_info.cpp
-      elf_sections.cpp
-      elf_segments.cpp
-      elf_symbols.cpp
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
