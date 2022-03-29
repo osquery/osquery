@@ -1,0 +1,652 @@
+diff --git a/build/parsePreamble.c b/build/parsePreamble.c
+index ac3d9159e..55976150b 100644
+--- a/build/parsePreamble.c
++++ b/build/parsePreamble.c
+@@ -255,78 +255,6 @@ static int parseTagNumber(const char *line, uint32_t *snum)
+ 
+ int addSource(rpmSpec spec, int specline, const char *srcname, rpmTagVal tag)
+ {
+-    struct Source *p;
+-    int flag = 0;
+-    int nonum = 1; /* assume autonumbering */
+-    const char *name = NULL;
+-    char *buf = NULL;
+-    uint32_t num = 0;
+-    int *autonum = NULL;
+-    int nofetch = (spec->flags & RPMSPEC_FORCE) ||
+-		      rpmExpandNumeric("%{_disable_source_fetch}");
+-
+-    switch (tag) {
+-      case RPMTAG_SOURCE:
+-	flag = RPMBUILD_ISSOURCE;
+-	name = "source";
+-	autonum = &spec->autonum_source;
+-	break;
+-      case RPMTAG_PATCH:
+-	flag = RPMBUILD_ISPATCH;
+-	name = "patch";
+-	autonum = &spec->autonum_patch;
+-	break;
+-      default:
+-	return -1;
+-	break;
+-    }
+-
+-    if (specline) {
+-	nonum = parseTagNumber(spec->line + strlen(name), &num);
+-	if (nonum < 0) {
+-	    rpmlog(RPMLOG_ERR, _("line %d: Bad %s number: %s\n"),
+-		     spec->lineNum, name, spec->line);
+-	    return RPMRC_FAIL;
+-	}
+-    }
+-
+-    if (nonum > 0) {
+-	/* No number specified, use autonumbering */
+-	(*autonum)++;
+-	num = *autonum;
+-    } else {
+-	/* Autonumbering continues from last specified number */
+-	if ((int)num > *autonum)
+-	    *autonum = num;
+-    }
+-
+-    /* Check whether tags of the same number haven't already been defined */
+-    if (findSource(spec, num, flag)) {
+-	rpmlog(RPMLOG_ERR, _("%s %d defined multiple times\n"), name, num);
+-	return RPMRC_FAIL;
+-    }
+-
+-    /* Create the entry and link it in */
+-    p = newSource(num, srcname, flag);
+-    p->next = spec->sources;
+-    spec->sources = p;
+-    spec->numSources++;
+-
+-    rasprintf(&buf, "%s%d",
+-	    (flag & RPMBUILD_ISPATCH) ? "PATCH" : "SOURCE", num);
+-    rpmPushMacro(spec->macros, buf, NULL, p->path, RMIL_SPEC);
+-    free(buf);
+-    rasprintf(&buf, "%sURL%d",
+-	    (flag & RPMBUILD_ISPATCH) ? "PATCH" : "SOURCE", num);
+-    rpmPushMacro(spec->macros, buf, NULL, p->fullSource, RMIL_SPEC);
+-    free(buf);
+-
+-    rpmlua lua = rpmluaGetGlobalState();
+-    addLuaSource(lua, p);
+-
+-    if (!nofetch && tryDownload(p))
+-	return RPMRC_FAIL;
+-    
+     return 0;
+ }
+ 
+diff --git a/build/parseScript.c b/build/parseScript.c
+index 95a9fc590..f79f3bc3c 100644
+--- a/build/parseScript.c
++++ b/build/parseScript.c
+@@ -360,13 +360,7 @@ int parseScript(rpmSpec spec, int parsePart)
+ 	p = getStringBuf(sb);
+     }
+ 
+-    if (rstreq(progArgv[0], "<lua>")) {
+-	rpmlua lua = NULL; /* Global state. */
+-	if (rpmluaCheckScript(lua, p, partname) != RPMRC_OK) {
+-	    goto exit;
+-	}
+-	(void) rpmlibNeedsFeature(pkg, "BuiltinLuaScripts", "4.2.2-1");
+-    } else if (progArgv[0][0] == '<') {
++    if (progArgv[0][0] == '<') {
+ 	rpmlog(RPMLOG_ERR,
+ 		 _("line %d: unsupported internal script: %s\n"),
+ 		 spec->lineNum, progArgv[0]);
+diff --git a/build/spec.c b/build/spec.c
+index 6a13afda2..c68e5cd04 100644
+--- a/build/spec.c
++++ b/build/spec.c
+@@ -249,7 +249,6 @@ rpmSpec newSpec(void)
+     spec->macros = rpmGlobalMacroContext;
+     spec->pool = rpmstrPoolCreate();
+     
+-    specLuaInit(spec);
+     return spec;
+ }
+ 
+@@ -296,11 +295,6 @@ rpmSpec rpmSpecFree(rpmSpec spec)
+     }
+     spec->BANames = _free(spec->BANames);
+ 
+-    // only destroy lua tables if there are no BASpecs left
+-    if (spec->recursing || spec->BACount == 0) {
+-	specLuaFini(spec);
+-    }
+-
+     spec->sources = freeSources(spec->sources);
+     spec->packages = freePackages(spec->packages);
+     spec->pool = rpmstrPoolFree(spec->pool);
+diff --git a/lib/psm.c b/lib/psm.c
+index 810323a45..50ecda070 100644
+--- a/lib/psm.c
++++ b/lib/psm.c
+@@ -24,7 +24,6 @@
+ #include "lib/rpmdb_internal.h" /* rpmdbAdd/Remove */
+ #include "lib/rpmts_internal.h" /* rpmtsPlugins() etc */
+ #include "lib/rpmds_internal.h" /* rpmdsFilterTi() */
+-#include "lib/rpmscript.h"
+ #include "lib/misc.h"
+ #include "lib/rpmtriggers.h"
+ 
+@@ -244,21 +243,7 @@ exit:
+ 
+ static rpmRC runInstScript(rpmpsm psm, rpmTagVal scriptTag)
+ {
+-    rpmRC rc = RPMRC_OK;
+-    struct rpmtd_s pfx;
+-    Header h = rpmteHeader(psm->te);
+-    rpmScript script = rpmScriptFromTag(h, scriptTag);
+-
+-    if (script) {
+-	headerGet(h, RPMTAG_INSTPREFIXES, &pfx, HEADERGET_ALLOC|HEADERGET_ARGV);
+-	rc = runScript(psm->ts, psm->te, h, pfx.data, script, psm->scriptArg, -1);
+-	rpmtdFreeData(&pfx);
+-    }
+-
+-    rpmScriptFree(script);
+-    headerFree(h);
+-
+-    return rc;
++    return RPMRC_OK;
+ }
+ 
+ /**
+@@ -277,62 +262,7 @@ static rpmRC handleOneTrigger(rpmts ts, rpmte te, rpmsenseFlags sense,
+ 			Header sourceH, Header trigH, int countCorrection,
+ 			int arg2, unsigned char * triggersAlreadyRun)
+ {
+-    rpmds trigger = rpmdsInit(rpmdsNew(trigH, RPMTAG_TRIGGERNAME, 0));
+-    struct rpmtd_s pfx;
+-    const char * sourceName = headerGetString(sourceH, RPMTAG_NAME);
+-    const char * triggerName = headerGetString(trigH, RPMTAG_NAME);
+-    rpmRC rc = RPMRC_OK;
+-    int i;
+-
+-    if (trigger == NULL)
+-	return rc;
+-
+-    headerGet(trigH, RPMTAG_INSTPREFIXES, &pfx, HEADERGET_ALLOC|HEADERGET_ARGV);
+-    (void) rpmdsSetNoPromote(trigger, 1);
+-
+-    while ((i = rpmdsNext(trigger)) >= 0) {
+-	uint32_t tix;
+-
+-	if (!(rpmdsFlags(trigger) & sense))
+-	    continue;
+-
+- 	if (!rstreq(rpmdsN(trigger), sourceName))
+-	    continue;
+-
+-	/* XXX Trigger on any provided dependency, not just the package NEVR */
+-	if (!rpmdsAnyMatchesDep(sourceH, trigger, 1))
+-	    continue;
+-
+-	tix = rpmdsTi(trigger);
+-	if (triggersAlreadyRun == NULL || triggersAlreadyRun[tix] == 0) {
+-	    int arg1 = rpmdbCountPackages(rpmtsGetRdb(ts), triggerName);
+-
+-	    if (arg1 < 0) {
+-		/* XXX W2DO? fails as "execution of script failed" */
+-		rc = RPMRC_FAIL;
+-	    } else {
+-		rpmScript script = rpmScriptFromTriggerTag(trigH,
+-			     triggertag(sense), RPMSCRIPT_NORMALTRIGGER, tix);
+-		arg1 += countCorrection;
+-		rc = runScript(ts, te, trigH, pfx.data, script, arg1, arg2);
+-		if (triggersAlreadyRun != NULL)
+-		    triggersAlreadyRun[tix] = 1;
+-
+-		rpmScriptFree(script);
+-	    }
+-	}
+-
+-	/*
+-	 * Each target/source header pair can only result in a single
+-	 * script being run.
+-	 */
+-	break;
+-    }
+-
+-    rpmtdFreeData(&pfx);
+-    rpmdsFree(trigger);
+-
+-    return rc;
++    return RPMRC_OK;
+ }
+ 
+ /**
+@@ -647,94 +577,7 @@ static rpmRC rpmpsmRemove(rpmpsm psm)
+ 
+ static rpmRC rpmPackageInstall(rpmts ts, rpmpsm psm)
+ {
+-    rpmRC rc = RPMRC_OK;
+-    int once = 1;
+-
+-    rpmswEnter(rpmtsOp(psm->ts, RPMTS_OP_INSTALL), 0);
+-    while (once--) {
+-	/* HACK: replacepkgs abuses te instance to remove old header */
+-	if (rpmtsFilterFlags(psm->ts) & RPMPROB_FILTER_REPLACEPKG)
+-	    markReplacedInstance(ts, psm->te);
+-
+-
+-	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERPREIN)) {
+-	    /* Run triggers in other package(s) this package sets off. */
+-	    rc = runTriggers(psm, RPMSENSE_TRIGGERPREIN);
+-	    if (rc) break;
+-
+-	    /* Run triggers in this package other package(s) set off. */
+-	    rc = runImmedTriggers(psm, RPMSENSE_TRIGGERPREIN);
+-	    if (rc) break;
+-	}
+-
+-	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPRE)) {
+-	    rc = runInstScript(psm, RPMTAG_PREIN);
+-	    if (rc) break;
+-	}
+-
+-	if ((rc = rpmChrootIn()) == 0) {
+-	    rc = rpmpsmUnpack(psm);
+-	    rpmChrootOut();
+-	}
+-	if (rc) break;
+-
+-	/*
+-	 * If this package has already been installed, remove it from
+-	 * the database before adding the new one.
+-	 */
+-	if (rpmteDBInstance(psm->te)) {
+-	    rc = dbRemove(ts, psm->te);
+-	    if (rc) break;
+-	}
+-
+-	rc = dbAdd(ts, psm->te);
+-	if (rc) break;
+-
+-	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERIN)) {
+-	    /* Run upper file triggers i. e. with higher priorities */
+-	    /* Run file triggers in other package(s) this package sets off. */
+-	    rc = runFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERIN,
+-				RPMSCRIPT_FILETRIGGER, 1);
+-	    if (rc) break;
+-
+-	    /* Run file triggers in this package other package(s) set off. */
+-	    rc = runImmedFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERIN,
+-				    RPMSCRIPT_FILETRIGGER, 1);
+-	    if (rc) break;
+-	}
+-
+-	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPOST)) {
+-	    rc = runInstScript(psm, RPMTAG_POSTIN);
+-	    if (rc) break;
+-	}
+-
+-	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERIN)) {
+-	    /* Run triggers in other package(s) this package sets off. */
+-	    rc = runTriggers(psm, RPMSENSE_TRIGGERIN);
+-	    if (rc) break;
+-
+-	    /* Run triggers in this package other package(s) set off. */
+-	    rc = runImmedTriggers(psm, RPMSENSE_TRIGGERIN);
+-	    if (rc) break;
+-
+-	    /* Run lower file triggers i. e. with lower priorities */
+-	    /* Run file triggers in other package(s) this package sets off. */
+-	    rc = runFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERIN,
+-				RPMSCRIPT_FILETRIGGER, 2);
+-	    if (rc) break;
+-
+-	    /* Run file triggers in this package other package(s) set off. */
+-	    rc = runImmedFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERIN,
+-				    RPMSCRIPT_FILETRIGGER, 2);
+-	    if (rc) break;
+-	}
+-
+-	rc = markReplacedFiles(psm);
+-    }
+-
+-    rpmswExit(rpmtsOp(psm->ts, RPMTS_OP_INSTALL), 0);
+-
+-    return rc;
++    return RPMRC_OK;
+ }
+ 
+ static rpmRC rpmPackageErase(rpmts ts, rpmpsm psm)
+diff --git a/lib/rpmrc.c b/lib/rpmrc.c
+index 120777cf9..12f20908f 100644
+--- a/lib/rpmrc.c
++++ b/lib/rpmrc.c
+@@ -1661,8 +1661,6 @@ int rpmReadConfigFiles(const char * file, const char * target)
+ 	free(os);
+     }
+ 
+-    /* Force Lua state initialization */
+-    rpmluaGetGlobalState();
+     rc = 0;
+ 
+ exit:
+@@ -1738,8 +1736,6 @@ void rpmFreeRpmrc(void)
+ 
+     /* XXX doesn't really belong here but... */
+     rpmFreeCrypto();
+-    rpmlua lua = rpmluaGetGlobalState();
+-    rpmluaFree(lua);
+ 
+     rpmrcCtxRelease(ctx);
+     return;
+diff --git a/lib/rpmtriggers.c b/lib/rpmtriggers.c
+index fc809a65e..af32ba88c 100644
+--- a/lib/rpmtriggers.c
++++ b/lib/rpmtriggers.c
+@@ -159,39 +159,7 @@ void rpmtriggersPrepPostUnTransFileTrigs(rpmts ts, rpmte te)
+ 
+ int runPostUnTransFileTrigs(rpmts ts)
+ {
+-    int i;
+-    Header trigH;
+-    struct rpmtd_s installPrefixes;
+-    rpmScript script;
+-    rpmtriggers trigs = ts->trigs2run;
+-    int nerrors = 0;
+-
+-    rpmtriggersSortAndUniq(trigs);
+-    /* Iterate over stored triggers */
+-    for (i = 0; i < trigs->count; i++) {
+-	/* Get header containing trigger script */
+-	trigH = rpmdbGetHeaderAt(rpmtsGetRdb(ts),
+-				trigs->triggerInfo[i].hdrNum);
+-
+-	/* Maybe package with this trigger is already uninstalled */
+-	if (trigH == NULL)
+-	    continue;
+-
+-	/* Prepare and run script */
+-	script = rpmScriptFromTriggerTag(trigH,
+-		triggertag(RPMSENSE_TRIGGERPOSTUN),
+-		RPMSCRIPT_TRANSFILETRIGGER, trigs->triggerInfo[i].tix);
+-
+-	headerGet(trigH, RPMTAG_INSTPREFIXES, &installPrefixes,
+-		HEADERGET_ALLOC|HEADERGET_ARGV);
+-
+-	nerrors += runScript(ts, NULL, trigH, installPrefixes.data, script, 0, -1);
+-	rpmtdFreeData(&installPrefixes);
+-	rpmScriptFree(script);
+-	headerFree(trigH);
+-    }
+-
+-    return nerrors;
++    return 0;
+ }
+ 
+ /*
+@@ -380,70 +348,7 @@ static int runHandleTriggersInPkg(rpmts ts, rpmte te, Header h,
+ 				rpmsenseFlags sense, rpmscriptTriggerModes tm,
+ 				int searchMode, int ti)
+ {
+-    int nerrors = 0;
+-    rpmds rpmdsTriggers, rpmdsTrigger;
+-    rpmfiles files = NULL;
+-    matchFilesIter mfi = NULL;
+-    rpmScript script;
+-    struct rpmtd_s installPrefixes;
+-    char *(*inputFunc)(void *);
+-
+-    rpmdsTriggers = rpmdsNew(h, triggerDsTag(tm), 0);
+-    rpmdsTrigger = rpmdsFilterTi(rpmdsTriggers, ti);
+-    /*
+-     * Now rpmdsTrigger contains all dependencies belonging to one trigger
+-     * with trigger index tix. Have a look at the first one to check flags.
+-     */
+-    if ((rpmdsNext(rpmdsTrigger) >= 0) &&
+-	(rpmdsFlags(rpmdsTrigger) & sense)) {
+-
+-	switch (searchMode) {
+-	    case 0:
+-		/* Create iterator over files in te that this trigger matches */
+-		files = rpmteFiles(te);
+-		mfi = matchFilesIterator(rpmdsTrigger, files, te);
+-		break;
+-	    case 1:
+-		/* Create iterator over files in ts that this trigger matches */
+-		mfi = matchDBFilesIterator(rpmdsTrigger, ts, 1);
+-		break;
+-	    case 2:
+-		/* Create iterator over files in whole rpmd that this trigger matches */
+-		mfi = matchDBFilesIterator(rpmdsTrigger, ts, 0);
+-		break;
+-	}
+-
+-	/* If this trigger matches any file then run trigger script */
+-	if (!matchFilesEmpty(mfi)) {
+-	    script = rpmScriptFromTriggerTag(h, triggertag(sense), tm, ti);
+-
+-	    headerGet(h, RPMTAG_INSTPREFIXES, &installPrefixes,
+-		    HEADERGET_ALLOC|HEADERGET_ARGV);
+-
+-
+-	    /*
+-	     * As input function set function to get next file from
+-	     * matching file iterator. As parameter for this function
+-	     * set matching file iterator. Input function will be called
+-	     * during execution of trigger script in order to get data
+-	     * that will be passed as stdin to trigger script. To get
+-	     * these data from lua script function rpm.input() can be used.
+-	     */
+-	    inputFunc = (char *(*)(void *)) matchFilesNext;
+-	    rpmScriptSetNextFileFunc(script, inputFunc, mfi);
+-
+-	    nerrors += runScript(ts, NULL, h, installPrefixes.data,
+-				script, 0, -1);
+-	    rpmtdFreeData(&installPrefixes);
+-	    rpmScriptFree(script);
+-	}
+-	rpmfilesFree(files);
+-	matchFilesIteratorFree(mfi);
+-    }
+-    rpmdsFree(rpmdsTrigger);
+-    rpmdsFree(rpmdsTriggers);
+-
+-    return nerrors;
++    return 0;
+ }
+ 
+ /* Return true if any file in package (te) starts with pfx */
+@@ -486,91 +391,7 @@ static int matchFilesInTran(rpmts ts, rpmte te, const char *pfx,
+ rpmRC runFileTriggers(rpmts ts, rpmte te, rpmsenseFlags sense,
+ 			rpmscriptTriggerModes tm, int priorityClass)
+ {
+-    int nerrors = 0, i;
+-    rpmdbIndexIterator ii;
+-    const void *key;
+-    char *pfx;
+-    size_t keylen;
+-    Header trigH;
+-    int (*matchFunc)(rpmts, rpmte, const char*, rpmsenseFlags sense);
+-    rpmTagVal priorityTag;
+-    rpmtriggers triggers = rpmtriggersCreate(10);
+-
+-    /* Decide if we match triggers against files in te or in whole ts */
+-    if (tm == RPMSCRIPT_FILETRIGGER) {
+-	matchFunc = matchFilesInPkg;
+-	priorityTag = RPMTAG_FILETRIGGERPRIORITIES;
+-    } else {
+-	matchFunc = matchFilesInTran;
+-	priorityTag = RPMTAG_TRANSFILETRIGGERPRIORITIES;
+-    }
+-
+-    ii = rpmdbIndexIteratorInit(rpmtsGetRdb(ts), triggerDsTag(tm));
+-
+-    /* Loop over all file triggers in rpmdb */
+-    while ((rpmdbIndexIteratorNext(ii, &key, &keylen)) == 0) {
+-	pfx = xmalloc(keylen + 1);
+-	memcpy(pfx, key, keylen);
+-	pfx[keylen] = '\0';
+-
+-	/* Check if file trigger is fired by any file in ts/te */
+-	if (matchFunc(ts, te, pfx, sense)) {
+-	    for (i = 0; i < rpmdbIndexIteratorNumPkgs(ii); i++) {
+-		struct rpmtd_s priorities;
+-		unsigned int priority;
+-		unsigned int offset = rpmdbIndexIteratorPkgOffset(ii, i);
+-		unsigned int tix = rpmdbIndexIteratorTagNum(ii, i);
+-
+-		/*
+-		 * Don't handle transaction triggers installed in current
+-		 * transaction to avoid executing the same script two times.
+-		 * These triggers are handled in runImmedFileTriggers().
+-		 */
+-		if (tm == RPMSCRIPT_TRANSFILETRIGGER &&
+-		    (packageHashHasEntry(ts->members->removedPackages, offset) ||
+-		    packageHashHasEntry(ts->members->installedPackages, offset)))
+-		    continue;
+-
+-		/* Get priority of trigger from header */
+-		trigH = rpmdbGetHeaderAt(rpmtsGetRdb(ts), offset);
+-		headerGet(trigH, priorityTag, &priorities, HEADERGET_MINMEM);
+-		rpmtdSetIndex(&priorities, tix);
+-		priority = *rpmtdGetUint32(&priorities);
+-		headerFree(trigH);
+-
+-		/* Store file trigger in array */
+-		rpmtriggersAdd(triggers, offset, tix, priority);
+-	    }
+-	}
+-	free(pfx);
+-    }
+-    rpmdbIndexIteratorFree(ii);
+-
+-    /* Sort triggers by priority, offset, trigger index */
+-    rpmtriggersSortAndUniq(triggers);
+-
+-    /* Handle stored triggers */
+-    for (i = 0; i < triggers->count; i++) {
+-	if (priorityClass == 1) {
+-	    if (triggers->triggerInfo[i].priority < TRIGGER_PRIORITY_BOUND)
+-		continue;
+-	} else if (priorityClass == 2) {
+-	    if (triggers->triggerInfo[i].priority >= TRIGGER_PRIORITY_BOUND)
+-		continue;
+-	}
+-
+-	trigH = rpmdbGetHeaderAt(rpmtsGetRdb(ts), triggers->triggerInfo[i].hdrNum);
+-	if (tm == RPMSCRIPT_FILETRIGGER)
+-	    nerrors += runHandleTriggersInPkg(ts, te, trigH, sense, tm, 0,
+-						triggers->triggerInfo[i].tix);
+-	else
+-	    nerrors += runHandleTriggersInPkg(ts, te, trigH, sense, tm, 1,
+-						triggers->triggerInfo[i].tix);
+-	headerFree(trigH);
+-    }
+-    rpmtriggersFree(triggers);
+-
+-    return (nerrors == 0) ? RPMRC_OK : RPMRC_FAIL;
++    return RPMRC_OK;
+ }
+ 
+ rpmRC runImmedFileTriggers(rpmts ts, rpmte te, rpmsenseFlags sense,
+diff --git a/lib/transaction.c b/lib/transaction.c
+index 55bc2d961..e1a5eda64 100644
+--- a/lib/transaction.c
++++ b/lib/transaction.c
+@@ -1687,52 +1687,7 @@ rpmRC rpmtsSetupTransactionPlugins(rpmts ts)
+ rpmRC runScript(rpmts ts, rpmte te, Header h, ARGV_const_t prefixes,
+ 		       rpmScript script, int arg1, int arg2)
+ {
+-    rpmte xte = te;
+-    rpmRC stoprc, rc = RPMRC_OK;
+-    rpmTagVal stag = rpmScriptTag(script);
+-    FD_t sfd = NULL;
+-    int warn_only = !(rpmScriptFlags(script) & RPMSCRIPT_FLAG_CRITICAL);
+-
+-    if (rpmChrootIn())
+-	return RPMRC_FAIL;
+-
+-    /* Create a temporary transaction element for triggers from rpmdb */
+-    if (te == NULL) {
+-	te = rpmteNew(ts, h, TR_RPMDB, NULL, NULL, 0);
+-	rpmteSetHeader(te, h);
+-    }
+-
+-    sfd = rpmtsNotify(ts, te, RPMCALLBACK_SCRIPT_START, stag, 0);
+-    if (sfd == NULL)
+-	sfd = rpmtsScriptFd(ts);
+-
+-    rpmswEnter(rpmtsOp(ts, RPMTS_OP_SCRIPTLETS), 0);
+-    rc = rpmScriptRun(script, arg1, arg2, sfd,
+-		      prefixes, rpmtsPlugins(ts));
+-    rpmswExit(rpmtsOp(ts, RPMTS_OP_SCRIPTLETS), 0);
+-
+-    /* Map warn-only errors to "notfound" for script stop callback */
+-    stoprc = (rc != RPMRC_OK && warn_only) ? RPMRC_NOTFOUND : rc;
+-    rpmtsNotify(ts, te, RPMCALLBACK_SCRIPT_STOP, stag, stoprc);
+-
+-    /*
+-     * Notify callback for all errors. "total" abused for warning/error,
+-     * rc only reflects whether the condition prevented install/erase
+-     * (which is only happens with %prein and %preun scriptlets) or not.
+-     */
+-    if (rc != RPMRC_OK) {
+-	if (warn_only) {
+-	    rc = RPMRC_OK;
+-	}
+-	rpmtsNotify(ts, te, RPMCALLBACK_SCRIPT_ERROR, stag, rc);
+-    }
+-
+-    rpmChrootOut();
+-
+-    if (te != xte)
+-	rpmteFree(te);
+-
+-    return rc;
++    return RPMRC_OK;
+ }
+ 
+ static void rpmtsSync(rpmts ts)
+diff --git a/rpmio/macro.c b/rpmio/macro.c
+index 94ff5187d..241b36389 100644
+--- a/rpmio/macro.c
++++ b/rpmio/macro.c
+@@ -1016,36 +1016,6 @@ static size_t doOutput(MacroBuf mb,  rpmMacroEntry me, ARGV_t argv)
+ 
+ static size_t doLua(MacroBuf mb,  rpmMacroEntry me, ARGV_t argv)
+ {
+-    rpmlua lua = NULL; /* Global state. */
+-    const char *scriptbuf = argv[1];
+-    char *printbuf;
+-    rpmMacroContext mc = mb->mc;
+-    rpmMacroEntry mbme = mb->me;
+-    int odepth = mc->depth;
+-    int olevel = mc->level;
+-    const char *opts = NULL;
+-    const char *name = NULL;
+-    ARGV_t args = NULL;
+-
+-    if (mbme) {
+-	opts = mbme->opts;
+-	name = mbme->name;
+-	if (mb->args)
+-	    args = mb->args;
+-    }
+-
+-    rpmluaPushPrintBuffer(lua);
+-    mc->depth = mb->depth;
+-    mc->level = mb->level;
+-    if (rpmluaRunScript(lua, scriptbuf, name, opts, args) == -1)
+-	mb->error = 1;
+-    mc->depth = odepth;
+-    mc->level = olevel;
+-    printbuf = rpmluaPopPrintBuffer(lua);
+-    if (printbuf) {
+-	mbAppendStr(mb, printbuf);
+-	free(printbuf);
+-    }
+     return 0;
+ }
+ 
