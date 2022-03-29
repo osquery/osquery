@@ -1,6 +1,6 @@
-From 6334cbc5e14bba9f696a117980f2ec9bc6faf453 Mon Sep 17 00:00:00 2001
-From: Teddy Reed <teddy@casualhacking.io>
-Date: Sun, 27 Dec 2020 16:48:14 -0500
+From 8895afe4d4df406f772fc465d71062b601aaac25 Mon Sep 17 00:00:00 2001
+From: Stefano Bonicatti <stefano.bonicatti@gmail.com>
+Date: Wed, 23 Mar 2022 22:31:14 +0100
 Subject: [PATCH] Revert "Always open (and initialize) the entire database at
  once"
 
@@ -10,7 +10,7 @@ This reverts commit 8cd161b5bb9b639f5b729063272115436caab545.
  1 file changed, 19 insertions(+), 18 deletions(-)
 
 diff --git a/lib/rpmdb.c b/lib/rpmdb.c
-index 38e1cb53f..7201586a9 100644
+index 2fa1f00fa..e0a264498 100644
 --- a/lib/rpmdb.c
 +++ b/lib/rpmdb.c
 @@ -351,22 +351,17 @@ const char *rpmdbHome(rpmdb db)
@@ -43,7 +43,7 @@ index 38e1cb53f..7201586a9 100644
  }
  
  static int dbiForeach(dbiIndex *dbis, int ndbi,
-@@ -507,16 +502,13 @@ static int openDatabase(const char * prefix,
+@@ -505,16 +500,13 @@ static int openDatabase(const char * prefix,
      /* Try to ensure db home exists, error out if we can't even create */
      rc = rpmioMkpath(rpmdbHome(db), 0755, getuid(), getgid());
      if (rc == 0) {
@@ -62,7 +62,7 @@ index 38e1cb53f..7201586a9 100644
  	if (!db->db_descr)
  	    db->db_descr = "unknown db";
      }
-@@ -556,7 +548,10 @@ int rpmdbInit (const char * prefix, int perms)
+@@ -554,7 +546,10 @@ int rpmdbInit (const char * prefix, int perms)
  
      rc = openDatabase(prefix, NULL, &db, (O_CREAT | O_RDWR), perms, 0);
      if (db != NULL) {
@@ -74,7 +74,7 @@ index 38e1cb53f..7201586a9 100644
  	if (xx && rc == 0) rc = xx;
  	db = NULL;
      }
-@@ -572,6 +567,8 @@ int rpmdbVerify(const char * prefix)
+@@ -570,6 +565,8 @@ int rpmdbVerify(const char * prefix)
  
      if (db != NULL) {
  	int xx;
@@ -83,7 +83,7 @@ index 38e1cb53f..7201586a9 100644
  	
  	if (db->db_pkgs)
  	    rc += dbiVerify(db->db_pkgs, 0);
-@@ -2535,6 +2532,10 @@ int rpmdbRebuild(const char * prefix, rpmts ts,
+@@ -2532,6 +2529,10 @@ int rpmdbRebuild(const char * prefix, rpmts ts,
  	rc = 1;
  	goto exit;
      }
@@ -95,5 +95,5 @@ index 38e1cb53f..7201586a9 100644
      {	Header h = NULL;
  	rpmdbMatchIterator mi;
 -- 
-2.17.1
+2.30.0
 
