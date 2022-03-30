@@ -855,7 +855,7 @@ typedef struct pgpPktEdata_s {
  *     indicates the present time.
  *   - The remainder of the packet is literal data.
  *
- * Text data is stored with <CR><LF> text endings (i.e. network-normal
+ * Text data is stored with \<CR\>\<LF\> text endings (i.e. network-normal
  * line endings).  These should be converted to native line endings by
  * the receiving software.
  */
@@ -1001,8 +1001,8 @@ char * pgpHexStr(const uint8_t *p, size_t plen);
  * Calculate OpenPGP public key fingerprint.
  * @param pkt		OpenPGP packet (i.e. PGPTAG_PUBLIC_KEY)
  * @param pktlen	OpenPGP packet length (no. of bytes)
- * @retval fp		public key fingerprint
- * @retval fplen	public key fingerprint length
+ * @param[out] fp	public key fingerprint
+ * @param[out] fplen	public key fingerprint length
  * @return		0 on success, else -1
  */
 int pgpPubkeyFingerprint(const uint8_t * pkt, size_t pktlen,
@@ -1012,7 +1012,7 @@ int pgpPubkeyFingerprint(const uint8_t * pkt, size_t pktlen,
  * Calculate OpenPGP public key Key ID
  * @param pkt		OpenPGP packet (i.e. PGPTAG_PUBLIC_KEY)
  * @param pktlen	OpenPGP packet length (no. of bytes)
- * @retval keyid	public key Key ID
+ * @param[out] keyid	public key Key ID
  * @return		0 on success, else -1
  */
 int pgpPubkeyKeyID(const uint8_t * pkt, size_t pktlen, pgpKeyID_t keyid);
@@ -1022,7 +1022,7 @@ int pgpPubkeyKeyID(const uint8_t * pkt, size_t pktlen, pgpKeyID_t keyid);
  * @param pkts		OpenPGP packet(s)
  * @param pktlen	OpenPGP packet(s) length (no. of bytes)
  * @param pkttype	Expected packet type (signature/key) or 0 for any
- * @retval ret		signature/pubkey packet parameters on success (alloced)
+ * @param[out] ret	signature/pubkey packet parameters on success (alloced)
  * @return		-1 on error, 0 on success
  */
 int pgpPrtParams(const uint8_t *pkts, size_t pktlen, unsigned int pkttype,
@@ -1044,7 +1044,7 @@ int pgpPrtParamsSubkeys(const uint8_t *pkts, size_t pktlen,
  * Print/parse a OpenPGP packet(s).
  * @param pkts		OpenPGP packet(s)
  * @param pktlen	OpenPGP packet(s) length (no. of bytes)
- * @retval dig		parsed output of signature/pubkey packet parameters
+ * @param[out] dig	parsed output of signature/pubkey packet parameters
  * @param printing	should packets be printed?
  * @return		-1 on error, 0 on success
  */
@@ -1053,8 +1053,8 @@ int pgpPrtPkts(const uint8_t *pkts, size_t pktlen, pgpDig dig, int printing);
 /** \ingroup rpmpgp
  * Parse armored OpenPGP packets from a file.
  * @param fn		file name
- * @retval pkt		dearmored OpenPGP packet(s) (malloced)
- * @retval pktlen	dearmored OpenPGP packet(s) length in bytes
+ * @param[out] pkt	dearmored OpenPGP packet(s) (malloced)
+ * @param[out] pktlen	dearmored OpenPGP packet(s) length in bytes
  * @return		type of armor found
  */
 pgpArmor pgpReadPkts(const char * fn, uint8_t ** pkt, size_t * pktlen);
@@ -1062,8 +1062,8 @@ pgpArmor pgpReadPkts(const char * fn, uint8_t ** pkt, size_t * pktlen);
 /** \ingroup rpmpgp
  * Parse armored OpenPGP packets from memory.
  * @param armor		armored OpenPGP packet string
- * @retval pkt		dearmored OpenPGP packet(s) (malloced)
- * @retval pktlen	dearmored OpenPGP packet(s) length in bytes
+ * @param[out] pkt	dearmored OpenPGP packet(s) (malloced)
+ * @param[out] pktlen	dearmored OpenPGP packet(s) length in bytes
  * @return		type of armor found
  */
 pgpArmor pgpParsePkts(const char *armor, uint8_t ** pkt, size_t * pktlen);
@@ -1219,8 +1219,8 @@ int rpmDigestUpdate(DIGEST_CTX ctx, const void * data, size_t len);
  * 1 0* (64-bit count of bits processed, MSB-first)
  *
  * @param ctx		digest context
- * @retval datap	address of returned digest
- * @retval lenp		address of digest length
+ * @param[out] datap	address of returned digest
+ * @param[out] lenp	address of digest length
  * @param asAscii	return digest as ascii string?
  * @return		0 on success
  */
@@ -1277,8 +1277,8 @@ int rpmDigestBundleUpdate(rpmDigestBundle bundle, const void *data, size_t len);
  *
  * @param bundle	digest bundle
  * @param id		id of digest to return
- * @retval datap	address of returned digest
- * @retval lenp		address of digest length
+ * @param[out] datap	address of returned digest
+ * @param[out] lenp	address of digest length
  * @param asAscii	return digest as ascii string?
  * @return		0 on success
  */

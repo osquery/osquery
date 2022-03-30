@@ -34,6 +34,8 @@ const size_t kNumFields = 2;
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python%/dist-packages",
     "/usr/local/lib/python%/site-packages",
+    "/opt/homebrew/lib/python%/dist-packages",
+    "/opt/homebrew/lib/python%/site-packages",
     "/usr/lib/python%/dist-packages",
     "/usr/lib/python%/site-packages",
     "/Library/Python/%/site-packages",

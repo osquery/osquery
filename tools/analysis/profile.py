@@ -84,13 +84,13 @@ def check_leaks_darwin(shell, query, count=1):
         if args.verbose:
             print(stdout)
         try:
-            for line in stdout.split("\n"):
-                if line.find("total leaked bytes") >= 0:
-                    leak_checks = line.split(":")[1].strip()
+            for line in stdout.split(b"\n"):
+                if line.find(b"total leaked bytes") >= 0:
+                    leak_checks = line.split(b":")[1].strip()
         except:
             print("Encountered exception while running leaks:")
             print(stdout)
-    return {"definitely": leak_checks}
+    return {"definitely": leak_checks.decode("utf-8")}
 
 
 def check_leaks(shell, query, count=1, supp_file=None):
@@ -280,9 +280,8 @@ if __name__ == "__main__":
         help="Run the profile for N rounds and use the average."
     )
     group.add_argument(
-        "--shell", metavar="PATH", default="./build/%s/osquery/osqueryi" % (
-            utils.platform()),
-        help="Path to osqueryi shell (./build/<sys>/osquery/osqueryi)."
+        "--shell", metavar="PATH", default="./build/osquery/osqueryi",
+        help="Path to osqueryi shell (./build/osquery/osqueryi)."
     )
     group.add_argument(
         "--force", action="store_true", default=False,
