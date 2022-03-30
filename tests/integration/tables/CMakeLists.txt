@@ -82,7 +82,6 @@ function(generateTestsIntegrationTablesTestsTest)
   if(DEFINED PLATFORM_POSIX)
     set(platform_source_files
       acpi_tables.cpp
-      apt_sources.cpp
       augeas.cpp
       authorized_keys.cpp
       block_devices.cpp
@@ -134,7 +133,6 @@ function(generateTestsIntegrationTablesTestsTest)
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      yum_sources.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -153,6 +151,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
   if(DEFINED PLATFORM_LINUX)
     set(platform_source_files
+      apt_sources.cpp
       arp_cache.cpp
       atom_packages.cpp
       intel_me_info.cpp
@@ -185,6 +184,7 @@ function(generateTestsIntegrationTablesTestsTest)
       systemd_units.cpp
       yara_events.cpp
       yara.cpp
+      yum_sources.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)

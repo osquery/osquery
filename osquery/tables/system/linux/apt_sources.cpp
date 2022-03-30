@@ -12,7 +12,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/system/posix/apt_sources.h>
+#include <osquery/tables/system/linux/apt_sources.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/system.h>
