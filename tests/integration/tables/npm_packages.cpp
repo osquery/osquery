@@ -30,6 +30,7 @@ TEST_F(NpmPackagesTest, test_sanity) {
       {"name", NonEmptyString},
       {"version", NonEmptyString},
       {"description", NormalType},
+      {"homepage", NormalType},
       {"author", NormalType},
       {"license", NormalType},
       {"path", NonEmptyString},

@@ -18,6 +18,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(source_files
     hash.cpp
     python_packages.cpp
+    npm_packages.cpp
     ssh_keys.cpp
     ssh_configs.cpp
     system_utils.cpp
@@ -68,7 +69,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/memory_map.cpp
       linux/model_specific_register.cpp
       linux/mounts.cpp
-      linux/npm_packages.cpp
       linux/os_version.cpp
       linux/pci_devices.cpp
       linux/portage.cpp
