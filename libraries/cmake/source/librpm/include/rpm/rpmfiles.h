@@ -121,6 +121,9 @@ typedef enum rpmFileAction_e {
 #define XFA_SKIPPING(_a)	\
     ((_a) == FA_SKIP || (_a) == FA_SKIPNSTATE || (_a) == FA_SKIPNETSHARED || (_a) == FA_SKIPCOLOR)
 
+#define XFA_CREATING(_a)	\
+    ((_a) == FA_CREATE || (_a) == FA_BACKUP || (_a) == FA_SAVE || (_a) == FA_ALTNAME)
+
 /**
  * We pass these around as an array with a sentinel.
  */
@@ -150,6 +153,7 @@ enum rpmfiFlags_e {
     RPMFI_NOFILEVERIFYFLAGS	= (1 << 16),
     RPMFI_NOFILEFLAGS		= (1 << 17),
     RPMFI_NOFILESIGNATURES	= (1 << 18),
+    RPMFI_NOVERITYSIGNATURES	= (1 << 19),
 };
 
 typedef rpmFlags rpmfiFlags;
@@ -407,7 +411,7 @@ const char * rpmfilesFClass(rpmfiles fi, int ix);
  * Return file depends dictionary from file info set.
  * @param fi		file info set
  * @param ix		file index
- * @retval *fddictp	file depends dictionary array (or NULL)
+ * @param[out] *fddictp	file depends dictionary array (or NULL)
  * @return		no. of file depends entries, 0 on invalid
  */
 uint32_t rpmfilesFDepends(rpmfiles fi, int ix, const uint32_t ** fddictp);
@@ -458,8 +462,8 @@ rpm_mode_t rpmfilesFMode(rpmfiles fi, int ix);
  * Return file (binary) digest of file info set.
  * @param fi		file info set
  * @param ix		file index
- * @retval algo		digest hash algorithm used (pass NULL to ignore)
- * @retval len		digest hash length (pass NULL to ignore)
+ * @param[out] algo	digest hash algorithm used (pass NULL to ignore)
+ * @param[out] len	digest hash length (pass NULL to ignore)
  * @return		file digest, NULL on invalid
  */
 const unsigned char * rpmfilesFDigest(rpmfiles fi, int ix, int *algo, size_t *len);
@@ -468,10 +472,21 @@ const unsigned char * rpmfilesFDigest(rpmfiles fi, int ix, int *algo, size_t *le
  * Return file (binary) digest of file info set.
  * @param fi            file info set
  * @param ix            file index
- * @retval len       signature length (pass NULL to ignore)
+ * @param[out] len      signature length (pass NULL to ignore)
  * @return              file signature, NULL on invalid
  */
 const unsigned char * rpmfilesFSignature(rpmfiles fi, int ix, size_t *len);
+
+/** \ingroup rpmfiles
+ * Return file verity signature (binary)
+ * @param fi            file info set
+ * @param ix            file index
+ * @param[out] len      signature length (pass NULL to ignore)
+ * @param[out] algo	signature algorithm
+ * @return              verity signature, NULL on invalid
+ */
+const unsigned char * rpmfilesVSignature(rpmfiles fi, int ix, size_t *len,
+					 uint16_t *algo);
 
 /** \ingroup rpmfiles
  * Return file rdev from file info set.
@@ -528,7 +543,7 @@ const char * rpmfilesFCaps(rpmfiles fi, int ix);
  * @param fi		file info set
  * @param ix		file index
  * @param flags		flags
- * @retval sb		mapped stat(2) data
+ * @param[out] sb	mapped stat(2) data
  * @return		0 on success
  */
 int rpmfilesStat(rpmfiles fi, int ix, int flags, struct stat *sb);

@@ -96,7 +96,6 @@ function(importLibraries)
     "Linux:libaudit"
     "Linux:libcryptsetup"
     "Linux:libdevmapper"
-    "Linux:libelfin"
     "Linux:libgcrypt"
     "Linux:libgpg-error"
     "Linux:libiptables"

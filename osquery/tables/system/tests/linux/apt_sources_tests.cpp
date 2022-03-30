@@ -9,7 +9,7 @@
 
 #include <fstream>
 
-#include <osquery/tables/system/posix/apt_sources.h>
+#include <osquery/tables/system/linux/apt_sources.h>
 
 #include <boost/filesystem.hpp>
 

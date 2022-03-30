@@ -30,7 +30,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/apt_sources.cpp
       posix/augeas.cpp
       posix/authorized_keys.cpp
       posix/crontab.cpp
@@ -45,7 +44,6 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/suid_bin.cpp
       posix/system_controls.cpp
       posix/ulimit_info.cpp
-      posix/yum_sources.cpp
     )
   endif()
 
@@ -57,9 +55,9 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusconnection.cpp
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
+      linux/apt_sources.cpp
       linux/block_devices.cpp
       linux/disk_encryption.cpp
-      linux/elf_info.cpp
       linux/extended_attributes.cpp
       linux/groups.cpp
       linux/intel_me.cpp
@@ -92,6 +90,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
       linux/cpu_info.cpp
+      linux/yum_sources.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
@@ -279,7 +278,6 @@ function(generateOsqueryTablesSystemSystemtable)
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_libdevmapper
-      thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
       thirdparty_popt
@@ -317,7 +315,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_public_header_files
-      posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
       posix/ssh_keys.h
@@ -335,6 +332,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusconnection.h
       linux/dbus/uniquedbusmessage.h
       linux/dbus/uniqueresource.h
+      linux/apt_sources.h
       linux/md_tables.h
       linux/pci_devices.h
       linux/smbios_utils.h
