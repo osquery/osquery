@@ -17,6 +17,7 @@ enum rpmSignFlags_e {
     RPMSIGN_FLAG_NONE		= 0,
     RPMSIGN_FLAG_IMA		= (1 << 0),
     RPMSIGN_FLAG_RPMV3		= (1 << 1),
+    RPMSIGN_FLAG_FSVERITY	= (1 << 2),
 };
 typedef rpmFlags rpmSignFlags;
 
@@ -42,6 +43,15 @@ int rpmPkgSign(const char *path, const struct rpmSignArgs * args);
  * @return		0 on success
  */
 int rpmPkgDelSign(const char *path, const struct rpmSignArgs * args);
+
+
+/** \ingroup rpmsign
+ * Delete file signature(s) from a package
+ * @param path		path to package
+ * @param args		signing parameters (or NULL for defaults)
+ * @return		0 on success
+ */
+int rpmPkgDelFileSign(const char *path, const struct rpmSignArgs * args);
 
 #ifdef __cplusplus
 }

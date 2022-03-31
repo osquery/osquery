@@ -29,6 +29,7 @@ endfunction()
 
 function(generateOsqueryTablesSystemLinuxTests)
   add_osquery_executable(osquery_tables_system_linux_tests-test
+    linux/apt_sources_tests.cpp
     linux/extended_attributes_tests.cpp
     linux/md_tables_tests.cpp
     linux/pci_devices_tests.cpp
@@ -36,6 +37,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/portage_tests.cpp
     linux/rpm_packages_tests.cpp
     linux/selinux_settings_tests.cpp
+    linux/yum_sources_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_linux_tests-test PRIVATE
@@ -57,12 +59,10 @@ endfunction()
 
 function(generateOsqueryTablesSystemPosixTests)
   add_osquery_executable(osquery_tables_system_posix_tests-test
-    posix/apt_sources_tests.cpp
     posix/known_hosts_tests.cpp
     posix/shell_history_tests.cpp
     posix/ssh_keys_tests.cpp
     posix/sudoers_tests.cpp
-    posix/yum_sources_tests.cpp
     posix/last_tests.cpp
   )
 
