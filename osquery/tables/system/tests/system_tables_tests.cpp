@@ -303,7 +303,6 @@ class HashTableTest : public testing::Test {
   const std::string contentSha1 = "21bd89f4580ef635e87f655fab5807a01e0ff2e9";
   const std::string contentSha256 =
       "6f1c16ac918f64721d14ff4bb3c51fe25ffde92f795ce6dbeb45722ce9d6e05c";
-  const std::string contentSsdeep = "3:Ttn:Jn";
   const std::string badContentMd5 = "e1cd6c58b0d4d9d7bcbfc0ec2b55ce94";
 
   void SetContent(int n) {
