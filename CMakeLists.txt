@@ -141,11 +141,10 @@ function(importLibraries)
     )
   endif()
 
-  # We want to remove support for lldpd and smartmontools, so skip support for M1
+  # We want to remove support for lldpd, so skip support for M1
   if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
     list(APPEND library_descriptor_list
       "Linux,Darwin:lldpd"
-      "Linux,Darwin:smartmontools"
     )
   endif()
 

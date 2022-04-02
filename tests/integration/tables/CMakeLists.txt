@@ -177,7 +177,6 @@ function(generateTestsIntegrationTablesTestsTest)
       secureboot.cpp
       shadow.cpp
       shared_memory.cpp
-      smart_drive_info.cpp
       socket_events.cpp
       startup_items.cpp
       syslog_events.cpp
@@ -272,9 +271,6 @@ function(generateTestsIntegrationTablesTestsTest)
 
     list(APPEND source_files ${platform_source_files})
 
-    if(NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files smart_drive_info.cpp)
-    endif()
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
       appcompat_shims.cpp
