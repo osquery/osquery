@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 namespace osquery {
 
@@ -18,22 +19,42 @@ namespace osquery {
  */
 struct QueryPerformance {
   /// Number of executions.
-  size_t executions{0};
+  std::size_t executions{0};
 
   /// Last UNIX time in seconds the query was executed successfully.
-  unsigned long long int last_executed{0};
+  std::uint64_t last_executed{0};
 
-  /// Total wall time taken
-  unsigned long long int wall_time{0};
+  /// Total wall time taken in seconds
+  std::uint64_t wall_time{0};
 
-  /// Total user time (cycles)
-  unsigned long long int user_time{0};
+  /// Total wall time taken in milliseconds
+  std::uint64_t wall_time_ms{0};
 
-  /// Total system time (cycles)
-  unsigned long long int system_time{0};
+  /// Wall time in milliseconds of the latest execution
+  std::uint64_t last_wall_time_ms{0};
 
-  /// Average memory differentials. This should be near 0.
-  unsigned long long int average_memory{0};
+  /// Total user time in milliseconds
+  std::uint64_t user_time{0};
+
+  /// User time in milliseconds of the latest execution
+  std::uint64_t last_user_time{0};
+
+  /// Total system time in milliseconds
+  std::uint64_t system_time{0};
+
+  /// System time in milliseconds of the latest execution
+  std::uint64_t last_system_time{0};
+
+  /// Average of the bytes of resident memory left allocated
+  /// after collecting results
+  std::uint64_t average_memory{0};
+
+  /// Resident memory in bytes left allocated after collecting results
+  /// of the latest execution
+  std::uint64_t last_memory{0};
+
+  /// Total bytes for the query
+  std::uint64_t output_size{0};
 };
 
 } // namespace osquery

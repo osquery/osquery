@@ -1,2 +1,4 @@
 *:*/libraries/*
-*:*/patched-source/*
+*:*/libs/src/*
+*:*/installed_formulas/*
+*:*/openssl/*

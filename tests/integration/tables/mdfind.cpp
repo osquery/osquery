@@ -24,7 +24,7 @@ class Mdfind : public testing::Test {
 
 TEST_F(Mdfind, test_sanity) {
   QueryData rows = execute_query(
-      "select * from mdfind where query = 'kMDItemFSName = \"hosts.equiv\"';");
+      "select * from mdfind where query = 'kMDItemFSName = \"*hosts*\"';");
   if (rows.empty()) {
     // Spotlight may be disabled.
     QueryData sl_check = execute_query(

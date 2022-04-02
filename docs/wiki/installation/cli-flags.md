@@ -120,6 +120,11 @@ at maximum sustained CPU utilization.
 
 A delay in seconds before the watchdog process starts enforcing memory and CPU utilization limits. The default value `60s` allows the daemon to perform resource intense actions, such as forwarding logs, at startup.
 
+`--watchdog_forced_shutdown_delay=4`
+
+Amount of seconds to wait to issue a forced shutdown, after the watchdog has issued a graceful shutdown request to a worker or extension, due to resource limits being hit.
+Note that on Windows this doesn't have any effect currently, since the watchdog issues a TerminateProcess as a "graceful" shutdown, which immediately kills the process.
+
 `--enable_extensions_watchdog=false`
 
 By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.

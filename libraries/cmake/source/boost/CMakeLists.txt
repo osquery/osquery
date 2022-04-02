@@ -715,7 +715,7 @@ function(generateBoostContext)
   set(library_root "${BOOST_ROOT}/libs/context")
 
   set(context_backend "fcontext")
-  if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+  if(OSQUERY_ENABLE_ADDRESS_SANITIZER AND NOT PLATFORM_WINDOWS)
     set(context_backend "ucontext")
   endif()
 
@@ -823,6 +823,12 @@ function(generateBoostContext)
     target_compile_definitions(thirdparty_boost_context PUBLIC
       BOOST_USE_UCONTEXT
     )
+
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      target_compile_definitions(thirdparty_boost_context PUBLIC
+        BOOST_USE_ASAN
+      )
+    endif()
 
   elseif(context_backend STREQUAL "winfib")
     target_compile_definitions(thirdparty_boost_context PUBLIC

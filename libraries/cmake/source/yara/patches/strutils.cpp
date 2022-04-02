@@ -24,13 +24,38 @@ namespace yara_strutils {
 
 extern "C" {
 
-size_t (*yara_strutils_strlcpy)(char* , const char* , size_t ){&yara_strutils::strlcpy};
-uint64_t (*yara_strutils_xtoi)(const char*){&yara_strutils::xtoi};
-int (*yara_strutils_strnlen_w)(const char*){&yara_strutils::strnlen_w};
-size_t (*yara_strutils_strlcpy_w)(char*, const char*, size_t){&yara_strutils::strlcpy_w};
-int (*yara_strutils_strcmp_w)(const char*, const char*){&yara_strutils::strcmp_w};
-size_t (*yara_strutils_strlcat)(char*, const char*, size_t){&yara_strutils::strlcat};
-void *(*yara_strutils_memmem)(const void*, size_t, const void*, size_t){&yara_strutils::memmem};
-int (*yara_strutils_isalnum)(const uint8_t*){&yara_strutils::yr_isalnum};
+size_t yara_strutils_strlcpy(char* dst, const char* src, size_t size) {
+  return yara_strutils::strlcpy(dst, src, size);
+}
 
+uint64_t yara_strutils_xtoi(const char* hexstr) {
+  return yara_strutils::xtoi(hexstr);
+}
+
+int yara_strutils_strnlen_w(const char* w_str) {
+  return yara_strutils::strnlen_w(w_str);
+}
+
+size_t yara_strutils_strlcpy_w(char* dst, const char* w_src, size_t n) {
+  return yara_strutils::strlcpy_w(dst, w_src, n);
+}
+
+int yara_strutils_strcmp_w(const char* w_str, const char* str) {
+  return yara_strutils::strcmp_w(w_str, str);
+}
+
+size_t yara_strutils_strlcat(char* dst, const char* src, size_t size) {
+  return yara_strutils::strlcat(dst, src, size);
+}
+
+void* yara_strutils_memmem(const void* haystack,
+                           size_t haystack_size,
+                           const void* needle,
+                           size_t needle_size) {
+  return yara_strutils::memmem(haystack, haystack_size, needle, needle_size);
+}
+
+int yara_strutils_isalnum(const uint8_t* s) {
+  return yara_strutils::yr_isalnum(s);
+}
 }

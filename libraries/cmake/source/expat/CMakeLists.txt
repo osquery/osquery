@@ -12,13 +12,16 @@ function(expatMain)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/expat/lib/xmltok.c"
   )
 
+  target_compile_options(thirdparty_expat PRIVATE
+    -fno-strict-aliasing
+  )
+
   target_include_directories(thirdparty_expat PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/expat/lib"
   )
 
   target_link_libraries(thirdparty_expat PRIVATE
-    cxx_settings
     thirdparty_cxx_settings
   )
 

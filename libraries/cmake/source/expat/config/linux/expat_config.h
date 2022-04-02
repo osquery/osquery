@@ -67,7 +67,7 @@
 #define PACKAGE_NAME "expat"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "expat 2.2.10"
+#define PACKAGE_STRING "expat 2.4.7"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "expat"
@@ -76,7 +76,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.2.10"
+#define PACKAGE_VERSION "2.4.7"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS

@@ -1010,7 +1010,8 @@ void ConfigParserPlugin::reset() {
 }
 
 void Config::recordQueryPerformance(const std::string& name,
-                                    uint64_t delay,
+                                    uint64_t delay_ms,
+                                    uint64_t size,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);
@@ -1026,6 +1027,7 @@ void Config::recordQueryPerformance(const std::string& name,
     auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
     if (diff > 0) {
       query.user_time += diff;
+      query.last_user_time = diff;
     }
   }
 
@@ -1035,6 +1037,7 @@ void Config::recordQueryPerformance(const std::string& name,
     auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
     if (diff > 0) {
       query.system_time += diff;
+      query.last_system_time = diff;
     }
   }
 
@@ -1046,10 +1049,14 @@ void Config::recordQueryPerformance(const std::string& name,
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;
       query.average_memory = (query.average_memory / (query.executions + 1));
+      query.last_memory = diff;
     }
   }
 
-  query.wall_time += delay;
+  query.last_wall_time_ms = delay_ms;
+  query.wall_time_ms += delay_ms;
+  query.wall_time += (delay_ms / 1000);
+  query.output_size += size;
   query.executions += 1;
   query.last_executed = getUnixTime();
 
