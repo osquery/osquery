@@ -269,7 +269,7 @@ QueryData genDrivers(QueryContext& context) {
       r["service_key"] = kServiceKeyPath + r["service"];
       auto ret = getDriverImagePath(r["service"], path);
       if (!ret.ok()) {
-        VLOG(1) << "Failed to get image path for driver " << r["service"]
+        VLOG(1) << "Failed to get driver image path for device id " << wstringToString(devid)
                 << " with error code: " << ret.getCode();
         continue;
       }
