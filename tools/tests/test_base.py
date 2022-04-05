@@ -638,6 +638,7 @@ def expect(functional, expected, interval=0.01, timeout=4):
 
 class QueryTester(ProcessGenerator, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.binary = getLatestOsqueryBinary("osqueryi")
         self.daemon = self._run_daemon({
             # The set of queries will hammer the daemon process.
@@ -646,6 +647,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             # catching.
             "registry_exceptions": True,
             "ephemeral": True,
+            "disable_extensions": False,
         })
         self.assertTrue(self.daemon.isAlive())
 
