@@ -16,10 +16,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef OSQUERY_POSIX
-#include <fuzzy.h>
-#endif
-
 #include <set>
 #include <thread>
 
@@ -195,32 +191,6 @@ bool FileHashCache::load(const std::string& path,
   return true;
 }
 
-Status genSsdeepForFile(const std::string& path, std::string& ssdeep_hash) {
-#ifdef OSQUERY_POSIX
-  boost::system::error_code ec;
-  boost::filesystem::path p = path;
-  auto size = boost::filesystem::file_size(p, ec);
-  if (ec.value() != boost::system::errc::success) {
-    return Status::failure("failed to determine file size: " + path);
-  }
-  if (size > FLAGS_read_max) {
-    return Status::failure(
-        "ssdeep failed because file size exceeds read_max: " + path);
-  }
-  ssdeep_hash.resize(FUZZY_MAX_RESULT, '\0');
-  auto did_ssdeep_fail =
-      fuzzy_hash_filename(path.c_str(), &ssdeep_hash.front());
-  if (did_ssdeep_fail) {
-    return Status::failure("ssdeep failed: " + path);
-  }
-  ssdeep_hash.resize(ssdeep_hash.find('\0'));
-  return Status::success();
-#else
-  ssdeep_hash = "-1";
-  return Status::success();
-#endif
-}
-
 void genHashForFile(const std::string& path,
                     const std::string& dir,
                     QueryContext& context,
@@ -250,14 +220,6 @@ void genHashForFile(const std::string& path,
   r["md5"] = std::move(hashes.md5);
   r["sha1"] = std::move(hashes.sha1);
   r["sha256"] = std::move(hashes.sha256);
-
-  if (isPlatform(PlatformType::TYPE_POSIX) && context.isColumnUsed("ssdeep")) {
-    auto status = genSsdeepForFile(path, r["ssdeep"]);
-
-    if (!status.ok()) {
-      logger.log(google::GLOG_WARNING, status.getMessage());
-    }
-  }
 
   if (FLAGS_disable_hash_cache) {
     context.setCache(path, tr);

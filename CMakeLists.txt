@@ -113,7 +113,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:rocksdb"
     "Linux,Darwin,Windows:sleuthkit"
     "Linux,Darwin,Windows:sqlite"
-    "Linux,Darwin:ssdeep"
     "Linux,Darwin,Windows:thrift"
     "Linux:util-linux"
     "Linux,Darwin,Windows:yara"

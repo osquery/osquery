@@ -31,9 +31,6 @@
 [submodule "libraries/cmake/source/sqlite/src"]
 	path = libraries/cmake/source/sqlite/src
 	url = https://github.com/osquery/third-party-sqlite
-[submodule "libraries/cmake/source/ssdeep-cpp/src"]
-	path = libraries/cmake/source/ssdeep-cpp/src
-	url = https://github.com/ssdeep-project/ssdeep
 [submodule "libraries/cmake/source/thrift/src"]
 	path = libraries/cmake/source/thrift/src
 	url = https://github.com/apache/thrift
