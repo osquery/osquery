@@ -36,7 +36,8 @@ TEST_F(DebPackages, test_sanity) {
                              {"status", NonEmptyString},
                              {"maintainer", NonEmptyString},
                              {"section", NormalType},
-                             {"priority", NormalType}};
+                             {"priority", NormalType},
+                             {"admindir", NonEmptyString}};
 
     validate_rows(rows, row_map);
 
