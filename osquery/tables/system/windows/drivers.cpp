@@ -26,8 +26,8 @@
 #include <osquery/tables/system/windows/registry.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 namespace osquery {
 namespace tables {
@@ -44,10 +44,10 @@ const std::map<std::string, DEVPROPKEY> kAdditionalDeviceProps = {
     {"service", DEVPKEY_Device_Service},
     {"driver_key", DEVPKEY_Device_Driver},
     {"date", DEVPKEY_Device_DriverDate}};
+const std::string kHkeyLocalMachinePrefix = "HKEY_LOCAL_MACHINE\\";
 const std::string kDriverKeyPath =
-    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\";
-const std::string kServiceKeyPath =
-    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\";
+    "SYSTEM\\CurrentControlSet\\Control\\Class\\";
+const std::string kServiceKeyPath = "SYSTEM\\CurrentControlSet\\Services\\";
 
 static inline void win32LogWARNING(const std::string& msg,
                                    const DWORD code = GetLastError(),
@@ -173,6 +173,18 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   return Status::success();
 }
 
+Status isRegistrySubKeyExist(HKEY key, const std::string& sub_key) {
+  HKEY hkey;
+  auto ret =
+      RegOpenKeyExW(key, stringToWstring(sub_key).c_str(), 0, KEY_READ, &hkey);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to open registry handle");
+  }
+
+  RegCloseKey(hkey);
+  return Status::success();
+}
+
 Status getDriverImagePath(const std::string& svc_name, std::string& result) {
   HKEY hkey;
   const auto image_path_value = L"ImagePath";
@@ -255,25 +267,44 @@ QueryData genDrivers(QueryContext& context) {
       if (!ret.ok()) {
         VLOG(1) << "Failed to get element type " << elem.first
                 << " with error code: " << ret.getCode();
-        continue;
+      } else {
+        r[elem.first] = std::move(val);
       }
-      r[elem.first] = std::move(val);
     }
 
     if (r.count("driver_key") > 0 && !r.at("driver_key").empty()) {
       r["driver_key"].insert(0, kDriverKeyPath);
+      auto res = isRegistrySubKeyExist(HKEY_LOCAL_MACHINE, r["driver_key"]);
+      if (!res.ok()) {
+        VLOG(1) << "The following registry key for device id "
+                << wstringToString(devId) << " could not be found within path: "
+                << kHkeyLocalMachinePrefix + r["driver_key"];
+        r["driver_key"].clear();
+      } else {
+        r["driver_key"].insert(0, kHkeyLocalMachinePrefix);
+      }
     }
 
     if (r.count("service") > 0 && !r.at("service").empty()) {
-      std::string path;
-      r["service_key"] = kServiceKeyPath + r["service"];
-      auto ret = getDriverImagePath(r["service"], path);
-      if (!ret.ok()) {
-        VLOG(1) << "Failed to get driver image path for device id " << wstringToString(devid)
-                << " with error code: " << ret.getCode();
-        continue;
+      std::string svc_key = kServiceKeyPath + r["service"];
+      std::string full_svc_key = kHkeyLocalMachinePrefix + svc_key;
+      auto res = isRegistrySubKeyExist(HKEY_LOCAL_MACHINE, svc_key);
+      if (!res.ok()) {
+        VLOG(1) << "The following registry key for service name "
+                << r["service"]
+                << " could not be found within path: " << full_svc_key;
+      } else {
+        r["service_key"] = std::move(full_svc_key);
+        std::string path;
+        auto ret = getDriverImagePath(r["service"], path);
+        if (!ret.ok()) {
+          VLOG(1) << "Failed to get driver image path for device id: "
+                  << wstringToString(devId)
+                  << " ,error code: " << ret.getCode();
+        } else {
+          r["image"] = std::move(path);
+        }
       }
-      r["image"] = std::move(path);
     }
 
     api_devices[devId] = r;
