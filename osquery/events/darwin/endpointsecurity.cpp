@@ -233,6 +233,7 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
 bool EndpointSecurityPublisher::shouldFire(
     const EndpointSecuritySubscriptionContextRef& sc,
     const EndpointSecurityEventContextRef& ec) const {
+  if (sc == getSubscriptionContext(ec))
   return true;
 }
 

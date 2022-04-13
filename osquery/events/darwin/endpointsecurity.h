@@ -129,4 +129,17 @@ class ESProcessEventSubscriber
                   const EndpointSecuritySubscriptionContextRef& sc)
       API_AVAILABLE(macos(10.15));
 };
+
+class ESProcessFileEventSubscriber
+    : public EventSubscriber<EndpointSecurityPublisher> {
+ public:
+  ESProcessFileEventSubscriber() {
+    setName("es_process_file_events");
+  }
+
+  Status init() override API_AVAILABLE(macos(10.15));
+  Status Callback(const EndpointSecurityEventContextRef& ec,
+                  const EndpointSecuritySubscriptionContextRef& sc)
+      API_AVAILABLE(macos(10.15));
+};
 } // namespace osquery
