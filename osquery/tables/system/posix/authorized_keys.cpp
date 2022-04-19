@@ -76,7 +76,7 @@ void genSSHkeysForUser(const std::string& uid,
       if (!line.empty() && line[0] != '#') {
         auto splitted_line = split(line, " ");
         if (splitted_line.empty()) {
-          // Line is invalid
+          // Line syntax is invalid
           continue;
         }
 
