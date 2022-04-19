@@ -24,9 +24,14 @@ Status ESProcessFileEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
     auto sc = createSubscriptionContext();
 
-    //sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_EXEC);
-    //sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_FORK);
-    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_OPEN);
+    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_CREATE);
+    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_RENAME);
+    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_WRITE);
+    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
+
+    // other related events
+    // close, clone, dup, link, unlink
+    // copyfile, fcntl
 
     subscribe(&ESProcessFileEventSubscriber::Callback, sc);
 
@@ -47,41 +52,19 @@ Status ESProcessFileEventSubscriber::Callback(
 
   r["event_type"] = ec->event_type;
 
-  /*
+
   r["pid"] = BIGINT(ec->pid);
   r["parent"] = BIGINT(ec->parent);
-  r["original_parent"] = BIGINT(ec->original_parent);
 
   r["path"] = ec->path;
-  r["cwd"] = ec->cwd;
 
-  r["uid"] = BIGINT(ec->uid);
-  r["euid"] = BIGINT(ec->euid);
-  r["gid"] = BIGINT(ec->gid);
-  r["egid"] = BIGINT(ec->egid);
+  // create, rename events
+  r["dest_dir"] = ""; // dir
+  r["dest_file"] = ""; // filename
 
-  r["signing_id"] = ec->signing_id;
-  r["team_id"] = ec->team_id;
-  r["cdhash"] = ec->cdhash;
+  // write
 
-  r["cmdline"] = ec->args;
-  r["cmdline_count"] = BIGINT(ec->argc);
-
-  r["env"] = ec->envs;
-  r["env_count"] = BIGINT(ec->envc);
-
-  r["platform_binary"] = (ec->platform_binary) ? INTEGER(1) : INTEGER(0);
-
-  r["username"] = ec->username;
-
-  if (ec->event_type == "fork") {
-    r["child_pid"] = BIGINT(ec->child_pid);
-  }
-
-  if (ec->event_type == "exit") {
-    r["exit_code"] = INTEGER(ec->exit_code);
-  }
-  */
+  // truncate
 
   sc->row_list = {r};
   if (!sc->row_list.empty()) {

@@ -78,6 +78,39 @@ struct EndpointSecurityEventContext : public EventContext {
 using EndpointSecurityEventContextRef =
     std::shared_ptr<EndpointSecurityEventContext>;
 
+struct EndpointSecurityFileSubscriptionContext : public SubscriptionContext {
+  std::vector<es_event_type_t> es_file_event_subscriptions_;
+  std::vector<Row> row_list;
+};
+
+using EndpointSecurityFileSubscriptionContextRef =
+    std::shared_ptr<EndpointSecurityFileSubscriptionContext>;
+
+struct EndpointSecurityFileEventContext : public EventContext {
+  es_event_type_t es_event;
+  int version;
+  long seq_num;
+  long global_seq_num;
+
+  std::string event_type;
+
+  pid_t pid;
+  pid_t parent;
+
+  // create event
+  std::string dir;
+  std::string filename;
+
+  // rename event
+  std::string dest_dir;
+  std::string dest_filename;
+  std::string src;
+
+};
+
+using EndpointSecurityFileEventContextRef =
+    std::shared_ptr<EndpointSecurityFileEventContext>;
+
 class EndpointSecurityPublisher
     : public EventPublisher<EndpointSecuritySubscriptionContext,
                             EndpointSecurityEventContext> {
@@ -117,6 +150,46 @@ class EndpointSecurityPublisher
   bool es_client_success_{false};
 };
 
+class EndpointSecurityFileEventPublisher
+    : public EventPublisher<EndpointSecurityFileSubscriptionContext,
+                            EndpointSecurityFileEventContext> {
+  DECLARE_PUBLISHER("endpointsecurity_fim");
+
+ public:
+  explicit EndpointSecurityFileEventPublisher(
+      const std::string& name = "EndpointSecurityFileEventPublisher")
+      : EventPublisher() {
+    runnable_name_ = name;
+  }
+
+  Status setUp() override API_AVAILABLE(macos(10.15));
+
+  void configure() override API_AVAILABLE(macos(10.15));
+
+  void tearDown() override API_AVAILABLE(macos(10.15));
+
+  Status run() override API_AVAILABLE(macos(10.15)) {
+    return Status::success();
+  }
+
+  bool shouldFire(const EndpointSecurityFileSubscriptionContextRef& sc,
+                  const EndpointSecurityFileEventContextRef& ec) const override
+    API_AVAILABLE(macos(10.15));
+
+  virtual ~EndpointSecurityFileEventPublisher() API_AVAILABLE(macos(10.15)) {
+    tearDown();
+  }
+
+ public:
+  static void handleMessage(const es_message_t* message) API_AVAILABLE(macos(10.15));
+
+ private:
+  es_client_s* es_file_client_{nullptr};
+  bool es_file_client_success_{false};
+  std::vector<std::string> muted_path_literals_;
+  std::vector<std::string> muted_path_prefixes_;
+};
+
 class ESProcessEventSubscriber
     : public EventSubscriber<EndpointSecurityPublisher> {
  public:
@@ -131,15 +204,15 @@ class ESProcessEventSubscriber
 };
 
 class ESProcessFileEventSubscriber
-    : public EventSubscriber<EndpointSecurityPublisher> {
+    : public EventSubscriber<EndpointSecurityFileEventPublisher> {
  public:
   ESProcessFileEventSubscriber() {
     setName("es_process_file_events");
   }
 
   Status init() override API_AVAILABLE(macos(10.15));
-  Status Callback(const EndpointSecurityEventContextRef& ec,
-                  const EndpointSecuritySubscriptionContextRef& sc)
+  Status Callback(const EndpointSecurityFileEventContextRef& ec,
+                  const EndpointSecurityFileSubscriptionContextRef& sc)
       API_AVAILABLE(macos(10.15));
 };
 } // namespace osquery

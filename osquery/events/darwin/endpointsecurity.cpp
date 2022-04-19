@@ -14,6 +14,7 @@
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
+#include <boost/algorithm/string/split.hpp>
 
 namespace osquery {
 
@@ -22,7 +23,24 @@ FLAG(bool,
      true,
      "Disable receiving events from the EndpointSecurity subsystem");
 
+FLAG(bool,
+     disable_endpointsecurity_fim,
+     true,
+     "Disable file events from the EndpointSecurity subsystem");
+
+FLAG(string,
+     es_fim_mute_path_literal,
+     "",
+     "Comma delimited list of path literals to be muted for FIM");
+
+FLAG(string,
+     es_fim_mute_path_prefix,
+     "",
+     "Comma delimited list of path prefxes to be muted for FIM");
+
+
 REGISTER(EndpointSecurityPublisher, "event_publisher", "endpointsecurity")
+REGISTER(EndpointSecurityFileEventPublisher, "event_publisher", "endpointsecurity_fim")
 
 Status EndpointSecurityPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
@@ -233,8 +251,102 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
 bool EndpointSecurityPublisher::shouldFire(
     const EndpointSecuritySubscriptionContextRef& sc,
     const EndpointSecurityEventContextRef& ec) const {
-  if (sc == getSubscriptionContext(ec))
+  //if (sc == getSubscriptionContext(ec))
   return true;
+}
+
+Status EndpointSecurityFileEventPublisher::setUp() {
+  if (__builtin_available(macos 10.15, *)) {
+    if (FLAGS_disable_endpointsecurity) {
+      return Status::failure(1,
+                             "EndpointSecurity is disabled via configuration");
+    }
+
+    if (FLAGS_disable_endpointsecurity_fim) {
+      return Status::failure(1, "EndpointSecurity FIM is disabled via configuration");
+    }
+
+    if (!FLAGS_es_fim_mute_path_literal.empty()) {
+      boost::split(muted_path_literals_, FLAGS_es_fim_mute_path_literal, ",");
+    }
+
+    if (!FLAGS_es_fim_mute_path_prefix.empty()) {
+      boost::split(muted_path_prefixes_, FLAGS_es_fim_mute_path_literal, ",");
+    }
+
+    auto handler = ^(es_client_t* client, const es_message_t* message) {
+      handleMessage(message);
+    };
+
+    auto result = es_new_client(&es_file_client_, handler);
+    if (result == ES_NEW_CLIENT_RESULT_SUCCESS) {
+      es_file_client_success_ = true;
+      return Status::success();
+    }
+  }
+  return Status::failure(1, "ES Fail");
+}
+
+void EndpointSecurityFileEventPublisher::configure() {
+  if (es_file_client_ == nullptr) {
+    return;
+  }
+
+  auto cache = es_clear_cache(es_file_client_);
+  if (cache != ES_CLEAR_CACHE_RESULT_SUCCESS) {
+    VLOG(1) << "Couldn't clear cache for EndpointSecurity client";
+    return;
+  }
+
+  for (auto& sub : subscriptions_) {
+    auto sc = getSubscriptionContext(sub->context);
+    auto events = sc->es_file_event_subscriptions_;
+
+    // check availability macros for muting APIs to see which macOS version supports this
+    for (const auto& p : muted_path_literals_) {
+      auto res = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
+      if (res == ES_RETURN_ERROR) {
+        VLOG(1) << "Unable to mute path: " << p;
+      }
+    }
+
+    for (const auto& p : muted_path_prefixes_) {
+      auto res = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
+      if (res == ES_RETURN_ERROR) {
+        VLOG(1) << "Unable to mute path with prefix: " << p;
+      }
+    }
+
+    auto es_sub = es_subscribe(es_file_client_, &events[0], events.size());
+    if (es_sub != ES_RETURN_SUCCESS) {
+      VLOG(1) << "Couldn't subscribe to EndpointSecurity subsystem";
+    }
+  }
+}
+
+void EndpointSecurityFileEventPublisher::tearDown() {
+  es_unsubscribe_all(es_file_client_);
+  es_delete_client(es_file_client_);
+  es_file_client_ = nullptr;
+}
+
+void EndpointSecurityFileEventPublisher::handleMessage(const es_message_t* message) {
+  auto ec = createEventContext();
+  switch (message->event_type) {
+  case ES_EVENT_TYPE_NOTIFY_CREATE: {
+    ec->event_type = "create";
+    message->event.create.destination.new_path.dir->path.data;
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_WRITE: {
+    ec->event_type = "write";
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_RENAME: {
+    ec->event_type = "rename";
+  } break;
+  default:
+    break;
+  }
+  EventFactory::fire<EndpointSecurityFileEventPublisher>(ec);
 }
 
 } // namespace osquery
