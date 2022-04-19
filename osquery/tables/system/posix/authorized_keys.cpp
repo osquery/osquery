@@ -7,24 +7,44 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
 #include <vector>
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
-#include <osquery/logger/logger.h>
+
+#include <osquery/tables/system/posix/authorized_keys.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/system.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
-#include <osquery/worker/logging/glog/glog_logger.h>
 
 namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kSSHAuthorizedkeys = {".ssh/authorized_keys",
                                                      ".ssh/authorized_keys2"};
+
+const std::vector<std::string> kSSHKeyTypes = {"ssh-rsa",
+                                               "ssh-ed25519",
+                                               "ecdsa-sha2-nistp256",
+                                               "ecdsa-sha2-nistp384",
+                                               "ecdsa-sha2-nistp521"};
+
+const std::string kKeyRingLabelOptionPrefix = "zos-key-ring-label=";
+
+bool isKeyRingLabelOptExist(const std::string& line) {
+  for (const auto& option : split(line, ",")) {
+    if (option.compare(0,
+                       kKeyRingLabelOptionPrefix.size(),
+                       kKeyRingLabelOptionPrefix) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void genSSHkeysForUser(const std::string& uid,
                        const std::string& gid,
@@ -48,13 +68,72 @@ void genSSHkeysForUser(const std::string& uid,
       logger.log(google::GLOG_WARNING, s.getMessage());
       continue;
     }
+
     // Protocol 1 public key consist of: options, bits, exponent, modulus,
     // comment; Protocol 2 public key consist of: options, keytype,
     // base64-encoded key, comment.
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
-        Row r = {{"uid", uid}, {"key", line}, {"key_file", keys_file.string()}};
-        r["pid_with_namespace"] = "0";
+        auto splitted_line = split(line, " ");
+        if (splitted_line.empty()) {
+          // Line is invalid
+          continue;
+        }
+
+        auto splitted_line_part = splitted_line.begin();
+        for (; splitted_line_part != splitted_line.end();
+             splitted_line_part++) {
+          if (find(kSSHKeyTypes.begin(),
+                   kSSHKeyTypes.end(),
+                   *splitted_line_part) != kSSHKeyTypes.end()) {
+            break;
+          }
+        }
+
+        // The current line does not contain key type.
+        if (splitted_line_part == splitted_line.end()) {
+          // rest of the line after 'zos-key-ring-label' should be ignored.
+          if (isKeyRingLabelOptExist(line)) {
+            Row r = {{"uid", uid},
+                     {"options", line},
+                     {"key_file", keys_file.string()},
+                     {"pid_with_namespace", "0"}};
+            results.push_back(r);
+          }
+          continue;
+        }
+
+        // Key does not exist in the current line.
+        if (++splitted_line_part == splitted_line.end()) {
+          continue;
+        }
+
+        std::string options;
+        std::string key_type;
+        std::string key;
+        std::string comment;
+
+        // Check if options are supplied for the current line
+        if (splitted_line_part != splitted_line.begin()) {
+          std::vector<std::string> vec{splitted_line.begin(),
+                                       --splitted_line_part};
+          options = osquery::join(vec, " ");
+        }
+
+        key_type = *splitted_line_part++;
+        key = *splitted_line_part++;
+        if (splitted_line_part != splitted_line.end()) {
+          std::vector<std::string> vec{splitted_line_part, splitted_line.end()};
+          comment = osquery::join(vec, " ");
+        }
+
+        Row r = {{"uid", uid},
+                 {"options", options},
+                 {"algorithm", key_type},
+                 {"key", key},
+                 {"comment", comment},
+                 {"key_file", keys_file.string()},
+                 {"pid_with_namespace", "0"}};
         results.push_back(r);
       }
     }

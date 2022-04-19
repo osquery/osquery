@@ -319,6 +319,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
+      posix/authorized_keys.h
     )
   endif()
 
