@@ -150,7 +150,7 @@ Status readFile(const fs::path& path,
   handle.fd->getFileTimes(times);
 
   off_t total_bytes = 0;
-  if (handle.blocking_io) {
+  if (handle.blocking_io || handle.fd->isSpecialFile()) {
     // Reset block size to a sane minimum.
     block_size = (block_size < 4096) ? 4096 : block_size;
     ssize_t part_bytes = 0;
