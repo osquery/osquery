@@ -76,7 +76,7 @@ void genSSHkeysForUser(const std::string& uid,
       if (!line.empty() && line[0] != '#') {
         auto splitted_line = split(line, " ");
         if (splitted_line.empty()) {
-          // Line syntax is invalid
+          // Line syntax is invalid.
           continue;
         }
 
@@ -103,7 +103,7 @@ void genSSHkeysForUser(const std::string& uid,
           continue;
         }
 
-        // Key does not exist in the current line.
+        // Key type does not exist in the current line.
         if (++splitted_line_part == splitted_line.end()) {
           continue;
         }
@@ -113,18 +113,24 @@ void genSSHkeysForUser(const std::string& uid,
         std::string key;
         std::string comment;
 
-        // Check if options are supplied for the current line
+        // Check if options are supplied for the current line.
         if (splitted_line_part != splitted_line.begin()) {
-          std::vector<std::string> vec{splitted_line.begin(),
-                                       --splitted_line_part};
-          options = osquery::join(vec, " ");
+          std::vector<std::string> options_parts{splitted_line.begin(),
+                                                 --splitted_line_part};
+          options = osquery::join(options_parts, " ");
         }
 
-        key_type = *splitted_line_part++;
-        key = *splitted_line_part++;
-        if (splitted_line_part != splitted_line.end()) {
-          std::vector<std::string> vec{splitted_line_part, splitted_line.end()};
-          comment = osquery::join(vec, " ");
+        key_type = *splitted_line_part;
+        if (++splitted_line_part == splitted_line.end()) {
+          // Actual key is required.
+          continue;
+        }
+
+        key = *splitted_line_part;
+        if (++splitted_line_part != splitted_line.end()) {
+          std::vector<std::string> comment_parts{splitted_line_part,
+                                                 splitted_line.end()};
+          comment = osquery::join(comment_parts, " ");
         }
 
         Row r = {{"uid", uid},
