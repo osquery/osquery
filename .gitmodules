@@ -151,3 +151,6 @@
 [submodule "libraries/cmake/source/krabsetw/src"]
 	path = libraries/cmake/source/krabsetw/src
 	url = https://github.com/microsoft/krabsetw.git
+[submodule "osquery/experimental/experiments/linuxevents/libraries/linuxevents/src"]
+	path = osquery/experimental/experiments/linuxevents/libraries/linuxevents/src
+	url = https://github.com/trailofbits/linuxevents

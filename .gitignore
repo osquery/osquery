@@ -65,6 +65,7 @@ doxygen/latex
 tags
 cscope.files
 cscope.out
+compile_commands.json
 
 # CMake generated compile commands
 compile_commands.json
