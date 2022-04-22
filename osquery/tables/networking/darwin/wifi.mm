@@ -142,8 +142,8 @@ QueryData parseBigSur(const std::string& path) {
     std::vector<const void*> values(count);
     CFDictionaryGetKeysAndValues(plist, keys.data(), values.data());
     for (CFIndex i = 0; i < count; i++) {
-      Row r;
       if (CFGetTypeID(keys[i]) == CFStringGetTypeID()) {
+        Row r;
         auto key = stringFromCFString((CFStringRef)keys[i]);
         std::string delim = "wifi.network.ssid.";
         auto ssid = key.erase(0, key.find(delim) + delim.length());
@@ -207,8 +207,8 @@ QueryData parseBigSur(const std::string& path) {
           }
           CFRelease(cfkey);
         }
+        results.push_back(r);
       }
-      results.push_back(r);
     }
   }
   return results;
