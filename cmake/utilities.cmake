@@ -219,7 +219,7 @@ function(add_osquery_executable)
 
     configure_file(
       "${CMAKE_SOURCE_DIR}/tools/deployment/macos_packaging/Info.plist.in"
-      "${CMAKE_SOURCE_DIR}/tools/deployment/macos_packaging/Info.plist"
+      "${CMAKE_BINARY_DIR}/tools/deployment/macos_packaging/Info.plist"
     )
   endif()
 
