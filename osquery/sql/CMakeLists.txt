@@ -22,6 +22,7 @@ function(generateOsquerySql)
     sqlite_filesystem.cpp
     sqlite_hashing.cpp
     sqlite_math.cpp
+    sqlite_network.cpp
     sqlite_operations.cpp
     sqlite_util.cpp
     virtual_sqlite_table.cpp
@@ -68,6 +69,7 @@ function(generateOsquerySql)
   add_test(NAME osquery_sql_tests_virtualtabletests-test COMMAND osquery_sql_tests_virtualtabletests-test)
   add_test(NAME osquery_sql_tests_sqliteutilstests-test COMMAND osquery_sql_tests_sqliteutilstests-test)
   add_test(NAME osquery_sql_tests_sqlitehashingstests-test COMMAND osquery_sql_tests_sqlitehashingtests-test)
+  add_test(NAME osquery_sql_tests_sqlitenetworktests-test COMMAND osquery_sql_tests_sqlitenetworktests-test)
 endfunction()
 
 osquerySqlMain()
