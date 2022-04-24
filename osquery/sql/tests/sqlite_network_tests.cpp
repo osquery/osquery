@@ -24,7 +24,7 @@ class SQLiteNetworkTests : public testing::Test {
 
 TEST_F(SQLiteNetworkTests, test_in_cidr_range) {
   Row r;
-  r["hash"] = 1;
+  r["result"] = "1";
 
   SQL sql = SQL("SELECT in_cidr_range('10.0.0.0/26', '10.0.0.24') AS result;");
   EXPECT_TRUE(sql.ok());
