@@ -326,6 +326,7 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
 
     if (sysctl(mib, 4, &kinfo, &size, nullptr, 0) != 0 ||
         size < sizeof(kinfo)) {
+      r.translated_col = -1;
       return;
     }
 
