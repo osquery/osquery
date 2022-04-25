@@ -274,7 +274,7 @@ QueryData genDrivers(QueryContext& context) {
 
     if (r.count("driver_key") > 0 && !r.at("driver_key").empty()) {
       r["driver_key"].insert(0, kDriverKeyPath);
-      auto res = isRegistrySubKeyExist(HKEY_LOCAL_MACHINE, r["driver_key"]);
+      auto res = registrySubKeyExists(HKEY_LOCAL_MACHINE, r["driver_key"]);
       if (!res.ok()) {
         VLOG(1) << "The following registry key for device id "
                 << wstringToString(devId) << " could not be found within path: "
