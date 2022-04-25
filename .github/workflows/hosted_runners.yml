@@ -1154,7 +1154,9 @@ jobs:
 
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: cmd
       run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
         ctest --build-nocmake -C Release -V
 
     - name: Run the install target
