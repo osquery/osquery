@@ -35,6 +35,7 @@ function(generateNativeTables)
     azure_instance_tags.table
     carbon_black_info.table
     carves.table
+    certificates.table
     chrome_extensions.table
     chrome_extension_content_scripts.table
     curl.table
@@ -179,7 +180,6 @@ function(generateNativeTables)
     "linwin/intel_me_info.table:linux,windows"
     "linwin/secureboot.table:linux,windows"
     "kernel_info.table:linux,macos,windows"
-    "macwin/certificates.table:macos,windows"
     "posix/extended_attributes.table:linux,macos"
     "posix/acpi_tables.table:linux,macos"
     "posix/augeas.table:linux,macos,freebsd"

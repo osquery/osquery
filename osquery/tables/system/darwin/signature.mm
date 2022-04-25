@@ -21,9 +21,12 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
+
+#include <openssl/x509.h>
 
 namespace osquery {
 namespace tables {

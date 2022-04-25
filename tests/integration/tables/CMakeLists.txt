@@ -34,6 +34,7 @@ function(generateTestsIntegrationTablesTestsTest)
   set(source_files
     carbon_black_info.cpp
     carves.cpp
+    certificates.cpp
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
@@ -211,7 +212,6 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
-      certificates.cpp
       crashes.cpp
       cups_destinations.cpp
       cups_jobs.cpp
@@ -283,7 +283,6 @@ function(generateTestsIntegrationTablesTestsTest)
       autoexec.cpp
       background_activities_moderator.cpp
       bitlocker_info.cpp
-      certificates.cpp
       connectivity.cpp
       windows_firewall_rules.cpp
       chassis_info.cpp

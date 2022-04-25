@@ -39,6 +39,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/load_average.cpp
       posix/logged_in_users.cpp
       posix/magic.cpp
+      posix/openssl_utils.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
       posix/sudoers.cpp
@@ -58,6 +59,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/acpi_tables.cpp
       linux/apt_sources.cpp
       linux/block_devices.cpp
+      linux/certificates.cpp
       linux/disk_encryption.cpp
       linux/extended_attributes.cpp
       linux/groups.cpp
@@ -320,6 +322,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
+      posix/openssl_utils.h
     )
   endif()
 
