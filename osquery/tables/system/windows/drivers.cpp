@@ -173,7 +173,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   return Status::success();
 }
 
-Status isRegistrySubKeyExist(HKEY key, const std::string& sub_key) {
+Status registrySubKeyExists(HKEY key, const std::string& sub_key) {
   HKEY hkey;
   auto ret =
       RegOpenKeyExW(key, stringToWstring(sub_key).c_str(), 0, KEY_READ, &hkey);
