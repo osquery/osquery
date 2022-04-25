@@ -293,9 +293,12 @@ void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
                                ProcessesRow::CPU_SUBTYPE |
-                               ProcessesRow::KIND)) {
+                               ProcessesRow::TRANSLATED)) {
     return;
   }
+
+  // default the translated column to 0
+  r.translated_col = 0;
 
   struct proc_archinfo {
     cpu_type_t p_cputype;
@@ -316,13 +319,7 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
     r.cpu_subtype_col = -1;
   }
 
-  if (archinfo.p_cputype == CPU_TYPE_X86_64) {
-    r.kind_col = "intel";
-  }
-
   if (archinfo.p_cputype == CPU_TYPE_ARM64) {
-    r.kind_col = "apple";
-
     struct kinfo_proc kinfo {};
     int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
     size_t size = sizeof(kinfo);
@@ -334,8 +331,9 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
 
     // proc_bsdinfo also has pbi_flags, but that seems to be not always
     // populated, instead kinfo_proc works better to get at the process flags
+    // and check whether P_TRANSLATED is one of the flags
     if (kinfo.kp_proc.p_flag & P_TRANSLATED) {
-      r.kind_col = "intel";
+      r.translated_col = 1;
     }
   }
 }
