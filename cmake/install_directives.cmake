@@ -257,7 +257,7 @@ function(generateInstallDirectives)
       FILES
         "tools/deployment/macos_packaging/osquery.entitlements"
         "tools/deployment/macos_packaging/embedded.provisionprofile"
-        "tools/deployment/macos_packaging/Info.plist"
+        "${CMAKE_BINARY_DIR}/tools/deployment/macos_packaging/Info.plist"
         "tools/deployment/macos_packaging/PkgInfo"
 
       DESTINATION
@@ -349,7 +349,7 @@ function(generateInstallDirectives)
     install(
       FILES
         "tools/deployment/macos_packaging/embedded.provisionprofile"
-        "tools/deployment/macos_packaging/Info.plist"
+        "${CMAKE_BINARY_DIR}/tools/deployment/macos_packaging/Info.plist"
         "tools/deployment/macos_packaging/PkgInfo"
 
       DESTINATION
