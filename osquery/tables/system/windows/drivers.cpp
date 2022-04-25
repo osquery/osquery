@@ -288,7 +288,7 @@ QueryData genDrivers(QueryContext& context) {
     if (r.count("service") > 0 && !r.at("service").empty()) {
       std::string svc_key = kServiceKeyPath + r["service"];
       std::string full_svc_key = kHkeyLocalMachinePrefix + svc_key;
-      auto res = isRegistrySubKeyExist(HKEY_LOCAL_MACHINE, svc_key);
+      auto res = registrySubKeyExists(HKEY_LOCAL_MACHINE, svc_key);
       if (!res.ok()) {
         VLOG(1) << "The following registry key for service name "
                 << r["service"]
