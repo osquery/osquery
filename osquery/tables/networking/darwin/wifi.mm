@@ -25,6 +25,9 @@ static const std::string kAirPortPreferencesPath =
     "/Library/Preferences/SystemConfiguration/"
     "com.apple.airport.preferences.plist";
 
+static const std::string kAirPortPrefPathPostCatalina =
+    "/Library/Preferences/com.apple.wifi.known-networks.plist";
+
 // In 10.14 and prior, there was an "auto_login" key.
 const std::map<std::string, std::string> kKnownWifiNetworkKeysPreCatalina = {
     {"auto_login", "AutoLogin"}, {"last_connected", "LastConnected"}};
@@ -124,6 +127,102 @@ void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
   results.push_back(r);
 }
 
+QueryData parseBigSur(const std::string& path) {
+  QueryData results;
+  @autoreleasepool {
+    auto plist = (__bridge CFDictionaryRef)
+        [NSDictionary dictionaryWithContentsOfFile:@(path.c_str())];
+    if (plist == nullptr || CFDictionaryGetCount(plist) == 0) {
+      VLOG(1) << "cannot open plist";
+      return results;
+    }
+
+    auto count = CFDictionaryGetCount(plist);
+    std::vector<const void*> keys(count);
+    std::vector<const void*> values(count);
+    CFDictionaryGetKeysAndValues(plist, keys.data(), values.data());
+    for (CFIndex i = 0; i < count; i++) {
+      if (CFGetTypeID(keys[i]) == CFStringGetTypeID()) {
+        Row r;
+        auto key = stringFromCFString((CFStringRef)keys[i]);
+        std::string delim = "wifi.network.ssid.";
+        auto ssid = key.erase(0, key.find(delim) + delim.length());
+        r["network_name"] = ssid;
+        auto cfkey = CFStringCreateWithCString(
+            kCFAllocatorDefault, "SSID", kCFStringEncodingUTF8);
+        if (cfkey != nullptr) {
+          auto ssid_data =
+              CFDictionaryGetValue((CFDictionaryRef)values[i], cfkey);
+          r["ssid"] = extractSsid((CFDataRef)ssid_data);
+          CFRelease(cfkey);
+        }
+
+        r["security_type"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "SupportedSecurityTypes");
+        r["possibly_hidden"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "Hidden");
+        r["add_reason"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "AddReason");
+        r["added_at"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "AddedAt");
+        r["personal_hotspot"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "PersonalHotspot");
+
+        cfkey = CFStringCreateWithCString(
+            kCFAllocatorDefault, "AutoJoinDisabled", kCFStringEncodingUTF8);
+        if (cfkey != nullptr) {
+          r["auto_join"] = (CFDictionaryContainsKey(
+                               (CFDictionaryRef const&)values[i], cfkey))
+                               ? "0"
+                               : "1";
+          CFRelease(cfkey);
+        }
+
+        cfkey = CFStringCreateWithCString(
+            kCFAllocatorDefault, "CaptiveProfile", kCFStringEncodingUTF8);
+        CFTypeRef captive = nullptr;
+        if (cfkey != nullptr) {
+          if (CFDictionaryGetValueIfPresent(
+                  (CFDictionaryRef)values[i], cfkey, &captive)) {
+            r["captive_portal"] = getPropertiesFromDictionary(
+                (CFDictionaryRef const&)captive, "CaptiveNetwork");
+            r["captive_login_date"] = getPropertiesFromDictionary(
+                (CFDictionaryRef const&)captive, "CaptiveWebSheetLoginDate");
+            r["was_captive_network"] = getPropertiesFromDictionary(
+                (CFDictionaryRef const&)captive, "NetworkWasCaptive");
+          }
+          CFRelease(cfkey);
+        }
+
+        cfkey = CFStringCreateWithCString(
+            kCFAllocatorDefault, "__OSSpecific__", kCFStringEncodingUTF8);
+        CFTypeRef oss = nullptr;
+        if (cfkey != nullptr) {
+          if (CFDictionaryGetValueIfPresent(
+                  (CFDictionaryRef)values[i], cfkey, &oss)) {
+            r["roaming_profile"] = getPropertiesFromDictionary(
+                (CFDictionaryRef const&)oss, "RoamingProfileType");
+            r["temporarily_disabled"] = getPropertiesFromDictionary(
+                (CFDictionaryRef const&)oss, "TemporarilyDisabled");
+          }
+          CFRelease(cfkey);
+        }
+        results.push_back(r);
+      }
+    }
+  }
+  return results;
+}
+
+inline bool isBigSurOrHigher() {
+  NSProcessInfo* processInfo = [NSProcessInfo processInfo];
+  static NSOperatingSystemVersion big_sur = {11, 0, 0};
+  static NSOperatingSystemVersion big_sur_sys_compat = {10, 16, 0};
+
+  return [processInfo isOperatingSystemAtLeastVersion:(big_sur)] ||
+         [processInfo isOperatingSystemAtLeastVersion:(big_sur_sys_compat)];
+}
+
 QueryData genKnownWifiNetworks(QueryContext& context) {
   std::string key;
   auto status = getKnownNetworksKey(key);
@@ -132,10 +231,11 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
     return {};
   }
 
-  boost::filesystem::path path = kAirPortPreferencesPath;
+  std::string p = isBigSurOrHigher() ? kAirPortPrefPathPostCatalina
+                                     : kAirPortPreferencesPath;
+  boost::filesystem::path path = p;
   if (!pathExists(path).ok()) {
-    VLOG(1) << "Airport preferences file not found: "
-            << kAirPortPreferencesPath;
+    VLOG(1) << "Airport preferences file not found: " << p;
     return {};
   }
 
@@ -144,14 +244,18 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
   dropper->dropToParent(path);
 
   if (!readFile(path)) {
-    VLOG(1) << "Unable to read file: " << kAirPortPreferencesPath;
+    VLOG(1) << "Unable to read file: " << p;
     return {};
+  }
+
+  if (isBigSurOrHigher()) {
+    return parseBigSur(p);
   }
 
   QueryData results;
   @autoreleasepool {
-    auto plist = (__bridge CFDictionaryRef)[NSDictionary
-        dictionaryWithContentsOfFile:@(kAirPortPreferencesPath.c_str())];
+    auto plist = (__bridge CFDictionaryRef)
+        [NSDictionary dictionaryWithContentsOfFile:@(p.c_str())];
     if (plist == nullptr || CFDictionaryGetCount(plist) == 0) {
       return {};
     }
