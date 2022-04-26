@@ -157,7 +157,7 @@ typedef struct LANGANDCODEPAGE {
 } langandcodepage_t;
 
 // retrieve the list of languages and code pages from version information
-// ressource
+// resource
 Status getLanguagesAndCodepages(
     const std::unique_ptr<BYTE[]>& versionInfo,
     std::vector<langandcodepage_t>& langs_and_codepages) {
