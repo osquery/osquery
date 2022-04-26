@@ -1,6 +1,6 @@
 # Everything in SQL
 
-It may seem weird at first, but try to think of your operating system a as series of tabular concepts. Each concept becomes a SQL table, like processes, or sockets, the filesystem, a host alias, a running kernel module, etc. There are several informational things — like OS version, CPU features, memory details, UEFI platform vendor details — that are not tabular but rather a body of details with labeled data. We can represent this type of data as a table with a single row and many columns, or a series of key/value rows. When you want to inspect a concept, you `SELECT` the data, and the associated OS APIs are called in real-time.
+It may seem weird at first, but try to think of your operating system as a series of tabular concepts. Each concept becomes a SQL table, like processes, or sockets, the filesystem, a host alias, a running kernel module, etc. There are several informational things — like OS version, CPU features, memory details, UEFI platform vendor details — that are not tabular but rather a body of details with labeled data. We can represent this type of data as a table with a single row and many columns, or a series of key/value rows. When you want to inspect a concept, you `SELECT` the data, and the associated OS APIs are called in real-time.
 
 Now consider event streams: each event is a row, like a new USB device connection, or file attribute modification. These are the same concepts with an 'event-like' twist. We do not inspect event-time data in real-time, but rather buffer the events as they occur and represent that buffer as a table! Concept 'actions' can be represented too, you perform an action and generate tabular data. Consider `stat`-ing a file, hashing a blob of data, parsing JSON, reading a SQLite database, traversing a directory, or requesting a user's list of installed browser plugins. Actions use primary keys as input and generate rows as output, and are best used when `JOIN`ing.
 
@@ -482,6 +482,6 @@ There are also encoding functions available, to process query results.
 
 ### Table and column name deprecations
 
-Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
+Over time it may make sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
 osquery makes an effort to mark deprecated tables and create 'clone' `VIEW`s so that previously scheduled queries continue to work. Similarly, for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/osquery/osquery/releases) on GitHub.

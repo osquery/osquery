@@ -649,7 +649,7 @@ TEST_F(BPFEventPublisherTests, processCreatEvent) {
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
   // clang-format off
-  bpf_event.in_field_map.insert(
+  bpf_event.out_field_map.insert(
     {
       "pathname",
 
@@ -720,7 +720,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
     }
 
     if ((i & 2) != 0) {
-      bpf_event.in_field_map.insert({filename_field.name, filename_field});
+      bpf_event.out_field_map.insert({filename_field.name, filename_field});
     }
 
     auto succeeded =
@@ -735,7 +735,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
   bpf_event.in_field_map.insert({mode_field.name, mode_field});
-  bpf_event.in_field_map.insert({filename_field.name, filename_field});
+  bpf_event.out_field_map.insert({filename_field.name, filename_field});
 
   auto succeeded =
       BPFEventPublisher::processMknodatEvent(state_tracker, bpf_event);
@@ -839,7 +839,7 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
     }
 
     if ((i & 2) != 0) {
-      bpf_event.in_field_map.insert({filename_field.name, filename_field});
+      bpf_event.out_field_map.insert({filename_field.name, filename_field});
     }
 
     auto succeeded =
@@ -853,7 +853,7 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
   // the syscall fails
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
-  bpf_event.in_field_map.insert({filename_field.name, filename_field});
+  bpf_event.out_field_map.insert({filename_field.name, filename_field});
   bpf_event.in_field_map.insert({flags_field.name, flags_field});
 
   auto succeeded =
@@ -1049,7 +1049,7 @@ TEST_F(BPFEventPublisherTests, processChdirEvent) {
   bpf_event.header.exit_code = static_cast<std::uint64_t>(-1);
 
   // clang-format off
-  bpf_event.in_field_map.insert(
+  bpf_event.out_field_map.insert(
     {
       "filename",
 

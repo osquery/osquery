@@ -49,6 +49,7 @@ function(generateNativeTables)
     interface_details.table
     listening_ports.table
     logged_in_users.table
+    npm_packages.table
     os_version.table
     platform_info.table
     process_memory_map.table
@@ -151,13 +152,11 @@ function(generateNativeTables)
     "freebsd/pkg_packages.table:freebsd"
     "linux/selinux_events.table:linux"
     "linux/seccomp_events.table:linux"
-    "linux/elf_symbols.table:linux"
     "linux/portage_use.table:linux"
     "linux/rpm_package_files.table:linux"
     "linux/shared_memory.table:linux"
     "linux/iptables.table:linux"
     "linux/portage_keywords.table:linux"
-    "linux/elf_segments.table:linux"
     "linux/md_devices.table:linux"
     "linux/process_namespaces.table:linux"
     "linux/syslog_events.table:linux"
@@ -165,28 +164,24 @@ function(generateNativeTables)
     "linux/portage_packages.table:linux"
     "linux/process_file_events.table:linux"
     "linux/md_drives.table:linux"
-    "linux/npm_packages.table:linux"
-    "linux/elf_info.table:linux"
     "linux/md_personalities.table:linux"
     "linux/kernel_modules.table:linux"
     "linux/shadow.table:linux"
     "linux/memory_info.table:linux"
     "linux/msr.table:linux"
     "linux/memory_map.table:linux"
-    "linux/elf_dynamic.table:linux"
-    "linux/elf_sections.table:linux"
     "linux/selinux_settings.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
+    "linux/apt_sources.table:linux"
+    "linux/yum_sources.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "linwin/secureboot.table:linux,windows"
-    "lldpd/lldp_neighbors.table:linux,macos,freebsd"
     "kernel_info.table:linux,macos,windows"
     "macwin/certificates.table:macos,windows"
     "posix/extended_attributes.table:linux,macos"
     "posix/acpi_tables.table:linux,macos"
-    "posix/apt_sources.table:linux,macos,freebsd"
     "posix/augeas.table:linux,macos,freebsd"
     "posix/authorized_keys.table:linux,macos,freebsd"
     "posix/block_devices.table:linux,macos"
@@ -195,6 +190,7 @@ function(generateNativeTables)
     "posix/disk_encryption.table:linux,macos"
     "posix/dns_resolvers.table:linux,macos,freebsd"
     "posix/docker_container_labels.table:linux,macos,freebsd"
+    "posix/docker_container_envs.table:linux,macos,freebsd"
     "posix/docker_container_mounts.table:linux,macos,freebsd"
     "posix/docker_container_networks.table:linux,macos,freebsd"
     "posix/docker_container_ports.table:linux,macos,freebsd"
@@ -250,11 +246,9 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos,freebsd"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos,freebsd"
-    "posix/yum_sources.table:linux,macos,freebsd"
     "sleuthkit/device_file.table:linux,macos,freebsd,windows"
     "sleuthkit/device_hash.table:linux,macos,freebsd,windows"
     "sleuthkit/device_partitions.table:linux,macos,freebsd,windows"
-    "smart/smart_drive_info.table:linux,macos"
     "user_groups.table:linux,macos,windows"
     "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
@@ -298,17 +292,25 @@ function(generateNativeTables)
     "windows/windows_security_center.table:windows"
     "windows/windows_optional_features.table:windows"
     "windows/connectivity.table:windows"
+    "windows/windows_firewall_rules.table:windows"
     "windows/userassist.table:windows"
     "windows/dns_cache.table:windows"
     "windows/hvci_status.table:windows"
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
     "windows/prefetch.table:windows"
-    "windows/shortcut_files.table:windows"
     "windows/tpm_info.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
   )
+
+  # We want to remove support for lldpd, so skip support for M1
+  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    list(APPEND platform_dependent_spec_files
+      "lldpd/lldp_neighbors.table:linux,macos,freebsd"
+      "smart/smart_drive_info.table:linux,macos"
+    )
+  endif()
 
   if(OSQUERY_BUILD_BPF)
     list(APPEND platform_dependent_spec_files

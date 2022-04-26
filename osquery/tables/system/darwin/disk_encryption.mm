@@ -429,27 +429,65 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   IOObjectRelease(service);
 }
 
-bool isAPFS(const QueryData& result) {
-  return !result.empty() && result[0].count("type") > 0 &&
-         result[0].at("type") == kAPFSFileSystem;
+bool isAPFS(const std::unordered_map<std::string, bool>& lookup,
+            const std::string& key) {
+  auto it = lookup.find(key);
+
+  if (it == lookup.end()) {
+    return false;
+  }
+
+  // We only need to check the first mount -- the rest should be the same.
+  return it->second;
 }
 
 QueryData genFDEStatus(QueryContext& context) {
   QueryData results;
 
-  auto block_devices = SQL::selectAllFrom("block_devices");
+  // For a given device, we need to tell if it's an apfs. We do this
+  // by looking at the type column from the mounts table. Fetch this
+  // here, so don't have to keep refetching.
+  std::unordered_map<std::string, bool> deviceIsAPFS;
+  for (const auto& row : SQL::selectAllFrom("mounts")) {
+    std::string device, type;
+    for (const auto& [k, v] : row) {
+      if (k == "device") {
+        device = v;
+      } else if (k == "type") {
+        type = v;
+      }
+    }
+    if (!device.empty() && !type.empty()) {
+      deviceIsAPFS[device] = type == kAPFSFileSystem;
+    }
+  }
+
+  bool runSelectAll(true);
+  QueryData block_devices;
+
+  if (auto constraint_it = context.constraints.find("name");
+      constraint_it != context.constraints.end()) {
+    const auto& constraints = constraint_it->second;
+    for (const auto& name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
+
+      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+      for (const auto& row : data) {
+        block_devices.push_back(row);
+      }
+    }
+  }
+
+  if (runSelectAll) {
+    block_devices = SQL::selectAllFrom("block_devices");
+  }
+
   for (const auto& row : block_devices) {
     auto name = row.at("name");
-    // FIXME: fetching all mounts is not efficient, we need to
-    // fetch all mounts before loop
-    auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, name);
     @autoreleasepool {
       const auto bsd_name = name.substr(kDeviceNamePrefix.size());
-      if (mount.size() > 1) {
-        assert(false && "Found multiple mounts for one device!");
-        LOG(ERROR) << "Found multiple mounts for " << name;
-      }
-      genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
+      genFDEStatusForBSDName(
+          bsd_name, row.at("uuid"), isAPFS(deviceIsAPFS, name), results);
     }
   }
   return results;

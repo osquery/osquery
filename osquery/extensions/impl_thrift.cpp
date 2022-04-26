@@ -19,9 +19,10 @@
 
 #ifdef WIN32
 #include <osquery/filesystem/fileops.h>
-#include <osquery/process/windows/process_ops.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
+
 #else
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>
@@ -41,6 +42,11 @@ namespace osquery {
 
 FLAG(bool, thrift_verbose, false, "Enable the thrift log handler");
 FLAG(uint32, thrift_timeout, 300, "Timeout for thrift socket operations");
+FLAG(int32,
+     thrift_string_size_limit,
+     0,
+     "Sets the maximum string size allowed in a thrift message, use 0 for "
+     "unlimited");
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -348,6 +354,7 @@ void ExtensionRunnerInterface::connect() {
   // Construct the service's transport, protocol, thread pool.
   auto transport_fac = std::make_shared<TBufferedTransportFactory>();
   auto protocol_fac = std::make_shared<TBinaryProtocolFactory>();
+  protocol_fac->setStringSizeLimit(FLAGS_thrift_string_size_limit);
 
   server_->server = std::make_shared<TThreadedServer>(
       server_->processor, server_->transport, transport_fac, protocol_fac);

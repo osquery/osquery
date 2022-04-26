@@ -1,7 +1,7 @@
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1k")
-set(OPENSSL_ARCHIVE_SHA256 "892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33fbaee5")
+set(OPENSSL_VERSION "1.1.1n")
+set(OPENSSL_ARCHIVE_SHA256 "40dceb51a4f6a5275bde0e6bf20ef4b91bfc32ed57c0552e2e8e15463372b17a")
 
 include(ExternalProject)
 
@@ -75,9 +75,21 @@ function(opensslMain)
       )
     endif()
 
+    if(TARGET_PROCESSOR STREQUAL "aarch64")
+      set(target_name
+        "darwin64-arm64-cc"
+      )
+    elseif(TARGET_PROCESSOR STREQUAL "x86_64")
+      set(target_name
+        "darwin64-x86_64-cc"
+      )
+    else()
+      message(FATAL_ERROR "Unsupported target processor")
+    endif()
+
     set(configure_command
       "${CMAKE_COMMAND}" -E env "CC=${CMAKE_C_COMPILER}" "AR=${CMAKE_AR}"
-      perl ./Configure darwin64-x86_64-cc
+      perl ./Configure "${target_name}"
         ${common_options}
         ${OSQUERY_FORMULA_CFLAGS}
 

@@ -352,7 +352,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
-    for (int syscall : kSocketEventsSyscalls) {
+    for (int syscall : getSocketEventsSyscalls()) {
       monitored_syscall_list_.insert(syscall);
     }
   }
@@ -414,14 +414,19 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   // clang-format on
 
   if (rule_add_error < 0) {
+    const char* errno_message = audit_errno_to_name(-rule_add_error);
     LOG(ERROR) << "Failed to install the audit rule due to one or more "
-               << "syscalls with error " << audit_errno_to_name(rule_add_error)
+               << "syscalls with error "
+               << (errno_message ? errno_message : "NULL")
                << ", Audit-based tables may not function as expected";
+
   } else if (FLAGS_audit_debug) {
     VLOG(1) << "Audit rule installed for all queued syscalls";
   }
 
-  if (FLAGS_audit_force_unconfigure) {
+  if (FLAGS_audit_force_unconfigure || rule_add_error >= 0) {
+    // keep a track of the rule even if installing it failed when asked to
+    // forcefully unconfigure.
     installed_rule_list_.push_back(rule);
   }
 
@@ -578,8 +583,13 @@ void AuditdNetlinkReader::restoreAuditServiceConfiguration() noexcept {
   VLOG(1) << "Uninstalling the audit rules we have installed";
 
   for (auto& rule : installed_rule_list_) {
-    audit_delete_rule_data(
+    int rule_delete_error = audit_delete_rule_data(
         audit_netlink_handle_, &rule, AUDIT_FILTER_EXIT, AUDIT_ALWAYS);
+    if (FLAGS_audit_debug && rule_delete_error < 0) {
+      const char* errno_message = audit_errno_to_name(-rule_delete_error);
+      VLOG(1) << "Error code returned by delete rule "
+              << (errno_message ? errno_message : "NULL");
+    }
   }
 
   installed_rule_list_.clear();

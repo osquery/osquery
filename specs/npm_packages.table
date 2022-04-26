@@ -1,0 +1,24 @@
+table_name("npm_packages")
+description("Node packages installed in a system.")
+schema([
+    Column("name", TEXT, "Package display name"),
+    Column("version", TEXT, "Package-supplied version"),
+    Column("description", TEXT, "Package-supplied description"),
+    Column("author", TEXT, "Package-supplied author"),
+    Column("license", TEXT, "License under which package is launched"),
+    Column("homepage", TEXT, "Package supplied homepage"),
+    Column("path", TEXT, "Path at which this module resides"),
+    Column("directory", TEXT, "Directory where node_modules are located", index=True)
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
+])
+implementation("npm_packages@genNodePackages")
+examples([
+  "select * from npm_packages",
+  "select * from npm_packages where directory = '/home/user/my_project'",
+])
+fuzz_paths([
+    "/usr/lib/node_modules/",
+])

@@ -391,8 +391,14 @@ WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
     return;
   }
 
-  hr = locator_->ConnectServer(
-      nspace_str, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services);
+  hr = locator_->ConnectServer(nspace_str,
+                               nullptr,
+                               nullptr,
+                               nullptr,
+                               WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+                               nullptr,
+                               nullptr,
+                               &services);
   SysFreeString(nspace_str);
 
   if (hr != S_OK) {

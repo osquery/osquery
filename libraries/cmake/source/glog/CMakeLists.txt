@@ -34,16 +34,16 @@ function(googleLogMain)
       -Wno-unnamed-type-template-args
     )
   elseif(DEFINED PLATFORM_WINDOWS)
-    target_compile_definitions(thirdparty_glog
-      PRIVATE
-        HAVE_SNPRINTF
-      PUBLIC
-        GLOG_NO_ABBREVIATED_SEVERITIES
-      )
+    target_compile_definitions(thirdparty_glog PUBLIC
+      GLOG_NO_ABBREVIATED_SEVERITIES
+      NOMINMAX # Needed to avoid collisions with the macro min()
+    )
   endif()
 
   target_compile_definitions(thirdparty_glog PUBLIC
     GOOGLE_GLOG_DLL_DECL=
+    GLOG_NO_SYMBOLIZE_DETECTION
+    GLOG_CUSTOM_PREFIX_SUPPORT
   )
 
   target_link_libraries(thirdparty_glog
@@ -56,31 +56,31 @@ function(googleLogMain)
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_glog
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/public"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/public"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     target_include_directories(thirdparty_glog
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/public"
         "${library_root}/src/windows"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/public"
         "${library_root}/src/windows"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_glog
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/public"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/public"
     )
   endif()
 

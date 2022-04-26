@@ -357,6 +357,9 @@ def handler():
     _thread.interrupt_main()
 
 def reset_timeout():
+    if ARGS['persist']:
+        return
+
     global TIMEOUT_TIMER
 
     if TIMEOUT_TIMER:
@@ -378,8 +381,7 @@ def run_http_server(bind_port=80, **kwargs):
             print("Cannot read --enroll_secret: %s" % str(e))
             exit(1)
 
-    if not ARGS['persist']:
-        reset_timeout()
+    reset_timeout()
 
     httpd = HTTPServer(('localhost', bind_port), RealSimpleHandler)
     if ARGS['tls']:

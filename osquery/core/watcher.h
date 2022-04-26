@@ -278,8 +278,14 @@ class WatcherRunner : public InternalRunnable {
   /// Fork an extension process.
   virtual void createExtension(const std::string& extension);
 
-  /// If a worker/extension has otherwise gone insane, stop it.
-  virtual void stopChild(const PlatformProcess& child) const;
+  /// Signal the worker or extension process to close cleanly.
+  /// If enough time has passed, and the process hasn't closed yet,
+  /// the process will be killed.
+  /// The force argument is used to request a faster timeout
+  /// for the clean shutdown, which is based on the flag
+  /// watchdog_forced_shutdown_delay
+  virtual void stopChild(const PlatformProcess& child,
+                         bool force = false) const;
 
   /// Return the time the watchdog is delayed until (from start of watcher).
   uint64_t delayedTime() const;

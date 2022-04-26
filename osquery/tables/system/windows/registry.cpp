@@ -418,8 +418,7 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
               std::inserter(rKeys, rKeys.end()));
 }
 
-static inline Status populateSubkeys(std::set<std::string>& rKeys,
-                                     bool replaceKeys = false) {
+inline Status populateSubkeys(std::set<std::string>& rKeys, bool replaceKeys) {
   std::set<std::string> newKeys;
   if (!replaceKeys) {
     newKeys = rKeys;
@@ -429,6 +428,10 @@ static inline Status populateSubkeys(std::set<std::string>& rKeys,
     QueryData regResults;
     auto ret = queryKey(key, regResults);
     if (!ret.ok()) {
+      if (ret.getCode() == ERROR_FILE_NOT_FOUND) {
+        continue;
+      }
+
       return ret;
     }
     for (const auto& r : regResults) {

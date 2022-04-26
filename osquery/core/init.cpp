@@ -50,6 +50,12 @@
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 
+#ifdef WIN32
+#include <osquery/core/windows/global_users_groups_cache.h>
+#include <osquery/system/usersgroups/windows/groups_service.h>
+#include <osquery/system/usersgroups/windows/users_service.h>
+#endif
+
 #ifdef __linux__
 #include <sys/syscall.h>
 
@@ -489,6 +495,24 @@ void Initializer::initWorker(const std::string& name) const {
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) const {
+  if (isWorker() || !isWatcher()) {
+#ifdef OSQUERY_WINDOWS
+    std::promise<void> users_cache_promise;
+    std::promise<void> groups_cache_promise;
+    GlobalUsersGroupsCache::global_users_cache_future_ =
+        users_cache_promise.get_future();
+    GlobalUsersGroupsCache::global_groups_cache_future_ =
+        groups_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<UsersService>(
+        std::move(users_cache_promise),
+        GlobalUsersGroupsCache::global_users_cache_));
+    Dispatcher::addService(std::make_shared<GroupsService>(
+        std::move(groups_cache_promise),
+        GlobalUsersGroupsCache::global_groups_cache_));
+#endif
+  }
+
   if (isWorker()) {
     initWorker(name);
   } else {

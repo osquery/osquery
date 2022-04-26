@@ -24,6 +24,7 @@ function(osqueryUtilsMain)
   add_subdirectory("versioning")
   add_subdirectory("schemer")
   add_subdirectory("ycloud")
+  add_subdirectory("linux")
 
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsUtilstestsTest()

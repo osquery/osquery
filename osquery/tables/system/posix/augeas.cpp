@@ -35,7 +35,7 @@ FLAG(string,
 #else
 FLAG(string,
      augeas_lenses,
-     "/usr/share/osquery/lenses",
+     "/opt/osquery/share/osquery/lenses",
      "Directory that contains augeas lenses files");
 #endif
 
@@ -289,5 +289,5 @@ QueryData genAugeas(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

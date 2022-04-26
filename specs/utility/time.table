@@ -1,26 +1,23 @@
 table_name("time")
-description("Track current date and time in the system.")
+description("Track current date and time in UTC.")
 schema([
-    Column("weekday", TEXT, "Current weekday in the system"),
-    Column("year", INTEGER, "Current year in the system"),
-    Column("month", INTEGER, "Current month in the system"),
-    Column("day", INTEGER, "Current day in the system"),
-    Column("hour", INTEGER, "Current hour in the system"),
-    Column("minutes", INTEGER, "Current minutes in the system"),
-    Column("seconds", INTEGER, "Current seconds in the system"),
-    Column("timezone", TEXT, "Current timezone in the system"),
-    Column("local_time", INTEGER, "Current local UNIX time in the system",
-        aliases=["localtime"]),
-    Column("local_timezone", TEXT, "Current local timezone in the system"),
-    Column("unix_time", INTEGER,
-        "Current UNIX time in the system, converted to UTC if --utc enabled"),
-    Column("timestamp", TEXT, "Current timestamp (log format) in the system"),
-    Column("datetime", TEXT, "Current date and time (ISO format) in the system",
+    Column("weekday", TEXT, "Current weekday in UTC"),
+    Column("year", INTEGER, "Current year in UTC"),
+    Column("month", INTEGER, "Current month in UTC"),
+    Column("day", INTEGER, "Current day in UTC"),
+    Column("hour", INTEGER, "Current hour in UTC"),
+    Column("minutes", INTEGER, "Current minutes in UTC"),
+    Column("seconds", INTEGER, "Current seconds in UTC"),
+    Column("timezone", TEXT, "Timezone for reported time (hardcoded to UTC)"),
+    Column("local_timezone", TEXT, "Current local timezone in of the system"),
+    Column("unix_time", INTEGER, "Current UNIX time in UTC"),
+    Column("timestamp", TEXT, "Current timestamp (log format) in UTC"),
+    Column("datetime", TEXT, "Current date and time (ISO format) in UTC",
         aliases=["date_time"]),
-    Column("iso_8601", TEXT, "Current time (ISO format) in the system"),
+    Column("iso_8601", TEXT, "Current time (ISO format) in UTC"),
 ])
 extended_schema(WINDOWS, [
-    Column("win_timestamp", BIGINT, "Timestamp value in 100 nanosecond units."),
+    Column("win_timestamp", BIGINT, "Timestamp value in 100 nanosecond units"),
 ])
 attributes(utility=True)
 implementation("time@genTime")

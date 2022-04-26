@@ -63,15 +63,20 @@ const auto kNumOfCPUs = boost::thread::physical_concurrency();
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
+
     // % of (User + System + Idle) CPU time worker can utilize
     // for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {10, 5, 100}},
+
     // Number of seconds the worker should run, else consider the exit fatal.
     {WatchdogLimitType::RESPAWN_LIMIT, {4, 4, 1000}},
+
     // If the worker respawns too quickly, backoff on creating additional.
     {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
+
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
     {WatchdogLimitType::LATENCY_LIMIT, {12, 6, 1000}},
+
     // How often to poll for performance limit violations.
     {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
@@ -96,6 +101,11 @@ CLI_FLAG(uint64,
          "Override watchdog profile CPU utilization limit");
 
 CLI_FLAG(uint64,
+         watchdog_latency_limit,
+         0,
+         "Override watchdog profile CPU utilization latency limit");
+
+CLI_FLAG(uint64,
          watchdog_delay,
          60,
          "Initial delay in seconds before watchdog starts");
@@ -109,6 +119,12 @@ CLI_FLAG(bool,
          enable_extensions_watchdog,
          false,
          "Enable userland watchdog for extensions processes");
+
+CLI_FLAG(uint64,
+         watchdog_forced_shutdown_delay,
+         4,
+         "Seconds that the watchdog will wait to do a forced shutdown after a "
+         "graceful shutdown request, when a resource limit is hit");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -334,7 +350,7 @@ void WatcherRunner::watchExtensions() {
               << extension.second->pid() << ") stopping: " << s.getMessage();
         systemLog(error.str());
         LOG(WARNING) << error.str();
-        stopChild(*extension.second);
+        stopChild(*extension.second, true);
         pause(
             std::chrono::seconds(getWorkerLimit(WatchdogLimitType::INTERVAL)));
         ext_valid = false;
@@ -379,7 +395,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
             << ") stopping: " << status.getMessage();
       systemLog(error.str());
       LOG(WARNING) << error.str();
-      stopChild(child);
+      stopChild(child, true);
       return false;
     }
     return true;
@@ -394,26 +410,38 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   return true;
 }
 
-void WatcherRunner::stopChild(const PlatformProcess& child) const {
-  /* We leave 2 seconds for the rest of the logic to shutdown,
-   and 2 seconds for the forced kill to do the reaping */
-  auto timeout = (FLAGS_alarm_timeout - 4) * 1000;
+void WatcherRunner::stopChild(const PlatformProcess& child, bool force) const {
+  auto child_pid = child.pid();
 
-  child.killGracefully();
+  /* In the normal shutdown case we use alarm_timeout,
+     we leave 2 seconds for the rest of the logic to shutdown,
+     and 2 seconds for the forced kill to do the reaping.
+     Otherwise use the forced shutdown timeout directly */
+  auto timeout = (force ? FLAGS_watchdog_forced_shutdown_delay
+                        : (FLAGS_alarm_timeout - 4)) *
+                 1000;
 
-  // Clean up the defunct (zombie) process.
-  if (!child.cleanup(std::chrono::milliseconds(timeout))) {
-    auto child_pid = child.pid();
+  // Attempt a clean shutdown
+  if (timeout > 0) {
+    child.killGracefully();
+
+    // Clean up the defunct (zombie) process.
+    if (child.cleanup(std::chrono::milliseconds(timeout))) {
+      // The process exited cleanly
+      return;
+    }
 
     LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
                  << ") could not be stopped. Sending kill signal.";
+  }
 
-    child.kill();
-    if (!child.cleanup(std::chrono::milliseconds(2000))) {
-      auto message = std::string("Watcher cannot stop worker process (") +
-                     std::to_string(child_pid) + ").";
-      requestShutdown(EXIT_CATASTROPHIC, message);
-    }
+  // If the process hasn't exited cleanly yet, or we need to immediately kill
+  // a misbehaving worker/extension, send a kill signal
+  child.kill();
+  if (!child.cleanup(std::chrono::milliseconds(2000))) {
+    auto message = std::string("Watcher cannot stop worker process (") +
+                   std::to_string(child_pid) + ").";
+    requestShutdown(EXIT_CATASTROPHIC, message);
   }
 }
 
@@ -726,6 +754,11 @@ uint64_t getWorkerLimit(WatchdogLimitType name) {
   if (name == WatchdogLimitType::UTILIZATION_LIMIT &&
       FLAGS_watchdog_utilization_limit > 0) {
     return FLAGS_watchdog_utilization_limit;
+  }
+
+  if (name == WatchdogLimitType::LATENCY_LIMIT &&
+      FLAGS_watchdog_latency_limit > 0) {
+    return FLAGS_watchdog_latency_limit;
   }
 
   auto level = FLAGS_watchdog_level;

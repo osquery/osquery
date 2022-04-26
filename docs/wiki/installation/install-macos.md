@@ -11,18 +11,22 @@ Each osquery tag (release) builds a macOS package: [osquery.io/downloads](https:
 The default package creates the following structure:
 
 ```sh
-/private/var/osquery/com.facebook.osqueryd.plist
+/private/var/osquery/io.osquery.agent.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
 /private/var/osquery/lenses/{*}.aug
 /private/var/osquery/packs/{*}.conf
-/usr/local/lib/osquery/
-/usr/local/bin/osqueryctl
-/usr/local/bin/osqueryd
-/usr/local/bin/osqueryi
+/opt/osquery/lib/osquery.app
+/usr/local/bin/osqueryi -> /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+/usr/local/bin/osqueryctl -> /opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl
 ```
+**Note:** With the release of osquery 5.x, osquery is now installed as an app bundle at `/opt/osquery/lib/osquery.app`. The new location for `osqueryd` and `osqueryctl` is inside the app bundle at `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd` and `/opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl` respectively. Symlinks to `osqueryi` and `osqueryctl` are provided in `/usr/local/bin` for convenience.
 
 This package does **not** install a LaunchDaemon to start `osqueryd`. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
+
+### Note on upgrading from osquery 4.x to 5.x
+
+When upgrading from older versions to newer, osquery itself does not provide a mechanisim to stop the service of older version, upgrade osquery, and then restart the service. 
 
 ### Post installation steps
 
@@ -36,8 +40,8 @@ sudo osqueryctl start
 
 # Or, install the example config and launch daemon yourself:
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
-sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons
-sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
+sudo cp /var/osquery/io.osquery.agent.plist /Library/LaunchDaemons
+sudo launchctl load /Library/LaunchDaemons/io.osquery.agent.plist
 ```
 
 ### Removing osquery
@@ -45,16 +49,17 @@ sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
 To remove osquery from a macOS system, run the following commands:
 
 ```sh
-# Unload and remove com.facebook.osquery.plist launchdaemon
-sudo launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
-sudo rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
+# Unload and remove io.osquery.agent.plist launchdaemon
+sudo launchctl unload /Library/LaunchDaemons/io.osquery.agent.plist
+sudo rm /Library/LaunchDaemons/io.osquery.agent.plist
 
 # Remove files/directories created by osquery installer pkg
 sudo rm -rf /private/var/log/osquery
 sudo rm -rf /private/var/osquery
 sudo rm /usr/local/bin/osquery*
+sudo rm -rf /opt/osquery
 
-sudo pkgutil --forget com.facebook.osquery
+sudo pkgutil --forget io.osquery.agent
 ```
 
 ## Running osquery

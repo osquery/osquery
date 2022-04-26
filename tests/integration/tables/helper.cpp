@@ -20,7 +20,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 #include <boost/regex.hpp>
 #include <boost/uuid/string_generator.hpp>
 

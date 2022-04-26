@@ -8,6 +8,7 @@
  */
 
 #include "bpftestsmain.h"
+#include "mockedfilesystem.h"
 #include "mockedprocesscontextfactory.h"
 #include "utils.h"
 
@@ -1363,4 +1364,24 @@ TEST_F(SystemStateTrackerTests, expireFileHandleEntries) {
   EXPECT_EQ(context.file_handle_struct_map.size(), 1U);
   EXPECT_EQ(context.file_handle_struct_index.size(), 1U);
 }
+
+TEST_F(SystemStateTrackerTests, expireProcessContexts) {
+  SystemStateTracker::Context context;
+
+  context.process_map.insert(
+      {kBaseBPFEventHeader.process_id, ProcessContext{}});
+
+  context.process_map.insert(
+      {kBaseBPFEventHeader.process_id + 1, ProcessContext{}});
+
+  context.process_map.insert(
+      {kBaseBPFEventHeader.process_id + 2, ProcessContext{}});
+
+  MockedFilesystem mocked_filesystem;
+  EXPECT_EQ(context.process_map.size(), 3U);
+
+  SystemStateTracker::expireProcessContexts(context, mocked_filesystem);
+  EXPECT_EQ(context.process_map.size(), 1U);
+}
+
 } // namespace osquery

@@ -47,8 +47,7 @@ function(generatePluginsLoggerAwsfirehose)
     osquery_cxx_settings
     osquery_dispatcher
     plugins_logger_awslogforwarder
-    thirdparty_aws_core
-    thirdparty_aws_firehose
+    thirdparty_aws-cpp-sdk-firehose
   )
 
   set(public_header_files
@@ -71,8 +70,7 @@ function(generatePluginsLoggerAwskinesis)
     osquery_process
     osquery_registry
     plugins_logger_awslogforwarder
-    thirdparty_aws_core
-    thirdparty_aws_kinesis
+    thirdparty_aws-cpp-sdk-kinesis
   )
 
   set(public_header_files
@@ -135,6 +133,7 @@ function(generatePluginsLoggerFilesystemlogger)
     plugins_logger_commondeps
     osquery_filesystem
     osquery_utils_config
+    osquery_utils_conversions
   )
 
   set(public_header_files

@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for yum_sources
-// Spec file: specs/posix/yum_sources.table
+// Spec file: specs/linux/yum_sources.table
 
 #include <osquery/tests/integration/tables/helper.h>
 

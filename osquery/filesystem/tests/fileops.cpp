@@ -17,7 +17,8 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 
 namespace fs = boost::filesystem;
 

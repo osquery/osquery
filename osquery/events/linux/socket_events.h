@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <asm/unistd.h>
-
 #include <set>
 
-const std::set<int> kSocketEventsSyscalls = {
-  __NR_bind,
-  __NR_connect};
+namespace osquery {
+
+std::set<int> getSocketEventsSyscalls();
+
+}

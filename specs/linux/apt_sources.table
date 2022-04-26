@@ -1,0 +1,20 @@
+table_name("apt_sources")
+description("Current list of APT repositories or software channels.")
+schema([
+    Column("name", TEXT, "Repository name"),
+    Column("source", TEXT, "Source file"),
+    Column("base_uri", TEXT, "Repository base URI"),
+    Column("release", TEXT, "Release name"),
+    Column("version", TEXT, "Repository source version"),
+    Column("maintainer", TEXT, "Repository maintainer"),
+    Column("components", TEXT, "Repository components"),
+    Column("architectures", TEXT, "Repository architectures"),
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+])
+implementation("system/apt_sources@genAptSrcs")
+fuzz_paths([
+    "/etc/apt/",
+    "/var/lib/apt",
+])

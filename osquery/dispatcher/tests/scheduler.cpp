@@ -68,6 +68,7 @@ TEST_F(SchedulerTests, test_monitor) {
   // There is no pack for this query within the config, that is fine as these
   // performance stats are tracked independently.
   EXPECT_EQ(perf.executions, 1U);
+  EXPECT_GT(perf.output_size, 0U);
 
   // A bit more testing, potentially redundant, check the database results.
   // Since we are only monitoring, no 'actual' results are stored.
@@ -79,6 +80,36 @@ TEST_F(SchedulerTests, test_monitor) {
   // We are not concerned with the APPROX value, only that it was recorded.
   getDatabaseValue(kPersistentSettings, "timestamp." + name, timestamp);
   EXPECT_FALSE(timestamp.empty());
+}
+
+TEST_F(SchedulerTests, test_output_size) {
+  // set up the test query
+  auto query_name = "output_size_test_query";
+  ScheduledQuery query("test", "test", "select 1 as number");
+  query.interval = 1;
+  query.splayed_interval = 0;
+
+  auto results = monitor(query_name, query);
+  EXPECT_EQ(results.rowsTyped().size(), 1U);
+
+  QueryPerformance perf;
+  Config::get().getPerformanceStats(
+      query_name, ([&perf](const QueryPerformance& r) { perf = r; }));
+  // Total execution should be just 1
+  EXPECT_EQ(perf.executions, 1U);
+  // The output size is 6 for "number", and 8 for the number, so 14 total
+  EXPECT_EQ(perf.output_size, 14U);
+
+  // run the query again
+  results = monitor(query_name, query);
+  EXPECT_EQ(results.rowsTyped().size(), 1U);
+
+  Config::get().getPerformanceStats(
+      query_name, ([&perf](const QueryPerformance& r) { perf = r; }));
+
+  // this time check that executions and output_size are doubled
+  EXPECT_EQ(perf.executions, 2U);
+  EXPECT_EQ(perf.output_size, 28U);
 }
 
 TEST_F(SchedulerTests, test_config_results_purge) {
@@ -263,4 +294,4 @@ TEST_F(SchedulerTests, test_scheduler_reload) {
   SchedulerRunner runner(expire, 1);
   FLAGS_schedule_reload = backup_reload;
 }
-}
+} // namespace osquery

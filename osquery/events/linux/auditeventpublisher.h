@@ -26,6 +26,7 @@ struct UserAuditEventData final {
 
 struct SyscallAuditEventData final {
   std::uint64_t syscall_number;
+  bool succeeded;
 
   pid_t process_id;
   pid_t parent_process_id;
@@ -150,9 +151,11 @@ class AuditEventPublisher final
   static std::string executable_path_;
 
   /// Aggregates raw event records into audit events
-  static void ProcessEvents(AuditEventContextRef event_context,
-                            const std::vector<AuditEventRecord>& record_list,
-                            AuditTraceContext& trace_context) noexcept;
+  static void ProcessEvents(
+      AuditEventContextRef event_context,
+      const std::vector<AuditEventRecord>& record_list,
+      AuditTraceContext& trace_context,
+      const std::set<int>& syscalls_allowed_to_fail) noexcept;
 
  private:
   /// Netlink reader
@@ -160,6 +163,9 @@ class AuditEventPublisher final
 
   /// This is where audit records are assembled
   AuditTraceContext audit_trace_context_;
+
+  /// Syscalls allowed to fail (captured even if success=no)
+  std::set<int> syscalls_allowed_to_fail_;
 };
 
 /// Extracts the specified audit event record from the given audit event

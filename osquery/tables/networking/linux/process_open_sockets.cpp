@@ -123,6 +123,15 @@ QueryData genOpenSockets(QueryContext& context) {
                "to acquire basic socket information for AF_UNIX: "
             << status.what();
       }
+
+      // protocol is 0, we want all protocols here.
+      status = procGetSocketList(AF_PACKET, 0, ns, pid, socket_list);
+      if (!status.ok()) {
+        VLOG(1)
+            << "Results for process_open_sockets might be incomplete. Failed "
+               "to acquire basic socket information for AF_PACKET: "
+            << status.what();
+      }
     }
   }
 

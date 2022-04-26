@@ -9,6 +9,7 @@
 
 #include <osquery/core/query.h>
 #include <osquery/core/tables.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 #include <string>
 
@@ -20,7 +21,8 @@ extern const std::string kSSHUserKeysDir;
 void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
-                       QueryData& results);
+                       QueryData& results,
+                       Logger& logger);
 
 QueryData getUserSshKeys(QueryContext& context);
 

@@ -58,6 +58,12 @@ function(generateOsqueryExtensionsImplthrift)
     osquery_utils
     osquery_utils_conversions
   )
+
+  if(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_extensions_implthrift PRIVATE
+      osquery_utils_system_usersgroupshelpers
+    )
+  endif()
 endfunction()
 
 function(generateOsqueryExtensionsExtensionsinterface)

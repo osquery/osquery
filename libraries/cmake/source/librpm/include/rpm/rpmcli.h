@@ -340,8 +340,8 @@ void * rpmShowProgress(const void * arg,
  * Install source rpm package.
  * @param ts		transaction set
  * @param arg		source rpm file name
- * @retval *specFilePtr	(installed) spec file name
- * @retval *cookie
+ * @param[out] *specFilePtr	(installed) spec file name
+ * @param[out] *cookie
  * @return		0 on success
  */
 int rpmInstallSource(rpmts ts, const char * arg,

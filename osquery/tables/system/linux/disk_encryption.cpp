@@ -83,6 +83,11 @@ void genFDEStatusForBlockDevice(const std::string& name,
     break;
   }
 
+    // If there's no good crypt status, check to see if we've already
+    // defined the parent_name. If so, inherit data from there. This
+    // works because the `SQL::selectAllFrom("block_devices")` is
+    // ordered enough. If that order proves inadequate, we may need
+    // to explicitly sort it.
   default:
     if (encrypted_rows.count(parent_name)) {
       auto parent_row = encrypted_rows[parent_name];
@@ -110,7 +115,27 @@ QueryData genFDEStatus(QueryContext& context) {
   }
 
   std::map<std::string, Row> encrypted_rows;
-  auto block_devices = SQL::selectAllFrom("block_devices");
+
+  bool runSelectAll(true);
+  QueryData block_devices;
+
+  if (auto constraint_it = context.constraints.find("name");
+      constraint_it != context.constraints.end()) {
+    const auto& constraints = constraint_it->second;
+    for (const auto& name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
+
+      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
+      for (const auto& row : data) {
+        block_devices.push_back(row);
+      }
+    }
+  }
+
+  if (runSelectAll) {
+    block_devices = SQL::selectAllFrom("block_devices");
+  }
+
   for (const auto& row : block_devices) {
     const auto name = (row.count("name") > 0) ? row.at("name") : "";
     const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
@@ -118,7 +143,8 @@ QueryData genFDEStatus(QueryContext& context) {
     genFDEStatusForBlockDevice(
         name, uuid, parent_name, encrypted_rows, results);
   }
+
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

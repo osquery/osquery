@@ -167,5 +167,58 @@ TEST_F(SudoersTests, include_dir) {
   EXPECT_EQ(results[3].at("rule_details"), "env_keep += \"AT\"");
 }
 
+TEST_F(SudoersTests, long_line) {
+  auto directory =
+      real_temp_path() / fs::unique_path("osquery.sudoers_tests.%%%%-%%%%");
+
+  ASSERT_TRUE(fs::create_directories(directory));
+
+  auto const path_guard =
+      scope_guard::create([directory]() { fs::remove_all(directory); });
+
+  auto sudoers_file = directory / fs::path("sudoers");
+
+  {
+    auto fout = std::ofstream(sudoers_file.native());
+    fout << "# This is a comment\\\n" // comment ends with backslash
+         << " # with a leading space\\\n" // comment ends with backslash
+         << "User_Alias OTHER_USERS=foo,\\\n" // long line
+         << "bar,\\\n" // long line
+         << "baz\n"
+         << "User_Alias NUM_USERS=#501,#502\n"
+         << "User_Alias ALL_USERS = NUM_USERS,\\\n" // long line
+         << "OTHER_USERS\n"
+         << "Cmnd_Alias CMDS_1=/usr/bin/cmd1 \"a\\,b\",\\\n" // long line
+         << "/usr/bin/cmd2\n"
+         << "ALL_USERS ALL=(ALL)CMDS_1\n";
+  }
+
+  auto results = QueryData{};
+  genSudoersFile(sudoers_file.string(), 1, results);
+
+  ASSERT_EQ(results.size(), 5);
+
+  EXPECT_EQ(results[0].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[0].at("header"), "User_Alias");
+  EXPECT_EQ(results[0].at("rule_details"), "OTHER_USERS=foo,bar,baz");
+
+  EXPECT_EQ(results[1].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[1].at("header"), "User_Alias");
+  EXPECT_EQ(results[1].at("rule_details"), "NUM_USERS=#501,#502");
+
+  EXPECT_EQ(results[2].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[2].at("header"), "User_Alias");
+  EXPECT_EQ(results[2].at("rule_details"), "ALL_USERS = NUM_USERS,OTHER_USERS");
+
+  EXPECT_EQ(results[3].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[3].at("header"), "Cmnd_Alias");
+  EXPECT_EQ(results[3].at("rule_details"),
+            "CMDS_1=/usr/bin/cmd1 \"a\\,b\",/usr/bin/cmd2");
+
+  EXPECT_EQ(results[4].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[4].at("header"), "ALL_USERS");
+  EXPECT_EQ(results[4].at("rule_details"), "ALL=(ALL)CMDS_1");
+}
+
 } // namespace tables
 } // namespace osquery

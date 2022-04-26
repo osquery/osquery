@@ -470,6 +470,42 @@ QueryData genContainers(QueryContext& context) {
 }
 
 /**
+ * @brief Entry point for docker_container_envs table.
+ */
+QueryData genContainerEnvs(QueryContext& context) {
+  QueryData results;
+  std::set<std::string> ids;
+  pt::ptree containers;
+  auto s = getContainers(context, ids, containers);
+  if (!s.ok()) {
+    return results;
+  }
+
+  for (const auto& entry : containers) {
+    const pt::ptree& container = entry.second;
+    auto id = getValue(container, ids, "Id");
+
+    pt::ptree container_details;
+    s = dockerApi("/containers/" + id + "/json?stream=false",
+                  container_details);
+    if (s.ok()) {
+      for (const auto& env_var : container_details.get_child("Config.Env")) {
+        Row r;
+        r["id"] = id;
+        auto buf = std::string(env_var.second.data());
+        size_t idx = buf.find_first_of("=");
+        r["key"] = buf.substr(0, idx);
+        r["value"] = buf.substr(idx + 1);
+        results.push_back(r);
+      }
+    } else {
+      VLOG(1) << "Failed to retrieve the inspect data for container " << id;
+    }
+  }
+  return results;
+}
+
+/**
  * @brief Entry point for docker_container_labels table.
  */
 QueryData genContainerLabels(QueryContext& context) {

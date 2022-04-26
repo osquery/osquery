@@ -1,0 +1,24 @@
+table_name("windows_firewall_rules")
+description("Provides the list of Windows firewall rules.")
+schema([
+    Column("name", TEXT, "Friendly name of the rule"),
+    Column("app_name", TEXT, "Friendly name of the application to which the rule applies"),
+    Column("action", TEXT, "Action for the rule or default setting"),
+    Column("enabled", INTEGER, "1 if the rule is enabled"),
+    Column("grouping", TEXT, "Group to which an individual rule belongs"),
+    Column("direction", TEXT, "Direction of traffic for which the rule applies"),
+    Column("protocol", TEXT, "IP protocol of the rule"),
+    Column("local_addresses", TEXT, "Local addresses for the rule"),
+    Column("remote_addresses", TEXT, "Remote addresses for the rule"),
+    Column("local_ports", TEXT, "Local ports for the rule"),
+    Column("remote_ports", TEXT, "Remote ports for the rule"),
+    Column("icmp_types_codes", TEXT, "ICMP types and codes for the rule"),
+    Column("profile_domain", INTEGER, "1 if the rule profile type is domain"),
+    Column("profile_private", INTEGER, "1 if the rule profile type is private"),
+    Column("profile_public", INTEGER, "1 if the rule profile type is public"),
+    Column("service_name", TEXT, "Service name property of the application"),
+])
+implementation("windows_firewall_rules@genWindowsFirewallRules")
+examples([
+    "select * from windows_firewall_rules",
+])

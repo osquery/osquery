@@ -38,10 +38,16 @@ const char* getSystemVFS(bool respect_locking) {
 Status genSqliteTableRow(sqlite3_stmt* stmt,
                          TableRows& qd,
                          const fs::path& sqlite_db) {
+  bool user_defined_path_column = false;
   auto r = make_table_row();
   for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
+
+    if (boost::iequals(column_name, "path")) {
+      user_defined_path_column = true;
+    }
+
     switch (column_type) {
     case SQLITE_BLOB:
     case SQLITE_TEXT: {
@@ -63,7 +69,7 @@ Status genSqliteTableRow(sqlite3_stmt* stmt,
     }
     }
   }
-  if (r.count("path") > 0) {
+  if (user_defined_path_column) {
     LOG(WARNING) << "ATC Table: Row contains a defined path key, omitting the "
                     "implicit one";
   } else {

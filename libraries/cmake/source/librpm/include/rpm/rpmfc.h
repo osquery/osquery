@@ -148,6 +148,13 @@ rpmds rpmfcConflicts(rpmfc fc);
 rpmds rpmfcObsoletes(rpmfc fc);
 
 /** \ingroup rpmfc
+ * Retrieve file classification OrderWithRequires
+ * @param fc		file classifier
+ * @return		rpmds dependency set of fc obsoletes
+ */
+rpmds rpmfcOrderWithRequires(rpmfc fc);
+
+/** \ingroup rpmfc
  * Retrieve file classification dependencies
  * @param fc		file classifier
  * @param tagN		name tag of the wanted dependency

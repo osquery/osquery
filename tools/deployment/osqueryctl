@@ -111,11 +111,11 @@ main() {
     EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
     PIDFILE="/var/osquery/osquery.pid"
     LOCKFILE="/var/osquery/osquery.lock"
-    EXEC="/usr/local/bin/osqueryd"
-    PLIST_DOMAIN="com.facebook.osqueryd"
+    EXEC="/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd"
+    PLIST_DOMAIN="io.osquery.agent"
     PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
     PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
-    LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd || true`
+    LAUNCHCTL_LIST=`launchctl list | grep io.osquery.agent || true`
     LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
   else
     INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
@@ -127,10 +127,10 @@ main() {
     fi
 
     REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
-    EXAMPLE_CONFIG_PATH="/usr/share/osquery/osquery.example.conf"
+    EXAMPLE_CONFIG_PATH="/opt/osquery/share/osquery/osquery.example.conf"
     PIDFILE="/var/run/osquery.pid"
     LOCKFILE="/var/lock/subsys/osqueryd"
-    EXEC="/usr/bin/osqueryd"
+    EXEC="/opt/osquery/bin/osqueryd"
   fi
 
   OSQUERY_DB="/var/osquery/osquery.db"

@@ -36,6 +36,10 @@ class MockedFilesystem final : public IFilesystem {
                     std::size_t max_size) const override;
 
   virtual bool enumFiles(int dirfd, EnumFilesCallback callback) const override;
+
+  virtual bool fileExists(bool& exists,
+                          int dirfd,
+                          const std::string& name) const override;
 };
 
 } // namespace osquery

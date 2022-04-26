@@ -20,10 +20,16 @@ function(ebpfpubLibraryMain)
     unset(EBPF_COMMON_TOOLCHAIN_PATH CACHE)
   endif()
 
+  get_target_property(zlib_library_folder thirdparty_zlib BINARY_DIR)
+  set(EBPF_COMMON_ZLIB_LIBRARY_PATH "${zlib_library_folder}/libthirdparty_zlib.a")
+
   add_subdirectory("src" EXCLUDE_FROM_ALL)
 
   target_link_libraries(ebpfpub PRIVATE thirdparty_cxx_settings)
   add_library(thirdparty_ebpfpub ALIAS ebpfpub)
+
+  # Ensure zlib is built before ebpfpub
+  add_dependencies(ebpfpub thirdparty_zlib)
 endfunction()
 
 ebpfpubLibraryMain()

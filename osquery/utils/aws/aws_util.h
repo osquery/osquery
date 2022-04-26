@@ -87,12 +87,7 @@ class OsqueryHttpClient : public Aws::Http::HttpClient {
   OsqueryHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      Aws::Http::HttpRequest& request,
-      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
-      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
-          nullptr) const override;
-  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      const std::shared_ptr<Aws::Http::HttpRequest>& request,
+      const std::shared_ptr<Aws::Http::HttpRequest>& request_ptr,
       Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
       Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter)
       const override;
@@ -207,7 +202,9 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
  *
  * @return 0 if successful, 1 if the region was not recognized.
  */
-Status getAWSRegion(std::string& region, bool sts = false);
+Status getAWSRegion(std::string& region,
+                    bool sts = false,
+                    bool validate_region = true);
 
 /**
  * @brief Set HTTP/HTTPS proxy information on the AWS ClientConfiguration
@@ -231,23 +228,29 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config);
  * @param client Pointer to the client object to instantiate.
  * @param region AWS region to connect to. If not specified, will try to figure
  * out based on the configuration flags and AWS profile.
+ * @param endpoint_override Custom AWS service endpoint.
  *
  * @return 0 if successful, 1 if there was a problem reading configs.
  */
 template <class Client>
 Status makeAWSClient(std::shared_ptr<Client>& client,
                      const std::string& region = "",
-                     bool sts = true) {
+                     bool sts = true,
+                     const std::string& endpoint_override = "") {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
   if (region.empty()) {
-    Status s = getAWSRegion(client_config.region, sts);
+    // If the endpoint_override is set, we are most likely running in non-AWS
+    // environment, skip region validation.
+    bool validate_region = endpoint_override.empty();
+    Status s = getAWSRegion(client_config.region, sts, validate_region);
     if (!s.ok()) {
       return s;
     }
   } else {
     client_config.region = region;
   }
+  client_config.endpointOverride = endpoint_override;
 
   // Setup any proxy options on the config if desired
   setAWSProxy(client_config);

@@ -406,18 +406,18 @@ Status getTLSCertificate(const std::string& hostname,
 
   // blocking mode
   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-
+  auto cert_failure = Status::failure("No certificate");
   ret = SSL_connect(ssl);
   if (ret != 1) {
-    return Status::failure("Failed to complete TLS handshake: " +
-                           std::to_string(ret));
+    cert_failure = Status::failure("Failed to begin TLS handshake: " +
+                                   std::to_string(ret));
   }
 
   auto delX509 = [](X509* cert) { X509_free(cert); };
   auto cert = std::unique_ptr<X509, decltype(delX509)>(
       SSL_get_peer_certificate(ssl), delX509);
   if (cert == nullptr) {
-    return Status::failure("No certificate");
+    return cert_failure;
   }
 
   Row r;

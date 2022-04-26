@@ -67,6 +67,8 @@ typedef enum rpmTag_e {
     RPMTAG_SHA256HEADER		= RPMTAG_SIG_BASE+17,	/* s */
     /* RPMTAG_SIG_BASE+18 reserved for RPMSIGTAG_FILESIGNATURES */
     /* RPMTAG_SIG_BASE+19 reserved for RPMSIGTAG_FILESIGNATURELENGTH */
+    RPMTAG_VERITYSIGNATURES	= RPMTAG_SIG_BASE+20,	/* s[] */
+    RPMTAG_VERITYSIGNATUREALGO	= RPMTAG_SIG_BASE+21,	/* i */
 
     RPMTAG_NAME  		= 1000,	/* s */
 #define	RPMTAG_N	RPMTAG_NAME	/* s */
@@ -430,6 +432,8 @@ typedef enum rpmSigTag_e {
     RPMSIGTAG_SHA256	= RPMTAG_SHA256HEADER,
     RPMSIGTAG_FILESIGNATURES		= RPMTAG_SIG_BASE + 18,
     RPMSIGTAG_FILESIGNATURELENGTH	= RPMTAG_SIG_BASE + 19,
+    RPMSIGTAG_VERITYSIGNATURES		= RPMTAG_VERITYSIGNATURES,
+    RPMSIGTAG_VERITYSIGNATUREALGO	= RPMTAG_VERITYSIGNATUREALGO,
 } rpmSigTag;
 
 
@@ -437,7 +441,7 @@ typedef enum rpmSigTag_e {
  * The basic types of data in tags from headers.
  */
 typedef enum rpmTagType_e {
-#define	RPM_MIN_TYPE		0
+#define	RPM_MIN_TYPE		1
     RPM_NULL_TYPE		=  0,
     RPM_CHAR_TYPE		=  1,
     RPM_INT8_TYPE		=  2,
@@ -527,7 +531,7 @@ rpmTagClass rpmTagTypeGetClass(rpmTagType type);
 
 /** \ingroup rpmtag
  * Return known rpm tag names, sorted by name.
- * @retval tagnames 	tag container of string array type
+ * @param[out] tagnames	tag container of string array type
  * @param fullname	return short or full name
  * @return		number of tag names, 0 on error
  */

@@ -68,12 +68,13 @@ unsigned int headerSizeof(Header h, int magicp);
  * @param h		header (with pointers)
  * @return		on-disk header blob (i.e. with offsets)
  */
+RPM_GNUC_DEPRECATED
 void * headerUnload(Header h);
 
 /** \ingroup header
  * Export header to on-disk representation.
  * @param h		header (with pointers)
- * @retval bsize	on-disk header blob size in bytes
+ * @param[out] bsize	on-disk header blob size in bytes
  * @return		on-disk header blob (i.e. with offsets)
  */
 void * headerExport(Header h, unsigned int * bsize);
@@ -100,6 +101,7 @@ Header headerCopy(Header h);
  * @param uh		on-disk header blob (i.e. with offsets)
  * @return		header
  */
+RPM_GNUC_DEPRECATED
 Header headerLoad(void * uh);
 
 /** \ingroup header
@@ -108,6 +110,7 @@ Header headerLoad(void * uh);
  * @param uh		on-disk header blob (i.e. with offsets)
  * @return		header
  */
+RPM_GNUC_DEPRECATED
 Header headerCopyLoad(const void * uh);
 
 enum headerImportFlags_e {
@@ -175,7 +178,7 @@ typedef rpmFlags headerGetFlags;
  * Retrieve tag value.
  * @param h		header
  * @param tag		tag
- * @retval td		tag data container
+ * @param[out] td	tag data container
  * @param flags		retrieval modifier flags
  * @return		1 on success, 0 on failure
  */
@@ -281,7 +284,7 @@ int headerDel(Header h, rpmTagVal tag);
  *
  * @param h		header
  * @param fmt		format to use
- * @retval errmsg	error message (if any)
+ * @param[out] errmsg	error message (if any)
  * @return		formatted output string (malloc'ed)
  */
 char * headerFormat(Header h, const char * fmt, errmsg_t * errmsg);
@@ -312,7 +315,7 @@ HeaderIterator headerInitIterator(Header h);
 /** \ingroup header
  * Return next tag contents from header.
  * @param hi		header tag iterator
- * @retval td		tag data container
+ * @param[out] td	tag data container
  * @return		1 on success, 0 on failure
  */
 int headerNext(HeaderIterator hi, rpmtd td);

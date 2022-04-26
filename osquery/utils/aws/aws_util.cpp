@@ -80,6 +80,7 @@ FLAG(string,
      aws_proxy_password,
      "",
      "Proxy password for use in AWS client config");
+FLAG(bool, aws_debug, false, "Enable AWS SDK debug logging");
 
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
@@ -139,9 +140,11 @@ OsqueryHttpClientFactory::CreateHttpRequest(
 }
 
 std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
-    Aws::Http::HttpRequest& request,
+    const std::shared_ptr<Aws::Http::HttpRequest>& request_ptr,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
+  auto& request = *request_ptr.get();
+
   // AWS allows rate limiters to be passed around, but we are doing rate
   // limiting on the logger plugin side and so don't implement this.
   if (readLimiter != nullptr || writeLimiter != nullptr) {
@@ -152,7 +155,7 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   uri.SetPath(Aws::Http::URI::URLEncodePath(uri.GetPath()));
   Aws::String url = uri.GetURIString();
 
-  http::Client client(TLSTransport().getInternalOptions());
+  http::Client client(TLSTransport().getOptions());
   http::Request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {
@@ -166,10 +169,10 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     body = ss.str();
   }
 
-  auto response = std::make_shared<Standard::StandardHttpResponse>(request);
-  try {
-    http::Response resp;
+  auto response = std::make_shared<Standard::StandardHttpResponse>(request_ptr);
+  http::Response resp;
 
+  try {
     switch (request.GetMethod()) {
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
@@ -185,15 +188,21 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
       break;
     case Aws::Http::HttpMethod::HTTP_PATCH:
       LOG(ERROR) << "osquery-http_client does not support HTTP PATCH";
-      return nullptr;
-      break;
+
+      response->SetResponseCode(Aws::Http::HttpResponseCode::NOT_IMPLEMENTED);
+      return response;
+
     case Aws::Http::HttpMethod::HTTP_DELETE:
       resp = client.delete_(req);
       break;
+
     default:
       LOG(ERROR) << "Unrecognized HTTP Method used: "
                  << static_cast<int>(request.GetMethod());
-      return nullptr;
+
+      response->SetResponseCode(Aws::Http::HttpResponseCode::NOT_IMPLEMENTED);
+      return response;
+
       break;
     }
 
@@ -211,19 +220,16 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
 
   } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
-    LOG(ERROR) << "Exception making HTTP request to URL (" << url
-               << "): " << e.what();
-    return nullptr;
+    LOG(ERROR) << "Exception making HTTP "
+               << Aws::Http::HttpMethodMapper::GetNameForHttpMethod(
+                      request.GetMethod())
+               << " request to URL (" << url << "): " << e.what();
+
+    response->SetResponseCode(
+        static_cast<Aws::Http::HttpResponseCode>(resp.status()));
   }
 
   return response;
-}
-
-std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
-    const std::shared_ptr<Aws::Http::HttpRequest>& request,
-    Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
-    Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
-  return MakeRequest(*request, readLimiter, writeLimiter);
 }
 
 Aws::Auth::AWSCredentials
@@ -365,6 +371,9 @@ void initAwsSdk() {
   try {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
+      if (FLAGS_aws_debug) {
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
+      }
       options.httpOptions.httpClientFactory_create_fn = []() {
         return std::make_shared<OsqueryHttpClientFactory>();
       };
@@ -485,11 +494,11 @@ bool isEc2Instance() {
   return is_ec2_instance;
 }
 
-Status getAWSRegion(std::string& region, bool sts) {
+Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
   // First try using the explicit region flags (STS or otherwise).
   if (sts && !FLAGS_aws_sts_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_sts_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
       region = FLAGS_aws_sts_region;
       return Status(0);
@@ -500,7 +509,7 @@ Status getAWSRegion(std::string& region, bool sts) {
 
   if (!FLAGS_aws_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
       region = FLAGS_aws_region;
       return Status(0);

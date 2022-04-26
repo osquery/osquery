@@ -9,45 +9,54 @@ function(libmagicMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
   set(source_files
-    "${library_root}/src/cdf_time.c"
-    "${library_root}/src/is_tar.c"
-    "${library_root}/src/encoding.c"
-    "${library_root}/src/readcdf.c"
-    "${library_root}/src/der.c"
-    "${library_root}/src/readelf.c"
-    "${library_root}/src/fmtcheck.c"
-    "${library_root}/src/fsmagic.c"
-    "${library_root}/src/apprentice.c"
-    "${library_root}/src/cdf.c"
-    "${library_root}/src/print.c"
-    "${library_root}/src/compress.c"
+    "${library_root}/src/buffer.c"
     "${library_root}/src/magic.c"
+    "${library_root}/src/apprentice.c"
     "${library_root}/src/softmagic.c"
-    "${library_root}/src/apptype.c"
-    "${library_root}/src/funcs.c"
     "${library_root}/src/ascmagic.c"
+    "${library_root}/src/encoding.c"
+    "${library_root}/src/compress.c"
+    "${library_root}/src/is_csv.c"
+    "${library_root}/src/is_json.c"
+    "${library_root}/src/is_tar.c"
+    "${library_root}/src/readelf.c"
+    "${library_root}/src/print.c"
+    "${library_root}/src/fsmagic.c"
+    "${library_root}/src/funcs.c"
+    "${library_root}/src/apptype.c"
+    "${library_root}/src/der.c"
+    "${library_root}/src/cdf.c"
+    "${library_root}/src/cdf_time.c"
+    "${library_root}/src/readcdf.c"
   )
+
+  set(compile_definition_list
+    HAVE_CONFIG_H
+  )
+
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND compile_definition_list
+      MAGIC=\"/usr/local/share/misc/magic\"
+    )
+  endif()
 
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
-      "${library_root}/src/strlcpy.c"
       "${library_root}/src/strlcat.c"
+      "${library_root}/src/strlcpy.c"
+      "${library_root}/src/fmtcheck.c"
     )
   endif()
 
   add_library(thirdparty_libmagic ${source_files})
-
   target_compile_definitions(thirdparty_libmagic PRIVATE
-    HAVE_CONFIG_H
-    MAGIC=\"/usr/local/share/misc/magic\"
-  )
-
-  target_compile_options(thirdparty_libmagic PRIVATE
-    -include config.h
+    ${compile_definition_list}
+    -Dbuffer_init=libmagic_buffer_init
   )
 
   target_link_libraries(thirdparty_libmagic PUBLIC
     thirdparty_zlib
+    thirdparty_lzma
   )
 
   target_link_libraries(thirdparty_libmagic PRIVATE
@@ -61,11 +70,12 @@ function(libmagicMain)
 
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_libmagic PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
     )
+
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_libmagic PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/${TARGET_PROCESSOR}"
     )
   endif()
 
