@@ -11,8 +11,8 @@ import argparse
 import subprocess
 import unittest
 import sys
-
-from utils import platform
+import platform
+import utils
 
 
 linux_expected_libraries = [
@@ -23,7 +23,6 @@ linux_expected_libraries = [
     "libm.so",
     "libpthread.so",
     "libc.so",
-    "ld-linux-x86-64.so",
 ]
 
 windows_expected_libraries = [
@@ -56,12 +55,12 @@ windows_expected_libraries = [
 
 class ReleaseTests(unittest.TestCase):
     @unittest.skipUnless(
-        platform() == "linux" or platform() == "darwin",
+        utils.platform() == "linux" or utils.platform() == "darwin",
         "Test for Darwin and Linux only",
     )
     def test_no_nonsystem_link(self):
 
-        if platform() == "linux":
+        if utils.platform() == "linux":
             proc = subprocess.call(
                 "ldd %s | awk '{ print $1\" \"$3 }' | grep -Ev '^/lib64|^/lib| /lib|linux-vdso.so.1'"
                 % (BUILD_DIR + "/osquery/osqueryd"),
@@ -78,12 +77,12 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(proc, 1)
 
     @unittest.skipUnless(
-        platform() == "linux" or platform() == "win32",
+        utils.platform() == "linux" or utils.platform() == "win32",
         "Test for Windows and Linux only",
     )
     def test_linked_system_libraries(self):
 
-        if platform() == "linux":
+        if utils.platform() == "linux":
             output_bytes = subprocess.check_output(
                 "ldd %s | awk '{ print $1 }'"
                 % (BUILD_DIR + "/osquery/osqueryd"),
@@ -96,6 +95,11 @@ class ReleaseTests(unittest.TestCase):
             libraries = list(filter(None, output.split(sep="\n")))
 
             self.assertGreaterEqual(len(libraries), 0)
+
+            if platform.processor() == "x86_64":
+                linux_expected_libraries.append("ld-linux-x86-64.so")
+            else:
+                linux_expected_libraries.append("ld-linux-aarch64.so")
 
             for expected_library in linux_expected_libraries:
                 found_index = -1
@@ -116,7 +120,7 @@ class ReleaseTests(unittest.TestCase):
                     "Found these additional unwanted libraries linked:\n%s"
                     % ("\n".join(libraries))
                 )
-        elif platform() == "win32":
+        elif utils.platform() == "win32":
             output_bytes = subprocess.check_output(
                 "dumpbin /DEPENDENTS %s"
                 % (BUILD_DIR + "/osquery/osqueryd.exe"),
