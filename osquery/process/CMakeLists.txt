@@ -34,19 +34,17 @@ function(generateOsqueryProcess)
     thirdparty_boost
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_process PRIVATE
+      osquery_utils_system_usersgroupshelpers
+    )
+  endif()
+
   set(public_header_files
     process.h
   )
 
   generateIncludeNamespace(osquery_process "osquery/process" "FILE_ONLY" ${public_header_files})
-
-  if(DEFINED PLATFORM_WINDOWS)
-    set(platform_public_header_files
-      windows/process_ops.h
-    )
-
-    generateIncludeNamespace(osquery_process "osquery/process" "FULL_PATH" ${platform_public_header_files})
-  endif()
 endfunction()
 
 osqueryProcessMain()

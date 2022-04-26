@@ -11,18 +11,41 @@
 // Spec file: specs/groups.table
 
 #include <osquery/tests/integration/tables/helper.h>
-
 #include <osquery/utils/info/platform_type.h>
+#ifdef OSQUERY_WINDOWS
+#include <osquery/core/windows/global_users_groups_cache.h>
+#include <osquery/system/usersgroups/windows/groups_service.h>
+#endif
 
 namespace osquery {
 namespace table_tests {
-namespace {
 
 class groups : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
+
+#ifdef OSQUERY_WINDOWS
+  static void SetUpTestSuite() {
+    // For the groups table we need to start services
+    // to fill up the caches
+    std::promise<void> groups_cache_promise;
+    GlobalUsersGroupsCache::global_groups_cache_future_ =
+        groups_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<GroupsService>(
+        std::move(groups_cache_promise),
+        GlobalUsersGroupsCache::global_groups_cache_));
+  }
+
+  static void TearDownTestSuite() {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+    GlobalUsersGroupsCache::global_groups_cache_->clear();
+    Dispatcher::instance().resetStopping();
+  }
+#endif
 };
 
 TEST_F(groups, test_sanity) {
@@ -57,6 +80,5 @@ TEST_F(groups, test_sanity) {
   validate_rows(rows_one, row_map);
 }
 
-} // namespace
 } // namespace table_tests
 } // namespace osquery

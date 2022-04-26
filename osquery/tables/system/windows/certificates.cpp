@@ -19,17 +19,15 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
-#include <osquery/process/windows/process_ops.h>
 #include <osquery/sql/sql.h>
 
+#include <osquery/filesystem/fileops.h>
+#include <osquery/tables/system/windows/certificates.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-
-#include <osquery/filesystem/fileops.h>
-#include <osquery/tables/system/windows/certificates.h>
-#include <osquery/tables/system/windows/users.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace fs = boost::filesystem;
 
@@ -177,7 +175,7 @@ std::string getLocalizedStoreName(LPCWSTR storeNameW) {
  * Expects @name to be the `lpServiceStartName` from
  * `QueryServiceConfig`
  */
-std::string getSidFromAccountName(const std::string& name) {
+std::string getServiceSidFromAccountName(const std::string& name) {
   // `lpServiceStartName` has been observed to contain both uppercase
   // and lowercase versions of these values
   if (boost::iequals(name, "LocalSystem")) {
@@ -267,7 +265,7 @@ std::string getServiceSid(const std::string& serviceNameOrSid,
     }
 
     std::string accountName = results[0]["user_account"];
-    sid = getSidFromAccountName(accountName);
+    sid = getServiceSidFromAccountName(accountName);
     service2sidCache[serviceName] = sid;
   }
 

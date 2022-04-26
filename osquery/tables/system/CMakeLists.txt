@@ -271,6 +271,10 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_libmagic
       thirdparty_libxml2
     )
+  else()
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
+      osquery_system_usersgroups_caches
+    )
   endif()
 
   if(DEFINED PLATFORM_LINUX)
@@ -355,7 +359,6 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
-      windows/users.h
       windows/windows_eventlog.h
     )
   endif()

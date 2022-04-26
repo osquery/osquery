@@ -73,6 +73,12 @@ function(generateOsqueryFilesystem)
     thirdparty_zstd
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    target_link_libraries(osquery_filesystem PUBLIC
+      osquery_utils_system_usersgroupshelpers
+    )
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     list(APPEND public_header_files
       linux/proc.h
