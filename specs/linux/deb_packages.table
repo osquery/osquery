@@ -11,7 +11,7 @@ schema([
     Column("maintainer", TEXT, "Package maintainer"),
     Column("section", TEXT, "Package section"),
     Column("priority", TEXT, "Package priority"),
-    Column("admindir", TEXT, "libdpkg admindir. Defaults to /var/lib/dpkg", index=True),
+    Column("admindir", TEXT, "libdpkg admindir. Defaults to /var/lib/dpkg", additional=True),
 ])
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
