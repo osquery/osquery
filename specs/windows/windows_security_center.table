@@ -4,7 +4,7 @@ schema([
     Column("firewall", TEXT, "The health of the monitored Firewall (see windows_security_products)"),
     Column("autoupdate", TEXT, "The health of the Windows Autoupdate feature"),
     Column("antivirus", TEXT, "The health of the monitored Antivirus solution (see windows_security_products)"),
-    Column("antispyware", TEXT, "The health of the monitored Antispyware solution (see windows_security_products)"),
+    Column("antispyware", TEXT, "Deprecated (always 'Good').", hidden=True),
     Column("internet_settings", TEXT, "The health of the Internet Settings"),
     Column("windows_security_center_service", TEXT, "The health of the Windows Security Center Service"),
     Column("user_account_control", TEXT, "The health of the User Account Control (UAC) capability in Windows"),

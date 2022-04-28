@@ -121,13 +121,13 @@ TEST_F(FilesystemLoggerTests, test_log_status) {
   std::string content;
   EXPECT_TRUE(readFile(status_path, content));
   auto lines = osquery::split(content, "\n").size();
-  EXPECT_EQ(4U, lines);
+  EXPECT_EQ(5U, lines);
 
   LOG(WARNING) << "Filesystem logger test is generating a warning status (2/3)";
   content.clear();
   readFile(status_path, content);
   lines = osquery::split(content, "\n").size();
-  EXPECT_EQ(5U, lines);
+  EXPECT_EQ(6U, lines);
 
   auto& rf = RegistryFactory::get();
   auto filesystem_test = std::make_shared<FilesystemTestLoggerPlugin>();
@@ -138,13 +138,13 @@ TEST_F(FilesystemLoggerTests, test_log_status) {
   content.clear();
   readFile(status_path, content);
   lines = osquery::split(content, "\n").size();
-  EXPECT_EQ(6U, lines);
+  EXPECT_EQ(7U, lines);
 
   relayStatusLogs(LoggerRelayMode::Async);
   content.clear();
   readFile(status_path, content);
   lines = osquery::split(content, "\n").size();
-  EXPECT_EQ(6U, lines);
+  EXPECT_EQ(7U, lines);
 }
 
 TEST_F(FilesystemLoggerTests, test_log_snapshot) {

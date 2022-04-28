@@ -120,13 +120,14 @@ at maximum sustained CPU utilization.
 
 A delay in seconds before the watchdog process starts enforcing memory and CPU utilization limits. The default value `60s` allows the daemon to perform resource intense actions, such as forwarding logs, at startup.
 
+`--watchdog_forced_shutdown_delay=4`
+
+Amount of seconds to wait to issue a forced shutdown, after the watchdog has issued a graceful shutdown request to a worker or extension, due to resource limits being hit.
+Note that on Windows this doesn't have any effect currently, since the watchdog issues a TerminateProcess as a "graceful" shutdown, which immediately kills the process.
+
 `--enable_extensions_watchdog=false`
 
 By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.
-
-`--utc=true`
-
-Attempt to convert all UNIX calendar times to UTC.
 
 `--table_delay=0`
 
@@ -354,6 +355,22 @@ This controls whether watchdog denylisting is enforced on queries using "*_event
 This only considers queries that are entirely event-based. For example `SELECT * FROM process_events` is considered, but `SELECT * FROM process_events join time` is not.
 
 It is not recommended to set this to `true`.
+
+`--users_service_delay=250`
+
+Windows only flag which defines the amount of milliseconds to wait during a scan of users information, between a batch of 100 users and the other. This is meant to throttle the CPU usage of osquery and especially the LSASS process on a Windows Server DC. The first users batch is always gathered immediately at the start of the scan.
+
+`--users_service_interval=1800`
+
+Windows only flag which defines the amount of seconds to wait between full scans of users information. The background service first obtains a list of all the users that are present on a machine, then start obtaining their details, using `users_service_delay` to slow down the process, then when the whole list has been processed, it will sleep `users_service_interval` seconds.
+
+`--groups_service_delay=150ms`
+
+Windows only flag that works the same as `users_service_delay`, but for the groups service. The default value is lower because collecting groups information is less performance intensive.
+
+`--groups_service_interval=1800`
+
+Windows only flag that works the same as `users_service_interval`, but for the groups service.
 
 ### Windows-only events control flags
 

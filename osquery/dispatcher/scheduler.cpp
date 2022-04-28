@@ -11,7 +11,7 @@
 #include <ctime>
 
 #include <boost/format.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/carver/carver.h>
 #include <osquery/config/config.h>
@@ -86,11 +86,14 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               "pid",
                               EQUALS,
                               pid);
-    auto t0 = getUnixTime();
+
+    using namespace std::chrono;
+    auto t0 = steady_clock::now();
     Config::get().recordQueryStart(name);
     SQLInternal sql(query.query, true);
+
     // Snapshot the performance after, and compare.
-    auto t1 = getUnixTime();
+    auto t1 = steady_clock::now();
     auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
                               "processes",
                               "pid",
@@ -98,7 +101,13 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               pid);
     if (r0.size() > 0 && r1.size() > 0) {
       // Always called while processes table is working.
-      Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
+      uint64_t size = sql.getSize();
+      Config::get().recordQueryPerformance(
+          name,
+          duration_cast<milliseconds>(t1 - t0).count(),
+          size,
+          r0[0],
+          r1[0]);
     }
     return sql;
   }

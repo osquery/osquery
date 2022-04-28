@@ -74,6 +74,9 @@ function(setupBuildFlags)
       OSQUERY_POSIX=1
     )
 
+    set(posix_common_link_options)
+    set(posix_common_defines)
+
     set(posix_cxx_compile_options
       -Wno-c++11-extensions
       -Woverloaded-virtual
@@ -90,6 +93,20 @@ function(setupBuildFlags)
     set(posix_c_compile_options
       -Wno-c99-extensions
     )
+
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      list(APPEND posix_common_compile_options
+        -fsanitize=address
+      )
+      list(APPEND posix_common_link_options
+        -fsanitize=address
+      )
+
+      # Get more precise stack traces
+      list(APPEND posix_common_compile_options
+        -fno-omit-frame-pointer
+      )
+    endif()
 
     target_compile_options(cxx_settings INTERFACE
       ${posix_common_compile_options}
@@ -108,8 +125,14 @@ function(setupBuildFlags)
       ${posix_c_compile_options}
     )
 
-    list(APPEND osquery_defines ${osquery_posix_common_defines})
+    target_link_options(c_settings INTERFACE
+      ${posix_common_link_options}
+    )
 
+    list(APPEND osquery_defines
+      ${osquery_posix_common_defines}
+      ${posix_common_defines}
+    )
 
     if(DEFINED PLATFORM_LINUX)
       set(osquery_linux_common_defines
@@ -124,6 +147,8 @@ function(setupBuildFlags)
         -Wl,--build-id=sha1
       )
 
+      set(linux_common_compile_options)
+
       set(linux_cxx_link_options
         --no-undefined
         -lresolv
@@ -136,19 +161,42 @@ function(setupBuildFlags)
         dl
       )
 
-      list(APPEND osquery_defines ${osquery_linux_common_defines})
+      if(OSQUERY_BUILD_FUZZERS)
+        list(APPEND linux_common_compile_options
+          -fsanitize=fuzzer-no-link
+          -fsanitize-coverage=edge,indirect-calls
+        )
+
+        list(APPEND osquery_linux_common_defines
+          OSQUERY_IS_FUZZING
+        )
+      endif()
+
+      list(APPEND osquery_defines
+        ${osquery_linux_common_defines}
+      )
+
+      target_compile_options(cxx_settings INTERFACE
+        ${linux_common_compile_options}
+      )
+
       target_link_options(cxx_settings INTERFACE
         ${osquery_linux_common_link_options}
         ${linux_cxx_link_options}
+      )
+
+      target_link_libraries(cxx_settings INTERFACE
+        ${linux_cxx_link_libraries}
+      )
+
+      target_compile_options(c_settings INTERFACE
+        ${linux_common_compile_options}
       )
 
       target_link_options(c_settings INTERFACE
         ${osquery_linux_common_link_options}
       )
 
-      target_link_libraries(cxx_settings INTERFACE
-        ${linux_cxx_link_libraries}
-      )
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
         -x objective-c++
@@ -210,53 +258,6 @@ function(setupBuildFlags)
        "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
       target_compile_options(cxx_settings INTERFACE -g0)
       target_compile_options(c_settings INTERFACE -g0)
-    endif()
-
-    if(OSQUERY_BUILD_FUZZERS)
-      if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
-        target_compile_options(cxx_settings INTERFACE
-          -fsanitize=address,fuzzer-no-link
-          -fsanitize-coverage=edge,indirect-calls
-        )
-        target_compile_options(c_settings INTERFACE
-          -fsanitize=address,fuzzer-no-link
-          -fsanitize-coverage=edge,indirect-calls
-        )
-
-        # Require at least address (may be refactored out)
-        target_link_options(cxx_settings INTERFACE
-          -fsanitize=address
-        )
-        target_link_options(c_settings INTERFACE
-          -fsanitize=address
-        )
-      endif()
-
-      list(APPEND osquery_defines
-        OSQUERY_IS_FUZZING
-      )
-
-      target_compile_options(cxx_settings INTERFACE
-        -fno-omit-frame-pointer
-      )
-      target_compile_options(c_settings INTERFACE
-        -fno-omit-frame-pointer
-      )
-    elseif(OSQUERY_ENABLE_ADDRESS_SANITIZER)
-      target_compile_options(cxx_settings INTERFACE
-        -fsanitize=address
-      )
-      target_compile_options(c_settings INTERFACE
-        -fsanitize=address
-      )
-
-      # Require at least address (may be refactored out)
-      target_link_options(cxx_settings INTERFACE
-        -fsanitize=address
-      )
-      target_link_options(c_settings INTERFACE
-        -fsanitize=address
-      )
     endif()
   elseif(DEFINED PLATFORM_WINDOWS)
 
@@ -337,6 +338,22 @@ function(setupBuildFlags)
       BOOST_ALL_NO_LIB
       BOOST_ALL_STATIC_LINK
     )
+
+    if(OSQUERY_BUILD_FUZZERS)
+      list(APPEND windows_common_compile_options
+        /fsanitize=fuzzer
+      )
+
+      list(APPEND osquery_windows_common_defines
+        OSQUERY_IS_FUZZING
+      )
+    endif()
+
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER)
+      list(APPEND windows_common_compile_options
+        /fsanitize=address
+      )
+    endif()
 
     target_compile_options(cxx_settings INTERFACE
       ${windows_common_compile_options}

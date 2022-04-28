@@ -20,11 +20,11 @@ function(gflagsMain)
   if(DEFINED PLATFORM_LINUX)
     target_include_directories(thirdparty_gflags
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/public"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/linux/${TARGET_PROCESSOR}/public"
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND sources
@@ -33,20 +33,20 @@ function(gflagsMain)
 
     target_include_directories(thirdparty_gflags
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/public"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/windows/${TARGET_PROCESSOR}/public"
     )
   elseif(DEFINED PLATFORM_MACOS)
     target_include_directories(thirdparty_gflags
       PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/private"
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/private"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/public"
 
       SYSTEM INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/public"
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/macos/${TARGET_PROCESSOR}/public"
     )
   endif()
 

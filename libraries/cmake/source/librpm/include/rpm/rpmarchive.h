@@ -47,6 +47,7 @@ enum rpmfilesErrorCodes {
 	RPMERR_COPY_FAILED	= -32785,
 	RPMERR_LSETFCON_FAILED	= -32786,
 	RPMERR_SETCAP_FAILED	= -32787,
+	RPMERR_CLOSE_FAILED	= -32788,
 };
 
 #ifdef __cplusplus

@@ -8,13 +8,16 @@
  */
 
 #include <openssl/opensslv.h>
+#include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 
 namespace osquery {
 namespace tables {
@@ -41,8 +44,8 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
 
   // X509_check_ca() populates key_usage, {authority,subject}_key_id
   // so it should be called before others.
-  r["ca"] = (CertificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
-  r["self_signed"] = (CertificateIsSelfSigned(cert)) ? INTEGER(1) : INTEGER(0);
+  r["ca"] = (certificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
+  r["self_signed"] = (certificateIsSelfSigned(cert)) ? INTEGER(1) : INTEGER(0);
 
   r["key_usage"] = genKeyUsage(X509_get_key_usage(cert));
 

@@ -34,14 +34,19 @@ const size_t kNumFields = 2;
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python%/dist-packages",
     "/usr/local/lib/python%/site-packages",
+    "/opt/homebrew/lib/python%/dist-packages",
+    "/opt/homebrew/lib/python%/site-packages",
     "/usr/lib/python%/dist-packages",
     "/usr/lib/python%/site-packages",
     "/Library/Python/%/site-packages",
 };
 
+// clang-format off
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions",
+    "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions",
 };
+// clang-format on
 
 const std::string kWinPythonInstallKey =
     "SOFTWARE\\Python\\PythonCore\\%\\InstallPath";

@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(linenoisengMain)
-  set(version "1.0.1")
+  set(version "1.0-44-g4754bee")
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
   add_library(thirdparty_linenoise-ng

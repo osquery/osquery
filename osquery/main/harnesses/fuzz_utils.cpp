@@ -17,6 +17,8 @@
 
 namespace osquery {
 
+DECLARE_string(disable_tables);
+
 std::set<std::string> kDisabledFuzzingTables = {
     "file",
     "hash",
@@ -27,21 +29,25 @@ int osqueryFuzzerInitialize(int* argc, char*** argv) {
   osquery::registryAndPluginInit();
   osquery::initDatabasePluginForTesting();
 
+  std::string disabled_tables;
+  for (auto table_name : kDisabledFuzzingTables) {
+    disabled_tables += table_name;
+    disabled_tables += ',';
+  }
+
+  if (!disabled_tables.empty()) {
+    disabled_tables.pop_back();
+  }
+
+  // Set the tables to disable in the flags; we cannot use the detach operation
+  FLAGS_disable_tables = disabled_tables;
+
   auto* db = osquery::SQLiteDBManager::instance().get()->db();
 
   // See https://www.sqlite.org/src/artifact/18af635f about limiting what
   // effects the fuzzer triggers.
   sqlite3_limit(db, SQLITE_LIMIT_VDBE_OP, 25000);
   sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 50000);
-
-  for (const auto& table_name : kDisabledFuzzingTables) {
-    osquery::PluginRequest r;
-    r["action"] = "detach";
-    r["table"] = table_name;
-
-    osquery::PluginResponse rsp;
-    osquery::Registry::get().call("sql", r, rsp);
-  }
 
   FLAGS_minloglevel = 4;
 

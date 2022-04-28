@@ -5,9 +5,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.17.5 FATAL_ERROR)
-
-cmake_policy(SET CMP0083 NEW)
+cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
 
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
@@ -28,22 +26,6 @@ include("${OSQUERY_INSTALL_DIRECTIVES}")
 
 if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
   message(FATAL_ERROR "The custom toolchain can only be used with Linux, undefine OSQUERY_TOOLCHAIN_SYSROOT and specify a compiler to use")
-endif()
-
-# clang-tidy needs to be initialized in global scope, before any
-# target is created
-if(OSQUERY_ENABLE_CLANG_TIDY)
-  find_package(clang-tidy)
-  if(TARGET clang-tidy::clang-tidy)
-    foreach(language C CXX)
-      set("CMAKE_${language}_CLANG_TIDY"
-        "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
-      )
-    endforeach()
-
-  else()
-    message(WARNING "clang-tidy: Disabled because it was not found")
-  endif()
 endif()
 
 function(main)
@@ -74,6 +56,20 @@ function(main)
   add_subdirectory("libraries")
   importLibraries()
 
+  # Enable clang-tidy only after having created the third party targets,
+  # so it won't run with those and slow down the build.
+  if(OSQUERY_ENABLE_CLANG_TIDY)
+    find_package(clang-tidy)
+
+    if(TARGET clang-tidy::clang-tidy)
+      set(CMAKE_CXX_CLANG_TIDY
+          "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
+      )
+    else()
+      message(WARNING "clang-tidy: Disabled because it was not found")
+    endif()
+  endif()
+
   add_subdirectory("osquery")
   add_subdirectory("plugins")
   add_subdirectory("tools")
@@ -100,7 +96,6 @@ function(importLibraries)
     "Linux:libaudit"
     "Linux:libcryptsetup"
     "Linux:libdevmapper"
-    "Linux:libelfin"
     "Linux:libgcrypt"
     "Linux:libgpg-error"
     "Linux:libiptables"
@@ -110,22 +105,18 @@ function(importLibraries)
     "Linux:libudev"
     "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
-    "Linux,Darwin:lldpd"
     "Linux,Darwin,Windows:lzma"
     "Linux,Darwin:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
     "Linux,Darwin,Windows:sleuthkit"
-    "Linux,Darwin:smartmontools"
     "Linux,Darwin,Windows:sqlite"
-    "Linux,Darwin:ssdeep-cpp"
     "Linux,Darwin,Windows:thrift"
     "Linux:util-linux"
     "Linux,Darwin,Windows:yara"
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
     "Linux,Darwin,Windows:openssl"
-    "Linux,Darwin,Windows:icu"
     "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"
@@ -149,6 +140,17 @@ function(importLibraries)
     )
   endif()
 
+  # We want to remove support for lldpd and smartmontools, so skip support for M1
+  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
+    list(APPEND library_descriptor_list
+      "Linux,Darwin:lldpd"
+      "Linux,Darwin:smartmontools"
+    )
+  endif()
+
+  # Create a target that builds all the third party libraries for convenience
+  add_custom_target(thirdparty_libraries)
+
   foreach(library_descriptor ${library_descriptor_list})
     # Expand the library descriptor
     string(REPLACE ":" ";" library_descriptor "${library_descriptor}")
@@ -167,12 +169,14 @@ function(importLibraries)
 
     # Skip libraries which already use our internal target name
     if(TARGET "thirdparty_${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
       continue()
 
     # For generic libraries that import the library name, let's create
     # an alias
     elseif(TARGET "${library}")
       add_library("thirdparty_${library}" ALIAS "${library}")
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
     # Legacy libraries will just export variables; build a new INTERFACE
     # target with them
@@ -182,6 +186,7 @@ function(importLibraries)
       endif()
 
       add_library("thirdparty_${library}" INTERFACE)
+      add_real_target_dependencies(thirdparty_libraries "thirdparty_${library}")
 
       target_link_libraries("thirdparty_${library}" INTERFACE
         ${library}_LIBRARIES

@@ -230,9 +230,12 @@ Current Members (in alphabetical order):
 * Alessandro -- [@alessandrogario](https://github.com/alessandrogario)
 * Nick -- [@muffins](https://github.com/muffins)
 * seph -- [@directionless](https://github.com/directionless)
+* Sharvil -- [@sharvilshah](https://github.com/sharvilshah)
 * Teddy -- [@theopolis](https://github.com/theopolis)
 * Victor -- [@groob](https://github.com/groob)
 * Zach -- [@zwass](https://github.com/zwass)
+
+The Technical Steering Commit is chaired by seph. 
 
 ## License
 

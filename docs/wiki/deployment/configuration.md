@@ -323,9 +323,8 @@ The basic scheduled query specification includes:
 The `platform` key can be:
 
 - `darwin` for macOS hosts
-- `freebsd` for FreeBSD hosts
 - `linux` for any RedHat or Debian-based hosts
-- `posix` for `darwin`, `freebsd`, and `linux` hosts
+- `posix` for `darwin` and `linux` hosts
 - `windows` for any Windows desktop or server hosts
 - `any` or `all` for all, alternatively no platform key selects all
 
@@ -631,8 +630,8 @@ See the [development documentation](../development/pubsub-framework.md) for more
 Events are almost always tweaked via CLI flags and _options_ referenced above.
 
 The configuration supports a method to explicitly allow and deny events subscribers.
-If you choose to explicitly allow subscribers, then all will be disabled except for those specificied in the allow list.
-If you choose to explicitly deny subscribers, then all will be enabled except for those specificied in the deny list.
+If you choose to explicitly allow subscribers, then all will be disabled except for those specified in the allow list.
+If you choose to explicitly deny subscribers, then all will be enabled except for those specified in the deny list.
 
 You may want to explicitly disable subscribers if you are only interested in a single type of data produced by a general publisher.
 

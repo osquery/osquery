@@ -114,5 +114,23 @@ inline void explodeRegistryPath(const std::string& path,
  * success
  */
 Status getUsernameFromKey(const std::string& key, std::string& rUsername);
+
+/*
+ * @brief Populate a set of registry keys with their subkeys
+ *
+ * For example, the key HKEY_LOCAL_MACHINE\SAM would produce a set with two keys
+ * 'HKEY_LOCAL_MACHINE\SAM' and 'HKEY_LOCAL_MACHINE\SAM\SAM' if
+ * (replaceKeys=false).
+ *
+ * @param rKeys A set that will be populated with all registry keys might have
+ * subkeys
+ * @param replaceKeys A boolean that controls whether the result set will be
+ * initialized with the rKeys
+ * @return Failure if all subkeys do not exist in registry, otherwise
+ * success
+ */
+inline Status populateSubkeys(std::set<std::string>& rKeys,
+                              bool replaceKeys = false);
+
 } // namespace tables
 } // namespace osquery

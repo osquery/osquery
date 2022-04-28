@@ -15,16 +15,14 @@ function(libcapMain)
     "${library_root}/cap_flag.c"
     "${library_root}/cap_proc.c"
     "${library_root}/cap_text.c"
-    "${library_root}/psx.c"
-    "${library_root}/libcap.h"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/cap_names.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/cap_names.list.h"
   )
 
   target_compile_definitions(thirdparty_libcap PRIVATE
-    PIC
-    _LARGEFILE64_SOURCE=1
+    linux
+    _LARGEFILE64_SOURCE
     _FILE_OFFSET_BITS=64
   )
 
@@ -32,8 +30,12 @@ function(libcapMain)
     thirdparty_c_settings
   )
 
+  set_target_properties (thirdparty_libcap PROPERTIES
+    POSITION_INDEPENDENT_CODE
+      ON
+  )
+
   target_include_directories(thirdparty_libcap PRIVATE
-    "${library_root}"
     "${library_root}/include"
     "${library_root}/include/uapi"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated"

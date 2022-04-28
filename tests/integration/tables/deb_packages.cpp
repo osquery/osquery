@@ -30,13 +30,14 @@ TEST_F(DebPackages, test_sanity) {
     ValidationMap row_map = {{"name", NonEmptyString},
                              {"version", NonEmptyString},
                              {"source", NormalType},
-                             {"size", IntType},
+                             {"size", IntOrEmpty},
                              {"arch", NonEmptyString},
                              {"revision", NormalType},
                              {"status", NonEmptyString},
                              {"maintainer", NonEmptyString},
                              {"section", NormalType},
-                             {"priority", NormalType}};
+                             {"priority", NormalType},
+                             {"admindir", NonEmptyString}};
 
     validate_rows(rows, row_map);
 

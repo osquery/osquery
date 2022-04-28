@@ -292,9 +292,13 @@ void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
 
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
-                               ProcessesRow::CPU_SUBTYPE)) {
+                               ProcessesRow::CPU_SUBTYPE |
+                               ProcessesRow::TRANSLATED)) {
     return;
   }
+
+  // default the translated column to 0
+  r.translated_col = 0;
 
   struct proc_archinfo {
     cpu_type_t p_cputype;
@@ -313,6 +317,25 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   } else {
     r.cpu_type_col = -1;
     r.cpu_subtype_col = -1;
+  }
+
+  if (archinfo.p_cputype == CPU_TYPE_ARM64) {
+    struct kinfo_proc kinfo {};
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+    size_t size = sizeof(kinfo);
+
+    if (sysctl(mib, 4, &kinfo, &size, nullptr, 0) != 0 ||
+        size < sizeof(kinfo)) {
+      r.translated_col = -1;
+      return;
+    }
+
+    // proc_bsdinfo also has pbi_flags, but that seems to be not always
+    // populated, instead kinfo_proc works better to get at the process flags
+    // and check whether P_TRANSLATED is one of the flags
+    if (kinfo.kp_proc.p_flag & P_TRANSLATED) {
+      r.translated_col = 1;
+    }
   }
 }
 
@@ -436,26 +459,30 @@ void genProcResourceUsage(const QueryContext& context,
       proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
+    // Initialize time conversions.
+    static mach_timebase_info_data_t time_base;
+    if (time_base.denom == 0) {
+      mach_timebase_info(&time_base);
+    }
+
     // size/memory information
     r.wired_size_col = rusage_info_data.ri_wired_size;
     r.resident_size_col = rusage_info_data.ri_resident_size;
     r.total_size_col = rusage_info_data.ri_phys_footprint;
 
     // time information
-    r.user_time_col = rusage_info_data.ri_user_time / CPU_TIME_RATIO;
-    r.system_time_col = rusage_info_data.ri_system_time / CPU_TIME_RATIO;
+    r.user_time_col =
+        ((rusage_info_data.ri_user_time * time_base.numer) / time_base.denom) /
+        CPU_TIME_RATIO;
+    r.system_time_col = ((rusage_info_data.ri_system_time * time_base.numer) /
+                         time_base.denom) /
+                        CPU_TIME_RATIO;
 
     // disk i/o information
     r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
     r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
 
     if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
-      // Initialize time conversions.
-      static mach_timebase_info_data_t time_base;
-      if (time_base.denom == 0) {
-        mach_timebase_info(&time_base);
-      }
-
       uint64_t const absoluteTime = mach_absolute_time();
       auto const process_age = std::chrono::nanoseconds{
           (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
@@ -786,5 +813,5 @@ QueryData genProcessMemoryMap(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

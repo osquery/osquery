@@ -55,7 +55,7 @@ class MockWatcherRunner : public WatcherRunner {
       : WatcherRunner(argc, argv, use_worker, watcher) {}
 
   /// The state machine requested the 'worker' to stop.
-  MOCK_CONST_METHOD1(stopChild, void(const PlatformProcess& child));
+  MOCK_CONST_METHOD2(stopChild, void(const PlatformProcess& child, bool force));
 
   /// The state machine is inspecting the 'worker' health and performance.
   MOCK_CONST_METHOD1(isChildSane, Status(const PlatformProcess& child));
@@ -114,7 +114,7 @@ TEST_F(WatcherTests, test_watcherrunner_watch) {
 
   // The above expectation returns a sane child state.
   // This ::watch iteration should NOT attempt to stop the worker.
-  EXPECT_CALL(runner, stopChild(_)).Times(0);
+  EXPECT_CALL(runner, stopChild(_, _)).Times(0);
 
   // When triggering a watch, set the assumed process status.
   fake_test_process.setStatus(PROCESS_STILL_ALIVE, 0);
@@ -131,7 +131,7 @@ TEST_F(WatcherTests, test_watcherrunner_stop) {
   auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
 
   EXPECT_CALL(runner, isChildSane(_)).Times(0);
-  EXPECT_CALL(runner, stopChild(_)).Times(0);
+  EXPECT_CALL(runner, stopChild(_, _)).Times(0);
 
   // Now set the process status to an error state.
   fake_test_process.setStatus(PROCESS_ERROR, 0);
@@ -229,13 +229,14 @@ class FakeWatcherRunner : public WatcherRunner {
   }
 
   /// The tests do not have access to the processes table.
-  QueryData getProcessRow(pid_t pid) const {
+  QueryData getProcessRow(pid_t pid) const override {
     return qd_;
   }
 
  private:
   /// If a worker/extension has otherwise gone insane, stop it.
-  void stopChild(const PlatformProcess& child) const {}
+  void stopChild(const PlatformProcess& child,
+                 bool resource_limit_hit) const override {}
 
  private:
   QueryData qd_;

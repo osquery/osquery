@@ -34,7 +34,7 @@ urltype	urlIsURL(const char * url);
 /** \ingroup rpmurl
  * Return path component of URL.
  * @param url		url string
- * @retval pathp	pointer to path component of url
+ * @param[out] pathp	pointer to path component of url
  * @return		type of url
  */
 urltype	urlPath(const char * url, const char ** pathp);
