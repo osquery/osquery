@@ -19,6 +19,7 @@ namespace tables {
 
 const std::vector<CFTypeRef> kKeychainItemTypes = {
     kSecClassGenericPassword,
+    kSecClassInternetPassword,
     kSecClassCertificate,
     kSecClassKey,
     kSecClassIdentity,
@@ -28,12 +29,14 @@ const std::map<SecItemAttr, std::string> kKeychainItemAttrs = {
     {kSecLabelItemAttr, "label"},
     {kSecDescriptionItemAttr, "description"},
     {kSecCommentItemAttr, "comment"},
+    {kSecAccountItemAttr, "account"},
     {kSecCreationDateItemAttr, "created"},
     {kSecModDateItemAttr, "modified"},
 };
 
 const std::map<SecItemClass, std::string> kKeychainItemClasses = {
     {kSecGenericPasswordItemClass, "password"},
+    {kSecInternetPasswordItemClass, "internet password"},
     {kSecCertificateItemClass, "certificate"},
     {kSecPublicKeyItemClass, "public key"},
     {kSecPrivateKeyItemClass, "private key"},
