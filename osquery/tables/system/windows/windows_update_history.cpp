@@ -91,7 +91,7 @@ Row renderWindowsUpdateHistoryEntry(const WindowsUpdateHistoryEntry& entry) {
   Row r;
   r["client_app_id"] = entry.clientAppID;
   r["date"] = BIGINT(entry.date);
-  r["description"] = BIGINT(entry.description);
+  r["description"] = entry.description;
   r["hresult"] = BIGINT(entry.hresult);
 
   switch (entry.updateOp) {
