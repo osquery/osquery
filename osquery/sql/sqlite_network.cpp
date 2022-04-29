@@ -29,7 +29,7 @@ static void sqliteCidrRangeFunc(sqlite3_context* context,
   }
 
   if (sqlite3_value_type(argv[ipaddr_idx]) != SQLITE_TEXT) {
-    sqlite3_result_error(context, "IP addresss must be a string", -1);
+    sqlite3_result_error(context, "IP address must be a string", -1);
     return;
   }
 
