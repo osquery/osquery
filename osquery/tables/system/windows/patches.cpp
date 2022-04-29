@@ -17,10 +17,11 @@ namespace tables {
 QueryData genInstalledPatches(QueryContext& context) {
   QueryData results;
 
-  const WmiRequest wmiSystemReq("select * from Win32_QuickFixEngineering");
-  const auto& wmiResults = wmiSystemReq.results();
+  const auto wmiSystemReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_QuickFixEngineering");
 
-  if (wmiResults.size() != 0) {
+  if (wmiSystemReq && !wmiSystemReq->results().empty()) {
+    const auto& wmiResults = wmiSystemReq->results();
     Row r;
 
     for (const auto& item : wmiResults) {

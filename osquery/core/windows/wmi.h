@@ -218,6 +218,10 @@ class WmiResultItem {
   std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> result_{nullptr};
 };
 
+enum class WmiError {
+  ConstructionError,
+};
+
 /**
  * @brief Windows wrapper class for querying WMI
  *
@@ -226,8 +230,8 @@ class WmiResultItem {
  */
 class WmiRequest {
  public:
-  explicit WmiRequest(const std::string& query,
-                      std::wstring nspace = L"ROOT\\CIMV2");
+  static Expected<WmiRequest, WmiError> CreateWmiRequest(
+      const std::string& query, std::wstring nspace = L"ROOT\\CIMV2");
   WmiRequest(WmiRequest&& src) = default;
 
   const std::vector<WmiResultItem>& results() const {
@@ -255,6 +259,7 @@ class WmiRequest {
                     WmiResultItem& out_result) const;
 
  private:
+  WmiRequest() = default;
   Status status_;
   std::vector<WmiResultItem> results_;
 

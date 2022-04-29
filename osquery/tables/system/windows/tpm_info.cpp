@@ -22,11 +22,11 @@ QueryData genTpmInfo(QueryContext& context) {
   if (wminamespace == nullptr) {
     return {};
   }
-  const WmiRequest request(wmiclass, wminamespace);
+  const auto request = WmiRequest::CreateWmiRequest(wmiclass, wminamespace);
   ::SysFreeString(wminamespace);
 
-  if (request.getStatus().ok()) {
-    const auto& results = request.results();
+  if (request && request->getStatus().ok()) {
+    const auto& results = request->results();
     for (const auto& result : results) {
       Row r;
 
