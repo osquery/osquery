@@ -482,19 +482,19 @@ There are also encoding functions available, to process query results.
 
 #### Network functions
 
-- `in_cidr_range(CIDR_RANGE, IP_ADDRESS)`: return 1 if the IP address is within the CIDR range, otherwise 0.
+- `in_cidr_block(CIDR_RANGE, IP_ADDRESS)`: return 1 if the IP address is within the CIDR block, otherwise 0.
 
     <details>
-    <summary>in_cidr_range function example:</summary>
+    <summary>in_cidr_block function example:</summary>
     <p>
 
       osquery> .mode line
 
-      osquery> SELECT in_cidr_range('10.0.0.0/26', '10.0.0.24');
-      in_cidr_range('10.0.0.0/26', '10.0.0.24') = 1
+      osquery> SELECT in_cidr_block('10.0.0.0/26', '10.0.0.24');
+      in_cidr_block('10.0.0.0/26', '10.0.0.24') = 1
 
-      osquery> SELECT in_cidr_range('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
-      in_cidr_range('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
+      osquery> SELECT in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
+      in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
 
     </p>
     </details>

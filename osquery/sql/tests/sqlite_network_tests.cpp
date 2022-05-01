@@ -22,30 +22,30 @@ class SQLiteNetworkTests : public testing::Test {
   }
 };
 
-TEST_F(SQLiteNetworkTests, test_in_cidr_range) {
+TEST_F(SQLiteNetworkTests, test_in_cidr_block) {
   Row r;
   r["result"] = "1";
 
-  SQL sql = SQL("SELECT in_cidr_range('10.0.0.0/26', '10.0.0.24') AS result;");
+  SQL sql = SQL("SELECT in_cidr_block('10.0.0.0/26', '10.0.0.24') AS result;");
   EXPECT_TRUE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 1U);
   EXPECT_EQ(sql.rows()[0], r);
 
   sql = SQL(
-      "SELECT in_cidr_range('198.51.100.14/24', '198.51.100.14') AS result;");
+      "SELECT in_cidr_block('198.51.100.14/24', '198.51.100.14') AS result;");
   EXPECT_TRUE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 1U);
   EXPECT_EQ(sql.rows()[0], r);
 
   sql =
-      SQL("SELECT in_cidr_range('2a00:a040:019e:f12a:0000:0000:0000:0000/64',"
+      SQL("SELECT in_cidr_block('2a00:a040:019e:f12a:0000:0000:0000:0000/64',"
           "'2a00:a040:19e:f12a:658b:3589:b2ba:71a3') AS result;");
   EXPECT_TRUE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 1U);
   EXPECT_EQ(sql.rows()[0], r);
 
   sql =
-      SQL("SELECT in_cidr_range('2001:db8::/48',"
+      SQL("SELECT in_cidr_block('2001:db8::/48',"
           "'2001:db8:0:ffff:ffff:ffff:ffff:ffff') AS result;");
   EXPECT_TRUE(sql.ok());
   EXPECT_EQ(sql.rows().size(), 1U);

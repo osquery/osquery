@@ -19,7 +19,7 @@ namespace ip = boost::asio::ip;
 
 namespace osquery {
 
-static void sqliteCidrRangeFunc(sqlite3_context* context,
+static void sqliteCidrBlockFunc(sqlite3_context* context,
                                 int argc,
                                 sqlite3_value** argv) {
   const size_t cidr_idx = 0, ipaddr_idx = 1;
@@ -74,11 +74,11 @@ static void sqliteCidrRangeFunc(sqlite3_context* context,
 
 void registerNetworkExtensions(sqlite3* db) {
   sqlite3_create_function(db,
-                          "in_cidr_range",
+                          "in_cidr_block",
                           2,
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
-                          sqliteCidrRangeFunc,
+                          sqliteCidrBlockFunc,
                           nullptr,
                           nullptr);
 }
