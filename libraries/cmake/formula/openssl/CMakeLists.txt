@@ -3,6 +3,8 @@ project(thirdparty_openssl)
 set(OPENSSL_VERSION "1.1.1n")
 set(OPENSSL_ARCHIVE_SHA256 "40dceb51a4f6a5275bde0e6bf20ef4b91bfc32ed57c0552e2e8e15463372b17a")
 
+set(OSQUERY_OPENSSL_ARCHIVE_PATH "" CACHE FILEPATH "Optional path to an openssl archive to use instead of downloading it")
+
 include(ExternalProject)
 
 function(opensslMain)
@@ -176,10 +178,18 @@ function(opensslMain)
 
   string(REGEX MATCH "[0-9]\.[0-9]\.[0-9]" OPENSSL_VERSION_NO_PATCH "${OPENSSL_VERSION}")
 
-  set(openssl_urls
-    "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
-    "https://www.openssl.org/source/old/${OPENSSL_VERSION_NO_PATCH}/openssl-${OPENSSL_VERSION}.tar.gz"
-  )
+  if("${OSQUERY_OPENSSL_ARCHIVE_PATH}" STREQUAL "")
+    set(openssl_urls
+      "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+      "https://www.openssl.org/source/old/${OPENSSL_VERSION_NO_PATCH}/openssl-${OPENSSL_VERSION}.tar.gz"
+    )
+  else()
+    if(NOT EXISTS "${OSQUERY_OPENSSL_ARCHIVE_PATH}" OR IS_DIRECTORY "${OSQUERY_OPENSSL_ARCHIVE_PATH}")
+      message(FATAL_ERROR "The path provided to the openssl archive is incorrect: ${OSQUERY_OPENSSL_ARCHIVE_PATH}")
+    endif()
+
+    set(openssl_urls "${OSQUERY_OPENSSL_ARCHIVE_PATH}")
+  endif()
 
   ExternalProject_Add(openssl
     URL "${openssl_urls}"

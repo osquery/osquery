@@ -52,6 +52,8 @@ extern const std::string kCarves;
 /// The key for the DB version
 extern const std::string kDbVersionKey;
 
+extern const std::string kDistributedQueries;
+
 /// The running version of our database schema
 const int kDbCurrentVersion = 2;
 

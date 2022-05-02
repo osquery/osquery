@@ -4,6 +4,7 @@ schema([
     Column("label", TEXT, "Generic item name"),
     Column("description", TEXT, "Optional item description"),
     Column("comment", TEXT, "Optional keychain comment"),
+    Column("account", TEXT, "Optional item account"),
     Column("created", TEXT, "Data item was created"),
     Column("modified", TEXT, "Date of last modification"),
     Column("type", TEXT, "Keychain item type (class)"),

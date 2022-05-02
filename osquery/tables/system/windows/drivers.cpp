@@ -26,11 +26,14 @@
 #include <osquery/tables/system/windows/registry.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 
 namespace osquery {
 namespace tables {
 
+auto close_reg_handle = [](HKEY handle) { RegCloseKey(handle); };
+using reg_handle_t = std::unique_ptr<HKEY__, decltype(close_reg_handle)>;
 const auto kCloseInfoSet = [](auto infoset) {
   SetupDiDestroyDeviceInfoList(infoset);
 };
@@ -41,10 +44,10 @@ const std::map<std::string, DEVPROPKEY> kAdditionalDeviceProps = {
     {"service", DEVPKEY_Device_Service},
     {"driver_key", DEVPKEY_Device_Driver},
     {"date", DEVPKEY_Device_DriverDate}};
+const std::string kHkeyLocalMachinePrefix = "HKEY_LOCAL_MACHINE\\";
 const std::string kDriverKeyPath =
-    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\";
-const std::string kServiceKeyPath =
-    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\";
+    "SYSTEM\\CurrentControlSet\\Control\\Class\\";
+const std::string kServiceKeyPath = "SYSTEM\\CurrentControlSet\\Services\\";
 
 static inline void win32LogWARNING(const std::string& msg,
                                    const DWORD code = GetLastError(),
@@ -70,9 +73,11 @@ static inline std::string kNormalizeImage(std::string& path) {
                              static_cast<unsigned int>(sys_root.size()));
   }
   if (path.find("system32") != std::string::npos) {
-    boost::regex_replace(path, boost::regex("^.*?system32"), "");
+    path = boost::regex_replace(path, boost::regex("^.*?system32"), "");
   }
-  return wstringToString(sys_root.append(stringToWstring(path)));
+  boost::filesystem::path normalized_path(wstringToString(sys_root));
+  normalized_path /= path;
+  return normalized_path.string();
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -168,60 +173,70 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   return Status::success();
 }
 
-std::string getDriverImagePath(const std::string& service_key) {
-  QueryData results;
-  queryMultipleRegistryPaths({service_key + kRegSep + "ImagePath"}, results);
-
-  if (results.empty()) {
-    return "";
+Status registrySubKeyExists(HKEY key, const std::string& sub_key) {
+  HKEY hkey;
+  auto ret =
+      RegOpenKeyExW(key, stringToWstring(sub_key).c_str(), 0, KEY_READ, &hkey);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to open registry handle");
   }
 
-  auto data_it = results[0].find("data");
-  if (data_it == results[0].end()) {
-    return "";
-  }
-
-  auto path = data_it->second;
-  if (path.empty()) {
-    return "";
-  }
-
-  return kNormalizeImage(path);
+  RegCloseKey(hkey);
+  return Status::success();
 }
 
-Status genServiceKeyMap(
-    std::map<std::string, std::string>& services_image_map) {
-  QueryData results;
-  queryMultipleRegistryPaths({kServiceKeyPath + '%' + kRegSep + "ImagePath"},
-                             results);
-
-  // Something went wrong
-  if (results.empty()) {
-    return Status::failure("Failed to retrieve services image path cache");
+Status getDriverImagePath(const std::string& svc_name, std::string& result) {
+  HKEY hkey;
+  const auto image_path_value = L"ImagePath";
+  const auto svc_key = "SYSTEM\\CurrentControlSet\\Services\\" + svc_name;
+  auto ret = RegOpenKeyExW(
+      HKEY_LOCAL_MACHINE, stringToWstring(svc_key).c_str(), 0, KEY_READ, &hkey);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to open registry handle");
   }
 
-  for (auto& row : results) {
-    auto key_it = row.find("key");
-    auto data_it = row.find("data");
-    if (key_it == row.end() || data_it == row.end()) {
-      continue;
-    }
-    services_image_map[key_it->second] = kNormalizeImage(data_it->second);
+  reg_handle_t registry_handle(hkey, close_reg_handle);
+  DWORD buff_size;
+  ret = RegGetValueW(hkey,
+                     nullptr,
+                     image_path_value,
+                     RRF_RT_REG_SZ,
+                     nullptr,
+                     nullptr,
+                     &buff_size);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to query registry value(length)");
   }
+
+  auto buff = std::make_unique<WCHAR[]>(buff_size / sizeof(WCHAR));
+  ret = RegGetValueW(hkey,
+                     nullptr,
+                     image_path_value,
+                     RRF_RT_REG_SZ,
+                     nullptr,
+                     buff.get(),
+                     &buff_size);
+  if (ret != ERROR_SUCCESS) {
+    return Status(ret, "Failed to query registry value");
+  }
+
+  auto path = wstringToString(buff.get());
+  result = kNormalizeImage(path);
   return Status::success();
 }
 
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
 
-  const WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
-  const auto& wmi_results = wmiSignedDriverReq.results();
+  const Expected<WmiRequest, WmiError> wmiSignedDriverReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_PnPSignedDriver");
 
   // As our list relies on the WMI set we first query and bail if no results
-  if (wmi_results.empty()) {
+  if (!wmiSignedDriverReq || wmiSignedDriverReq->results().empty()) {
     LOG(WARNING) << "Failed to query device drivers via WMI";
     return {};
   }
+  const auto& wmi_results = wmiSignedDriverReq->results();
 
   auto dev_info_set = setupDevInfoSet(DIGCF_ALLCLASSES | DIGCF_PRESENT);
   if (dev_info_set == nullptr) {
@@ -237,12 +252,6 @@ QueryData genDrivers(QueryContext& context) {
     return results;
   }
 
-  std::map<std::string, std::string> svc_image_map;
-  auto s = genServiceKeyMap(svc_image_map);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to construct service image path cache";
-  }
-
   // Then, leverage the Windows APIs to get whatever remains
   for (auto& device : devices) {
     WCHAR devId[MAX_DEVICE_ID_LEN] = {0};
@@ -256,28 +265,49 @@ QueryData genDrivers(QueryContext& context) {
     for (const auto& elem : kAdditionalDeviceProps) {
       std::string val;
       ret = getDeviceProperty(dev_info_set, device, elem.second, val);
-      r[elem.first] = std::move(val);
+      if (!ret.ok()) {
+        VLOG(1) << "Failed to get element type " << elem.first
+                << " with error code: " << ret.getCode();
+      } else {
+        r[elem.first] = std::move(val);
+      }
     }
 
     if (r.count("driver_key") > 0 && !r.at("driver_key").empty()) {
       r["driver_key"].insert(0, kDriverKeyPath);
+      auto res = registrySubKeyExists(HKEY_LOCAL_MACHINE, r["driver_key"]);
+      if (!res.ok()) {
+        VLOG(1) << "The following registry key for device id "
+                << wstringToString(devId) << " could not be found within path: "
+                << kHkeyLocalMachinePrefix + r["driver_key"];
+        r["driver_key"].clear();
+      } else {
+        r["driver_key"].insert(0, kHkeyLocalMachinePrefix);
+      }
     }
 
     if (r.count("service") > 0 && !r.at("service").empty()) {
-      auto svc_key = kServiceKeyPath + r["service"];
-      r["service_key"] = svc_key;
-
-      // If the image map doesn't exist in the cache, manually look it up
-      auto svc_key_it = svc_image_map.find(svc_key);
-      if (svc_key_it != svc_image_map.end()) {
-        r["image"] = svc_key_it->second;
+      std::string svc_key = kServiceKeyPath + r["service"];
+      std::string full_svc_key = kHkeyLocalMachinePrefix + svc_key;
+      auto res = registrySubKeyExists(HKEY_LOCAL_MACHINE, svc_key);
+      if (!res.ok()) {
+        VLOG(1) << "The following registry key for service name "
+                << r["service"]
+                << " could not be found within path: " << full_svc_key;
       } else {
-        // Manual lookups of the service keys image path are _very_ slow
-        VLOG(1) << r["service"]
-                << " not found in image cache, performing manual lookup";
-        r["image"] = getDriverImagePath(svc_key);
+        r["service_key"] = std::move(full_svc_key);
+        std::string path;
+        auto ret = getDriverImagePath(r["service"], path);
+        if (!ret.ok()) {
+          VLOG(1) << "Failed to get driver image path for device id: "
+                  << wstringToString(devId)
+                  << " ,error code: " << ret.getCode();
+        } else {
+          r["image"] = std::move(path);
+        }
       }
     }
+
     api_devices[devId] = r;
   }
 

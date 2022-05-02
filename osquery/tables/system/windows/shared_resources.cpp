@@ -21,9 +21,10 @@ namespace tables {
 QueryData genShares(QueryContext& context) {
   QueryData results_data;
 
-  const WmiRequest request("SELECT * FROM Win32_Share");
-  if (request.getStatus().ok()) {
-    const std::vector<WmiResultItem>& results = request.results();
+  const auto request =
+      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_Share");
+  if (request && request->getStatus().ok()) {
+    const std::vector<WmiResultItem>& results = request->results();
     for (const auto& result : results) {
       Row r;
       long lPlaceHolder;

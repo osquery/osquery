@@ -360,7 +360,8 @@ Status WmiResultItem::GetVectorOfLongs(const std::string& name,
   return Status::success();
 }
 
-WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
+Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
+    const std::string& query, std::wstring nspace) {
   std::wstring wql = stringToWstring(query);
 
   HRESULT hr = E_FAIL;
@@ -381,67 +382,75 @@ WmiRequest::WmiRequest(const std::string& query, std::wstring nspace) {
                           IID_IWbemLocator,
                           (LPVOID*)&locator);
   if (hr != S_OK) {
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed after CoCreateInstance";
   }
-  locator_.reset(locator);
+  WmiRequest wmi_request;
+  wmi_request.locator_.reset(locator);
 
   IWbemServices* services = nullptr;
   BSTR nspace_str = SysAllocString(nspace.c_str());
   if (nullptr == nspace_str) {
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in nspace_str allocation";
   }
 
-  hr = locator_->ConnectServer(nspace_str,
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               WBEM_FLAG_CONNECT_USE_MAX_WAIT,
-                               nullptr,
-                               nullptr,
-                               &services);
+  hr = wmi_request.locator_->ConnectServer(nspace_str,
+                                           nullptr,
+                                           nullptr,
+                                           nullptr,
+                                           WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+                                           nullptr,
+                                           nullptr,
+                                           &services);
   SysFreeString(nspace_str);
 
   if (hr != S_OK) {
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed to connect to server";
   }
-  services_.reset(services);
+  wmi_request.services_.reset(services);
 
   IEnumWbemClassObject* wbem_enum = nullptr;
 
   BSTR language_str = SysAllocString(L"WQL");
   if (nullptr == language_str) {
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in language_str allocation";
   }
 
   BSTR wql_str = SysAllocString(wql.c_str());
   if (nullptr == wql_str) {
     SysFreeString(language_str);
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in wql_str allocation";
   }
 
-  hr = services_->ExecQuery(
+  hr = wmi_request.services_->ExecQuery(
       language_str, wql_str, WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
 
   SysFreeString(wql_str);
   SysFreeString(language_str);
   if (hr != S_OK) {
-    return;
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in ExecQuery";
   }
 
-  enum_.reset(wbem_enum);
+  wmi_request.enum_.reset(wbem_enum);
 
   hr = WBEM_S_NO_ERROR;
   while (hr == WBEM_S_NO_ERROR) {
     IWbemClassObject* result = nullptr;
     ULONG result_count = 0;
 
-    hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
+    hr = wmi_request.enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
     if (SUCCEEDED(hr) && result_count > 0) {
-      results_.emplace_back(result);
+      wmi_request.results_.emplace_back(result);
     }
   }
 
-  status_ = Status(0);
+  wmi_request.status_ = Status(0);
+  return wmi_request;
 }
 
 Status WmiRequest::ExecMethod(const WmiResultItem& object,

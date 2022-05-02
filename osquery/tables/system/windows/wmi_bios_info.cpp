@@ -58,9 +58,9 @@ std::string getManufacturer(std::string manufacturer) {
     // If it's a Dell machine, we check if the legacy class exists or not and
     // accordingly return the corresponding manufacturer name.
     auto it = kQueryMap.find("dell-legacy");
-    const WmiRequest wmiBiosReq(std::get<0>(it->second),
-                                std::get<1>(it->second));
-    if (!wmiBiosReq.results().empty()) {
+    const auto wmiBiosReq = WmiRequest::CreateWmiRequest(
+        std::get<0>(it->second), std::get<1>(it->second));
+    if (wmiBiosReq && !wmiBiosReq->results().empty()) {
       manufacturer = "dell-legacy";
     } else {
       manufacturer = "dell";
@@ -156,13 +156,12 @@ Row getDellBiosInfo(const WmiResultItem& item) {
 }
 
 QueryData genBiosInfo(QueryContext& context) {
-
-  const WmiRequest wmiComputerSystemReq(
+  const auto wmiComputerSystemReq = WmiRequest::CreateWmiRequest(
       "select Manufacturer from Win32_ComputerSystem");
-  const auto& wmiComputerSystemResults = wmiComputerSystemReq.results();
-  if (wmiComputerSystemResults.empty()) {
+  if (!wmiComputerSystemReq || wmiComputerSystemReq->results().empty()) {
     return {};
   }
+  const auto& wmiComputerSystemResults = wmiComputerSystemReq->results();
 
   std::string manufacturer;
   wmiComputerSystemResults[0].GetString("Manufacturer", manufacturer);
@@ -175,8 +174,13 @@ QueryData genBiosInfo(QueryContext& context) {
   }
 
   QueryData results;
-  const WmiRequest wmiBiosReq(std::get<0>(it->second), std::get<1>(it->second));
-  const auto& wmiResults = wmiBiosReq.results();
+  const auto wmiBiosReq = WmiRequest::CreateWmiRequest(std::get<0>(it->second),
+                                                       std::get<1>(it->second));
+  if (!wmiBiosReq) {
+    LOG(WARNING) << wmiBiosReq.getError().getMessage();
+    return results;
+  }
+  const auto& wmiResults = wmiBiosReq->results();
   for (size_t i = 0; i < wmiResults.size(); ++i) {
     Row r;
     if (manufacturer == "hp") {

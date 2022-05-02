@@ -222,8 +222,8 @@ class Distributed {
   /// Retrieve queued queries from a remote server
   Status pullUpdates();
 
-  /// Get the number of queries which are waiting to be executed
-  size_t getPendingQueryCount();
+  /// Get the queries which are waiting to be executed
+  std::vector<std::string> getPendingQueries();
 
   /// Get the number of results which are waiting to be flushed
   size_t getCompletedCount();
@@ -250,11 +250,11 @@ class Distributed {
   Status acceptWork(const std::string& work);
 
   /**
-   * @brief Pop a request object off of the queries_ member
+   * @brief Pop a request off of the database for the query in the argument
    *
    * @return a DistributedQueryRequest object which needs to be executed
    */
-  DistributedQueryRequest popRequest();
+  DistributedQueryRequest popRequest(std::string query);
 
   /**
    * @brief Queue a result to be batch sent to the server

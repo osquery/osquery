@@ -22,12 +22,13 @@ QueryData genCpuInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  const WmiRequest wmiSystemReq("SELECT * FROM Win32_Processor");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.empty()) {
+  const Expected<WmiRequest, WmiError> wmiSystemReq =
+      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_Processor");
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
     long number = 0;
     data.GetString("DeviceID", r["device_id"]);

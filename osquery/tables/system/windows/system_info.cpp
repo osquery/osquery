@@ -36,11 +36,15 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  const WmiRequest wmiSystemReq("select * from Win32_ComputerSystem");
-  const WmiRequest wmiSystemReqProc("select * from Win32_Processor");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  const std::vector<WmiResultItem>& wmiResultsProc = wmiSystemReqProc.results();
-  if (!wmiResults.empty() && !wmiResultsProc.empty()) {
+  const auto wmiSystemReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_ComputerSystem");
+  const auto wmiSystemReqProc =
+      WmiRequest::CreateWmiRequest("select * from Win32_Processor");
+  if (wmiSystemReq && wmiSystemReqProc && !wmiSystemReq->results().empty() &&
+      !wmiSystemReqProc->results().empty()) {
+    const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
+    const std::vector<WmiResultItem>& wmiResultsProc =
+        wmiSystemReqProc->results();
     long numProcs = 0;
     wmiResults[0].GetLong("NumberOfLogicalProcessors", numProcs);
     r["cpu_logical_cores"] = INTEGER(numProcs);
@@ -93,10 +97,10 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  const WmiRequest wmiBiosReq("select * from Win32_Bios");
-  const std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
-  if (wmiBiosResults.size() != 0) {
-    wmiBiosResults[0].GetString("SerialNumber", r["hardware_serial"]);
+  const auto wmiBiosReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_Bios");
+  if (wmiBiosReq && !wmiBiosReq->results().empty()) {
+    wmiBiosReq->results()[0].GetString("SerialNumber", r["hardware_serial"]);
   } else {
     r["hardware_serial"] = "-1";
   }

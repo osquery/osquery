@@ -20,9 +20,10 @@ namespace tables {
 QueryData genNtdomains(QueryContext& context) {
   QueryData results;
 
-  WmiRequest wmiSystemReq("select * from Win32_NtDomain");
-  const auto& wmiResults = wmiSystemReq.results();
-  if (wmiSystemReq.getStatus().ok()) {
+  Expected<WmiRequest, WmiError> wmiSystemReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_NtDomain");
+  if (wmiSystemReq) {
+    const auto& wmiResults = wmiSystemReq->results();
     if (!wmiResults.empty()) {
       for (const auto& data : wmiResults) {
         Row r;
@@ -41,7 +42,7 @@ QueryData genNtdomains(QueryContext& context) {
       LOG(WARNING) << "WMI resultset empty.";
     }
   } else {
-    VLOG(1) << wmiSystemReq.getStatus().getMessage();
+    VLOG(1) << wmiSystemReq.getError().getMessage();
   }
   return results;
 }

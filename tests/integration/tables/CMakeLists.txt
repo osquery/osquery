@@ -34,6 +34,7 @@ function(generateTestsIntegrationTablesTestsTest)
   set(source_files
     carbon_black_info.cpp
     carves.cpp
+    certificates.cpp
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
@@ -177,7 +178,6 @@ function(generateTestsIntegrationTablesTestsTest)
       secureboot.cpp
       shadow.cpp
       shared_memory.cpp
-      smart_drive_info.cpp
       socket_events.cpp
       startup_items.cpp
       syslog_events.cpp
@@ -211,7 +211,6 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
-      certificates.cpp
       crashes.cpp
       cups_destinations.cpp
       cups_jobs.cpp
@@ -272,9 +271,6 @@ function(generateTestsIntegrationTablesTestsTest)
 
     list(APPEND source_files ${platform_source_files})
 
-    if(NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files smart_drive_info.cpp)
-    endif()
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
       appcompat_shims.cpp
@@ -283,7 +279,6 @@ function(generateTestsIntegrationTablesTestsTest)
       autoexec.cpp
       background_activities_moderator.cpp
       bitlocker_info.cpp
-      certificates.cpp
       connectivity.cpp
       windows_firewall_rules.cpp
       chassis_info.cpp

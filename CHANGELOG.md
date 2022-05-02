@@ -1,5 +1,28 @@
 # osquery Changelog
 
+<a name="5.2.3"></a>
+## [5.2.3](https://github.com/osquery/osquery/releases/tag/5.2.3)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.2.2...5.2.3)
+
+Osquery 5.2.3 is a security update that focuses on updating some third-party libraries
+which contained CVEs that could affect osquery.
+Additionally some other third-party libraries and tables have been dropped,
+since they were not maintained or considered safe anymore.
+
+### Deprecation Notices
+
+- Remove the `shortcut_files` table [#7545](https://github.com/osquery/osquery/issues/7545)
+- Remove the ssdeep library and remove its support in the `hash` table [#7520](https://github.com/osquery/osquery/issues/7520)
+- Remove the libelfin library and elf parsing tables [#7510](https://github.com/osquery/osquery/issues/7510)
+
+### Hardening
+
+- libs: Update OpenSSL from version 1.1.1l to 1.1.1n [#7506](https://github.com/osquery/osquery/pull/7506)
+- libs: Update zlib from v1.2.11 to v1.2.12 [#7548](https://github.com/osquery/osquery/pull/7548)
+- Update librpm to 4.17.0 [#7529](https://github.com/osquery/osquery/pull/7529)
+- libs: Update expat from version 2.2.10 to 2.4.7 [#7526](https://github.com/osquery/osquery/pull/7526)
+
 <a name="5.2.2"></a>
 ## [5.2.2](https://github.com/osquery/osquery/releases/tag/5.2.2)
 
