@@ -186,7 +186,7 @@ void initLanguagesAndCodepagesHeuristic(
 }
 
 // retrieve OriginalFilename for language and code page from version information
-// ressource
+// resource
 Status getOriginalFilenameForCodepage(
     const std::unique_ptr<BYTE[]>& versionInfo,
     const langandcodepage_t& lang_and_codepage,
@@ -211,7 +211,7 @@ Status getOriginalFilenameForCodepage(
                 "Failed to retrieve OriginalFilename for codepage");
 }
 
-// retrieve OriginalFilename from version information ressource
+// retrieve OriginalFilename from version information resource
 // original_filename is only modified on successful read
 Status windowsGetOriginalFilename(const std::string& path,
                                   std::string& original_filename) {
@@ -250,7 +250,7 @@ Status windowsGetOriginalFilename(const std::string& path,
   // retrieve OriginalFilename for each language and code page, stop on first
   // successful read
   stat = Status::failure(
-      "Failed to retrieve OriginalFilename from version information ressource");
+      "Failed to retrieve OriginalFilename from version information resource");
   for (size_t i = 0; i < langs_and_codepages.size(); ++i) {
     stat = getOriginalFilenameForCodepage(
         verInfo, langs_and_codepages[i], original_filename);
@@ -287,7 +287,7 @@ Status windowsGetOriginalFilename(const std::string& path,
   return stat.ok() ? Status::success()
                    : Status::failure(
                          "Failed to retrieve OriginalFilename from "
-                         "version information ressource");
+                         "version information resource");
 }
 
 static bool hasGlobBraces(const std::wstring& glob) {
