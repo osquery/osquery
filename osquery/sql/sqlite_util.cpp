@@ -353,6 +353,7 @@ static inline void openOptimized(sqlite3*& db) {
   registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
+  registerNetworkExtensions(db);
 
   auto rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
   if (rc != SQLITE_OK) {
