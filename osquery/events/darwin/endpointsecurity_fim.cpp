@@ -1,21 +1,21 @@
 /**
-* Copyright (c) 2014-present, The osquery authors
-*
-* This source code is licensed as defined by the LICENSE file found in the
-* root directory of this source tree.
-*
-* SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
-*/
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 #include <iomanip>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <osquery/core/flags.h>
-#include <osquery/events/darwin/es_utils.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_utils.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/classification.hpp>
 
 namespace osquery {
 
@@ -24,7 +24,9 @@ DECLARE_bool(disable_endpointsecurity_fim);
 DECLARE_string(es_fim_mute_path_literal);
 DECLARE_string(es_fim_mute_path_prefix);
 
-REGISTER(EndpointSecurityFileEventPublisher, "event_publisher", "endpointsecurity_fim")
+REGISTER(EndpointSecurityFileEventPublisher,
+         "event_publisher",
+         "endpointsecurity_fim")
 
 Status EndpointSecurityFileEventPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
@@ -34,11 +36,14 @@ Status EndpointSecurityFileEventPublisher::setUp() {
     }
 
     if (FLAGS_disable_endpointsecurity_fim) {
-      return Status::failure(1, "EndpointSecurity FIM is disabled via configuration");
+      return Status::failure(
+          1, "EndpointSecurity FIM is disabled via configuration");
     }
 
     if (!FLAGS_es_fim_mute_path_literal.empty()) {
-      boost::split(muted_path_literals_, FLAGS_es_fim_mute_path_literal, boost::is_any_of(","));
+      boost::split(muted_path_literals_,
+                   FLAGS_es_fim_mute_path_literal,
+                   boost::is_any_of(","));
       VLOG(1) << "muted path list :: " << muted_path_literals_.size();
       for (const auto& p : muted_path_literals_) {
         VLOG(1) << p;
@@ -46,7 +51,10 @@ Status EndpointSecurityFileEventPublisher::setUp() {
     }
 
     if (!FLAGS_es_fim_mute_path_prefix.empty()) {
-      boost::split(muted_path_prefixes_, FLAGS_es_fim_mute_path_prefix, boost::is_any_of(","));;
+      boost::split(muted_path_prefixes_,
+                   FLAGS_es_fim_mute_path_prefix,
+                   boost::is_any_of(","));
+      ;
     }
 
     auto handler = ^(es_client_t* client, const es_message_t* message) {
@@ -81,11 +89,13 @@ void EndpointSecurityFileEventPublisher::configure() {
     auto sc = getSubscriptionContext(sub->context);
     auto events = sc->es_file_event_subscriptions_;
 
-    // check availability macros for muting APIs to see which macOS version supports this
+    // check availability macros for muting APIs to see which macOS version
+    // supports this
     for (const auto& p : muted_path_literals_) {
       es_return_t result = ES_RETURN_ERROR;
       if (__builtin_available(macos 12.0, *)) {
-        result = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
+        result =
+            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
       } else if (__builtin_available(macos 10.15, *)) {
         result = es_mute_path_literal(es_file_client_, p.c_str());
       }
@@ -97,7 +107,8 @@ void EndpointSecurityFileEventPublisher::configure() {
     for (const auto& p : muted_path_prefixes_) {
       es_return_t result = ES_RETURN_ERROR;
       if (__builtin_available(macos 12.0, *)) {
-        result = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
+        result =
+            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
       } else if (__builtin_available(macos 10.15, *)) {
         result = es_mute_path_prefix(es_file_client_, p.c_str());
       }
@@ -112,8 +123,9 @@ void EndpointSecurityFileEventPublisher::configure() {
   }
 }
 
-bool EndpointSecurityFileEventPublisher::shouldFire(const EndpointSecurityFileSubscriptionContextRef& sc,
-                                                    const EndpointSecurityFileEventContextRef& ec) const {
+bool EndpointSecurityFileEventPublisher::shouldFire(
+    const EndpointSecurityFileSubscriptionContextRef& sc,
+    const EndpointSecurityFileEventContextRef& ec) const {
   return true;
 }
 
@@ -128,7 +140,8 @@ void EndpointSecurityFileEventPublisher::tearDown() {
   }
 }
 
-void EndpointSecurityFileEventPublisher::handleMessage(const es_message_t* message) {
+void EndpointSecurityFileEventPublisher::handleMessage(
+    const es_message_t* message) {
   if (message == nullptr) {
     return;
   }
@@ -151,12 +164,16 @@ void EndpointSecurityFileEventPublisher::handleMessage(const es_message_t* messa
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_CREATE: {
     ec->event_type = "create";
-    if (message->event.create.destination_type == ES_DESTINATION_TYPE_EXISTING_FILE) {
-      ec->filename = getStringFromToken(&message->event.create.destination.existing_file->path);
+    if (message->event.create.destination_type ==
+        ES_DESTINATION_TYPE_EXISTING_FILE) {
+      ec->filename = getStringFromToken(
+          &message->event.create.destination.existing_file->path);
     } else {
-      std::string filename = getStringFromToken(&message->event.create.destination.new_path.dir->path);
+      std::string filename = getStringFromToken(
+          &message->event.create.destination.new_path.dir->path);
       filename += '/';
-      filename += getStringFromToken(&message->event.create.destination.new_path.filename);
+      filename += getStringFromToken(
+          &message->event.create.destination.new_path.filename);
       ec->filename = filename;
     }
   } break;
@@ -167,12 +184,16 @@ void EndpointSecurityFileEventPublisher::handleMessage(const es_message_t* messa
   case ES_EVENT_TYPE_NOTIFY_RENAME: {
     ec->event_type = "rename";
     ec->filename = getStringFromToken(&message->event.rename.source->path);
-    if (message->event.rename.destination_type == ES_DESTINATION_TYPE_EXISTING_FILE) {
-      ec->dest_filename = getStringFromToken(&message->event.rename.destination.existing_file->path);
+    if (message->event.rename.destination_type ==
+        ES_DESTINATION_TYPE_EXISTING_FILE) {
+      ec->dest_filename = getStringFromToken(
+          &message->event.rename.destination.existing_file->path);
     } else {
-      std::string filename = getStringFromToken(&message->event.rename.destination.new_path.dir->path);
+      std::string filename = getStringFromToken(
+          &message->event.rename.destination.new_path.dir->path);
       filename += '/';
-      filename += getStringFromToken(&message->event.rename.destination.new_path.filename);
+      filename += getStringFromToken(
+          &message->event.rename.destination.new_path.filename);
       ec->dest_filename = filename;
     }
   } break;
@@ -186,4 +207,4 @@ void EndpointSecurityFileEventPublisher::handleMessage(const es_message_t* messa
   EventFactory::fire<EndpointSecurityFileEventPublisher>(ec);
 }
 
-}
+} // namespace osquery

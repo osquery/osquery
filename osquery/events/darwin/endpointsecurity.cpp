@@ -10,8 +10,8 @@
 #include <iomanip>
 
 #include <osquery/core/flags.h>
-#include <osquery/events/darwin/es_utils.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_utils.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
@@ -78,8 +78,6 @@ void EndpointSecurityPublisher::tearDown() {
     es_client_ = nullptr;
   }
 }
-
-
 
 void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
   if (message == nullptr) {
@@ -157,7 +155,5 @@ bool EndpointSecurityPublisher::shouldFire(
     const EndpointSecurityEventContextRef& ec) const {
   return true;
 }
-
-
 
 } // namespace osquery

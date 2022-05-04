@@ -97,7 +97,6 @@ struct EndpointSecurityFileEventContext : EndpointSecurityEventContext {
   std::string filename;
 
   std::string dest_filename;
-
 };
 
 using EndpointSecurityFileEventContextRef =
@@ -166,14 +165,15 @@ class EndpointSecurityFileEventPublisher
 
   bool shouldFire(const EndpointSecurityFileSubscriptionContextRef& sc,
                   const EndpointSecurityFileEventContextRef& ec) const override
-    API_AVAILABLE(macos(10.15));
+      API_AVAILABLE(macos(10.15));
 
   virtual ~EndpointSecurityFileEventPublisher() API_AVAILABLE(macos(10.15)) {
     tearDown();
   }
 
  public:
-  static void handleMessage(const es_message_t* message) API_AVAILABLE(macos(10.15));
+  static void handleMessage(const es_message_t* message)
+      API_AVAILABLE(macos(10.15));
 
  private:
   es_client_s* es_file_client_{nullptr};

@@ -18,7 +18,9 @@
 
 namespace osquery {
 
-REGISTER(ESProcessFileEventSubscriber, "event_subscriber", "es_process_file_events");
+REGISTER(ESProcessFileEventSubscriber,
+         "event_subscriber",
+         "es_process_file_events");
 
 Status ESProcessFileEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
@@ -51,7 +53,6 @@ Status ESProcessFileEventSubscriber::Callback(
   r["global_seq_num"] = BIGINT(ec->global_seq_num);
 
   r["event_type"] = ec->event_type;
-
 
   r["pid"] = BIGINT(ec->pid);
   r["parent"] = BIGINT(ec->parent);

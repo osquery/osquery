@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2014-present, The osquery authors
-*
-* This source code is licensed as defined by the LICENSE file found in the
-* root directory of this source tree.
-*
-* SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <iomanip>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/logger/logger.h>
-#include <iomanip>
 #include <pwd.h>
 
 namespace osquery {
@@ -34,7 +34,6 @@ FLAG(string,
      es_fim_mute_path_prefix,
      "",
      "Comma delimited list of path prefxes to be muted for FIM");
-
 
 std::string getEsNewClientErrorMessage(const es_new_client_result_t r) {
   switch (r) {
@@ -95,7 +94,7 @@ std::string getCDHash(const es_process_t* p) {
 }
 
 void getProperties(const es_process_t* p,
-              const EndpointSecurityEventContextRef& ec) {
+                   const EndpointSecurityEventContextRef& ec) {
   auto audit_token = p->audit_token;
   ec->pid = audit_token_to_pid(audit_token);
   ec->parent = p->ppid;
@@ -120,5 +119,4 @@ void getProperties(const es_process_t* p,
   ec->cwd = getCwdPathFromPid(ec->pid);
 }
 
-
-}
+} // namespace osquery
