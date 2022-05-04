@@ -41,8 +41,10 @@ using UniqueX509InfoList = std::vector<UniqueX509Info>;
 
 struct CertificateInformation final {
   std::string common_name;
-  std::string subject;
-  std::string issuer;
+  std::string subject_name;
+  std::string subject_name2;
+  std::string issuer_name;
+  std::string issuer_name2;
   std::time_t not_valid_before;
   std::time_t not_valid_after;
   std::string signing_algorithm;
@@ -100,35 +102,82 @@ Expected<CertificateInformation, OpenSSLError> generateCertificateInformation(
   }
 
   CertificateInformation cert_info;
-  genCommonName(
-      x509, cert_info.subject, cert_info.common_name, cert_info.issuer);
-
-  genAlgorithmProperties(x509,
-                         cert_info.key_algorithm,
-                         cert_info.signing_algorithm,
-                         cert_info.key_strength);
-
-  cert_info.not_valid_before = genEpoch(X509_get_notBefore(x509));
-  cert_info.not_valid_after = genEpoch(X509_get_notAfter(x509));
-
-  cert_info.sha1 = genSHA1ForCertificate(x509);
-  cert_info.is_ca = certificateIsCA(x509);
-  cert_info.is_self_signed = certificateIsSelfSigned(x509);
-  cert_info.key_usage = genKeyUsage(X509_get_key_usage(x509));
-
-  const auto* cert_key_id = X509_get0_authority_key_id(x509);
-  if (cert_key_id != nullptr) {
-    cert_info.authority_key_id =
-        genKIDProperty(cert_key_id->data, cert_key_id->length);
+  auto opt_issuer_name = getCertificateIssuerName(x509, true);
+  if (opt_issuer_name.has_value()) {
+    cert_info.issuer_name = opt_issuer_name.value();
   }
 
-  cert_key_id = X509_get0_subject_key_id(x509);
-  if (cert_key_id != nullptr) {
-    cert_info.subject_key_id =
-        genKIDProperty(cert_key_id->data, cert_key_id->length);
+  opt_issuer_name = getCertificateIssuerName(x509, false);
+  if (opt_issuer_name.has_value()) {
+    cert_info.issuer_name2 = opt_issuer_name.value();
   }
 
-  cert_info.serial = genSerialForCertificate(x509);
+  auto opt_subject_name = getCertificateSubjectName(x509, true);
+  if (opt_subject_name.has_value()) {
+    cert_info.subject_name = opt_subject_name.value();
+  }
+
+  opt_subject_name = getCertificateSubjectName(x509, false);
+  if (opt_subject_name.has_value()) {
+    cert_info.subject_name2 = opt_subject_name.value();
+  }
+
+  auto opt_common_name = getCertificateCommonName(x509);
+  if (opt_common_name.has_value()) {
+    cert_info.common_name = opt_common_name.value();
+  }
+
+  auto opt_signing_algorithm = getCertificateSigningAlgorithm(x509);
+  if (opt_signing_algorithm.has_value()) {
+    cert_info.signing_algorithm = opt_signing_algorithm.value();
+  }
+
+  auto opt_key_algorithm = getCertificateKeyAlgorithm(x509);
+  if (opt_key_algorithm.has_value()) {
+    cert_info.key_algorithm = opt_key_algorithm.value();
+  }
+
+  auto opt_key_strength = getCertificateKeyStregth(x509);
+  if (opt_key_strength.has_value()) {
+    cert_info.key_strength = opt_key_strength.value();
+  }
+
+  auto opt_not_valid_before = getCertificateNotValidBefore(x509);
+  if (opt_not_valid_before.has_value()) {
+    cert_info.not_valid_before = opt_not_valid_before.value();
+  }
+
+  auto opt_not_valid_after = getCertificateNotValidAfter(x509);
+  if (opt_not_valid_after.has_value()) {
+    cert_info.not_valid_after = opt_not_valid_after.value();
+  }
+
+  auto opt_digest = generateCertificateSHA1Digest(x509);
+  if (opt_digest.has_value()) {
+    cert_info.sha1 = opt_digest.value();
+  }
+
+  getCertificateAttributes(x509, cert_info.is_ca, cert_info.is_self_signed);
+
+  auto opt_cert_key_usage = getCertificateKeyUsage(x509);
+  if (opt_cert_key_usage.has_value()) {
+    cert_info.key_usage = opt_cert_key_usage.value();
+  }
+
+  auto opt_authority_key_id = getCertificateAuthorityKeyID(x509);
+  if (opt_authority_key_id.has_value()) {
+    cert_info.authority_key_id = opt_authority_key_id.value();
+  }
+
+  auto opt_subject_key_id = getCertificateSubjectKeyID(x509);
+  if (opt_subject_key_id.has_value()) {
+    cert_info.subject_key_id = opt_subject_key_id.value();
+  }
+
+  auto opt_cert_serial_number = getCertificateSerialNumber(x509);
+  if (opt_cert_serial_number.has_value()) {
+    cert_info.serial = opt_cert_serial_number.value();
+  }
 
   return cert_info;
 }
@@ -219,8 +268,10 @@ QueryData genCerts(QueryContext& context) {
       Row row;
       row["path"] = SQL_TEXT(bundle_path.string());
       row["common_name"] = SQL_TEXT(cert_info.common_name);
-      row["subject"] = SQL_TEXT(cert_info.subject);
-      row["issuer"] = SQL_TEXT(cert_info.issuer);
+      row["subject"] = SQL_TEXT(cert_info.subject_name);
+      row["subject2"] = SQL_TEXT(cert_info.subject_name2);
+      row["issuer"] = SQL_TEXT(cert_info.issuer_name);
+      row["issuer2"] = SQL_TEXT(cert_info.issuer_name2);
       row["ca"] = INTEGER(cert_info.is_ca ? 1 : 0);
       row["self_signed"] = INTEGER(cert_info.is_self_signed ? 1 : 0);
       row["not_valid_before"] = INTEGER(cert_info.not_valid_before);
