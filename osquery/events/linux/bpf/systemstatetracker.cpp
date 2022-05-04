@@ -1278,7 +1278,7 @@ bool SystemStateTracker::parseSocketAddress(
     succeeded = parseNetlinkSockaddr(address, port, sockaddr);
   }
 
-  if (family == AF_UNSPEC || family == AF_UNIX) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_UNIX)) {
     succeeded = parseUnixSockaddr(address, sockaddr);
   }
 
