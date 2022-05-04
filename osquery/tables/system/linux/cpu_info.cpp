@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <map>
 #include <string>
 
 #include <osquery/core/system.h>
@@ -17,6 +18,9 @@
 
 namespace osquery {
 namespace tables {
+
+static const std::map<std::string, std::string> ProcessorTypeToFriendlyName = {
+    {"3", "CPU"}, {"4", "MATH"}, {"5", "DSP"}, {"6", "GPU"}};
 
 QueryData genCpuInfo(QueryContext& context) {
   QueryData results;
@@ -33,6 +37,22 @@ QueryData genCpuInfo(QueryContext& context) {
                             size_t size) {
     genSMBIOSProcessor(index, hdr, address, textAddrs, size, results);
   }));
+
+  // Decorate table
+  uint8_t deviceId = 0;
+  for (auto& row : results) {
+    auto currentProcessorId = row.find("processor_type");
+    if (currentProcessorId == row.end()) {
+      continue;
+    }
+
+    // `device_id` column is not part of the SMBios table.
+    auto friendlyName =
+        ProcessorTypeToFriendlyName.find(currentProcessorId->second);
+    if (friendlyName != ProcessorTypeToFriendlyName.end()) {
+      row["device_id"] = friendlyName->second + std::to_string(deviceId++);
+    }
+  }
 
   return results;
 }

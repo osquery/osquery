@@ -584,13 +584,12 @@ void genSMBIOSProcessor(size_t index,
                         size_t size,
                         QueryData& results) {
   const size_t maxOffset = 0x2e + 2;
-  if (hdr->type != kSMBIOSTypeProcessor || size < maxOffset || index < 4) {
+  if (hdr->type != kSMBIOSTypeProcessor || size < maxOffset) {
     return;
   }
 
   Row r;
   auto maxlen = size - hdr->length;
-  r["device_id"] = "CPU" + std::to_string(index - 4);
   r["socket_designation"] = dmiString(textAddrs, address[0x04], maxlen);
   r["model"] = dmiString(textAddrs, address[0x10], maxlen);
   r["manufacturer"] = dmiString(textAddrs, address[0x07], maxlen);
