@@ -86,7 +86,7 @@ struct EndpointSecurityFileSubscriptionContext : public SubscriptionContext {
 using EndpointSecurityFileSubscriptionContextRef =
     std::shared_ptr<EndpointSecurityFileSubscriptionContext>;
 
-struct EndpointSecurityFileEventContext : public EventContext {
+struct EndpointSecurityFileEventContext : EndpointSecurityEventContext {
   es_event_type_t es_event;
   int version;
   long seq_num;
@@ -94,17 +94,9 @@ struct EndpointSecurityFileEventContext : public EventContext {
 
   std::string event_type;
 
-  pid_t pid;
-  pid_t parent;
-
-  // create event
-  std::string dir;
   std::string filename;
 
-  // rename event
-  std::string dest_dir;
   std::string dest_filename;
-  std::string src;
 
 };
 

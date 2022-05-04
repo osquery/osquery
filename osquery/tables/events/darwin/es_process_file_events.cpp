@@ -24,10 +24,10 @@ Status ESProcessFileEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
     auto sc = createSubscriptionContext();
 
-    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_CREATE);
-    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_RENAME);
-    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_WRITE);
-    sc->es_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
+    sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_CREATE);
+    sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_RENAME);
+    sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_WRITE);
+    sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
 
     // other related events
     // close, clone, dup, link, unlink
@@ -42,8 +42,8 @@ Status ESProcessFileEventSubscriber::init() {
 }
 
 Status ESProcessFileEventSubscriber::Callback(
-    const EndpointSecurityEventContextRef& ec,
-    const EndpointSecuritySubscriptionContextRef& sc) {
+    const EndpointSecurityFileEventContextRef& ec,
+    const EndpointSecurityFileSubscriptionContextRef& sc) {
   Row r;
 
   r["version"] = INTEGER(ec->version);
@@ -58,13 +58,9 @@ Status ESProcessFileEventSubscriber::Callback(
 
   r["path"] = ec->path;
 
-  // create, rename events
-  r["dest_dir"] = ""; // dir
-  r["dest_file"] = ""; // filename
+  r["filename"] = ec->filename;
 
-  // write
-
-  // truncate
+  r["dest_filename"] = ec->dest_filename;
 
   sc->row_list = {r};
   if (!sc->row_list.empty()) {
