@@ -120,12 +120,12 @@ void genSSHkeysForUser(const std::string& uid,
           }
 
           auto key_type_end_pos = key_type_start_pos + key_type.length();
-          // Key type length is wrong.
+          // Key type length is invalid.
           if (key_type_end_pos >= line.length()) {
             continue;
           }
 
-          // Incorrent key type.
+          // Incorrect key type.
           if (line[key_type_end_pos] != ' ' && line[key_type_end_pos] != '\t') {
             continue;
           }
