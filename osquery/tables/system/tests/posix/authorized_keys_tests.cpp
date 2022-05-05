@@ -67,20 +67,20 @@ TEST_F(AuthorizedKeysTests, basic_authorized_keys) {
   EXPECT_EQ(results[0].at("algorithm"), "ssh-rsa");
   EXPECT_EQ(results[0].at("key"),
             "AAAAB3NzaC1yc2EAAA...41Ev521Ei2hvz7S2QNr1zAiVaOFy5Lwc8Lo+Jk=");
-  EXPECT_TRUE(results[0].at("comment").empty());
-  EXPECT_TRUE(results[0].at("options").empty());
+  EXPECT_TRUE(results[0].find("comment") == results[0].end());
+  EXPECT_TRUE(results[0].find("options") == results[0].end());
 
   EXPECT_EQ(results[1].at("key_file"), authorized_keys_file.string());
   EXPECT_EQ(results[1].at("algorithm"), "ssh-rsa");
   EXPECT_EQ(results[1].at("key"), "AAAAB3NzaC1yc2EAAA...zAiVaOFy5Lwc8Lo+Jk=");
   EXPECT_EQ(results[1].at("comment"), "Fred @ Project FOOBAR");
-  EXPECT_TRUE(results[1].at("options").empty());
+  EXPECT_TRUE(results[1].find("options") == results[1].end());
 
   EXPECT_EQ(results[2].at("key_file"), authorized_keys_file.string());
   EXPECT_EQ(results[2].at("algorithm"), "ssh-rsa");
   EXPECT_EQ(results[2].at("key"), "AAAAB3NzaC1yc2EAAA...OFy5Lwc8Lo+Jk=");
   EXPECT_EQ(results[2].at("options"), "command=\"/usr/bin/tinyfugue\"");
-  EXPECT_TRUE(results[2].at("comment").empty());
+  EXPECT_TRUE(results[2].find("comment") == results[2].end());
 
   EXPECT_EQ(results[3].at("key_file"), authorized_keys_file.string());
   EXPECT_EQ(results[3].at("algorithm"), "ssh-rsa");
