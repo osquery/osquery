@@ -32,13 +32,12 @@ const std::vector<std::string> kSSHKeyTypes = {"ssh-rsa",
                                                "ecdsa-sha2-nistp384",
                                                "ecdsa-sha2-nistp521"};
 
-const std::string kKeyRingLabelOptionPrefix = "zos-key-ring-label=";
-
 bool isKeyRingLabelOptExist(const std::string& line) {
+  const std::string keyRingLabelOptionPrefix = "zos-key-ring-label=";
   for (const auto& option : split(line, ",")) {
     if (option.compare(0,
-                       kKeyRingLabelOptionPrefix.size(),
-                       kKeyRingLabelOptionPrefix) == 0) {
+                       keyRingLabelOptionPrefix.size(),
+                       keyRingLabelOptionPrefix) == 0) {
       return true;
     }
   }
@@ -65,8 +64,8 @@ void genSSHkeysForUser(const std::string& uid,
     auto s = forensicReadFile(keys_file, keys_content, false, false);
     if (!s.ok()) {
       // Cannot read a specific keys file.
-      logger.log(google::GLOG_WARNING, s.getMessage());
-      continue;
+      logger.log(google::GLOG_ERROR, s.getMessage());
+      return;
     }
 
     // Protocol 1 public key consist of: options, bits, exponent, modulus,
@@ -75,10 +74,6 @@ void genSSHkeysForUser(const std::string& uid,
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         auto splitted_line = split(line, " ");
-        if (splitted_line.empty()) {
-          // Line syntax is invalid.
-          continue;
-        }
 
         auto splitted_line_part = splitted_line.begin();
         for (; splitted_line_part != splitted_line.end();
