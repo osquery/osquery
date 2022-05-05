@@ -38,7 +38,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
   QueryData results;
   struct utmpx* entry = nullptr;
 
-  utmpxname(_PATH_UTMP);
+  utmpxname(_PATH_UTMPX);
 
   while ((entry = getutxent()) != nullptr) {
     if (entry->ut_pid == 1) {
