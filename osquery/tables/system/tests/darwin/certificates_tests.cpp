@@ -10,12 +10,15 @@
 #include <gtest/gtest.h>
 
 #include <openssl/opensslv.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <osquery/logger/logger.h>
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/base64.h>
 
 namespace osquery {
@@ -87,7 +90,7 @@ TEST_F(CACertsTests, test_certificate_properties) {
   auto not_before = std::to_string(genEpoch(X509_get_notBefore(x_cert)));
   EXPECT_EQ("1408475536", not_before);
 
-  auto ca = (CertificateIsCA(x_cert)) ? "1" : "0";
+  auto ca = (certificateIsCA(x_cert)) ? "1" : "0";
   EXPECT_EQ("1", ca);
 }
 } // namespace tables

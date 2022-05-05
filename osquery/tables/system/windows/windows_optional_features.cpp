@@ -29,10 +29,12 @@ std::string getDismPackageFeatureStateName(uint32_t state);
 QueryData genWinOptionalFeatures(QueryContext& context) {
   QueryData results;
 
-  const WmiRequest wmiReq(
+  const auto wmiReq = WmiRequest::CreateWmiRequest(
       "SELECT Caption,Name,InstallState FROM Win32_OptionalFeature");
-  const std::vector<WmiResultItem>& wmiResults = wmiReq.results();
-
+  if (!wmiReq) {
+    return results;
+  }
+  const std::vector<WmiResultItem>& wmiResults = wmiReq->results();
   if (wmiResults.empty()) {
     return results;
   }

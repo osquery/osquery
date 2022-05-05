@@ -39,6 +39,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/load_average.cpp
       posix/logged_in_users.cpp
       posix/magic.cpp
+      posix/openssl_utils.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
       posix/sudoers.cpp
@@ -58,6 +59,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/acpi_tables.cpp
       linux/apt_sources.cpp
       linux/block_devices.cpp
+      linux/certificates.cpp
       linux/disk_encryption.cpp
       linux/extended_attributes.cpp
       linux/groups.cpp
@@ -271,6 +273,10 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_libmagic
       thirdparty_libxml2
     )
+  else()
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
+      osquery_system_usersgroups_caches
+    )
   endif()
 
   if(DEFINED PLATFORM_LINUX)
@@ -320,6 +326,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
+      posix/openssl_utils.h
       posix/authorized_keys.h
     )
   endif()
@@ -356,7 +363,6 @@ function(generateOsqueryTablesSystemSystemtable)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
-      windows/users.h
       windows/windows_eventlog.h
     )
   endif()

@@ -41,8 +41,9 @@ TEST_F(WmiTests, test_methodcall_inparams) {
   // This is dirty, we need to escape the WINDIR path
   boost::replace_all(query, "\\", "\\\\");
 
-  WmiRequest req(query);
-  const auto& wmiResults = req.results();
+  Expected<WmiRequest, WmiError> req = WmiRequest::CreateWmiRequest(query);
+  EXPECT_TRUE(req);
+  const auto& wmiResults = req->results();
 
   EXPECT_EQ(wmiResults.size(), 1);
 
@@ -56,7 +57,8 @@ TEST_F(WmiTests, test_methodcall_inparams) {
 
   // Get the first item off the result vector since we should only have one.
   auto& resultItem = wmiResults.front();
-  auto status = req.ExecMethod(resultItem, "GetEffectivePermission", args, out);
+  auto status =
+      req->ExecMethod(resultItem, "GetEffectivePermission", args, out);
 
   EXPECT_EQ(status.getMessage(), "OK");
   EXPECT_TRUE(status.ok());
@@ -76,7 +78,10 @@ TEST_F(WmiTests, test_methodcall_inparams) {
 }
 
 TEST_F(WmiTests, test_methodcall_outparams) {
-  WmiRequest req("SELECT * FROM Win32_Process WHERE Name = \"wininit.exe\"");
+  Expected<WmiRequest, WmiError> expected_req = WmiRequest::CreateWmiRequest(
+      "SELECT * FROM Win32_Process WHERE Name = \"wininit.exe\"");
+  EXPECT_TRUE(expected_req);
+  const WmiRequest& req = expected_req.get();
   const auto& wmiResults = req.results();
 
   // We should expect only one wininit.exe instance?

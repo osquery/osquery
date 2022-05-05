@@ -16,10 +16,10 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
-#include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},
@@ -127,7 +127,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       wtsClient = nullptr;
     }
 
-    const auto sidBuf = getSidFromUsername(wtsSession->UserName);
+    const auto sidBuf = getSidFromAccountName(wtsSession->UserName);
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);

@@ -41,8 +41,6 @@ FLAG(bool,
 
 DECLARE_bool(verbose);
 
-const std::string kDistributedQueryPrefix{"distributed."};
-
 std::string Distributed::currentRequestId_{""};
 
 Status DistributedPlugin::call(const PluginRequest& request,
@@ -87,10 +85,10 @@ Status Distributed::pullUpdates() {
   return Status::success();
 }
 
-size_t Distributed::getPendingQueryCount() {
+std::vector<std::string> Distributed::getPendingQueries() {
   std::vector<std::string> queries;
-  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
-  return queries.size();
+  scanDatabaseKeys(kDistributedQueries, queries);
+  return queries;
 }
 
 size_t Distributed::getCompletedCount() {
@@ -124,8 +122,11 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 }
 
 Status Distributed::runQueries() {
-  while (getPendingQueryCount() > 0) {
-    auto request = popRequest();
+  auto queries = getPendingQueries();
+
+  for (const auto query : queries) {
+    auto request = popRequest(query);
+
     if (FLAGS_verbose) {
       VLOG(1) << "Executing distributed query: " << request.id << ": "
               << request.query;
@@ -229,7 +230,7 @@ Status Distributed::acceptWork(const std::string& work) {
         }
 
         if (queries_to_run.empty() || queries_to_run.count(name)) {
-          setDatabaseValue(kQueries, kDistributedQueryPrefix + name, query);
+          setDatabaseValue(kDistributedQueries, name, query);
         }
       }
     }
@@ -250,17 +251,12 @@ Status Distributed::acceptWork(const std::string& work) {
   return Status::success();
 }
 
-DistributedQueryRequest Distributed::popRequest() {
-  // Read all pending queries.
-  std::vector<std::string> queries;
-  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
-
-  // Set the last-most-recent query as the request, and delete it.
-  DistributedQueryRequest request;
-  const auto& next = queries.front();
-  request.id = next.substr(kDistributedQueryPrefix.size());
-  getDatabaseValue(kQueries, next, request.query);
-  deleteDatabaseValue(kQueries, next);
+DistributedQueryRequest Distributed::popRequest(std::string query) {
+  // Prepare a request from the query and then remove it from the database.
+  DistributedQueryRequest request{};
+  request.id = query;
+  getDatabaseValue(kDistributedQueries, query, request.query);
+  deleteDatabaseValue(kDistributedQueries, query);
   return request;
 }
 

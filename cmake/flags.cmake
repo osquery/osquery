@@ -101,7 +101,19 @@ function(setupBuildFlags)
       list(APPEND posix_common_link_options
         -fsanitize=address
       )
+    endif()
 
+    if(OSQUERY_ENABLE_THREAD_SANITIZER)
+      list(APPEND posix_common_compile_options
+        -fsanitize=thread
+      )
+
+      list(APPEND posix_common_link_options
+        -fsanitize=thread
+      )
+    endif()
+
+    if(OSQUERY_ENABLE_ADDRESS_SANITIZER OR OSQUERY_ENABLE_THREAD_SANITIZER)
       # Get more precise stack traces
       list(APPEND posix_common_compile_options
         -fno-omit-frame-pointer

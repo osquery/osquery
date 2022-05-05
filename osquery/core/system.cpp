@@ -211,10 +211,14 @@ std::string generateHostUUID() {
     hardware_uuid = std::string(out);
   }
 #elif WIN32
-  const WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
-  const std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
-  if (wmiUUIDResults.size() != 0) {
-    wmiUUIDResults[0].GetString("UUID", hardware_uuid);
+  const Expected<WmiRequest, WmiError> wmiUUIDReq =
+      WmiRequest::CreateWmiRequest(
+          "Select UUID from Win32_ComputerSystemProduct");
+  if (wmiUUIDReq) {
+    const std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq->results();
+    if (wmiUUIDResults.size() != 0) {
+      wmiUUIDResults[0].GetString("UUID", hardware_uuid);
+    }
   }
 #else
   readFile("/sys/class/dmi/id/product_uuid", hardware_uuid);

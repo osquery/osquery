@@ -13,7 +13,6 @@ function(osqueryTablesMain)
   add_subdirectory("lldpd")
   add_subdirectory("networking")
   add_subdirectory("sleuthkit")
-  add_subdirectory("smart")
   add_subdirectory("system")
   add_subdirectory("utility")
   add_subdirectory("yara")
@@ -32,12 +31,6 @@ function(generateOsqueryTablesTableimplementations)
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
       osquery_tables_yara_yaratable
-    )
-  endif()
-
-  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_MACOS)
-    target_link_libraries(osquery_tables_tableimplementations INTERFACE
-      osquery_tables_smart
     )
   endif()
 

@@ -10,9 +10,9 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-#include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 #include <AclAPI.h>
 #include <LM.h>
@@ -37,9 +37,6 @@ namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
 namespace osquery {
-
-uint32_t getUidFromSid(PSID sid);
-uint32_t getGidFromSid(PSID sid);
 
 /*
  * Avoid having the same right being used in multiple CHMOD_* macros. Doing so
@@ -1699,9 +1696,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // inode is the decimal equivalent of fileid
   wfile_stat->inode = file_index;
 
-  wfile_stat->uid = getUidFromSid(sid_owner);
+  wfile_stat->uid = getRidFromSid(sid_owner);
 
-  wfile_stat->gid = getUidFromSid(gid_owner);
+  wfile_stat->gid = getRidFromSid(gid_owner);
 
   LocalFree(security_descriptor);
 

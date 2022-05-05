@@ -1154,7 +1154,9 @@ jobs:
 
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: cmd
       run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
         ctest --build-nocmake -C Release -V
 
     - name: Run the install target
@@ -1244,3 +1246,16 @@ jobs:
       shell: powershell
       run: |
         rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
+
+  # This job is here as a github status check -- it allows us to move the dependency from
+  # being on all the jobs to this single one.
+  mergeable:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+    needs:
+      - build_macos
+      - build_linux
+      - build_windows
+      - build_universal_macos_artifacts
+      - check_source_code

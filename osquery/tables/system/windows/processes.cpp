@@ -29,9 +29,9 @@
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/core/core.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-#include <osquery/core/tables.h>
 
 #include <osquery/core/windows/wmi.h>
 #include <osquery/sql/dynamic_table_row.h>
@@ -40,10 +40,9 @@
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/scope_guard.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace osquery {
-uint32_t getUidFromSid(PSID sid);
-uint32_t getGidFromSid(PSID sid);
 namespace tables {
 
 const std::map<unsigned long, std::string> kMemoryConstants = {
@@ -464,8 +463,8 @@ void genProcessUserTokenInfo(HANDLE& proc, DynamicTableRowHolder& r) {
   if (ret != 0 && !tok_user.empty()) {
     auto sid = PTOKEN_OWNER(tok_user.data())->Owner;
 
-    r["uid"] = BIGINT(getUidFromSid(sid));
-    r["gid"] = BIGINT(getGidFromSid(sid));
+    r["uid"] = BIGINT(getRidFromSid(sid));
+    r["gid"] = BIGINT(getGidFromUserSid(sid).value_or(-1));
   }
   if (tok != nullptr) {
     CloseHandle(tok);

@@ -23,11 +23,11 @@ QueryData genWmiFilters(QueryContext& context) {
   ss << "SELECT * FROM __EventFilter";
 
   BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
-  const WmiRequest request(ss.str(), bstr);
+  const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
   ::SysFreeString(bstr);
 
-  if (request.getStatus().ok()) {
-    const auto& results = request.results();
+  if (request && request->getStatus().ok()) {
+    const auto& results = request->results();
     for (const auto& result : results) {
       Row r;
 

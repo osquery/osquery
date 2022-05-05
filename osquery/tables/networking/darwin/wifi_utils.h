@@ -14,6 +14,9 @@
 namespace osquery {
 namespace tables {
 
+std::string getPropertiesFromDictionary(const CFDictionaryRef& dict,
+                                        const std::string& key);
+
 /// SSIDs have no character set, mirror Apple's representation of them
 std::string extractSsid(const CFDataRef& data);
 
@@ -31,5 +34,5 @@ int getChannelBand(const CWChannel* cwc);
 
 /// Change a constant into the mode name
 std::string getInterfaceModeName(const CWInterfaceMode cwim);
-}
-}
+} // namespace tables
+} // namespace osquery
