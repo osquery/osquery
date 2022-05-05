@@ -122,6 +122,13 @@ class Flag : private boost::noncopyable {
   static std::string getDescription(const std::string& name);
 
   /*
+   * @brief Checks if the provided flag name corresponds to a CLI only flag
+   *
+   * @param name the flag name
+   */
+  static bool isCLIOnlyFlag(const std::string& name);
+
+  /*
    * @brief Print help-style output to stdout for a given flag set.
    *
    * @param shell Only print shell flags.
