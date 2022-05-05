@@ -32,7 +32,7 @@ const std::vector<std::string> kSSHKeyTypes = {"ssh-rsa",
                                                "ecdsa-sha2-nistp384",
                                                "ecdsa-sha2-nistp521"};
 
-bool isKeyRingLabelOptExist(const std::string& line) {
+bool KeyRingLabelOptExists(const std::string& line) {
   const std::string keyRingLabelOptionPrefix = "zos-key-ring-label=";
   for (const auto& option : split(line, ",")) {
     if (option.compare(0,
@@ -50,6 +50,44 @@ void genSSHkeysForUser(const std::string& uid,
                        const std::string& directory,
                        QueryData& results,
                        Logger& logger) {
+  auto fGenerateKeyRow = [&](const std::string& line,
+                             const std::string& key_type,
+                             size_t key_type_pos,
+                             const std::string& keys_file) {
+    Row r;
+    const std::string whitespace{"\t "};
+
+    // Check if current line has options prefixing a key.
+    if (key_type_pos != 0) {
+      r["options"] = line.substr(0, key_type_pos);
+    }
+
+    // Find where the actual key starts.
+    size_t key_start_pos =
+        line.find_first_not_of(whitespace, key_type_pos + key_type.length());
+    if (key_start_pos == std::string::npos) {
+      return;
+    }
+
+    // Extract the key comment.
+    size_t key_end_pos = line.find_first_of(whitespace, key_start_pos);
+    if (key_end_pos != std::string::npos) {
+      size_t comment_start_pos =
+          line.find_first_not_of(whitespace, key_end_pos);
+      if (key_end_pos != std::string::npos) {
+        r["comment"] = line.substr(comment_start_pos);
+        r["key"] = line.substr(key_start_pos, key_end_pos - key_start_pos);
+      }
+    } else {
+      r["key"] = line.substr(key_start_pos);
+    }
+
+    r["algorithm"] = key_type;
+    r["key_file"] = keys_file;
+    r["uid"] = uid;
+    r["pid_with_namespace"] = "0";
+    results.push_back(r);
+  };
   for (const auto& kfile : kSSHAuthorizedkeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;
@@ -73,69 +111,41 @@ void genSSHkeysForUser(const std::string& uid,
     // base64-encoded key, comment.
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
-        auto splitted_line = split(line, " ");
-
-        auto splitted_line_part = splitted_line.begin();
-        for (; splitted_line_part != splitted_line.end();
-             splitted_line_part++) {
-          if (find(kSSHKeyTypes.begin(),
-                   kSSHKeyTypes.end(),
-                   *splitted_line_part) != kSSHKeyTypes.end()) {
-            break;
+        bool key_type_found = false;
+        // Check if line contains known key type.
+        for (const auto& key_type : kSSHKeyTypes) {
+          auto key_type_start_pos = line.find(key_type);
+          if (key_type_start_pos == std::string::npos) {
+            continue;
           }
-        }
 
-        // The current line does not contain key type.
-        if (splitted_line_part == splitted_line.end()) {
-          // rest of the line after 'zos-key-ring-label' should be ignored.
-          if (isKeyRingLabelOptExist(line)) {
-            Row r = {{"uid", uid},
-                     {"options", line},
-                     {"key_file", keys_file.string()},
-                     {"pid_with_namespace", "0"}};
-            results.push_back(r);
+          auto key_type_end_pos = key_type_start_pos + key_type.length();
+          // Key type length is wrong.
+          if (key_type_end_pos >= line.length()) {
+            continue;
           }
-          continue;
+
+          // Incorrent key type.
+          if (line[key_type_end_pos] != ' ' && line[key_type_end_pos] != '\t') {
+            continue;
+          }
+
+          fGenerateKeyRow(
+              line, key_type, key_type_start_pos, keys_file.string());
+
+          key_type_found = true;
+          break;
         }
 
-        // Key type does not exist in the current line.
-        if (++splitted_line_part == splitted_line.end()) {
-          continue;
+        // Check the existence of the 'zos-key-ring-label' parameter in the
+        // options section. If so, only options should be set in current row.
+        if (!key_type_found && KeyRingLabelOptExists(line)) {
+          Row r = {{"uid", uid},
+                   {"options", line},
+                   {"key_file", keys_file.string()},
+                   {"pid_with_namespace", "0"}};
+          results.push_back(r);
         }
-
-        std::string options;
-        std::string key_type;
-        std::string key;
-        std::string comment;
-
-        // Check if options are supplied for the current line.
-        if (splitted_line_part != splitted_line.begin()) {
-          std::vector<std::string> options_parts{splitted_line.begin(),
-                                                 --splitted_line_part};
-          options = osquery::join(options_parts, " ");
-        }
-
-        key_type = *splitted_line_part;
-        if (++splitted_line_part == splitted_line.end()) {
-          // Actual key is required.
-          continue;
-        }
-
-        key = *splitted_line_part;
-        if (++splitted_line_part != splitted_line.end()) {
-          std::vector<std::string> comment_parts{splitted_line_part,
-                                                 splitted_line.end()};
-          comment = osquery::join(comment_parts, " ");
-        }
-
-        Row r = {{"uid", uid},
-                 {"options", options},
-                 {"algorithm", key_type},
-                 {"key", key},
-                 {"comment", comment},
-                 {"key_file", keys_file.string()},
-                 {"pid_with_namespace", "0"}};
-        results.push_back(r);
       }
     }
   }
