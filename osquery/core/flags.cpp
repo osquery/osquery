@@ -115,6 +115,17 @@ std::string Flag::getDescription(const std::string& name) {
   return "";
 }
 
+bool Flag::isCLIOnlyFlag(const std::string& name) {
+  const auto& flags = instance().flags_;
+  const auto it = instance().flags_.find(name);
+
+  if (it == flags.end()) {
+    return false;
+  }
+
+  return it->second.cli;
+}
+
 Status Flag::updateValue(const std::string& name, const std::string& value) {
   if (instance().flags_.count(name) > 0) {
     flags::SetCommandLineOption(name.c_str(), value.c_str());
@@ -218,4 +229,4 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
     fprintf(stdout, "  %s\n", getDescription(flag.second->name).c_str());
   }
 }
-}
+} // namespace osquery
