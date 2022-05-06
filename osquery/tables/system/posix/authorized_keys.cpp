@@ -58,8 +58,9 @@ void genSSHkeysForUser(const std::string& uid,
     const std::string whitespace{"\t "};
 
     // Check if current line has options prefixing a key.
-    if (key_type_pos != 0) {
-      r["options"] = line.substr(0, key_type_pos);
+    if (key_type_pos > 0) {
+      std::string options = line.substr(0, key_type_pos);
+      r["options"] = line.substr(0, options.find_last_not_of(whitespace) + 1);
     }
 
     // Find where the actual key starts.
