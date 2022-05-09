@@ -1,5 +1,5 @@
 table_name("preferences")
-description("OS X defaults and managed preferences.")
+description("macOS defaults and managed preferences.")
 schema([
     Column("domain", TEXT, "Application ID usually in com.name.product format",
       index=True),

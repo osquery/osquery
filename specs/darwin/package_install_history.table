@@ -1,5 +1,5 @@
 table_name("package_install_history")
-description("OS X package install history.")
+description("macOS package install history.")
 schema([
     Column("package_id", TEXT, "Label packageIdentifiers"),
     Column("time", INTEGER, "Label date as UNIX timestamp"),
