@@ -28,8 +28,6 @@ REGISTER(EndpointSecurityFileEventPublisher,
          "event_publisher",
          "endpointsecurity_fim")
 
-extern "C" es_mute_path_type_t ES_MUTE_PATH_TYPE_LITERAL;
-extern "C" es_mute_path_type_t ES_MUTE_PATH_TYPE_PREFIX;
 
 Status EndpointSecurityFileEventPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
@@ -92,29 +90,15 @@ void EndpointSecurityFileEventPublisher::configure() {
     auto sc = getSubscriptionContext(sub->context);
     auto events = sc->es_file_event_subscriptions_;
 
-    // check availability macros for muting APIs to see which macOS version
-    // supports this
     for (const auto& p : muted_path_literals_) {
-      es_return_t result = ES_RETURN_ERROR;
-      if (__builtin_available(macos 12.0, *)) {
-        result =
-            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
-      } else if (__builtin_available(macos 10.15, *)) {
-        result = es_mute_path_literal(es_file_client_, p.c_str());
-      }
+      auto result = es_mute_path_literal(es_file_client_, p.c_str());
       if (result == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path literal: " << p;
       }
     }
 
     for (const auto& p : muted_path_prefixes_) {
-      es_return_t result = ES_RETURN_ERROR;
-      if (__builtin_available(macos 12.0, *)) {
-        result =
-            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
-      } else if (__builtin_available(macos 10.15, *)) {
-        result = es_mute_path_prefix(es_file_client_, p.c_str());
-      }
+      auto result = es_mute_path_prefix(es_file_client_, p.c_str());
       if (result == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path with prefix: " << p;
       }
