@@ -28,8 +28,10 @@ REGISTER(EndpointSecurityFileEventPublisher,
          "event_publisher",
          "endpointsecurity_fim")
 
-extern es_mute_path_type_t ES_MUTE_PATH_TYPE_LITERAL __attribute__((weak_import));
-extern es_mute_path_type_t ES_MUTE_PATH_TYPE_PREFIX __attribute__((weak_import));
+extern es_mute_path_type_t ES_MUTE_PATH_TYPE_LITERAL
+    __attribute__((weak_import));
+extern es_mute_path_type_t ES_MUTE_PATH_TYPE_PREFIX
+    __attribute__((weak_import));
 
 Status EndpointSecurityFileEventPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
