@@ -28,7 +28,6 @@ REGISTER(EndpointSecurityFileEventPublisher,
          "event_publisher",
          "endpointsecurity_fim")
 
-
 Status EndpointSecurityFileEventPublisher::setUp() {
   if (__builtin_available(macos 10.15, *)) {
     if (FLAGS_disable_endpointsecurity) {
