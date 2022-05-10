@@ -1,5 +1,5 @@
 table_name("sandboxes")
-description("OS X application sandboxes container details.")
+description("macOS application sandboxes container details.")
 schema([
     Column("label", TEXT, "UTI-format bundle or label ID"),
     Column("user", TEXT, "Sandbox owner"),
