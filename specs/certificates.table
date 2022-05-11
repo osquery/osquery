@@ -2,8 +2,8 @@ table_name("certificates")
 description("Certificate Authorities installed in Keychains/ca-bundles.")
 schema([
     Column("common_name", TEXT, "Certificate CommonName"),
-    Column("subject", TEXT, "Certificate distinguished name"),
-    Column("issuer", TEXT, "Certificate issuer distinguished name"),
+    Column("subject", TEXT, "Certificate distinguished name (deprecated, use subject2)"),
+    Column("issuer", TEXT, "Certificate issuer distinguished name (deprecated, use issuer2)"),
     Column("ca", INTEGER, "1 if CA: true (certificate is an authority) else 0"),
     Column("self_signed", INTEGER, "1 if self-signed, else 0"),
     Column("not_valid_before", DATETIME, "Lower bound of valid date"),
@@ -26,6 +26,11 @@ extended_schema(WINDOWS, [
     Column("store", TEXT, "Certificate system store"),
     Column("username", TEXT, "Username"),
     Column("store_id", TEXT, "Exists for service/user stores. Contains raw store id provided by WinAPI."),
+])
+
+extended_schema(POSIX, [
+    Column("issuer2", TEXT, "Certificate issuer distinguished name", hidden=True),
+    Column("subject2", TEXT, "Certificate distinguished name", hidden=True),
 ])
 
 attributes(cacheable=True)
