@@ -13,10 +13,6 @@
 #include <boost/regex.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-//we might not be linking with these Boost components:
-//#include <boost/iostreams/device/array.hpp>
-//#include <boost/iostreams/stream.hpp>
-
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/system_utils.h>
@@ -33,9 +29,12 @@ namespace tables {
 /// Location of the kernel panic crash logs in macOS
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
 
-// macOS 11 moved the old panic log file from 10.15 into a JSON string value
-const std::string kPanicStringKey = "macOSPanicString";  // as of macOS 12
-// const std::string kPanicStringkey = "panicString"; // in macOS 11, apparently
+// Apple moved the old panic log file format into a JSON string value
+#ifdef __aarch64__
+const std::string kPanicStringkey = "panicString"; // on ARM
+#else
+const std::string kPanicStringKey = "macOSPanicString";  // on x86
+#endif
 
 /// List of all x86-64 register values we wish to catch
 const std::set<std::string> kX86KernelRegisters = {
@@ -71,7 +70,6 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
 
   auto lines = osquery::split(rawFileContent, "\n");  // actual newlines
   
-  // if (macOS major version >= 11) {
     // Legacy format panic log content is now in a JSON-style container.
     // Perform some additional unwrapping:
     try {
@@ -91,7 +89,6 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
     catch (const pt::json_parser::json_parser_error& e) {
        VLOG(1) << "Could not parse JSON from " << panicLogFilePath << ": " << e.what();
     }
-  // }  // end if-new-macOS
     
   for (auto it = lines.begin(); it != lines.end(); it++) {
     auto line = *it;
