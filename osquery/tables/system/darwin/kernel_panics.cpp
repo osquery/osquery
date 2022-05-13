@@ -7,17 +7,18 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string/find.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/regex.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/regex.hpp>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
-#include <osquery/logger/logger.h>
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
@@ -29,14 +30,15 @@ namespace tables {
 /// Location of the kernel panic crash logs in macOS
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
 
-// Apple moved the old panic log file format into a JSON string value
+// Apple's legacy panic log file format moved into a JSON string value
 #ifdef __aarch64__
-const std::string kPanicStringkey = "panicString"; // on ARM
+const std::string kPanicStringKey = "panicString"; // on ARM
 #else
-const std::string kPanicStringKey = "macOSPanicString";  // on x86
+const std::string kPanicStringKey = "macOSPanicString"; // on x86
 #endif
 
-/// List of all x86-64 register values we wish to catch
+/// List of all x86-64 register values we wish to catch. Note: register state is
+/// no longer present in macOS panic logs.
 const std::set<std::string> kX86KernelRegisters = {
     "CR0",
     "RAX",
@@ -46,14 +48,11 @@ const std::set<std::string> kX86KernelRegisters = {
     "RFL",
 };
 
-/// List of the days of the Week, used to grab our timestamp.
-const std::set<std::string> kDays = {
-    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-
 /// Map of some of the values we parse out of the log file
 const std::map<std::string, std::string> kKernelPanicKeys = {
-    {"dependency", "dependencies"},  // macOS 12: no longer present in the file
-    {"BSD process name corresponding to current thread", "name"},  // <= 10.15
+    {"dependency", "dependencies"}, // no longer present in the file
+    {"BSD process name corresponding to current thread",
+     "name"}, // now just "Process name"
     {"System model name", "system_model"},
     {"System uptime in nanoseconds", "uptime"},
 };
@@ -62,50 +61,59 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
   Row r;
   r["path"] = panicLogFilePath;
   std::string rawFileContent;
+  std::vector<std::string> lines;
 
   if (!readFile(panicLogFilePath, rawFileContent).ok()) {
     VLOG(1) << "Could not read the panic log at " << panicLogFilePath;
     return;
   }
 
-  auto lines = osquery::split(rawFileContent, "\n");  // actual newlines
-  
-    // Legacy format panic log content is now in a JSON-style container.
-    // Perform some additional unwrapping:
-    try {
-      pt::ptree panicLogHeader, panicLogContent;
-      std::istringstream issHeader( lines[0] );
-      pt::read_json(issHeader, panicLogHeader);
-      r["time"] = panicLogHeader.get<std::string>("timestamp", "");
-        
-      std::istringstream issContent( lines[1] );
-      pt::read_json(issContent, panicLogContent);
-        
-      std::string panicStringBlob = panicLogContent.get<std::string>(kPanicStringKey, "");
-      //VLOG(1) << "Debug: panicStringBlob after JSON get_value: \n" << panicStringBlob;
-    
-      lines = osquery::split(panicStringBlob, "\n");  // embedded newlines
-    }
-    catch (const pt::json_parser::json_parser_error& e) {
-       VLOG(1) << "Could not parse JSON from " << panicLogFilePath << ": " << e.what();
-    }
-    
+  // A "panic log" is now contained in JSON as a multi-lined "panic string",
+  // in a file containing two JSON objects in series (non-standard JSON).
+  // Find where the second JSON object begins. This is the "content":
+  std::size_t contentJsonBegin = rawFileContent.find("}") + 1;
+
+  try {
+    pt::ptree panicLogHeader, panicLogContent;
+    std::istringstream issHeader(rawFileContent.substr(0, contentJsonBegin));
+    pt::read_json(issHeader, panicLogHeader);
+    std::istringstream issContent(rawFileContent.substr(contentJsonBegin));
+    pt::read_json(issContent, panicLogContent);
+
+    // Neatly parse the fields represented in actual JSON:
+#ifdef __aarch64__
+    r["time"] = panicLogContent.get<std::string>("date", "");
+    r["os_version"] = panicLogContent.get<std::string>("build", "");
+    r["kernel_version"] = panicLogContent.get<std::string>("kernel", "");
+    r["system_model"] = panicLogContent.get<std::string>("product", "");
+#else
+    r["time"] = panicLogHeader.get<std::string>("timestamp", "");
+#endif
+
+    std::string panicStringBlob =
+        panicLogContent.get<std::string>(kPanicStringKey, "");
+    //    VLOG(1) << "Debug: panicStringBlob after JSON get_value: \n" <<
+    //    panicStringBlob;
+
+    lines = osquery::split(panicStringBlob, "\n"); // embedded newlines
+  } catch (const pt::json_parser::json_parser_error& e) {
+    VLOG(1) << "Could not parse JSON from " << panicLogFilePath << ": "
+            << e.what();
+  }
+
+  // Crudely parse the fields from the lines in the panicString:
   for (auto it = lines.begin(); it != lines.end(); it++) {
     auto line = *it;
     boost::trim(line);
 
-    // Before macOS 11, most lines of the panic log were "KEY : VALUE" even if VALUE contained the ":" character too
+    // The panic log string is comprised of "KEY : VALUE" pairs but sometimes
+    // VALUE contains the ":" character too. After this split, toks[0] holds a
+    // kay of a key:value pair, toks[1] through toks[toks.size()-1] hold the
+    // value.
     auto toks = osquery::split(line, ":");
     if (toks.size() == 0) {
       VLOG(1) << "Could not parse any key:value pair from the panic log line";
       continue;
-    }
-
-    // From here on, toks[0] is the kay of a key:value pair, toks[1] the value
-    auto timeTokens = osquery::split(toks[0], " ");
-    
-    if (timeTokens.size() >= 1 && kDays.count(timeTokens[0]) > 0) {
-      r["time"] = line;
     }
 
     boost::regex rxSpaces("\\s+");
@@ -113,7 +121,8 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
     if (kX86KernelRegisters.count(toks[0]) > 0) {
       auto registerTokens = osquery::split(line, ",");
       if (registerTokens.size() == 0) {
-        VLOG(1) << "Could not parse the registers from the panic log at " << panicLogFilePath;
+        VLOG(1) << "Could not parse the registers from the panic log at "
+                << panicLogFilePath;
         continue;
       }
 
@@ -130,16 +139,23 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
                                                      : " " + std::move(regLine);
         }
       }
-    } else if (boost::starts_with(toks[0], "last loaded kext at") &&  // macOS 10.15
+    } else if (boost::starts_with(toks[0], "Panicked task")) {
+      r["name"] = boost::regex_replace(toks[toks.size() - 1], rxSpaces, " ");
+    } else if (boost::starts_with(toks[0],
+                                  "last loaded kext at") && // older macOS
                toks.size() == 2) {
       r["last_loaded"] = boost::regex_replace(toks[1], rxSpaces, " ");
     } else if (boost::starts_with(toks[0], "last unloaded kext at") &&
                toks.size() == 2) {
       r["last_unloaded"] = boost::regex_replace(toks[1], rxSpaces, " ");
-    } else if (boost::starts_with(toks[0], "last started kext at") &&  // macOS 12 equivalent
+    } else if (boost::starts_with(toks[0],
+                                  "last started kext at") && // newer macOS
                toks.size() == 2) {
-        r["last_loaded"] = boost::regex_replace(toks[1], rxSpaces, " ");
-    } else if (boost::starts_with(toks[0], "Backtrace") &&
+      r["last_loaded"] = boost::regex_replace(toks[1], rxSpaces, " ");
+    } else if (boost::starts_with(toks[0], "Backtrace") && // x86
+               std::next(it) != lines.end()) {
+      r["frame_backtrace"] = *(std::next(it));
+    } else if (boost::starts_with(toks[0], "Panicked thread") && // ARM
                std::next(it) != lines.end()) {
       r["frame_backtrace"] = *(std::next(it));
     } else if (boost::starts_with(toks[0], "Kernel Extensions in backtrace") &&
@@ -151,15 +167,15 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
     } else if (boost::starts_with(toks[0], "Kernel version") &&
                std::next(it) != lines.end()) {
       r["kernel_version"] = *(std::next(it));
-    } else if (boost::starts_with(toks[0], "Process name corresponding to current thread") &&
+    } else if (boost::starts_with(
+                   toks[0], "Process name corresponding to current thread") &&
                std::next(it) != lines.end()) {
       r["name"] = boost::regex_replace(toks[1], rxSpaces, " ");
-    }
-    else if (kKernelPanicKeys.count(toks[0]) != 0 && toks.size() == 2) {
+    } else if (kKernelPanicKeys.count(toks[0]) != 0 && toks.size() == 2) {
       // all of the other strings defined at the top of this file
       r[kKernelPanicKeys.at(toks[0])] = toks[1];
     } else {
-      //VLOG(1) << "Debug: nothing parsed from this line of the panic log.";
+      // VLOG(1) << "Debug: nothing parsed from this line of the panic log.";
     }
   }
   results.push_back(r);
@@ -181,5 +197,5 @@ QueryData genKernelPanics(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
