@@ -52,7 +52,7 @@ const std::map<std::string, std::string> kKernelPanicKeys = {
 
 void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
   Row r;
-  r["registers"] = "";  // register context no longer reported since at least 10.14
+  r["registers"] = ""; // registers no longer reported since at least 10.14
   r["path"] = panicLogFilePath;
   std::string rawFileContent;
   std::vector<std::string> lines;
@@ -109,7 +109,7 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
       VLOG(1) << "Could not parse any key:value pair from the panic log line";
       continue;
     }
-    
+
     // For macOS 10.14 and earlier, crudely parse the timestamp:
     auto timeTokens = osquery::split(toks[0], " ");
     if (timeTokens.size() >= 1 && kDays.count(timeTokens[0]) > 0) {
