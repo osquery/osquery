@@ -37,16 +37,9 @@ const std::string kPanicStringKey = "panicString"; // on ARM
 const std::string kPanicStringKey = "macOSPanicString"; // on x86
 #endif
 
-/// List of all x86-64 register values we wish to catch. Note: register state is
-/// no longer present in macOS panic logs.
-const std::set<std::string> kX86KernelRegisters = {
-    "CR0",
-    "RAX",
-    "RSP",
-    "R8",
-    "R12",
-    "RFL",
-};
+/// List of the days of the Week, used to grab our timestamp.
+const std::set<std::string> kDays = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 /// Map of some of the values we parse out of the log file
 const std::map<std::string, std::string> kKernelPanicKeys = {
@@ -59,6 +52,7 @@ const std::map<std::string, std::string> kKernelPanicKeys = {
 
 void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
   Row r;
+  r["registers"] = "";  // register context no longer reported since at least 10.14
   r["path"] = panicLogFilePath;
   std::string rawFileContent;
   std::vector<std::string> lines;
@@ -92,13 +86,13 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
 
     std::string panicStringBlob =
         panicLogContent.get<std::string>(kPanicStringKey, "");
-    //    VLOG(1) << "Debug: panicStringBlob after JSON get_value: \n" <<
-    //    panicStringBlob;
 
     lines = osquery::split(panicStringBlob, "\n"); // embedded newlines
   } catch (const pt::json_parser::json_parser_error& e) {
     VLOG(1) << "Could not parse JSON from " << panicLogFilePath << ": "
             << e.what();
+    // In macOS 10.14 or earlier (not JSON-ified), just parse original content
+    lines = osquery::split(rawFileContent, "\n");
   }
 
   // Crudely parse the fields from the lines in the panicString:
@@ -115,31 +109,15 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
       VLOG(1) << "Could not parse any key:value pair from the panic log line";
       continue;
     }
+    
+    // For macOS 10.14 and earlier, crudely parse the timestamp:
+    auto timeTokens = osquery::split(toks[0], " ");
+    if (timeTokens.size() >= 1 && kDays.count(timeTokens[0]) > 0) {
+      r["time"] = line;
+    }
 
     boost::regex rxSpaces("\\s+");
-
-    if (kX86KernelRegisters.count(toks[0]) > 0) {
-      auto registerTokens = osquery::split(line, ",");
-      if (registerTokens.size() == 0) {
-        VLOG(1) << "Could not parse the registers from the panic log at "
-                << panicLogFilePath;
-        continue;
-      }
-
-      for (auto& tok_ : registerTokens) {
-        auto regHolder = osquery::split(tok_, ":");
-        if (regHolder.size() != 2) {
-          continue;
-        }
-        auto reg = std::move(regHolder[0]);
-        auto val = std::move(regHolder[1]);
-        if (reg.size() > 0 && val.size() > 0) {
-          std::string regLine = reg + ":" + val;
-          r["registers"] += (r["registers"].empty()) ? std::move(regLine)
-                                                     : " " + std::move(regLine);
-        }
-      }
-    } else if (boost::starts_with(toks[0], "Panicked task")) {
+    if (boost::starts_with(toks[0], "Panicked task")) {
       r["name"] = boost::regex_replace(toks[toks.size() - 1], rxSpaces, " ");
     } else if (boost::starts_with(toks[0],
                                   "last loaded kext at") && // older macOS
@@ -175,7 +153,6 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
       // all of the other strings defined at the top of this file
       r[kKernelPanicKeys.at(toks[0])] = toks[1];
     } else {
-      // VLOG(1) << "Debug: nothing parsed from this line of the panic log.";
     }
   }
   results.push_back(r);
