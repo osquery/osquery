@@ -13,12 +13,21 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/database/database.h>
+#include <osquery/core/flags.h>
 
 #include <boost/algorithm/string/replace.hpp>
 namespace ba = boost::algorithm;
 
 namespace osquery {
 namespace tables {
+
+const unsigned int ual_max_rows_def = 100;
+
+FLAG(uint64,
+    ual_max_rows,
+    ual_max_rows_def,
+    "Max row number allowed when select from unified log table")
 
 const std::map<ConstraintOperator, NSPredicateOperatorType> kSupportedOps = {
     {EQUALS, NSEqualToPredicateOperatorType},
@@ -50,6 +59,60 @@ const std::map<std::string, bool> kColumnIsNumeric = {{"timestamp", false},
                                                       {"tid", true},
                                                       {"subsystem", false},
                                                       {"category", false}};
+
+/**
+ * @brief The backing store keys for saving the lst data extracted.
+ */
+const std::string kUALtimestampKey{"ual_timestamp"};
+const std::string kUALcountKey{"ual_counter"};
+
+/**
+ * @brief defines the structure that saves the current status for extracting
+ *        sequential data in multiple queries
+ */
+struct DeltaContext {
+  double timestamp;   /**< timestamp of last log, used as a pointer */
+  unsigned int count; /**< if two or more logs has the same timestamp,
+                           the API will return a pointer to the first one,
+                           save how many we extracted so we can skip to the
+                           current*/
+
+  DeltaContext() : timestamp(0), count(0)
+  {}
+
+  /**
+   * @brief load values from database in case there are stored
+   */
+  void load();
+
+  /**
+   * @brief saves values into database
+   */
+  void save();
+};
+
+void DeltaContext::load()
+{
+  std::string str;
+  auto s = getDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
+  if (s.ok())
+    timestamp = std::stod(str);
+  s = getDatabaseValue(kPersistentSettings, kUALcountKey, str);
+  if (s.ok())
+    count = std::stod(str);
+}
+
+void DeltaContext::save()
+{
+  std::string str = std::to_string(timestamp);
+  auto s = setDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
+  if (!s.ok())
+    VLOG(1) << "Failed to update ual_timestamp of persistent settings in database";
+  str = std::to_string(count);
+  s = setDatabaseValue(kPersistentSettings, kUALcountKey, str);
+  if (!s.ok())
+    VLOG(1) << "Failed to update ual_counter of persistent settings in database";
+}
 
 std::string convertLikeExpr(const std::string& value) {
   // for the LIKE operator in NSPredicates, '*' matches 0 or more characters
@@ -98,6 +161,11 @@ void addQueryOp(NSMutableArray* preds,
 }
 
 QueryData genUnifiedLog(QueryContext& queryContext) {
+  if (FLAGS_ual_max_rows <= 0) {
+    FLAGS_ual_max_rows = ual_max_rows_def;
+  }
+
+  unsigned int rows_counter = 0;
   QueryData results;
   if (!@available(macOS 10.15, *)) {
     VLOG(1) << "OSLog framework is not available";
@@ -114,6 +182,9 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     }
 
     OSLogPosition* position = nil;
+    bool isDelta = true;
+    DeltaContext dc;
+    dc.load();
 
     // the timestamp column can be used to aggressively filter
     // results returned from the log store
@@ -135,6 +206,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
           [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
 
       position = [logstore positionWithDate:provided_date];
+      isDelta = false;
     }
 
     // grab all the supported columns used in simple constraints and make a
@@ -143,6 +215,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     for (const auto& it : queryContext.constraints) {
       const std::string& key = it.first;
       for (const auto& constraint : it.second.getAll()) {
+        isDelta = false;
         addQueryOp(subpredicates,
                    key,
                    constraint.expr,
@@ -152,6 +225,14 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
     NSPredicate* predicate =
         [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+
+    // Apply sequential extraction only in the case there are no constraints
+    if (isDelta) {
+      isDelta = true;
+      NSDate* last_date =
+          [NSDate dateWithTimeIntervalSince1970:dc.timestamp];
+      position = [logstore positionWithDate:last_date];
+    }
 
     // enumerate the entries in ascending order by timestamp
     OSLogEnumeratorOptions option = 0;
@@ -166,7 +247,35 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
            << [[error localizedDescription] UTF8String];
       return {};
     }
+
+    unsigned int skip_counter = 0;
+    bool first = isDelta;
     for (OSLogEntryLog* entry in enumerator) {
+      if (first) {
+        // Skips the log entries that have been already extracted
+        double load_date = [[entry date] timeIntervalSince1970];
+        if (load_date == dc.timestamp) {
+          if (++skip_counter <= dc.count) {
+            continue;
+          }
+        }
+        first = false;
+      }
+
+      if (isDelta) {
+        // Save timestamp and count
+        double load_date = [[entry date] timeIntervalSince1970];
+        if (dc.timestamp == load_date) {
+          dc.count++;
+        } else {
+          dc.count = 0;
+          dc.timestamp = load_date;
+        }
+      }
+
+      if (++rows_counter > FLAGS_ual_max_rows)
+        break;
+
       Row r;
 
       r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
@@ -217,6 +326,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       }
       results.push_back(r);
     }
+    dc.save();
   }
   return results;
 }
