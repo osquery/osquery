@@ -122,6 +122,7 @@ function(generateNativeTables)
     "darwin/package_bom.table:macos"
     "darwin/package_install_history.table:macos"
     "darwin/package_receipts.table:macos"
+    "darwin/password_policy.table:macos"
     "darwin/plist.table:macos"
     "darwin/power_sensors.table:macos"
     "darwin/preferences.table:macos"
