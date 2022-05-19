@@ -9,9 +9,13 @@
 
 #pragma once
 
+#include <string>
+
 #include <boost/filesystem/path.hpp>
 
 namespace osquery {
+
+extern const std::string kTopLevelMockFolderName;
 
 // generate a small directory structure for testing
 boost::filesystem::path createMockFileStructure();
