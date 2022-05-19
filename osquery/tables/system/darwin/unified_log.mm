@@ -11,10 +11,10 @@
 #include <Foundation/Foundation.h>
 #include <OSLog/OSLog.h>
 
-#include <osquery/core/tables.h>
-#include <osquery/logger/logger.h>
-#include <osquery/database/database.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 
 #include <boost/algorithm/string/replace.hpp>
 namespace ba = boost::algorithm;
@@ -25,9 +25,9 @@ namespace tables {
 const unsigned int ual_max_rows_def = 100;
 
 FLAG(uint64,
-    ual_max_rows,
-    ual_max_rows_def,
-    "Max row number allowed when select from unified log table")
+     ual_max_rows,
+     ual_max_rows_def,
+     "Max row number allowed when select from unified log table")
 
 const std::map<ConstraintOperator, NSPredicateOperatorType> kSupportedOps = {
     {EQUALS, NSEqualToPredicateOperatorType},
@@ -71,14 +71,13 @@ const std::string kUALcountKey{"ual_counter"};
  *        sequential data in multiple queries
  */
 struct DeltaContext {
-  double timestamp;   /**< timestamp of last log, used as a pointer */
+  double timestamp; /**< timestamp of last log, used as a pointer */
   unsigned int count; /**< if two or more logs has the same timestamp,
                            the API will return a pointer to the first one,
                            save how many we extracted so we can skip to the
                            current*/
 
-  DeltaContext() : timestamp(0), count(0)
-  {}
+  DeltaContext() : timestamp(0), count(0) {}
 
   /**
    * @brief load values from database in case there are stored
@@ -91,8 +90,7 @@ struct DeltaContext {
   void save();
 };
 
-void DeltaContext::load()
-{
+void DeltaContext::load() {
   std::string str;
   auto s = getDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
   if (s.ok())
@@ -102,16 +100,17 @@ void DeltaContext::load()
     count = std::stod(str);
 }
 
-void DeltaContext::save()
-{
+void DeltaContext::save() {
   std::string str = std::to_string(timestamp);
   auto s = setDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
   if (!s.ok())
-    VLOG(1) << "Failed to update ual_timestamp of persistent settings in database";
+    VLOG(1)
+        << "Failed to update ual_timestamp of persistent settings in database";
   str = std::to_string(count);
   s = setDatabaseValue(kPersistentSettings, kUALcountKey, str);
   if (!s.ok())
-    VLOG(1) << "Failed to update ual_counter of persistent settings in database";
+    VLOG(1)
+        << "Failed to update ual_counter of persistent settings in database";
 }
 
 std::string convertLikeExpr(const std::string& value) {
@@ -229,8 +228,7 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     // Apply sequential extraction only in the case there are no constraints
     if (isDelta) {
       isDelta = true;
-      NSDate* last_date =
-          [NSDate dateWithTimeIntervalSince1970:dc.timestamp];
+      NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:dc.timestamp];
       position = [logstore positionWithDate:last_date];
     }
 
@@ -330,6 +328,5 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
   }
   return results;
 }
-
 } // namespace tables
 } // namespace osquery

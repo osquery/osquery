@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/tests/integration/tables/helper.h>
 #include <osquery/database/database.h>
+#include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 namespace table_tests {
@@ -19,16 +19,13 @@ class UnifiedLogTest : public testing::Test {
   }
 };
 
-typedef struct DeltaContext
-{
+typedef struct DeltaContext {
   double timestamp;
   unsigned int count;
 
-  DeltaContext() : timestamp(0), count(0)
-  {}
+  DeltaContext() : timestamp(0), count(0) {}
 
-  void load()
-  {
+  void load() {
     std::string str;
     auto s = getDatabaseValue(kPersistentSettings, "ual_timestamp", str);
     if (s.ok())
@@ -38,8 +35,7 @@ typedef struct DeltaContext
       count = std::stod(str);
   }
 
-  bool operator<(const DeltaContext &dc2)
-  {
+  bool operator<(const DeltaContext& dc2) {
     return timestamp < dc2.timestamp || count < dc2.count;
   }
 } DeltaContext;
@@ -66,11 +62,11 @@ TEST_F(UnifiedLogTest, test_sanity) {
   validate_rows(rows, row_map);
 
   // Flag test
-  const int max_rows_in[]  = {50, 1,   0};
+  const int max_rows_in[] = {50, 1, 0};
   const int max_rows_out[] = {50, 1, 100};
-  for (int i = 0; i < 3; i++)
-  {
-    Status s = Flag::updateValue("ual_max_rows", std::to_string(max_rows_in[i]));
+  for (int i = 0; i < 3; i++) {
+    Status s =
+        Flag::updateValue("ual_max_rows", std::to_string(max_rows_in[i]));
     ASSERT_EQ(Flag::getValue("ual_max_rows"), std::to_string(max_rows_in[i]));
     QueryData const r1 = execute_query("select * from unified_log");
     ASSERT_GT(r1.size(), 0ul);
@@ -89,14 +85,14 @@ TEST_F(UnifiedLogTest, test_sanity) {
   QueryData const r5 = execute_query("select * from unified_log");
   ASSERT_EQ(r4.size(), 1ul);
   ASSERT_EQ(r5.size(), 1ul);
-  bool diff = false;
+  bool sequential_queries_diff = false;
   for (auto it = r4[0].begin(); it != r4[0].end(); it++) {
     if (it->second != r5[0].at(it->first)) {
-      diff = true;
+      sequential_queries_diff = true;
       break;
     }
   }
-  EXPECT_TRUE(diff);
+  EXPECT_TRUE(sequential_queries_diff);
 }
 } // namespace table_tests
 } // namespace osquery
