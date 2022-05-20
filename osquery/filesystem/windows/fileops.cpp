@@ -120,7 +120,7 @@ Status windowsGetVersionInfo(const std::string& path,
                              std::string& product_version,
                              std::string& file_version) {
   DWORD handle = 0;
-  std::wstring wpath = stringToWstring(path).c_str();
+  std::wstring wpath = stringToWstring(path);
   auto verSize = GetFileVersionInfoSizeW(wpath.c_str(), &handle);
   auto verInfo = std::make_unique<BYTE[]>(verSize);
   if (verInfo == nullptr) {
