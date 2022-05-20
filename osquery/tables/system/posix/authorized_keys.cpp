@@ -113,7 +113,7 @@ void genSSHkeysForUser(const std::string& uid,
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         bool key_type_found = false;
-        // Check if line contains known key type.
+        // Iterate over known key types.
         for (const auto& key_type : kSSHKeyTypes) {
           auto key_type_start_pos = line.find(key_type);
           if (key_type_start_pos == std::string::npos) {
@@ -121,12 +121,7 @@ void genSSHkeysForUser(const std::string& uid,
           }
 
           auto key_type_end_pos = key_type_start_pos + key_type.length();
-          // Key type length is invalid.
-          if (key_type_end_pos >= line.length()) {
-            continue;
-          }
-
-          // Incorrect key type.
+          // Make sure key type is fully matched.
           if (line[key_type_end_pos] != ' ' && line[key_type_end_pos] != '\t') {
             continue;
           }
@@ -138,6 +133,7 @@ void genSSHkeysForUser(const std::string& uid,
           break;
         }
 
+        // If key type can't be found and options are supplied,
         // Check the existence of the 'zos-key-ring-label' parameter in the
         // options section. If so, only options should be set in current row.
         if (!key_type_found && KeyRingLabelOptExists(line)) {
