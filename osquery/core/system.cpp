@@ -516,7 +516,8 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
     original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
     group_size_ = getgroups(group_size_, original_groups_);
   }
-  setgroups(1, &gid);
+
+  syscall(SYS_setgroups, 1, &gid);
 
   if (!setThreadEffective(uid, gid)) {
     (void)setegid(getgid());
@@ -532,7 +533,7 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 
 void DropPrivileges::restoreGroups() {
   if (group_size_ > 0) {
-    setgroups(group_size_, original_groups_);
+    syscall(SYS_setgroups, group_size_, original_groups_);
     group_size_ = 0;
     free(original_groups_);
   }
