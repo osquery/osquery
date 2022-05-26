@@ -44,7 +44,7 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 const std::string kDeviceNamePrefix = "/dev/";
 
 const std::set<std::string> kHardcodedDiskUUIDs = {
-    "EBC6C064-0000-11AA-AA11-00306543ECA",
+    "EBC6C064-0000-11AA-AA11-00306543ECAC",
     "64C0C6EB-0000-11AA-AA11-00306543ECAC",
     "C064EBC6-0000-11AA-AA11-00306543ECAC",
     "ec1c2ad9-b618-4ed6-bd8d-50f361c27507",
