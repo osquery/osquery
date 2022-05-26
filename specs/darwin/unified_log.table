@@ -12,6 +12,7 @@ schema([
   Column("tid", BIGINT, "the tid of the thread that made the entry", additional=True),
   Column("category", TEXT, "the category of the os_log_t used", additional=True),
   Column("subsystem", TEXT, "the subsystem of the os_log_t used", additional=True),
-  Column("level", TEXT, "the severity level of the entry")
+  Column("level", TEXT, "the severity level of the entry"),
+  Column("max_rows", INTEGER, "the max number of rows returned", additional=True, hidden=True)
 ])
 implementation("unified_log@genUnifiedLog")

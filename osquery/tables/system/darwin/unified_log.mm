@@ -22,13 +22,6 @@ namespace ba = boost::algorithm;
 namespace osquery {
 namespace tables {
 
-const unsigned int ual_max_rows_def = 100;
-
-FLAG(uint64,
-     ual_max_rows,
-     ual_max_rows_def,
-     "Max row number allowed when select from unified log table")
-
 const std::map<ConstraintOperator, NSPredicateOperatorType> kSupportedOps = {
     {EQUALS, NSEqualToPredicateOperatorType},
     {GREATER_THAN, NSGreaterThanPredicateOperatorType},
@@ -67,17 +60,31 @@ const std::string kUALtimestampKey{"ual_timestamp"};
 const std::string kUALcountKey{"ual_counter"};
 
 /**
+ * @brief maximum rows configuration filter
+ */
+const int kMaxRowsDefault = 100;
+const std::string kMaxRowsColumn = "max_rows";
+const ConstraintOperator kMaxRowsOperator = EQUALS;
+
+/**
+ * @brief timestamp sequential configuration filter
+ */
+const std::string kSentinalColumn = "timestamp";
+const std::string kSentinalValue = "-1";
+const ConstraintOperator kSentinalOperator = GREATER_THAN;
+
+/**
  * @brief defines the structure that saves the current status for extracting
  *        sequential data in multiple queries
  */
-struct DeltaContext {
+struct SequentialContext {
   double timestamp; /**< timestamp of last log, used as a pointer */
-  unsigned int count; /**< if two or more logs has the same timestamp,
-                           the API will return a pointer to the first one,
-                           save how many we extracted so we can skip to the
-                           current*/
+  int count; /**< if two or more logs has the same timestamp,
+                  the API will return a pointer to the first one,
+                  save how many we extracted so we can skip to the
+                  current*/
 
-  DeltaContext() : timestamp(0), count(0) {}
+  SequentialContext() : timestamp(0), count(0) {}
 
   /**
    * @brief load values from database in case there are stored
@@ -90,7 +97,7 @@ struct DeltaContext {
   void save();
 };
 
-void DeltaContext::load() {
+void SequentialContext::load() {
   std::string str;
   auto s = getDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
   if (s.ok())
@@ -100,7 +107,7 @@ void DeltaContext::load() {
     count = std::stod(str);
 }
 
-void DeltaContext::save() {
+void SequentialContext::save() {
   std::string str = std::to_string(timestamp);
   auto s = setDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
   if (!s.ok())
@@ -159,13 +166,48 @@ void addQueryOp(NSMutableArray* preds,
   }
 }
 
-QueryData genUnifiedLog(QueryContext& queryContext) {
-  if (FLAGS_ual_max_rows <= 0) {
-    FLAGS_ual_max_rows = ual_max_rows_def;
+/**
+ * @brief search into the context for a max rows configuration
+ *
+ * @param queryContext current context
+ *
+ * @returns the number of maximum rows configured
+ */
+int getMaxRows(QueryContext& queryContext) {
+  if (queryContext.hasConstraint(kMaxRowsColumn, kMaxRowsOperator)) {
+    std::string str;
+    str = *queryContext.constraints[kMaxRowsColumn]
+               .getAll(kMaxRowsOperator)
+               .begin();
+    return std::stoi(str);
+  } else {
+    return kMaxRowsDefault;
   }
+}
 
-  unsigned int rows_counter = 0;
+/**
+ * @brief search into the context for a sequential timestamp configuration
+ *
+ * @param queryContext current context
+ *
+ * @returns true if sequential configuration has been triggered
+ * @returns false otherwise
+ */
+bool getSequential(QueryContext& queryContext) {
+  if (queryContext.hasConstraint(kSentinalColumn, kSentinalOperator)) {
+    std::string str;
+    str = *queryContext.constraints[kSentinalColumn]
+               .getAll(kSentinalOperator)
+               .begin();
+    return str == kSentinalValue;
+  }
+  return false;
+}
+
+QueryData genUnifiedLog(QueryContext& queryContext) {
+  int rows_counter = 0;
   QueryData results;
+  SequentialContext sc;
   if (!@available(macOS 10.15, *)) {
     VLOG(1) << "OSLog framework is not available";
     return {};
@@ -181,14 +223,16 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     }
 
     OSLogPosition* position = nil;
-    bool isDelta = true;
-    DeltaContext dc;
-    dc.load();
+
+    sc.load();
+    int max_rows = getMaxRows(queryContext);
+    bool isSequential = getSequential(queryContext);
 
     // the timestamp column can be used to aggressively filter
     // results returned from the log store
-    if (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
-        queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS)) {
+    if (!isSequential &&
+        (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
+         queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS))) {
       std::string start_time;
       if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
         start_time =
@@ -205,7 +249,6 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
           [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
 
       position = [logstore positionWithDate:provided_date];
-      isDelta = false;
     }
 
     // grab all the supported columns used in simple constraints and make a
@@ -214,7 +257,9 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     for (const auto& it : queryContext.constraints) {
       const std::string& key = it.first;
       for (const auto& constraint : it.second.getAll()) {
-        isDelta = false;
+        if (key == kSentinalColumn && constraint.expr == kSentinalValue &&
+            constraint.op == kSentinalOperator)
+          continue;
         addQueryOp(subpredicates,
                    key,
                    constraint.expr,
@@ -225,10 +270,9 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     NSPredicate* predicate =
         [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
 
-    // Apply sequential extraction only in the case there are no constraints
-    if (isDelta) {
-      isDelta = true;
-      NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:dc.timestamp];
+    // Apply sequential extraction
+    if (isSequential) {
+      NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:sc.timestamp];
       position = [logstore positionWithDate:last_date];
     }
 
@@ -246,32 +290,33 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       return {};
     }
 
-    unsigned int skip_counter = 0;
-    bool first = isDelta;
+    int skip_counter = 0;
+    bool first = isSequential;
     for (OSLogEntryLog* entry in enumerator) {
       if (first) {
         // Skips the log entries that have been already extracted
         double load_date = [[entry date] timeIntervalSince1970];
-        if (load_date == dc.timestamp) {
-          if (++skip_counter <= dc.count) {
+        if (load_date == sc.timestamp) {
+          if (++skip_counter <= sc.count) {
             continue;
           }
         }
         first = false;
       }
 
-      if (isDelta) {
+      if (isSequential) {
         // Save timestamp and count
         double load_date = [[entry date] timeIntervalSince1970];
-        if (dc.timestamp == load_date) {
-          dc.count++;
+        if (sc.timestamp == load_date) {
+          sc.count++;
         } else {
-          dc.count = 0;
-          dc.timestamp = load_date;
+          sc.count = 0;
+          sc.timestamp = load_date;
         }
       }
 
-      if (++rows_counter > FLAGS_ual_max_rows)
+      // Escape if the rows number reached the limit
+      if (++rows_counter > max_rows)
         break;
 
       Row r;
@@ -322,9 +367,11 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
           r["level"] = SQL_TEXT("unknown log level");
         }
       }
+      // sqlite engine will apply the filter max_rows = N
+      r["max_rows"] = INTEGER(max_rows);
       results.push_back(r);
     }
-    dc.save();
+    sc.save();
   }
   return results;
 }

@@ -61,33 +61,35 @@ TEST_F(UnifiedLogTest, test_sanity) {
   };
   validate_rows(rows, row_map);
 
-  // Flag test
-  const int max_rows_in[] = {50, 1, 0};
-  const int max_rows_out[] = {50, 1, 100};
-  for (int i = 0; i < 3; i++) {
-    Status s =
-        Flag::updateValue("ual_max_rows", std::to_string(max_rows_in[i]));
-    ASSERT_EQ(Flag::getValue("ual_max_rows"), std::to_string(max_rows_in[i]));
-    QueryData const r1 = execute_query("select * from unified_log");
-    ASSERT_GT(r1.size(), 0ul);
-    ASSERT_LE(r1.size(), max_rows_out[i]);
-  }
+  // max rows test
+  QueryData const r1 =
+      execute_query("select * from unified_log where max_rows = 50");
+  ASSERT_EQ(r1.size(), 50ul);
+  QueryData const r2 =
+      execute_query("select * from unified_log where max_rows = 1");
+  ASSERT_EQ(r2.size(), 1ul);
+  QueryData const r3 =
+      execute_query("select * from unified_log where max_rows = 0");
+  ASSERT_EQ(r3.size(), 0ul);
+  QueryData const r4 =
+      execute_query("select * from unified_log where max_rows = -1");
+  ASSERT_EQ(r4.size(), 0ul);
 
   // Sequential test: checks the pointer is increased and the data extracted
   //                  is different
   DeltaContext dc1, dc2;
   dc1.load();
-  Flag::updateValue("ual_max_rows", "1");
-  ASSERT_EQ(Flag::getValue("ual_max_rows"), "1");
-  QueryData const r4 = execute_query("select * from unified_log");
+  QueryData const r5 = execute_query(
+      "select * from unified_log where max_rows = 1 and timestamp > -1");
   dc2.load();
   EXPECT_TRUE(dc1 < dc2);
-  QueryData const r5 = execute_query("select * from unified_log");
-  ASSERT_EQ(r4.size(), 1ul);
+  QueryData const r6 = execute_query(
+      "select * from unified_log where max_rows = 1 and timestamp > -1");
   ASSERT_EQ(r5.size(), 1ul);
+  ASSERT_EQ(r6.size(), 1ul);
   bool sequential_queries_diff = false;
-  for (auto it = r4[0].begin(); it != r4[0].end(); it++) {
-    if (it->second != r5[0].at(it->first)) {
+  for (auto it = r5[0].begin(); it != r5[0].end(); it++) {
+    if (it->second != r6[0].at(it->first)) {
       sequential_queries_diff = true;
       break;
     }
