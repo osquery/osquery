@@ -1,7 +1,7 @@
 table_name("temperature_sensors")
 description("Machine's temperature sensors.")
 schema([
-    Column("key", TEXT, "The SMC key on OS X", index=True),
+    Column("key", TEXT, "The SMC key on macOS", index=True),
     Column("name", TEXT, "Name of temperature source"),
     Column("celsius", DOUBLE, "Temperature in Celsius"),
     Column("fahrenheit", DOUBLE, "Temperature in Fahrenheit"),

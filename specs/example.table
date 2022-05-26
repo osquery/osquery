@@ -24,7 +24,7 @@ schema([
     Column("id", INTEGER, "An index of some sort", index=True),
 
     # Some tables operate using default configurations or OS settings.
-    # OS X has default paths for .app executions, but .apps exist otherwise.
+    # macOS has default paths for .app executions, but .apps exist otherwise.
     # Tables may generate additional or different data when using some columns.
     # Set the "additional" argument if searching a non-default path.
     Column("path", TEXT, "Path of example", additional=True),

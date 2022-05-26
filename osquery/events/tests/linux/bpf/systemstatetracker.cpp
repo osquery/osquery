@@ -1250,14 +1250,85 @@ TEST_F(SystemStateTrackerTests, parse_ipv4_sockaddr) {
 }
 
 TEST_F(SystemStateTrackerTests, parse_ipv6_sockaddr) {
-  std::string address;
-  std::uint16_t port{};
-  auto succeeded =
-      SystemStateTracker::parseInet6Sockaddr(address, port, kTestIPv6Address);
+  struct TestCase final {
+    std::vector<std::uint8_t> sockaddr_in6;
+    std::string expected_address;
+  };
 
-  EXPECT_TRUE(succeeded);
-  EXPECT_EQ(address, "00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f");
-  EXPECT_EQ(port, 8080);
+  // clang-format off
+  static const std::vector<TestCase> kTestCaseList = {
+    {
+      kTestIPv6Address,
+      "1:203:405:607:809:a0b:c0d:e0f"
+    },
+
+    {
+      {
+        0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
+        0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xfc, 0x54, 0x00, 0x00, 0x00, 0x00, 0xd4, 0xf4,
+        0x00, 0x00, 0x00, 0x00
+      },
+
+      "fe80::fc54:0:0:d4f4"
+    },
+
+    {
+      {
+        0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
+        0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x54,
+        0xfc, 0x54, 0x00, 0x00, 0x00, 0x00, 0xd4, 0xf4,
+        0x00, 0x00, 0x00, 0x00
+      },
+
+      "fe80::fc54:fc54:0:0:d4f4"
+    },
+
+    {
+      {
+        0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
+        0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x54,
+        0xfc, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+      },
+
+      "fe80:0:0:fc54:fc54::"
+    },
+
+    {
+      {
+        0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00
+      },
+
+      "::1"
+    },
+
+    {
+      {
+        0x0a, 0x00, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+      },
+
+      "1::"
+    },
+  };
+  // clang-format on
+
+  for (const auto& test_case : kTestCaseList) {
+    std::string address;
+    std::uint16_t port{};
+    auto succeeded = SystemStateTracker::parseInet6Sockaddr(
+        address, port, test_case.sockaddr_in6);
+
+    EXPECT_TRUE(succeeded);
+    EXPECT_EQ(address, test_case.expected_address);
+    EXPECT_EQ(port, 8080);
+  }
 }
 
 TEST_F(SystemStateTrackerTests, parse_unix_sockaddr) {
@@ -1382,6 +1453,102 @@ TEST_F(SystemStateTrackerTests, expireProcessContexts) {
 
   SystemStateTracker::expireProcessContexts(context, mocked_filesystem);
   EXPECT_EQ(context.process_map.size(), 1U);
+}
+
+TEST_F(SystemStateTrackerTests, parseSocketAddress) {
+  static const std::uint16_t kUnspecFamily{AF_UNSPEC};
+
+  struct TestCase final {
+    const std::vector<std::uint8_t>& sockaddr_buffer;
+    std::string expected_address{};
+    std::uint16_t expected_port{};
+    int domain{};
+  };
+
+  static const std::vector<TestCase> kTestCaseList = {
+      {
+          std::ref(kTestIPv4Address),
+          "192.168.1.2",
+          80,
+          AF_INET,
+      },
+
+      {
+          std::ref(kTestIPv6Address),
+          "1:203:405:607:809:a0b:c0d:e0f",
+          8080,
+          AF_INET6,
+      },
+
+      {
+          std::ref(kTestNetlinkSockaddr),
+          "1",
+          2,
+          AF_NETLINK,
+      },
+
+      {
+          std::ref(kTestUnixSocketAddress),
+          "/test/path",
+          0,
+          AF_UNIX,
+      },
+  };
+
+  ProcessContext::FileDescriptor::SocketData socket_data;
+
+  for (const auto& initialize_opt_domain : {0, 1, 2}) {
+    for (const auto& clear_sockaddr_family : {false, true}) {
+      for (const auto& use_local_address : {false, true}) {
+        for (const auto& test_case : kTestCaseList) {
+          socket_data = {};
+
+          if (initialize_opt_domain == 0) {
+            socket_data.opt_domain = std::nullopt;
+
+          } else if (initialize_opt_domain == 1) {
+            socket_data.opt_domain = AF_UNSPEC;
+
+          } else if (initialize_opt_domain == 2) {
+            socket_data.opt_domain = test_case.domain;
+
+          } else {
+            throw std::logic_error("Invalid initialize_opt_domain value");
+          }
+
+          auto sockaddr = test_case.sockaddr_buffer;
+          if (clear_sockaddr_family == 1) {
+            std::memcpy(sockaddr.data(), &kUnspecFamily, sizeof(kUnspecFamily));
+          }
+
+          ASSERT_TRUE(SystemStateTracker::parseSocketAddress(
+              socket_data, sockaddr, use_local_address));
+
+          ASSERT_EQ(socket_data.opt_local_address.has_value(),
+                    use_local_address);
+
+          ASSERT_EQ(socket_data.opt_local_port.has_value(), use_local_address);
+
+          ASSERT_EQ(socket_data.opt_remote_address.has_value(),
+                    !use_local_address);
+
+          ASSERT_EQ(socket_data.opt_remote_port.has_value(),
+                    !use_local_address);
+
+          const auto& address_value =
+              use_local_address ? socket_data.opt_local_address.value()
+                                : socket_data.opt_remote_address.value();
+
+          const auto& port_value = use_local_address
+                                       ? socket_data.opt_local_port.value()
+                                       : socket_data.opt_remote_port.value();
+
+          EXPECT_EQ(address_value, test_case.expected_address);
+          EXPECT_EQ(port_value, test_case.expected_port);
+        }
+      }
+    }
+  }
 }
 
 } // namespace osquery

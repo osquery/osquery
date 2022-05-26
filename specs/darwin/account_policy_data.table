@@ -1,5 +1,5 @@
 table_name("account_policy_data")
-description("Additional OS X user account data from the AccountPolicy section of OpenDirectory.")
+description("Additional macOS user account data from the AccountPolicy section of OpenDirectory.")
 schema([
     Column("uid", BIGINT, "User ID"),
     Column("creation_time", DOUBLE, "When the account was first created"),

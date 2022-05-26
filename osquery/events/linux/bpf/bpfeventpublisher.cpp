@@ -151,8 +151,10 @@ Status BPFEventPublisher::setUp() {
       ebpf::PerfEventArray::create(FLAGS_bpf_perf_event_array_exp);
 
   if (!perf_event_array_exp.succeeded()) {
-    throw std::runtime_error("Failed to create the perf event array: " +
-                             perf_event_array_exp.error().message());
+    const auto& error = perf_event_array_exp.error();
+
+    return Status::failure("Failed to create the perf event array: " +
+                           error.message());
   }
 
   d->perf_event_array = perf_event_array_exp.takeValue();
@@ -161,8 +163,10 @@ Status BPFEventPublisher::setUp() {
       ebpfpub::IPerfEventReader::create(*d->perf_event_array.get());
 
   if (!perf_event_reader_exp.succeeded()) {
-    throw std::runtime_error("Failed to create the perf event reader: " +
-                             perf_event_reader_exp.error().message());
+    const auto& error = perf_event_reader_exp.error();
+
+    return Status::failure("Failed to create the perf event reader: " +
+                           error.message());
   }
 
   d->perf_event_reader = perf_event_reader_exp.takeValue();
@@ -176,7 +180,14 @@ Status BPFEventPublisher::setUp() {
           ebpfpub::IBufferStorage::create(FLAGS_bpf_buffer_storage_size, 4096);
 
       if (!buffer_storage_exp.succeeded()) {
-        throw buffer_storage_exp.error();
+        const auto& error = buffer_storage_exp.error();
+
+        std::stringstream error_message;
+        error_message << "Failed to create buffer storage #"
+                      << static_cast<int>(tracer_allocator.buffer_storage_pool)
+                      << ": " << error.message();
+
+        return Status::failure(error_message.str());
       }
 
       auto buffer_storage = buffer_storage_exp.takeValue();
@@ -287,9 +298,15 @@ void BPFEventPublisher::tearDown() {
     return;
   }
 
-  if (!d->initialized) {
-    return;
-  }
+  d->perf_event_array.reset();
+  d->perf_event_reader.reset();
+  d->system_state_tracker.reset();
+
+  d->buffer_storage_map.clear();
+  d->event_handler_map.clear();
+  d->event_queue.clear();
+
+  d->initialized = false;
 }
 
 Status BPFEventPublisher::run() {

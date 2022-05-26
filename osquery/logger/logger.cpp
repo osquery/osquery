@@ -45,7 +45,7 @@ FLAG(bool, verbose, false, "Enable verbose informational messages");
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
+CLI_FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");

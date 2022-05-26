@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/optional.hpp>
 #include <openssl/x509.h>
 
 #include <map>
@@ -16,44 +17,21 @@
 
 namespace osquery::tables {
 
-// The flags are defined in openssl/x509v3.h,
-// and its keys in crypto/x509v3/v3_bitst.c
-// clang-format off
-const std::map<uint32_t, std::string> kKeyUsageFlags = {
-    {0x0001, "Encipher Only"},
-    {0x0002, "CRL Sign"},
-    {0x0004, "Key Cert Sign"},
-    {0x0008, "Key Agreement"},
-    {0x0010, "Data Encipherment"},
-    {0x0020, "Key Encipherment"},
-    {0x0040, "Non Repudiation"},
-    {0x0080, "Digital Signature"},
-    {0x8000, "Decipher Only"}};
-// clang-format on
-
-std::string genSHA1ForCertificate(X509* cert);
-std::string genSerialForCertificate(X509* cert);
-
-bool certificateIsCA(X509* cert);
-bool certificateIsSelfSigned(X509* cert);
-
-void genCommonName(X509* cert,
-                   std::string& subject,
-                   std::string& common_name,
-                   std::string& issuer);
-
-std::string genKIDProperty(const unsigned char* data, int len);
-
-/// Generate the public key algorithm and signing algorithm.
-void genAlgorithmProperties(X509* cert,
-                            std::string& key,
-                            std::string& sig,
-                            std::string& size);
-
-time_t genEpoch(ASN1_TIME* time);
-
-std::string genKeyUsage(uint32_t flag);
-
-std::string genHumanReadableDateTime(ASN1_TIME* time);
+boost::optional<std::string> generateCertificateSHA1Digest(X509* cert);
+void getCertificateAttributes(X509* cert, bool& is_ca, bool& is_self_signed);
+boost::optional<std::string> getCertificateKeyUsage(X509* cert);
+boost::optional<std::string> getCertificateSerialNumber(X509* cert);
+boost::optional<std::string> getCertificateAuthorityKeyID(X509* cert);
+boost::optional<std::string> getCertificateSubjectKeyID(X509* cert);
+boost::optional<std::string> getCertificateIssuerName(
+    X509* cert, bool use_deprecated_output);
+boost::optional<std::string> getCertificateSubjectName(
+    X509* cert, bool use_deprecated_output);
+boost::optional<std::string> getCertificateCommonName(X509* cert);
+boost::optional<std::string> getCertificateSigningAlgorithm(X509* cert);
+boost::optional<std::string> getCertificateKeyAlgorithm(X509* cert);
+boost::optional<std::string> getCertificateKeyStregth(X509* cert);
+boost::optional<std::time_t> getCertificateNotValidBefore(X509* cert);
+boost::optional<std::time_t> getCertificateNotValidAfter(X509* cert);
 
 } // namespace osquery::tables

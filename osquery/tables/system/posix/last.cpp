@@ -71,10 +71,12 @@ QueryData genLastAccess(QueryContext& context) {
 #ifndef __FreeBSD__
   utmpxname(_PATH_WTMP);
 #endif
+
   setutxent();
 
   while ((ut = getutxent()) != nullptr) {
 #endif
+
     impl::genLastAccessForRow(*ut, results);
   }
 
@@ -83,6 +85,7 @@ QueryData genLastAccess(QueryContext& context) {
 #else
   endutxent();
 #endif
+
   return results;
 }
 }

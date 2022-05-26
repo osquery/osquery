@@ -480,6 +480,25 @@ There are also encoding functions available, to process query results.
     </p>
     </details>
 
+#### Network functions
+
+- `in_cidr_block(CIDR_RANGE, IP_ADDRESS)`: return 1 if the IP address is within the CIDR block, otherwise 0.
+
+    <details>
+    <summary>in_cidr_block function example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT in_cidr_block('10.0.0.0/26', '10.0.0.24');
+      in_cidr_block('10.0.0.0/26', '10.0.0.24') = 1
+
+      osquery> SELECT in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
+      in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
+
+    </p>
+    </details>
+
 ### Table and column name deprecations
 
 Over time it may make sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.

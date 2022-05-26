@@ -1,5 +1,5 @@
 table_name("package_bom")
-description("OS X package bill of materials (BOM) file list.")
+description("macOS package bill of materials (BOM) file list.")
 schema([
     Column("filepath", TEXT, "Package file or directory"),
     Column("uid", INTEGER, "Expected user of file or directory"),
