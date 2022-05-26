@@ -1,6 +1,10 @@
 ---
 name: Question
 about: You have a question about osquery
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Thank you for your interest in osquery! -->
