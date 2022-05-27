@@ -24,7 +24,9 @@ assignees: ''
 
 - [ ] If the `CHANGELOG.md` hasn't already been updated, update it in a new Pull Request, review and merge it. It should reflect everything done up to the tagged version commit.
 - [ ] Assure that the ChangeLog shows up in the [tag release notes](https://github.com/osquery/osquery/tags).
-- [ ] Create packages and upload to S3 (for download use only).
+
+## Promoting to Stable
+- [ ] Use [code signing workflow](https://github.com/osquery/osquery-codesign/actions/workflows/release-generator.yml) to build packages and upload to S3
 - [ ] Update the website with the new release and schema.
 - [ ] Publish the website changes.
 - [ ] Publish the new packages into the hosted repos.
