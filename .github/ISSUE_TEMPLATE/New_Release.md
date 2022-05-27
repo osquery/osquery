@@ -17,6 +17,7 @@ assignees: ''
 
 - [ ] Review the [milestones](https://github.com/osquery/osquery/milestones), move unfinished issues to the next release, close the milestone.
 - [ ] Ask for a Technical Steering Committee member to make a GitHub tag.
+- [ ] Trigger [code signing workflow](https://github.com/osquery/osquery-codesign/actions/workflows/release-generator.yml)
 - [ ] Assure that testable packages are available on the Releases page, and announce to the `#core` channel on Slack.
 
 ## After creating a GitHub tag
