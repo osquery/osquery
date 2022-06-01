@@ -54,7 +54,13 @@ function(generateOsqueryCoreInit)
 
   generateIncludeNamespace(osquery_core_init "osquery/core" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_core_tests_watcherpermissionstests-test COMMAND osquery_core_tests_watcherpermissionstests-test)
+  # TODO: This test should actually run as root, but it's currently broken when using that user
+  if(DEFINED PLATFORM_POSIX)
+    add_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
+  endif()
+
+  add_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
+
 endfunction()
 
 function(generateOsqueryCore)

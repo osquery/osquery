@@ -97,6 +97,10 @@ bool PlatformProcess::killGracefully() const {
   return kill();
 }
 
+void PlatformProcess::warnResourceLimitHit() const {
+  // Not implemented
+}
+
 ProcessState PlatformProcess::checkStatus(int& status) const {
   unsigned long exit_code = 0;
   if (!isValid()) { // see issue #7324

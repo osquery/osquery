@@ -111,6 +111,8 @@ class PlatformProcess : private boost::noncopyable {
    */
   bool killGracefully() const;
 
+  virtual void warnResourceLimitHit() const;
+
   /**
    * @brief Wait or cleanup a process, usually a child process.
    *

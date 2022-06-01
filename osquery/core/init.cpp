@@ -137,6 +137,7 @@ DWORD kLegacyThreadId;
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
 bool Initializer::isWorker_{false};
+std::atomic<bool> Initializer::resource_limit_hit_{false};
 
 namespace {
 
@@ -161,9 +162,13 @@ void initWorkDirectories() {
 void signalHandler(int num) {
   int rc = 0;
 
+  if (num == SIGUSR1) {
+    Initializer::resourceLimitHit();
+  }
+
   // Expect SIGTERM and SIGINT to gracefully shutdown.
   // Other signals are unexpected.
-  if (num != SIGTERM && num != SIGINT) {
+  else if (num != SIGTERM && num != SIGINT) {
     rc = 128 + num;
   }
 
@@ -342,6 +347,7 @@ Initializer::Initializer(int& argc,
 
   std::signal(SIGTERM, signalHandler);
   std::signal(SIGINT, signalHandler);
+  std::signal(SIGUSR1, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check || FLAGS_database_dump || FLAGS_config_dump) {
@@ -688,6 +694,14 @@ void Initializer::start() const {
   }
 
   EventFactory::delay();
+}
+
+void Initializer::resourceLimitHit() {
+  resource_limit_hit_ = true;
+}
+
+bool Initializer::isResourceLimitHit() {
+  return resource_limit_hit_.load();
 }
 
 /**

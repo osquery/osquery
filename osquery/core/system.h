@@ -141,6 +141,9 @@ class Initializer : private boost::noncopyable {
   /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
+  static void resourceLimitHit();
+  static bool isResourceLimitHit();
+
  private:
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
@@ -156,6 +159,8 @@ class Initializer : private boost::noncopyable {
 
   /// Is this a worker process
   static bool isWorker_;
+
+  static std::atomic<bool> resource_limit_hit_;
 };
 
 /**

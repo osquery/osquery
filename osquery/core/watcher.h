@@ -223,6 +223,7 @@ class Watcher : private boost::noncopyable {
  private:
   friend class WatcherRunner;
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 /**
@@ -287,6 +288,8 @@ class WatcherRunner : public InternalRunnable {
   virtual void stopChild(const PlatformProcess& child,
                          bool force = false) const;
 
+  virtual void warnWorkerResourceLimitHit(const PlatformProcess& child) const;
+
   /// Return the time the watchdog is delayed until (from start of watcher).
   uint64_t delayedTime() const;
 
@@ -323,6 +326,7 @@ class WatcherRunner : public InternalRunnable {
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_disabled);
   FRIEND_TEST(WatcherTests, test_watcherrunner_watcherhealth);
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
