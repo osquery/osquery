@@ -9,13 +9,13 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/config/config.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
+#include <osquery/dispatcher/scheduler.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
-
-#include <osquery/config/config.h>
-#include <osquery/dispatcher/scheduler.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/system/time.h>
 
@@ -38,6 +38,7 @@ class SchedulerTests : public testing::Test {
   void TearDown() override {
     FLAGS_disable_logging = logging_;
     Config::get().reset();
+    resetShutdown();
   }
 
  private:
