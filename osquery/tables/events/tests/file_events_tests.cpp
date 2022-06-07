@@ -22,7 +22,7 @@
 
 namespace osquery {
 
-DECLARE_bool(registry_exceptions);
+DECLARE_bool(ignore_registry_exceptions);
 
 class FileEventSubscriber;
 
@@ -36,15 +36,15 @@ class FileEventsTableTests : public testing::Test {
     Config::get().reset();
 
     // Promote registry access exceptions when testing tables and SQL.
-    exceptions_ = FLAGS_registry_exceptions;
-    FLAGS_registry_exceptions = true;
+    exceptions_ = FLAGS_ignore_registry_exceptions;
+    FLAGS_ignore_registry_exceptions = false;
 
     // Setup configuration parsers for file paths accesses.
     Registry::get().registry("config_parser")->setUp();
   }
 
   void TearDown() override {
-    FLAGS_registry_exceptions = exceptions_;
+    FLAGS_ignore_registry_exceptions = exceptions_;
   }
 
  protected:

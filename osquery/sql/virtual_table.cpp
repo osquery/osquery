@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include <osquery/core/core.h>
+#include <osquery/core/flagalias.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/logger/logger.h>
@@ -34,7 +35,14 @@ FLAG(bool,
      true,
      "Enable INDEX on all extension table columns (default true)");
 
-FLAG(bool, table_exceptions, false, "Allow tables to throw exceptions");
+/* NOTE: the default is false, because it's easier to enable it in one place
+   when starting osquery, instead of having each test enable them,
+   so that they are seen and fixed. */
+FLAG(bool,
+     ignore_table_exceptions,
+     false,
+     "Ignore exceptions thrown by tables. osquery and extensions default to "
+     "true.");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
@@ -893,8 +901,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     }
   }
 
-// Filtering between cursors happens iteratively, not consecutively.
-// If there are multiple sets of constraints, they apply to each cursor.
+  // Filtering between cursors happens iteratively, not consecutively.
+  // If there are multiple sets of constraints, they apply to each cursor.
   if (FLAGS_planner) {
     plan("xFilter Filtering called for table: " + content->name +
          " [constraint_count=" + std::to_string(content->constraints.size()) +
@@ -1006,7 +1014,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       LOG(ERROR) << "Exception while executing table " << pVtab->content->name
                  << ": " << e.what();
       setTableErrorMessage(pVtabCursor->pVtab, e.what());
-      if (FLAGS_table_exceptions) {
+      if (!FLAGS_ignore_table_exceptions) {
         throw;
       }
       return SQLITE_ERROR;
