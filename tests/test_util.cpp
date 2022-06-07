@@ -31,6 +31,12 @@
 #include <osquery/tests/test_util.h>
 #include <osquery/utils/info/platform_type.h>
 
+#ifdef OSQUERY_WINDOWS
+#include <osquery/core/windows/global_users_groups_cache.h>
+#include <osquery/system/usersgroups/windows/groups_service.h>
+#include <osquery/system/usersgroups/windows/users_service.h>
+#endif
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -118,6 +124,41 @@ void shutdownTesting() {
   shutdownDatabase();
   platformTeardown();
 }
+
+#ifdef OSQUERY_WINDOWS
+void initUsersAndGroupsServices(bool init_users, bool init_groups) {
+  if (init_users) {
+    std::promise<void> users_cache_promise;
+    GlobalUsersGroupsCache::global_users_cache_future_ =
+        users_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<UsersService>(
+        std::move(users_cache_promise),
+        GlobalUsersGroupsCache::global_users_cache_));
+  }
+
+  if (init_groups) {
+    std::promise<void> groups_cache_promise;
+    GlobalUsersGroupsCache::global_groups_cache_future_ =
+        groups_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<GroupsService>(
+        std::move(groups_cache_promise),
+        GlobalUsersGroupsCache::global_groups_cache_));
+  }
+}
+
+void deinitUsersAndGroupsServices(bool deinit_users, bool deinit_groups) {
+  if (deinit_users) {
+    GlobalUsersGroupsCache::global_users_cache_->clear();
+    GlobalUsersGroupsCache::global_users_cache_future_ = {};
+  }
+  if (deinit_groups) {
+    GlobalUsersGroupsCache::global_groups_cache_->clear();
+    GlobalUsersGroupsCache::global_groups_cache_future_ = {};
+  }
+}
+#endif
 
 ScheduledQuery getOsqueryScheduledQuery() {
   ScheduledQuery sq(
