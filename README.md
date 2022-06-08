@@ -8,7 +8,7 @@ src="https://github.com/osquery/osquery/raw/master/docs/img/logo-2x-dark.png" />
 <p align="center">
 osquery is a SQL powered operating system instrumentation, monitoring, and analytics framework.
 <br>
-Available for Linux, macOS, Windows, and FreeBSD.
+Available for Linux, macOS, and Windows.
 </p>
 
 ## Information and resources

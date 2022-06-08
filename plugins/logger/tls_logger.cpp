@@ -46,6 +46,8 @@ FLAG(uint64,
      1 * 1024 * 1024,
      "Max size in bytes allowed per log line");
 
+FLAG(bool, tls_disable_status_log, false, "Disable sending status logs");
+
 // The flag name logger_tls_max is deprecated.
 FLAG_ALIAS(google::uint64, logger_tls_max, logger_tls_max_linesize);
 
@@ -96,6 +98,11 @@ void TLSLoggerPlugin::init(const std::string& name,
 
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
                              const std::string& log_type) {
+  // Skip sending status logs to remote server if disabled
+  if (FLAGS_tls_disable_status_log && log_type == "status") {
+    return Status::success();
+  }
+
   JSON params;
   params.add("node_key", getNodeKey("tls"));
   params.add("log_type", log_type);

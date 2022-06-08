@@ -1,6 +1,10 @@
 ---
 name: Bug Report
 about: Something is not working as expected
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Thank you for contributing to osquery! -->
@@ -33,4 +37,3 @@ osqueryi --line "SELECT version from osquery_info;"
 ### What did you expect to see?
 
 ### What did you see instead?
-

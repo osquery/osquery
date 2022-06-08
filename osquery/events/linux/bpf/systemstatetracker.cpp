@@ -1101,6 +1101,7 @@ bool SystemStateTracker::parseInet6Sockaddr(
   address = {};
   port = 0U;
 
+  // We already know we have at least 2 bytes
   std::uint16_t family{};
   std::memcpy(&family, sockaddr.data(), sizeof(family));
 
@@ -1108,6 +1109,8 @@ bool SystemStateTracker::parseInet6Sockaddr(
     return false;
   }
 
+  // We may have received less bytes than the full structure size, so
+  // make sure we copy only what we have
   auto size = std::min(sizeof(sockaddr_in6), sockaddr.size());
 
   sockaddr_in6 addr{};
@@ -1115,13 +1118,80 @@ bool SystemStateTracker::parseInet6Sockaddr(
 
   port = static_cast<std::uint16_t>(ntohs(addr.sin6_port));
 
-  std::stringstream buffer;
-  for (std::size_t i = 0U; i < 16; ++i) {
-    buffer << std::setfill('0') << std::setw(2) << std::hex
-           << static_cast<int>(addr.sin6_addr.s6_addr[i]);
+  // Convert the address bytes from a byte array to a u16 array.
+  // While we are doing the conversion, also look for the largest
+  // sequence of zeroes that we'll later compress with `::`
+  struct ZeroSequence final {
+    std::size_t start_index;
+    std::size_t end_index;
+  };
 
-    if (i + 1 < sizeof(addr.sin6_addr.s6_addr)) {
+  bool inside_zero_seq{false};
+  ZeroSequence current_zero_seq;
+
+  std::vector<std::uint16_t> part_list;
+  ZeroSequence biggest_zero_sequence{};
+
+  bool should_collapse_zero_seq{false};
+  auto L_updateMaxZeroSequence = [&biggest_zero_sequence,
+                                  &should_collapse_zero_seq](
+                                     const ZeroSequence& seq) {
+    if ((seq.end_index - seq.start_index) >
+        (biggest_zero_sequence.end_index - biggest_zero_sequence.start_index)) {
+      biggest_zero_sequence = seq;
+      should_collapse_zero_seq = true;
+    }
+  };
+
+  for (std::size_t i = 0U; i < 16; i += 2) {
+    std::uint16_t value = addr.sin6_addr.s6_addr[i + 1];
+    value |= static_cast<std::uint16_t>(addr.sin6_addr.s6_addr[i]) << 8;
+
+    if (inside_zero_seq) {
+      if (value != 0) {
+        current_zero_seq.end_index = part_list.size() - 1;
+        L_updateMaxZeroSequence(current_zero_seq);
+
+        current_zero_seq = {};
+        inside_zero_seq = false;
+      }
+
+    } else if (value == 0) {
+      inside_zero_seq = true;
+      current_zero_seq.start_index = part_list.size();
+    }
+
+    part_list.push_back(value);
+  }
+
+  if (inside_zero_seq) {
+    current_zero_seq.end_index = 7;
+    L_updateMaxZeroSequence(current_zero_seq);
+  }
+
+  // Transform each u16 to string, and also handle compression
+  std::stringstream buffer;
+  buffer << std::hex;
+
+  for (std::size_t i = 0U; i < 8;) {
+    if (should_collapse_zero_seq && i >= biggest_zero_sequence.start_index &&
+        i < biggest_zero_sequence.end_index) {
       buffer << ":";
+
+      if (i == 0) {
+        buffer << ":";
+      }
+
+      i = biggest_zero_sequence.end_index + 1;
+
+    } else {
+      buffer << part_list.at(i);
+
+      if (i + 1 < 8) {
+        buffer << ":";
+      }
+
+      ++i;
     }
   }
 
@@ -1177,21 +1247,39 @@ bool SystemStateTracker::parseSocketAddress(
     family = socket_data.opt_domain.value();
   }
 
+  if (family == AF_UNSPEC) {
+    if (sockaddr.size() == sizeof(sockaddr_in)) {
+      family = AF_INET;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_in6)) {
+      family = AF_INET6;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_nl)) {
+      family = AF_NETLINK;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_un)) {
+      family = AF_UNIX;
+    }
+  }
+
   std::string address;
   std::uint16_t port{};
 
   bool succeeded{false};
-  if (family == AF_UNSPEC || family == AF_UNIX) {
-    succeeded = parseUnixSockaddr(address, sockaddr);
-
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
     succeeded = parseInetSockaddr(address, port, sockaddr);
+  }
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
     succeeded = parseInet6Sockaddr(address, port, sockaddr);
+  }
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
     succeeded = parseNetlinkSockaddr(address, port, sockaddr);
+  }
+
+  if (!succeeded && (family == AF_UNSPEC || family == AF_UNIX)) {
+    succeeded = parseUnixSockaddr(address, sockaddr);
   }
 
   if (succeeded) {

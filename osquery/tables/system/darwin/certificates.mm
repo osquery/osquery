@@ -8,13 +8,16 @@
  */
 
 #include <openssl/opensslv.h>
+#include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 
 namespace osquery {
 namespace tables {
@@ -22,39 +25,62 @@ namespace tables {
 void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   Row r;
 
-  // Generate the common name and subject.
-  // They are very similar OpenSSL API accessors so save some logic and
-  // generate them using output parameters.
-  genCommonName(cert, r["subject"], r["common_name"], r["issuer"]);
-  // Same with algorithm strings.
-  genAlgorithmProperties(
-      cert, r["key_algorithm"], r["signing_algorithm"], r["key_strength"]);
+  auto opt_issuer_name = getCertificateIssuerName(cert, true);
+  r["issuer"] = SQL_TEXT(opt_issuer_name.value_or(""));
 
-  // Most certificate field accessors return strings.
-  r["not_valid_before"] = INTEGER(genEpoch(X509_get_notBefore(cert)));
-  r["not_valid_after"] = INTEGER(genEpoch(X509_get_notAfter(cert)));
+  opt_issuer_name = getCertificateIssuerName(cert, false);
+  r["issuer2"] = SQL_TEXT(opt_issuer_name.value_or(""));
+
+  auto opt_subject_name = getCertificateSubjectName(cert, true);
+  r["subject"] = SQL_TEXT(opt_subject_name.value_or(""));
+
+  opt_subject_name = getCertificateSubjectName(cert, false);
+  r["subject2"] = SQL_TEXT(opt_subject_name.value_or(""));
+
+  auto opt_common_name = getCertificateCommonName(cert);
+  r["common_name"] = SQL_TEXT(opt_common_name.value_or(""));
+
+  auto opt_signing_algorithm = getCertificateSigningAlgorithm(cert);
+  r["signing_algorithm"] = SQL_TEXT(opt_signing_algorithm.value_or(""));
+
+  auto opt_key_algorithm = getCertificateKeyAlgorithm(cert);
+  r["key_algorithm"] = SQL_TEXT(opt_key_algorithm.value_or(""));
+
+  auto opt_key_strength = getCertificateKeyStregth(cert);
+  r["key_strength"] = SQL_TEXT(opt_key_strength.value_or(""));
+
+  auto opt_not_valid_before = getCertificateNotValidBefore(cert);
+  r["not_valid_before"] = INTEGER(opt_not_valid_before.value_or(0));
+
+  auto opt_not_valid_after = getCertificateNotValidAfter(cert);
+  r["not_valid_after"] = INTEGER(opt_not_valid_after.value_or(0));
 
   // Get the keychain for the certificate.
   r["path"] = path;
   // Hash is not a certificate property, calculate using raw data.
-  r["sha1"] = genSHA1ForCertificate(cert);
+  auto opt_digest = generateCertificateSHA1Digest(cert);
+  r["sha1"] = SQL_TEXT(opt_digest.value_or(""));
 
   // X509_check_ca() populates key_usage, {authority,subject}_key_id
   // so it should be called before others.
-  r["ca"] = (CertificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
-  r["self_signed"] = (CertificateIsSelfSigned(cert)) ? INTEGER(1) : INTEGER(0);
+  bool is_ca{};
+  bool is_self_signed{};
+  getCertificateAttributes(cert, is_ca, is_self_signed);
 
-  r["key_usage"] = genKeyUsage(X509_get_key_usage(cert));
+  r["ca"] = is_ca ? INTEGER(1) : INTEGER(0);
+  r["self_signed"] = is_self_signed ? INTEGER(1) : INTEGER(0);
 
-  const auto* cert_key_id = X509_get0_authority_key_id(cert);
-  r["authority_key_id"] =
-      cert_key_id ? genKIDProperty(cert_key_id->data, cert_key_id->length) : "";
+  auto opt_cert_key_usage = getCertificateKeyUsage(cert);
+  r["key_usage"] = opt_cert_key_usage.value_or("");
 
-  cert_key_id = X509_get0_subject_key_id(cert);
-  r["subject_key_id"] =
-      cert_key_id ? genKIDProperty(cert_key_id->data, cert_key_id->length) : "";
+  auto opt_authority_key_id = getCertificateAuthorityKeyID(cert);
+  r["authority_key_id"] = SQL_TEXT(opt_authority_key_id.value_or(""));
 
-  r["serial"] = genSerialForCertificate(cert);
+  auto opt_subject_key_id = getCertificateSubjectKeyID(cert);
+  r["subject_key_id"] = SQL_TEXT(opt_subject_key_id.value_or(""));
+
+  auto opt_cert_serial_number = getCertificateSerialNumber(cert);
+  r["serial"] = SQL_TEXT(opt_cert_serial_number.value_or(""));
 
   results.push_back(r);
 }

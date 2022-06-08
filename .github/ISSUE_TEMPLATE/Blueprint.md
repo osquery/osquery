@@ -1,6 +1,10 @@
 ---
 name: Blueprint
 about: You're planning on implementing a change
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Thank you for contributing to osquery! -->

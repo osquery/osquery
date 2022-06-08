@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include <gtest/gtest.h>
 
@@ -30,6 +31,11 @@
 // Some proc* functions are only compiled when building on linux
 #ifdef __linux__
 #include "osquery/filesystem/linux/proc.h"
+#endif
+
+#ifdef WIN32
+#include "winbase.h"
+#include <osquery/utils/conversions/windows/strings.h>
 #endif
 
 namespace fs = boost::filesystem;
@@ -596,6 +602,38 @@ TEST_F(FilesystemTests, test_read_empty_file) {
   std::string content;
   ASSERT_TRUE(readFile(test_file, content));
   ASSERT_TRUE(content.empty());
+}
+
+TEST_F(FilesystemTests, test_read_fifo) {
+  // This test verifies that open and read operations do not hang when using
+  // non-blocking mode for pipes. Pipes are platform dependent, hence the
+  // ifndef. Seems preferable to adding half-baked pipes to each fileops
+  // implementation.
+#ifndef WIN32
+  auto test_file = test_working_dir_ / "fifo";
+  ASSERT_EQ(::mkfifo(test_file.c_str(), S_IRUSR | S_IWUSR), 0);
+
+  // The failure behavior is that this test will just hang forever, so
+  // maybe it should be run in another thread with a timeout.
+  std::string content;
+  ASSERT_TRUE(readFile(test_file, content));
+  ASSERT_TRUE(content.empty());
+  ::unlink(test_file.c_str());
+#else
+  std::wstring pipe_name = stringToWstring("\\.pipe\test_pipe");
+  HANDLE pipe_handle = CreateNamedPipe(pipe_name.c_str(),
+                                       PIPE_ACCESS_DUPLEX,
+                                       PIPE_WAIT,
+                                       PIPE_UNLIMITED_INSTANCES,
+                                       0,
+                                       0,
+                                       1000,
+                                       0);
+  std::string content;
+  ASSERT_FALSE(readFile(pipe_name, content));
+  ASSERT_TRUE(content.empty());
+  CloseHandle(pipe_handle);
+#endif
 }
 
 } // namespace osquery

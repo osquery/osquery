@@ -465,6 +465,10 @@ void Config::scheduledQueries(
 
       // Call the predicate.
       predicate(std::move(name), it.second);
+
+      if (shutdownRequested()) {
+        break;
+      }
     }
   }
 }
@@ -1060,8 +1064,12 @@ void Config::recordQueryPerformance(const std::string& name,
   query.executions += 1;
   query.last_executed = getUnixTime();
 
-  // Clear the executing query (remove the dirty bit).
-  setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
+  /* Clear the executing query only if a resource limit has not been hit.
+     This is used by the next worker execution to denylist a query
+     that triggered a watchdog resource limit. */
+  if (!Initializer::isResourceLimitHit()) {
+    setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
+  }
 }
 
 void Config::recordQueryStart(const std::string& name) {

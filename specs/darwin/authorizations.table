@@ -1,5 +1,5 @@
 table_name("authorizations")
-description("OS X Authorization rights database.")
+description("macOS Authorization rights database.")
 schema([
     Column("label", TEXT, "Item name, usually in reverse domain format",
       index=True),

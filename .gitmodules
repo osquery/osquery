@@ -31,9 +31,6 @@
 [submodule "libraries/cmake/source/sqlite/src"]
 	path = libraries/cmake/source/sqlite/src
 	url = https://github.com/osquery/third-party-sqlite
-[submodule "libraries/cmake/source/ssdeep-cpp/src"]
-	path = libraries/cmake/source/ssdeep-cpp/src
-	url = https://github.com/ssdeep-project/ssdeep
 [submodule "libraries/cmake/source/thrift/src"]
 	path = libraries/cmake/source/thrift/src
 	url = https://github.com/apache/thrift
@@ -52,9 +49,6 @@
 [submodule "libraries/cmake/source/augeas/src"]
 	path = libraries/cmake/source/augeas/src
 	url = https://github.com/hercules-team/augeas
-[submodule "libraries/cmake/source/smartmontools/src"]
-	path = libraries/cmake/source/smartmontools/src
-	url = https://github.com/osquery/third-party-smartmontools
 [submodule "libraries/cmake/source/berkeley-db/src"]
 	path = libraries/cmake/source/berkeley-db/src
 	url = https://github.com/osquery/third-party-berkeley-db
@@ -70,9 +64,6 @@
 [submodule "libraries/cmake/source/libaudit/src"]
 	path = libraries/cmake/source/libaudit/src
 	url = https://github.com/linux-audit/audit-userspace
-[submodule "libraries/cmake/source/libelfin/src"]
-	path = libraries/cmake/source/libelfin/src
-	url = https://github.com/aclements/libelfin
 [submodule "libraries/cmake/source/libgcrypt/src"]
 	path = libraries/cmake/source/libgcrypt/src
 	url = https://github.com/osquery/third-party-libgcrypt.git

@@ -27,15 +27,15 @@
 
 namespace osquery {
 
-FLAG(string,
-     disable_tables,
-     "",
-     "Comma-delimited list of table names to be disabled");
+CLI_FLAG(string,
+         disable_tables,
+         "",
+         "Comma-delimited list of table names to be disabled");
 
-FLAG(string,
-     enable_tables,
-     "",
-     "Comma-delimited list of table names to be enabled");
+CLI_FLAG(string,
+         enable_tables,
+         "",
+         "Comma-delimited list of table names to be enabled");
 
 FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
@@ -353,6 +353,7 @@ static inline void openOptimized(sqlite3*& db) {
   registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
+  registerNetworkExtensions(db);
 
   auto rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
   if (rc != SQLITE_OK) {

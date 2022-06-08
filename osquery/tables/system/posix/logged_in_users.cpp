@@ -38,6 +38,10 @@ QueryData genLoggedInUsers(QueryContext& context) {
   QueryData results;
   struct utmpx* entry = nullptr;
 
+  // switch to the utmp file, and reset to the first entry
+  utmpxname(_PATH_UTMPX);
+  setutxent();
+
   while ((entry = getutxent()) != nullptr) {
     if (entry->ut_pid == 1) {
       continue;

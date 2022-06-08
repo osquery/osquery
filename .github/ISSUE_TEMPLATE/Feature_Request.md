@@ -1,6 +1,10 @@
 ---
 name: Feature Request
 about: You want the team to implement a new feature
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Thank you for contributing to osquery! -->

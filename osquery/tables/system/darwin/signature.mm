@@ -21,9 +21,12 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
+
+#include <openssl/x509.h>
 
 namespace osquery {
 namespace tables {
@@ -183,11 +186,8 @@ Status genSignatureForFileAndArch(const std::string& path,
       auto length = CFDataGetLength(der_encoded_data);
       auto x509_cert = d2i_X509(nullptr, &der_bytes, length);
       if (x509_cert != nullptr) {
-        std::string subject;
-        std::string issuer;
-        std::string commonName;
-        genCommonName(x509_cert, subject, commonName, issuer);
-        r["authority"] = commonName;
+        auto opt_common_name = getCertificateCommonName(x509_cert);
+        r["authority"] = SQL_TEXT(opt_common_name.value_or(""));
         X509_free(x509_cert);
       } else {
         VLOG(1) << "Error decoding DER encoded certificate";

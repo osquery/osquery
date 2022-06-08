@@ -515,6 +515,11 @@ void registerEncodingExtensions(sqlite3* db);
 void registerFilesystemExtensions(sqlite3* db);
 
 /**
+ * @brief Register network-related 'custom' functions.
+ */
+void registerNetworkExtensions(sqlite3* db);
+
+/**
  * @brief Generate the data for auto-constructed sqlite tables
  *
  * When auto-constructed sqlite tables are queried, this function

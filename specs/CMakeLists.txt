@@ -35,6 +35,7 @@ function(generateNativeTables)
     azure_instance_tags.table
     carbon_black_info.table
     carves.table
+    certificates.table
     chrome_extensions.table
     chrome_extension_content_scripts.table
     curl.table
@@ -49,6 +50,7 @@ function(generateNativeTables)
     interface_details.table
     listening_ports.table
     logged_in_users.table
+    npm_packages.table
     os_version.table
     platform_info.table
     process_memory_map.table
@@ -151,13 +153,11 @@ function(generateNativeTables)
     "freebsd/pkg_packages.table:freebsd"
     "linux/selinux_events.table:linux"
     "linux/seccomp_events.table:linux"
-    "linux/elf_symbols.table:linux"
     "linux/portage_use.table:linux"
     "linux/rpm_package_files.table:linux"
     "linux/shared_memory.table:linux"
     "linux/iptables.table:linux"
     "linux/portage_keywords.table:linux"
-    "linux/elf_segments.table:linux"
     "linux/md_devices.table:linux"
     "linux/process_namespaces.table:linux"
     "linux/syslog_events.table:linux"
@@ -165,27 +165,23 @@ function(generateNativeTables)
     "linux/portage_packages.table:linux"
     "linux/process_file_events.table:linux"
     "linux/md_drives.table:linux"
-    "linux/npm_packages.table:linux"
-    "linux/elf_info.table:linux"
     "linux/md_personalities.table:linux"
     "linux/kernel_modules.table:linux"
     "linux/shadow.table:linux"
     "linux/memory_info.table:linux"
     "linux/msr.table:linux"
     "linux/memory_map.table:linux"
-    "linux/elf_dynamic.table:linux"
-    "linux/elf_sections.table:linux"
     "linux/selinux_settings.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apparmor_events.table:linux"
     "linux/systemd_units.table:linux"
+    "linux/apt_sources.table:linux"
+    "linux/yum_sources.table:linux"
     "linwin/intel_me_info.table:linux,windows"
     "linwin/secureboot.table:linux,windows"
     "kernel_info.table:linux,macos,windows"
-    "macwin/certificates.table:macos,windows"
     "posix/extended_attributes.table:linux,macos"
     "posix/acpi_tables.table:linux,macos"
-    "posix/apt_sources.table:linux,macos,freebsd"
     "posix/augeas.table:linux,macos,freebsd"
     "posix/authorized_keys.table:linux,macos,freebsd"
     "posix/block_devices.table:linux,macos"
@@ -250,7 +246,6 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos,freebsd"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos,freebsd"
-    "posix/yum_sources.table:linux,macos,freebsd"
     "sleuthkit/device_file.table:linux,macos,freebsd,windows"
     "sleuthkit/device_hash.table:linux,macos,freebsd,windows"
     "sleuthkit/device_partitions.table:linux,macos,freebsd,windows"
@@ -304,7 +299,6 @@ function(generateNativeTables)
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
     "windows/prefetch.table:windows"
-    "windows/shortcut_files.table:windows"
     "windows/tpm_info.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,freebsd,windows"
@@ -314,7 +308,6 @@ function(generateNativeTables)
   if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
     list(APPEND platform_dependent_spec_files
       "lldpd/lldp_neighbors.table:linux,macos,freebsd"
-      "smart/smart_drive_info.table:linux,macos"
     )
   endif()
 

@@ -26,13 +26,14 @@ QueryData genHVCIStatus(QueryContext& context) {
   std::vector<std::string> enforcement_methods = {
       "OFF", "AUDIT_MODE", "ENFORCED_MODE"};
 
-  const WmiRequest wmiSystemReq("SELECT * FROM Win32_DeviceGuard",
-                                (BSTR)L"ROOT\\MICROSOFT\\WINDOWS\\DEVICEGUARD");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.empty()) {
+  const auto wmiSystemReq = WmiRequest::CreateWmiRequest(
+      "SELECT * FROM Win32_DeviceGuard",
+      (BSTR)L"ROOT\\MICROSOFT\\WINDOWS\\DEVICEGUARD");
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(ERROR) << "Error retreiving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
     Row r;
     data.GetString("Version", r["version"]);

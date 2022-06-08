@@ -197,13 +197,16 @@ TEST_F(DistributedTests, test_workflow) {
   ASSERT_TRUE(s.ok()) << s.getMessage();
   EXPECT_EQ(s.toString(), "OK");
 
-  EXPECT_EQ(dist.getPendingQueryCount(), 2U);
+  auto queries = dist.getPendingQueries();
+
+  EXPECT_EQ(queries.size(), 2U);
   EXPECT_EQ(dist.results_.size(), 0U);
   s = dist.runQueries();
   ASSERT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
-  EXPECT_EQ(dist.getPendingQueryCount(), 0U);
+  queries = dist.getPendingQueries();
+  EXPECT_EQ(queries.size(), 0U);
   EXPECT_EQ(dist.results_.size(), 0U);
 }
 } // namespace osquery

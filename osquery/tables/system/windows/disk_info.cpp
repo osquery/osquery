@@ -22,12 +22,13 @@ QueryData genDiskInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  const WmiRequest wmiSystemReq("select * from Win32_DiskDrive");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.empty()) {
+  const Expected<WmiRequest, WmiError> wmiSystemReq =
+      WmiRequest::CreateWmiRequest("select * from Win32_DiskDrive");
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
     return results;
   }
+  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
     long partitionCount = 0;
     long index = 0;

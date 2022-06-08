@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for apt_sources
-// Spec file: specs/posix/apt_sources.table
+// Spec file: specs/linux/apt_sources.table
 
 #include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>

@@ -114,18 +114,6 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         children = daemon.getChildren()
         self.assertTrue(len(children) > 0)
 
-    def test_daemon_sighup(self):
-        # A hangup signal should not do anything to the daemon.
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
-        self.assertTrue(daemon.isAlive())
-
-        # Send SIGHUP on posix. Windows does not have SIGHUP so we use SIGTERM
-        sig = signal.SIGHUP if os.name != "nt" else signal.SIGTERM
-        os.kill(daemon.proc.pid, sig)
-        self.assertTrue(daemon.isAlive())
-
     def test_daemon_sigint(self):
         # First check that the pidfile does not exist.
         # The existence will be used to check if the daemon has run.

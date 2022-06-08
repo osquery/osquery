@@ -34,6 +34,7 @@ function(generateTestsIntegrationTablesTestsTest)
   set(source_files
     carbon_black_info.cpp
     carves.cpp
+    certificates.cpp
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
@@ -48,6 +49,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
     osquery_extensions.cpp
@@ -82,7 +84,6 @@ function(generateTestsIntegrationTablesTestsTest)
   if(DEFINED PLATFORM_POSIX)
     set(platform_source_files
       acpi_tables.cpp
-      apt_sources.cpp
       augeas.cpp
       authorized_keys.cpp
       block_devices.cpp
@@ -134,7 +135,6 @@ function(generateTestsIntegrationTablesTestsTest)
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      yum_sources.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -153,13 +153,9 @@ function(generateTestsIntegrationTablesTestsTest)
 
   if(DEFINED PLATFORM_LINUX)
     set(platform_source_files
+      apt_sources.cpp
       arp_cache.cpp
       atom_packages.cpp
-      elf_dynamic.cpp
-      elf_info.cpp
-      elf_sections.cpp
-      elf_segments.cpp
-      elf_symbols.cpp
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
@@ -170,7 +166,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
-      npm_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp
@@ -183,13 +178,13 @@ function(generateTestsIntegrationTablesTestsTest)
       secureboot.cpp
       shadow.cpp
       shared_memory.cpp
-      smart_drive_info.cpp
       socket_events.cpp
       startup_items.cpp
       syslog_events.cpp
       systemd_units.cpp
       yara_events.cpp
       yara.cpp
+      yum_sources.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
@@ -216,7 +211,6 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
-      certificates.cpp
       crashes.cpp
       cups_destinations.cpp
       cups_jobs.cpp
@@ -277,9 +271,6 @@ function(generateTestsIntegrationTablesTestsTest)
 
     list(APPEND source_files ${platform_source_files})
 
-    if(NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files smart_drive_info.cpp)
-    endif()
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
       appcompat_shims.cpp
@@ -288,7 +279,6 @@ function(generateTestsIntegrationTablesTestsTest)
       autoexec.cpp
       background_activities_moderator.cpp
       bitlocker_info.cpp
-      certificates.cpp
       connectivity.cpp
       windows_firewall_rules.cpp
       chassis_info.cpp
@@ -319,7 +309,6 @@ function(generateTestsIntegrationTablesTestsTest)
       shared_resources.cpp
       shellbags.cpp
       shimcache.cpp
-      shortcut_files.cpp
       startup_items.cpp
       userassist.cpp
       video_info.cpp

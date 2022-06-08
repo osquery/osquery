@@ -62,8 +62,8 @@ int rpmReadConfigFiles(const char * file,
 /** \ingroup rpmrc
  * Return current arch name and/or number.
  * @todo Generalize to extract arch component from target_platform macro.
- * @retval name		address of arch name (or NULL)
- * @retval num		address of arch number (or NULL)
+ * @param[out] name	address of arch name (or NULL)
+ * @param[out] num	address of arch number (or NULL)
  */
 void rpmGetArchInfo( const char ** name,
 		int * num);
@@ -78,8 +78,8 @@ int rpmGetArchColor(const char *arch);
 /** \ingroup rpmrc
  * Return current os name and/or number.
  * @todo Generalize to extract os component from target_platform macro.
- * @retval name		address of os name (or NULL)
- * @retval num		address of os number (or NULL)
+ * @param[out] name	address of os name (or NULL)
+ * @param[out] num	address of os number (or NULL)
  */
 void rpmGetOsInfo( const char ** name,
 		int * num);
@@ -130,7 +130,7 @@ int rpmVersionCompare(Header first, Header second);
  * @param ts		transaction set
  * @param uh		unloaded header blob
  * @param uc		no. of bytes in blob (or 0 to disable)
- * @retval *msg		verification error message (or NULL)
+ * @param[out] *msg	verification error message (or NULL)
  * @return		RPMRC_OK on success
  */
 rpmRC headerCheck(rpmts ts, const void * uh, size_t uc, char ** msg);
@@ -139,8 +139,8 @@ rpmRC headerCheck(rpmts ts, const void * uh, size_t uc, char ** msg);
  * Return checked and loaded header.
  * @param ts		unused
  * @param fd		file handle
- * @retval hdrp		address of header (or NULL)
- * @retval *msg		verification error message (or NULL)
+ * @param[out] hdrp	address of header (or NULL)
+ * @param[out] *msg	verification error message (or NULL)
  * @return		RPMRC_OK on success
  */
 rpmRC rpmReadHeader(rpmts ts, FD_t fd, Header *hdrp, char ** msg);
@@ -150,7 +150,7 @@ rpmRC rpmReadHeader(rpmts ts, FD_t fd, Header *hdrp, char ** msg);
  * @param ts		transaction set
  * @param fd		file handle
  * @param fn		file name
- * @retval hdrp		address of header (or NULL)
+ * @param[out] hdrp	address of header (or NULL)
  * @return		RPMRC_OK on success
  */
 rpmRC rpmReadPackageFile(rpmts ts, FD_t fd,
@@ -160,8 +160,8 @@ rpmRC rpmReadPackageFile(rpmts ts, FD_t fd,
  * Install source package.
  * @param ts		transaction set
  * @param fd		file handle
- * @retval specFilePtr	address of spec file name (or NULL)
- * @retval cookie	address of cookie pointer (or NULL)
+ * @param[out] specFilePtr	address of spec file name (or NULL)
+ * @param[out] cookie	address of cookie pointer (or NULL)
  * @return		rpmRC return code
  */
 rpmRC rpmInstallSourcePackage(rpmts ts, FD_t fd,

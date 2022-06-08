@@ -330,6 +330,24 @@ Comma-delimited list of table names to be disabled. This allows osquery to be la
 
 Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
+## Windows-only runtime control flags
+
+`--users_service_delay=250`
+
+Defines the amount of milliseconds to wait during a scan of users information, between a batch of 100 users and the other. This is meant to throttle the CPU usage of osquery and especially the LSASS process on a Windows Server DC. The first users batch is always gathered immediately at the start of the scan.
+
+`--users_service_interval=1800`
+
+Defines the amount of seconds to wait between full scans of users information. The background service first obtains a list of all the users that are present on a machine, then start obtaining their details, using `users_service_delay` to slow down the process, then when the whole list has been processed, it will sleep `users_service_interval` seconds.
+
+`--groups_service_delay=150`
+
+Works the same as `users_service_delay`, but for the groups service. The default value is lower because collecting groups information is less performance intensive.
+
+`--groups_service_interval=1800`
+
+Works the same as `users_service_interval`, but for the groups service.
+
 ## Events control flags
 
 `--disable_events=false`

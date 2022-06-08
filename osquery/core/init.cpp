@@ -50,6 +50,12 @@
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 
+#ifdef WIN32
+#include <osquery/core/windows/global_users_groups_cache.h>
+#include <osquery/system/usersgroups/windows/groups_service.h>
+#include <osquery/system/usersgroups/windows/users_service.h>
+#endif
+
 #ifdef __linux__
 #include <sys/syscall.h>
 
@@ -131,6 +137,7 @@ DWORD kLegacyThreadId;
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
 
 bool Initializer::isWorker_{false};
+std::atomic<bool> Initializer::resource_limit_hit_{false};
 
 namespace {
 
@@ -155,9 +162,13 @@ void initWorkDirectories() {
 void signalHandler(int num) {
   int rc = 0;
 
+  if (num == SIGUSR1) {
+    Initializer::resourceLimitHit();
+  }
+
   // Expect SIGTERM and SIGINT to gracefully shutdown.
   // Other signals are unexpected.
-  if (num != SIGTERM && num != SIGINT) {
+  else if (num != SIGTERM && num != SIGINT) {
     rc = 128 + num;
   }
 
@@ -336,6 +347,7 @@ Initializer::Initializer(int& argc,
 
   std::signal(SIGTERM, signalHandler);
   std::signal(SIGINT, signalHandler);
+  std::signal(SIGUSR1, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check || FLAGS_database_dump || FLAGS_config_dump) {
@@ -489,6 +501,24 @@ void Initializer::initWorker(const std::string& name) const {
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) const {
+  if (isWorker() || !isWatcher()) {
+#ifdef OSQUERY_WINDOWS
+    std::promise<void> users_cache_promise;
+    std::promise<void> groups_cache_promise;
+    GlobalUsersGroupsCache::global_users_cache_future_ =
+        users_cache_promise.get_future();
+    GlobalUsersGroupsCache::global_groups_cache_future_ =
+        groups_cache_promise.get_future();
+
+    Dispatcher::addService(std::make_shared<UsersService>(
+        std::move(users_cache_promise),
+        GlobalUsersGroupsCache::global_users_cache_));
+    Dispatcher::addService(std::make_shared<GroupsService>(
+        std::move(groups_cache_promise),
+        GlobalUsersGroupsCache::global_groups_cache_));
+#endif
+  }
+
   if (isWorker()) {
     initWorker(name);
   } else {
@@ -664,6 +694,14 @@ void Initializer::start() const {
   }
 
   EventFactory::delay();
+}
+
+void Initializer::resourceLimitHit() {
+  resource_limit_hit_ = true;
+}
+
+bool Initializer::isResourceLimitHit() {
+  return resource_limit_hit_.load();
 }
 
 /**

@@ -12,8 +12,8 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -21,9 +21,10 @@ namespace tables {
 QueryData genShares(QueryContext& context) {
   QueryData results_data;
 
-  const WmiRequest request("SELECT * FROM Win32_Share");
-  if (request.getStatus().ok()) {
-    const std::vector<WmiResultItem>& results = request.results();
+  const auto request =
+      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_Share");
+  if (request && request->getStatus().ok()) {
+    const std::vector<WmiResultItem>& results = request->results();
     for (const auto& result : results) {
       Row r;
       long lPlaceHolder;
@@ -32,19 +33,20 @@ QueryData genShares(QueryContext& context) {
       result.GetString("Description", r["description"]);
       result.GetString("InstallDate", r["install_date"]);
       result.GetString("Status", r["status"]);
-      result.GetBool("AllowMaximum", bPlaceHolder);
-      r["allow_maximum"] = INTEGER(bPlaceHolder);
-      result.GetLong("MaximumAllowed", lPlaceHolder);
-      r["maximum_allowed"] = INTEGER(lPlaceHolder);
+      auto status = result.GetBool("AllowMaximum", bPlaceHolder);
+      r["allow_maximum"] = status ? INTEGER(bPlaceHolder) : "-1";
+      status = result.GetLong("MaximumAllowed", lPlaceHolder);
+      r["maximum_allowed"] = status ? INTEGER(lPlaceHolder) : "-1";
       result.GetString("Name", r["name"]);
       result.GetString("Path", r["path"]);
-      result.GetLong("Type", lPlaceHolder);
-      r["type"] = INTEGER(lPlaceHolder);
+      status = result.GetLong("Type", lPlaceHolder);
+      r["type"] = status ? INTEGER(lPlaceHolder) : "-1";
+
       results_data.push_back(r);
     }
   }
 
   return results_data;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
