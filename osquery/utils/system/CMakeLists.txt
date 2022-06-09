@@ -212,18 +212,21 @@ function(generateOsqueryUtilsSystem)
     thirdparty_googletest_headers
   )
 
+  set(public_header_files
+    system.h
+  )
+
   if(DEFINED PLATFORM_POSIX)
-    set(public_header_files
+    list(APPEND public_header_files
       posix/system.h
     )
-
   elseif(DEFINED PLATFORM_WINDOWS)
-    set(public_header_files
+      list(APPEND public_header_files
       windows/system.h
     )
   endif()
 
-  generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FULL_PATH" ${public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsSystemUptime)
