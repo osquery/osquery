@@ -83,7 +83,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)

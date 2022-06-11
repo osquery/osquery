@@ -1,11 +1,13 @@
-if(NOT DEFINED OSQUERY_TOOLCHAIN_SYSROOT)
-    include(CheckPIESupported)
-    check_pie_supported()
-    if(NOT CMAKE_C_LINK_PIE_SUPPORT OR NOT CMAKE_CXX_LINK_PIE_SUPPORT)
-        message(FATAL_ERROR "The linker for the current compiler do not support -fPIE or -pie")
-    endif()
+
+if(DEFINED PLATFORM_POSIX)
+  include(CheckPIESupported)
+  check_pie_supported()
+  if(NOT CMAKE_C_LINK_PIE_SUPPORTED OR NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+      message(FATAL_ERROR "The linker for the current compiler does not support -fPIE or -pie")
+  endif()
+
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
