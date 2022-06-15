@@ -3,7 +3,7 @@ description("A table that lists the TPM related information.")
 schema([
   Column("activated", INTEGER, "TPM is activated"),
   Column("enabled", INTEGER, "TPM is enabled"),
-  Column("owned", INTEGER, "TPM is ownned"),
+  Column("owned", INTEGER, "TPM is owned"),
   Column("manufacturer_version", TEXT, "TPM version"),
   Column("manufacturer_id", INTEGER, "TPM manufacturers ID"),
   Column("manufacturer_name", TEXT, "TPM manufacturers name"),
