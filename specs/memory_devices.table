@@ -23,7 +23,4 @@ schema([
     Column("configured_voltage", INTEGER, "Configured operating voltage of device in millivolts"),
 ])
 
-implementation("memory_smbios@genMemoryDevices")
-fuzz_paths([
-    "/sys/firmware/efi/systab",
-])
+implementation("system@genMemoryDevices")

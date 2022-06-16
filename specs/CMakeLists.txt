@@ -50,6 +50,7 @@ function(generateNativeTables)
     interface_details.table
     listening_ports.table
     logged_in_users.table
+    memory_devices.table
     npm_packages.table
     os_version.table
     platform_info.table
@@ -227,7 +228,6 @@ function(generateNativeTables)
     "posix/memory_array_mapped_addresses.table:linux,macos"
     "posix/memory_arrays.table:linux,macos"
     "posix/memory_device_mapped_addresses.table:linux,macos"
-    "posix/memory_devices.table:linux,macos"
     "posix/memory_error_info.table:linux,macos"
     "posix/mounts.table:linux,macos,freebsd"
     "posix/oem_strings.table:linux,macos"

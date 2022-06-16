@@ -17,6 +17,72 @@
 
 namespace osquery {
 namespace tables {
+namespace {
+
+const std::vector<std::string> kFormFactors = {
+    "Unknown",     "Other", "SIP",  "DIP",  "ZIP",   "SOJ",
+    "Proprietary", "SIMM",  "DIMM", "TSOP", "PGA",   "RIMM",
+    "SODIMM",      "SRIMM", "SMD",  "SSMP", "QFP",   "TQFP",
+    "SOIC",        "LCC",   "PLCC", "BGA",  "FPBGA", "LGA",
+};
+
+std::string getFormFactor(long id) {
+  if (id < kFormFactors.size()) {
+    return kFormFactors[id];
+  }
+  return std::to_string(id);
+}
+
+const std::vector<std::string> kMemoryTypes = {
+    "Unknown",    "Other",  "DRAM",         "Synchronous DRAM",
+    "CACHE DRAM", "EDO",    "EDRAM",        "VRAM",
+    "SRAM",       "RAM",    "ROM",          "Flash",
+    "EEPROM",     "FEPROM", "EPROM",        "CDRAM",
+    "3DRAM",      "SDRAM",  "SGRAM",        "RDRAM",
+    "DDR",        "DDR2",   "DDR2 FB-DIMM", "23",
+    "DDR3",       "FBD2",   "DDR4"};
+
+std::string getMemoryType(int id) {
+  if (id < kMemoryTypes.size()) {
+    return kMemoryTypes[id];
+  }
+  return std::to_string(id);
+}
+
+std::string getMemoryTypeDetails(int id) {
+  switch (id) {
+  case 1:
+    return "Reserved";
+  case 2:
+    return "Other";
+  case 4:
+    return "Unknown";
+  case 8:
+    return "Fast-paged";
+  case 16:
+    return "Static column";
+  case 32:
+    return "Pseudo-static";
+  case 64:
+    return "RAMBUS";
+  case 128:
+    return "Synchronous";
+  case 256:
+    return "CMOS";
+  case 512:
+    return "EDO";
+  case 1024:
+    return "Window DRAM";
+  case 2048:
+    return "Cache DRAM";
+  case 4096:
+    return "Non-volatile";
+  default:
+    return std::to_string(id);
+  }
+}
+
+} // namespace
 
 std::string to_iso8601_date(const FILETIME& ft) {
   SYSTEMTIME date = {0};
@@ -65,6 +131,71 @@ QueryData genPlatformInfo(QueryContext& context) {
   r["date"] = s.empty() ? "-1" : s;
 
   results.push_back(r);
+  return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  std::string query = "select * from Win32_PhysicalMemory";
+  const auto request = WmiRequest::CreateWmiRequest(query);
+  if (!request || !request->getStatus().ok()) {
+    return results;
+  }
+  const std::vector<WmiResultItem>& wmiResults = request->results();
+  if (wmiResults.size() <= 0) {
+    return results;
+  }
+  for (int i = 0; i < wmiResults.size(); ++i) {
+    Row r;
+    // Unable to find match for these from WMI.
+    r["handle"] = "";
+    r["array_handle"] = "";
+    long formFactorId;
+    wmiResults[i].GetLong("FormFactor", formFactorId);
+    r["form_factor"] = getFormFactor(formFactorId);
+    long totalWidth = 0;
+    wmiResults[i].GetLong("TotalWidth", totalWidth);
+    r["total_width"] = INTEGER(totalWidth);
+    long dataWidth = 0;
+    wmiResults[i].GetLong("DataWidth", dataWidth);
+    r["data_width"] = INTEGER(dataWidth);
+    unsigned long long capacityBytes = 0;
+    wmiResults[i].GetUnsignedLongLong("Capacity", capacityBytes);
+    // TODO(joesweeney): Capacity row is in bytes, convert to Megabytes
+    r["size"] = INTEGER(capacityBytes);
+    // Unable to find match for set in WMI.
+    r["set"] = INTEGER(-1);
+    wmiResults[i].GetString("DeviceLocator", r["device_locator"]);
+    wmiResults[i].GetString("BankLabel", r["bank_locator"]);
+    long memoryType = 0;
+    wmiResults[i].GetLong("MemoryType", memoryType);
+    r["memory_type"] = getMemoryType(memoryType);
+    long memoryTypeDetails = 0;
+    wmiResults[i].GetLong("TypeDetail", memoryTypeDetails);
+    r["memory_type_details"] = getMemoryTypeDetails(memoryTypeDetails);
+    long maxSpeed = 0;
+    wmiResults[i].GetLong("Speed", maxSpeed);
+    r["max_speed"] = INTEGER(maxSpeed);
+    long clockSpeed = 0;
+    wmiResults[i].GetLong("ConfiguredClockSpeed", clockSpeed);
+    r["configured_clock_speed"] = INTEGER(clockSpeed);
+    wmiResults[i].GetString("Manufacturer", r["manufacturer"]);
+    wmiResults[i].GetString("SerialNumber", r["serial_number"]);
+    wmiResults[i].GetString("Tag", r["asset_tag"]);
+    wmiResults[i].GetString("PartNumber", r["part_number"]);
+    long minVoltage = 0;
+    wmiResults[i].GetLong("MinVoltage", minVoltage);
+    r["min_voltage"] = INTEGER(minVoltage);
+    long maxVoltage = 0;
+    wmiResults[i].GetLong("MaxVoltage", maxVoltage);
+    r["max_voltage"] = INTEGER(maxVoltage);
+    long configuredVoltage = 0;
+    wmiResults[i].GetLong("ConfiguredVoltage", configuredVoltage);
+    r["configured_voltage"] = INTEGER(configuredVoltage);
+
+    results.push_back(r);
+  }
   return results;
 }
 } // namespace tables
