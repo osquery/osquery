@@ -12,6 +12,7 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/core/windows/wmi.h"
 
@@ -80,6 +81,24 @@ std::string getMemoryTypeDetails(int id) {
   default:
     return std::to_string(id);
   }
+}
+
+uint32_t getMemorySize(const std::wstring& capacityWStr) {
+  int base = 10;
+  if (capacityWStr.size() < 2) {
+    wchar_t second_char = capacityWStr[1];
+    if (second_char == wchar_t('x') || second_char == wchar_t('X')) {
+      base = 16;
+    }
+  }
+  uint64_t capacityBytes = std::wcstoull(capacityWStr.data(), nullptr, base);
+  // Capacity row from WMI is in bytes, convert to Megabytes which means the
+  // column can remain an INTEGER.
+  uint64_t size = capacityBytes / 1000000;
+  if (size > UINT32_MAX) {
+    LOG(ERROR) << "Physical memory overflows INTEGER column";
+  }
+  return uint32_t(size);
 }
 
 } // namespace
@@ -160,10 +179,9 @@ QueryData genMemoryDevices(QueryContext& context) {
     long dataWidth = 0;
     wmiResults[i].GetLong("DataWidth", dataWidth);
     r["data_width"] = INTEGER(dataWidth);
-    unsigned long long capacityBytes = 0;
-    wmiResults[i].GetUnsignedLongLong("Capacity", capacityBytes);
-    // TODO(joesweeney): Capacity row is in bytes, convert to Megabytes
-    r["size"] = INTEGER(capacityBytes);
+    std::wstring capacityWStr;
+    wmiResults[i].GetString(stringToWstring("Capacity"), capacityWStr);
+    r["size"] = INTEGER(getMemorySize(capacityWStr));
     // Unable to find match for set in WMI.
     r["set"] = INTEGER(-1);
     wmiResults[i].GetString("DeviceLocator", r["device_locator"]);
