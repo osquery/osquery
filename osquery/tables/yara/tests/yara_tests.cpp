@@ -28,10 +28,11 @@ class YARATest : public testing::Test {
  protected:
   void SetUp() override {}
 
-  void TearDown() override {}
+  void TearDown() override {
+    yr_finalize();
+  }
 
   Row scanFile(const std::string& ruleContent) {
-    YR_RULES* rules = nullptr;
     int result = yr_initialize();
     bool init_succeeded = result == ERROR_SUCCESS;
     EXPECT_TRUE(init_succeeded);
@@ -44,10 +45,11 @@ class YARATest : public testing::Test {
                            fs::unique_path("osquery.tests.yara.%%%%.%%%%.sig");
     writeTextFile(rule_file.string(), ruleContent);
 
-    Status status = compileSingleFile(rule_file.string(), &rules);
-    EXPECT_TRUE(status.ok()) << status.what();
+    auto compiler_result = compileSingleFile(rule_file.string());
+    EXPECT_TRUE(compiler_result.isValue())
+        << compiler_result.getError().getMessage();
 
-    if (!status.ok()) {
+    if (compiler_result.isError()) {
       return {};
     }
 
@@ -63,7 +65,9 @@ class YARATest : public testing::Test {
       test_file << "test\n";
     }
 
-    result = yr_rules_scan_file(rules,
+    auto rules_handle = compiler_result.take();
+
+    result = yr_rules_scan_file(rules_handle.get(),
                                 file_to_scan.string().c_str(),
                                 SCAN_FLAGS_FAST_MODE,
                                 YARACallback,
@@ -71,14 +75,12 @@ class YARATest : public testing::Test {
                                 0);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
-    yr_rules_destroy(rules);
     fs::remove_all(rule_file);
     fs::remove_all(file_to_scan);
     return r;
   }
 
   Row scanString(const std::string& rule_defs) {
-    YR_RULES* rules = nullptr;
     int result = yr_initialize();
     bool init_succeeded = result == ERROR_SUCCESS;
     EXPECT_TRUE(init_succeeded);
@@ -87,10 +89,11 @@ class YARATest : public testing::Test {
       return {};
     }
 
-    Status status = compileFromString(rule_defs, &rules);
-    EXPECT_TRUE(status.ok()) << status.what();
+    auto compiler_result = compileFromString(rule_defs);
+    EXPECT_TRUE(compiler_result.isValue())
+        << compiler_result.getError().getMessage();
 
-    if (!status.ok()) {
+    if (compiler_result.isError()) {
       return {};
     }
 
@@ -106,7 +109,8 @@ class YARATest : public testing::Test {
       test_file << "test\n";
     }
 
-    result = yr_rules_scan_file(rules,
+    auto rules_handle = compiler_result.take();
+    result = yr_rules_scan_file(rules_handle.get(),
                                 file_to_scan.string().c_str(),
                                 SCAN_FLAGS_FAST_MODE,
                                 YARACallback,
@@ -114,7 +118,6 @@ class YARATest : public testing::Test {
                                 0);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
-    yr_rules_destroy(rules);
     fs::remove_all(file_to_scan);
     return r;
   }
@@ -168,18 +171,18 @@ TEST_F(YARATest, test_rule_compilation_failures) {
   /* This comes from a regression where Yara internal functions
      like strlcpy are incorrectly called, causing a segfault;
      strlcpy is used to copy the error message. */
-  YR_RULES* rules = nullptr;
-  Status status = compileSingleFile(fs::temp_directory_path().string(), &rules);
-  EXPECT_FALSE(status.ok());
+  auto compiler_result = compileSingleFile(fs::temp_directory_path().string());
+  EXPECT_TRUE(compiler_result.isError())
+      << compiler_result.getError().getMessage();
 
   /* Same as above, but this will cause a crash also on Windows
      (due to the syntax error), if there are issues with those functions. */
-  status = compileFromString(invalidRule, &rules);
-  EXPECT_FALSE(status.ok());
+  compiler_result = compileFromString(invalidRule);
+  EXPECT_TRUE(compiler_result.isError());
 
   // Simple test to verify that the API handles non existing files cleanly
-  status = compileSingleFile("/tmp/this_path_doesnt_exists", &rules);
-  EXPECT_FALSE(status.ok());
+  compiler_result = compileSingleFile("/tmp/this_path_doesnt_exists");
+  EXPECT_TRUE(compiler_result.isError());
 }
 
 } // namespace osquery
