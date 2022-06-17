@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for memory_devices
-// Spec file: specs/posix/memory_devices.table
+// Spec file: specs/memory_devices.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -26,7 +26,7 @@ TEST_F(memoryDevices, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from memory_devices");
   // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
+  ASSERT_GT(data.size(), 0ul);
   // ASSERT_EQ(data.size(), 1ul);
   // ASSERT_EQ(data.size(), 0ul);
   // 3. Build validation map

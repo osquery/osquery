@@ -49,6 +49,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    memory_devices.cpp
     npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
@@ -118,7 +119,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_array_mapped_addresses.cpp
       memory_arrays.cpp
       memory_device_mapped_addresses.cpp
-      memory_devices.cpp
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
