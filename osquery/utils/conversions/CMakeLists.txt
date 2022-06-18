@@ -19,6 +19,7 @@ function(generateOsqueryUtilsConversions)
   set(source_files
     split.cpp
     tryto.cpp
+    trim.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
@@ -57,6 +58,7 @@ function(generateOsqueryUtilsConversions)
     join.h
     split.h
     tryto.h
+    trim.h
   )
 
   generateIncludeNamespace(osquery_utils_conversions "osquery/utils/conversions" "FILE_ONLY" ${public_header_files})
@@ -78,6 +80,7 @@ function(generateOsqueryUtilsConversions)
   endif()
 
   list(LENGTH platform_public_header_files platform_public_header_files_size)
+
   if(${platform_public_header_files_size} GREATER 0)
     generateIncludeNamespace(osquery_utils_conversions "osquery/utils/conversions" "FULL_PATH" ${platform_public_header_files})
   endif()
@@ -104,6 +107,7 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
     tests/join.cpp
     tests/split.cpp
     tests/tryto.cpp
+    tests/trim.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
@@ -127,7 +131,6 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
 endfunction()
 
 function(generateOsqueryUtilsConversionsTotestsTest)
-
   add_osquery_executable(osquery_utils_conversions_totests-test tests/to.cpp)
 
   target_link_libraries(osquery_utils_conversions_totests-test PRIVATE

@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-class ConversionsTests : public testing::Test {};
+class SplitConversionsTests : public testing::Test {};
 
 struct SplitStringTestData {
   std::string test_string;
@@ -36,19 +36,46 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
   s3.test_string = "  a     b   c";
   s3.test_vector = {"a", "b", "c"};
 
-  return {s1, s2, s3};
+  SplitStringTestData s4;
+
+  SplitStringTestData s5;
+  s5.test_string = "a b c ";
+  s5.test_vector = {"a", "b", "c"};
+
+  SplitStringTestData s6;
+  s6.test_string = "abc";
+  s6.test_vector = {"abc"};
+
+  SplitStringTestData s7;
+  s7.test_string = "  ";
+
+  return {s1, s2, s3, s4, s5, s6, s7};
 }
 
-TEST_F(ConversionsTests, test_split) {
+TEST_F(SplitConversionsTests, test_split) {
   for (const auto& i : generateSplitStringTestData()) {
     EXPECT_EQ(split(i.test_string), i.test_vector);
   }
 }
 
-TEST_F(ConversionsTests, test_split_occurrences) {
+TEST_F(SplitConversionsTests, test_vplit) {
+  auto test_data = generateSplitStringTestData();
+  for (auto it = test_data.begin() + 1; it != test_data.end(); ++it) {
+    auto splits = vsplit(it->test_string, " ");
+
+    ASSERT_EQ(splits.size(), it->test_vector.size());
+
+    for (std::size_t i = 0; i < splits.size(); ++i) {
+      EXPECT_EQ(splits[i], it->test_vector[i]);
+    }
+  }
+}
+
+TEST_F(SplitConversionsTests, test_split_occurrences) {
   std::string content = "T: 'S:S'";
   std::vector<std::string> expected = {
-      "T", "'S:S'",
+      "T",
+      "'S:S'",
   };
   EXPECT_EQ(split(content, ':', 1), expected);
 }
