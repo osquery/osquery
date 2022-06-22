@@ -26,7 +26,7 @@ QueryData genPasswordPolicy(QueryContext& context) {
   auto node = ODNodeCreateWithNodeType(
       kCFAllocatorDefault, kODSessionDefault, kODNodeTypeLocalNodes, &error);
   if (node == nullptr) {
-    VLOG(1) << "Error creating an OpenDirectory node";
+    VLOG(1) << "password_policy: Error creating an OpenDirectory node";
     return {};
   }
 
@@ -45,20 +45,21 @@ QueryData genPasswordPolicy(QueryContext& context) {
    */
   auto policies = ODNodeCopyAccountPolicies(node, &error);
   if (policies == nullptr) {
-    VLOG(1) << "Error getting account policies";
+    VLOG(1) << "password_policy: Error getting account policies";
     return {};
   }
 
   auto count = CFDictionaryGetCount(policies);
   if (count == 0) {
-    VLOG(1) << "Empty account policies for the node";
+    VLOG(1) << "password_policy: Empty account policies for the node";
     CFRelease(policies);
     return {};
   }
 
   if (!CFDictionaryContainsKey(policies,
                                CFSTR("policyCategoryPasswordContent"))) {
-    VLOG(1) << "Account policy does not contain password content";
+    VLOG(1)
+        << "password_policy: Account policy does not contain password content";
     CFRelease(policies);
     return {};
   }
