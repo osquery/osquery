@@ -36,7 +36,7 @@ CLI_FLAG(string, proxy_hostname, "", "Optional HTTP proxy hostname");
 /// Path to optional TLS server/CA certificate(s), used for pinning.
 CLI_FLAG(string,
          tls_server_certs,
-         OSQUERY_CERTS_HOME OSQUERY_DEFAULT_ROOTS_CERT,
+         "",
          "Optional path to a TLS server PEM certificate(s) bundle");
 
 /// Path to optional TLS client certificate, used for enrollment/requests.
@@ -76,6 +76,8 @@ DECLARE_bool(verbose);
 
 TLSTransport::TLSTransport() {
   if (FLAGS_tls_server_certs.size() > 0) {
+    // tls_server_certs was specified, so we'll catenate certs.pem and the user
+    // supplied cert and use that
     auto s = osquery::pathExists(FLAGS_tls_server_certs);
     if (s.ok()) {
       std::string tls_server_certs;
@@ -93,6 +95,10 @@ TLSTransport::TLSTransport() {
         osquery::writeTextFile(osquery_certs_path, osquery_default_root_certs);
         server_certificate_file_ = osquery_certs_path;
       }
+    } else {
+      // No tls_server_certs was specified, so we'll use certs.pem
+      server_certificate_file_ =
+          osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
     }
   }
 
