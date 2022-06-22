@@ -80,12 +80,14 @@ TLSTransport::TLSTransport() {
     if (s.ok()) {
       std::string tls_server_certs;
       s = osquery::readFile(FLAGS_tls_server_certs, tls_server_certs);
-      if (s.ok()){
+      if (s.ok()) {
         std::string osquery_default_root_certs;
         std::string osquery_certs_home_path(OSQUERY_CERTS_HOME);
         std::string osquery_certs_path = osquery_certs_home_path + OSQUERY_CERT;
-        std::string osquery_default_roots_certs_path = osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
-        osquery::readFile(osquery_default_roots_certs_path, osquery_default_root_certs);
+        std::string osquery_default_roots_certs_path =
+            osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
+        osquery::readFile(osquery_default_roots_certs_path,
+                          osquery_default_root_certs);
         osquery_default_root_certs.append("\n");
         osquery_default_root_certs.append(tls_server_certs);
         osquery::writeTextFile(osquery_certs_path, osquery_default_root_certs);
