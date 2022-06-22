@@ -49,3 +49,5 @@
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
 #define OSQUERY_CERTS_HOME OSQUERY_HOME "certs/"
 #endif
+#define OSQUERY_CERT "osquery.pem"
+#define OSQUERY_DEFAULT_ROOTS_CERT "osquery_roots.pem"

@@ -36,7 +36,7 @@ CLI_FLAG(string, proxy_hostname, "", "Optional HTTP proxy hostname");
 /// Path to optional TLS server/CA certificate(s), used for pinning.
 CLI_FLAG(string,
          tls_server_certs,
-         OSQUERY_CERTS_HOME "certs.pem",
+         OSQUERY_CERTS_HOME OSQUERY_DEFAULT_ROOTS_CERT,
          "Optional path to a TLS server PEM certificate(s) bundle");
 
 /// Path to optional TLS client certificate, used for enrollment/requests.
@@ -76,7 +76,22 @@ DECLARE_bool(verbose);
 
 TLSTransport::TLSTransport() {
   if (FLAGS_tls_server_certs.size() > 0) {
-    server_certificate_file_ = FLAGS_tls_server_certs;
+    auto s = osquery::pathExists(FLAGS_tls_server_certs);
+    if (s.ok()) {
+     std::string tls_server_certs;
+      s = osquery::readFile(FLAGS_tls_server_certs, tls_server_certs);
+      if (s.ok()){
+        std::string osquery_default_root_certs;
+        std::string osquery_certs_home_path(OSQUERY_CERTS_HOME);
+        std::string osquery_certs_path = osquery_certs_home_path + OSQUERY_CERT;
+        std::string osquery_default_roots_certs_path = osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
+        osquery::readFile(osquery_default_roots_certs_path, osquery_default_root_certs);
+        osquery_default_root_certs.append("\n");
+        osquery_default_root_certs.append(tls_server_certs);
+        osquery::writeTextFile(osquery_certs_path, osquery_default_root_certs);
+        server_certificate_file_ = osquery_certs_path;
+      }
+    }
   }
 
   if (FLAGS_tls_client_cert.size() > 0 && FLAGS_tls_client_key.size() > 0) {
