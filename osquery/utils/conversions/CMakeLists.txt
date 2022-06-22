@@ -111,6 +111,7 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/tests/cfstring.cpp
+      darwin/tests/cfdictionary.cpp
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
