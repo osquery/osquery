@@ -75,6 +75,9 @@ HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
 DECLARE_bool(verbose);
 
 TLSTransport::TLSTransport() {
+  std::string osquery_certs_home_path(OSQUERY_CERTS_HOME);
+  std::string osquery_default_roots_certs_path =
+      osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
   if (FLAGS_tls_server_certs.size() > 0) {
     // tls_server_certs was specified, so we'll catenate certs.pem and the user
     // supplied cert and use that
@@ -84,10 +87,7 @@ TLSTransport::TLSTransport() {
       s = osquery::readFile(FLAGS_tls_server_certs, tls_server_certs);
       if (s.ok()) {
         std::string osquery_default_root_certs;
-        std::string osquery_certs_home_path(OSQUERY_CERTS_HOME);
         std::string osquery_certs_path = osquery_certs_home_path + OSQUERY_CERT;
-        std::string osquery_default_roots_certs_path =
-            osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
         osquery::readFile(osquery_default_roots_certs_path,
                           osquery_default_root_certs);
         osquery_default_root_certs.append("\n");
@@ -97,8 +97,7 @@ TLSTransport::TLSTransport() {
       }
     } else {
       // No tls_server_certs was specified, so we'll use certs.pem
-      server_certificate_file_ =
-          osquery_certs_home_path + OSQUERY_DEFAULT_ROOTS_CERT;
+      server_certificate_file_ = osquery_default_roots_certs_path;
     }
   }
 
