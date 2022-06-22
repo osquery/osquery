@@ -78,7 +78,7 @@ TLSTransport::TLSTransport() {
   if (FLAGS_tls_server_certs.size() > 0) {
     auto s = osquery::pathExists(FLAGS_tls_server_certs);
     if (s.ok()) {
-     std::string tls_server_certs;
+      std::string tls_server_certs;
       s = osquery::readFile(FLAGS_tls_server_certs, tls_server_certs);
       if (s.ok()){
         std::string osquery_default_root_certs;
