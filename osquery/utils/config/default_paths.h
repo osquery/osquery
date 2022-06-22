@@ -50,4 +50,4 @@
 #define OSQUERY_CERTS_HOME OSQUERY_HOME "certs/"
 #endif
 #define OSQUERY_CERT "osquery.pem"
-#define OSQUERY_DEFAULT_ROOTS_CERT "osquery_roots.pem"
+#define OSQUERY_DEFAULT_ROOTS_CERT "certs.pem"
