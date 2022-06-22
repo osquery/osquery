@@ -355,11 +355,20 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
-  add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
+  add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test --gtest_filter=-memoryDevices.test_sanity)
   set_tests_properties(
         tests_integration_tables-test
         PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
   )
+
+  if(OSQUERY_BUILD_ROOT_TESTS)
+    add_test(NAME tests_integration_tables_root-test COMMAND tests_integration_tables-test --gtest_filter=memoryDevices.test_sanity)
+    set_tests_properties(tests_integration_tables_root-test PROPERTIES LABELS "root-required")
+    set_tests_properties(
+        tests_integration_tables_root-test
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+  endif()
 
 endfunction()
 
