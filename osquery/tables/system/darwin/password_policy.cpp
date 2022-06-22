@@ -13,6 +13,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/darwin/cfdictionary.h>
+#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {
@@ -29,13 +30,19 @@ QueryData genPasswordPolicy(QueryContext& context) {
     return {};
   }
 
-  // Get any policies configured for the node
-  // policies here is a CFDcitionary
-  // The value of "policyCategoryPasswordContent" key is an array
-  // Each element of that array is a CFDictionary with "policyContent",
-  // "policyContentDescription", "policyIdentifier" keys Note:
-  // `ODNodeCopyAccountPolicies` is the only viable API now, all similar ones
-  // have been deprecated
+  /*
+   * policies is a dictionary with `policyCategoryPasswordContent` as an
+   * optional key. The value  of `policyCategoryPasswordContent` is an array of
+   * policy dictionaries that specify the required content of passwords.
+   * Each element of that array, is a dictionary with following keys:
+   * `policyContent`, `policyContentDescription`, and `policyContentDescription`
+   *
+   * (From Apple's docs)
+   *
+   * Note: `ODNodeCopyAccountPolicies` is the only viable API now, which gets
+   * any policies configured for the node.
+   * Similar API in OpenDirectory has been deprecated.
+   */
   auto policies = ODNodeCopyAccountPolicies(node, &error);
   if (policies == nullptr) {
     VLOG(1) << "Error getting account policies";
@@ -45,12 +52,14 @@ QueryData genPasswordPolicy(QueryContext& context) {
   auto count = CFDictionaryGetCount(policies);
   if (count == 0) {
     VLOG(1) << "Empty account policies for the node";
+    CFRelease(policies);
     return {};
   }
 
   if (!CFDictionaryContainsKey(policies,
                                CFSTR("policyCategoryPasswordContent"))) {
     VLOG(1) << "Account policy does not contain password content";
+    CFRelease(policies);
     return {};
   }
 
@@ -63,12 +72,17 @@ QueryData genPasswordPolicy(QueryContext& context) {
   count = CFArrayGetCount((CFArrayRef)content);
   for (CFIndex i = 0; i < count; i++) {
     Row r;
-    r["policy_attribute"] = getPropertiesFromDictionary(
+    r["policy_content"] = getPropertiesFromDictionary(
         (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
         "policyContent");
-    r["policy_identifier"] = getPropertiesFromDictionary(
+
+    auto identifier = getPropertiesFromDictionary(
         (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
         "policyIdentifier");
+    r["policy_identifier"] = identifier;
+
+    auto attributes = split(identifier, ":");
+    r["policy_attribute"] = attributes.size() == 3 ? attributes.back() : "";
 
     auto dict = CFArrayGetValueAtIndex((CFArrayRef)content, i);
     const void* description = nullptr;
