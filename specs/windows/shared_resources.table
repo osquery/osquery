@@ -5,10 +5,12 @@ schema([
     Column("install_date", TEXT, "Indicates when the object was installed. Lack of a value does not indicate that the object is not installed."),
     Column("status", TEXT, "String that indicates the current status of the object."),
     Column("allow_maximum", INTEGER, "Number of concurrent users for this resource has been limited. If True, the value in the MaximumAllowed property is ignored."),
-    Column("maximum_allowed", INTEGER, "Limit on the maximum number of users allowed to use this resource concurrently. The value is only valid if the AllowMaximum property is set to FALSE."),
+    Column("maximum_allowed", BIGINT, "Limit on the maximum number of users allowed to use this resource concurrently. The value is only valid if the AllowMaximum property is set to FALSE."),
     Column("name", TEXT, "Alias given to a path set up as a share on a computer system running Windows."),
     Column("path", TEXT, "Local path of the Windows share."),
-    Column("type", INTEGER, "Type of resource being shared. Types include: disk drives, print queues, interprocess communications (IPC), and general devices."),
+    Column("type", BIGINT, "Type of resource being shared. Types include: disk drives, print queues, interprocess communications (IPC), and general devices."),
+    Column("type_name", TEXT, "Human readable value for the 'type' column"),
+
 ])
 implementation("shared_resources@genShares")
 examples([
