@@ -45,8 +45,11 @@ IOKitPCIProperties::IOKitPCIProperties(const std::string& compatible) {
 
   std::vector<std::string> vendor;
   boost::split(vendor, properties[prop_index++], boost::is_any_of(","));
+
   vendor_id = vendor[0].substr(3);
+  if (vendor.size() > 1) {
   model_id = (vendor[1].size() == 3) ? "0" + vendor[1] : vendor[1];
+  }
 
   if (properties[prop_index].find("pciclass") == 0) {
     // There is a class definition.
