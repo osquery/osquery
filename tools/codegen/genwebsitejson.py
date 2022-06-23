@@ -43,6 +43,7 @@ PLATFORM_DIRS = {
     "darwin": ["darwin"],
     "freebsd": ["freebsd"],
     "kernel": ["darwin"],
+    "linwin": ["linux", "windows"],
     "linux": ["linux"],
     "lldpd": ["linux"],
     "macwin": ["darwin", "windows"],
