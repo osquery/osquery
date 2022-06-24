@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for process_open_pipes
-// Spec file: specs/posix/process_open_pipes.table
+// Spec file: specs/linux/process_open_pipes.table
 
 #include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
