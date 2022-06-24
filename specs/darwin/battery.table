@@ -1,5 +1,5 @@
 table_name("battery")
-description("Provides information about the internal battery of a Macbook.")
+description("Provides information about the internal battery of a Macbook. Warning: behaves differently on Intel vs. Apple Silicon.")
 schema([
     Column("manufacturer", TEXT, "The battery manufacturer's name"),
     Column("manufacture_date", INTEGER, "The date the battery was manufactured UNIX Epoch"),

@@ -1,5 +1,5 @@
 table_name("fan_speed_sensors")
-description("Fan speeds. Warning: inconsistent data from Apple Silicon.")
+description("Fan speeds. Warning: behaves differently on Intel vs. Apple Silicon.")
 schema([
     Column("fan", TEXT, "Fan number"),
     Column("name", TEXT, "Fan name"),
