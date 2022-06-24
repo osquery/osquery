@@ -138,6 +138,11 @@ def main(argc, argv):
 
     for subdir, dirs, files in os.walk(specs_dir):
         for filename in files:
+            # Skip the example spec in the spec/ dir.
+            # There is no actual example table in osquery so it should not be generated into the docs.
+            if filename == "example.table":
+                continue
+
             if filename.endswith(".table"):
                 full_path = os.path.join(subdir, filename)
                 metadata = generate_table_metadata(specs_dir, full_path)
