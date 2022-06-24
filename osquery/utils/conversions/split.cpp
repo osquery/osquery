@@ -56,7 +56,7 @@ std::vector<std::string_view> vsplit(const std::string_view source,
     return {};
   }
 
-  std::size_t start = source.find_first_not_of(" ");
+  std::size_t start = source.find_first_not_of(delimiter);
 
   if (start == std::string_view::npos) {
     return {};
