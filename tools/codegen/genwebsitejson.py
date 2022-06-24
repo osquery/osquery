@@ -62,10 +62,7 @@ def platform_for_spec(path):
     full_path = os.path.abspath(path)
     directory_list = os.path.dirname(full_path).split("/")
     directory = directory_list[len(directory_list)-1]
-    try:
-        return PLATFORM_DIRS[directory]
-    except KeyError:
-        return ["darwin", "linux", "freebsd", "windows"]
+    return PLATFORM_DIRS[directory]
 
 def remove_prefix(text, prefix):
     # python 3.9 has `removeprefix`, but I don't want to add that requirement.
