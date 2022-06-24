@@ -93,42 +93,8 @@ void TLSTransport::decorateRequest(http::Request& r) {
 
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
-  options.openssl_ciphers(kTLSCiphers);
-  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1 |
-                          SSL_OP_NO_TLSv1_1 | SSL_OP_ALL);
+
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
-
-#ifndef NDEBUG
-  // Configuration may allow unsafe TLS testing if compiled as a debug target.
-  if (FLAGS_tls_allow_unsafe) {
-    options.always_verify_peer(false);
-  }
-#endif
-
-  return options;
-}
-
-http::Client::Options TLSTransport::getInternalOptions() {
-  auto options = getOptions();
-
-  options.keep_alive(FLAGS_tls_session_reuse);
-
-  if (FLAGS_proxy_hostname.size() > 0) {
-    options.proxy_hostname(FLAGS_proxy_hostname);
-  }
-
-  if (client_certificate_file_.size() > 0) {
-    if (!osquery::isReadable(client_certificate_file_).ok()) {
-      LOG(WARNING) << "Cannot read TLS client certificate: "
-                   << client_certificate_file_;
-    } else if (!osquery::isReadable(client_private_key_file_).ok()) {
-      LOG(WARNING) << "Cannot read TLS client private key: "
-                   << client_private_key_file_;
-    } else {
-      options.openssl_certificate_file(client_certificate_file_);
-      options.openssl_private_key_file(client_private_key_file_);
-    }
-  }
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
@@ -164,6 +130,42 @@ http::Client::Options TLSTransport::getInternalOptions() {
           options.openssl_certificate(server_certificate_file_);
         }
       }
+    }
+  }
+
+#ifndef NDEBUG
+  // Configuration may allow unsafe TLS testing if compiled as a debug target.
+  if (FLAGS_tls_allow_unsafe) {
+    options.always_verify_peer(false);
+  }
+#endif
+
+  return options;
+}
+
+http::Client::Options TLSTransport::getInternalOptions() {
+  auto options = getOptions();
+
+  options.keep_alive(FLAGS_tls_session_reuse);
+
+  if (FLAGS_proxy_hostname.size() > 0) {
+    options.proxy_hostname(FLAGS_proxy_hostname);
+  }
+
+  options.openssl_ciphers(kTLSCiphers);
+  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1 |
+                          SSL_OP_NO_TLSv1_1 | SSL_OP_ALL);
+
+  if (client_certificate_file_.size() > 0) {
+    if (!osquery::isReadable(client_certificate_file_).ok()) {
+      LOG(WARNING) << "Cannot read TLS client certificate: "
+                   << client_certificate_file_;
+    } else if (!osquery::isReadable(client_private_key_file_).ok()) {
+      LOG(WARNING) << "Cannot read TLS client private key: "
+                   << client_private_key_file_;
+    } else {
+      options.openssl_certificate_file(client_certificate_file_);
+      options.openssl_private_key_file(client_private_key_file_);
     }
   }
 
