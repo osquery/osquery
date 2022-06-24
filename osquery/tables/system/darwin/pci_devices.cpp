@@ -19,13 +19,17 @@ void genPCIDevice(const io_service_t& device, QueryData& results) {
 
   // Get the device details
   CFMutableDictionaryRef details;
-  IORegistryEntryCreateCFProperties(
+  auto ret = IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
-
+  if (ret != KERN_SUCCESS) {
+    return;
+  }
   r["pci_slot"] = getIOKitProperty(details, "pcidebug");
 
   auto compatible = getIOKitProperty(details, "compatible");
+
   auto properties = IOKitPCIProperties(compatible);
+
   r["vendor_id"] = properties.vendor_id;
   r["model_id"] = properties.model_id;
   r["pci_class"] = properties.pci_class;
@@ -59,5 +63,5 @@ QueryData genPCIDevices(QueryContext& context) {
   IOObjectRelease(it);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

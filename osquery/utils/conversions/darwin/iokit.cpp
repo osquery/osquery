@@ -15,10 +15,10 @@
 
 #include <osquery/utils/conversions/tryto.h>
 
-#include "iokit.h"
-#include "cfstring.h"
-#include "cfnumber.h"
 #include "cfdata.h"
+#include "cfnumber.h"
+#include "cfstring.h"
+#include "iokit.h"
 
 namespace osquery {
 
@@ -45,8 +45,12 @@ IOKitPCIProperties::IOKitPCIProperties(const std::string& compatible) {
 
   std::vector<std::string> vendor;
   boost::split(vendor, properties[prop_index++], boost::is_any_of(","));
-  vendor_id = vendor[0].substr(3);
-  model_id = (vendor[1].size() == 3) ? "0" + vendor[1] : vendor[1];
+  if (!vendor.empty()) {
+    vendor_id = vendor[0].substr(3);
+    if (vendor.size() > 1) {
+      model_id = (vendor[1].size() == 3) ? "0" + vendor[1] : vendor[1];
+    }
+  }
 
   if (properties[prop_index].find("pciclass") == 0) {
     // There is a class definition.
