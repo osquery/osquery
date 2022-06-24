@@ -52,6 +52,6 @@ std::vector<std::string> split(const std::string& s,
  * @return std::vector<std::string_view>
  */
 std::vector<std::string_view> vsplit(const std::string_view source,
-                                     const std::string& delimiter);
+                                     char delimiter);
 
 } // namespace osquery

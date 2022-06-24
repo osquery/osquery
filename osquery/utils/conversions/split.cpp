@@ -51,7 +51,7 @@ std::vector<std::string> split(const std::string& s,
 }
 
 std::vector<std::string_view> vsplit(const std::string_view source,
-                                     const std::string& delimiter) {
+                                     char delimiter) {
   if (source.empty()) {
     return {};
   }

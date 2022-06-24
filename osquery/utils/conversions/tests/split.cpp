@@ -102,7 +102,8 @@ TEST_F(SplitConversionsTests, test_split) {
 TEST_F(SplitConversionsTests, test_vplit) {
   auto test_data = generateVSplitStringTestData();
   for (auto it = test_data.begin() + 1; it != test_data.end(); ++it) {
-    auto splits = vsplit(it->test_string, it->delim);
+    auto splits =
+        vsplit(it->test_string, it->delim.empty() ? '\0' : it->delim[0]);
 
     ASSERT_EQ(splits.size(), it->test_vector.size())
         << "Failed to split " << it->test_string;
