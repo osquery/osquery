@@ -140,7 +140,7 @@ def main(argc, argv):
         for filename in files:
             # Skip the example spec in the spec/ dir.
             # There is no actual example table in osquery so it should not be generated into the docs.
-            if filename.startswith("example.table"):
+            if filename == "example.table":
                 continue
 
             if filename.endswith(".table"):
