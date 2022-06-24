@@ -1,5 +1,5 @@
 table_name("memory_devices")
-description("Physical memory device (type 17) information retrieved from SMBIOS. Not available on ARM architectures.")
+description("Physical memory device (type 17) information retrieved from SMBIOS. Not available on Apple Silicon.")
 schema([
     Column("handle",  TEXT, "Handle, or instance number, associated with the structure in SMBIOS"),
     Column("array_handle",  TEXT, "The memory array that the device is attached to"),

@@ -1,5 +1,5 @@
 table_name("kernel_info")
-description("Basic active kernel information. Not available on ARM architectures.")
+description("Basic active kernel information. Not available on Apple Silicon.")
 schema([
   Column("version", TEXT, "Kernel version"),
   Column("arguments", TEXT, "Kernel arguments"),

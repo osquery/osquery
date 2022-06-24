@@ -1,5 +1,5 @@
 table_name("smbios_tables")
-description("BIOS (DMI) structure common details and content. Not available on ARM architectures.")
+description("BIOS (DMI) structure common details and content. Not available on Apple Silicon.")
 schema([
     Column("number", INTEGER, "Table entry number"),
     Column("type", INTEGER, "Table entry type"),
