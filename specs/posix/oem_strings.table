@@ -1,5 +1,5 @@
 table_name("oem_strings")
-description("OEM defined strings retrieved from SMBIOS.")
+description("OEM defined strings retrieved from SMBIOS. Not available on ARM architectures.")
 schema([
     Column("handle", TEXT, "Handle, or instance number, associated with the Type 11 structure"),
     Column("number", INTEGER, "The string index of the structure"),

@@ -1,5 +1,5 @@
 table_name("memory_error_info")
-description("Data associated with errors of a physical memory array.")
+description("Data associated with errors of a physical memory array. Not available on ARM architectures.")
 schema([
     Column("handle",  TEXT, "Handle, or instance number, associated with the structure"),
     Column("error_type",  TEXT,

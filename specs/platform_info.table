@@ -1,5 +1,5 @@
 table_name("platform_info")
-description("Information about EFI/UEFI/ROM and platform/boot.")
+description("Information about EFI/UEFI/ROM and platform/boot. Not available on ARM architectures.")
 schema([
     Column("vendor", TEXT, "Platform code vendor"),
     Column("version", TEXT, "Platform code version"),

@@ -1,5 +1,5 @@
 table_name("memory_device_mapped_addresses")
-description("Data associated for address mapping of physical memory devices.")
+description("Data associated for address mapping of physical memory devices. Not available on ARM architectures.")
 schema([
     Column("handle",  TEXT, "Handle, or instance number, associated with the structure"),
     Column("memory_device_handle", TEXT,

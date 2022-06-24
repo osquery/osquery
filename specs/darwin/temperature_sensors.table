@@ -1,5 +1,5 @@
 table_name("temperature_sensors")
-description("Machine's temperature sensors.")
+description("Machine's temperature sensors. Warning: inconsistent data from Apple Silicon.")
 schema([
     Column("key", TEXT, "The SMC key on macOS", index=True),
     Column("name", TEXT, "Name of temperature source"),
