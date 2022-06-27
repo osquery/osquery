@@ -269,6 +269,9 @@ Status Distributed::acceptWork(const std::string& work) {
   }
 
   std::set<std::string> queries_to_run;
+
+  auto hasDiscoveryQueries = false;
+
   // Check for and run discovery queries first
   if (doc.doc().HasMember("discovery")) {
     const auto& queries = doc.doc()["discovery"];
@@ -285,6 +288,7 @@ Status Distributed::acceptWork(const std::string& work) {
         if (query.empty() || name.empty()) {
           return Status(1, "Distributed discovery query is not a string");
         }
+        hasDiscoveryQueries = true;
 
         SQL sql(query);
         if (!sql.getStatus().ok()) {
@@ -313,7 +317,7 @@ Status Distributed::acceptWork(const std::string& work) {
           return Status(1, "Distributed query is not a string");
         }
 
-        if (queries_to_run.empty() || queries_to_run.count(name)) {
+        if (!hasDiscoveryQueries || queries_to_run.count(name)) {
           setDatabaseValue(kDistributedQueries, name, query);
         }
       }

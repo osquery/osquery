@@ -274,6 +274,11 @@ class Distributed {
    * Given a response from a distributed plugin, parse the results and enqueue
    * them in the internal state of the class
    *
+   * If the response contains one or more "discovery" queries, then only queries
+   * with the following criteria will be enqueued:
+   *  - The query has a corresponding "discovery" query.
+   *  - The corresponding "discovery" query returns one or more results.
+   *
    * @param work is the string from DistributedPlugin::getQueries
    * @return a Status indicating the success or failure of the operation
    */
@@ -340,5 +345,8 @@ class Distributed {
   FRIEND_TEST(DistributedTests, test_workflow);
   FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
   FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
+  FRIEND_TEST(DistributedTests, test_accept_work_basic);
+  FRIEND_TEST(DistributedTests, test_accept_work_with_discovery);
+  FRIEND_TEST(DistributedTests, test_accept_work_with_discovery_all_fail);
 };
 } // namespace osquery
