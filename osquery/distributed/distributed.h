@@ -141,6 +141,15 @@ Status deserializeDistributedQueryResult(const rapidjson::Value& obj,
 Status deserializeDistributedQueryResultJSON(const std::string& json,
                                              DistributedQueryResult& r);
 
+/**
+ * @brief Checks whether the timestamp for a denylisted query has expired.
+ *
+ * @param timestamp the input timestamp
+ *
+ * @return Boolean set to true if the timestamp has expired.
+ */
+bool denylistedQueryTimestampExpired(const std::string& timestamp);
+
 class DistributedPlugin : public Plugin {
  public:
   /**
@@ -219,6 +228,9 @@ class Distributed {
   /// Default constructor
   Distributed() {}
 
+  /// Default destructor.
+  virtual ~Distributed() {}
+
   /// Retrieve queued queries from a remote server
   Status pullUpdates();
 
@@ -233,6 +245,9 @@ class Distributed {
 
   /// Process and execute queued queries
   Status runQueries();
+
+  /// Cleanup distributed queries marked as running that have expired.
+  Status cleanupExpiredRunningQueries();
 
   // Getter for ID of currently executing request
   static std::string getCurrentRequestId();
@@ -264,9 +279,31 @@ class Distributed {
   void addResult(const DistributedQueryResult& result);
 
   /**
+   * @brief Checks and sets whether the given query is marked as running.
+   *
+   * If the query is already marked as running, then it will return
+   * true if the current time is within the denylisting period
+   * (see FLAGS_distributed_denylist_duration), false otherwise.
+   * If the query is not marked as running, then it will mark it
+   * as such and return false.
+   *
+   * @param query the SQL query string
+   *
+   * @return whether the distributed query to run is considered denylisted.
+   */
+  bool checkAndSetAsRunning(const std::string& query);
+
+  /**
+   * @brief Sets a query as "not running anymore".
+   *
+   * @param query the SQL query string
+   */
+  void setAsNotRunning(const std::string& query);
+
+  /**
    * @brief Flush all of the collected results to the server
    */
-  Status flushCompleted();
+  virtual Status flushCompleted();
 
   // Setter for ID of currently executing request
   static void setCurrentRequestId(const std::string& cReqId);
@@ -279,5 +316,7 @@ class Distributed {
  private:
   friend class DistributedTests;
   FRIEND_TEST(DistributedTests, test_workflow);
+  FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
+  FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
 };
 } // namespace osquery

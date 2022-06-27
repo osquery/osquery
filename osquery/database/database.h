@@ -52,7 +52,11 @@ extern const std::string kCarves;
 /// The key for the DB version
 extern const std::string kDbVersionKey;
 
+/// The "domain" where distributed queries are stored.
 extern const std::string kDistributedQueries;
+
+/// The "domain" where currently running distributed queries are stored.
+extern const std::string kDistributedRunningQueries;
 
 /// The running version of our database schema
 const int kDbCurrentVersion = 2;
