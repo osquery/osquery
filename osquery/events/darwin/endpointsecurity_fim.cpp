@@ -102,6 +102,25 @@ void EndpointSecurityFileEventPublisher::configure() {
         VLOG(1) << "Unable to mute path with prefix: " << p;
       }
     }
+
+    for (const auto& p : default_muted_path_literals_) {
+      auto result = es_mute_path_literal(es_file_client_, p.c_str());
+      if (result == ES_RETURN_ERROR) {
+        VLOG(1) << "Unable to mute default path: " << p;
+      }
+    }
+
+    audit_token_t  self;
+    mach_msg_type_number_t size = TASK_AUDIT_TOKEN_COUNT;
+
+    auto kr = task_info(mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&self, &size);
+    if (kr == KERN_SUCCESS) {
+      auto esr = es_mute_process(es_file_client_, &self);
+      if (esr == ES_RETURN_SUCCESS) {
+        VLOG(1) << "Muted self";
+      }
+    }
+
     auto es_sub = es_subscribe(es_file_client_, &events[0], events.size());
     if (es_sub != ES_RETURN_SUCCESS) {
       VLOG(1) << "Couldn't subscribe to EndpointSecurity subsystem";

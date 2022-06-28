@@ -180,6 +180,19 @@ class EndpointSecurityFileEventPublisher
   bool es_file_client_success_{false};
   std::vector<std::string> muted_path_literals_;
   std::vector<std::string> muted_path_prefixes_;
+  std::vector<std::string> default_muted_path_literals_ = {
+      "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
+      "/System/Library/PrivateFrameworks/TCC.framework/Support/tccd",
+      "/System/Library/PrivateFrameworks/TCC.framework/Versions/A/Resources/tccd",
+      "/usr/sbin/cfprefsd",
+      "/usr/sbin/securityd",
+      "/usr/libexec/opendirectoryd",
+      "/usr/libexec/sandboxd",
+      "/usr/libexec/syspolicyd",
+      "/usr/libexec/runningboardd",
+      "/usr/libexec/amfid",
+      "/usr/libexec/watchdogd",
+  };
 };
 
 class ESProcessEventSubscriber
