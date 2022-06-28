@@ -130,19 +130,29 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   auto queries = getPendingQueries();
 
+  // Source: https://github.com/facebook/rocksdb/wiki/RocksDB-FAQ
+  //
+  // Q: What's the maximum key and value sizes supported?
+  // A: In general, RocksDB is not designed for large keys.
+  //    The maximum recommended sizes for key and value are 8MB
+  //    and 3GB respectively.
+  const auto max_query_size = 8000000;
+
   for (const auto& query : queries) {
     auto request = popRequest(query);
 
-    const auto denylisted = checkAndSetAsRunning(request.query);
-    if (denylisted) {
-      VLOG(1) << "Not executing distributed denylisted query: \"" << query
-              << "\"";
-      DistributedQueryResult result;
-      result.request = request;
-      result.status = Status(1, "Denylisted");
-      result.message = "distributed query is denylisted";
-      addResult(result);
-      continue;
+    if (request.query.size() < max_query_size) {
+      const auto denylisted = checkAndSetAsRunning(request.query);
+      if (denylisted) {
+        VLOG(1) << "Not executing distributed denylisted query: \""
+                << request.query << "\"";
+        DistributedQueryResult result;
+        result.request = request;
+        result.status = Status(1, "Denylisted");
+        result.message = "distributed query is denylisted";
+        addResult(result);
+        continue;
+      }
     }
 
     if (FLAGS_verbose) {
@@ -164,7 +174,9 @@ Status Distributed::runQueries() {
                  << msg;
     }
 
-    setAsNotRunning(request.query);
+    if (request.query.size() < max_query_size) {
+      setAsNotRunning(request.query);
+    }
 
     DistributedQueryResult result(
         request, sql.rows(), sql.columns(), sql.getStatus(), msg);
@@ -192,7 +204,7 @@ void Distributed::setAsNotRunning(const std::string& query) {
   const auto status = deleteDatabaseValue(kDistributedRunningQueries, query);
   if (!status.ok()) {
     LOG(ERROR) << "Failed to delete running distributed query: \"" << query
-               << "\", status: " << status.toString();
+               << "\", status: " << status.getMessage();
   }
 }
 

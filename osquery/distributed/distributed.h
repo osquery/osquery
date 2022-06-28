@@ -318,5 +318,6 @@ class Distributed {
   FRIEND_TEST(DistributedTests, test_workflow);
   FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
   FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
+  FRIEND_TEST(DistributedTests, test_run_queries_query_too_big);
 };
 } // namespace osquery

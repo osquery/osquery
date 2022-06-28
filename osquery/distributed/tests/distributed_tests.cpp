@@ -334,4 +334,25 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
   ASSERT_TRUE(ts2.empty());
 }
 
+// Tests that the denylisting of distributed queries does
+// not interfere when queries are too big to be stored as keys.
+TEST_F(DistributedTests, test_run_queries_query_too_big) {
+  auto dist = DistributedMock();
+  // flushCompleted is mocked to avoid sending results in
+  // Distributed.runQueries.
+  EXPECT_CALL(dist, flushCompleted).Times(1);
+
+  std::ostringstream work(std::ostringstream::ate);
+  work.str("{\"queries\":{\"q1\":\"SELECT * FROM time WHERE weekday = '");
+  for (int i = 0; i < 8000000; i++) {
+    work << "f";
+  }
+  work << "'\"}}";
+
+  auto status = dist.acceptWork(work.str());
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  status = dist.runQueries();
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_EQ(dist.results_.size(), 1);
+}
 } // namespace osquery
