@@ -44,17 +44,12 @@ Status EndpointSecurityFileEventPublisher::setUp() {
       boost::split(muted_path_literals_,
                    FLAGS_es_fim_mute_path_literal,
                    boost::is_any_of(","));
-      VLOG(1) << "muted path list :: " << muted_path_literals_.size();
-      for (const auto& p : muted_path_literals_) {
-        VLOG(1) << p;
-      }
     }
 
     if (!FLAGS_es_fim_mute_path_prefix.empty()) {
       boost::split(muted_path_prefixes_,
                    FLAGS_es_fim_mute_path_prefix,
                    boost::is_any_of(","));
-      ;
     }
 
     auto handler = ^(es_client_t* client, const es_message_t* message) {
@@ -110,15 +105,12 @@ void EndpointSecurityFileEventPublisher::configure() {
       }
     }
 
+    // mute ourselves
     audit_token_t  self;
     mach_msg_type_number_t size = TASK_AUDIT_TOKEN_COUNT;
-
     auto kr = task_info(mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&self, &size);
     if (kr == KERN_SUCCESS) {
-      auto esr = es_mute_process(es_file_client_, &self);
-      if (esr == ES_RETURN_SUCCESS) {
-        VLOG(1) << "Muted self";
-      }
+      es_mute_process(es_file_client_, &self);
     }
 
     auto es_sub = es_subscribe(es_file_client_, &events[0], events.size());
