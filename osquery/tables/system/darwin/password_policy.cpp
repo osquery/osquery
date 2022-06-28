@@ -12,11 +12,60 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/conversions/darwin/cfdictionary.h>
-#include <osquery/utils/conversions/split.h>
 
 namespace osquery {
 namespace tables {
+
+void genRowsFromPolicy(const CFDictionaryRef& policies,
+                       QueryData& results,
+                       const std::string& uid = "") {
+  if (policies == nullptr) {
+    return;
+  }
+
+  auto count = CFDictionaryGetCount(policies);
+  if (count == 0) {
+    return;
+  }
+
+  if (!CFDictionaryContainsKey(policies,
+                               CFSTR("policyCategoryPasswordContent"))) {
+    return;
+  }
+
+  auto content =
+      CFDictionaryGetValue(policies, CFSTR("policyCategoryPasswordContent"));
+  if (content == nullptr) {
+    return;
+  }
+
+  count = CFArrayGetCount((CFArrayRef)content);
+  for (CFIndex i = 0; i < count; i++) {
+    Row r;
+    r["uid"] = BIGINT(uid);
+    r["policy_content"] = getPropertiesFromDictionary(
+        (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
+        "policyContent");
+
+    auto identifier = getPropertiesFromDictionary(
+        (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
+        "policyIdentifier");
+    r["policy_identifier"] = identifier;
+
+    auto dict = CFArrayGetValueAtIndex((CFArrayRef)content, i);
+    const void* description = nullptr;
+    if (CFDictionaryGetValueIfPresent((CFDictionaryRef)dict,
+                                      CFSTR("policyContentDescription"),
+                                      &description) &&
+        description != nullptr) {
+      r["policy_description"] =
+          getPropertiesFromDictionary((CFDictionaryRef)description, "en");
+    }
+    results.push_back(r);
+  }
+}
 
 QueryData genPasswordPolicy(QueryContext& context) {
   QueryData results;
@@ -43,61 +92,40 @@ QueryData genPasswordPolicy(QueryContext& context) {
    * any policies configured for the node.
    * Similar API in OpenDirectory has been deprecated.
    */
+
+  // get policies for the node (i.e. the global policy)
   auto policies = ODNodeCopyAccountPolicies(node, &error);
-  if (policies == nullptr) {
-    VLOG(1) << "password_policy: Error getting account policies";
-    return {};
-  }
-
-  auto count = CFDictionaryGetCount(policies);
-  if (count == 0) {
-    VLOG(1) << "password_policy: Empty account policies for the node";
+  genRowsFromPolicy(policies, results);
+  if (policies != nullptr) {
     CFRelease(policies);
-    return {};
   }
 
-  if (!CFDictionaryContainsKey(policies,
-                               CFSTR("policyCategoryPasswordContent"))) {
-    VLOG(1)
-        << "password_policy: Account policy does not contain password content";
-    CFRelease(policies);
-    return {};
-  }
-
-  auto content =
-      CFDictionaryGetValue(policies, CFSTR("policyCategoryPasswordContent"));
-  if (content == nullptr) {
-    return {};
-  }
-
-  count = CFArrayGetCount((CFArrayRef)content);
-  for (CFIndex i = 0; i < count; i++) {
-    Row r;
-    r["policy_content"] = getPropertiesFromDictionary(
-        (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
-        "policyContent");
-
-    auto identifier = getPropertiesFromDictionary(
-        (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
-        "policyIdentifier");
-    r["policy_identifier"] = identifier;
-
-    auto attributes = split(identifier, ":");
-    r["policy_attribute"] = attributes.size() == 3 ? attributes.back() : "";
-
-    auto dict = CFArrayGetValueAtIndex((CFArrayRef)content, i);
-    const void* description = nullptr;
-    if (CFDictionaryGetValueIfPresent((CFDictionaryRef)dict,
-                                      CFSTR("policyContentDescription"),
-                                      &description) &&
-        description != nullptr) {
-      r["policy_description"] =
-          getPropertiesFromDictionary((CFDictionaryRef)description, "en");
+  // iterate over users, and get policy for the user
+  auto users = SQL::selectAllFrom("users");
+  for (const auto& user : users) {
+    auto uid = user.at("uid");
+    auto uid_string = CFStringCreateWithCString(
+        kCFAllocatorDefault, uid.c_str(), CFStringGetSystemEncoding());
+    auto query = ODQueryCreateWithNode(kCFAllocatorDefault,
+                                       node,
+                                       (CFTypeRef)kODRecordTypeUsers,
+                                       kODAttributeTypeUniqueID,
+                                       kODMatchEqualTo,
+                                       uid_string,
+                                       nullptr,
+                                       0,
+                                       nullptr);
+    auto records = ODQueryCopyResults(query, false, nullptr);
+    if (CFArrayGetCount(records) > 0) {
+      auto user_policy = ODRecordCopyAccountPolicies(
+          (ODRecordRef)CFArrayGetValueAtIndex(records, 0), nullptr);
+      if (user_policy != nullptr) {
+        genRowsFromPolicy(user_policy, results, uid);
+        CFRelease(user_policy);
+      }
     }
-    results.push_back(r);
+    CFRelease(uid_string);
   }
-
-  CFRelease(policies);
 
   return results;
 }
