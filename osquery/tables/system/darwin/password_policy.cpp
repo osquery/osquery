@@ -100,10 +100,22 @@ QueryData genPasswordPolicy(QueryContext& context) {
     CFRelease(policies);
   }
 
-  // iterate over users, and get policy for the user
-  auto users = SQL::selectAllFrom("users");
-  for (const auto& user : users) {
-    auto uid = user.at("uid");
+  // populate `uids` with the contraint if present, otherwise populate with all
+  // uids from `users` table
+  std::set<std::string> uids;
+  if (context.constraints.at("uid").exists(EQUALS)) {
+    for (const auto& uid : context.constraints.at("uid").getAll(EQUALS)) {
+      uids.insert(uid);
+    }
+  } else {
+    auto users = SQL::selectAllFrom("users");
+    for (const auto& user : users) {
+      uids.insert(user.at("uid"));
+    }
+  }
+
+  // iterate over uids, and get policy for the user
+  for (const auto& uid : uids) {
     auto uid_string = CFStringCreateWithCString(
         kCFAllocatorDefault, uid.c_str(), CFStringGetSystemEncoding());
     auto query = ODQueryCreateWithNode(kCFAllocatorDefault,
