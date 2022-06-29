@@ -138,10 +138,6 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
-    if(DEFINED PLATFORM_MACOS AND NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files lldp_neighbors.cpp)
-    endif()
   endif()
 
   if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))

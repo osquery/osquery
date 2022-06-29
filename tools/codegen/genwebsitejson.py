@@ -45,7 +45,6 @@ PLATFORM_DIRS = {
     "kernel": ["darwin"],
     "linwin": ["linux", "windows"],
     "linux": ["linux"],
-    "lldpd": ["linux"],
     "macwin": ["darwin", "windows"],
     "posix": ["darwin", "linux"],
     "sleuthkit": ["darwin", "linux"],
