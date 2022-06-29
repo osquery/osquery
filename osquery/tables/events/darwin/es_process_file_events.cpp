@@ -31,10 +31,6 @@ Status ESProcessFileEventSubscriber::init() {
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_WRITE);
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
 
-    // other related events
-    // close, clone, dup, link, unlink
-    // copyfile, fcntl
-
     subscribe(&ESProcessFileEventSubscriber::Callback, sc);
 
     return Status::success();

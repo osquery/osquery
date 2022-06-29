@@ -93,8 +93,8 @@ std::string getCDHash(const es_process_t* p) {
   return s.find_first_not_of(s.front()) == std::string::npos ? "" : s;
 }
 
-void getProperties(const es_process_t* p,
-                   const EndpointSecurityEventContextRef& ec) {
+void getProcessProperties(const es_process_t* p,
+                          const EndpointSecurityEventContextRef& ec) {
   auto audit_token = p->audit_token;
   ec->pid = audit_token_to_pid(audit_token);
   ec->parent = p->ppid;

@@ -23,6 +23,6 @@ std::string getStringFromToken(es_string_token_t* t);
 std::string getStringFromToken(const es_string_token_t* t);
 std::string getCwdPathFromPid(pid_t pid);
 std::string getCDHash(const es_process_t* p);
-void getProperties(const es_process_t* p,
-                   const EndpointSecurityEventContextRef& ec);
+void getProcessProperties(const es_process_t* p,
+                          const EndpointSecurityEventContextRef& ec);
 } // namespace osquery

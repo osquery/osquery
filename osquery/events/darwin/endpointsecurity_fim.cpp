@@ -74,8 +74,8 @@ void EndpointSecurityFileEventPublisher::configure() {
     return;
   }
 
-  auto cache = es_clear_cache(es_file_client_);
-  if (cache != ES_CLEAR_CACHE_RESULT_SUCCESS) {
+  auto result = es_clear_cache(es_file_client_);
+  if (result != ES_CLEAR_CACHE_RESULT_SUCCESS) {
     VLOG(1) << "Couldn't clear cache for EndpointSecurity client";
     return;
   }
@@ -106,9 +106,10 @@ void EndpointSecurityFileEventPublisher::configure() {
     }
 
     // mute ourselves
-    audit_token_t  self;
+    audit_token_t self;
     mach_msg_type_number_t size = TASK_AUDIT_TOKEN_COUNT;
-    auto kr = task_info(mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&self, &size);
+    auto kr = task_info(
+        mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&self, &size);
     if (kr == KERN_SUCCESS) {
       es_mute_process(es_file_client_, &self);
     }
@@ -132,7 +133,10 @@ void EndpointSecurityFileEventPublisher::tearDown() {
   }
   es_unsubscribe_all(es_file_client_);
   if (es_file_client_success_) {
-    es_delete_client(es_file_client_);
+    auto result = es_delete_client(es_file_client_);
+    if (result != ES_RETURN_SUCCESS) {
+      VLOG(1) << "endpointsecurity_fim: error tearing down es_client";
+    }
     es_file_client_ = nullptr;
   }
 }
@@ -156,7 +160,7 @@ void EndpointSecurityFileEventPublisher::handleMessage(
     ec->global_seq_num = message->global_seq_num;
   }
 
-  getProperties(message->process, ec);
+  getProcessProperties(message->process, ec);
 
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_CREATE: {
@@ -199,6 +203,7 @@ void EndpointSecurityFileEventPublisher::handleMessage(
     ec->filename = getStringFromToken(&message->event.truncate.target->path);
   } break;
   default:
+    VLOG(1) << "endpointsecurity_fim: unexpected event";
     break;
   }
   EventFactory::fire<EndpointSecurityFileEventPublisher>(ec);

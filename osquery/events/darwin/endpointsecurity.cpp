@@ -74,7 +74,10 @@ void EndpointSecurityPublisher::tearDown() {
   es_unsubscribe_all(es_client_);
 
   if (es_client_success_) {
-    es_delete_client(es_client_);
+    auto result = es_delete_client(es_client_);
+    if (result != ES_RETURN_SUCCESS) {
+      VLOG(1) << "endpointsecurity: error tearing down es_client";
+    }
     es_client_ = nullptr;
   }
 }
@@ -99,14 +102,14 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
     ec->global_seq_num = message->global_seq_num;
   }
 
-  getProperties(message->process, ec);
+  getProcessProperties(message->process, ec);
 
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_EXEC: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_EXEC;
     ec->event_type = "exec";
 
-    getProperties(message->event.exec.target, ec);
+    getProcessProperties(message->event.exec.target, ec);
     ec->argc = es_exec_arg_count(&message->event.exec);
     {
       std::stringstream args;
