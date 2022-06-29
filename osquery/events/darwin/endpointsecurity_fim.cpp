@@ -203,7 +203,7 @@ void EndpointSecurityFileEventPublisher::handleMessage(
     ec->filename = getStringFromToken(&message->event.truncate.target->path);
   } break;
   default:
-    VLOG(1) << "endpointsecurity_fim: unexpected event";
+    VLOG(1) << "endpointsecurity_fim: unexpected event " << message->event_type;
     break;
   }
   EventFactory::fire<EndpointSecurityFileEventPublisher>(ec);
