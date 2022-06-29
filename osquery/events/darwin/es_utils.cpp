@@ -73,6 +73,10 @@ std::string getStringFromToken(es_string_token_t* t) {
   return t->length > 0 && t->data != nullptr ? t->data : "";
 }
 
+std::string getStringFromToken(const es_string_token_t* t) {
+  return t->length > 0 && t->data != nullptr ? t->data : "";
+}
+
 std::string getCwdPathFromPid(pid_t pid) {
   struct proc_vnodepathinfo vpi {};
   auto bytes = proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &vpi, sizeof(vpi));
