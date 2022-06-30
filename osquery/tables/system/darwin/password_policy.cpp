@@ -128,7 +128,7 @@ QueryData genPasswordPolicy(QueryContext& context) {
                                        0,
                                        nullptr);
     auto records = ODQueryCopyResults(query, false, nullptr);
-    if (CFArrayGetCount(records) > 0) {
+    if (records != nullptr && CFArrayGetCount(records) > 0) {
       auto user_policy = ODRecordCopyAccountPolicies(
           (ODRecordRef)CFArrayGetValueAtIndex(records, 0), nullptr);
       if (user_policy != nullptr) {
@@ -136,6 +136,7 @@ QueryData genPasswordPolicy(QueryContext& context) {
         CFRelease(user_policy);
       }
     }
+    CFRelease(records);
     CFRelease(uid_string);
   }
 
