@@ -101,6 +101,7 @@ function(generateNativeTables)
     "darwin/device_firmware.table:macos"
     "darwin/disk_events.table:macos"
     "darwin/es_process_events.table:macos"
+    "darwin/es_process_file_events.table:macos"
     "darwin/event_taps.table:macos"
     "darwin/fan_speed_sensors.table:macos"
     "darwin/gatekeeper.table:macos"
