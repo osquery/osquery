@@ -33,7 +33,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: 8168fd7213b23447f1bfbe0b54d4e8b61730b08d
+  PACKAGING_COMMIT: 4caa2c54f0d893c1efa47932571046bbce156c52
   SUBMODULE_CACHE_VERSION: 1
 
 # If the initial code sanity checks are passing, then one job
