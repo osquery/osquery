@@ -727,10 +727,10 @@ typedef uint64_t uintmax_t;
 #define HAVE_LIBXML2 1
 
 /* Define to 1 if you have the <libxml/xmlreader.h> header file. */
-/* #undef HAVE_LIBXML_XMLREADER_H */
+#define HAVE_LIBXML_XMLREADER_H 1
 
 /* Define to 1 if you have the <libxml/xmlwriter.h> header file. */
-/* #undef HAVE_LIBXML_XMLWRITER_H */
+#define HAVE_LIBXML_XMLWRITER_H 1
 
 /* Define to 1 if you have the `z' library (-lz). */
 /* #undef HAVE_LIBZ */
