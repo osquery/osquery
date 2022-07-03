@@ -564,7 +564,6 @@ class ConfigParserPlugin : public Plugin {
     return data_;
   }
 
- protected:
   /// Allow the config to request parser state resets.
   virtual void reset();
 

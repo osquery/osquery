@@ -138,6 +138,14 @@ class Flag : private boost::noncopyable {
                          bool external = false,
                          bool cli = false);
 
+  /**
+   * @brief Clear up the custom flags
+   * Currently used by the fuzzer targets to prevent
+   * the map size to increase indefinitely
+   *
+   */
+  static void resetCustomFlags();
+
  private:
   /// The container of all shell, CLI, and normal flags.
   std::map<std::string, FlagDetail> flags_;
