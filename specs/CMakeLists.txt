@@ -306,13 +306,6 @@ function(generateNativeTables)
     "yara/yara.table:linux,macos,freebsd,windows"
   )
 
-  # We want to remove support for lldpd, so skip support for M1
-  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-    list(APPEND platform_dependent_spec_files
-      "lldpd/lldp_neighbors.table:linux,macos,freebsd"
-    )
-  endif()
-
   if(OSQUERY_BUILD_BPF)
     list(APPEND platform_dependent_spec_files
       "linux/bpf_process_events.table:linux"
