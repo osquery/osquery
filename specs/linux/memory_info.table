@@ -3,6 +3,7 @@ description("Main memory information in bytes.")
 schema([
     Column("memory_total",  BIGINT, "Total amount of physical RAM, in bytes"),
     Column("memory_free", BIGINT, "The amount of physical RAM, in bytes, left unused by the system"),
+    Column("memory_available", BIGINT, "The amount of physical RAM, in bytes, available for starting new applications, without swapping"),
     Column("buffers", BIGINT, "The amount of physical RAM, in bytes, used for file buffers"),
     Column("cached", BIGINT, "The amount of physical RAM, in bytes, used as cache memory"),
     Column("swap_cached", BIGINT, "The amount of swap, in bytes, used as cache memory"),

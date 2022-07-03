@@ -35,6 +35,7 @@ TEST_F(memoryInfo, test_sanity) {
   // ValidationMap row_map = {
   //      {"memory_total", IntType}
   //      {"memory_free", IntType}
+  //      {"memory_available", IntType}
   //      {"buffers", IntType}
   //      {"cached", IntType}
   //      {"swap_cached", IntType}
