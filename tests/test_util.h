@@ -71,4 +71,9 @@ ScheduledQuery getOsqueryScheduledQuery();
 // Helper function to generate all rows from a generator-based table.
 TableRows genRows(EventSubscriberPlugin* sub);
 
+#ifdef OSQUERY_WINDOWS
+void initUsersAndGroupsServices(bool init_users, bool init_groups);
+void deinitUsersAndGroupsServices(bool deinit_users, bool deinit_groups);
+#endif
+
 } // namespace osquery
