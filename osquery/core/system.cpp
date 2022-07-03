@@ -8,24 +8,17 @@
  */
 
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#ifndef WIN32
+#ifndef OSQUERY_WINDOWS
 #include <grp.h>
-#include <netdb.h>
-#include <sys/socket.h>
+#include <unistd.h>
 #endif
 
-#include <signal.h>
-
-#if !defined(__FreeBSD__) && !defined(WIN32)
+#if !defined(__FreeBSD__) && !defined(OSQUERY_WINDOWS)
 #include <sys/syscall.h>
 #include <uuid/uuid.h>
-#endif
-
-#ifdef WIN32
-#include <WinSock2.h>
 #endif
 
 #if defined(__FreeBSD__)
@@ -55,15 +48,14 @@
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/config/default_paths.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/info/tool_type.h>
+#include <osquery/utils/system/system.h>
 
-#ifdef WIN32
-#include "osquery/core/windows/wmi.h"
-#endif
-#include "osquery/utils/config/default_paths.h"
-#include "osquery/utils/conversions/tryto.h"
-#include "osquery/utils/info/platform_type.h"
-#include "osquery/utils/info/tool_type.h"
-#ifdef WIN32
+#ifdef OSQUERY_WINDOWS
+#include <osquery/core/windows/wmi.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
 
@@ -129,61 +121,6 @@ struct tm* localtime_r(time_t* t, struct tm* result) {
   return result;
 }
 #endif
-
-std::string getHostname() {
-  long max_path = 256;
-  long size = 0;
-#ifndef WIN32
-  static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
-  size = (max_hostname > max_path - 1) ? max_hostname + 1 : max_path;
-#endif
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    size = max_path;
-  }
-
-  std::vector<char> hostname(size, 0x0);
-  std::string hostname_string;
-  gethostname(hostname.data(), size - 1);
-  hostname_string = std::string(hostname.data());
-  boost::algorithm::trim(hostname_string);
-  return hostname_string;
-}
-
-std::string getFqdn() {
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    std::string fqdn_string = getHostname();
-
-#ifndef WIN32
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_flags = AI_CANONNAME;
-
-    struct addrinfo* res = nullptr;
-    if (getaddrinfo(fqdn_string.c_str(), nullptr, &hints, &res) == 0) {
-      if (res->ai_canonname != nullptr) {
-        fqdn_string = res->ai_canonname;
-      }
-    }
-    if (res != nullptr) {
-      freeaddrinfo(res);
-    }
-#endif
-    return fqdn_string;
-  } else {
-    std::string result;
-#ifdef WIN32
-    DWORD size = 0;
-    if (0 == GetComputerNameExW(ComputerNameDnsFullyQualified, NULL, &size)) {
-      std::vector<WCHAR> fqdn(size, 0x0);
-      GetComputerNameExW(ComputerNameDnsFullyQualified, fqdn.data(), &size);
-      result = wstringToString(fqdn.data());
-    }
-
-#endif
-    return result;
-  }
-}
 
 std::string generateNewUUID() {
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
