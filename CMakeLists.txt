@@ -140,13 +140,6 @@ function(importLibraries)
     )
   endif()
 
-  # We want to remove support for lldpd, so skip support for M1
-  if(NOT DEFINED PLATFORM_MACOS OR NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-    list(APPEND library_descriptor_list
-      "Linux,Darwin:lldpd"
-    )
-  endif()
-
   # Create a target that builds all the third party libraries for convenience
   add_custom_target(thirdparty_libraries)
 

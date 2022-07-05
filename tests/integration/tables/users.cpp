@@ -12,13 +12,10 @@
 
 #include <string>
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/test_util.h>
 #include <osquery/utils/info/platform_type.h>
-
-#ifdef OSQUERY_WINDOWS
-#include <osquery/core/windows/global_users_groups_cache.h>
-#include <osquery/system/usersgroups/windows/users_service.h>
-#endif
 
 namespace osquery {
 namespace table_tests {
@@ -31,21 +28,13 @@ class UsersTest : public testing::Test {
 
 #ifdef OSQUERY_WINDOWS
   static void SetUpTestSuite() {
-    // For the users table we need to start services
-    // to fill up the caches
-    std::promise<void> users_cache_promise;
-    GlobalUsersGroupsCache::global_users_cache_future_ =
-        users_cache_promise.get_future();
-
-    Dispatcher::addService(std::make_shared<UsersService>(
-        std::move(users_cache_promise),
-        GlobalUsersGroupsCache::global_users_cache_));
+    initUsersAndGroupsServices(true, false);
   }
 
   static void TearDownTestSuite() {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
-    GlobalUsersGroupsCache::global_users_cache_->clear();
+    deinitUsersAndGroupsServices(true, false);
     Dispatcher::instance().resetStopping();
   }
 #endif

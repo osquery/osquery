@@ -13,16 +13,6 @@
 #include <osquery/system/usersgroups/windows/users_groups_cache.h>
 
 namespace osquery {
-
-namespace tables {
-class SystemsTablesTests;
-}
-
-namespace table_tests {
-class UsersTest;
-class groups;
-class UserGroups;
-} // namespace table_tests
 class GlobalUsersGroupsCache {
  public:
   /// Waits for the users cache to be initialized by the respective service
@@ -41,9 +31,7 @@ class GlobalUsersGroupsCache {
   static std::shared_ptr<GroupsCache> global_groups_cache_;
 
   friend class Initializer;
-  friend class osquery::tables::SystemsTablesTests;
-  friend class osquery::table_tests::UsersTest;
-  friend class osquery::table_tests::groups;
-  friend class osquery::table_tests::UserGroups;
+  friend void initUsersAndGroupsServices(bool, bool);
+  friend void deinitUsersAndGroupsServices(bool, bool);
 };
 } // namespace osquery

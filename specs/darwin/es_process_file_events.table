@@ -1,0 +1,17 @@
+table_name("es_process_file_events")
+description("Process execution events from EndpointSecurity.")
+schema([
+    Column("version", INTEGER, "Version of EndpointSecurity event"),
+    Column("seq_num", BIGINT, "Per event sequence number"),
+    Column("global_seq_num", BIGINT, "Global sequence number"),
+    Column("pid", BIGINT, "Process (or thread) ID"),
+     Column("parent", BIGINT, "Parent process ID"),
+    Column("path", TEXT, "Path of executed file"),
+    Column("filename", TEXT, "The source or target filename for the event"),
+    Column("dest_filename", TEXT, "Destination filename for the event"),
+    Column("event_type", TEXT, "Type of EndpointSecurity event"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/es_process_file_events@es_process_file_events::genTable")

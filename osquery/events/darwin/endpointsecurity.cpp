@@ -8,19 +8,16 @@
  */
 
 #include <iomanip>
-#include <pwd.h>
 
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_utils.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
 namespace osquery {
 
-FLAG(bool,
-     disable_endpointsecurity,
-     true,
-     "Disable receiving events from the EndpointSecurity subsystem");
+DECLARE_bool(disable_endpointsecurity);
 
 REGISTER(EndpointSecurityPublisher, "event_publisher", "endpointsecurity")
 
@@ -36,28 +33,12 @@ Status EndpointSecurityPublisher::setUp() {
     };
 
     auto result = es_new_client(&es_client_, handler);
-    switch (result) {
-    case ES_NEW_CLIENT_RESULT_SUCCESS: {
+
+    if (result == ES_NEW_CLIENT_RESULT_SUCCESS) {
       es_client_success_ = true;
-    }
       return Status::success();
-    case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT:
-      return Status::failure(1, "invalid argument");
-    case ES_NEW_CLIENT_RESULT_ERR_INTERNAL:
-      return Status::failure(1, "EndpointSecurity client cannot communicate");
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
-      return Status::failure(1, "EndpointSecurity client lacks entitlement");
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
-      return Status::failure(
-          1, "EndpointSecurity client lacks user TCC permissions");
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
-      return Status::failure(1,
-                             "EndpointSecurity client is not running as root");
-    case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
-      return Status::failure(
-          1, "Too many EndpointSecurity clients running on the system");
-    default:
-      return Status::failure(1, "EndpointSecurity: Unknown error");
+    } else {
+      return Status::failure(1, getEsNewClientErrorMessage(result));
     }
   } else {
     return Status::failure(
@@ -93,70 +74,12 @@ void EndpointSecurityPublisher::tearDown() {
   es_unsubscribe_all(es_client_);
 
   if (es_client_success_) {
-    es_delete_client(es_client_);
+    auto result = es_delete_client(es_client_);
+    if (result != ES_RETURN_SUCCESS) {
+      VLOG(1) << "endpointsecurity: error tearing down es_client";
+    }
     es_client_ = nullptr;
   }
-}
-
-static inline std::string getPath(const es_process_t* p) {
-  return p->executable->path.length > 0 ? p->executable->path.data : "";
-}
-
-static inline std::string getSigningId(const es_process_t* p) {
-  return p->signing_id.length > 0 && p->signing_id.data != nullptr
-             ? p->signing_id.data
-             : "";
-}
-
-static inline std::string getTeamId(const es_process_t* p) {
-  return p->team_id.length > 0 && p->team_id.data != nullptr ? p->team_id.data
-                                                             : "";
-}
-
-static inline std::string getStringFromToken(es_string_token_t* t) {
-  return t->length > 0 && t->data != nullptr ? t->data : "";
-}
-
-static inline std::string getCwdPathFromPid(pid_t pid) {
-  struct proc_vnodepathinfo vpi {};
-  auto bytes = proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &vpi, sizeof(vpi));
-  return bytes <= 0 ? "" : vpi.pvi_cdir.vip_path;
-}
-
-static inline std::string getCDHash(const es_process_t* p) {
-  std::stringstream hash;
-  for (unsigned char i : p->cdhash) {
-    hash << std::hex << std::setfill('0') << std::setw(2)
-         << static_cast<unsigned int>(i);
-  }
-  auto s = hash.str();
-  return s.find_first_not_of(s.front()) == std::string::npos ? "" : s;
-}
-
-static inline void getProperties(const es_process_t* p,
-                                 const EndpointSecurityEventContextRef& ec) {
-  auto audit_token = p->audit_token;
-  ec->pid = audit_token_to_pid(audit_token);
-  ec->parent = p->ppid;
-  ec->original_parent = p->original_ppid;
-
-  ec->path = getPath(p);
-  ec->cwd = getCwdPathFromPid(ec->pid);
-
-  ec->uid = audit_token_to_ruid(audit_token);
-  ec->euid = audit_token_to_egid(audit_token);
-  ec->gid = audit_token_to_rgid(audit_token);
-  ec->egid = audit_token_to_egid(audit_token);
-
-  ec->signing_id = getSigningId(p);
-  ec->team_id = getTeamId(p);
-  ec->cdhash = getCDHash(p);
-  ec->platform_binary = p->is_platform_binary;
-
-  auto user = getpwuid(ec->uid);
-  ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";
-
-  ec->cwd = getCwdPathFromPid(ec->pid);
 }
 
 void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
@@ -179,14 +102,14 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
     ec->global_seq_num = message->global_seq_num;
   }
 
-  getProperties(message->process, ec);
+  getProcessProperties(message->process, ec);
 
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_EXEC: {
     ec->es_event = ES_EVENT_TYPE_NOTIFY_EXEC;
     ec->event_type = "exec";
 
-    getProperties(message->event.exec.target, ec);
+    getProcessProperties(message->event.exec.target, ec);
     ec->argc = es_exec_arg_count(&message->event.exec);
     {
       std::stringstream args;

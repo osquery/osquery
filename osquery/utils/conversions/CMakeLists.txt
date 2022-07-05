@@ -19,11 +19,13 @@ function(generateOsqueryUtilsConversions)
   set(source_files
     split.cpp
     tryto.cpp
+    trim.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/cfdata.cpp
+      darwin/cfdictionary.cpp
       darwin/cfnumber.cpp
       darwin/cfstring.cpp
       darwin/cftime.cpp
@@ -57,6 +59,7 @@ function(generateOsqueryUtilsConversions)
     join.h
     split.h
     tryto.h
+    trim.h
   )
 
   generateIncludeNamespace(osquery_utils_conversions "osquery/utils/conversions" "FILE_ONLY" ${public_header_files})
@@ -64,6 +67,7 @@ function(generateOsqueryUtilsConversions)
   if(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
       darwin/cfdata.h
+      darwin/cfdictionary.h
       darwin/cfnumber.h
       darwin/cfstring.h
       darwin/cftime.h
@@ -78,6 +82,7 @@ function(generateOsqueryUtilsConversions)
   endif()
 
   list(LENGTH platform_public_header_files platform_public_header_files_size)
+
   if(${platform_public_header_files_size} GREATER 0)
     generateIncludeNamespace(osquery_utils_conversions "osquery/utils/conversions" "FULL_PATH" ${platform_public_header_files})
   endif()
@@ -104,11 +109,13 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
     tests/join.cpp
     tests/split.cpp
     tests/tryto.cpp
+    tests/trim.cpp
   )
 
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/tests/cfstring.cpp
+      darwin/tests/cfdictionary.cpp
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
@@ -127,7 +134,6 @@ function(generateOsqueryUtilsConversionsConversionstestsTest)
 endfunction()
 
 function(generateOsqueryUtilsConversionsTotestsTest)
-
   add_osquery_executable(osquery_utils_conversions_totests-test tests/to.cpp)
 
   target_link_libraries(osquery_utils_conversions_totests-test PRIVATE

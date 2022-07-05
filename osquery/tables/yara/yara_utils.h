@@ -28,6 +28,45 @@ namespace osquery {
 
 const std::string kYARAHome{OSQUERY_HOME "yara/"};
 
+class YaraRulesHandle {
+ public:
+  YaraRulesHandle() = delete;
+  YaraRulesHandle(YR_RULES* rules) : rules_(rules) {}
+  ~YaraRulesHandle() {
+    if (rules_) {
+      yr_rules_destroy(rules_);
+    }
+  }
+
+  YaraRulesHandle(const YaraRulesHandle&) = delete;
+
+  YaraRulesHandle& operator=(const YaraRulesHandle&) = delete;
+
+  YaraRulesHandle(YaraRulesHandle&& other) noexcept {
+    rules_ = other.rules_;
+    other.rules_ = nullptr;
+  }
+
+  YaraRulesHandle& operator=(YaraRulesHandle&& other) noexcept {
+    rules_ = other.rules_;
+    other.rules_ = nullptr;
+    return *this;
+  }
+
+  YR_RULES* get() const {
+    return rules_;
+  }
+
+ private:
+  YR_RULES* rules_;
+};
+
+enum class YaraCompilerError {
+  GenericError,
+};
+
+using YaraCompilerResult = Expected<YaraRulesHandle, YaraCompilerError>;
+
 void YARACompilerCallback(int error_level,
                           const char* file_name,
                           int line_number,
@@ -38,13 +77,13 @@ Status yaraInitialize(void);
 
 Status yaraFinalize(void);
 
-Status compileSingleFile(const std::string& file, YR_RULES** rule);
+YaraCompilerResult compileSingleFile(const std::string& file);
 
-Status compileFromString(const std::string& buffer, YR_RULES** rules);
+YaraCompilerResult compileFromString(const std::string& buffer);
 
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
-                       std::map<std::string, YR_RULES*>& rules);
+                       std::map<std::string, YaraRulesHandle>& rules);
 
 /**
  * Avoid scanning files that could cause hangs or issues.
@@ -75,7 +114,7 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   }
 
   // Retrieve compiled rules.
-  std::map<std::string, YR_RULES*>& rules() {
+  std::map<std::string, YaraRulesHandle>& rules() {
     return rules_;
   }
 
@@ -87,7 +126,7 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   // Store compiled rules in a map (group => rules).
-  std::map<std::string, YR_RULES*> rules_;
+  std::map<std::string, YaraRulesHandle> rules_;
 
   std::set<std::string> url_allow_set_;
 

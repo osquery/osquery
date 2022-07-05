@@ -208,31 +208,38 @@ Status getYaraRules(YARAConfigParser parser,
   // Compile signature string and add them to the scan context
   for (const auto& sign : signature_set) {
     // Check if the signature string has been used/compiled
-    if (rules_map.count(hashStr(sign, sign_type)) > 0) {
+    const auto signature_hash = hashStr(sign, sign_type);
+    if (rules_map.count(signature_hash) > 0) {
       context.insert(std::make_pair(sign_type, sign));
       continue;
     }
 
-    YR_RULES* tmp_rules = nullptr;
+    YaraRulesHandle handle(nullptr);
+
     switch (sign_type) {
     case YC_FILE: {
       auto path = (boost::filesystem::path(sign).is_relative())
                       ? (kYARAHome + sign)
                       : sign;
-      auto status = compileSingleFile(path, &tmp_rules);
-      if (!status.ok()) {
-        LOG(WARNING) << "YARA compile error: " << status.toString();
+      auto result = compileSingleFile(path);
+      if (result.isError()) {
+        LOG(WARNING) << "YARA compile error: "
+                     << result.getError().getMessage();
         continue;
       }
+      handle = result.take();
       break;
     }
 
     case YC_RULE: {
-      auto status = compileFromString(sign, &tmp_rules);
-      if (!status.ok()) {
-        LOG(WARNING) << "YARA compile error: " << status.toString();
+      auto result = compileFromString(sign);
+      if (result.isError()) {
+        LOG(WARNING) << "YARA compile error: "
+                     << result.getError().getMessage();
         continue;
       }
+
+      handle = result.take();
       break;
     }
 
@@ -246,11 +253,14 @@ Status getYaraRules(YARAConfigParser parser,
         continue;
       }
 
-      auto status = compileFromString(rule_string, &tmp_rules);
-      if (!status.ok()) {
-        LOG(WARNING) << "YARA compile error: " << status.toString();
+      auto result = compileFromString(rule_string);
+      if (result.isError()) {
+        LOG(WARNING) << "YARA compile error: "
+                     << result.getError().getMessage();
         continue;
       }
+
+      handle = result.take();
       break;
     }
 
@@ -261,7 +271,7 @@ Status getYaraRules(YARAConfigParser parser,
     // Cache the compiled rules by setting the unique hashed signature
     // string as the lookup name. Additional signature file uses will
     // skip the compile step and be added to the scan context
-    rules_map[hashStr(sign, sign_type)] = tmp_rules;
+    rules_map.insert_or_assign(signature_hash, std::move(handle));
     context.insert(std::make_pair(sign_type, sign));
   }
 
@@ -363,8 +373,10 @@ QueryData genYara(QueryContext& context) {
   auto& rules = yaraParser->rules();
   for (const auto& path : paths) {
     for (const auto& sign : scanContext) {
-      if (rules.count(hashStr(sign.second, sign.first)) > 0) {
-        doYARAScan(rules[hashStr(sign.second, sign.first)],
+      auto hash = hashStr(sign.second, sign.first);
+      auto rules_it = rules.find(hash);
+      if (rules_it != rules.end()) {
+        doYARAScan(rules_it->second.get(),
                    path.c_str(),
                    results,
                    sign.first,
@@ -383,9 +395,10 @@ QueryData genYara(QueryContext& context) {
   // Also cleanup the cache block if rules are downloaded from url
   for (const auto& sign : scanContext) {
     if (sign.first == YC_RULE || sign.first == YC_URL) {
-      auto it = rules.find(hashStr(sign.second, sign.first));
+      auto hash = hashStr(sign.second, sign.first);
+      auto it = rules.find(hash);
       if (it != rules.end()) {
-        rules.erase(hashStr(sign.second, sign.first));
+        rules.erase(hash);
       }
     }
   }

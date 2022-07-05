@@ -11,6 +11,11 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
+
+#include <osquery/logger/logger.h>
 #include <osquery/utils/system/time.h>
 
 #include <osquery/core/flags.h>
@@ -31,11 +36,27 @@ QueryData genTime(QueryContext& context) {
   struct tm now = gmt;
   auto osquery_timestamp = toAsciiTime(&now);
 
-  char local_timezone[5] = {0};
+  std::string local_timezone;
+
   {
-    struct tm local;
+#ifdef WIN32
+    TIME_ZONE_INFORMATION time_zone_information{};
+    if (GetTimeZoneInformation(&time_zone_information) ==
+        TIME_ZONE_ID_INVALID) {
+      LOG(ERROR) << "Failed to acquire the time";
+    } else {
+      local_timezone = wstringToString(time_zone_information.StandardName);
+    }
+
+#else
+    struct tm local {};
     localtime_r(&osquery_time, &local);
-    strftime(local_timezone, sizeof(local_timezone), "%Z", &local);
+
+    std::array<char, 5> buffer;
+    strftime(buffer.data(), buffer.size(), "%Z", &local);
+
+    local_timezone.assign(buffer.data());
+#endif
   }
 
   char weekday[10] = {0};

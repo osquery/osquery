@@ -429,6 +429,19 @@ boost::filesystem::path getSystemRoot();
 Status platformLstat(const std::string& path, struct stat& d_stat);
 
 /**
+ * @brief Verifies if the provided file descriptor points to a file
+ *
+ */
+boost::optional<bool> platformIsFile(int fd);
+
+/**
+ * @brief Calls the platform specific version of fileno
+ *
+ * @return osquery::Status containing the errno
+ */
+Status platformFileno(FILE* file, int& fd);
+
+/**
  * @brief Populates the provided string with a textual representation of the
  * provided file flags.
  *

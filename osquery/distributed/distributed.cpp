@@ -125,7 +125,7 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   auto queries = getPendingQueries();
 
-  for (const auto query : queries) {
+  for (const auto& query : queries) {
     auto request = popRequest(query);
 
     if (FLAGS_verbose) {

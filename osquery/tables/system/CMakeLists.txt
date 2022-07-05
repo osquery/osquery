@@ -91,6 +91,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
+      linux/cpu_info.cpp
       linux/yum_sources.cpp
     )
 
@@ -140,6 +141,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/nvram.cpp
       darwin/os_version.cpp
       darwin/packages.mm
+      darwin/password_policy.cpp
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp

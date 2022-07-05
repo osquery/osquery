@@ -8,7 +8,6 @@
 function(testsIntegrationTablesMain)
   generateTestsIntegrationTablesIntegrationtestshelper()
   generateTestsIntegrationTablesTestsTest()
-
 endfunction()
 
 function(generateTestsIntegrationTablesIntegrationtestshelper)
@@ -25,6 +24,7 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
     osquery_database
     osquery_sql
     osquery_utils
+    tests_helper
     thirdparty_boost
     thirdparty_googletest_headers
   )
@@ -138,13 +138,9 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
-    if(DEFINED PLATFORM_MACOS AND NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files lldp_neighbors.cpp)
-    endif()
   endif()
 
-  if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
+  if(OSQUERY_BUILD_AWS AND(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
     list(APPEND source_files
       ec2_instance_metadata.cpp
       ec2_instance_tags.cpp
@@ -335,7 +331,6 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
   endif()
 
   add_osquery_executable(tests_integration_tables-test ${source_files})
@@ -357,10 +352,9 @@ function(generateTestsIntegrationTablesTestsTest)
 
   add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
   set_tests_properties(
-        tests_integration_tables-test
-        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    tests_integration_tables-test
+    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
   )
-
 endfunction()
 
 testsIntegrationTablesMain()

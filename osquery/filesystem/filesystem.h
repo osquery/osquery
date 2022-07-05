@@ -42,6 +42,9 @@ const std::string kSQLGlobWildcard{"%"};
 /// Globbing wildcard recursive character (double wildcard).
 const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
 
+/// Calls the setlocale() API, only used on Windows
+void initializeFilesystemAPILocale();
+
 /**
  * @brief Read a file from disk.
  *
