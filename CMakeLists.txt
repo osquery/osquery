@@ -21,6 +21,7 @@ endif()
 
 include(cmake/globals.cmake)
 include(cmake/options.cmake)
+include(cmake/ccache.cmake)
 include(cmake/flags.cmake)
 include("${OSQUERY_INSTALL_DIRECTIVES}")
 
@@ -29,7 +30,6 @@ if(OSQUERY_TOOLCHAIN_SYSROOT AND NOT DEFINED PLATFORM_LINUX)
 endif()
 
 function(main)
-
   findClangFormat()
   findPythonExecutablePath()
   generateSpecialTargets()
@@ -48,7 +48,7 @@ function(main)
     endif()
   elseif(NOT DEFINED PLATFORM_WINDOWS)
     if(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
-       NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
       message(STATUS "Warning: the selected C or C++ compiler is not clang/clang++. Compilation may fail")
     endif()
   endif()
@@ -63,7 +63,7 @@ function(main)
 
     if(TARGET clang-tidy::clang-tidy)
       set(CMAKE_CXX_CLANG_TIDY
-          "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
+        "${CLANG-TIDY_EXECUTABLE};${OSQUERY_CLANG_TIDY_CHECKS}"
       )
     else()
       message(WARNING "clang-tidy: Disabled because it was not found")
@@ -153,6 +153,7 @@ function(importLibraries)
     string(REPLACE "," ";" platform_list "${platform_list}")
 
     list(FIND platform_list "${CMAKE_SYSTEM_NAME}" platform_index)
+
     if(platform_index EQUAL -1)
       continue()
     endif()
