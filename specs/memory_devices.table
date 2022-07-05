@@ -24,3 +24,6 @@ schema([
 ])
 
 implementation("system@genMemoryDevices")
+fuzz_paths([
+    "/sys/firmware/efi/systab",
+])

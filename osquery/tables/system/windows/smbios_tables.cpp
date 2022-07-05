@@ -94,7 +94,7 @@ uint32_t getMemorySize(const std::wstring& capacityWStr) {
   uint64_t capacityBytes = std::wcstoull(capacityWStr.data(), nullptr, base);
   // Capacity row from WMI is in bytes, convert to Megabytes which means the
   // column can remain an INTEGER.
-  uint64_t size = capacityBytes / 1000000;
+  uint64_t size = capacityBytes / (1048576);
   if (size > UINT32_MAX) {
     LOG(ERROR) << "Physical memory overflows INTEGER column";
   }
@@ -156,7 +156,7 @@ QueryData genPlatformInfo(QueryContext& context) {
 QueryData genMemoryDevices(QueryContext& context) {
   QueryData results;
 
-  std::string query = "select * from Win32_PhysicalMemory";
+  const std::string query = "select * from Win32_PhysicalMemory";
   const auto request = WmiRequest::CreateWmiRequest(query);
   if (!request || !request->getStatus().ok()) {
     return results;
@@ -167,9 +167,6 @@ QueryData genMemoryDevices(QueryContext& context) {
   }
   for (int i = 0; i < wmiResults.size(); ++i) {
     Row r;
-    // Unable to find match for these from WMI.
-    r["handle"] = "";
-    r["array_handle"] = "";
     long formFactorId;
     wmiResults[i].GetLong("FormFactor", formFactorId);
     r["form_factor"] = getFormFactor(formFactorId);
@@ -182,8 +179,6 @@ QueryData genMemoryDevices(QueryContext& context) {
     std::wstring capacityWStr;
     wmiResults[i].GetString(stringToWstring("Capacity"), capacityWStr);
     r["size"] = INTEGER(getMemorySize(capacityWStr));
-    // Unable to find match for set in WMI.
-    r["set"] = INTEGER(-1);
     wmiResults[i].GetString("DeviceLocator", r["device_locator"]);
     wmiResults[i].GetString("BankLabel", r["bank_locator"]);
     long memoryType = 0;
@@ -211,6 +206,11 @@ QueryData genMemoryDevices(QueryContext& context) {
     long configuredVoltage = 0;
     wmiResults[i].GetLong("ConfiguredVoltage", configuredVoltage);
     r["configured_voltage"] = INTEGER(configuredVoltage);
+
+    // Unable to find match for these from WMI.
+    r["handle"] = "";
+    r["array_handle"] = "";
+    r["set"] = "";
 
     results.push_back(r);
   }
