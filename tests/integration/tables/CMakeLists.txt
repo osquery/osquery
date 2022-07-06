@@ -313,6 +313,7 @@ function(generateTestsIntegrationTablesTestsTest)
       windows_events.cpp
       windows_eventlog.cpp
       windows_security_products.cpp
+      windows_update_history.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp
       wmi_event_filters.cpp

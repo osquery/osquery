@@ -233,6 +233,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
@@ -365,6 +366,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/windows_eventlog.h
+      windows/windows_update_history.h
     )
   endif()
 

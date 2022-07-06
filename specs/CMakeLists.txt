@@ -264,6 +264,7 @@ function(generateNativeTables)
     "windows/services.table:windows"
     "windows/kva_speculative_info.table:windows"
     "windows/patches.table:windows"
+    "windows/windows_update_history.table:windows"
     "windows/ie_extensions.table:windows"
     "windows/shared_resources.table:windows"
     "windows/wmi_cli_event_consumers.table:windows"
