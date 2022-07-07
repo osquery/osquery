@@ -269,6 +269,9 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
     if (options & ColumnOptions::HIDDEN) {
       statement += " HIDDEN";
     }
+    if (options & ColumnOptions::COLLATENOCASE) {
+      statement += " COLLATE NOCASE";
+    }
     if (i < columns.size() - 1) {
       statement += ", ";
     }
