@@ -17,8 +17,6 @@ Representing commits from 15 contributors! Thank you all.
 - Prevent CLI_FLAGs to be set via config ([#7561](https://github.com/osquery/osquery/pull/7561))
 - Remove the `lldp_neighbors` table ([#7664](https://github.com/osquery/osquery/pull/7664))
 
-
-
 ### Table Changes
 
 - New Table: `es_process_file_events` for macOS Endpoint Security based FIM ([#7579](https://github.com/osquery/osquery/pull/7579))
@@ -30,7 +28,6 @@ Representing commits from 15 contributors! Thank you all.
 - Update `deb_packages` table to not sisplay arch info in the package name ([#7638](https://github.com/osquery/osquery/pull/7638))
 - Update `hardware_model` in the `system_info` table on Apple M1 machines to report correctly ([#7662](https://github.com/osquery/osquery/pull/7662))
 - Update `shared_resources` table to add type names, fix type/maximum_allowed handling ([#7645](https://github.com/osquery/osquery/pull/7645))
-
 
 ### Under the Hood improvements
 
