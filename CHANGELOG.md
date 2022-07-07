@@ -45,11 +45,11 @@ Representing commits from 15 contributors! Thank you all.
 - Add linwin to list of supported PLATFORM_DIRS ([#7646](https://github.com/osquery/osquery/pull/7646))
 - Fix AWS certificate verification failing on all services  ([#7652](https://github.com/osquery/osquery/pull/7652))
 - Fix MBCS support on Windows ([#7593](https://github.com/osquery/osquery/pull/7593))
-- Fix check for PIE support ([#7234](https://github.com/osquery/osquery/pull/7234))
+- Fix `local_timezone` column in the `time` table on Windows ([#7656](https://github.com/osquery/osquery/pull/7656))
+- Fix `system_info` table to support unicode on Windows ([#7626](https://github.com/osquery/osquery/pull/7626))
 - Fix multiple Yara leaks ([#7615](https://github.com/osquery/osquery/pull/7615))
 - Fix std::bad_alloc on pci_devices on Apple Silicon macs ([#7648](https://github.com/osquery/osquery/pull/7648))
 - Fix tables spec files to specify `linux` and not `posix` ([#7644](https://github.com/osquery/osquery/pull/7644))
-- Fix the Windows `local_timezone` column in the `time` table ([#7656](https://github.com/osquery/osquery/pull/7656))
 - Fix thrift server shutting down when dropping privileges ([#7639](https://github.com/osquery/osquery/pull/7639))
 
 ### Documentation
@@ -65,8 +65,8 @@ Representing commits from 15 contributors! Thank you all.
 ### Build
 
 - Add an option to build with the leak sanitizer ([#7609](https://github.com/osquery/osquery/pull/7609))
+- Fix check for PIE support ([#7234](https://github.com/osquery/osquery/pull/7234))
 - Fix SchedulerTests.test_scheduler_drift_accumulation flakyness ([#7613](https://github.com/osquery/osquery/pull/7613))
-- Fix system-info support for Unicode characters on Windows ([#7626](https://github.com/osquery/osquery/pull/7626))
 - Improve config parsing and osqueryfuzz-config performance ([#7635](https://github.com/osquery/osquery/pull/7635))
 - Initialize users and groups services on all tests that need them ([#7620](https://github.com/osquery/osquery/pull/7620))
 - ci: Update osquery-packaging commit to the latest one ([#7667](https://github.com/osquery/osquery/pull/7667))
