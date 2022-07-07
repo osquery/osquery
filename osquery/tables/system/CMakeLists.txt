@@ -91,6 +91,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
+      linux/cpu_info.cpp
       linux/yum_sources.cpp
     )
 
@@ -140,6 +141,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/nvram.cpp
       darwin/os_version.cpp
       darwin/packages.mm
+      darwin/password_policy.cpp
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp
@@ -231,6 +233,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
@@ -363,6 +366,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/windows_eventlog.h
+      windows/windows_update_history.h
     )
   endif()
 

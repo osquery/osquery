@@ -25,6 +25,7 @@
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/system/system.h>
 #include <osquery/core/shutdown.h>
+#include <osquery/filesystem/filesystem.h>
 
 DECLARE_string(flagfile);
 
@@ -343,6 +344,8 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 } // namespace osquery
 
 int main(int argc, char* argv[]) {
+  osquery::initializeFilesystemAPILocale();
+
   SERVICE_TABLE_ENTRYA serviceTable[] = {
       {const_cast<CHAR*>(osquery::kServiceName.c_str()),
        static_cast<LPSERVICE_MAIN_FUNCTIONA>(osquery::ServiceMain)},

@@ -90,7 +90,7 @@ static inline void genHardwareInfo(Row& r) {
 
   r["hardware_version"] = getIOKitProperty(properties, "version");
   r["hardware_vendor"] = getIOKitProperty(properties, "manufacturer");
-  r["hardware_model"] = getIOKitProperty(properties, "product-name");
+  r["hardware_model"] = getIOKitProperty(properties, "model");
   r["hardware_serial"] = getIOKitProperty(properties, "IOPlatformSerialNumber");
 
   // version, manufacturer, and product-name have a trailing space
@@ -100,33 +100,6 @@ static inline void genHardwareInfo(Row& r) {
   boost::trim(r["hardware_serial"]);
 
   CFRelease(properties);
-
-#ifdef __aarch64__
-  // Mac ARM / M1 machines have the hardware_model one level deeper, in the
-  // IODeviceTree:/product key.
-  if (r["hardware_model"].empty()) {
-    root =
-        IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/product");
-    if (root == MACH_PORT_NULL) {
-      VLOG(1) << "Cannot get ARM hardware information from IOKit";
-      return;
-    }
-
-    kr = IORegistryEntryCreateCFProperties(
-        root, &properties, kCFAllocatorDefault, kNilOptions);
-    IOObjectRelease(root);
-
-    if (kr != KERN_SUCCESS) {
-      VLOG(1) << "Cannot get ARM hardware properties from IOKit";
-      return;
-    }
-
-    r["hardware_model"] = getIOKitProperty(properties, "product-name");
-    boost::trim(r["hardware_model"]);
-
-    CFRelease(properties);
-  }
-#endif
 }
 
 QueryData genSystemInfo(QueryContext& context) {

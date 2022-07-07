@@ -8,7 +8,7 @@
  */
 
 #include <osquery/filesystem/fileops.h>
-
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/mock_file_structure.h>
 
 #include <osquery/utils/info/platform_type.h>
@@ -29,6 +29,7 @@ class FileOpsTests : public testing::Test {
   fs::path fake_directory_;
 
   void SetUp() override {
+    initializeFilesystemAPILocale();
     fake_directory_ = createMockFileStructure();
   }
 
@@ -675,26 +676,28 @@ TEST_F(FileOpsTests, test_glob) {
   }
 
   {
-    std::vector<fs::path> expected{fake_directory_ / "deep1/",
-                                   fake_directory_ / "deep11/",
-                                   fake_directory_ / "door.txt",
-                                   fake_directory_ / "root.txt",
-                                   fake_directory_ / "root2.txt",
-                                   fake_directory_ / "roto.txt",
-                                   fake_directory_ / "toplevel/"};
+    std::vector<fs::path> expected{
+        fake_directory_ / "deep1/",
+        fake_directory_ / "deep11/",
+        fake_directory_ / "door.txt",
+        fake_directory_ / "root.txt",
+        fake_directory_ / "root2.txt",
+        fake_directory_ / "roto.txt",
+        fake_directory_ / kTopLevelMockFolderName / "/"};
     auto result = platformGlob((fake_directory_ / "*").string());
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
-    std::vector<fs::path> expected{fake_directory_ / "deep1/deep2/",
-                                   fake_directory_ / "deep1/level1.txt",
-                                   fake_directory_ / "deep11/deep2/",
-                                   fake_directory_ / "deep11/level1.txt",
-                                   fake_directory_ / "deep11/not_bash",
-                                   fake_directory_ / "toplevel/secondlevel1/",
-                                   fake_directory_ / "toplevel/secondlevel2/",
-                                   fake_directory_ / "toplevel/secondlevel3/"};
+    std::vector<fs::path> expected{
+        fake_directory_ / "deep1/deep2/",
+        fake_directory_ / "deep1/level1.txt",
+        fake_directory_ / "deep11/deep2/",
+        fake_directory_ / "deep11/level1.txt",
+        fake_directory_ / "deep11/not_bash",
+        fake_directory_ / kTopLevelMockFolderName / "secondlevel1/",
+        fake_directory_ / kTopLevelMockFolderName / "secondlevel2/",
+        fake_directory_ / kTopLevelMockFolderName / "secondlevel3/"};
     auto result = platformGlob((fake_directory_ / "*" / "*").string());
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
@@ -704,7 +707,7 @@ TEST_F(FileOpsTests, test_glob) {
         fake_directory_ / "deep1/deep2/level2.txt",
         fake_directory_ / "deep11/deep2/deep3/",
         fake_directory_ / "deep11/deep2/level2.txt",
-        fake_directory_ / "toplevel/secondlevel3/thirdlevel1/",
+        fake_directory_ / kTopLevelMockFolderName / "secondlevel3/thirdlevel1/",
     };
     auto result = platformGlob((fake_directory_ / "*/*/*").string());
     EXPECT_TRUE(globResultsMatch(result, expected));

@@ -93,7 +93,7 @@ void DpkgQuery::packageIteratorCallback(struct pkg_array* array,
                                         struct pkginfo* pkg,
                                         PackageList& package_list) {
   Package package;
-  package.name = pkg_name(pkg, pnaw_nonambig);
+  package.name = pkg_name(pkg, pnaw_never);
   package.version = versiondescribe(&pkg->installed.version, vdew_nonambig);
   package.arch = dpkg_arch_describe(pkg->installed.arch);
   package.revision = pkg->installed.version.revision;

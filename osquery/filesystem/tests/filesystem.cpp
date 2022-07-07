@@ -23,9 +23,7 @@
 #include <osquery/core/system.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
-
 #include <osquery/utils/info/platform_type.h>
-
 #include <osquery/filesystem/mock_file_structure.h>
 
 // Some proc* functions are only compiled when building on linux
@@ -42,6 +40,15 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+namespace {
+
+const std::vector<std::string> kFileNameList{
+    "辞書.txt",
+    "test_file.txt",
+};
+
+}
+
 DECLARE_uint64(read_max);
 
 class FilesystemTests : public testing::Test {
@@ -50,6 +57,8 @@ class FilesystemTests : public testing::Test {
   fs::path fake_directory_;
 
   void SetUp() override {
+    initializeFilesystemAPILocale();
+
     fake_directory_ = fs::canonical(createMockFileStructure());
     test_working_dir_ =
         fs::temp_directory_path() /
@@ -93,84 +102,94 @@ class FilesystemTests : public testing::Test {
 };
 
 TEST_F(FilesystemTests, test_read_file) {
-  std::ofstream test_file((test_working_dir_ / "fstests-file").string());
-  test_file.write("test123\n", sizeof("test123"));
-  test_file.close();
+  for (const auto& file_name : kFileNameList) {
+    auto file_path = test_working_dir_ / file_name;
 
-  std::string content;
-  auto s = readFile(test_working_dir_ / "fstests-file", content);
+    std::ofstream test_file(file_path.string());
+    test_file.write("test123\n", sizeof("test123"));
+    test_file.close();
 
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(content, "test123" + line_ending_);
+    std::string content;
+    auto s = readFile(file_path, content);
 
-  removePath(test_working_dir_ / "fstests-file");
+    EXPECT_TRUE(s.ok());
+    EXPECT_EQ(s.toString(), "OK");
+    EXPECT_EQ(content, "test123" + line_ending_);
+
+    removePath(file_path);
+  }
 }
 
 TEST_F(FilesystemTests, test_remove_path) {
-  auto test_dir = test_working_dir_ / "rmdir";
-  fs::create_directories(test_dir);
+  for (const auto& file_name : kFileNameList) {
+    auto test_dir = test_working_dir_ / file_name;
+    fs::create_directories(test_dir);
 
-  auto test_file = test_working_dir_ / "rmdir/rmfile";
-  writeTextFile(test_file, "testcontent");
+    auto test_file = test_working_dir_ / file_name / "rmfile";
+    writeTextFile(test_file, "testcontent");
 
-  ASSERT_TRUE(pathExists(test_file).ok());
+    ASSERT_TRUE(pathExists(test_file).ok());
 
-  // Try to remove the directory.
-  EXPECT_TRUE(removePath(test_dir));
-  EXPECT_FALSE(pathExists(test_file).ok());
-  EXPECT_FALSE(pathExists(test_dir).ok());
+    // Try to remove the directory.
+    EXPECT_TRUE(removePath(test_dir));
+    EXPECT_FALSE(pathExists(test_file).ok());
+    EXPECT_FALSE(pathExists(test_dir).ok());
+  }
 }
 
 TEST_F(FilesystemTests, test_write_file) {
-  auto test_file = test_working_dir_ / "fstests-file2";
-  std::string content(2048, 'A');
+  for (const auto& file_name : kFileNameList) {
+    auto test_file = test_working_dir_ / file_name;
+    std::string content(2048, 'A');
 
-  EXPECT_TRUE(writeTextFile(test_file, content).ok());
-  ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_TRUE(isWritable(test_file).ok());
-  ASSERT_TRUE(removePath(test_file).ok());
+    EXPECT_TRUE(writeTextFile(test_file, content).ok());
+    ASSERT_TRUE(pathExists(test_file).ok());
+    ASSERT_TRUE(isWritable(test_file).ok());
+    ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0400));
-  ASSERT_TRUE(pathExists(test_file).ok());
+    EXPECT_TRUE(writeTextFile(test_file, content, 0400));
+    ASSERT_TRUE(pathExists(test_file).ok());
 
-  // On POSIX systems, root can still read/write.
-  EXPECT_FALSE(isWritable(test_file).ok());
-  EXPECT_TRUE(isReadable(test_file).ok());
-  ASSERT_TRUE(removePath(test_file).ok());
+    // On POSIX systems, root can still read/write.
+    EXPECT_FALSE(isWritable(test_file).ok());
+    EXPECT_TRUE(isReadable(test_file).ok());
+    ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, 0000));
-  ASSERT_TRUE(pathExists(test_file).ok());
+    EXPECT_TRUE(writeTextFile(test_file, content, 0000));
+    ASSERT_TRUE(pathExists(test_file).ok());
 
-  // On POSIX systems, root can still read/write.
-  EXPECT_FALSE(isWritable(test_file).ok());
-  EXPECT_FALSE(isReadable(test_file).ok());
-  ASSERT_TRUE(removePath(test_file).ok());
+    // On POSIX systems, root can still read/write.
+    EXPECT_FALSE(isWritable(test_file).ok());
+    EXPECT_FALSE(isReadable(test_file).ok());
+    ASSERT_TRUE(removePath(test_file).ok());
+  }
 }
 
 TEST_F(FilesystemTests, test_readwrite_file) {
-  auto test_file = test_working_dir_ / "fstests-file3";
-  size_t filesize = 4096 * 10;
+  for (const auto& file_name : kFileNameList) {
+    auto test_file = test_working_dir_ / file_name;
+    size_t filesize = 4096 * 10;
 
-  std::string in_content(filesize, 'A');
-  EXPECT_TRUE(writeTextFile(test_file, in_content).ok());
-  ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_TRUE(isReadable(test_file).ok());
+    std::string in_content(filesize, 'A');
+    EXPECT_TRUE(writeTextFile(test_file, in_content).ok());
+    ASSERT_TRUE(pathExists(test_file).ok());
+    ASSERT_TRUE(isReadable(test_file).ok());
 
-  // Now read the content back.
-  std::string out_content;
-  EXPECT_TRUE(readFile(test_file, out_content).ok());
-  EXPECT_EQ(filesize, out_content.size());
-  EXPECT_EQ(in_content, out_content);
-  removePath(test_file);
+    // Now read the content back.
+    std::string out_content;
+    EXPECT_TRUE(readFile(test_file, out_content).ok());
+    EXPECT_EQ(filesize, out_content.size());
+    EXPECT_EQ(in_content, out_content);
+    removePath(test_file);
 
-  // Now try to write outside of a 4k chunk size.
-  in_content = std::string(filesize + 1, 'A');
-  writeTextFile(test_file, in_content);
-  out_content.clear();
-  readFile(test_file, out_content);
-  EXPECT_EQ(in_content, out_content);
-  removePath(test_file);
+    // Now try to write outside of a 4k chunk size.
+    in_content = std::string(filesize + 1, 'A');
+    writeTextFile(test_file, in_content);
+    out_content.clear();
+    readFile(test_file, out_content);
+    EXPECT_EQ(in_content, out_content);
+    removePath(test_file);
+  }
 }
 
 TEST_F(FilesystemTests, test_read_limit) {
@@ -225,7 +244,7 @@ TEST_F(FilesystemTests, test_list_files_valid_directory) {
 
 TEST_F(FilesystemTests, test_intermediate_globbing_directories) {
   fs::path thirdLevelDir =
-      fs::path(fake_directory_) / "toplevel/%/thirdlevel1";
+      fs::path(fake_directory_) / kTopLevelMockFolderName / "%/thirdlevel1";
   std::vector<std::string> results;
   resolveFilePattern(thirdLevelDir, results);
   EXPECT_EQ(results.size(), 1U);

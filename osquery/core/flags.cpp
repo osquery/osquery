@@ -27,7 +27,7 @@ std::string lexical_cast<std::string, bool>(const bool& b) {
   ss << std::boolalpha << b;
   return ss.str();
 }
-}
+} // namespace boost
 
 namespace flags = GFLAGS_NAMESPACE;
 
@@ -228,5 +228,9 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
     }
     fprintf(stdout, "  %s\n", getDescription(flag.second->name).c_str());
   }
+}
+
+void Flag::resetCustomFlags() {
+  instance().custom_.clear();
 }
 } // namespace osquery

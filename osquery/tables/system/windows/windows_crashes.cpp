@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/utils/system/env.h>
 #include <osquery/utils/system/system.h>
 
 #include <Winternl.h>
@@ -625,6 +626,10 @@ QueryData genCrashLogs(QueryContext& context) {
   } else {
     auto tempDumpLoc = getEnvVar("TMP");
     dumpFolderLocation = tempDumpLoc.is_initialized() ? *tempDumpLoc : "";
+  }
+
+  if (const auto expandedPath = expandEnvString(dumpFolderLocation)) {
+    dumpFolderLocation = *expandedPath;
   }
 
   if (!fs::exists(dumpFolderLocation) ||

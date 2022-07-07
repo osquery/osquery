@@ -10,6 +10,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace osquery {
@@ -40,4 +41,17 @@ std::vector<std::string> split(const std::string& s,
                                char delim,
                                size_t occurrences);
 
-}
+/**
+ * @brief Split a given string_view based on a delimiter
+ *
+ * This is at least 2x faster than osquery::split,
+ * especially when you only need some of the elements.
+ *
+ * @param source
+ * @param delimiter
+ * @return std::vector<std::string_view>
+ */
+std::vector<std::string_view> vsplit(const std::string_view source,
+                                     char delimiter);
+
+} // namespace osquery

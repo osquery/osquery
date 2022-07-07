@@ -796,4 +796,21 @@ TEST_F(ConfigTests, test_config_backup_integrate) {
 
   FLAGS_config_enable_backup = config_enable_backup_saved;
 }
+
+TEST_F(ConfigTests, test_config_cli_flags) {
+  get().reset();
+
+  auto pack_delimiter = Flag::getValue("pack_delimiter");
+  ASSERT_NE(pack_delimiter, ",");
+  get().update({{"options", "{\"options\":{ \"pack_delimiter\": \",\" }}"}});
+  pack_delimiter = Flag::getValue("pack_delimiter");
+  ASSERT_EQ(pack_delimiter, ",");
+
+  Flag::updateValue("disable_watchdog", "true");
+  ASSERT_EQ(Flag::getValue("disable_watchdog"), "true");
+
+  get().update({{"options", "{\"options\":{ \"disable_watchdog\": false }}"}});
+
+  ASSERT_NE(Flag::getValue("disable_watchdog"), "false");
+}
 } // namespace osquery
