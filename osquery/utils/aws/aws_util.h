@@ -10,6 +10,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <utility>
 
 #include <aws/core/Region.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
@@ -22,6 +24,7 @@
 
 #include <aws/sts/STSClient.h>
 
+#include <boost/optional/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/utils/status/status.h>
@@ -170,30 +173,25 @@ void initAwsSdk();
  * This method makes an HTTP PUT request with kImdsTokenTtlHeader
  * to request a token, which can subsequently used to make GET requests to the
  * Instance Metadata Service endpoint.
+ * If it fails to retrieve the token, it does FLAGS_aws_imdsv2_request_attempts
+ * attempts, with an interval of FLAGS_aws_imdsv2_request_interval, which scales
+ * quadratically.
  *
- * @return token as a string if successful, empty string otherwise
+ * @return token as a string if successful, boost::none if not
  */
-std::string getIMDSToken();
-
-/**
- * @brief Checks to see if this machine is EC2 instance.
- *
- * This method caches results after first check and returns cached data. It
- * first checks if /sys/hypervisor/uuid file exists and its contents starts with
- * 'ec2'. If UUID prefix matches, it then connects to EC2 latest metadata URL.
- * If both checks pass, this method returns true. Otherwise false.
- */
-bool isEc2Instance();
+boost::optional<std::string> getIMDSToken();
 
 /**
  * @brief Returns EC2 instance ID and region of this machine.
  *
- * If this is EC2 instance, returns the instance ID and region by querying the
- * EC2 metadata service. If this is not EC2 instance, returns empty strings.
- * This function makes HTTP call to EC2 metadata service. EC2 instance ID and
- * region are cached.
+ * Returns the instance ID and region by making an HTTP request to the EC2
+ * metadata service. If there's any error in retrieving the instance id or
+ * region, they will be empty. One has to ensure that the instance is an EC2 one
+ * before calling this method, using isEc2Instance.
+ *
+ * @return Pair of instance ID and region if successful, otherwise boost::none
  */
-void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
+boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion();
 
 /**
  * @brief Retrieve the Aws::Region from the aws_region flag

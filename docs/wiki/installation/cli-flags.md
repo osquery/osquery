@@ -631,3 +631,17 @@ Comma separated list of tables to disable. By default no tables are disabled.
 `--enable_tables=table1,table2`
 
 Comma separated list of tables to enable. By default every table is enabled. If a specific table is set in both `--enable_tables` and `--disable_tables`, disabling take precedence. If `--enable_tables` is defined and `--disable_tables` is not set, every table but the one defined in `--enable_tables` become disabled.
+
+## AWS
+
+`--aws_imdsv2_request_attempts=3`
+
+How many attempts to do at requesting an IMDSv2 token. Such a token is retrieved from an AWS metadata service that might not always be accessible, and it's used by plugins like the loggers `AWS Kinesis`, `AWS Firehose` or the EC2 tables.
+
+`--aws_imdsv2_request_interval=3`
+
+Base seconds to wait between attempts at requesting an IMDSv2 token. Scales quadratically with the number of attempts.
+
+`--aws_disable_imdsv1_fallback=false`
+
+Whether to disable support for IMDSv1 and fail if an IMDSv2 token could not be retrieved
