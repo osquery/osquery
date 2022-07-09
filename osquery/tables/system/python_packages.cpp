@@ -48,8 +48,10 @@ const std::set<std::string> kDarwinPythonPath = {
 };
 // clang-format on
 
-const std::string kWinPythonInstallKey =
-    "SOFTWARE\\Python\\PythonCore\\%\\InstallPath";
+const std::set<std::string> kWinPythonInstallKey = {
+    "SOFTWARE\\Python\\PythonCore\\%\\InstallPath",
+    "SOFTWARE\\Microsoft\\AppModel\\Lookaside\\user\\Software\\Python\\PythonCore\\%\\InstallPath"
+};
 
 void genPackage(const std::string& path, Row& r, Logger& logger) {
   std::string content;
@@ -141,7 +143,7 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
   if (context.constraints.count("directory") > 0 &&
       context.constraints.at("directory").exists(EQUALS)) {
     paths = context.constraints["directory"].getAll(EQUALS);
-  } else {
+  } else if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
     for (const auto& path : kPythonPath) {
       std::vector<std::string> sites;
       resolveFilePattern(path, sites);
@@ -174,13 +176,15 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
       }
     }
   } else if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    // Enumerate any system installed python packages
-    auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinPythonInstallKey;
-    genWinPythonPackages(installPathKey, results, logger);
+    for (const auto& key: kWinPythonInstallKey) {
+      // Enumerate any system installed python packages
+      auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinPythonInstallKey;
+      genWinPythonPackages(installPathKey, results, logger);
 
-    // Enumerate any user installed python packages
-    installPathKey = "HKEY_USERS\\%\\" + kWinPythonInstallKey;
-    genWinPythonPackages(installPathKey, results, logger);
+      // Enumerate any user installed python packages
+      installPathKey = "HKEY_USERS\\%\\" + kWinPythonInstallKey;
+      genWinPythonPackages(installPathKey, results, logger);
+    }
   }
 
   return results;
