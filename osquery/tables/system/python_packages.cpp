@@ -178,11 +178,11 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
   } else if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     for (const auto& key: kWinPythonInstallKey) {
       // Enumerate any system installed python packages
-      auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinPythonInstallKey;
+      auto installPathKey = "HKEY_LOCAL_MACHINE\\" + key;
       genWinPythonPackages(installPathKey, results, logger);
 
       // Enumerate any user installed python packages
-      installPathKey = "HKEY_USERS\\%\\" + kWinPythonInstallKey;
+      installPathKey = "HKEY_USERS\\%\\" + key;
       genWinPythonPackages(installPathKey, results, logger);
     }
   }
