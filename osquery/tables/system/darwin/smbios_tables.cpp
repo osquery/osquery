@@ -7,12 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <iostream>
 #include <iomanip>
 #include <sstream>
 
-#include <sys/types.h>
 #include <sys/sysctl.h>
+#include <sys/types.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
@@ -153,7 +152,7 @@ QueryData genIntelMemoryDevices(QueryContext& context) {
 }
 
 QueryData genMemoryDevices(QueryContext& context) {
-  #ifdef __aarch64__
+#ifdef __aarch64__
   return genAarch64MemoryDevices(context);
 #else
   return genIntelMemoryDevices(context);
