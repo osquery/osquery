@@ -7,8 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <iostream>
 #include <iomanip>
 #include <sstream>
+
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
@@ -109,7 +113,27 @@ QueryData genSMBIOSTables(QueryContext& context) {
   return results;
 }
 
-QueryData genMemoryDevices(QueryContext& context) {
+QueryData genAarch64MemoryDevices(QueryContext& context) {
+  Row r;
+  auto chosen =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
+  if (chosen != 0) {
+    CFMutableDictionaryRef details = nullptr;
+    IORegistryEntryCreateCFProperties(
+        chosen, &details, kCFAllocatorDefault, kNilOptions);
+    IOObjectRelease(chosen);
+    r["memory_type"] = getIOKitProperty(details, "dram-type");
+  }
+
+  uint64_t memsize;
+  size_t len = sizeof(memsize);
+  sysctlbyname("hw.memsize", &memsize, &len, NULL, 0);
+  r["size"] = INTEGER(memsize / 1048576);
+
+  return {r};
+}
+
+QueryData genIntelMemoryDevices(QueryContext& context) {
   QueryData results;
 
   DarwinSMBIOSParser parser;
@@ -126,6 +150,14 @@ QueryData genMemoryDevices(QueryContext& context) {
   });
 
   return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  #ifdef __aarch64__
+  return genAarch64MemoryDevices(context);
+#else
+  return genIntelMemoryDevices(context);
+#endif
 }
 
 QueryData genMemoryArrays(QueryContext& context) {
