@@ -47,15 +47,19 @@ Note that in this threat model, osquery does _not_ currently have mitigations fo
 
 Updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
 languages. We learn of newly disclosed vulnerabilities in osquery's dependencies by following community news and
-maintaining a general awareness of new announcements. It's a shared responsibility.
+maintaining a general awareness of new announcements. It's a shared responsibility. There is an effort, currently in
+progress, to add a scheduled automated dependency checking script to our CI workflows. When complete, it should provide
+more timely alerts.
 
 The osquery maintainers make a best effort to rapidly update vulnerable libraries with a new version of osquery, when
 needed. See an [example](https://github.com/osquery/osquery/commit/0e9efb1497037ded21e8679dda09547d5b0fecd0)
 demonstrating how we update a third-party dependency.)
 
 Finally, a note: sometimes security-dependency-checking tools generate false positives. There may be a vulnerability
-in one of osquery's dependencies, but it does not affect osquery for one reason or another. We still make an effort
+in one of osquery's dependencies, but for one reason or another it may not actually affect osquery. We still make an effort
 to update to fixed versions of libraries, but more or less urgently depending on osquery's actual exposure to the risk.
+Refer to the osquery wiki where we maintain an [updated impact assessment of known issues](https://osquery.readthedocs.io/en/latest/deployment/dependency-security/)
+that have been reported as being vulnerabilities in osquery's third-party dependencies.
 
 ## Security Design Considerations of osquery
 
