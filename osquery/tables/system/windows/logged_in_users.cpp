@@ -119,6 +119,31 @@ QueryData genLoggedInUsers(QueryContext& context) {
       r["host"] = std::string(addr, CLIENTADDRESS_LENGTH);
     }
 
+
+    if (!r["host"].length()) {
+      LPSTR clientName = nullptr;
+      res = WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,
+                                        pSessionInfo[i].SessionId,
+                                        WTSClientName,
+                                        &clientName,
+                                        &bytesRet);
+
+      if (res == 0 || clientName == nullptr) {
+        VLOG(1) << "Error querying WTS clientName information (" << GetLastError()
+                << ")";
+        results.push_back(r);
+        WTSFreeMemory(clientName);
+        continue;
+      }
+
+      r["host"] = std::string(clientName);
+      
+      if (clientName != nullptr) {
+        WTSFreeMemory(clientName);
+      }
+    }
+
+
     r["pid"] = INTEGER(-1);
 
     if (clientInfo != nullptr) {
