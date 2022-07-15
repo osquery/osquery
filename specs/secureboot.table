@@ -2,6 +2,13 @@ table_name("secureboot")
 description("Secure Boot UEFI Settings.")
 schema([
     Column("secure_boot", INTEGER, "Whether secure boot is enabled"),
+])
+
+extended_schema(DARWIN, [
+    Column("secure_mode", INTEGER, "Secure mode for macOS: 0 disabled, 1 full security, 2 medium security"),
+])
+
+extended_schema(LINUX + WINDOWS, [
     Column("setup_mode", INTEGER, "Whether setup mode is enabled"),
 ])
 

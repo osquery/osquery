@@ -167,6 +167,12 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/xprotect.cpp
     )
 
+    if(NOT TARGET_PROCESSOR STREQUAL "aarch64")
+      list(APPEND source_files
+        darwin/secureboot.cpp
+      )
+    endif()
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/appcompat_shims.cpp

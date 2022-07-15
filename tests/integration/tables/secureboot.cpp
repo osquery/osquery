@@ -42,12 +42,17 @@ TEST_F(Secureboot, test_sanity) {
   }
 
   ASSERT_EQ(secureboot_data.size(), 1);
-  static const ValidationMap kValidationMap{
+  ValidationMap row_map{
       {"secure_boot", IntOrEmpty},
-      {"setup_mode", IntOrEmpty},
   };
 
-  validate_rows(secureboot_data, kValidationMap);
+  if (isPlatform(PlatformType::TYPE_WINDOWS) ||
+      isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map.emplace("setup_mode", IntOrEmpty);
+  } else if (isPlatform(PlatformType::TYPE_OSX)) {
+    row_map.emplace("secure_mode", IntOrEmpty);
+  }
+  validate_rows(secureboot_data, row_map);
 }
 
 } // namespace osquery::table_tests

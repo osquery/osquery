@@ -266,6 +266,12 @@ function(generateTestsIntegrationTablesTestsTest)
       yara.cpp
     )
 
+    if(NOT TARGET_PROCESSOR STREQUAL "aarch64")
+      list(APPEND platform_source_files
+        secureboot.cpp
+      )
+    endif()
+
     list(APPEND source_files ${platform_source_files})
 
   elseif(DEFINED PLATFORM_WINDOWS)
