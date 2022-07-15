@@ -241,6 +241,7 @@ std::set<fs::path> Carver::carveAll() {
     }
 
     PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     if (!dst.isValid()) {
       VLOG(1) << "Destination temporary file is invalid: " << dstPath;
       continue;
