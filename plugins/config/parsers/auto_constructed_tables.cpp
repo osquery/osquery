@@ -165,8 +165,9 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     columns_value.reserve(256);
 
     if (!params.HasMember("columns") || !params["columns"].IsArray()) {
-      LOG(WARNING) << "ATC Table: " << table_name
-                   << " is misconfigured (no columns)";
+      LOG(WARNING) << "ATC Table: Skipping " << table_name
+                   << " because it is misconfigured (no columns)";
+      continue;
     }
 
     std::string user_defined_path_column;
