@@ -121,23 +121,20 @@ QueryData genLoggedInUsers(QueryContext& context) {
 
 
     if (!r["host"].length()) {
-      LPSTR clientName = nullptr;
-      res = WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,
+      LPWSTR clientName = nullptr;
+      res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
                                         pSessionInfo[i].SessionId,
                                         WTSClientName,
                                         &clientName,
                                         &bytesRet);
 
       if (res == 0 || clientName == nullptr) {
-        VLOG(1) << "Error querying WTS clientName information (" << GetLastError()
-                << ")";
-        results.push_back(r);
-        WTSFreeMemory(clientName);
-        continue;
+        VLOG(1) << "Error querying WTS clientName information ("
+                << GetLastError() << ")";
+      }else{
+        r["host"] = wstringToString(clientName);
       }
 
-      r["host"] = std::string(clientName);
-      
       if (clientName != nullptr) {
         WTSFreeMemory(clientName);
       }
