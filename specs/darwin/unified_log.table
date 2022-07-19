@@ -1,7 +1,6 @@
 table_name("unified_log")
 description("Queries the OSLog framework for entries in the system log. "
             "The maximum number of rows returned is limited for performance issues. "
-            "The condition \"max_rows = N\" sets the maximum number of rows returned (100 by default). "
             "This table introduces a new idiom for extracting sequential data in batches using multiple queries, ordered by timestamp. "
             "To trigger it, the user should include the condition \"timestamp > -1\".")
 
@@ -17,7 +16,7 @@ schema([
   Column("category", TEXT, "the category of the os_log_t used", additional=True),
   Column("subsystem", TEXT, "the subsystem of the os_log_t used", additional=True),
   Column("level", TEXT, "the severity level of the entry"),
-  Column("max_rows", INTEGER, "the max number of rows returned", additional=True, hidden=True)
+  Column("max_rows", INTEGER, "the max number of rows returned (defaults to 100)", additional=True, hidden=True)
 ])
 examples([
   "select * from unified_log",

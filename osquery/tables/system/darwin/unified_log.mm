@@ -15,6 +15,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <boost/algorithm/string/replace.hpp>
 namespace ba = boost::algorithm;
@@ -104,7 +105,7 @@ void SequentialContext::load() {
     timestamp = std::stod(str);
   s = getDatabaseValue(kPersistentSettings, kUALcountKey, str);
   if (s.ok())
-    count = std::stod(str);
+    count = std::stoi(str);
 }
 
 void SequentialContext::save() {
@@ -175,14 +176,13 @@ void addQueryOp(NSMutableArray* preds,
  */
 int getMaxRows(QueryContext& queryContext) {
   if (queryContext.hasConstraint(kMaxRowsColumn, kMaxRowsOperator)) {
-    std::string str;
-    str = *queryContext.constraints[kMaxRowsColumn]
-               .getAll(kMaxRowsOperator)
-               .begin();
-    return std::stoi(str);
-  } else {
-    return kMaxRowsDefault;
+    auto const max_rows = tryTo<int>(*queryContext.constraints[kMaxRowsColumn]
+                                          .getAll(kMaxRowsOperator)
+                                          .begin());
+    if (max_rows.isValue())
+      return max_rows.get();
   }
+  return kMaxRowsDefault;
 }
 
 /**
@@ -204,6 +204,26 @@ bool getSequential(QueryContext& queryContext) {
   return false;
 }
 
+bool badSentinal(QueryContext& queryContext) {
+  if (queryContext.hasConstraint(kSentinalColumn)) {
+    std::string str;
+    for (const auto& it : queryContext.constraints) {
+      const std::string& key = it.first;
+      if (key != kSentinalColumn)
+        continue;
+      for (const auto& constraint : it.second.getAll()) {
+        if (constraint.op != GREATER_THAN ||
+            constraint.op != GREATER_THAN_OR_EQUALS) {
+          auto const timestamp_expr = tryTo<int>(constraint.expr);
+          if (timestamp_expr.isValue() && timestamp_expr.get() < 0)
+            return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 QueryData genUnifiedLog(QueryContext& queryContext) {
   int rows_counter = 0;
   QueryData results;
@@ -219,6 +239,11 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
     if (error != nil) {
       TLOG << "error getting handle to log store: "
            << [[error localizedDescription] UTF8String];
+      return {};
+    }
+
+    if (badSentinal(queryContext)) {
+      TLOG << "error on timestamp constraint";
       return {};
     }
 
