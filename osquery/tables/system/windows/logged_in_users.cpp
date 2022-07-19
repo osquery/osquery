@@ -119,7 +119,6 @@ QueryData genLoggedInUsers(QueryContext& context) {
       r["host"] = std::string(addr, CLIENTADDRESS_LENGTH);
     }
 
-
     if (!r["host"].length()) {
       LPWSTR clientName = nullptr;
       res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
@@ -139,7 +138,6 @@ QueryData genLoggedInUsers(QueryContext& context) {
         WTSFreeMemory(clientName);
       }
     }
-
 
     r["pid"] = INTEGER(-1);
 
