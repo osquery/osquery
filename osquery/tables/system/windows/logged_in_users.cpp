@@ -131,7 +131,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       if (res == 0 || clientName == nullptr) {
         VLOG(1) << "Error querying WTS clientName information ("
                 << GetLastError() << ")";
-      }else{
+      } else {
         r["host"] = wstringToString(clientName);
       }
 
