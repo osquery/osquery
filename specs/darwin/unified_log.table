@@ -2,7 +2,7 @@ table_name("unified_log")
 description("Queries the OSLog framework for entries in the system log. "
             "The maximum number of rows returned is limited for performance issues. "
             "This table introduces a new idiom for extracting sequential data in batches using multiple queries, ordered by timestamp. "
-            "To trigger it, the user should include the condition \"timestamp > -1\".")
+            "To trigger it, the user should include the condition \"timestamp > -1\", and the table will handle pagination.")
 
 schema([
   Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
