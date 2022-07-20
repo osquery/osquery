@@ -175,6 +175,13 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+
+```PowerShell
+$Env:GTEST_FILTER='windowsEventLog.*'
+ctest -R tests_integration_tests_tables-test -C RelWithDebInfo -V #runs just the windowsEventLog under the integration tables tests
+```
+
 ### Run tests on Linux and macOS
 
 To run the tests and get just a summary report:
