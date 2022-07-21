@@ -18,6 +18,7 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/tables/system/smbios_utils.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/utils/conversions/join.h>
 
@@ -223,7 +224,7 @@ QueryData genOEMStrings(QueryContext& context) {
   return results;
 }
 
-QueryData genPlatformInfo(QueryContext& context) {
+QueryData genIntelPlatformInfo(QueryContext& context) {
   auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
   if (rom == 0) {
     return {};
@@ -280,6 +281,63 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   CFRelease(details);
   return {r};
+}
+
+QueryData genAarch64PlatformInfo(QueryContext& context) {
+  auto device_tree =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
+  if (device_tree == 0) {
+    return {};
+  }
+
+  CFMutableDictionaryRef details = nullptr;
+  IORegistryEntryCreateCFProperties(
+      device_tree, &details, kCFAllocatorDefault, kNilOptions);
+  IOObjectRelease(device_tree);
+
+  if (details == nullptr) {
+    return {};
+  }
+  Row r;
+  r["vendor"] = getIOKitProperty(details, "manufacturer");
+
+  auto chosen =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
+  if (chosen != 0) {
+    IORegistryEntryCreateCFProperties(
+        chosen, &details, kCFAllocatorDefault, kNilOptions);
+    IOObjectRelease(chosen);
+    r["version"] = getIOKitProperty(details, "system-firmware-version");
+  }
+
+  auto root = IORegistryGetRootEntry(kIOMasterPortDefault);
+  if (root != 0) {
+    CFTypeRef property = (CFDataRef)IORegistryEntryCreateCFProperty(
+        root, CFSTR(kIOKitBuildVersionKey), kCFAllocatorDefault, 0);
+    if (property != nullptr) {
+      auto signature = stringFromCFString((CFStringRef)property);
+      CFRelease(property);
+      r["extra"] = signature;
+    }
+  }
+
+  // Unavailable on M1 Macs
+  r["volume_size"] = "";
+  r["size"] = "";
+  r["date"] = "";
+  r["revision"] = "";
+  r["address"] = "";
+
+  CFRelease(details);
+  return {r};
+}
+
+QueryData genPlatformInfo(QueryContext& context) {
+#ifdef __aarch64__
+  return genAarch64PlatformInfo(context);
+#else
+  return genIntelPlatformInfo(context);
+#endif
 }
 } // namespace tables
 } // namespace osquery
