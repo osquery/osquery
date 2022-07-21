@@ -714,12 +714,12 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for the x86_64 macOS-10.15 worker
+    - name: Package the tests for the x86_64 macOS-11 worker
       if: matrix.architecture == 'x86_64'
       run: |
         ( cd workspace && ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} )
 
-    - name: Store the packaged tests for the x86_64 macOS-10.15 worker
+    - name: Store the packaged tests for the x86_64 macOS-11 worker
       if: matrix.architecture == 'x86_64'
       uses: actions/upload-artifact@v1
       with:
@@ -735,12 +735,15 @@ jobs:
 
 
 
-  # This job takes the packaged tests (Release + Debug) from the big sur
-  # builder and runs them on Catalina
-  test_macos_catalina:
+  # This job takes the packaged tests (Release + Debug) from the Monterey
+  # builder and runs them on a new Big Sur instance
+  test_macos_bigsur:
+    # TODO: This is temporarily disabled until we update the main macOS build job to use Monterey
+    if: ${{ false }}
+
     needs: build_macos
 
-    runs-on: macos-10.15
+    runs-on: macos-11
 
     steps:
       - name: Clone the osquery repository
@@ -795,7 +798,9 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_macos_catalina
+    # TODO: This has to be changed back to the job test after we update to Monterey
+    needs: build_macos
+    # needs: test_macos_bigsur
 
     runs-on: macos-11
 
