@@ -234,14 +234,16 @@ std::set<fs::path> Carver::carveAll() {
     }
 
     const auto dstPath = carveDir_ / srcPath;
-    auto ret = fs::create_directories(dstPath.parent_path());
-    if (!ret) {
-      VLOG(1) << "Failed to create directories for: " << dstPath.parent_path();
-      continue;
+    if (!fs::exists(dstPath.parent_path())) {
+      auto ret = fs::create_directories(dstPath.parent_path());
+      if (!ret) {
+        VLOG(1) << "Failed to create directories for: "
+                << dstPath.parent_path();
+        continue;
+      }
     }
 
     PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     if (!dst.isValid()) {
       VLOG(1) << "Destination temporary file is invalid: " << dstPath;
       continue;
