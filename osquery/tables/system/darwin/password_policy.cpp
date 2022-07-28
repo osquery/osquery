@@ -44,7 +44,7 @@ void genRowsFromPolicy(const CFDictionaryRef& policies,
   count = CFArrayGetCount((CFArrayRef)content);
   for (CFIndex i = 0; i < count; i++) {
     Row r;
-    r["uid"] = BIGINT(uid);
+    r["uid"] = uid.empty() ? BIGINT(-1) : BIGINT(uid);
     r["policy_content"] = getPropertiesFromDictionary(
         (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
         "policyContent");
