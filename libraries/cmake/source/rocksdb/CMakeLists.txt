@@ -464,7 +464,7 @@ function(rocksdbMain)
     "${library_root}/include"
   )
 
-  elseif(PLATFORM_WINDOWS)
+  if(PLATFORM_WINDOWS)
     # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
     # Status::NotSupported(), so that the caller can use a different way to
     # determine whether the files are matching. This lets us keep the project-wide
