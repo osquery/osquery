@@ -10,4 +10,7 @@ schema([
     Column("volume_size", INTEGER, "(Optional) size of firmware volume"),
     Column("extra", TEXT, "Platform-specific additional information"),
 ])
+extended_schema(WINDOWS, [
+    Column("firmware_type", TEXT, "The type of firmware (Uefi, Bios, Unknown).")
+])
 implementation("system@genPlatformInfo")

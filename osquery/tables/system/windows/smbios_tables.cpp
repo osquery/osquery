@@ -33,6 +33,36 @@ std::string to_iso8601_date(const FILETIME& ft) {
   return iso_date.str();
 }
 
+std::string getFirmwareType() {
+
+  using GetFirmwareTypePtr = BOOL (*)(FirmwareType *);
+
+  auto kernel32_module = GetModuleHandle("kernel32");
+  auto function_ptr = static_cast<GetFirmwareTypePtr>(GetProcAddress(kernel32_module,
+                                                                    "GetFirmwareType"));
+ std::string firmware_type = "Unknown";
+
+ if (function_ptr == nullptr) {
+   // We are on Windows 7: Attempt to determine the firmware type based on
+   // the registry keys
+   auto state_reg_key = RegCreateKey(HKEY_LOCAL_MACHINE,
+                                     "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State");
+
+   if (state_reg_key != INVALID_HANDLE_VALUE) {
+     firmware_type = "Uefi";
+     CloseHandle(state_reg_key);
+
+   } else {
+     firmware_type = "Bios";
+   }
+
+ } else if (!function_ptr(firmware_type)) {
+   LOG(ERROR) << "platform_info: Failed to acquire the firmware type";
+ }
+
+ return firmware_type;
+}
+
 QueryData genPlatformInfo(QueryContext& context) {
   QueryData results;
 
@@ -63,6 +93,8 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   auto s = to_iso8601_date(release_date);
   r["date"] = s.empty() ? "-1" : s;
+
+  r["firmware_type"] = SQL_TEXT(getFirmwareType());
 
   results.push_back(r);
   return results;
