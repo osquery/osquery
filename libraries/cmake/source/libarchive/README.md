@@ -6,15 +6,15 @@ Integrate the osquery-toolchain, using the following file as a starting point: `
 
 Append the following to the CMake options:
 
-## x86
+## macOS x86
 
-```
--DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DCMAKE_OSX_ARCHITECTURES=x86_64
+```bash
+-DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-## M1
+## macOS ARM (M1, M2, etc.)
 
-```
+```bash
 -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=arm64
 ```
 
@@ -64,7 +64,7 @@ cmake \
 
 ## Windows
 
-```sh
+```cmd
 cmake ^
   -S src ^
   -B b ^
@@ -107,6 +107,7 @@ cmake ^
 ```
 
 # Common
+
 Make sure the following config options are enabled:
 
 - `HAVE_LIBLZMA`

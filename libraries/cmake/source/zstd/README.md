@@ -1,9 +1,10 @@
 # Linux
+
 ## Common
 
 Make sure you are working on a clean source folder
 
-```
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
@@ -29,18 +30,18 @@ cmake \
 
 Build the project
 
-```
+```bash
 cmake \
   --build build \
   -j $(nproc)
 ```
 
-# macOS
+## macOS
 
-## Intel, Apple Silicon
+### Intel, Apple Silicon
 
 TARGET: Either x86_64 or arm64
-DEPLOYMENT: 10.12 for x86_64, 10.15 for arm64
+DEPLOYMENT: 10.14 for x86_64, 10.15 for arm64
 
 ```sh
 cmake \
@@ -62,7 +63,7 @@ cmake \
   -DZSTD_ZLIB_SUPPORT=OFF
 ```
 
-# Windows
+## Windows
 
 ```sh
 cmake ^

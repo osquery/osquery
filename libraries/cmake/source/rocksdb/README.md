@@ -24,7 +24,7 @@ cmake ^
 
 Make sure to use the osquery-toolchain so that settings are correctly detected. You will have to edit the main CMakeLists.txt of RocksDB. Take a look at `cmake/toolchain.cmake` to see how to do it.
 
-## x86_64
+## Linux x86_64
 
 ```sh
 cmake \
@@ -46,9 +46,9 @@ cmake \
   -DWITH_LIBURING=OFF
 ```
 
-## AArch64
+## Linux AArch64
 
-```
+```bash
 cmake \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -S . \
@@ -71,7 +71,7 @@ cmake \
 
 # macOS
 
-## x86_64
+## macOS x86_64
 
 ```sh
 cmake \
@@ -91,11 +91,11 @@ cmake \
   -DPORTABLE=ON \
   -DFORCE_SSE42=ON \
   -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 \
   -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-## Apple Silicon
+## macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake \

@@ -258,7 +258,7 @@ function(setupBuildFlags)
         DARWIN=1
         BSD=1
         OSQUERY_BUILD_PLATFORM="darwin"
-        OSQUERY_BUILD_DISTRO="10.12"
+        OSQUERY_BUILD_DISTRO="10.14"
       )
 
       target_compile_options(cxx_settings INTERFACE

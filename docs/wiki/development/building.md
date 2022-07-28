@@ -53,7 +53,8 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ## macOS
 
-The current build of osquery supports deployment to the same set of macOS versions (macOS 10.12 and newer).  _Building_ osquery from source on macOS now requires 10.15 Catalina.
+The current build of osquery supports deployment to the same set of macOS versions (macOS 10.14 and newer).  _Building_
+osquery from source on macOS now requires 10.15 Catalina or newer.
 
 The initial directory is assumed to be `/Users/<user>`
 
@@ -74,7 +75,7 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 
 ### Step 2: Download and build source on macOS
 
-In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12` specifies macOS 10.12 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
+In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14` specifies macOS 10.14 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
@@ -83,7 +84,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)

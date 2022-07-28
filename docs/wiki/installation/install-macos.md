@@ -1,6 +1,10 @@
 # Installing on macOS
 
-Continuous Integration currently tests macOS builds of osquery against macOS 10.15 (see the `os: [macos-10.15]` line in the `build_macos` section of the [CI configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/build.yml). All core functionality of osquery should work on macOS 10.12 or newer, although some tables may read data present only on certain versions of macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.11 and older are no longer supported.
+Continuous Integration currently tests macOS builds of osquery against macOS 11 (see the `os: [macos-` line in
+the `build_macos` section of the [CI
+configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/build.yml). All core functionality of
+osquery should work on macOS 10.14 or newer, although some tables may read data present only on certain versions of
+macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.13 and older are no longer supported.
 
 ## Package Installation
 
@@ -20,13 +24,14 @@ The default package creates the following structure:
 /usr/local/bin/osqueryi -> /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
 /usr/local/bin/osqueryctl -> /opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl
 ```
+
 **Note:** With the release of osquery 5.x, osquery is now installed as an app bundle at `/opt/osquery/lib/osquery.app`. The new location for `osqueryd` and `osqueryctl` is inside the app bundle at `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd` and `/opt/osquery/lib/osquery.app/Contents/Resources/osqueryctl` respectively. Symlinks to `osqueryi` and `osqueryctl` are provided in `/usr/local/bin` for convenience.
 
 This package does **not** install a LaunchDaemon to start `osqueryd`. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
 
 ### Note on upgrading from osquery 4.x to 5.x
 
-When upgrading from older versions to newer, osquery itself does not provide a mechanisim to stop the service of older version, upgrade osquery, and then restart the service. 
+When upgrading from older versions to newer, osquery itself does not provide a mechanism to stop the service of older version, upgrade osquery, and then restart the service.
 
 ### Post installation steps
 

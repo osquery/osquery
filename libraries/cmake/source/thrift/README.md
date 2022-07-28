@@ -17,7 +17,7 @@ cmake \
 
 # macOS
 
-## x86_64
+## macOS x86_64
 
 ```sh
 cmake \
@@ -35,12 +35,12 @@ cmake \
   -DBUILD_PYTHON=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-## Apple Silicon
+## macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake \

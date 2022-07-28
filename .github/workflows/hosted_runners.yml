@@ -629,7 +629,7 @@ jobs:
         sudo xcode-select -s "${xcode_path}"
 
         if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
-          echo ::set-output name=DEPLOYMENT_TARGET::10.12
+          echo ::set-output name=DEPLOYMENT_TARGET::10.14
         else
           echo ::set-output name=DEPLOYMENT_TARGET::10.15
         fi

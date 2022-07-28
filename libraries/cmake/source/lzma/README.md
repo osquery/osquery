@@ -1,6 +1,6 @@
 # Linux
 
-## x86
+## Linux x86
 
 Download the tarball version.
 
@@ -16,10 +16,11 @@ export CC=clang
 ./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls
 ```
 
-## AArch64
+## Linux AArch64
 
 Install:
-```
+
+```bash
 sudo apt install autoconf automake libtool
 ```
 
@@ -45,7 +46,8 @@ cp ./config.h ../config/linux/<arch>/config.h
 ```
 
 From the build we also add the defines:
-```
+
+```text
 HAVE_CONFIG_H
 TUKLIB_SYMBOL_PREFIX=lzma_
 ```
@@ -54,7 +56,7 @@ TUKLIB_SYMBOL_PREFIX=lzma_
 
 Generated with the following commands:
 
-## M1
+## macOS ARM (M1, M2, etc.)
 
 ```sh
 ./autogen.sh
@@ -62,14 +64,15 @@ export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platfor
 ./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls --host=aarch64-apple-darwin
 ```
 
-## x86_64
+## macOS x86_64
+
 ```sh
 ./autogen.sh
-CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.12"
+CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.14"
 ./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls
 ```
 
-## Common
+## macOS Common
 
 Then copy
 
@@ -78,7 +81,8 @@ cp ./config.h ../config/macos/<arch>/config.h
 ```
 
 From the build we also add the defines:
-```
+
+```text
 HAVE_CONFIG_H
 TUKLIB_SYMBOL_PREFIX=lzma_
 ```
@@ -88,7 +92,8 @@ TUKLIB_SYMBOL_PREFIX=lzma_
 Copy `windows\vs2019\config.h` from the lzma source to `config\x86_64\windows`.
 
 Then comment these defines inside the `config.h` file:
-```
+
+```text
 #define HAVE_DECODER_IA64 1
 #define HAVE_DECODER_POWERPC 1
 #define HAVE_DECODER_SPARC 1
@@ -99,7 +104,8 @@ Then comment these defines inside the `config.h` file:
 ```
 
 From the build we also add the defines:
-```
+
+```text
 HAVE_CONFIG_H
 TUKLIB_SYMBOL_PREFIX=lzma_
 LZMA_API_STATIC

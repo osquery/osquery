@@ -36,17 +36,17 @@ make
 
 Generated with the following commands:
 
-## M1
+## macOS ARM (M1, M2, etc.)
 
 ```sh
 CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target arm64-apple-macos10.15" ./configure --static --64
 make
 ```
 
-## x86
+## macOS Intel x86-64
 
 ```sh
-CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.12"
+CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.14"
 ./configure --static --64
 make
 ```

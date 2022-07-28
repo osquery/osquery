@@ -20,7 +20,7 @@ Before diving into osquery's specific implementation of SQL, please familiarize 
 
 Within the shell, try: `.help`
 
-```
+```text
 $ osqueryi
 Using a virtual database. Need help, type '.help'
 osquery> .help
@@ -36,7 +36,7 @@ osquery>
 
 Try the meta-commands `.tables` and `.schema` to list all of the tables and their schema. The `schema` meta-command takes an argument that helps limit the output to a partial string match.
 
-```
+```text
 osquery> .schema process
 [...]
 CREATE TABLE process_memory_map(pid INTEGER, start TEXT, end TEXT, permissions TEXT, offset BIGINT, device TEXT, inode INTEGER, path TEXT, pseudo INTEGER);
@@ -51,7 +51,7 @@ This [complete schema](https://osquery.io/schema/) for all supported platforms i
 
 On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 
-```
+```text
 osquery> SELECT pid, name, path FROM processes LIMIT 1;
 +-----+---------+---------------+
 | pid | name    | path          |
@@ -72,7 +72,7 @@ To really hammer home the real-time representation, try `SELECT * FROM time;`. F
 
 Then, let's look at a "meta" table that provides details to osquery about itself. These tables are prefixed with `osquery_`:
 
-```
+```text
 osquery> .mode line
 osquery> SELECT * FROM osquery_info;
            pid = 15982
@@ -92,7 +92,7 @@ This will always show the current PID of the running osquery process, shell or o
 
 Let's use this to demonstrate `JOIN`ing:
 
-```
+```text
 osquery> SELECT pid, name, path FROM osquery_info JOIN processes USING (pid);
   pid = 15982
  name = osqueryi
@@ -101,7 +101,7 @@ osquery> SELECT pid, name, path FROM osquery_info JOIN processes USING (pid);
 
 Now let's get fancy and complicated, by performing two `JOIN`s and adding a `WHERE` clause:
 
-```
+```text
 osquery> SELECT p.pid, name, p.path as process_path, pf.path as open_path
     ...>   FROM osquery_info i
     ...>   JOIN processes p ON p.pid = i.pid

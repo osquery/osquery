@@ -27,12 +27,13 @@ cmake -G "Visual Studio 16 2019" -A x64 ../ -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DW
 
 # macOS
 
-## x86
+## macOS x86
 
 ```sh
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14
 ```
-## M1
+
+## macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THREADS=ON -DHAVE_LIB_GFLAGS=ON -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_CUSTOM_PREFIX=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
@@ -42,7 +43,7 @@ cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_TLS=OFF -DWITH_GFLAGS=OFF -DWITH_THR
 
 Copy the generated files from the build folder, to the respective folders in the osquery source under `libraries/cmake/source/glog/generated`
 
-```
+```text
 glog -> libraries/cmake/source/glog/generated/<os>/<architecture>/public/glog
 config.h -> libraries/cmake/source/glog/generated/<os>/<architecture>private/config.h
 ```
