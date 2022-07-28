@@ -1,4 +1,4 @@
-# Troubleshooting
+# Building osquery's Third-party libraries
 
 This folder contains all the third party libraries that osquery needs.
 All the third party libraries in this folder are built from source.
@@ -100,10 +100,11 @@ rm strip; ln -s llvm-strip strip
 
 ## macOS
 
-The system compiler is used on Big Sur 11.6, XCode 13, SDK 11.3.
-Both x86 and M1 architectures are built on an x86 machine, using the toolchain ability to cross-compile.
+The system used to compile is currently macOS Big Sur 11.x, XCode 13.x, SDK 11.3.
 
-### macos x86
+Both x86_64 and ARM architectures of the executable are built on an x86_64 machine, using the toolchain's ability to cross-compile.
+
+### macos x86_64
 
 The deployment target is 10.14.
 
