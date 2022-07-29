@@ -75,6 +75,7 @@ COLUMN_OPTIONS = {
     "required": "REQUIRED",
     "optimized": "OPTIMIZED",
     "hidden": "HIDDEN",
+    "collate_nocase": "COLLATENOCASE",
 }
 
 # Column options that render tables uncacheable.
