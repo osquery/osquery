@@ -12,6 +12,7 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/core/windows/wmi.h"
 
@@ -34,33 +35,46 @@ std::string to_iso8601_date(const FILETIME& ft) {
 }
 
 std::string getFirmwareType() {
+  enum class FirmwareType : std::uint32_t {
+    Unknown,
+    Bios,
+    Uefi,
+  };
+  using GetFirmwareTypePtr = BOOL (*)(FirmwareType*);
 
-  using GetFirmwareTypePtr = BOOL (*)(FirmwareType *);
+  auto kernel32_module = GetModuleHandleA("kernel32");
+  auto function_ptr = reinterpret_cast<GetFirmwareTypePtr>(
+      GetProcAddress(kernel32_module, "GetFirmwareType"));
+  FirmwareType firmware_type = FirmwareType::Unknown;
 
-  auto kernel32_module = GetModuleHandle("kernel32");
-  auto function_ptr = static_cast<GetFirmwareTypePtr>(GetProcAddress(kernel32_module,
-                                                                    "GetFirmwareType"));
- std::string firmware_type = "Unknown";
+  if (function_ptr == nullptr) {
+    // We are on Windows 7: Attempt to determine the firmware type based on
+    // the registry keys
+    HKEY state_reg_key;
+    auto success =
+        RegCreateKeyA(HKEY_LOCAL_MACHINE,
+                      "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
+                      &state_reg_key);
 
- if (function_ptr == nullptr) {
-   // We are on Windows 7: Attempt to determine the firmware type based on
-   // the registry keys
-   auto state_reg_key = RegCreateKey(HKEY_LOCAL_MACHINE,
-                                     "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State");
+    if (success != 0 && state_reg_key != INVALID_HANDLE_VALUE) {
+      firmware_type = FirmwareType::Uefi;
+      RegCloseKey(state_reg_key);
 
-   if (state_reg_key != INVALID_HANDLE_VALUE) {
-     firmware_type = "Uefi";
-     CloseHandle(state_reg_key);
+    } else {
+      firmware_type = FirmwareType::Bios;
+    }
 
-   } else {
-     firmware_type = "Bios";
-   }
+  } else if (!function_ptr(&firmware_type)) {
+    LOG(ERROR) << "platform_info: Failed to acquire the firmware type";
+  }
 
- } else if (!function_ptr(firmware_type)) {
-   LOG(ERROR) << "platform_info: Failed to acquire the firmware type";
- }
+  if (firmware_type == FirmwareType::Bios) {
+    return "Bios";
+  } else if (firmware_type == FirmwareType::Uefi) {
+    return "Uefi";
+  }
 
- return firmware_type;
+  return "Unknown";
 }
 
 QueryData genPlatformInfo(QueryContext& context) {
