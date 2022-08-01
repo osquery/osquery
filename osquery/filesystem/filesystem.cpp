@@ -501,7 +501,9 @@ std::set<fs::path> getHomeDirectories() {
 
   auto users = SQL::selectAllFrom("users");
   for (const auto& user : users) {
-    if (user.at("directory").size() > 0) {
+    // First verify the user has a "directory" entry.
+    auto dir_iter = user.find("directory");
+    if (dir_iter != user.end() && user.at("directory").size() > 0) {
       results.insert(user.at("directory"));
     }
   }
