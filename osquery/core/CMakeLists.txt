@@ -34,6 +34,7 @@ function(generateOsqueryCoreInit)
     osquery_numericmonitoring
     osquery_extensions
     osquery_distributed
+    osquery_utils_pidfile
   )
 
   if(DEFINED PLATFORM_WINDOWS)

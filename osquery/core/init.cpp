@@ -29,6 +29,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/config/config.h>
 #include <osquery/core/core.h>
@@ -44,9 +45,11 @@
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/registry/registry.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/config/default_paths.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/info/version.h>
+#include <osquery/utils/pidfile/pidfile.h>
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 
@@ -123,7 +126,19 @@ CLI_FLAG(uint64,
          15,
          "Seconds to allow for shutdown. Minimum is 10");
 
+/// Should the daemon force unload previously-running osqueryd daemons.
+CLI_FLAG(bool,
+         force,
+         false,
+         "Force osqueryd to kill previously-running daemons");
+
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
+
+/// The path to the pidfile for osqueryd
+CLI_FLAG(string,
+         pidfile,
+         OSQUERY_PIDFILE "osqueryd.pidfile",
+         "Path to the daemon pidfile mutex");
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
@@ -135,6 +150,11 @@ DWORD kLegacyThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "osquery.flags.default"};
+
+struct Initializer::PrivateData final {
+  /// Either a pidfile or std::nullopt for ephemeral instances
+  boost::optional<Pidfile> opt_pidfile;
+};
 
 bool Initializer::isWorker_{false};
 std::atomic<bool> Initializer::resource_limit_hit_{false};
@@ -222,7 +242,7 @@ Initializer::Initializer(int& argc,
                          char**& argv,
                          ToolType tool,
                          bool const init_glog)
-    : argc_(&argc), argv_(&argv) {
+    : d(new PrivateData), argc_(&argc), argv_(&argv) {
   // Initialize random number generated based on time.
   std::srand(static_cast<unsigned int>(
       chrono_clock::now().time_since_epoch().count()));
@@ -380,6 +400,53 @@ Initializer::Initializer(int& argc,
   platformSetup();
 }
 
+Initializer::~Initializer() {}
+
+bool terminateActiveOsqueryInstance() {
+  auto pid_res = Pidfile::read(FLAGS_pidfile);
+  if (pid_res.isError()) {
+    auto error = pid_res.getErrorCode();
+
+    if (error != Pidfile::Error::NotRunning) {
+      LOG(ERROR) << "Failed to read the pidfile: " << error;
+    }
+
+    return false;
+  }
+
+  auto pid = static_cast<int>(pid_res.take());
+  if (pid == PlatformProcess::getCurrentPid()) {
+    return true;
+  }
+
+  // The pid is running, check if it is an osqueryd process by name.
+  std::stringstream query_text;
+
+  query_text << "SELECT name FROM processes WHERE pid = " << pid
+             << " AND name LIKE 'osqueryd%';";
+
+  SQL q(query_text.str());
+  if (!q.ok()) {
+    LOG(ERROR) << "Error querying processes: " << q.getMessageString();
+    return false;
+  }
+
+  if (q.rows().size() > 0) {
+    // Do not use SIGQUIT as it will cause a crash on OS X.
+    PlatformProcess target(pid);
+    auto kill_succeeded = target.kill();
+
+    LOG(ERROR) << "Killing osqueryd process: " << pid << " ("
+               << (kill_succeeded ? "succeeded" : "failed") << ")";
+
+    return true;
+
+  } else {
+    LOG(ERROR) << "Refusing to kill non-osqueryd process " << pid;
+    return false;
+  }
+}
+
 void Initializer::initDaemon() const {
   if (isWorker() || !isDaemon()) {
     // The worker process (child) will not daemonize.
@@ -404,12 +471,35 @@ void Initializer::initDaemon() const {
   systemLog(binary_ + " started [version=" + kVersion + "]");
 
   if (!FLAGS_ephemeral) {
-    // Create a process mutex around the daemon.
-    auto pid_status = createPidFile();
-    if (!pid_status.ok()) {
-      LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
+    auto pidfile_path = fs::path(FLAGS_pidfile).make_preferred().string();
+
+    auto pidfile_res = Pidfile::create(pidfile_path);
+    if (pidfile_res.isError() &&
+        pidfile_res.getErrorCode() == Pidfile::Error::Busy && FLAGS_force) {
+      if (terminateActiveOsqueryInstance()) {
+        for (int retry = 0; retry < 5; ++retry) {
+          sleepFor(2000);
+
+          pidfile_res = Pidfile::create(pidfile_path);
+          if (pidfile_res.isValue()) {
+            break;
+          }
+
+          VLOG(1) << binary_ << " Pidfile initialization failed: "
+                  << pidfile_res.getErrorCode() << " (retry: " << retry + 1
+                  << "/5)";
+        }
+      }
+    }
+
+    if (pidfile_res.isError()) {
+      LOG(ERROR) << binary_
+                 << " Pidfile check failed: " << pidfile_res.getErrorCode();
+
       shutdownNow(EXIT_FAILURE);
     }
+
+    d->opt_pidfile = pidfile_res.take();
   }
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
