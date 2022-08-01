@@ -1,6 +1,8 @@
-# Windows
+# rocksdb library build notes
 
-## x86_64
+## Windows
+
+### Windows x86_64
 
 ```sh
 cmake ^
@@ -20,11 +22,11 @@ cmake ^
   -DPORTABLE=ON
 ```
 
-# Linux
+## Linux
 
 Make sure to use the osquery-toolchain so that settings are correctly detected. You will have to edit the main CMakeLists.txt of RocksDB. Take a look at `cmake/toolchain.cmake` to see how to do it.
 
-## Linux x86_64
+### Linux x86_64
 
 ```sh
 cmake \
@@ -46,7 +48,7 @@ cmake \
   -DWITH_LIBURING=OFF
 ```
 
-## Linux AArch64
+### Linux AArch64
 
 ```bash
 cmake \
@@ -69,9 +71,9 @@ cmake \
   -DWITH_IOSTATS_CONTEXT=OFF
 ```
 
-# macOS
+## macOS
 
-## macOS x86_64
+### macOS x86_64
 
 ```sh
 cmake \
@@ -95,7 +97,7 @@ cmake \
   -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-## macOS ARM (M1, M2, etc.)
+### macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake \

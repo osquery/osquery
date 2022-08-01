@@ -1,4 +1,6 @@
-# Linux
+# Augeas library build notes
+
+## Linux
 
 ## Common
 

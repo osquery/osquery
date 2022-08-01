@@ -1,21 +1,23 @@
-# Linux
+# librdkafka library build notes
 
-## Common
+## Linux
 
-Make sure you are working on a clean source folder
+### Common
+
+Make sure you are working in a clean source folder:
 
 ```bash
 git reset --hard ; git clean -ffdx
 ```
 
-Make sure that libsasl2 is not enabled
+Make sure that `libsasl2` is not enabled:
 
 ```bash
 sed 's/set(WITH_SASL_CYRUS ON)/set(WITH_SASL_CYRUS OFF)/g' -i CMakeLists.txt
 sed -i '/list(APPEND BUILT_WITH "SASL_CYRUS")/d' -i CMakeLists.txt
 ```
 
-Integrate the osquery-toolchain in the main CMakeLists.txt file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
+Integrate the osquery-toolchain in the main `CMakeLists.txt` file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project:
 
 ```bash
 cmake \
@@ -39,7 +41,7 @@ cmake \
   -DWITH_SASL_OAUTHBEARER:BOOL=ON
 ```
 
-Build the project
+Build the project:
 
 ```bash
 cmake \
@@ -48,22 +50,22 @@ cmake \
 
 Copy the generated config file: `build/generated/config.h`
 
-# macOS
+## macOS
 
-Make sure you are working on a clean source folder
+Make sure you are working in a clean source folder:
 
 ```bash
 git reset --hard ; git clean -ffdx
 ```
 
-Make sure that libsasl2 is not enabled
+Make sure that `libsasl2` is not enabled:
 
 ```bash
 gsed 's/set(WITH_SASL_CYRUS ON)/set(WITH_SASL_CYRUS OFF)/g' -i CMakeLists.txt
 gsed -i '/list(APPEND BUILT_WITH "SASL_CYRUS")/d' -i CMakeLists.txt
 ```
 
-## macOS x86_64
+### macOS x86_64
 
 ```sh
 cmake \
@@ -90,7 +92,7 @@ cmake \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-## macOS ARM (M1, M2, etc.)
+### macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake \
@@ -117,7 +119,7 @@ cmake \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-# Windows
+## Windows
 
 ```cmd
 cmake ^

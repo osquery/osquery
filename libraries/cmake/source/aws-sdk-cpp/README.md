@@ -1,6 +1,8 @@
-# Linux
+# aws-sdk-cpp library build notes
 
-## Common
+## Linux
+
+### Common
 
 Integrate the osquery toolchain in the main CMakeLists.txt file; you can use the `cmake/toolchain.cmake` include as a starting point.
 
@@ -14,9 +16,9 @@ cmake \
   -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain
 ```
 
-# macOS
+## macOS
 
-## macOS x86_64
+### macOS x86_64
 
 ```sh
 cmake \
@@ -31,7 +33,7 @@ cmake \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-## macOS ARM (M1, M2, etc.)
+### macOS ARM (M1, M2, etc.)
 
 ```sh
 cmake \
@@ -46,7 +48,7 @@ cmake \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-# Windows
+## Windows
 
 ```cmd
 cmake ^

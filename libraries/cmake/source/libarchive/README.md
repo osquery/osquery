@@ -1,18 +1,20 @@
-# Linux
+# libarchive library build notes
+
+## Linux
 
 Integrate the osquery-toolchain, using the following file as a starting point: `cmake/toolchain.cmake`. Pass the toolchain like this: `-DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain`
 
-# macOS
+## macOS
 
 Append the following to the CMake options:
 
-## macOS x86
+### macOS x86-64
 
 ```bash
 -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-## macOS ARM (M1, M2, etc.)
+### macOS ARM (M1, M2, etc.)
 
 ```bash
 -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=arm64
@@ -106,7 +108,7 @@ cmake ^
   -DENABLE_XATTR=OFF
 ```
 
-# Common
+## All Platforms
 
 Make sure the following config options are enabled:
 

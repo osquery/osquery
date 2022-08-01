@@ -1,14 +1,16 @@
-# Linux
+# libxml2 library build notes
 
-## Linux Common
+## Linux
 
-Make sure you are working on a clean source folder
+### Linux Common
+
+Make sure you are working in a clean source folder:
 
 ```bash
 git reset --hard ; git clean -ffdx
 ```
 
-Integrate the osquery-toolchain in the main CMakeLists.txt file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
+Integrate the osquery-toolchain in the main `CMakeLists.txt` file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
 
 Force the following `check_include_files()` checks: `stdint.h`, `math.h`, `ctype.h`, `unistd.h`.
 
@@ -60,7 +62,7 @@ cmake \
   -DHAVE_VA_COPY:BOOL=true
 ```
 
-Build the project
+Build the project:
 
 ```bash
 cmake \
@@ -68,18 +70,17 @@ cmake \
   -j $(nproc)
 ```
 
+## macOS
 
-# macOS
+### macOS Common
 
-## macOS Common
-
-Make sure you are working on a clean source folder
+Make sure you are working in a clean source folder:
 
 ```bash
 git reset --hard ; git clean -ffdx
 ```
 
-When building for macOS ARM, also pass the following parameter: `-DCMAKE_OSX_ARCHITECTURES=arm64` and change `-DCMAKE_OSX_DEPLOYMENT_TARGET` to `10.15`
+When building for macOS ARM, also pass the following parameter: `-DCMAKE_OSX_ARCHITECTURES=arm64` and change `-DCMAKE_OSX_DEPLOYMENT_TARGET` to `10.15`.
 
 ```bash
 cmake \
@@ -125,7 +126,7 @@ cmake \
   -DLIBXML2_WITH_ZLIB=ON
 ```
 
-Build the project
+Build the project:
 
 ```bash
 cmake \
@@ -133,13 +134,15 @@ cmake \
   -j $(nproc)
 ```
 
-# Windows
+## Windows
 
-Make sure you are working on a clean source folder
+Make sure you are working in a clean source folder:
 
 ```cmd
 git reset --hard ; git clean -ffdx
 ```
+
+Configure the project:
 
 ```cmd
 cmake ^
@@ -183,7 +186,7 @@ cmake ^
   -DLIBXML2_WITH_ZLIB=ON
 ```
 
-Build the project
+Build the project:
 
 ```cmd
 cmake ^
@@ -191,7 +194,7 @@ cmake ^
   --config Release
 ```
 
-# Common to All Platforms
+## Common to All Platforms
 
 Copy the generated config files:
 

@@ -1,6 +1,8 @@
-# Linux
+# zstd library build notes
 
-## Common
+## Linux
+
+### Common
 
 Make sure you are working on a clean source folder
 
