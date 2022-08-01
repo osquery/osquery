@@ -49,6 +49,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    memory_devices.cpp
     npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
@@ -118,7 +119,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_array_mapped_addresses.cpp
       memory_arrays.cpp
       memory_device_mapped_addresses.cpp
-      memory_devices.cpp
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
@@ -351,11 +351,29 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
-  add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
-  set_tests_properties(
-    tests_integration_tables-test
-    PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-  )
+  if(DEFINED PLATFORM_LINUX)
+    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test --gtest_filter=-memoryDevices.test_sanity)
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+
+    if(OSQUERY_BUILD_ROOT_TESTS)
+      add_test(NAME tests_integration_tables_root-test COMMAND tests_integration_tables-test --gtest_filter=memoryDevices.test_sanity)
+      set_tests_properties(tests_integration_tables_root-test PROPERTIES LABELS "root-required")
+      set_tests_properties(
+          tests_integration_tables_root-test
+          PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      )
+  endif()
+ else()
+    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+ endif()
+
 endfunction()
 
 testsIntegrationTablesMain()
