@@ -12,6 +12,8 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
+#include <boost/filesystem.hpp>
+
 namespace osquery {
 namespace table_tests {
 
@@ -24,21 +26,31 @@ class Mdfind : public testing::Test {
 
 TEST_F(Mdfind, test_sanity) {
   QueryData rows = execute_query(
-      "select * from mdfind where query = 'kMDItemFSName = \"*hosts*\"';");
-  if (rows.empty()) {
-    // Spotlight may be disabled.
-    QueryData sl_check = execute_query(
-        "select pid from processes where path = "
-        "'/System/Library/CoreServices/Spotlight.app/Contents/MacOS/"
-        "Spotlight'");
-    ASSERT_TRUE(sl_check.empty());
-  }
+      "select * from mdfind where query = 'kMDItemFSName = \"*.app\"'"
+      " LIMIT 10;");
+
+  ASSERT_EQ(rows.size(), 10);
 
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"query", NonEmptyString},
   };
   validate_rows(rows, row_map);
+
+  auto file_path = rows[0]["path"];
+  boost::filesystem::path path(file_path);
+  auto filename = path.leaf().string();
+
+  rows =
+      execute_query("select * from mdfind where query = 'kMDItemFSName = \"" +
+                    filename + "\"';");
+
+  ASSERT_FALSE(rows.empty());
+
+  for (auto row : rows) {
+    boost::filesystem::path retrieved_path(row["path"]);
+    EXPECT_EQ(retrieved_path.leaf().string(), filename);
+  }
 }
 
 } // namespace table_tests
