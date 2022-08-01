@@ -84,13 +84,7 @@ std::string getMemoryTypeDetails(int id) {
 }
 
 uint32_t getMemorySize(const std::wstring& capacityWStr) {
-  int base = 10;
-  if (capacityWStr.size() < 2) {
-    wchar_t second_char = capacityWStr[1];
-    if (second_char == wchar_t('x') || second_char == wchar_t('X')) {
-      base = 16;
-    }
-  }
+  int base = 0; // Passing a base of 0 auto-detects the base.
   uint64_t capacityBytes = std::wcstoull(capacityWStr.data(), nullptr, base);
   // Capacity row from WMI is in bytes, convert to Megabytes which means the
   // column can remain an INTEGER.
