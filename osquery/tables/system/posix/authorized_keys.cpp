@@ -25,19 +25,19 @@ namespace tables {
 
 const std::vector<std::string> kSSHAuthorizedkeys = {".ssh/authorized_keys",
                                                      ".ssh/authorized_keys2"};
-
+const std::string kKeyRingLabelOptionPrefix = "zos-key-ring-label=";
 const std::vector<std::string> kSSHKeyTypes = {"ssh-rsa",
                                                "ssh-ed25519",
                                                "ecdsa-sha2-nistp256",
                                                "ecdsa-sha2-nistp384",
                                                "ecdsa-sha2-nistp521"};
+const std::string kWhitespace{"\t "};
 
 bool KeyRingLabelOptExists(const std::string& line) {
-  const std::string keyRingLabelOptionPrefix = "zos-key-ring-label=";
   for (const auto& option : split(line, ",")) {
     if (option.compare(0,
-                       keyRingLabelOptionPrefix.size(),
-                       keyRingLabelOptionPrefix) == 0) {
+                       kKeyRingLabelOptionPrefix.size(),
+                       kKeyRingLabelOptionPrefix) == 0) {
       return true;
     }
   }
@@ -45,50 +45,51 @@ bool KeyRingLabelOptExists(const std::string& line) {
   return false;
 }
 
+void GenerateKeyRow(const std::string& line,
+                    const std::string& key_type,
+                    const std::string& uid,
+                    const std::string& keys_file,
+                    size_t key_type_pos,
+                    QueryData& results) {
+  Row r;
+
+  // Check if current line has options before the actual key.
+  if (key_type_pos > 0) {
+    std::string options = line.substr(0, key_type_pos);
+    r["options"] = line.substr(0, options.find_last_not_of(kWhitespace) + 1);
+  }
+
+  // Find where the actual key starts.
+  size_t key_start_pos =
+      line.find_first_not_of(kWhitespace, key_type_pos + key_type.length());
+  if (key_start_pos == std::string::npos) {
+    return;
+  }
+
+  // Extract the key comment.
+  size_t key_end_pos = line.find_first_of(kWhitespace, key_start_pos);
+  if (key_end_pos != std::string::npos) {
+    size_t comment_start_pos = line.find_first_not_of(kWhitespace, key_end_pos);
+    if (key_end_pos != std::string::npos) {
+      r["comment"] = line.substr(comment_start_pos);
+      r["key"] = line.substr(key_start_pos, key_end_pos - key_start_pos);
+    }
+  } else {
+    r["key"] = line.substr(key_start_pos);
+  }
+
+  r["algorithm"] = key_type;
+  r["key_file"] = keys_file;
+  r["uid"] = uid;
+  r["pid_with_namespace"] = "0";
+  results.push_back(r);
+}
+
 void genSSHkeysForUser(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
                        QueryData& results,
                        Logger& logger) {
-  auto fGenerateKeyRow = [&](const std::string& line,
-                             const std::string& key_type,
-                             size_t key_type_pos,
-                             const std::string& keys_file) {
-    Row r;
-    const std::string whitespace{"\t "};
-
-    // Check if current line has options prefixing a key.
-    if (key_type_pos > 0) {
-      std::string options = line.substr(0, key_type_pos);
-      r["options"] = line.substr(0, options.find_last_not_of(whitespace) + 1);
-    }
-
-    // Find where the actual key starts.
-    size_t key_start_pos =
-        line.find_first_not_of(whitespace, key_type_pos + key_type.length());
-    if (key_start_pos == std::string::npos) {
-      return;
-    }
-
-    // Extract the key comment.
-    size_t key_end_pos = line.find_first_of(whitespace, key_start_pos);
-    if (key_end_pos != std::string::npos) {
-      size_t comment_start_pos =
-          line.find_first_not_of(whitespace, key_end_pos);
-      if (key_end_pos != std::string::npos) {
-        r["comment"] = line.substr(comment_start_pos);
-        r["key"] = line.substr(key_start_pos, key_end_pos - key_start_pos);
-      }
-    } else {
-      r["key"] = line.substr(key_start_pos);
-    }
-
-    r["algorithm"] = key_type;
-    r["key_file"] = keys_file;
-    r["uid"] = uid;
-    r["pid_with_namespace"] = "0";
-    results.push_back(r);
-  };
   for (const auto& kfile : kSSHAuthorizedkeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;
@@ -126,8 +127,12 @@ void genSSHkeysForUser(const std::string& uid,
             continue;
           }
 
-          fGenerateKeyRow(
-              line, key_type, key_type_start_pos, keys_file.string());
+          GenerateKeyRow(line,
+                         key_type,
+                         uid,
+                         keys_file.string(),
+                         key_type_start_pos,
+                         results);
 
           key_type_found = true;
           break;
