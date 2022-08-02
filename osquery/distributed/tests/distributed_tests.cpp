@@ -220,9 +220,11 @@ TEST_F(DistributedTests, test_check_and_set_as_running) {
   const auto denylisted = dist.checkAndSetAsRunning(denylistedQuery);
   ASSERT_FALSE(denylisted);
 
+  const auto denylistedQueryKey = hashQuery(denylistedQuery);
+
   std::string ts1;
   auto status =
-      getDatabaseValue(kDistributedRunningQueries, denylistedQuery, ts1);
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts1);
   ASSERT_TRUE(status.ok());
   ASSERT_FALSE(ts1.empty());
 
@@ -230,14 +232,16 @@ TEST_F(DistributedTests, test_check_and_set_as_running) {
   ASSERT_TRUE(denylisted2);
 
   std::string ts2;
-  status = getDatabaseValue(kDistributedRunningQueries, denylistedQuery, ts2);
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts2);
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(ts1, ts2);
 
   // Change timestamp of the the denylisted query so that it's now expired.
-  status = setDatabaseValue(kDistributedRunningQueries,
-                            denylistedQuery,
-                            std::to_string(getUnixTime() - 2 * 3600));
+  status =
+      setDatabaseValue(kDistributedRunningQueries,
+                       denylistedQueryKey,
+                       std::to_string(getUnixTime() - denylistDuration() - 60));
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
   const auto denylisted3 = dist.checkAndSetAsRunning(denylistedQuery);
@@ -248,7 +252,8 @@ TEST_F(DistributedTests, test_check_and_set_as_running) {
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
   std::string ts3;
-  status = getDatabaseValue(kDistributedRunningQueries, denylistedQuery, ts3);
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts3);
   ASSERT_FALSE(status.ok()); // NotFound
   ASSERT_TRUE(ts3.empty());
 }
@@ -269,6 +274,8 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
   const auto denylistedQuery = "SELECT * FROM osquery_info;";
   const auto denylisted = dist.checkAndSetAsRunning(denylistedQuery);
   ASSERT_FALSE(denylisted);
+
+  const auto denylistedQueryKey = hashQuery(denylistedQuery);
 
   const std::string work = R"json(
 {
@@ -304,14 +311,15 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
   status = dist.cleanupExpiredRunningQueries();
   ASSERT_TRUE(status.ok()) << status.getMessage();
   std::string ts;
-  status = getDatabaseValue(kDistributedRunningQueries, denylistedQuery, ts);
+  status = getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts);
   ASSERT_TRUE(status.ok()) << status.getMessage();
   ASSERT_FALSE(ts.empty());
 
   // Change timestamp of the the denylisted query so that it's now expired.
-  status = setDatabaseValue(kDistributedRunningQueries,
-                            denylistedQuery,
-                            std::to_string(getUnixTime() - 2 * 3600));
+  status =
+      setDatabaseValue(kDistributedRunningQueries,
+                       denylistedQueryKey,
+                       std::to_string(getUnixTime() - denylistDuration() - 60));
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
   // Query q1 should not by denylisted anymore.
@@ -329,30 +337,9 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
 
   // Query q1 should not be marked as denylisted anymore.
   std::string ts2;
-  status = getDatabaseValue(kDistributedRunningQueries, denylistedQuery, ts2);
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts2);
   ASSERT_FALSE(status.ok()); // NotFound
   ASSERT_TRUE(ts2.empty());
-}
-
-// Tests that the denylisting of distributed queries does
-// not interfere when queries are too big to be stored as keys.
-TEST_F(DistributedTests, test_run_queries_query_too_big) {
-  auto dist = DistributedMock();
-  // flushCompleted is mocked to avoid sending results in
-  // Distributed.runQueries.
-  EXPECT_CALL(dist, flushCompleted).Times(1);
-
-  std::ostringstream work(std::ostringstream::ate);
-  work.str("{\"queries\":{\"q1\":\"SELECT * FROM time WHERE weekday = '");
-  for (int i = 0; i < 8000000; i++) {
-    work << "f";
-  }
-  work << "'\"}}";
-
-  auto status = dist.acceptWork(work.str());
-  ASSERT_TRUE(status.ok()) << status.getMessage();
-  status = dist.runQueries();
-  ASSERT_TRUE(status.ok()) << status.getMessage();
-  ASSERT_EQ(dist.results_.size(), 1);
 }
 } // namespace osquery

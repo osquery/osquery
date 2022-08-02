@@ -150,6 +150,21 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
  */
 bool denylistedQueryTimestampExpired(const std::string& timestamp);
 
+/**
+ * @brief Returns the SHA-256 hash of a query string.
+ *
+ * @param query the input query string
+ *
+ * @return String with the SHA256 hex digest.
+ */
+std::string hashQuery(const std::string& query);
+
+/**
+ * @brief Returns the configured duration for denylisting of
+ * distributed queries.
+ */
+uint64_t denylistDuration();
+
 class DistributedPlugin : public Plugin {
  public:
   /**
@@ -299,6 +314,13 @@ class Distributed {
    * @param query the SQL query string
    */
   void setAsNotRunning(const std::string& query);
+
+  /**
+   * @brief Sets a query key as "not running anymore".
+   *
+   * @param query the SQL query hash string
+   */
+  void setKeyAsNotRunning(const std::string& queryKey);
 
   /**
    * @brief Flush all of the collected results to the server
