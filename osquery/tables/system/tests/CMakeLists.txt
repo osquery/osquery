@@ -64,6 +64,7 @@ function(generateOsqueryTablesSystemPosixTests)
     posix/ssh_keys_tests.cpp
     posix/sudoers_tests.cpp
     posix/last_tests.cpp
+    posix/authorized_keys_tests.cpp
   )
 
   target_link_libraries(osquery_tables_system_posix_tests-test PRIVATE
