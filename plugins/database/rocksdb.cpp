@@ -78,7 +78,11 @@ Status RocksDBDatabasePlugin::setUp() {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
+  std::vector<rocksdb::ColumnFamilyDescriptor> columnFamilies;
+  std::set<std::string> kDomainsSet;
+  auto initRan = false;
   if (!initialized_) {
+    initRan = true;
     initialized_ = true;
 
     // Set meta-data (mostly) handling options.
@@ -111,12 +115,14 @@ Status RocksDBDatabasePlugin::setUp() {
     }
     options_.info_log = logger_;
 
-    column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
+    columnFamilies.push_back(rocksdb::ColumnFamilyDescriptor(
         rocksdb::kDefaultColumnFamilyName, options_));
+    kDomainsSet.insert(rocksdb::kDefaultColumnFamilyName);
 
     for (const auto& cf_name : kDomains) {
-      column_families_.push_back(
+      columnFamilies.push_back(
           rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+        kDomainsSet.insert(cf_name);
     }
   }
 
@@ -135,14 +141,43 @@ Status RocksDBDatabasePlugin::setUp() {
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
   close();
 
+  if (initRan) {
+    // To support osquery rollbacks, meaning running with a database written/used
+    // by a newer version of osquery that introduced a new column family,
+    // we need to open with all column families known by the database.
+    // This is a limitation of RocksDB documented here:
+    // https://github.com/facebook/rocksdb/wiki/Column-Families#reference.
+    // "When opening a DB in a read-write mode, you need to specify all Column Families
+    // that currently exist in a DB. If that's not the case, DB::Open call will return
+    // Status::InvalidArgument()"
+    //
+    // Thus, we load all column families known by the database first and use them
+    // in the rocksdb::DB::Open call.
+    std::vector<std::string> columnFamiliesInDB;
+    auto s = rocksdb::DB::ListColumnFamilies(options_, path_, &columnFamiliesInDB);
+    if (!s.ok()) {
+      LOG(INFO) << "Rocksdb open failed (" << static_cast<uint32_t>(s.code())
+                << ":" << static_cast<uint32_t>(s.subcode()) << ") "
+                << s.ToString();
+      // A failed open in read mode is a runtime error.
+      return Status(1, s.ToString());
+    }
+    for (const auto& columnFamilyInDB : columnFamiliesInDB) {
+      if (kDomainsSet.find(columnFamilyInDB) == kDomainsSet.end()) {
+          columnFamilies.push_back(
+            rocksdb::ColumnFamilyDescriptor(columnFamilyInDB, options_));
+      }
+    }
+  }
+
   // Attempt to create a RocksDB instance and handles.
   auto s =
-      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+      rocksdb::DB::Open(options_, path_, columnFamilies, &handles_, &db_);
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+    s = rocksdb::DB::Open(options_, path_, columnFamilies, &handles_, &db_);
   }
 
   if (!s.ok() || db_ == nullptr) {
