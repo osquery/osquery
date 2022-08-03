@@ -78,7 +78,6 @@ Status RocksDBDatabasePlugin::setUp() {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
-  std::vector<rocksdb::ColumnFamilyDescriptor> columnFamilies;
   std::set<std::string> kDomainsSet;
   auto initRan = false;
   if (!initialized_) {
@@ -115,12 +114,12 @@ Status RocksDBDatabasePlugin::setUp() {
     }
     options_.info_log = logger_;
 
-    columnFamilies.push_back(rocksdb::ColumnFamilyDescriptor(
+    column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
         rocksdb::kDefaultColumnFamilyName, options_));
     kDomainsSet.insert(rocksdb::kDefaultColumnFamilyName);
 
     for (const auto& cf_name : kDomains) {
-      columnFamilies.push_back(
+      column_families_.push_back(
           rocksdb::ColumnFamilyDescriptor(cf_name, options_));
       kDomainsSet.insert(cf_name);
     }
@@ -165,19 +164,20 @@ Status RocksDBDatabasePlugin::setUp() {
     }
     for (const auto& columnFamilyInDB : columnFamiliesInDB) {
       if (kDomainsSet.find(columnFamilyInDB) == kDomainsSet.end()) {
-        columnFamilies.push_back(
+        column_families_.push_back(
             rocksdb::ColumnFamilyDescriptor(columnFamilyInDB, options_));
       }
     }
   }
 
   // Attempt to create a RocksDB instance and handles.
-  auto s = rocksdb::DB::Open(options_, path_, columnFamilies, &handles_, &db_);
+  auto s =
+      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, columnFamilies, &handles_, &db_);
+    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
   }
 
   if (!s.ok() || db_ == nullptr) {

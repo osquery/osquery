@@ -136,6 +136,9 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   /// RocksDB logger instance.
   std::shared_ptr<GlogRocksDBLogger> logger_{nullptr};
 
+  /// Column family descriptors which are used to connect to RocksDB
+  std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
+
   /// A vector of pointers to column family handles
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
 
