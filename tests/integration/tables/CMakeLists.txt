@@ -253,6 +253,7 @@ function(generateTestsIntegrationTablesTestsTest)
       temperature_sensors.cpp
       time_machine_backups.cpp
       time_machine_destinations.cpp
+      unified_log.cpp
       user_interaction_events.cpp
       virtual_memory_info.cpp
       wifi_networks.cpp

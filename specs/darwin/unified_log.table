@@ -1,0 +1,27 @@
+table_name("unified_log")
+description("Queries the OSLog framework for entries in the system log. "
+            "The maximum number of rows returned is limited for performance issues. "
+            "This table introduces a new idiom for extracting sequential data in batches using multiple queries, ordered by timestamp. "
+            "To trigger it, the user should include the condition \"timestamp > -1\", and the table will handle pagination.")
+
+schema([
+  Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
+  Column("storage", INTEGER, "the storage category for the entry", additional=True),
+  Column("message", TEXT, "composed message", additional=True),
+  Column("activity", BIGINT, "the activity ID associate with the entry", additional=True),
+  Column("process", TEXT, "the name of the process that made the entry", additional=True),
+  Column("pid", BIGINT, "the pid of the process that made the entry", additional=True),
+  Column("sender", TEXT, "the name of the binary image that made the entry", additional=True),
+  Column("tid", BIGINT, "the tid of the thread that made the entry", additional=True),
+  Column("category", TEXT, "the category of the os_log_t used", additional=True),
+  Column("subsystem", TEXT, "the subsystem of the os_log_t used", additional=True),
+  Column("level", TEXT, "the severity level of the entry"),
+  Column("max_rows", INTEGER, "the max number of rows returned (defaults to 100)", additional=True, hidden=True)
+])
+examples([
+  "select * from unified_log",
+  "select * from unified_log where max_rows = 1234",
+  "select * from unified_log where timestamp > -1",
+  "select * from unified_log where timestamp > -1 and max_rows = 500",
+])
+implementation("unified_log@genUnifiedLog")
