@@ -70,9 +70,9 @@ const ConstraintOperator kMaxRowsOperator = EQUALS;
 /**
  * @brief timestamp sequential configuration filter
  */
-const std::string kSentinalColumn = "timestamp";
-const std::string kSentinalValue = "-1";
-const ConstraintOperator kSentinalOperator = GREATER_THAN;
+const std::string kSentinelColumn = "timestamp";
+const std::string kSentinelValue = "-1";
+const ConstraintOperator kSentinelOperator = GREATER_THAN;
 
 /**
  * @brief defines the structure that saves the current status for extracting
@@ -194,25 +194,26 @@ int getMaxRows(QueryContext& queryContext) {
  * @returns false otherwise
  */
 bool getSequential(QueryContext& queryContext) {
-  if (queryContext.hasConstraint(kSentinalColumn, kSentinalOperator)) {
+  if (queryContext.hasConstraint(kSentinelColumn, kSentinelOperator)) {
     std::string str;
-    str = *queryContext.constraints[kSentinalColumn]
-               .getAll(kSentinalOperator)
+    str = *queryContext.constraints[kSentinelColumn]
+               .getAll(kSentinelOperator)
                .begin();
-    return str == kSentinalValue;
+    return str == kSentinelValue;
   }
   return false;
 }
 
-bool badSentinal(QueryContext& queryContext) {
-  if (queryContext.hasConstraint(kSentinalColumn)) {
+bool badSentinel(QueryContext& queryContext) {
+  if (queryContext.hasConstraint(kSentinelColumn)) {
     std::string str;
+
     for (const auto& it : queryContext.constraints) {
       const std::string& key = it.first;
-      if (key != kSentinalColumn)
+      if (key != kSentinelColumn)
         continue;
       for (const auto& constraint : it.second.getAll()) {
-        if (constraint.op != GREATER_THAN ||
+        if (constraint.op != GREATER_THAN &&
             constraint.op != GREATER_THAN_OR_EQUALS) {
           auto const timestamp_expr = tryTo<int>(constraint.expr);
           if (timestamp_expr.isValue() && timestamp_expr.get() < 0)
@@ -225,179 +226,183 @@ bool badSentinal(QueryContext& queryContext) {
 }
 
 QueryData genUnifiedLog(QueryContext& queryContext) {
-  int rows_counter = 0;
   QueryData results;
-  SequentialContext sc;
-  if (!@available(macOS 10.15, *)) {
-    VLOG(1) << "OSLog framework is not available";
-    return {};
-  }
+  if (@available(macOS 10.15, *)) {
+    int rows_counter = 0;
+    SequentialContext sc;
 
-  @autoreleasepool {
-    NSError* error = nil;
-    OSLogStore* logstore = [OSLogStore localStoreAndReturnError:&error];
-    if (error != nil) {
-      TLOG << "error getting handle to log store: "
-           << [[error localizedDescription] UTF8String];
-      return {};
-    }
-
-    if (badSentinal(queryContext)) {
-      TLOG << "error on timestamp constraint";
-      return {};
-    }
-
-    OSLogPosition* position = nil;
-
-    sc.load();
-    int max_rows = getMaxRows(queryContext);
-    bool isSequential = getSequential(queryContext);
-
-    // the timestamp column can be used to aggressively filter
-    // results returned from the log store
-    if (!isSequential &&
-        (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
-         queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS))) {
-      std::string start_time;
-      if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
-        start_time =
-            *queryContext.constraints["timestamp"].getAll(GREATER_THAN).begin();
-      } else {
-        start_time = *queryContext.constraints["timestamp"]
-                          .getAll(GREATER_THAN_OR_EQUALS)
-                          .begin();
+    @autoreleasepool {
+      NSError* error = nil;
+      OSLogStore* logstore = [OSLogStore localStoreAndReturnError:&error];
+      if (error != nil) {
+        TLOG << "error getting handle to log store: "
+             << [[error localizedDescription] UTF8String];
+        return {};
       }
 
-      double provided_timestamp =
-          [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
-      NSDate* provided_date =
-          [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
-
-      position = [logstore positionWithDate:provided_date];
-    }
-
-    // grab all the supported columns used in simple constraints and make a
-    // compound predicate out of them.
-    NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
-    for (const auto& it : queryContext.constraints) {
-      const std::string& key = it.first;
-      for (const auto& constraint : it.second.getAll()) {
-        if (key == kSentinalColumn && constraint.expr == kSentinalValue &&
-            constraint.op == kSentinalOperator)
-          continue;
-        addQueryOp(subpredicates,
-                   key,
-                   constraint.expr,
-                   static_cast<ConstraintOperator>(constraint.op));
+      if (badSentinel(queryContext)) {
+        TLOG << "error on timestamp constraint";
+        return {};
       }
-    }
 
-    NSPredicate* predicate =
-        [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+      OSLogPosition* position = nil;
 
-    // Apply sequential extraction
-    if (isSequential) {
-      NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:sc.timestamp];
-      position = [logstore positionWithDate:last_date];
-    }
+      sc.load();
+      int max_rows = getMaxRows(queryContext);
+      bool isSequential = getSequential(queryContext);
 
-    // enumerate the entries in ascending order by timestamp
-    OSLogEnumeratorOptions option = 0;
+      // the timestamp column can be used to aggressively filter
+      // results returned from the log store
+      if (!isSequential &&
+          (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
+           queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS))) {
+        std::string start_time;
+        if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
+          start_time = *queryContext.constraints["timestamp"]
+                            .getAll(GREATER_THAN)
+                            .begin();
+        } else {
+          start_time = *queryContext.constraints["timestamp"]
+                            .getAll(GREATER_THAN_OR_EQUALS)
+                            .begin();
+        }
 
-    OSLogEnumerator* enumerator =
-        [logstore entriesEnumeratorWithOptions:option
-                                      position:position
-                                     predicate:predicate
-                                         error:&error];
-    if (error != nil) {
-      TLOG << "error enumerating entries in system log: "
-           << [[error localizedDescription] UTF8String];
-      return {};
-    }
+        double provided_timestamp =
+            [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
+        NSDate* provided_date =
+            [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
 
-    int skip_counter = 0;
-    bool first = isSequential;
-    for (OSLogEntryLog* entry in enumerator) {
-      if (first) {
-        // Skips the log entries that have been already extracted
-        double load_date = [[entry date] timeIntervalSince1970];
-        if (load_date == sc.timestamp) {
-          if (++skip_counter <= sc.count) {
+        position = [logstore positionWithDate:provided_date];
+      }
+
+      // grab all the supported columns used in simple constraints and make a
+      // compound predicate out of them.
+      NSMutableArray* subpredicates = [[NSMutableArray alloc] init];
+      for (const auto& it : queryContext.constraints) {
+        const std::string& key = it.first;
+        for (const auto& constraint : it.second.getAll()) {
+          if (key == kSentinelColumn && constraint.expr == kSentinelValue &&
+              constraint.op == kSentinelOperator)
             continue;
+          addQueryOp(subpredicates,
+                     key,
+                     constraint.expr,
+                     static_cast<ConstraintOperator>(constraint.op));
+        }
+      }
+
+      NSPredicate* predicate =
+          [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+
+      // Apply sequential extraction
+      if (isSequential) {
+        NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:sc.timestamp];
+        position = [logstore positionWithDate:last_date];
+      }
+
+      // enumerate the entries in ascending order by timestamp
+      OSLogEnumeratorOptions option = 0;
+
+      OSLogEnumerator* enumerator =
+          [logstore entriesEnumeratorWithOptions:option
+                                        position:position
+                                       predicate:predicate
+                                           error:&error];
+      if (error != nil) {
+        TLOG << "error enumerating entries in system log: "
+             << [[error localizedDescription] UTF8String];
+        return {};
+      }
+
+      int skip_counter = 0;
+      bool first = isSequential;
+      for (OSLogEntryLog* entry in enumerator) {
+        if (first) {
+          // Skips the log entries that have been already extracted
+          double load_date = [[entry date] timeIntervalSince1970];
+          if (load_date == sc.timestamp) {
+            if (++skip_counter <= sc.count) {
+              continue;
+            }
+          }
+          first = false;
+        }
+
+        if (isSequential) {
+          // Save timestamp and count
+          double load_date = [[entry date] timeIntervalSince1970];
+          if (sc.timestamp == load_date) {
+            sc.count++;
+          } else {
+            sc.count = 0;
+            sc.timestamp = load_date;
           }
         }
-        first = false;
-      }
 
-      if (isSequential) {
-        // Save timestamp and count
-        double load_date = [[entry date] timeIntervalSince1970];
-        if (sc.timestamp == load_date) {
-          sc.count++;
-        } else {
-          sc.count = 0;
-          sc.timestamp = load_date;
-        }
-      }
+        // Escape if the rows number reached the limit
+        if (++rows_counter > max_rows)
+          break;
 
-      // Escape if the rows number reached the limit
-      if (++rows_counter > max_rows)
-        break;
+        Row r;
 
-      Row r;
+        r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
+        r["message"] = SQL_TEXT(
+            std::string([[entry composedMessage] UTF8String],
+                        [[entry composedMessage]
+                            lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+        r["storage"] = INTEGER([entry storeCategory]);
 
-      r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
-      r["message"] = SQL_TEXT(
-          std::string([[entry composedMessage] UTF8String],
-                      [[entry composedMessage]
-                          lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
-      r["storage"] = INTEGER([entry storeCategory]);
-
-      if ([entry respondsToSelector:@selector(activityIdentifier)]) {
-        r["activity"] = BIGINT([entry activityIdentifier]);
-        r["process"] = SQL_TEXT(std::string(
-            [[entry process] UTF8String],
-            [[entry process] lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
-        r["pid"] = BIGINT([entry processIdentifier]);
-        r["sender"] = SQL_TEXT(std::string(
-            [[entry sender] UTF8String],
-            [[entry sender] lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
-        r["tid"] = BIGINT([entry threadIdentifier]);
-      }
-
-      if ([entry respondsToSelector:@selector(subsystem)]) {
-        NSString* subsystem = [entry subsystem];
-        if (subsystem != nil) {
-          r["subsystem"] = SQL_TEXT(std::string(
-              [[entry subsystem] UTF8String],
-              [[entry subsystem]
+        if ([entry respondsToSelector:@selector(activityIdentifier)]) {
+          r["activity"] = BIGINT([entry activityIdentifier]);
+          r["process"] = SQL_TEXT(std::string(
+              [[entry process] UTF8String],
+              [[entry process]
                   lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
-        }
-        NSString* category = [entry category];
-        if (category != nil) {
-          r["category"] = SQL_TEXT(std::string(
-              [[entry category] UTF8String],
-              [[entry category]
+          r["pid"] = BIGINT([entry processIdentifier]);
+          r["sender"] = SQL_TEXT(std::string(
+              [[entry sender] UTF8String],
+              [[entry sender]
                   lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+          r["tid"] = BIGINT([entry threadIdentifier]);
         }
-      }
 
-      if ([entry respondsToSelector:@selector(level)]) {
-        std::vector<std::string> log_levels{
-            "undefined", "debug", "info", "default", "error", "fault"};
-        try {
-          r["level"] = log_levels.at([entry level]);
-        } catch (const std::out_of_range& oor) {
-          LOG(WARNING) << "Unknown log value: " << [entry level];
-          r["level"] = SQL_TEXT("unknown log level");
+        if ([entry respondsToSelector:@selector(subsystem)]) {
+          NSString* subsystem = [entry subsystem];
+          if (subsystem != nil) {
+            r["subsystem"] = SQL_TEXT(std::string(
+                [[entry subsystem] UTF8String],
+                [[entry subsystem]
+                    lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+          }
+          NSString* category = [entry category];
+          if (category != nil) {
+            r["category"] = SQL_TEXT(std::string(
+                [[entry category] UTF8String],
+                [[entry category]
+                    lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
+          }
         }
+
+        if ([entry respondsToSelector:@selector(level)]) {
+          std::vector<std::string> log_levels{
+              "undefined", "debug", "info", "default", "error", "fault"};
+          try {
+            r["level"] = log_levels.at([entry level]);
+          } catch (const std::out_of_range& oor) {
+            LOG(WARNING) << "Unknown log value: " << [entry level];
+            r["level"] = SQL_TEXT("unknown log level");
+          }
+        }
+        // sqlite engine will apply the filter max_rows = N
+        r["max_rows"] = INTEGER(max_rows);
+        results.push_back(r);
       }
-      // sqlite engine will apply the filter max_rows = N
-      r["max_rows"] = INTEGER(max_rows);
-      results.push_back(r);
+      sc.save();
     }
-    sc.save();
+  } else {
+    VLOG(1) << "OSLog framework is not available";
   }
+
   return results;
 }
 } // namespace tables
