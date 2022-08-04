@@ -1,6 +1,8 @@
-# macOS
+# libmagic library build notes
 
-Install the required build-time dependencies
+## macOS
+
+Install the required build-time dependencies:
 
 ```bash
 brew install \
@@ -9,19 +11,19 @@ brew install \
   libtool
 ```
 
-Prepare the environment
+Prepare the environment:
 
-Note: If building for M1, substitute the target with `-target arm64-apple-macos10.15` at the end of the `CFLAGS` environment variable.
+Note: If building for macOS ARM, substitute the target with `-target arm64-apple-macos10.15` at the end of the `CFLAGS` environment variable.
 
 ```bash
 export CC=clang
 export OSQUERY_LZMA_HEADER="/Users/<user>/osquery/src/libraries/cmake/source/lzma/src/src/liblzma/api"
-export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -I${OSQUERY_LZMA_HEADER} -target x86_64-apple-macos10.12"
+export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -I${OSQUERY_LZMA_HEADER} -target x86_64-apple-macos10.14"
 ```
 
-Configure and build the project
+Configure and build the project:
 
-Note: If building for M1, add `--host=arm64-apple-macos10.15` at the end of the configure invocation (otherwise the configure will fail, trying to launch an M1 binary locally).
+Note: If building for macOS ARM, add `--host=arm64-apple-macos10.15` at the end of the configure invocation (otherwise the configure will fail, trying to launch an ARM binary locally).
 
 ```bash
 autoreconf \
@@ -40,9 +42,9 @@ autoreconf \
 make -j $(nproc)
 ```
 
-# Linux
+## Linux
 
-## Common
+### Common
 
 Prepare the environment
 
@@ -75,11 +77,11 @@ make -j $(nproc)
 
 NOTE: if the autoreconf step fails with `configure.ac:97: error: required file './ltmain.sh' not found` run `libtoolize` and then the autoreconf command again.
 
-# All Platforms
+## All Platforms
 
 Make sure that these defines are enabled in the config.h file:
 
-```
+```text
 #define HAVE_LIBZ 1
 #define HAVE_LZMA_H 1
 #define XZLIBSUPPORT 1

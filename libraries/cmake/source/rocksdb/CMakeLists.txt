@@ -464,17 +464,7 @@ function(rocksdbMain)
     "${library_root}/include"
   )
 
-  if(PLATFORM_MACOS)
-    # This can be removed once we target a newer macOS version
-    # Error message follows
-    # ===
-    # error: aligned deallocation function of type 'void (void *, enum std::align_val_t) noexcept'
-    #        is only available on macOS 10.14 or newer
-    target_compile_definitions(thirdparty_rocksdb PRIVATE
-      TEST_CACHE_LINE_SIZE=64U
-    )
-
-  elseif(PLATFORM_WINDOWS)
+  if(PLATFORM_WINDOWS)
     # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
     # Status::NotSupported(), so that the caller can use a different way to
     # determine whether the files are matching. This lets us keep the project-wide

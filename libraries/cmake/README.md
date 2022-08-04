@@ -1,3 +1,5 @@
+# Building osquery's Third-party libraries
+
 This folder contains all the third party libraries that osquery needs.
 All the third party libraries in this folder are built from source.
 
@@ -11,13 +13,13 @@ The ones under `formula` (currently OpenSSL only) will still use CMake to build,
 This is because reproducing that build system with CMake has proven to be too complex.
 Particular care is needed for these libraries, as with the `source` ones, so that they do not directly depend on features that are present only on the system they are currently built on.
 
-# Linux
+## Linux
 
 Beyond what previously described, we use a custom toolchain ([osquery-toolchain](https://github.com/osquery/osquery-toolchain)) that permits us to build osquery on either new distros or the oldest targeted distro (bar some bugs, see later).
 
 These are the current targeted versions:
 
-## x86
+### x86
 
 CentOS 6.10
 
@@ -46,7 +48,7 @@ uname -r
 2.6.32-754.18.2.el6.x86_64
 ```
 
-## AArch64
+### AArch64
 
 Ubuntu 16.04 on AWS Graviton
 
@@ -78,7 +80,7 @@ uname -r
 4.15.0-1099-aws
 ```
 
-## Troubleshooting
+### Troubleshooting Linux
 
 There are some issues with the osquery-toolchain 1.1.0 when trying to use it on CentOS 6.10.  
 Binaries like `as`, `ar`, etc need to be symlinked to their llvm counterpart, since the original ones are fully static and contain a glibc version that won't work on that old distribution, and will throw a `FATAL: kernel too old`.  
@@ -96,22 +98,21 @@ rm nm; ln -s llvm-nm nm
 rm strip; ln -s llvm-strip strip
 ```
 
+## macOS
 
-# macOS
+The system used to compile is currently macOS Big Sur 11.x, XCode 13.x, SDK 11.3.
 
-The system compiler is used on Big Sur 11.6, XCode 13, SDK 11.3.
-Both x86 and M1 architectures are built on an x86 machine, using the toolchain ability to cross-compile.
+Both x86_64 and ARM architectures of the executable are built on an x86_64 machine, using the toolchain's ability to cross-compile.
 
-## x86
+### macos x86_64
 
-The deployment target is 10.12
+The deployment target is 10.14.
 
-## M1
+### macOS ARM (M1, M2, etc.)
 
-The deployment target is 10.15
+The deployment target is 10.15.
 
-
-# Windows
+## Windows
 
 The system compiler is used on Windows 10, Visual Studio 2019.  
 The SDK used currently is not fixed (depends on what's available on the CI or the developer machine), but in general the target we attempt to have is Windows 7.

@@ -1,7 +1,10 @@
-# Linux
-## Common
+# sleuthkit library build notes
 
-Prepare the environment
+## Linux
+
+### Linux Common
+
+Prepare the environment:
 
 ```bash
 export PATH="/usr/local/osquery-toolchain/usr/bin:${PATH}"
@@ -13,27 +16,27 @@ export CC=clang
 export CXX="clang++"
 ```
 
-Make sure you are working on a clean source folder
+Make sure you are working in a clean source folder:
 
-```
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
-Disable the stdc++ library check
+Disable the `stdc++` library check:
 
-```
+```bash
 sed -i '/stdc++/d' configure.ac
 ```
 
-Disable tools, documentation, etc
+Disable tools, documentation, etc.:
 
-```
+```bash
 sed -i '/SUBDIRS = tsk/c\SUBDIRS = tsk' Makefile.am
 ```
 
-Configure the project
+Configure the project:
 
-```
+```bash
 ./bootstrap
 
 ./configure \
@@ -62,23 +65,23 @@ Features:
 
 Start the build
 
-```
+```bash
 make -j $(nproc)
 ```
 
 Copy the generated files: `tsk/tsk_config.h`, `tsk/tsk_incs.h`
 
-# macOS
+## macOS
 
-Make sure you are working on a clean repository
+Make sure you are working in a clean repository:
 
-```
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
 Once the `libtool` brew package has been installed:
 
-```
+```bash
 mkdir bin
 ln -s $(which glibtool) bin/libtool
 ln -s $(which glibtoolize) bin/libtoolize
@@ -93,20 +96,20 @@ Update the `Makefile.am` file:
 +SUBDIRS = tsk
 ```
 
-Prepare the environment
+Prepare the environment.
 
-Note: If building for M1, change the target to `-target arm64-apple-macos10.15` at the end of the `CFLAGS` environment variable.
+Note: If building for macOS ARM, change the target to `-target arm64-apple-macos10.15` at the end of the `CFLAGS` environment variable.
 
 ```bash
-export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.12"
+export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.14"
 export CXXFLAGS="${CFLAGS}"
 ```
 
-Configure the project
+Configure the project.
 
-Note: If building for M1, add `--host=arm64-apple-macos10.15` at the end of the configure invocation (otherwise the configure will fail, trying to launch an M1 binary locally).
+Note: If building for macOS ARM, add `--host=arm64-apple-macos10.15` at the end of the configure invocation (otherwise the configure will fail, trying to launch an M1 binary locally).
 
-```
+```bash
 ./bootstrap
 
 ./configure \
@@ -134,15 +137,14 @@ Features:
    Multithreading:                        yes
 ```
 
-Build the project
+Build the project:
 
-```
+```bash
 make -j $(sysctl -n hw.logicalcpu)
 ```
 
 Copy the generated files: `tsk/tsk_config.h`, `tsk/tsk_incs.h`
 
+## Windows
 
-# Windows
-
-The solution file under `src/win32/tsk-win.sln` is used to build and the various compiler options used have been copied and hardcoded in our CMake.
+The solution file under `src/win32/tsk-win.sln`, used to build and the various compiler options used, has been copied and hardcoded in our CMake.

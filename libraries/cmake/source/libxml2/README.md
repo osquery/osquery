@@ -1,18 +1,20 @@
-# Linux
+# libxml2 library build notes
 
-## Common
+## Linux
 
-Make sure you are working on a clean source folder
+### Linux Common
 
-```
+Make sure you are working in a clean source folder:
+
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
-Integrate the osquery-toolchain in the main CMakeLists.txt file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
+Integrate the osquery-toolchain in the main `CMakeLists.txt` file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
 
 Force the following `check_include_files()` checks: `stdint.h`, `math.h`, `ctype.h`, `unistd.h`.
 
-```
+```bash
 cmake \
   -S . \
   -B build \
@@ -60,33 +62,32 @@ cmake \
   -DHAVE_VA_COPY:BOOL=true
 ```
 
-Build the project
+Build the project:
 
-```
+```bash
 cmake \
   --build build \
   -j $(nproc)
 ```
 
+## macOS
 
-# macOS
+### macOS Common
 
-## Common
+Make sure you are working in a clean source folder:
 
-Make sure you are working on a clean source folder
-
-```
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
-When building for M1, also pass the following parameter: `-DCMAKE_OSX_ARCHITECTURES=arm64` and change `-DCMAKE_OSX_DEPLOYMENT_TARGET` to `10.15`
+When building for macOS ARM, also pass the following parameter: `-DCMAKE_OSX_ARCHITECTURES=arm64` and change `-DCMAKE_OSX_DEPLOYMENT_TARGET` to `10.15`.
 
-```
+```bash
 cmake \
   -S . \
   -B build \
   -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 \
   -DBUILD_SHARED_LIBS=OFF \
   -DLIBXML2_WITH_C14N=ON \
   -DLIBXML2_WITH_CATALOG=OFF \
@@ -125,24 +126,25 @@ cmake \
   -DLIBXML2_WITH_ZLIB=ON
 ```
 
-Build the project
+Build the project:
 
-```
+```bash
 cmake \
   --build build \
   -j $(nproc)
 ```
 
+## Windows
 
-# Windows
+Make sure you are working in a clean source folder:
 
-Make sure you are working on a clean source folder
-
-```
+```cmd
 git reset --hard ; git clean -ffdx
 ```
 
-```
+Configure the project:
+
+```cmd
 cmake ^
   -S . ^
   -B build ^
@@ -184,15 +186,15 @@ cmake ^
   -DLIBXML2_WITH_ZLIB=ON
 ```
 
-Build the project
+Build the project:
 
-```
+```cmd
 cmake ^
   --build build ^
   --config Release
 ```
 
-# All Platforms
+## Common to All Platforms
 
 Copy the generated config files:
 
