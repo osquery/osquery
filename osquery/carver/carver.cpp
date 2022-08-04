@@ -15,18 +15,20 @@
 
 #include <osquery/carver/carver.h>
 #include <osquery/carver/carver_utils.h>
+#include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/fileops.h>
-#include <osquery/core/flags.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/serializers/json.h>
-#include <osquery/utils/conversions/split.h>
-#include <osquery/core/system.h>
 #include <osquery/utils/base64.h>
+#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
+
+#include <boost/algorithm/string.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -232,7 +234,24 @@ std::set<fs::path> Carver::carveAll() {
       VLOG(1) << "File does not exist on disk or is subdirectory: " << srcPath;
       continue;
     }
-    const auto dstPath = carveDir_ / srcPath.leaf();
+
+    fs::path dstPath;
+    if (srcPath.has_root_name()) {
+      auto temp = srcPath.string();
+      boost::erase_first(temp, ":");
+      dstPath = carveDir_ / fs::path(temp);
+    } else {
+      dstPath = carveDir_ / srcPath;
+    }
+    if (!fs::exists(dstPath.parent_path())) {
+      auto ret = fs::create_directories(dstPath.parent_path());
+      if (!ret) {
+        VLOG(1) << "Failed to create directories for: "
+                << dstPath.parent_path();
+        continue;
+      }
+    }
+
     PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
     if (!dst.isValid()) {
       VLOG(1) << "Destination temporary file is invalid: " << dstPath;
