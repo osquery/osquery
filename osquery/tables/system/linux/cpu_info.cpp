@@ -19,9 +19,6 @@
 namespace osquery {
 namespace tables {
 
-static const std::map<std::string, std::string> ProcessorTypeToFriendlyName = {
-    {"3", "CPU"}, {"4", "MATH"}, {"5", "DSP"}, {"6", "GPU"}};
-
 QueryData genCpuInfo(QueryContext& context) {
   QueryData results;
   LinuxSMBIOSParser parser;
@@ -39,18 +36,18 @@ QueryData genCpuInfo(QueryContext& context) {
   }));
 
   // Decorate table
-  uint8_t deviceId = 0;
+  std::int32_t device_id = 0;
   for (auto& row : results) {
-    auto currentProcessorId = row.find("processor_type");
-    if (currentProcessorId == row.end()) {
+    auto current_processor_id = row.find("processor_type");
+    if (current_processor_id == row.end()) {
       continue;
     }
 
     // `device_id` column is not part of the SMBios table.
-    auto friendlyName =
-        ProcessorTypeToFriendlyName.find(currentProcessorId->second);
-    if (friendlyName != ProcessorTypeToFriendlyName.end()) {
-      row["device_id"] = friendlyName->second + std::to_string(deviceId++);
+    auto friendly_name =
+        kSMBIOSProcessorTypeFriendlyName.find(current_processor_id->second);
+    if (friendly_name != kSMBIOSProcessorTypeFriendlyName.end()) {
+      row["device_id"] = friendly_name->second + std::to_string(device_id++);
     }
   }
 

@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <string>
+
 #include <osquery/core/tables.h>
 
 namespace osquery {
@@ -48,6 +50,9 @@ extern const std::map<uint8_t, std::string> kSMBIOSMemoryErrorOperationTable;
 
 /// Get friendly names for each SMBIOS table/section type.
 extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
+
+extern const std::map<std::string, std::string>
+    kSMBIOSProcessorTypeFriendlyName;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;

@@ -26,7 +26,8 @@ const std::string kIOUSBDeviceClassName_ = "IOUSBDevice";
 const std::string kIOPCIDeviceClassName_ = "IOPCIDevice";
 const std::string kIOPlatformExpertDeviceClassName_ = "IOPlatformExpertDevice";
 const std::string kIOACPIPlatformDeviceClassName_ = "IOACPIPlatformDevice";
-const std::string kIOPlatformDeviceClassname_ = "IOPlatformDevice";
+const std::string kIOPlatformDeviceClassName_ = "IOPlatformDevice";
+const std::string kAppleARMIODeviceClassName_ = "AppleARMIODevice";
 
 IOKitPCIProperties::IOKitPCIProperties(const std::string& compatible) {
   std::vector<std::string> properties;

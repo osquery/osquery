@@ -187,6 +187,9 @@ const std::map<uint8_t, std::string> kSMBIOSMemoryErrorOperationTable = {
     {0x05, "Partial write"},
 };
 
+const std::map<std::string, std::string> kSMBIOSProcessorTypeFriendlyName = {
+    {"3", "CPU"}, {"4", "MATH"}, {"5", "DSP"}, {"6", "GPU"}};
+
 template <class T>
 static inline std::string toHexStr(T num, int width = 4) {
   std::stringstream ss;

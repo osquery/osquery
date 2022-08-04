@@ -17,4 +17,8 @@ schema([
 extended_schema(WINDOWS, [
     Column("availability", TEXT, "The availability and status of the CPU.")
 ])
+extended_schema(DARWIN, [
+    Column("number_of_efficiency_cores", INTEGER, "The number of efficiency cores of the CPU. Only available on Apple Silicon"),
+    Column("number_of_performance_cores", INTEGER, "The number of performance cores of the CPU. Only available on Apple Silicon")
+])
 implementation("cpu_info@genCpuInfo")
