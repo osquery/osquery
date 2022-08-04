@@ -233,7 +233,17 @@ std::set<fs::path> Carver::carveAll() {
       continue;
     }
 
-    const auto dstPath = carveDir_ / srcPath;
+    fs::path dstPath;
+    if (srcPath.has_root_name()) {
+      auto temp = srcPath.string();
+      auto colon_position = temp.find(':');
+      if (colon_position != std::string::npos) {
+        temp.erase(colon_position);
+      }
+      dstPath = carveDir_ / fs::path(temp);
+    } else {
+      dstPath = carveDir_ / srcPath;
+    }
     if (!fs::exists(dstPath.parent_path())) {
       auto ret = fs::create_directories(dstPath.parent_path());
       if (!ret) {
