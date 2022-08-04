@@ -28,6 +28,8 @@
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 
+#include<boost/algorithm/string.hpp>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -236,10 +238,7 @@ std::set<fs::path> Carver::carveAll() {
     fs::path dstPath;
     if (srcPath.has_root_name()) {
       auto temp = srcPath.string();
-      auto colon_position = temp.find(':');
-      if (colon_position != std::string::npos) {
-        temp.erase(colon_position);
-      }
+      boost::erase_first(temp, ":");
       dstPath = carveDir_ / fs::path(temp);
     } else {
       dstPath = carveDir_ / srcPath;
