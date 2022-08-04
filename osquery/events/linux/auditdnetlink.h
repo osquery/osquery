@@ -81,6 +81,27 @@ struct AuditdContext final {
 
   /// When set to true, the audit handle is (re)acquired
   std::atomic_bool acquire_handle{true};
+
+  /// Amount of records that are yet to be fully processed. Used for throttling
+  /// the netlink reader if the thread processing records cannot keep up
+  std::atomic<std::size_t> unprocessed_records_amount{};
+
+  /// Amount of records that have been parsed but that still need to be consumed
+  /// by the publisher. Used for throttling the thread processing records if the
+  /// publisher cannot empty the backlog fast enough
+  std::atomic<std::size_t> processed_records_backlog{};
+
+  /// Timestamp of the last Netlink records reading throttling message
+  std::uint64_t last_netlink_throttling_message_time{};
+
+  /// Timestamp of the last records processing throttling message
+  std::uint64_t last_processing_throttling_message_time{};
+
+  /// Count of loops done during Netlink records reading throttling
+  std::uint32_t netlink_throttling_count{};
+
+  /// Count of loops done during records processing throttling
+  std::uint32_t processing_throttling_count{};
 };
 
 using AuditdContextRef = std::shared_ptr<AuditdContext>;
