@@ -28,7 +28,7 @@
 #include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 
-#include<boost/algorithm/string.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace fs = boost::filesystem;
 
