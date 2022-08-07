@@ -12,6 +12,8 @@
 #include <osquery/sql/sql.h>
 #include <plugins/database/rocksdb.h>
 
+#include <boost/filesystem.hpp>
+
 namespace osquery {
 
 class RocksDBDatabasePluginTests : public DatabasePluginTests {
@@ -19,6 +21,16 @@ class RocksDBDatabasePluginTests : public DatabasePluginTests {
   std::string name() override {
     return "rocksdb";
   }
+
+  void TearDown() override {
+    DatabasePluginTests::TearDown();
+
+    for (const auto& db_dir : db_dirs_) {
+      removePath(db_dir);
+    }
+  }
+
+  std::vector<std::string> db_dirs_;
 };
 
 // Define the default set of database plugin operation tests.
@@ -50,5 +62,31 @@ TEST_F(RocksDBDatabasePluginTests, test_corruption) {
 
   resetDatabase();
   EXPECT_FALSE(pathExists(path_ + ".backup"));
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_column_families_rollback.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  db.alternative_db_path_ = test_db_path;
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  db_dirs_.push_back(db.alternative_db_path_);
+
+  rocksdb::ColumnFamilyHandle* cf = nullptr;
+  auto rs = db.db_->CreateColumnFamily(db.options_, "foo", &cf);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  db.tearDown();
+
+  auto db2 = RocksDBDatabasePlugin();
+  db2.alternative_db_path_ = test_db_path;
+  s = db2.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
 }
 }

@@ -79,9 +79,9 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   std::set<std::string> kDomainsSet;
-  auto initRan = false;
+  auto initializing = false;
   if (!initialized_) {
-    initRan = true;
+    initializing = true;
     initialized_ = true;
 
     // Set meta-data (mostly) handling options.
@@ -127,7 +127,7 @@ Status RocksDBDatabasePlugin::setUp() {
 
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
-  path_ = fs::path(FLAGS_database_path).make_preferred().string();
+  path_ = dbPath();
 
   if (pathExists(path_).ok() && !isReadable(path_).ok()) {
     return Status(1, "Cannot read RocksDB path: " + path_);
@@ -140,7 +140,7 @@ Status RocksDBDatabasePlugin::setUp() {
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
   close();
 
-  if (initRan) {
+  if (initializing) {
     // To support osquery rollbacks, meaning running with a database
     // written/used by a newer version of osquery that introduced a new column
     // family, we need to open with all column families known by the database.
@@ -155,17 +155,16 @@ Status RocksDBDatabasePlugin::setUp() {
     std::vector<std::string> columnFamiliesInDB;
     auto s =
         rocksdb::DB::ListColumnFamilies(options_, path_, &columnFamiliesInDB);
-    if (!s.ok()) {
-      LOG(INFO) << "Rocksdb open failed (" << static_cast<uint32_t>(s.code())
-                << ":" << static_cast<uint32_t>(s.subcode()) << ") "
-                << s.ToString();
-      // A failed open in read mode is a runtime error.
-      return Status(1, s.ToString());
-    }
-    for (const auto& columnFamilyInDB : columnFamiliesInDB) {
-      if (kDomainsSet.find(columnFamilyInDB) == kDomainsSet.end()) {
-        column_families_.push_back(
-            rocksdb::ColumnFamilyDescriptor(columnFamilyInDB, options_));
+    // It is possible the DB doesn't exist yet, for "create if not
+    // existing" case. The failure is ignored here. We rely on DB::Open()
+    // to give us the correct error message for problem with opening
+    // existing DB.
+    if (s.ok()) {
+      for (const auto& columnFamilyInDB : columnFamiliesInDB) {
+        if (kDomainsSet.find(columnFamilyInDB) == kDomainsSet.end()) {
+          column_families_.push_back(
+              rocksdb::ColumnFamilyDescriptor(columnFamilyInDB, options_));
+        }
       }
     }
   }
@@ -204,6 +203,14 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   return Status(0);
+}
+
+std::string RocksDBDatabasePlugin::dbPath() const {
+  auto path = fs::path(FLAGS_database_path);
+  if (!alternative_db_path_.empty()) {
+    path = alternative_db_path_;
+  }
+  return path.make_preferred().string();
 }
 
 Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
