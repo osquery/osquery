@@ -9,6 +9,7 @@
 
 #include <iostream>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <osquery/core/core.h>
@@ -22,6 +23,8 @@
 #include "osquery/sql/sqlite_util.h"
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
+#include <osquery/utils/status/status.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 
@@ -208,5 +211,135 @@ TEST_F(DistributedTests, test_workflow) {
   queries = dist.getPendingQueries();
   EXPECT_EQ(queries.size(), 0U);
   EXPECT_EQ(dist.results_.size(), 0U);
+}
+
+TEST_F(DistributedTests, test_check_and_set_as_running) {
+  auto dist = Distributed();
+
+  const auto denylistedQuery = "SELECT * FROM system_info;";
+  const auto denylisted = dist.checkAndSetAsRunning(denylistedQuery);
+  ASSERT_FALSE(denylisted);
+
+  const auto denylistedQueryKey = hashQuery(denylistedQuery);
+
+  std::string ts1;
+  auto status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts1);
+  ASSERT_TRUE(status.ok());
+  ASSERT_FALSE(ts1.empty());
+
+  const auto denylisted2 = dist.checkAndSetAsRunning(denylistedQuery);
+  ASSERT_TRUE(denylisted2);
+
+  std::string ts2;
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts2);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(ts1, ts2);
+
+  // Change timestamp of the the denylisted query so that it's now expired.
+  status =
+      setDatabaseValue(kDistributedRunningQueries,
+                       denylistedQueryKey,
+                       std::to_string(getUnixTime() - denylistDuration() - 60));
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  const auto denylisted3 = dist.checkAndSetAsRunning(denylistedQuery);
+  ASSERT_FALSE(denylisted3);
+
+  // Cleanup should cleanup the expired query.
+  status = dist.cleanupExpiredRunningQueries();
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  std::string ts3;
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts3);
+  ASSERT_FALSE(status.ok()); // NotFound
+  ASSERT_TRUE(ts3.empty());
+}
+
+class DistributedMock : public Distributed {
+ public:
+  DistributedMock() : Distributed() {}
+  MOCK_METHOD0(flushCompleted, Status());
+};
+
+TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
+  auto dist = DistributedMock();
+  // flushCompleted is mocked to avoid sending results in
+  // Distributed.runQueries.
+  EXPECT_CALL(dist, flushCompleted).Times(2);
+
+  // Simulate a denylisted query by manually marking it as running.
+  const auto denylistedQuery = "SELECT * FROM osquery_info;";
+  const auto denylisted = dist.checkAndSetAsRunning(denylistedQuery);
+  ASSERT_FALSE(denylisted);
+
+  const auto denylistedQueryKey = hashQuery(denylistedQuery);
+
+  const std::string work = R"json(
+{
+  "queries": {
+    "q1": "SELECT * FROM osquery_info;",
+    "q2": "SELECT * FROM osquery_info WHERE version > '5.3.0';"
+  }
+}
+)json";
+  auto status = dist.acceptWork(work);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  status = dist.runQueries();
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Query q1 is denylisted, only query q2 ran.
+  ASSERT_EQ(dist.results_.size(), 2);
+  auto q1Idx = 0, q2Idx = 1;
+  if (dist.results_[0].request.id.compare("q2") == 0) {
+    q1Idx = 1;
+    q2Idx = 0;
+  }
+  EXPECT_FALSE(dist.results_[q1Idx].status.ok());
+  EXPECT_TRUE(dist.results_[q1Idx].results.empty());
+  EXPECT_EQ(dist.results_[q1Idx].status.getMessage(), "Denylisted");
+  EXPECT_EQ(dist.results_[q1Idx].message, "distributed query is denylisted");
+  EXPECT_TRUE(dist.results_[q2Idx].status.ok());
+  EXPECT_FALSE(dist.results_[q2Idx].results.empty());
+
+  // Manually clear results.
+  dist.results_.clear();
+
+  // Cleanup should not yet cleanup the denylisted query.
+  status = dist.cleanupExpiredRunningQueries();
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  std::string ts;
+  status = getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_FALSE(ts.empty());
+
+  // Change timestamp of the the denylisted query so that it's now expired.
+  status =
+      setDatabaseValue(kDistributedRunningQueries,
+                       denylistedQueryKey,
+                       std::to_string(getUnixTime() - denylistDuration() - 60));
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Query q1 should not by denylisted anymore.
+  auto s = dist.acceptWork(work);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  status = dist.runQueries();
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+  ASSERT_EQ(dist.results_.size(), 2);
+  EXPECT_TRUE(dist.results_[0].status.ok());
+  EXPECT_TRUE(dist.results_[0].request.id == "q1" ||
+              dist.results_[0].request.id == "q2");
+  EXPECT_TRUE(dist.results_[1].status.ok());
+  EXPECT_TRUE(dist.results_[1].request.id == "q1" ||
+              dist.results_[1].request.id == "q2");
+
+  // Query q1 should not be marked as denylisted anymore.
+  std::string ts2;
+  status =
+      getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts2);
+  ASSERT_FALSE(status.ok()); // NotFound
+  ASSERT_TRUE(ts2.empty());
 }
 } // namespace osquery
