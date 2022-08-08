@@ -30,6 +30,7 @@ class RocksDBDatabasePluginTests : public DatabasePluginTests {
     }
   }
 
+  /// Holds db directories to cleanup in TearDown.
   std::vector<std::string> db_dirs_;
 };
 
@@ -78,15 +79,17 @@ TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
 
   db_dirs_.push_back(db.alternative_db_path_);
 
+  // Introduce a new column family.
   rocksdb::ColumnFamilyHandle* cf = nullptr;
   auto rs = db.db_->CreateColumnFamily(db.options_, "foo", &cf);
-  ASSERT_TRUE(s.ok()) << s.getMessage();
-
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
   db.tearDown();
 
+  // Open the existing database that has unknown column family "foo".
   auto db2 = RocksDBDatabasePlugin();
   db2.alternative_db_path_ = test_db_path;
   s = db2.setUp();
   ASSERT_TRUE(s.ok()) << s.getMessage();
+  db2.tearDown();
 }
 }
