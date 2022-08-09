@@ -24,10 +24,10 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
-#include <osquery/utils/status/status.h>
-
 #include <osquery/remote/uri.h>
 #include <osquery/tables/yara/yara_utils.h>
+#include <osquery/utils/status/status.h>
+#include <osquery/worker/system/memory.h>
 
 #ifdef CONCAT
 #undef CONCAT
@@ -37,15 +37,11 @@
 
 namespace osquery {
 
-// After a large scan of many files, the memory allocation could be
-// substantial.  free() may not return it to operating system, but
-// rather keep it around in anticipation that app will reallocate.
-// Call malloc_trim() on linux to try to convince it to release.
 #ifdef LINUX
-FLAG(bool,
-     yara_malloc_trim,
-     true,
-     "Call malloc_trim() after YARA scans (linux)");
+HIDDEN_FLAG(bool,
+            yara_malloc_trim,
+            true,
+            "Deprecated in favor of malloc_trim_threshold.");
 #endif
 
 FLAG(uint32,
@@ -414,10 +410,9 @@ QueryData genYara(QueryContext& context) {
     LOG(WARNING) << fini_status.toString();
   }
 
-#ifdef LINUX
-  if (osquery::FLAGS_yara_malloc_trim) {
-    malloc_trim(0);
-  }
+#ifdef OSQUERY_LINUX
+  // Attempt to release some unused memory kept by malloc internal caching
+  releaseRetainedMemory();
 #endif
 
   return results;

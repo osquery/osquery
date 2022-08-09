@@ -80,5 +80,4 @@ std::vector<std::string_view> vsplit(const std::string_view source,
 
   return elements;
 }
-
 } // namespace osquery

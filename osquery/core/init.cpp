@@ -125,6 +125,16 @@ CLI_FLAG(uint64,
          alarm_timeout,
          15,
          "Seconds to allow for shutdown. Minimum is 10");
+#ifdef OSQUERY_LINUX
+
+/* The default value here is just a placeholder,
+   it will be recalculated at runtime */
+FLAG(uint64,
+     malloc_trim_threshold,
+     200,
+     "Memory threshold in MB used to decide when a malloc_trim will be called "
+     "to reduce the retained memory (Linux only)")
+#endif
 
 /// Should the daemon force unload previously-running osqueryd daemons.
 CLI_FLAG(bool,
