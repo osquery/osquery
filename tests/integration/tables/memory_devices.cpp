@@ -32,30 +32,30 @@ TEST_F(memoryDevices, test_sanity) {
   // 3. Build validation map
   // See helper.h for available flags
   // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"handle", NormalType}
-  //      {"array_handle", NormalType}
-  //      {"form_factor", NormalType}
-  //      {"total_width", IntType}
-  //      {"data_width", IntType}
-  //      {"size", IntType}
-  //      {"set", IntType}
-  //      {"device_locator", NormalType}
-  //      {"bank_locator", NormalType}
-  //      {"memory_type", NormalType}
-  //      {"memory_type_details", NormalType}
-  //      {"max_speed", IntType}
-  //      {"configured_clock_speed", IntType}
-  //      {"manufacturer", NormalType}
-  //      {"serial_number", NormalType}
-  //      {"asset_tag", NormalType}
-  //      {"part_number", NormalType}
-  //      {"min_voltage", IntType}
-  //      {"max_voltage", IntType}
-  //      {"configured_voltage", IntType}
-  //}
+  ValidationMap row_map = {
+      {"handle", NormalType},
+      {"array_handle", NormalType},
+      {"form_factor", NormalType},
+      {"total_width", IntOrEmpty},
+      {"data_width", IntOrEmpty},
+      {"size", IntOrEmpty},
+      {"set", IntOrEmpty},
+      {"device_locator", NormalType},
+      {"bank_locator", NormalType},
+      {"memory_type", NormalType},
+      {"memory_type_details", NormalType},
+      {"max_speed", IntOrEmpty},
+      {"configured_clock_speed", IntOrEmpty},
+      {"manufacturer", NormalType},
+      {"serial_number", NormalType},
+      {"asset_tag", NormalType},
+      {"part_number", NormalType},
+      {"min_voltage", IntOrEmpty},
+      {"max_voltage", IntOrEmpty},
+      {"configured_voltage", IntOrEmpty},
+  };
   // 4. Perform validation
-  // validate_rows(data, row_map);
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
