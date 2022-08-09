@@ -313,7 +313,7 @@ typedef uint64_t uintmax_t;
 /* #undef ARCHIVE_XATTR_FREEBSD */
 
 /* Linux xattr support */
-#define ARCHIVE_XATTR_LINUX 1
+/* #undef ARCHIVE_XATTR_LINUX */
 
 /* Version number of bsdcpio */
 #define BSDCPIO_VERSION_STRING "3.6.1"
@@ -373,7 +373,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_BSDXML_H */
 
 /* Define to 1 if you have the <bzlib.h> header file. */
-#define HAVE_BZLIB_H 1
+/* #undef HAVE_BZLIB_H */
 
 /* Define to 1 if you have the `chflags' function. */
 /* #undef HAVE_CHFLAGS */
@@ -562,13 +562,13 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_FGETEA */
 
 /* Define to 1 if you have the `fgetxattr' function. */
-#define HAVE_FGETXATTR 1
+/* #undef HAVE_FGETXATTR */
 
 /* Define to 1 if you have the `flistea' function. */
 /* #undef HAVE_FLISTEA */
 
 /* Define to 1 if you have the `flistxattr' function. */
-#define HAVE_FLISTXATTR 1
+/* #undef HAVE_FLISTXATTR */
 
 /* Define to 1 if you have the `fork' function. */
 #define HAVE_FORK 1
@@ -580,7 +580,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_FSETEA */
 
 /* Define to 1 if you have the `fsetxattr' function. */
-#define HAVE_FSETXATTR 1
+/* #undef HAVE_FSETXATTR */
 
 /* Define to 1 if you have the `fstat' function. */
 #define HAVE_FSTAT 1
@@ -631,7 +631,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_GETVFSBYNAME */
 
 /* Define to 1 if you have the `getxattr' function. */
-#define HAVE_GETXATTR 1
+/* #undef HAVE_GETXATTR */
 
 /* Define to 1 if you have the `gmtime_r' function. */
 #define HAVE_GMTIME_R 1
@@ -640,10 +640,10 @@ typedef uint64_t uintmax_t;
 #define HAVE_GRP_H 1
 
 /* Define to 1 if you have the `iconv' function. */
-#define HAVE_ICONV 1
+/* #undef HAVE_ICONV */
 
 /* Define to 1 if you have the <iconv.h> header file. */
-#define HAVE_ICONV_H 1
+/* #undef HAVE_ICONV_H */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -667,7 +667,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LGETEA */
 
 /* Define to 1 if you have the `lgetxattr' function. */
-#define HAVE_LGETXATTR 1
+/* #undef HAVE_LGETXATTR */
 
 /* Define to 1 if you have the `acl' library (-lacl). */
 /* #undef HAVE_LIBACL */
@@ -679,7 +679,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBBSDXML */
 
 /* Define to 1 if you have the `bz2' library (-lbz2). */
-#define HAVE_LIBBZ2 1
+/* #undef HAVE_LIBBZ2 */
 
 /* Define to 1 if you have the `b2' library (-lb2). */
 /* #undef HAVE_LIBB2 */
@@ -691,7 +691,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBCHARSET */
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
-#define HAVE_LIBCRYPTO 1
+/* #undef HAVE_LIBCRYPTO */
 
 /* Define to 1 if you have the `expat' library (-lexpat). */
 /* #undef HAVE_LIBEXPAT */
@@ -703,7 +703,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBLZ4 */
 
 /* Define to 1 if you have the `lzma' library (-llzma). */
-#define HAVE_LIBLZMA 1
+/* #undef HAVE_LIBLZMA */
 
 /* Define to 1 if you have the `lzmadec' library (-llzmadec). */
 /* #undef HAVE_LIBLZMADEC */
@@ -724,23 +724,23 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBPCREPOSIX */
 
 /* Define to 1 if you have the `xml2' library (-lxml2). */
-#define HAVE_LIBXML2 1
+/* #undef HAVE_LIBXML2 */
 
 /* Define to 1 if you have the <libxml/xmlreader.h> header file. */
-#define HAVE_LIBXML_XMLREADER_H 1
+/* #undef HAVE_LIBXML_XMLREADER_H */
 
 /* Define to 1 if you have the <libxml/xmlwriter.h> header file. */
-#define HAVE_LIBXML_XMLWRITER_H 1
+/* #undef HAVE_LIBXML_XMLWRITER_H */
 
 /* Define to 1 if you have the `z' library (-lz). */
-#define HAVE_LIBZ 1
+/* #undef HAVE_LIBZ */
 
 /* Define to 1 if you have the `zstd' library (-lzstd). */
-#define HAVE_LIBZSTD 1
+/* #undef HAVE_LIBZSTD */
 
 /* Define to 1 if you have the `zstd' library (-lzstd) with compression
    support. */
-#define HAVE_LIBZSTD_COMPRESSOR 1
+/* #undef HAVE_LIBZSTD_COMPRESSOR */
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
@@ -767,13 +767,13 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LISTEA */
 
 /* Define to 1 if you have the `listxattr' function. */
-#define HAVE_LISTXATTR 1
+/* #undef HAVE_LISTXATTR */
 
 /* Define to 1 if you have the `llistea' function. */
 /* #undef HAVE_LLISTEA */
 
 /* Define to 1 if you have the `llistxattr' function. */
-#define HAVE_LLISTXATTR 1
+/* #undef HAVE_LLISTXATTR */
 
 /* Define to 1 if you have the <localcharset.h> header file. */
 /* #undef HAVE_LOCALCHARSET_H */
@@ -794,7 +794,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LSETEA */
 
 /* Define to 1 if you have the `lsetxattr' function. */
-#define HAVE_LSETXATTR 1
+/* #undef HAVE_LSETXATTR */
 
 /* Define to 1 if you have the `lstat' function. */
 #define HAVE_LSTAT 1
@@ -816,10 +816,10 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LZMADEC_H */
 
 /* Define to 1 if you have the <lzma.h> header file. */
-#define HAVE_LZMA_H 1
+/* #undef HAVE_LZMA_H */
 
 /* Define to 1 if you have a working `lzma_stream_encoder_mt' function. */
-#define HAVE_LZMA_STREAM_ENCODER_MT 1
+/* #undef HAVE_LZMA_STREAM_ENCODER_MT */
 
 /* Define to 1 if you have the <lzo/lzo1x.h> header file. */
 /* #undef HAVE_LZO_LZO1X_H */
@@ -1207,10 +1207,10 @@ typedef uint64_t uintmax_t;
 #define HAVE_WORKING_FS_IOC_GETFLAGS 1
 
 /* Define to 1 if you have the <zlib.h> header file. */
-#define HAVE_ZLIB_H 1
+/* #undef HAVE_ZLIB_H */
 
 /* Define to 1 if you have the <zstd.h> header file. */
-#define HAVE_ZSTD_H 1
+/* #undef HAVE_ZSTD_H */
 
 /* Define to 1 if you have the `_ctime64_s' function. */
 /* #undef HAVE__CTIME64_S */

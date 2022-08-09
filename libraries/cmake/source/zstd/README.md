@@ -18,7 +18,7 @@ cmake \
   -S build/cmake \
   -B build/cmake/output \
   -G Ninja \
-  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain \
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
   -DZSTD_BUILD_CONTRIB=OFF \
   -DZSTD_BUILD_PROGRAMS=OFF \
   -DZSTD_BUILD_SHARED=OFF \

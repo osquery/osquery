@@ -373,7 +373,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_BSDXML_H */
 
 /* Define to 1 if you have the <bzlib.h> header file. */
-#define HAVE_BZLIB_H 1
+/* #undef HAVE_BZLIB_H */
 
 /* Define to 1 if you have the `chflags' function. */
 #define HAVE_CHFLAGS 1
@@ -679,7 +679,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBBSDXML */
 
 /* Define to 1 if you have the `bz2' library (-lbz2). */
-#define HAVE_LIBBZ2 1
+/* #undef HAVE_LIBBZ2 */
 
 /* Define to 1 if you have the `b2' library (-lb2). */
 /* #undef HAVE_LIBB2 */
@@ -703,7 +703,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBLZ4 */
 
 /* Define to 1 if you have the `lzma' library (-llzma). */
-#define HAVE_LIBLZMA 1
+/* #undef HAVE_LIBLZMA */
 
 /* Define to 1 if you have the `lzmadec' library (-llzmadec). */
 /* #undef HAVE_LIBLZMADEC */
@@ -724,23 +724,23 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LIBPCREPOSIX */
 
 /* Define to 1 if you have the `xml2' library (-lxml2). */
-#define HAVE_LIBXML2 1
+/* #undef HAVE_LIBXML2 */
 
 /* Define to 1 if you have the <libxml/xmlreader.h> header file. */
-#define HAVE_LIBXML_XMLREADER_H 1
+/* #undef HAVE_LIBXML_XMLREADER_H */
 
 /* Define to 1 if you have the <libxml/xmlwriter.h> header file. */
-#define HAVE_LIBXML_XMLWRITER_H 1
+/* #undef HAVE_LIBXML_XMLWRITER_H */
 
 /* Define to 1 if you have the `z' library (-lz). */
-#define HAVE_LIBZ 1
+/* #undef HAVE_LIBZ */
 
 /* Define to 1 if you have the `zstd' library (-lzstd). */
-#define HAVE_LIBZSTD 1
+/* #undef HAVE_LIBZSTD */
 
 /* Define to 1 if you have the `zstd' library (-lzstd) with compression
    support. */
-#define HAVE_LIBZSTD_COMPRESSOR 1
+/* #undef HAVE_LIBZSTD_COMPRESSOR */
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
@@ -816,10 +816,10 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_LZMADEC_H */
 
 /* Define to 1 if you have the <lzma.h> header file. */
-#define HAVE_LZMA_H 1
+/* #undef HAVE_LZMA_H */
 
 /* Define to 1 if you have a working `lzma_stream_encoder_mt' function. */
-#define HAVE_LZMA_STREAM_ENCODER_MT 1
+/* #undef HAVE_LZMA_STREAM_ENCODER_MT */
 
 /* Define to 1 if you have the <lzo/lzo1x.h> header file. */
 /* #undef HAVE_LZO_LZO1X_H */
@@ -1207,10 +1207,10 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_WORKING_FS_IOC_GETFLAGS */
 
 /* Define to 1 if you have the <zlib.h> header file. */
-#define HAVE_ZLIB_H 1
+/* #undef HAVE_ZLIB_H */
 
 /* Define to 1 if you have the <zstd.h> header file. */
-#define HAVE_ZSTD_H 1
+/* #undef HAVE_ZSTD_H */
 
 /* Define to 1 if you have the `_ctime64_s' function. */
 /* #undef HAVE__CTIME64_S */

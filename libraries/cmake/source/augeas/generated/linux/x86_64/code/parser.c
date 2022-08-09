@@ -2629,3 +2629,4 @@ void augl_error(struct info *locp,
   }
   syntax_error(&info, "%s", s);
 }
+
