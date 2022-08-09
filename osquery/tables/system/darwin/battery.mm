@@ -169,13 +169,13 @@ BOOL genAdvancedBatteryInfo(Row& r) {
     r["designed_capacity"] = INTEGER(
         [[advancedBatteryInfo objectForKey:@"DesignCapacity"] intValue]);
   }
-  if ([advancedBatteryInfo objectForKey:@kIOPMPSMaxCapacityKey]) {
+  if ([advancedBatteryInfo objectForKey:@"AppleRawMaxCapacity"]) {
     r["max_capacity"] = INTEGER(
-        [[advancedBatteryInfo objectForKey:@kIOPMPSMaxCapacityKey] intValue]);
+        [[advancedBatteryInfo objectForKey:@"AppleRawMaxCapacity"] intValue]);
   }
-  if ([advancedBatteryInfo objectForKey:@kIOPMPSCurrentCapacityKey]) {
+  if ([advancedBatteryInfo objectForKey:@"AppleRawCurrentCapacity"]) {
     r["current_capacity"] = INTEGER([[advancedBatteryInfo
-        objectForKey:@kIOPMPSCurrentCapacityKey] intValue]);
+        objectForKey:@"AppleRawCurrentCapacity"] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] = INTEGER(
