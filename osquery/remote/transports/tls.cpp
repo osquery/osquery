@@ -67,7 +67,10 @@ HIDDEN_FLAG(bool,
             "Allow TLS server certificate trust failures");
 #endif
 
-HIDDEN_FLAG(bool, tls_dump, false, "Print remote requests and responses to stdout");
+HIDDEN_FLAG(bool,
+            tls_dump,
+            false,
+            "Print remote requests and responses to stdout");
 
 /// Undocumented feature to override TLS endpoints.
 HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
