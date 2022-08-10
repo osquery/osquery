@@ -52,8 +52,10 @@ std::string getFirmwareType() {
     // the registry keys
     HKEY state_reg_key;
     auto success =
-        RegCreateKeyA(HKEY_LOCAL_MACHINE,
+        RegOpenKeyExA(HKEY_LOCAL_MACHINE,
                       "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
+                      0,
+                      KEY_READ,
                       &state_reg_key);
 
     if (success != 0 && state_reg_key != INVALID_HANDLE_VALUE) {
