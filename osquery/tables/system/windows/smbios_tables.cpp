@@ -69,12 +69,12 @@ std::string getFirmwareType() {
   }
 
   if (firmware_type == FirmwareType::Bios) {
-    return "Bios";
+    return "bios";
   } else if (firmware_type == FirmwareType::Uefi) {
-    return "Uefi";
+    return "uefi";
   }
 
-  return "Unknown";
+  return "unknown";
 }
 
 QueryData genPlatformInfo(QueryContext& context) {
