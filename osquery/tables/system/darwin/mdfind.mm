@@ -22,7 +22,7 @@ namespace tables {
 
 typedef std::pair<MDQueryRef, std::string> NamedQuery;
 
-const size_t kMaxQueryWait = 5;
+const size_t kMaxQueryWait = 30;
 
 void genResults(const std::vector<NamedQuery>& queries, QueryData& results) {
   // The results can update live from macOS so we stop subscribing to updates
