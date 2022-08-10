@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <Kernel/kern/cs_blobs.h>
 #include <iomanip>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
@@ -64,6 +65,10 @@ std::string getSigningId(const es_process_t* p) {
              : "";
 }
 
+bool getIsAdhocSigned(const es_process_t* p) {
+  return p->codesigning_flags & CS_ADHOC;
+}
+
 std::string getTeamId(const es_process_t* p) {
   return p->team_id.length > 0 && p->team_id.data != nullptr ? p->team_id.data
                                                              : "";
@@ -112,6 +117,7 @@ void getProcessProperties(const es_process_t* p,
   ec->team_id = getTeamId(p);
   ec->cdhash = getCDHash(p);
   ec->platform_binary = p->is_platform_binary;
+  ec->adhoc_signed = getIsAdhocSigned(p);
 
   auto user = getpwuid(ec->uid);
   ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";
