@@ -9,6 +9,8 @@
 
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 
 #include <sys/sysctl.h>
 #include <sys/types.h>
@@ -18,8 +20,10 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/smbios_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
@@ -31,6 +35,52 @@ namespace tables {
 #define kIOSMBIOSClassName_ "AppleSMBIOS"
 #define kIOSMBIOSPropertyName_ "SMBIOS"
 #define kIOSMBIOSEPSPropertyName_ "SMBIOS-EPS"
+
+#include <IOKit/IOKitLib.h>
+
+enum class FirmwareType {
+  EFI,
+  iBoot,
+  OpenFirmware,
+};
+
+bool getFirmwareType(FirmwareType& firmware_type) {
+  // clang-format off
+  static const std::unordered_map<FirmwareType, std::string> kFirmwareToRegistryPath{
+    { FirmwareType::EFI, kIODeviceTreePlane ":/efi" },
+    { FirmwareType::iBoot, kIODeviceTreePlane ":/chosen/iBoot" },
+    { FirmwareType::OpenFirmware, kIODeviceTreePlane ":/openprom" },
+  };
+  // clang-format on
+
+  mach_port_t master_port{};
+  if (IOMasterPort(MACH_PORT_NULL, &master_port) != 0) {
+    return false;
+  }
+
+  boost::optional<FirmwareType> opt_detected_firmware_type;
+
+  for (const auto& p : kFirmwareToRegistryPath) {
+    const auto& firmware_type = p.first;
+    const auto& registry_path = p.second;
+
+    auto registry_entry =
+        IORegistryEntryFromPath(master_port, registry_path.c_str());
+
+    if (registry_entry != MACH_PORT_NULL) {
+      IOObjectRelease(registry_entry);
+
+      opt_detected_firmware_type = firmware_type;
+      break;
+    }
+  }
+
+  if (opt_detected_firmware_type.has_value()) {
+    firmware_type = opt_detected_firmware_type.value();
+  }
+
+  return opt_detected_firmware_type.has_value();
+}
 
 class DarwinSMBIOSParser : public SMBIOSParser {
  public:
@@ -255,6 +305,29 @@ QueryData genOEMStrings(QueryContext& context) {
   return results;
 }
 
+std::string getFirmwareTypeName() {
+  FirmwareType firmware_type;
+  if (!getFirmwareType(firmware_type)) {
+    LOG(ERROR) << "platform_info: Firmware type detection has failed";
+    return "";
+  }
+
+  switch (firmware_type) {
+  case FirmwareType::EFI:
+    return "efi";
+
+  case FirmwareType::iBoot:
+    return "iboot";
+
+  case FirmwareType::OpenFirmware:
+    return "openfirmware";
+
+  default:
+    LOG(ERROR) << "platform_info: Invalid FirmwareType value";
+    return "";
+  }
+}
+
 QueryData genIntelPlatformInfo(QueryContext& context) {
   auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
   if (rom == 0) {
@@ -277,6 +350,7 @@ QueryData genIntelPlatformInfo(QueryContext& context) {
   r["size"] = getIOKitProperty(details, "rom-size");
   r["date"] = getIOKitProperty(details, "release-date");
   r["version"] = getIOKitProperty(details, "version");
+  r["firmware_type"] = SQL_TEXT(getFirmwareTypeName());
 
   {
     auto address = getIOKitProperty(details, "fv-main-address");
@@ -331,6 +405,7 @@ QueryData genAarch64PlatformInfo(QueryContext& context) {
   }
   Row r;
   r["vendor"] = getIOKitProperty(details, "manufacturer");
+  r["firmware_type"] = SQL_TEXT(getFirmwareTypeName());
 
   auto chosen =
       IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
