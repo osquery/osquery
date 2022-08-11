@@ -15,7 +15,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -54,6 +56,32 @@ inline std::string readProcCMDLine(const std::string& pid) {
   // Remove trailing delimiter.
   boost::algorithm::trim(content);
   return content;
+}
+
+inline std::string readProcCgroup(const std::string& pid) {
+  auto attr = getProcAttr("cgroup", pid);
+
+  std::string content;
+  readFile(attr, content);
+  // Get only the first line
+  // with v1 cgroups we'll have separate lines for different cgroup types
+  if (auto pos = content.find_first_of('\n'); pos != std::string::npos) {
+    content.erase(pos);
+  }
+  boost::algorithm::trim_right_if(content,
+                                  [](const char& c) { return c == '\n'; });
+
+  // We should always get something like:
+  // 0::user.slice (for cgroup v2) or
+  // 2:cpu:user.slice (for cgroup v1)
+  // Note that a cgroup name may have colons
+  std::vector<std::string> fields;
+  boost::split(fields, content, [](const char& c) { return c == ':'; });
+  if (fields.size() < 3) {
+    return "";
+  }
+
+  return boost::join(std::vector(fields.begin() + 2, fields.end()), ":");
 }
 
 inline std::string readProcLink(const std::string& attr,
@@ -416,6 +444,7 @@ void genProcess(const std::string& pid,
   r["threads"] = proc_stat.threads;
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);
+  r["cgroup_path"] = readProcCgroup(pid);
   r["cwd"] = readProcLink("cwd", pid);
   r["root"] = readProcLink("root", pid);
   r["uid"] = proc_stat.real_uid;

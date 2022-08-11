@@ -46,6 +46,9 @@ extended_schema(DARWIN, [
     Column("cpu_subtype", INTEGER, "Indicates the specific processor on which an entry may be used."),
     Column("translated", INTEGER, "Indicates whether the process is running under the Rosetta Translation Environment, yes=1, no=0, error=-1."),
 ])
+extended_schema(LINUX, [
+    Column("cgroup_path", TEXT, "The full hierarchical path of the process's control group"),
+])
 attributes(cacheable=True, strongly_typed_rows=True)
 implementation("system/processes@genProcesses")
 examples([
