@@ -167,7 +167,7 @@ If your `--database_path` is `/var/osquery/osquery.db` then the backup is `/var/
 
 ### Inspecting TLS/HTTPS body request and responses
 
-When using the TLS-related plugins the hidden flag `--tls_dump` can be used with `--verbose`. This flag will print all of the HTTPS body content (usually JSON data) to `stdout`.
+When using the TLS-related plugins the hidden flag `--tls_dump` can be used with `--verbose`. This flag will print all of the HTTPS body content (usually JSON data) to `stderr`.
 
 ### Using event publishers and tables in the shell
 
