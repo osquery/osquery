@@ -13,7 +13,7 @@ cmake \
   -DBUILD_SHARED_LIBS=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DNO_HTTP_CLIENT=ON \
-  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
 ```
 
 ## macOS

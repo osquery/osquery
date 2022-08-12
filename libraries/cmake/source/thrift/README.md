@@ -14,7 +14,7 @@ cmake \
   -DBUILD_SHARED_LIBS=OFF \
   -DWITH_OPENSSL=ON \
   -DWITH_ZLIB=ON \
-  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain
 ```
 
 ## macOS

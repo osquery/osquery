@@ -5,8 +5,8 @@
 Prepare the environment
 
 ```bash
-export PATH="/opt/osquery-toolchain/usr/bin:${PATH}"
-export CFLAGS="--sysroot /opt/osquery-toolchain"
+export PATH="/usr/local/osquery-toolchain/usr/bin:${PATH}"
+export CFLAGS="--sysroot /usr/local/osquery-toolchain"
 export CXXFLAGS="${CFLAGS}"
 export CPPFLAGS="${CFLAGS}"
 export LDFLAGS="${CFLAGS}"

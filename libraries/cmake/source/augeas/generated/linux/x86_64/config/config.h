@@ -19,12 +19,12 @@
 /* Define to the number of bits in type 'wint_t'. */
 /* #undef BITSIZEOF_WINT_T */
 
-/* Define to one of '_getb67', 'GETB67', 'getb67' for Cray-2 and Cray-YMP
-   systems. This function is required for 'alloca.c' support on those systems.
+/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
+   systems. This function is required for `alloca.c' support on those systems.
    */
 /* #undef CRAY_STACKSEG_END */
 
-/* Define to 1 if using 'alloca.c'. */
+/* Define to 1 if using `alloca.c'. */
 /* #undef C_ALLOCA */
 
 /* Define to 1 if the C locale may have encoding errors. */
@@ -761,37 +761,37 @@
 /* Define to 1 if you have the `strnlen' function. */
 #define HAVE_STRNLEN 1
 
-/* Define to 1 if `decimal_point' is member of `struct lconv'. */
+/* Define to 1 if `decimal_point' is a member of `struct lconv'. */
 /* #undef HAVE_STRUCT_LCONV_DECIMAL_POINT */
 
-/* Define to 1 if `sa_sigaction' is member of `struct sigaction'. */
+/* Define to 1 if `sa_sigaction' is a member of `struct sigaction'. */
 #define HAVE_STRUCT_SIGACTION_SA_SIGACTION 1
 
 /* Define to 1 if the system has the type `struct sockaddr_storage'. */
 #define HAVE_STRUCT_SOCKADDR_STORAGE 1
 
-/* Define to 1 if `ss_family' is member of `struct sockaddr_storage'. */
+/* Define to 1 if `ss_family' is a member of `struct sockaddr_storage'. */
 #define HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY 1
 
-/* Define to 1 if `st_atimensec' is member of `struct stat'. */
+/* Define to 1 if `st_atimensec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_ATIMENSEC */
 
-/* Define to 1 if `st_atimespec.tv_nsec' is member of `struct stat'. */
+/* Define to 1 if `st_atimespec.tv_nsec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_ATIMESPEC_TV_NSEC */
 
-/* Define to 1 if `st_atim.st__tim.tv_nsec' is member of `struct stat'. */
+/* Define to 1 if `st_atim.st__tim.tv_nsec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_ATIM_ST__TIM_TV_NSEC */
 
-/* Define to 1 if `st_atim.tv_nsec' is member of `struct stat'. */
+/* Define to 1 if `st_atim.tv_nsec' is a member of `struct stat'. */
 #define HAVE_STRUCT_STAT_ST_ATIM_TV_NSEC 1
 
-/* Define to 1 if `st_birthtimensec' is member of `struct stat'. */
+/* Define to 1 if `st_birthtimensec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC */
 
-/* Define to 1 if `st_birthtimespec.tv_nsec' is member of `struct stat'. */
+/* Define to 1 if `st_birthtimespec.tv_nsec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_BIRTHTIMESPEC_TV_NSEC */
 
-/* Define to 1 if `st_birthtim.tv_nsec' is member of `struct stat'. */
+/* Define to 1 if `st_birthtim.tv_nsec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_BIRTHTIM_TV_NSEC */
 
 /* Define to 1 if you have the `symlink' function. */
@@ -975,9 +975,6 @@
 #endif
 
 
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-/* #undef NO_MINUS_C_MINUS_O */
-
 /* Define to 1 if open() fails to recognize a trailing slash. */
 /* #undef OPEN_TRAILING_SLASH_BUG */
 
@@ -995,6 +992,9 @@
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "augeas"
+
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "1.12.0"
@@ -1056,9 +1056,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.
-        STACK_DIRECTION > 0 => grows toward higher addresses
-        STACK_DIRECTION < 0 => grows toward lower addresses
-        STACK_DIRECTION = 0 => direction of growth unknown */
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown */
 /* #undef STACK_DIRECTION */
 
 /* Define to 1 if the `S_IS*' macros in <sys/stat.h> do not work properly. */

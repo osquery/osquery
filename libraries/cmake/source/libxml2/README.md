@@ -18,7 +18,7 @@ Force the following `check_include_files()` checks: `stdint.h`, `math.h`, `ctype
 cmake \
   -S . \
   -B build \
-  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain \
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
   -DBUILD_SHARED_LIBS=OFF \
   -DLIBXML2_WITH_C14N=ON \
   -DLIBXML2_WITH_CATALOG=OFF \
@@ -142,6 +142,9 @@ Make sure you are working in a clean source folder:
 git reset --hard ; git clean -ffdx
 ```
 
+It may be necessary to keep the osquery source code and zlib library compiled around,
+because if the configuration doesn't find zlib, then we will need to pass to CMake the zlib library and include paths ourselves.
+
 Configure the project:
 
 ```cmd
@@ -183,7 +186,13 @@ cmake ^
   -DLIBXML2_WITH_XINCLUDE=OFF ^
   -DLIBXML2_WITH_XPATH=ON ^
   -DLIBXML2_WITH_XPTR=ON ^
-  -DLIBXML2_WITH_ZLIB=ON
+  -DLIBXML2_WITH_ZLIB=ON ^
+```
+
+And optionally
+```cmd
+  -DZLIB_LIBRARY="<path to thirdparty_zlib.lib>" ^
+  -DZLIB_INCLUDE_DIR="<path to osquery source>\libraries\cmake\source\zlib\src"
 ```
 
 Build the project:
@@ -193,6 +202,8 @@ cmake ^
   --build build ^
   --config Release
 ```
+
+NOTE: If necessary, convert the config.h and xmlversion.h line endings from CRLF to LF
 
 ## Common to All Platforms
 

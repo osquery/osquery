@@ -2,16 +2,16 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if __attribute__((destructor)) is accepted */
-/* #undef ATTRIBUTE_DESTRUCTOR */
+#define ATTRIBUTE_DESTRUCTOR __attribute__((destructor))
 
 /* Type cast for the gethostbyname() argument */
-#define GETHOSTBYNAME_ARG_CAST (char *)
+#define GETHOSTBYNAME_ARG_CAST /**/
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
-/* #undef HAVE_ARPA_INET_H */
+#define HAVE_ARPA_INET_H 1
 
 /* Define to 1 if you have the <arpa/nameser.h> header file. */
-/* #undef HAVE_ARPA_NAMESER_H */
+#define HAVE_ARPA_NAMESER_H 1
 
 /* Whether struct sockaddr::__ss_family exists */
 /* #undef HAVE_BROKEN_SS_FAMILY */
@@ -19,195 +19,163 @@
 /* Define to 1 if you have the <ctype.h> header file. */
 #define HAVE_CTYPE_H 1
 
-/* Define to 1 if you have the <dirent.h> header file. */
-/* #undef HAVE_DIRENT_H */
-
 /* Define to 1 if you have the <dlfcn.h> header file. */
-/* #undef HAVE_DLFCN_H */
+#define HAVE_DLFCN_H 1
 
 /* Have dlopen based dso */
-/* #undef HAVE_DLOPEN */
+#define HAVE_DLOPEN 1
 
 /* Define to 1 if you have the <dl.h> header file. */
 /* #undef HAVE_DL_H */
 
 /* Define to 1 if you have the <errno.h> header file. */
-/* #undef HAVE_ERRNO_H */
+#define HAVE_ERRNO_H 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
-/* #undef HAVE_FCNTL_H */
+#define HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the <float.h> header file. */
-/* #undef HAVE_FLOAT_H */
+#define HAVE_FLOAT_H 1
 
 /* Define to 1 if you have the `fprintf' function. */
-/* #undef HAVE_FPRINTF */
+#define HAVE_FPRINTF 1
 
 /* Define to 1 if you have the `ftime' function. */
-/* #undef HAVE_FTIME */
+#define HAVE_FTIME 1
 
 /* Define if getaddrinfo is there */
-/* #undef HAVE_GETADDRINFO */
+#define HAVE_GETADDRINFO 1
 
 /* Define to 1 if you have the `gettimeofday' function. */
-/* #undef HAVE_GETTIMEOFDAY */
+#define HAVE_GETTIMEOFDAY 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
-/* #undef HAVE_INTTYPES_H */
+#define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `isascii' function. */
-/* #undef HAVE_ISASCII */
-
-/* Define if isinf is there */
-/* #undef HAVE_ISINF */
-
-/* Define if isnan is there */
-/* #undef HAVE_ISNAN */
+#define HAVE_ISASCII 1
 
 /* Define if history library is there (-lhistory) */
 /* #undef HAVE_LIBHISTORY */
-
-/* Define if pthread library is there (-lpthread) */
-/* #undef HAVE_LIBPTHREAD */
 
 /* Define if readline library is there (-lreadline) */
 /* #undef HAVE_LIBREADLINE */
 
 /* Define to 1 if you have the <limits.h> header file. */
-/* #undef HAVE_LIMITS_H */
+#define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the `localtime' function. */
-/* #undef HAVE_LOCALTIME */
-
-/* Define to 1 if you have the <lzma.h> header file. */
-/* #undef HAVE_LZMA_H */
+#define HAVE_LOCALTIME 1
 
 /* Define to 1 if you have the <malloc.h> header file. */
-/* #undef HAVE_MALLOC_H */
+#define HAVE_MALLOC_H 1
 
 /* Define to 1 if you have the <math.h> header file. */
 #define HAVE_MATH_H 1
 
-/* Define to 1 if you have the <memory.h> header file. */
-/* #undef HAVE_MEMORY_H */
-
 /* Define to 1 if you have the `mmap' function. */
-/* #undef HAVE_MMAP */
+#define HAVE_MMAP 1
 
 /* Define to 1 if you have the `munmap' function. */
-/* #undef HAVE_MUNMAP */
+#define HAVE_MUNMAP 1
 
 /* mmap() is no good without munmap() */
 #if defined(HAVE_MMAP) && !defined(HAVE_MUNMAP)
 #  undef /**/ HAVE_MMAP
 #endif
 
-/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
-/* #undef HAVE_NDIR_H */
-
 /* Define to 1 if you have the <netdb.h> header file. */
-/* #undef HAVE_NETDB_H */
+#define HAVE_NETDB_H 1
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
-/* #undef HAVE_NETINET_IN_H */
+#define HAVE_NETINET_IN_H 1
 
 /* Define to 1 if you have the <poll.h> header file. */
-/* #undef HAVE_POLL_H */
+#define HAVE_POLL_H 1
 
 /* Define to 1 if you have the `printf' function. */
-/* #undef HAVE_PRINTF */
+#define HAVE_PRINTF 1
 
 /* Define if <pthread.h> is there */
-/* #undef HAVE_PTHREAD_H */
+#define HAVE_PTHREAD_H 1
 
 /* Define to 1 if you have the `putenv' function. */
-/* #undef HAVE_PUTENV */
+#define HAVE_PUTENV 1
 
 /* Define to 1 if you have the `rand' function. */
-/* #undef HAVE_RAND */
+#define HAVE_RAND 1
 
 /* Define to 1 if you have the `rand_r' function. */
-/* #undef HAVE_RAND_R */
+#define HAVE_RAND_R 1
 
 /* Define to 1 if you have the <resolv.h> header file. */
-/* #undef HAVE_RESOLV_H */
+#define HAVE_RESOLV_H 1
 
 /* Have shl_load based dso */
 /* #undef HAVE_SHLLOAD */
 
-/* Define to 1 if you have the `signal' function. */
-/* #undef HAVE_SIGNAL */
-
 /* Define to 1 if you have the <signal.h> header file. */
-/* #undef HAVE_SIGNAL_H */
+#define HAVE_SIGNAL_H 1
 
 /* Define to 1 if you have the `snprintf' function. */
-/* #undef HAVE_SNPRINTF */
+#define HAVE_SNPRINTF 1
 
 /* Define to 1 if you have the `sprintf' function. */
-/* #undef HAVE_SPRINTF */
+#define HAVE_SPRINTF 1
 
 /* Define to 1 if you have the `srand' function. */
-/* #undef HAVE_SRAND */
+#define HAVE_SRAND 1
 
 /* Define to 1 if you have the `sscanf' function. */
-/* #undef HAVE_SSCANF */
+#define HAVE_SSCANF 1
 
 /* Define to 1 if you have the `stat' function. */
-/* #undef HAVE_STAT */
+#define HAVE_STAT 1
 
 /* Define to 1 if you have the <stdarg.h> header file. */
-/* #undef HAVE_STDARG_H */
+#define HAVE_STDARG_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
-/* #undef HAVE_STDLIB_H */
+#define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the `strftime' function. */
-/* #undef HAVE_STRFTIME */
+#define HAVE_STRFTIME 1
 
 /* Define to 1 if you have the <strings.h> header file. */
-/* #undef HAVE_STRINGS_H */
+#define HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
-/* #undef HAVE_STRING_H */
-
-/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
-/* #undef HAVE_SYS_DIR_H */
+#define HAVE_STRING_H 1
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
-/* #undef HAVE_SYS_MMAN_H */
-
-/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
-/* #undef HAVE_SYS_NDIR_H */
+#define HAVE_SYS_MMAN_H 1
 
 /* Define to 1 if you have the <sys/select.h> header file. */
-/* #undef HAVE_SYS_SELECT_H */
+#define HAVE_SYS_SELECT_H 1
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
-/* #undef HAVE_SYS_SOCKET_H */
+#define HAVE_SYS_SOCKET_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
-/* #undef HAVE_SYS_STAT_H */
+#define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/timeb.h> header file. */
-/* #undef HAVE_SYS_TIMEB_H */
+#define HAVE_SYS_TIMEB_H 1
 
 /* Define to 1 if you have the <sys/time.h> header file. */
-/* #undef HAVE_SYS_TIME_H */
+#define HAVE_SYS_TIME_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
-/* #undef HAVE_SYS_TYPES_H */
+#define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the `time' function. */
-/* #undef HAVE_TIME */
+#define HAVE_TIME 1
 
 /* Define to 1 if you have the <time.h> header file. */
-/* #undef HAVE_TIME_H */
+#define HAVE_TIME_H 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
@@ -216,13 +184,13 @@
 #define HAVE_VA_COPY 1
 
 /* Define to 1 if you have the `vfprintf' function. */
-/* #undef HAVE_VFPRINTF */
+#define HAVE_VFPRINTF 1
 
 /* Define to 1 if you have the `vsnprintf' function. */
-/* #undef HAVE_VSNPRINTF */
+#define HAVE_VSNPRINTF 1
 
 /* Define to 1 if you have the `vsprintf' function. */
-/* #undef HAVE_VSPRINTF */
+#define HAVE_VSPRINTF 1
 
 /* Define to 1 if you have the <zlib.h> header file. */
 /* #undef HAVE_ZLIB_H */
@@ -231,7 +199,7 @@
 /* #undef HAVE___VA_COPY */
 
 /* Define as const if the declaration of iconv() needs const. */
-#define ICONV_CONST const
+#define ICONV_CONST 
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -246,22 +214,22 @@
 #define PACKAGE_NAME "libxml2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libxml2 2.9.10"
+#define PACKAGE_STRING "libxml2 2.9.14"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libxml2"
 
 /* Define to the home page for this package. */
-#define PACKAGE_URL "http://www.xmlsoft.org/"
+#define PACKAGE_URL "https://gitlab.gnome.org/GNOME/libxml2"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.9.10"
+#define PACKAGE_VERSION "2.9.14"
 
 /* Type cast for the send() function 2nd arg */
-#define SEND_ARG2_CAST (char *)
+#define SEND_ARG2_CAST /**/
 
 /* Define to 1 if you have the ANSI C header files. */
-/* #undef STDC_HEADERS */
+#define STDC_HEADERS 1
 
 /* Support for IPv6 */
 /* #undef SUPPORT_IP6 */
@@ -270,10 +238,10 @@
 #define VA_LIST_IS_ARRAY 1
 
 /* Version number of package */
-#define VERSION "2.9.10"
+#define VERSION "2.9.14"
 
 /* Determine what socket length (socklen_t) data type is */
-#define XML_SOCKLEN_T int
+#define XML_SOCKLEN_T socklen_t
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the

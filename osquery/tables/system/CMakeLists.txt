@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -275,7 +274,6 @@ function(generateOsqueryTablesSystemSystemtable)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_augeas
       thirdparty_libmagic
-      thirdparty_libxml2
     )
   else()
     target_link_libraries(osquery_tables_system_systemtable PRIVATE

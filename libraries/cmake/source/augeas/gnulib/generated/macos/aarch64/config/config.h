@@ -619,6 +619,9 @@
 /* Define to 1 if you have the `nl_langinfo' function. */
 #define HAVE_NL_LANGINFO 1
 
+/* Define to 1 if you have the `open_memstream' function. */
+#define HAVE_OPEN_MEMSTREAM 1
+
 /* Define to 1 if you have the <OS.h> header file. */
 /* #undef HAVE_OS_H */
 

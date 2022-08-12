@@ -2,7 +2,7 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if __attribute__((destructor)) is accepted */
-#define ATTRIBUTE_DESTRUCTOR 1
+#define ATTRIBUTE_DESTRUCTOR __attribute__((destructor))
 
 /* Type cast for the gethostbyname() argument */
 #define GETHOSTBYNAME_ARG_CAST /**/
@@ -18,9 +18,6 @@
 
 /* Define to 1 if you have the <ctype.h> header file. */
 #define HAVE_CTYPE_H 1
-
-/* Define to 1 if you have the <dirent.h> header file. */
-#define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
@@ -58,17 +55,8 @@
 /* Define to 1 if you have the `isascii' function. */
 #define HAVE_ISASCII 1
 
-/* Define if isinf is there */
-#define HAVE_ISINF 1
-
-/* Define if isnan is there */
-#define HAVE_ISNAN 1
-
 /* Define if history library is there (-lhistory) */
 /* #undef HAVE_LIBHISTORY */
-
-/* Define if pthread library is there (-lpthread) */
-#define HAVE_LIBPTHREAD 1
 
 /* Define if readline library is there (-lreadline) */
 #define HAVE_LIBREADLINE 1
@@ -79,17 +67,11 @@
 /* Define to 1 if you have the `localtime' function. */
 #define HAVE_LOCALTIME 1
 
-/* Define to 1 if you have the <lzma.h> header file. */
-/* #undef HAVE_LZMA_H */
-
 /* Define to 1 if you have the <malloc.h> header file. */
 /* #undef HAVE_MALLOC_H */
 
 /* Define to 1 if you have the <math.h> header file. */
 #define HAVE_MATH_H 1
-
-/* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `mmap' function. */
 #define HAVE_MMAP 1
@@ -101,9 +83,6 @@
 #if defined(HAVE_MMAP) && !defined(HAVE_MUNMAP)
 #  undef /**/ HAVE_MMAP
 #endif
-
-/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
-/* #undef HAVE_NDIR_H */
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
@@ -134,9 +113,6 @@
 
 /* Have shl_load based dso */
 /* #undef HAVE_SHLLOAD */
-
-/* Define to 1 if you have the `signal' function. */
-#define HAVE_SIGNAL 1
 
 /* Define to 1 if you have the <signal.h> header file. */
 #define HAVE_SIGNAL_H 1
@@ -174,16 +150,8 @@
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
-/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
-/* #undef HAVE_SYS_DIR_H */
-
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #define HAVE_SYS_MMAN_H 1
-
-/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
-/* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/select.h> header file. */
 #define HAVE_SYS_SELECT_H 1
@@ -246,16 +214,16 @@
 #define PACKAGE_NAME "libxml2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libxml2 2.9.10"
+#define PACKAGE_STRING "libxml2 2.9.14"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libxml2"
 
 /* Define to the home page for this package. */
-#define PACKAGE_URL "http://www.xmlsoft.org/"
+#define PACKAGE_URL "https://gitlab.gnome.org/GNOME/libxml2"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.9.10"
+#define PACKAGE_VERSION "2.9.14"
 
 /* Type cast for the send() function 2nd arg */
 #define SEND_ARG2_CAST /**/
@@ -270,7 +238,7 @@
 /* #undef VA_LIST_IS_ARRAY */
 
 /* Version number of package */
-#define VERSION "2.9.10"
+#define VERSION "2.9.14"
 
 /* Determine what socket length (socklen_t) data type is */
 #define XML_SOCKLEN_T socklen_t
