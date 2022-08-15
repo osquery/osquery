@@ -27,6 +27,7 @@
 #include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/tables/system/linux/processes.h>
 
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/uptime.h>
@@ -58,30 +59,33 @@ inline std::string readProcCMDLine(const std::string& pid) {
   return content;
 }
 
-inline std::string readProcCgroup(const std::string& pid) {
-  auto attr = getProcAttr("cgroup", pid);
-
-  std::string content;
-  readFile(attr, content);
+std::string parseProcCGroup(const std::string& content) {
   // Get only the first line
   // with v1 cgroups we'll have separate lines for different cgroup types
-  if (auto pos = content.find_first_of('\n'); pos != std::string::npos) {
-    content.erase(pos);
-  }
-  boost::algorithm::trim_right_if(content,
-                                  [](const char& c) { return c == '\n'; });
+  auto end_pos = content.find('\n');
 
   // We should always get something like:
   // 0::user.slice (for cgroup v2) or
   // 2:cpu:user.slice (for cgroup v1)
   // Note that a cgroup name may have colons
-  std::vector<std::string> fields;
-  boost::split(fields, content, [](const char& c) { return c == ':'; });
-  if (fields.size() < 3) {
+  auto first_colon = content.find(':');
+  if (first_colon == std::string::npos) {
     return "";
   }
+  auto second_colon = content.find(':', first_colon + 1);
+  if (second_colon != std::string::npos && second_colon < end_pos) {
+    return content.substr(second_colon + 1, end_pos - second_colon - 1);
+  } else {
+    return "";
+  }
+}
 
-  return boost::join(std::vector(fields.begin() + 2, fields.end()), ":");
+inline std::string readProcCgroup(const std::string& pid) {
+  auto attr = getProcAttr("cgroup", pid);
+
+  std::string content;
+  readFile(attr, content);
+  return parseProcCGroup(content);
 }
 
 inline std::string readProcLink(const std::string& attr,
