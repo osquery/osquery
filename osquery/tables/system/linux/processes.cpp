@@ -428,6 +428,7 @@ int getOnDisk(const std::string& pid, std::string& path) {
 
 void genProcess(const std::string& pid,
                 long system_boot_time,
+                QueryContext& context,
                 TableRows& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
@@ -450,7 +451,9 @@ void genProcess(const std::string& pid,
   r["threads"] = proc_stat.threads;
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);
-  r["cgroup_path"] = readProcCgroup(pid);
+  if (context.isColumnUsed("cgroup_path")) {
+    r["cgroup_path"] = readProcCgroup(pid);
+  }
   r["cwd"] = readProcLink("cwd", pid);
   r["root"] = readProcLink("root", pid);
   r["uid"] = proc_stat.real_uid;
@@ -524,7 +527,7 @@ TableRows genProcesses(QueryContext& context) {
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    genProcess(pid, system_boot_time, results);
+    genProcess(pid, system_boot_time, context, results);
   }
 
   return results;
