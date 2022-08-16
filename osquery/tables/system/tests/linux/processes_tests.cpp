@@ -32,5 +32,10 @@ TEST_F(CGroupTest, version_1_single_group) {
   EXPECT_EQ("/user.slice/user-1000.slice/session-6.scope", got);
 }
 
+TEST_F(CGroupTest, invalid) {
+  auto got = parseProcCGroup("0:/user.slice\n");
+  EXPECT_EQ("", got);
+}
+
 } // namespace tables
 } // namespace osquery

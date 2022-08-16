@@ -70,13 +70,13 @@ std::string parseProcCGroup(const std::string& content) {
   // Note that a cgroup name may have colons
   auto first_colon = content.find(':');
   if (first_colon == std::string::npos) {
-    return "";
+    return {};
   }
   auto second_colon = content.find(':', first_colon + 1);
   if (second_colon != std::string::npos && second_colon < end_pos) {
     return content.substr(second_colon + 1, end_pos - second_colon - 1);
   } else {
-    return "";
+    return {};
   }
 }
 
@@ -84,7 +84,9 @@ inline std::string readProcCgroup(const std::string& pid) {
   auto attr = getProcAttr("cgroup", pid);
 
   std::string content;
-  readFile(attr, content);
+  if (!readFile(attr, content).ok()) {
+    return {};
+  };
   return parseProcCGroup(content);
 }
 
