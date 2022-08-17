@@ -152,9 +152,6 @@ This release represents commits from 15 contributors! Thank you all.
 ### Deprecation Notices
 
 - Deprecate unmaintainable legacy table, `smart_drive_info` ([#7464](https://github.com/osquery/osquery/issues/7464), [#7542](https://github.com/osquery/osquery/pull/7542))
-- Drop shortcut_files table ([#7547](https://github.com/osquery/osquery/pull/7547))
-- Drop the ssdeep library and remove its hash support  ([#7525](https://github.com/osquery/osquery/pull/7525))
-- Remove libelfin and elf parsing tables ([#7524](https://github.com/osquery/osquery/pull/7524))
 
 ### New Features
 
@@ -177,9 +174,6 @@ This release represents commits from 15 contributors! Thank you all.
 - Add `translated` column to `processes` table to indicate whether the process is running under Apple Rosetta [#7507](https://github.com/osquery/osquery/pull/7507)
 - Add the "internet password" type to the macOS `keychain_items` table [#7576](https://github.com/osquery/osquery/pull/7576)
 - Add `original filename` column to `file` table on Windows [#7156](https://github.com/osquery/osquery/pull/7156)
-- Drop shortcut_files table ([#7547](https://github.com/osquery/osquery/pull/7547))
-- Drop the ssdeep library and remove its hash support  ([#7525](https://github.com/osquery/osquery/pull/7525))
-- Remove libelfin and elf parsing tables ([#7524](https://github.com/osquery/osquery/pull/7524))
 
 ### Bug Fixes
 
@@ -256,16 +250,16 @@ since they were not maintained or considered safe anymore.
 
 ### Deprecation Notices
 
-- Remove the `shortcut_files` table [#7545](https://github.com/osquery/osquery/issues/7545)
-- Remove the ssdeep library and remove its support in the `hash` table [#7520](https://github.com/osquery/osquery/issues/7520)
-- Remove the libelfin library and elf parsing tables [#7510](https://github.com/osquery/osquery/issues/7510)
+- Remove the `shortcut_files` table ([#7547](https://github.com/osquery/osquery/pull/7547))
+- Remove the ssdeep library and remove its support in the `hash` table ([#7525](https://github.com/osquery/osquery/pull/7525))
+- Remove the libelfin library and elf parsing tables ([#7524](https://github.com/osquery/osquery/pull/7524))
 
 ### Hardening
 
-- libs: Update OpenSSL from version 1.1.1l to 1.1.1n [#7506](https://github.com/osquery/osquery/pull/7506)
-- libs: Update zlib from v1.2.11 to v1.2.12 [#7548](https://github.com/osquery/osquery/pull/7548)
-- Update librpm to 4.17.0 [#7529](https://github.com/osquery/osquery/pull/7529)
-- libs: Update expat from version 2.2.10 to 2.4.7 [#7526](https://github.com/osquery/osquery/pull/7526)
+- libs: Update OpenSSL from version 1.1.1l to 1.1.1n ([#7506](https://github.com/osquery/osquery/pull/7506))
+- libs: Update zlib from v1.2.11 to v1.2.12 ([#7548](https://github.com/osquery/osquery/pull/7548))
+- Update librpm to 4.17.0 ([#7529](https://github.com/osquery/osquery/pull/7529))
+- libs: Update expat from version 2.2.10 to 2.4.7 ([#7526](https://github.com/osquery/osquery/pull/7526))
 
 <a name="5.2.2"></a>
 ## [5.2.2](https://github.com/osquery/osquery/releases/tag/5.2.2)
