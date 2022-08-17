@@ -7,7 +7,7 @@
 Osquery 5.5.0 has some really exciting table updates! There is much
 anticipated `unified_log` for macOS, this table is the replacement for
 `asl`, and uses the current Apple APIs. Additionally, several tables
-have improved their cross platform support.
+have improved their cross-platform support.
 
 Representing commits from 14 contributors! Thank you all.
 
