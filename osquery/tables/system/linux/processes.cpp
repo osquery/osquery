@@ -15,7 +15,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -25,6 +27,7 @@
 #include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/tables/system/linux/processes.h>
 
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/system/uptime.h>
@@ -54,6 +57,37 @@ inline std::string readProcCMDLine(const std::string& pid) {
   // Remove trailing delimiter.
   boost::algorithm::trim(content);
   return content;
+}
+
+std::string parseProcCGroup(const std::string& content) {
+  // Get only the first line
+  // with v1 cgroups we'll have separate lines for different cgroup types
+  auto end_pos = content.find('\n');
+
+  // We should always get something like:
+  // 0::user.slice (for cgroup v2) or
+  // 2:cpu:user.slice (for cgroup v1)
+  // Note that a cgroup name may have colons
+  auto first_colon = content.find(':');
+  if (first_colon == std::string::npos) {
+    return {};
+  }
+  auto second_colon = content.find(':', first_colon + 1);
+  if (second_colon != std::string::npos && second_colon < end_pos) {
+    return content.substr(second_colon + 1, end_pos - second_colon - 1);
+  } else {
+    return {};
+  }
+}
+
+inline std::string readProcCgroup(const std::string& pid) {
+  auto attr = getProcAttr("cgroup", pid);
+
+  std::string content;
+  if (!readFile(attr, content).ok()) {
+    return {};
+  };
+  return parseProcCGroup(content);
 }
 
 inline std::string readProcLink(const std::string& attr,
@@ -394,6 +428,7 @@ int getOnDisk(const std::string& pid, std::string& path) {
 
 void genProcess(const std::string& pid,
                 long system_boot_time,
+                QueryContext& context,
                 TableRows& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
@@ -416,6 +451,9 @@ void genProcess(const std::string& pid,
   r["threads"] = proc_stat.threads;
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);
+  if (context.isColumnUsed("cgroup_path")) {
+    r["cgroup_path"] = readProcCgroup(pid);
+  }
   r["cwd"] = readProcLink("cwd", pid);
   r["root"] = readProcLink("root", pid);
   r["uid"] = proc_stat.real_uid;
@@ -489,7 +527,7 @@ TableRows genProcesses(QueryContext& context) {
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    genProcess(pid, system_boot_time, results);
+    genProcess(pid, system_boot_time, context, results);
   }
 
   return results;

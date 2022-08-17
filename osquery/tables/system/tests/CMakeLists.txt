@@ -35,6 +35,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/pci_devices_tests.cpp
     linux/pcidb_tests.cpp
     linux/portage_tests.cpp
+    linux/processes_tests.cpp
     linux/rpm_packages_tests.cpp
     linux/selinux_settings_tests.cpp
     linux/yum_sources_tests.cpp

@@ -344,6 +344,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apt_sources.h
       linux/md_tables.h
       linux/pci_devices.h
+      linux/processes.h
       linux/smbios_utils.h
     )
 
