@@ -67,7 +67,10 @@ HIDDEN_FLAG(bool,
             "Allow TLS server certificate trust failures");
 #endif
 
-HIDDEN_FLAG(bool, tls_dump, false, "Print remote requests and responses");
+HIDDEN_FLAG(bool,
+            tls_dump,
+            false,
+            "Print remote requests and responses to stderr");
 
 /// Undocumented feature to override TLS endpoints.
 HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
@@ -203,6 +206,10 @@ static auto getClient() {
   return client;
 }
 
+void printRawStderr(const std::string& s) {
+  fprintf(stderr, "%s\n", s.c_str());
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status::failure(
@@ -221,7 +228,8 @@ Status TLSTransport::sendRequest() {
 
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", response_body.c_str());
+      // Not using VLOG to avoid logging whole body to logging destination.
+      printRawStderr(response_body);
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
@@ -255,7 +263,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
           << " request to URI: " << destination_;
   if (FLAGS_verbose && FLAGS_tls_dump) {
-    fprintf(stdout, "%s\n", params.c_str());
+    // Not using VLOG to avoid logging whole body to logging destination.
+    printRawStderr(params);
   }
 
   try {
@@ -270,7 +279,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", response_body.c_str());
+      // Not using VLOG to avoid logging whole body to logging destination.
+      printRawStderr(response_body);
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
