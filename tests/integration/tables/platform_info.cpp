@@ -15,10 +15,10 @@
 namespace osquery::table_tests {
 
 class platformInfo : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(platformInfo, test_sanity) {
@@ -29,10 +29,13 @@ TEST_F(platformInfo, test_sanity) {
     {"version", NormalType},
     {"extra", NormalType},
     {"date", NormalType},
+    {"revision", NormalType},
+
+#ifndef OSQUERY_WINDOWS
+    {"address", NormalType},
     {"size", IntOrEmpty},
     {"volume_size", NonNegativeInt},
-    {"revision", NormalType},
-    {"address", NormalType},
+#endif
 
 #if defined(__APPLE__) || defined(OSQUERY_WINDOWS)
     {"firmware_type", NonEmptyString},
