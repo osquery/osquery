@@ -117,13 +117,6 @@ TEST_F(PacksTests, test_check_platform) {
     EXPECT_FALSE(fpack.checkPlatform());
   }
 
-  fpack.platform_ = "freebsd";
-  if (isPlatform(PlatformType::TYPE_FREEBSD)) {
-    EXPECT_TRUE(fpack.checkPlatform());
-  } else {
-    EXPECT_FALSE(fpack.checkPlatform());
-  }
-
   // Although officially no longer supported, we still treat the platform
   // values of "centos" and "ubuntu" just like "linux". We execute any query
   // with any of these platform values on any Linux system. For what it's

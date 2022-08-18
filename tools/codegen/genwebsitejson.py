@@ -36,12 +36,11 @@ from gentable import *
 # This data structure represents the directories in specs/ and how they map to
 # the operating systems which support tables found in those directories
 PLATFORM_DIRS = {
-    "specs": ["darwin", "linux", "windows", "freebsd"],
-    "utility": ["darwin", "linux", "freebsd", "windows"],
+    "specs": ["darwin", "linux", "windows"],
+    "utility": ["darwin", "linux", "windows"],
     "yara": ["darwin", "linux", "windows"],
     "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
-    "freebsd": ["freebsd"],
     "kernel": ["darwin"],
     "linux": ["linux"],
     "lldpd": ["linux"],
@@ -64,7 +63,7 @@ def platform_for_spec(path):
     try:
         return PLATFORM_DIRS[directory]
     except KeyError:
-        return ["darwin", "linux", "freebsd", "windows"]
+        return ["darwin", "linux", "windows"]
 
 def remove_prefix(text, prefix):
     # python 3.9 has `removeprefix`, but I don't want to add that requirement.
