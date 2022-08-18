@@ -12,8 +12,7 @@
 
 #include <osquery/tests/integration/tables/helper.h>
 
-namespace osquery {
-namespace table_tests {
+namespace osquery::table_tests {
 
 class platformInfo : public testing::Test {
   protected:
@@ -23,28 +22,24 @@ class platformInfo : public testing::Test {
 };
 
 TEST_F(platformInfo, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from platform_info");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"vendor", NormalType}
-  //      {"version", NormalType}
-  //      {"date", NormalType}
-  //      {"revision", NormalType}
-  //      {"address", NormalType}
-  //      {"size", NormalType}
-  //      {"volume_size", IntType}
-  //      {"extra", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  ValidationMap row_map = {
+    {"vendor", NormalType},
+    {"version", NormalType},
+    {"extra", NormalType},
+    {"date", NormalType},
+    {"size", IntOrEmpty},
+    {"volume_size", NonNegativeInt},
+    {"revision", NormalType},
+    {"address", NormalType},
+
+#if defined(__APPLE__) || defined(OSQUERY_WINDOWS)
+    {"firmware_type", NonEmptyString},
+#endif
+  };
+
+  validate_rows(data, row_map);
 }
 
-} // namespace table_tests
-} // namespace osquery
+} // namespace osquery::table_tests

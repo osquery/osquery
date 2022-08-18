@@ -7,7 +7,7 @@ schema([
     Column("revision", TEXT, "BIOS major and minor revision"),
     Column("extra", TEXT, "Platform-specific additional information"),
 ])
-extended_schema(WINDOWS, [
+extended_schema(lambda: DARWIN() or WINDOWS(), [
     Column("firmware_type", TEXT, "The type of firmware (Uefi, Bios, Unknown).")
 ])
 extended_schema(lambda: LINUX() or DARWIN(),[
