@@ -1,8 +1,9 @@
 # osquery Changelog
-<a name="5.5.0"></a>
-## [5.5.0](https://github.com/osquery/osquery/releases/tag/5.5.0)
 
-[Git Commits](https://github.com/osquery/osquery/compare/5.4.0...5.5.0)
+<a name="5.5.1"></a>
+## [5.5.1](https://github.com/osquery/osquery/releases/tag/5.5.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.4.0...5.5.1)
 
 Osquery 5.5.0 has some really exciting table updates! There is a much
 anticipated `unified_log` for macOS, this table is the replacement for
@@ -17,6 +18,7 @@ Representing commits from 14 contributors! Thank you all.
 
 ### Table Changes
 
+- Add `cgroup_path` column to `processes` table on Linux ([#7728](https://github.com/osquery/osquery/pull/7728))
 - Add `firmware_type` column to `platform_info` table on Windows. ([#7710](https://github.com/osquery/osquery/pull/7710))
 - Add `unified_log` table for macOS (UAL) ([#7598](https://github.com/osquery/osquery/pull/7598), [#7713](https://github.com/osquery/osquery/pull/7713))
 - Port `memory_devices` table to Windows ([#7633](https://github.com/osquery/osquery/pull/7633))
@@ -27,6 +29,7 @@ Representing commits from 14 contributors! Thank you all.
 - Update macos `password_policy` table to use use `-1` as sentinel value for `uid` column ([#7699](https://github.com/osquery/osquery/pull/7699))
 - Update parsing of `authorized_keys` file  ([#7560](https://github.com/osquery/osquery/pull/7560))
 - Update the `registry` table to be case insensitive for `key` ([#7708](https://github.com/osquery/osquery/pull/7708))
+
 
 ### Under the Hood improvements
 
@@ -52,6 +55,8 @@ Representing commits from 14 contributors! Thank you all.
 - Adds info on how to use GTEST_FILTER on windows ([#7696](https://github.com/osquery/osquery/pull/7696))
 - Changelog 5.4.0 ([#7678](https://github.com/osquery/osquery/pull/7678))
 - Describe user-context-related caveat for screenlock table ([#7649](https://github.com/osquery/osquery/pull/7649))
+- Update schema for `process_open_sockets.state` ([#7733](https://github.com/osquery/osquery/pull/7733))
+- Update schema to reflect `platform_info` columns not available in Windows ([#7732](https://github.com/osquery/osquery/pull/7732))
 
 ### Build
 
@@ -61,6 +66,7 @@ Representing commits from 14 contributors! Thank you all.
 - ci: Update and temporarily disable the macOS Catalina test job ([#7700](https://github.com/osquery/osquery/pull/7700))
 - cmake: Prevent defining some Linux only targets on other platforms ([#7672](https://github.com/osquery/osquery/pull/7672))
 - libs: Update libxml2 to v2.9.14 ([#7729](https://github.com/osquery/osquery/pull/7729))
+- libs: Update sqlite to version 3.39.2 ([#7736](https://github.com/osquery/osquery/pull/7736))
 - test: Fix Mdfind.test_sanity flakyness ([#7701](https://github.com/osquery/osquery/pull/7701))
 
 <a name="5.4.0"></a>
