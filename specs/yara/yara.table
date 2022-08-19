@@ -1,5 +1,5 @@
 table_name("yara")
-description("Track YARA matches for files or PIDs.")
+description("Fetch one-off YARA matches for files or PIDs at the specified path.")
 schema([
     Column("path", TEXT, "The path scanned",
         index=True, required=True),
