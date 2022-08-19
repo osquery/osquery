@@ -16,6 +16,23 @@ function(generateOsqueryUtilsInfo)
     version.cpp
   )
 
+  if(PLATFORM_LINUX)
+    set(firmware_impl_file "firmware/linux.cpp")
+
+  elseif(PLATFORM_MACOS)
+    set(firmware_impl_file "firmware/macos.cpp")
+
+  elseif(PLATFORM_WINDOWS)
+    set(firmware_impl_file "firmware/windows.cpp")
+  endif()
+
+  if(NOT firmware_impl_file STREQUAL "")
+    target_sources(osquery_utils_info PRIVATE
+      firmware/common.cpp
+      "${firmware_impl_file}"
+    )
+  endif()
+
   target_link_libraries(osquery_utils_info PUBLIC
     osquery_cxx_settings
     osquery_utils_conversions
@@ -33,6 +50,12 @@ function(generateOsqueryUtilsInfo)
     tool_type.h
     version.h
   )
+
+  if(NOT firmware_impl_file STREQUAL "")
+    list(APPEND public_header_files
+      firmware.h
+    )
+  endif()  
 
   generateIncludeNamespace(osquery_utils_info "osquery/utils/info" "FILE_ONLY" ${public_header_files})
 

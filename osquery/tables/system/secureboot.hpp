@@ -19,7 +19,6 @@ namespace tables {
  * form, it's 8be4df61-93ca-11d2-aa0d-00e098032b8c
  */
 const std::string kEFIBootGUID = "8be4df61-93ca-11d2-aa0d-00e098032b8c";
-const std::wstring kEFIBootGUIDwin = L"{8be4df61-93ca-11d2-aa0d-00e098032b8c}";
 
 /**
  * @brief The SecureMode variable name
