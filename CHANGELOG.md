@@ -5,7 +5,7 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/5.4.0...5.5.1)
 
-Osquery 5.5.0 has some really exciting table updates! There is a much
+Osquery 5.5.1 has some really exciting table updates! There is a much
 anticipated `unified_log` for macOS, this table is the replacement for
 `asl`, and uses the current Apple APIs. Additionally, several tables
 have improved their cross-platform support.
