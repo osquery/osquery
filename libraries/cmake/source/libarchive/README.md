@@ -1,20 +1,22 @@
-# Linux
+# libarchive library build notes
+
+## Linux
 
 Integrate the osquery-toolchain, using the following file as a starting point: `cmake/toolchain.cmake`. Pass the toolchain like this: `-DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain`
 
-# macOS
+## macOS
 
 Append the following to the CMake options:
 
-## x86
+### macOS x86-64
 
-```
--DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DCMAKE_OSX_ARCHITECTURES=x86_64
+```bash
+-DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-## M1
+### macOS ARM (M1, M2, etc.)
 
-```
+```bash
 -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=arm64
 ```
 
@@ -22,21 +24,17 @@ Append the following to the CMake options:
 
 ```sh
 cmake \
-  -S src \
+  -S . \
   -B b \
   -DBUILD_TESTING=OFF \
   -DBUILD_SHARED_LIBS=OFF \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_BZip2=ON \
-  -DUSE_BZIP2_STATIC=ON \
-  -DENABLE_LIBXML2=ON \
-  -DLIBXML_STATIC=ON \
-  -DENABLE_LZMA=ON \
-  -DHAVE_LZMA_STREAM_ENCODER_MT=ON \
-  -DENABLE_OPENSSL=ON \
-  -DENABLE_ZLIB=ON \
-  -DENABLE_ZSTD=ON \
-  -DHAVE_LIBZSTD=ON \
+  -DENABLE_BZip2=OFF \
+  -DENABLE_LIBXML2=OFF \
+  -DENABLE_LZMA=OFF \
+  -DENABLE_OPENSSL=OFF \
+  -DENABLE_ZLIB=OFF \
+  -DENABLE_ZSTD=OFF \
   -DENABLE_ACL=OFF \
   -DENABLE_CAT=OFF \
   -DENABLE_CAT_SHARED=OFF \
@@ -64,23 +62,19 @@ cmake \
 
 ## Windows
 
-```sh
+```cmd
 cmake ^
-  -S src ^
+  -S . ^
   -B b ^
   -DBUILD_TESTING=OFF ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DCMAKE_BUILD_TYPE=Release ^
-  -DENABLE_BZip2=ON ^
-  -DUSE_BZIP2_STATIC=ON ^
-  -DENABLE_LIBXML2=ON ^
-  -DLIBXML_STATIC=ON ^
-  -DENABLE_LZMA=ON ^
-  -DHAVE_LZMA_STREAM_ENCODER_MT=ON ^
-  -DENABLE_OPENSSL=ON ^
-  -DENABLE_ZLIB=ON ^
-  -DENABLE_ZSTD=ON ^
-  -DHAVE_LIBZSTD=ON ^
+  -DENABLE_BZip2=OFF ^
+  -DENABLE_LIBXML2=OFF ^
+  -DENABLE_LZMA=OFF ^
+  -DENABLE_OPENSSL=OFF ^
+  -DENABLE_ZLIB=OFF ^
+  -DENABLE_ZSTD=OFF ^
   -DENABLE_ACL=OFF ^
   -DENABLE_CAT=OFF ^
   -DENABLE_CAT_SHARED=OFF ^
@@ -106,12 +100,4 @@ cmake ^
   -DENABLE_XATTR=OFF
 ```
 
-# Common
-Make sure the following config options are enabled:
-
-- `HAVE_LIBLZMA`
-- `HAVE_LZMA_H`
-- `HAVE_LZMA_STREAM_ENCODER_MT`
-- `HAVE_BZLIB_H`
-- `HAVE_LIBBZ2`
-- `HAVE_LIBXML2`
+NOTE: If necessary, convert the config.h line endings from CRLF to LF

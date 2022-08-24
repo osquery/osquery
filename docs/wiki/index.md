@@ -8,7 +8,10 @@ If you're interested in **installing osquery** check out the install guide for [
 
 If you're interested in **developing queries** and **exploring** tables, check out [using osqueryi](introduction/using-osqueryi.md).
 
-If you're interested in **deploying osquery** to provide your organization with deeper insight into your Linux, macOS, and Windows hosts check out the [using osqueryd guide](introduction/using-osqueryd.md).
+If you're interested in **deploying osquery** to provide your organization with deeper insight into your Linux, macOS,
+and Windows hosts check out the [using osqueryd guide](introduction/using-osqueryd.md). If, as part of deploying
+osquery, you've run a vulnerability analyzer on either the osquery executable or the open-source repository and it has
+flagged a vulnerability in one of osquery's dependencies, please check our most up-to-date [bulletins about known issues in third-party dependencies](deployment/dependency-security.md).
 
 If you're interested in **extending one of the existing osquery tools** or improving core libraries, read the developer documentation pages. You should start with "[building the code](development/building.md)" and read the project's "[CONTRIBUTING.md](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md)".
 

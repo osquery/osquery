@@ -10,6 +10,7 @@
 #include <CoreServices/CoreServices.h>
 
 #include <osquery/core/core.h>
+#include <osquery/core/shutdown.h>
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -22,7 +23,7 @@ namespace tables {
 
 typedef std::pair<MDQueryRef, std::string> NamedQuery;
 
-const size_t kMaxQueryWait = 5;
+const size_t kMaxQueryWait = 30;
 
 void genResults(const std::vector<NamedQuery>& queries, QueryData& results) {
   // The results can update live from macOS so we stop subscribing to updates
@@ -92,7 +93,7 @@ Status waitForSpotlight(const std::vector<NamedQuery>& queries) {
   for (size_t time_started{getUnixTime()};
        (getUnixTime() - time_started) < kMaxQueryWait;) {
     // The queries run asynchronously in the threads CFRunLoop
-    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, YES);
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, YES);
 
     // Check if all the queries are complete
     all_done = true;
@@ -102,6 +103,16 @@ Status waitForSpotlight(const std::vector<NamedQuery>& queries) {
     // If all the queries are complete, don't spin any longer
     if (all_done) {
       return Status{0};
+    }
+
+    if (osquery::shutdownRequested()) {
+      VLOG(1) << "Interrupting mdfind query due to a shutdown request";
+
+      // Interrupt the queries before exiting
+      for (const auto& query : queries) {
+        MDQueryStop(query.first);
+      }
+      return Status::failure("Shutdown requested");
     }
   }
   if (!all_done) {

@@ -33,7 +33,7 @@ on:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: 8168fd7213b23447f1bfbe0b54d4e8b61730b08d
+  PACKAGING_COMMIT: 4caa2c54f0d893c1efa47932571046bbce156c52
   SUBMODULE_CACHE_VERSION: 1
 
 # If the initial code sanity checks are passing, then one job
@@ -44,7 +44,7 @@ jobs:
   # This job performs basic source code check, looking for formatting
   # issues and missing copyright headers
   check_code_style:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     container:
       image: osquery/builder18.04:c7a9d706d
@@ -109,7 +109,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
 
     steps:
     - name: Clone the osquery repository
@@ -225,7 +225,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, RelWithDebInfo, Debug]
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
 
     steps:
     - name: Clone the osquery repository
@@ -629,7 +629,7 @@ jobs:
         sudo xcode-select -s "${xcode_path}"
 
         if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
-          echo ::set-output name=DEPLOYMENT_TARGET::10.12
+          echo ::set-output name=DEPLOYMENT_TARGET::10.14
         else
           echo ::set-output name=DEPLOYMENT_TARGET::10.15
         fi
@@ -714,12 +714,12 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for the x86_64 macOS-10.15 worker
+    - name: Package the tests for the x86_64 macOS-11 worker
       if: matrix.architecture == 'x86_64'
       run: |
         ( cd workspace && ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} )
 
-    - name: Store the packaged tests for the x86_64 macOS-10.15 worker
+    - name: Store the packaged tests for the x86_64 macOS-11 worker
       if: matrix.architecture == 'x86_64'
       uses: actions/upload-artifact@v1
       with:
@@ -735,12 +735,15 @@ jobs:
 
 
 
-  # This job takes the packaged tests (Release + Debug) from the big sur
-  # builder and runs them on Catalina
-  test_macos_catalina:
+  # This job takes the packaged tests (Release + Debug) from the Monterey
+  # builder and runs them on a new Big Sur instance
+  test_macos_bigsur:
+    # TODO: This is temporarily disabled until we update the main macOS build job to use Monterey
+    if: ${{ false }}
+
     needs: build_macos
 
-    runs-on: macos-10.15
+    runs-on: macos-11
 
     steps:
       - name: Clone the osquery repository
@@ -795,7 +798,9 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_macos_catalina
+    # TODO: This has to be changed back to the job test after we update to Monterey
+    needs: build_macos
+    # needs: test_macos_bigsur
 
     runs-on: macos-11
 

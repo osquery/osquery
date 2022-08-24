@@ -56,6 +56,7 @@ function(generateOsqueryDistributedAndScheduler)
     osquery_sql
     osquery_utils
     osquery_utils_conversions
+    osquery_worker_system_linux_memory
     plugins_config_parsers
     thirdparty_boost
     thirdparty_googletest_headers

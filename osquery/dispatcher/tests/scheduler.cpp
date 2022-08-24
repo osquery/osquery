@@ -148,7 +148,7 @@ TEST_F(SchedulerTests, test_config_results_purge) {
   }
 
   // Update the timestamp to have run a week and a day ago.
-  query_time -= (84600 * (7 + 1));
+  query_time -= (86400 * (7 + 1));
   setDatabaseValue(
       kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
 

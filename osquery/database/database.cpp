@@ -46,6 +46,7 @@ const std::string kEvents = "events";
 const std::string kCarves = "carves";
 const std::string kLogs = "logs";
 const std::string kDistributedQueries = "distributed";
+const std::string kDistributedRunningQueries = "distributed_running";
 
 const std::string kDbEpochSuffix = "epoch";
 const std::string kDbCounterSuffix = "counter";
@@ -57,7 +58,8 @@ const std::vector<std::string> kDomains = {kPersistentSettings,
                                            kEvents,
                                            kLogs,
                                            kCarves,
-                                           kDistributedQueries};
+                                           kDistributedQueries,
+                                           kDistributedRunningQueries};
 
 std::atomic<bool> kDBAllowOpen(false);
 std::atomic<bool> kDBInitialized(false);
@@ -499,6 +501,7 @@ Status initDatabasePluginForTesting() {
   FLAGS_disable_database = true;
   setDatabaseAllowOpen();
   initDatabasePlugin();
+  resetDatabase();
   return Status::success();
 }
 

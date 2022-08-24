@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 
 #include <osquery/config/config.h>
@@ -33,8 +32,8 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
-
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/trim.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/time.h>
 
@@ -566,15 +565,17 @@ void stripConfigComments(std::string& json) {
   std::string sink;
 
   boost::replace_all(json, "\\\n", "");
-  for (auto& line : osquery::split(json, "\n")) {
-    boost::trim(line);
-    if (line.size() > 0 && line[0] == '#') {
+  for (auto& line : osquery::vsplit(json, '\n')) {
+    auto trimmed_line = osquery::trim(line);
+    if (trimmed_line.size() > 0 && trimmed_line[0] == '#') {
       continue;
     }
-    if (line.size() > 1 && line[0] == '/' && line[1] == '/') {
+    if (trimmed_line.size() > 1 && trimmed_line[0] == '/' &&
+        trimmed_line[1] == '/') {
       continue;
     }
-    sink += line + '\n';
+    sink += trimmed_line;
+    sink += '\n';
   }
   json = sink;
 }
@@ -1007,10 +1008,14 @@ void Config::reset() {
 
 void ConfigParserPlugin::reset() {
   // Resets will clear all top-level keys from the parser's data store.
+  auto doc = JSON::newObject();
+
   for (auto& category : data_.doc().GetObject()) {
-    auto obj = data_.getObject();
-    data_.add(category.name.GetString(), obj, data_.doc());
+    auto obj = doc.getObject();
+    doc.add(category.name.GetString(), obj, doc.doc());
   }
+
+  data_ = std::move(doc);
 }
 
 void Config::recordQueryPerformance(const std::string& name,

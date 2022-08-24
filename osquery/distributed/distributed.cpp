@@ -15,11 +15,14 @@
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/distributed/distributed.h>
+#include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
+#include <osquery/worker/system/memory.h>
 
 namespace rj = rapidjson;
 
@@ -38,6 +41,11 @@ FLAG(bool,
      distributed_loginfo,
      false,
      "Log the running distributed queries name at INFO level");
+
+FLAG(uint64,
+     distributed_denylist_duration,
+     86400,
+     "Seconds to denylist distributed queries (default 1 day)");
 
 DECLARE_bool(verbose);
 
@@ -127,6 +135,18 @@ Status Distributed::runQueries() {
   for (const auto& query : queries) {
     auto request = popRequest(query);
 
+    const auto denylisted = checkAndSetAsRunning(request.query);
+    if (denylisted) {
+      VLOG(1) << "Not executing distributed denylisted query: \""
+              << request.query << "\"";
+      DistributedQueryResult result;
+      result.request = request;
+      result.status = Status(1, "Denylisted");
+      result.message = "distributed query is denylisted";
+      addResult(result);
+      continue;
+    }
+
     if (FLAGS_verbose) {
       VLOG(1) << "Executing distributed query: " << request.id << ": "
               << request.query;
@@ -145,11 +165,69 @@ Status Distributed::runQueries() {
       LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
                  << msg;
     }
+
+    setAsNotRunning(request.query);
+
     DistributedQueryResult result(
         request, sql.rows(), sql.columns(), sql.getStatus(), msg);
     addResult(result);
   }
   return flushCompleted();
+}
+
+bool Distributed::checkAndSetAsRunning(const std::string& query) {
+  std::string ts;
+  const auto queryKey = hashQuery(query);
+  auto status = getDatabaseValue(kDistributedRunningQueries, queryKey, ts);
+  if (status.ok()) {
+    return !denylistedQueryTimestampExpired(ts);
+  }
+  status = setDatabaseValue(
+      kDistributedRunningQueries, queryKey, std::to_string(getUnixTime()));
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to set distributed query as running: \"" << query
+               << "\" (hash: " << queryKey << ")";
+  }
+  return false;
+}
+
+void Distributed::setAsNotRunning(const std::string& query) {
+  const auto queryKey = hashQuery(query);
+  return setKeyAsNotRunning(queryKey);
+}
+
+void Distributed::setKeyAsNotRunning(const std::string& queryKey) {
+  const auto status = deleteDatabaseValue(kDistributedRunningQueries, queryKey);
+  if (!status.ok()) {
+    LOG(ERROR) << "Failed to delete running distributed query with hash: "
+               << queryKey << ", status: " << status.getMessage();
+  }
+}
+
+Status Distributed::cleanupExpiredRunningQueries() {
+  std::vector<std::string> queryKeys;
+  const auto status = scanDatabaseKeys(kDistributedRunningQueries, queryKeys);
+
+  if (queryKeys.size() > 0) {
+    VLOG(1) << "Found " << queryKeys.size()
+            << " distributed queries marked as denylisted";
+  }
+
+  for (const auto& queryKey : queryKeys) {
+    std::string ts;
+    const auto status =
+        getDatabaseValue(kDistributedRunningQueries, queryKey, ts);
+    if (!status.ok()) {
+      LOG(ERROR) << "Failed to remove expired running distributed query: "
+                 << queryKey;
+      continue;
+    }
+    if (denylistedQueryTimestampExpired(ts)) {
+      VLOG(1) << "Removing expired running distributed query: " << queryKey;
+      setKeyAsNotRunning(queryKey);
+    }
+  }
+  return Status::success();
 }
 
 Status Distributed::flushCompleted() {
@@ -175,6 +253,12 @@ Status Distributed::flushCompleted() {
   if (s.ok()) {
     results_.clear();
   }
+
+#ifdef OSQUERY_LINUX
+  // Attempt to release some unused memory kept by malloc internal caching
+  releaseRetainedMemory();
+#endif
+
   return s;
 }
 
@@ -367,5 +451,19 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
     return Status(1, "Error Parsing JSON");
   }
   return deserializeDistributedQueryResult(doc.doc(), r);
+}
+
+bool denylistedQueryTimestampExpired(const std::string& timestamp) {
+  const auto ts = tryTo<uint64_t>(timestamp, 10).takeOr(uint64_t(0));
+  return getUnixTime() > ts + denylistDuration();
+}
+
+std::string hashQuery(const std::string& query) {
+  return hashFromBuffer(
+      HashType::HASH_TYPE_SHA256, query.c_str(), query.length());
+}
+
+uint64_t denylistDuration() {
+  return FLAGS_distributed_denylist_duration;
 }
 } // namespace osquery

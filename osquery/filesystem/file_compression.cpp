@@ -162,7 +162,8 @@ Status decompress(const boost::filesystem::path& in,
 }
 
 Status archive(const std::set<boost::filesystem::path>& paths,
-               const boost::filesystem::path& out, std::size_t block_size) {
+               const boost::filesystem::path& out,
+               std::size_t block_size) {
   auto arch = archive_write_new();
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
@@ -177,7 +178,7 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     PlatformFile pFile(f, PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
-    archive_entry_set_pathname(entry, f.leaf().string().c_str());
+    archive_entry_set_pathname(entry, f.string().c_str());
     archive_entry_set_size(entry, pFile.size());
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);

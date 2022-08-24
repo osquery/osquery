@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <codecvt>
 #include <sstream>
 
 #include <fcntl.h>
@@ -19,6 +20,7 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -98,6 +100,15 @@ struct OpenReadableFile : private boost::noncopyable {
   std::unique_ptr<PlatformFile> fd{nullptr};
   bool blocking_io;
 };
+
+void initializeFilesystemAPILocale() {
+#if defined(WIN32)
+  setlocale(LC_ALL, ".UTF-8");
+
+  boost::filesystem::path::imbue(std::locale(
+      std::locale(".UTF-8"), new std::codecvt_utf8_utf16<wchar_t>()));
+#endif
+}
 
 Status readFile(const fs::path& path,
                 size_t size,
@@ -490,7 +501,9 @@ std::set<fs::path> getHomeDirectories() {
 
   auto users = SQL::selectAllFrom("users");
   for (const auto& user : users) {
-    if (user.at("directory").size() > 0) {
+    // First verify the user has a "directory" entry.
+    auto dir_iter = user.find("directory");
+    if (dir_iter != user.end() && user.at("directory").size() > 0) {
       results.insert(user.at("directory"));
     }
   }

@@ -103,10 +103,10 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     }
 
     if (Flag::isCLIOnlyFlag(name)) {
-      LOG(WARNING) << "Setting the CLI only flag --" << name
-                   << " via config is incorrect and will be deprecated in the "
-                      "next release, please specify the flag in the flagfile "
-                      "or pass it to the process at startup";
+      LOG(WARNING) << "The CLI only flag --" << name
+                   << " set via config file will be ignored, please use a "
+                      "flagfile or pass it to the process at startup";
+      continue;
     }
 
     Flag::updateValue(name, value);

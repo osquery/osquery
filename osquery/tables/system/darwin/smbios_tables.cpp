@@ -9,15 +9,23 @@
 
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+
+#include <sys/sysctl.h>
+#include <sys/types.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/smbios_utils.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/utils/conversions/join.h>
 
@@ -27,6 +35,52 @@ namespace tables {
 #define kIOSMBIOSClassName_ "AppleSMBIOS"
 #define kIOSMBIOSPropertyName_ "SMBIOS"
 #define kIOSMBIOSEPSPropertyName_ "SMBIOS-EPS"
+
+#include <IOKit/IOKitLib.h>
+
+enum class FirmwareType {
+  EFI,
+  iBoot,
+  OpenFirmware,
+};
+
+bool getFirmwareType(FirmwareType& firmware_type) {
+  // clang-format off
+  static const std::unordered_map<FirmwareType, std::string> kFirmwareToRegistryPath{
+    { FirmwareType::EFI, kIODeviceTreePlane ":/efi" },
+    { FirmwareType::iBoot, kIODeviceTreePlane ":/chosen/iBoot" },
+    { FirmwareType::OpenFirmware, kIODeviceTreePlane ":/openprom" },
+  };
+  // clang-format on
+
+  mach_port_t master_port{};
+  if (IOMasterPort(MACH_PORT_NULL, &master_port) != 0) {
+    return false;
+  }
+
+  boost::optional<FirmwareType> opt_detected_firmware_type;
+
+  for (const auto& p : kFirmwareToRegistryPath) {
+    const auto& firmware_type = p.first;
+    const auto& registry_path = p.second;
+
+    auto registry_entry =
+        IORegistryEntryFromPath(master_port, registry_path.c_str());
+
+    if (registry_entry != MACH_PORT_NULL) {
+      IOObjectRelease(registry_entry);
+
+      opt_detected_firmware_type = firmware_type;
+      break;
+    }
+  }
+
+  if (opt_detected_firmware_type.has_value()) {
+    firmware_type = opt_detected_firmware_type.value();
+  }
+
+  return opt_detected_firmware_type.has_value();
+}
 
 class DarwinSMBIOSParser : public SMBIOSParser {
  public:
@@ -109,7 +163,27 @@ QueryData genSMBIOSTables(QueryContext& context) {
   return results;
 }
 
-QueryData genMemoryDevices(QueryContext& context) {
+QueryData genAarch64MemoryDevices(QueryContext& context) {
+  Row r;
+  auto chosen =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
+  if (chosen != 0) {
+    CFMutableDictionaryRef details = nullptr;
+    IORegistryEntryCreateCFProperties(
+        chosen, &details, kCFAllocatorDefault, kNilOptions);
+    IOObjectRelease(chosen);
+    r["memory_type"] = getIOKitProperty(details, "dram-type");
+  }
+
+  uint64_t memsize;
+  size_t len = sizeof(memsize);
+  sysctlbyname("hw.memsize", &memsize, &len, NULL, 0);
+  r["size"] = INTEGER(memsize / 1048576);
+
+  return {r};
+}
+
+QueryData genIntelMemoryDevices(QueryContext& context) {
   QueryData results;
 
   DarwinSMBIOSParser parser;
@@ -126,6 +200,14 @@ QueryData genMemoryDevices(QueryContext& context) {
   });
 
   return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+#ifdef __aarch64__
+  return genAarch64MemoryDevices(context);
+#else
+  return genIntelMemoryDevices(context);
+#endif
 }
 
 QueryData genMemoryArrays(QueryContext& context) {
@@ -223,7 +305,30 @@ QueryData genOEMStrings(QueryContext& context) {
   return results;
 }
 
-QueryData genPlatformInfo(QueryContext& context) {
+std::string getFirmwareTypeName() {
+  FirmwareType firmware_type;
+  if (!getFirmwareType(firmware_type)) {
+    LOG(ERROR) << "platform_info: Firmware type detection has failed";
+    return "";
+  }
+
+  switch (firmware_type) {
+  case FirmwareType::EFI:
+    return "efi";
+
+  case FirmwareType::iBoot:
+    return "iboot";
+
+  case FirmwareType::OpenFirmware:
+    return "openfirmware";
+
+  default:
+    LOG(ERROR) << "platform_info: Invalid FirmwareType value";
+    return "";
+  }
+}
+
+QueryData genIntelPlatformInfo(QueryContext& context) {
   auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
   if (rom == 0) {
     return {};
@@ -245,6 +350,7 @@ QueryData genPlatformInfo(QueryContext& context) {
   r["size"] = getIOKitProperty(details, "rom-size");
   r["date"] = getIOKitProperty(details, "release-date");
   r["version"] = getIOKitProperty(details, "version");
+  r["firmware_type"] = SQL_TEXT(getFirmwareTypeName());
 
   {
     auto address = getIOKitProperty(details, "fv-main-address");
@@ -280,6 +386,64 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   CFRelease(details);
   return {r};
+}
+
+QueryData genAarch64PlatformInfo(QueryContext& context) {
+  auto device_tree =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
+  if (device_tree == 0) {
+    return {};
+  }
+
+  CFMutableDictionaryRef details = nullptr;
+  IORegistryEntryCreateCFProperties(
+      device_tree, &details, kCFAllocatorDefault, kNilOptions);
+  IOObjectRelease(device_tree);
+
+  if (details == nullptr) {
+    return {};
+  }
+  Row r;
+  r["vendor"] = getIOKitProperty(details, "manufacturer");
+  r["firmware_type"] = SQL_TEXT(getFirmwareTypeName());
+
+  auto chosen =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
+  if (chosen != 0) {
+    IORegistryEntryCreateCFProperties(
+        chosen, &details, kCFAllocatorDefault, kNilOptions);
+    IOObjectRelease(chosen);
+    r["version"] = getIOKitProperty(details, "system-firmware-version");
+  }
+
+  auto root = IORegistryGetRootEntry(kIOMasterPortDefault);
+  if (root != 0) {
+    CFTypeRef property = (CFDataRef)IORegistryEntryCreateCFProperty(
+        root, CFSTR(kIOKitBuildVersionKey), kCFAllocatorDefault, 0);
+    if (property != nullptr) {
+      auto signature = stringFromCFString((CFStringRef)property);
+      CFRelease(property);
+      r["extra"] = signature;
+    }
+  }
+
+  // Unavailable on M1 Macs
+  r["volume_size"] = "";
+  r["size"] = "";
+  r["date"] = "";
+  r["revision"] = "";
+  r["address"] = "";
+
+  CFRelease(details);
+  return {r};
+}
+
+QueryData genPlatformInfo(QueryContext& context) {
+#ifdef __aarch64__
+  return genAarch64PlatformInfo(context);
+#else
+  return genIntelPlatformInfo(context);
+#endif
 }
 } // namespace tables
 } // namespace osquery

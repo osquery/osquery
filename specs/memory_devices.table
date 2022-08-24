@@ -1,0 +1,29 @@
+table_name("memory_devices")
+description("Physical memory device (type 17) information retrieved from SMBIOS.")
+schema([
+    Column("handle",  TEXT, "Handle, or instance number, associated with the structure in SMBIOS"),
+    Column("array_handle",  TEXT, "The memory array that the device is attached to"),
+    Column("form_factor", TEXT, "Implementation form factor for this memory device"),
+    Column("total_width", INTEGER, "Total width, in bits, of this memory device, including any check or error-correction bits"),
+    Column("data_width", INTEGER, "Data width, in bits, of this memory device"),
+    Column("size", INTEGER, "Size of memory device in Megabyte"),
+    Column("set", INTEGER, "Identifies if memory device is one of a set of devices.  A value of 0 indicates no set affiliation."),
+    Column("device_locator", TEXT, "String number of the string that identifies the physically-labeled socket or board position where the memory device is located"),
+    Column("bank_locator", TEXT, "String number of the string that identifies the physically-labeled bank where the memory device is located"),
+    Column("memory_type", TEXT, "Type of memory used"),
+    Column("memory_type_details", TEXT, "Additional details for memory device"),
+    Column("max_speed", INTEGER, "Max speed of memory device in megatransfers per second (MT/s)"),
+    Column("configured_clock_speed", INTEGER, "Configured speed of memory device in megatransfers per second (MT/s)"),
+    Column("manufacturer", TEXT, "Manufacturer ID string"),
+    Column("serial_number", TEXT, "Serial number of memory device"),
+    Column("asset_tag", TEXT, "Manufacturer specific asset tag of memory device"),
+    Column("part_number", TEXT, "Manufacturer specific serial number of memory device"),
+    Column("min_voltage", INTEGER, "Minimum operating voltage of device in millivolts"),
+    Column("max_voltage", INTEGER, "Maximum operating voltage of device in millivolts"),
+    Column("configured_voltage", INTEGER, "Configured operating voltage of device in millivolts"),
+])
+
+implementation("system@genMemoryDevices")
+fuzz_paths([
+    "/sys/firmware/efi/systab",
+])

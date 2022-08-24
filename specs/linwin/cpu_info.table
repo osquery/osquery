@@ -1,0 +1,20 @@
+
+table_name("cpu_info")
+description("Retrieve cpu hardware info of the machine.")
+schema([
+  Column("device_id", TEXT, "The DeviceID of the CPU."),
+  Column("model", TEXT, "The model of the CPU."),
+  Column("manufacturer", TEXT, "The manufacturer of the CPU."),
+  Column("processor_type", TEXT, "The processor type, such as Central, Math, or Video."),
+  Column("cpu_status", INTEGER, "The current operating status of the CPU."),
+  Column("number_of_cores", TEXT, "The number of cores of the CPU."),
+  Column("logical_processors", INTEGER, "The number of logical processors of the CPU."),
+  Column("address_width", TEXT, "The width of the CPU address bus."),
+  Column("current_clock_speed", INTEGER, "The current frequency of the CPU."),
+  Column("max_clock_speed", INTEGER, "The maximum possible frequency of the CPU."),
+  Column("socket_designation", TEXT, "The assigned socket on the board for the given CPU."),
+])
+extended_schema(WINDOWS, [
+    Column("availability", TEXT, "The availability and status of the CPU.")
+])
+implementation("cpu_info@genCpuInfo")

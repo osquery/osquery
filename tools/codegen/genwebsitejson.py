@@ -42,8 +42,8 @@ PLATFORM_DIRS = {
     "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
     "kernel": ["darwin"],
+    "linwin": ["linux", "windows"],
     "linux": ["linux"],
-    "lldpd": ["linux"],
     "macwin": ["darwin", "windows"],
     "posix": ["darwin", "linux"],
     "sleuthkit": ["darwin", "linux"],
@@ -60,10 +60,7 @@ def platform_for_spec(path):
     full_path = os.path.abspath(path)
     directory_list = os.path.dirname(full_path).split("/")
     directory = directory_list[len(directory_list)-1]
-    try:
-        return PLATFORM_DIRS[directory]
-    except KeyError:
-        return ["darwin", "linux", "windows"]
+    return PLATFORM_DIRS[directory]
 
 def remove_prefix(text, prefix):
     # python 3.9 has `removeprefix`, but I don't want to add that requirement.
@@ -137,6 +134,11 @@ def main(argc, argv):
 
     for subdir, dirs, files in os.walk(specs_dir):
         for filename in files:
+            # Skip the example spec in the spec/ dir.
+            # There is no actual example table in osquery so it should not be generated into the docs.
+            if filename == "example.table":
+                continue
+
             if filename.endswith(".table"):
                 full_path = os.path.join(subdir, filename)
                 metadata = generate_table_metadata(specs_dir, full_path)

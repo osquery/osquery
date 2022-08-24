@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -91,6 +90,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
+      linux/cpu_info.cpp
       linux/yum_sources.cpp
     )
 
@@ -140,6 +140,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/nvram.cpp
       darwin/os_version.cpp
       darwin/packages.mm
+      darwin/password_policy.cpp
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp
@@ -159,6 +160,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/system_extensions.mm
       darwin/system_info.cpp
       darwin/time_machine.cpp
+      darwin/unified_log.mm
       darwin/usb_devices.cpp
       darwin/user_groups.mm
       darwin/virtual_memory_info.cpp
@@ -216,6 +218,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
@@ -256,7 +259,6 @@ function(generateOsqueryTablesSystemSystemtable)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_augeas
       thirdparty_libmagic
-      thirdparty_libxml2
     )
   else()
     target_link_libraries(osquery_tables_system_systemtable PRIVATE
@@ -312,6 +314,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/sysctl_utils.h
       posix/last.h
       posix/openssl_utils.h
+      posix/authorized_keys.h
     )
   endif()
 
@@ -326,6 +329,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apt_sources.h
       linux/md_tables.h
       linux/pci_devices.h
+      linux/processes.h
       linux/smbios_utils.h
     )
 
@@ -343,6 +347,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.h
       windows/certificates.h
       windows/windows_eventlog.h
+      windows/windows_update_history.h
     )
   endif()
 

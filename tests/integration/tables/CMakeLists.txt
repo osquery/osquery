@@ -8,7 +8,6 @@
 function(testsIntegrationTablesMain)
   generateTestsIntegrationTablesIntegrationtestshelper()
   generateTestsIntegrationTablesTestsTest()
-
 endfunction()
 
 function(generateTestsIntegrationTablesIntegrationtestshelper)
@@ -25,6 +24,7 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
     osquery_database
     osquery_sql
     osquery_utils
+    tests_helper
     thirdparty_boost
     thirdparty_googletest_headers
   )
@@ -49,6 +49,7 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    memory_devices.cpp
     npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
@@ -118,7 +119,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_array_mapped_addresses.cpp
       memory_arrays.cpp
       memory_device_mapped_addresses.cpp
-      memory_devices.cpp
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
@@ -138,13 +138,9 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
-    if(DEFINED PLATFORM_MACOS AND NOT "${TARGET_PROCESSOR}" STREQUAL "aarch64")
-      list(APPEND source_files lldp_neighbors.cpp)
-    endif()
   endif()
 
-  if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
+  if(OSQUERY_BUILD_AWS AND(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
     list(APPEND source_files
       ec2_instance_metadata.cpp
       ec2_instance_tags.cpp
@@ -257,6 +253,7 @@ function(generateTestsIntegrationTablesTestsTest)
       temperature_sensors.cpp
       time_machine_backups.cpp
       time_machine_destinations.cpp
+      unified_log.cpp
       user_interaction_events.cpp
       virtual_memory_info.cpp
       wifi_networks.cpp
@@ -317,6 +314,7 @@ function(generateTestsIntegrationTablesTestsTest)
       windows_events.cpp
       windows_eventlog.cpp
       windows_security_products.cpp
+      windows_update_history.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp
       wmi_event_filters.cpp
@@ -335,7 +333,6 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
   endif()
 
   add_osquery_executable(tests_integration_tables-test ${source_files})
@@ -355,11 +352,28 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
-  add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
-  set_tests_properties(
-        tests_integration_tables-test
-        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-  )
+  if(DEFINED PLATFORM_LINUX)
+    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test --gtest_filter=-memoryDevices.test_sanity)
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+
+    if(OSQUERY_BUILD_ROOT_TESTS)
+      add_test(NAME tests_integration_tables_root-test COMMAND tests_integration_tables-test --gtest_filter=memoryDevices.test_sanity)
+      set_tests_properties(tests_integration_tables_root-test PROPERTIES LABELS "root-required")
+      set_tests_properties(
+          tests_integration_tables_root-test
+          PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      )
+  endif()
+ else()
+    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+ endif()
 
 endfunction()
 

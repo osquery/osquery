@@ -10,7 +10,6 @@ function(osqueryTablesMain)
   add_subdirectory("cloud")
   add_subdirectory("events")
   add_subdirectory("forensic")
-  add_subdirectory("lldpd")
   add_subdirectory("networking")
   add_subdirectory("sleuthkit")
   add_subdirectory("system")
@@ -26,7 +25,6 @@ function(generateOsqueryTablesTableimplementations)
   if(DEFINED PLATFORM_POSIX)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE
       osquery_tables_yara_yaratable
-      osquery_tables_lldpd_llpdtable
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_tables_tableimplementations INTERFACE

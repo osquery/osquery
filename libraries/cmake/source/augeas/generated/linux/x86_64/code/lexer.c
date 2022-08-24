@@ -2310,3 +2310,4 @@ int augl_init_lexer(struct state *state, yyscan_t *scanner) {
 struct info *augl_get_info(yyscan_t scanner) {
   return augl_get_extra(scanner)->info;
 }
+

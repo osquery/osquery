@@ -67,7 +67,10 @@ HIDDEN_FLAG(bool,
             "Allow TLS server certificate trust failures");
 #endif
 
-HIDDEN_FLAG(bool, tls_dump, false, "Print remote requests and responses");
+HIDDEN_FLAG(bool,
+            tls_dump,
+            false,
+            "Print remote requests and responses to stderr");
 
 /// Undocumented feature to override TLS endpoints.
 HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
@@ -93,42 +96,8 @@ void TLSTransport::decorateRequest(http::Request& r) {
 
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
-  options.openssl_ciphers(kTLSCiphers);
-  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1 |
-                          SSL_OP_NO_TLSv1_1 | SSL_OP_ALL);
+
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
-
-#ifndef NDEBUG
-  // Configuration may allow unsafe TLS testing if compiled as a debug target.
-  if (FLAGS_tls_allow_unsafe) {
-    options.always_verify_peer(false);
-  }
-#endif
-
-  return options;
-}
-
-http::Client::Options TLSTransport::getInternalOptions() {
-  auto options = getOptions();
-
-  options.keep_alive(FLAGS_tls_session_reuse);
-
-  if (FLAGS_proxy_hostname.size() > 0) {
-    options.proxy_hostname(FLAGS_proxy_hostname);
-  }
-
-  if (client_certificate_file_.size() > 0) {
-    if (!osquery::isReadable(client_certificate_file_).ok()) {
-      LOG(WARNING) << "Cannot read TLS client certificate: "
-                   << client_certificate_file_;
-    } else if (!osquery::isReadable(client_private_key_file_).ok()) {
-      LOG(WARNING) << "Cannot read TLS client private key: "
-                   << client_private_key_file_;
-    } else {
-      options.openssl_certificate_file(client_certificate_file_);
-      options.openssl_private_key_file(client_private_key_file_);
-    }
-  }
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
@@ -167,6 +136,42 @@ http::Client::Options TLSTransport::getInternalOptions() {
     }
   }
 
+#ifndef NDEBUG
+  // Configuration may allow unsafe TLS testing if compiled as a debug target.
+  if (FLAGS_tls_allow_unsafe) {
+    options.always_verify_peer(false);
+  }
+#endif
+
+  return options;
+}
+
+http::Client::Options TLSTransport::getInternalOptions() {
+  auto options = getOptions();
+
+  options.keep_alive(FLAGS_tls_session_reuse);
+
+  if (FLAGS_proxy_hostname.size() > 0) {
+    options.proxy_hostname(FLAGS_proxy_hostname);
+  }
+
+  options.openssl_ciphers(kTLSCiphers);
+  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1 |
+                          SSL_OP_NO_TLSv1_1 | SSL_OP_ALL);
+
+  if (client_certificate_file_.size() > 0) {
+    if (!osquery::isReadable(client_certificate_file_).ok()) {
+      LOG(WARNING) << "Cannot read TLS client certificate: "
+                   << client_certificate_file_;
+    } else if (!osquery::isReadable(client_private_key_file_).ok()) {
+      LOG(WARNING) << "Cannot read TLS client private key: "
+                   << client_private_key_file_;
+    } else {
+      options.openssl_certificate_file(client_certificate_file_);
+      options.openssl_private_key_file(client_private_key_file_);
+    }
+  }
+
   return options;
 }
 
@@ -201,6 +206,10 @@ static auto getClient() {
   return client;
 }
 
+void printRawStderr(const std::string& s) {
+  fprintf(stderr, "%s\n", s.c_str());
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status::failure(
@@ -219,7 +228,8 @@ Status TLSTransport::sendRequest() {
 
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", response_body.c_str());
+      // Not using VLOG to avoid logging whole body to logging destination.
+      printRawStderr(response_body);
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
@@ -253,7 +263,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
           << " request to URI: " << destination_;
   if (FLAGS_verbose && FLAGS_tls_dump) {
-    fprintf(stdout, "%s\n", params.c_str());
+    // Not using VLOG to avoid logging whole body to logging destination.
+    printRawStderr(params);
   }
 
   try {
@@ -268,7 +279,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", response_body.c_str());
+      // Not using VLOG to avoid logging whole body to logging destination.
+      printRawStderr(response_body);
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);

@@ -105,6 +105,11 @@ TEST_F(ProcessesTest, test_sanity) {
     row_map.emplace("cpu_subtype", IntType);
     row_map.emplace("translated", IntType);
   }
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map.emplace("cgroup_path", NormalType);
+  }
+
   validate_rows(data, row_map);
 }
 

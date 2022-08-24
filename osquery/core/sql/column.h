@@ -72,6 +72,9 @@ enum class ColumnOptions {
 
   /// This column should be hidden from '*'' selects.
   HIDDEN = 16,
+
+  // This sets the collating sequence to NOCASE
+  COLLATENOCASE = 32,
 };
 
 /// Treat column options as a set of flags.

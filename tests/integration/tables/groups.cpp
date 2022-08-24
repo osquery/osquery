@@ -10,12 +10,10 @@
 // Sanity check integration test for groups
 // Spec file: specs/groups.table
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/test_util.h>
 #include <osquery/utils/info/platform_type.h>
-#ifdef OSQUERY_WINDOWS
-#include <osquery/core/windows/global_users_groups_cache.h>
-#include <osquery/system/usersgroups/windows/groups_service.h>
-#endif
 
 namespace osquery {
 namespace table_tests {
@@ -28,21 +26,13 @@ class groups : public testing::Test {
 
 #ifdef OSQUERY_WINDOWS
   static void SetUpTestSuite() {
-    // For the groups table we need to start services
-    // to fill up the caches
-    std::promise<void> groups_cache_promise;
-    GlobalUsersGroupsCache::global_groups_cache_future_ =
-        groups_cache_promise.get_future();
-
-    Dispatcher::addService(std::make_shared<GroupsService>(
-        std::move(groups_cache_promise),
-        GlobalUsersGroupsCache::global_groups_cache_));
+    initUsersAndGroupsServices(false, true);
   }
 
   static void TearDownTestSuite() {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
-    GlobalUsersGroupsCache::global_groups_cache_->clear();
+    deinitUsersAndGroupsServices(false, true);
     Dispatcher::instance().resetStopping();
   }
 #endif

@@ -47,6 +47,7 @@ function(generateOsqueryTablesYaraYaratable)
     osquery_registry
     osquery_remote_utility
     osquery_utils_config
+    osquery_worker_system_linux_memory
     thirdparty_boost
     thirdparty_yara
   )

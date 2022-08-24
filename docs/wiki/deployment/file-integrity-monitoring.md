@@ -6,7 +6,7 @@ File integrity monitoring (FIM) is available for Linux (in `file_events`, using 
 
 Collecting file events in osquery requires that you first specify a list of files/directories to monitor from the osquery configuration. The events that relate to those selected files will then populate the corresponding tables on each platform.
 
-FIM is also disabled by default in osquery. To enable it, first ensure that events are enabled in osquery (`--disable_events=false`), then ensure that the desired FIM table is enabled with the corresponding CLI flag (`--enable_file_events=true` for `file_events`, `--disable_audit=false` for `process_file_events`, `--enable_ntfs_publisher=true` for `ntfs_journal_events`).
+FIM is also disabled by default in osquery. To enable it, first ensure that events are enabled in osquery (`--disable_events=false`), then ensure that the desired FIM table is enabled with the corresponding CLI flag (`--enable_file_events=true` for `file_events`, `--disable_audit=false` for `process_file_events`, `--enable_ntfs_event_publisher=true` for `ntfs_journal_events`).
 
 To specify which files and directories you wish to monitor, you must use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards `*`/`**` or SQL-style wildcards `*%*`, as shown below.
 

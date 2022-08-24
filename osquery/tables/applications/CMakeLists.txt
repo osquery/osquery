@@ -27,8 +27,13 @@ function(generateOsqueryTablesApplications)
     list(APPEND source_files
       posix/carbon_black.cpp
       posix/docker.cpp
-      posix/lxd.cpp
       posix/prometheus_metrics.cpp
+    )
+  endif()
+
+  if(DEFINED PLATFORM_LINUX)
+    list(APPEND source_files
+      linux/lxd.cpp
     )
   endif()
 

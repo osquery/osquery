@@ -7,4 +7,32 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/system/system.h>
+#include "system.h"
+
+#include <osquery/utils/conversions/windows/strings.h>
+
+#include <vector>
+
+namespace osquery {
+std::string getHostname() {
+  DWORD size = 0;
+  if (0 == GetComputerNameW(nullptr, &size)) {
+    std::vector<WCHAR> computer_name(size, 0);
+    GetComputerNameW(computer_name.data(), &size);
+    return wstringToString(computer_name.data());
+  }
+
+  return {};
+}
+
+std::string getFqdn() {
+  DWORD size = 0;
+  if (0 == GetComputerNameExW(ComputerNameDnsFullyQualified, nullptr, &size)) {
+    std::vector<WCHAR> fqdn(size, 0);
+    GetComputerNameExW(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+    return wstringToString(fqdn.data());
+  }
+
+  return {};
+}
+} // namespace osquery

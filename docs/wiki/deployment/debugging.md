@@ -98,6 +98,37 @@ osqueryd worker respawning too quickly: 1 times
 
 The watchdog implements an exponential backoff when respawning workers and the associated 'dirty' query is denylisted from running for 24 hours.
 
+### Distributed query denylisting
+
+If the watchdog stops the daemon while a distributed query was running then such query will be denylisted from running for 24 hours.
+This behavior is similar to the denylisting of scheduled queries.
+
+When a distributed query is denylisted, the **Distributed write** request POST body will contain a non-zero status for the query and a `"distributed query is denylisted"` message: 
+```json
+{
+  "node_key": "...",
+  "queries": {
+    "id1": [
+      {"column1": "value1", "column2": "value2"},
+      {"column1": "value1", "column2": "value2"}
+    ],
+    "id3": []
+  },
+  "statuses": {
+    "id1": 0,
+    "id3": 1,
+  },
+  "messages": {
+    "id3": "distributed query is denylisted" 
+  }
+}
+```
+
+Additionally, when running in verbose mode, the following line will be generated when a distributed query is denylisted:
+```text
+Not executing distributed denylisted query: "SELECT * FROM hash WHERE path LIKE '/Users/%/%%';"
+```
+
 ### Inspecting daemon state using the shell
 
 The `osqueryi` shell can "connect" to another osquery extension socket. Queries within that shell will be forwarded to the remote socket. This feature is especially helpful to inspect a daemon's `osquery_schedule` and `osquery_flags` configuration. The `osquery_schedule` table maintains runtime statistics for schedule execution. Keep in mind that this runtime data is transient, and only available to a daemon.

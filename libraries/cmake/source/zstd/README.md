@@ -1,9 +1,12 @@
-# Linux
-## Common
+# zstd library build notes
+
+## Linux
+
+### Common
 
 Make sure you are working on a clean source folder
 
-```
+```bash
 git reset --hard ; git clean -ffdx
 ```
 
@@ -15,7 +18,7 @@ cmake \
   -S build/cmake \
   -B build/cmake/output \
   -G Ninja \
-  -DOSQUERY_TOOLCHAIN_SYSROOT=/opt/osquery-toolchain \
+  -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain \
   -DZSTD_BUILD_CONTRIB=OFF \
   -DZSTD_BUILD_PROGRAMS=OFF \
   -DZSTD_BUILD_SHARED=OFF \
@@ -29,18 +32,18 @@ cmake \
 
 Build the project
 
-```
+```bash
 cmake \
   --build build \
   -j $(nproc)
 ```
 
-# macOS
+## macOS
 
-## Intel, Apple Silicon
+### Intel, Apple Silicon
 
 TARGET: Either x86_64 or arm64
-DEPLOYMENT: 10.12 for x86_64, 10.15 for arm64
+DEPLOYMENT: 10.14 for x86_64, 10.15 for arm64
 
 ```sh
 cmake \
@@ -62,7 +65,7 @@ cmake \
   -DZSTD_ZLIB_SUPPORT=OFF
 ```
 
-# Windows
+## Windows
 
 ```sh
 cmake ^

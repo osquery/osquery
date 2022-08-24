@@ -330,6 +330,20 @@ Comma-delimited list of table names to be disabled. This allows osquery to be la
 
 Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
+## Linux-only runtime control flags
+
+`--malloc_trim_threshold=200`
+
+Memory threshold in MB used to decide when a malloc_trim will be called to reduce the retained memory.
+When the flag is not provided, the value will be chosen automatically between 80% of the `watchdog_memory_limit` if the watchdog is not disabled and 200MB in the case it is.
+Providing the flag with a value always overrides the automatic behavior and setting it to 0 completely disables calling malloc_trim.
+This is an attempt to reduce the amount of memory that the malloc allocator has in its caches in the worker process, which sometimes leads to hitting the watchdog memory limit more often.
+The downside is that in some cases there can be a performance hit in a query execution, since the cache was there to speed up future allocations.
+Note: When the watchdog starts, it takes a snapshot of the amount of memory that the worker uses in that moment; from that value then it adds the allocated memory limit set in `watchdog_memory_limit` and finds at how much memory used by the worker it should trigger.
+This means that if the `watchdog_memory_limit` is set to 200MB, the watchdog triggers at 200MB + something (around 15 to 30MB) used, not at 200MB. The malloc_trim system though doesn't have access to that information, so the best thing it can do is to use `watchdog_memory_limit` to calculate its own threshold.
+This should be good enough, but the user should be aware that how soon malloc_trim acts in respect to how soon the watchdog would've acted is actually slightly variable.
+
+
 ## Windows-only runtime control flags
 
 `--users_service_delay=250`
@@ -401,6 +415,18 @@ This is a comma-separated list of UDEV types to drop. On machines with flash-bac
 `--disable_endpointsecurity=true`
 
 Setting to `false` (in combination with `--disable_events=false`) turns on EndpointSecurity-based event collection within osquery (supported in macOS 10.15 and newer), and enables the use of the `es_process_events` table. This feature requires running osquery as root. It also requires that the osquery executable be code-signed and notarized to have the Endpoint Security client entitlement; official release builds of osquery will be appropriately code-signed. Lastly, it requires that the host give Full Disk Access permission to the osqueryd executable; for more information see the [process auditing section of osquery's deployment documentation](../deployment/process-auditing.md) as well as [installing osquery on macOS](./install-macos.md).
+
+`--disable_endpointsecurity_fim=true`
+
+Setting to `false` (in addition to `--disable_events=false` and `--disable_endpointsecurity=false`) will turn on EndpointSecurity based file event collection in osquery, running on macOS 10.15 and newer. This enables the use of `es_process_file_events` table.
+
+`--es_fim_mute_path_literal`
+
+This is a comma delimited list of path literals, which when set, is passed to EndpointSecurity based `es_process_file_events` table. This will result in events being muted for the paths set in here.
+
+`--es_fim_mute_path_prefix`
+
+This is a comma delimited list of path prefixes, which when set is passed to EndpointSecurity based `es_process_file_events` table. This will result in events being muted which match the path prefixes. 
 
 ## Logging/results flags
 
