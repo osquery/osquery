@@ -22,7 +22,7 @@
 namespace osquery {
 
 template <typename T>
-class NetApiObjectPtr {
+class NetApiObjectPtr final {
  public:
   NetApiObjectPtr() noexcept = default;
   NetApiObjectPtr(NetApiObjectPtr<T>&& other) noexcept
@@ -35,7 +35,9 @@ class NetApiObjectPtr {
   }
 
   NetApiObjectPtr& operator=(NetApiObjectPtr<T>&& other) noexcept {
-    pointer = std::exchange(other.pointer, nullptr);
+    if (this != &other) {
+      pointer = std::exchange(other.pointer, nullptr);
+    }
 
     return *this;
   }
