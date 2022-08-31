@@ -53,8 +53,10 @@ void enumerateCarves(QueryData& results, const std::string& new_guid) {
       r["time"] = INTEGER(tree.doc()["time"].GetUint64());
     }
 
-    if (tree.doc().HasMember("size")) {
+    if (tree.doc()["size"].IsInt()) {
       r["size"] = INTEGER(tree.doc()["size"].GetInt());
+    } else if (tree.doc()["size"].IsString()) {
+      r["size"] = INTEGER(tree.doc()["size"].GetString());
     }
 
     stringToRow("sha256", r, tree);
