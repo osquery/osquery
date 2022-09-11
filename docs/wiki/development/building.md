@@ -209,6 +209,42 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.
 ```
 
+## Optional: Setting up Windows Subsytem for Linux (WSL) to follow Linux set-up
+
+If you are on a Windows machine but prefer to build this project in a Linux environment, setting up WSL is very helpful. These steps will set you up with an Ubuntu distribution, so you will have to independently configure WSL with other distributions. Adapted from [Microsoft's official tutorial] (https://docs.microsoft.com/en-us/windows/wsl/setup/environment)
+
+Open PowerShell (or Windows Command Prompt) and enter:
+
+```bash
+wsl --install
+```
+
+Once install is complete, you will be able to open the **Ubuntu for Windows** application via the Windows Start menu. This will prompt you to create a username and password. For those unfamiliar with the Linux command-line, the password will not show up on the screen while typing it due to the environment's blind typing feature. Be cautious with how you type it as these credentials will be unique to this distribution. Any reset, addition, or reinstall of distributions will require you to create new ones.
+
+Now that Ubuntu is set up, you are free to follow the steps labeled Linux or MacOS/Linux! This is assuming you installed Ubuntu 18, so double check your version with 
+
+```bash
+wsl -l -v
+```
+
+To reset your Linux password, open PowerShell and enter the root of your default WSL distribution
+
+```bash 
+wsl -u root
+```
+
+Update your password
+
+```bash
+passwd <username>
+```
+
+Then enter a new password, confirm, and close WSL inside of PowerShell using 
+
+```bash
+exit
+```
+
 ## Formatting the code
 
 Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
