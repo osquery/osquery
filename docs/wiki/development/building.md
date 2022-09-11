@@ -245,6 +245,8 @@ Then enter a new password, confirm, and close WSL inside of PowerShell using
 exit
 ```
 
+Unsure of which version of WSL to use? Find a comparison between WSL1 and WSL2 below.
+
 ## Formatting the code
 
 Osquery uses `clang-format` to format its code, but it's not run on the whole project or files each time; it's run only on the modified lines instead,
@@ -494,3 +496,8 @@ Some quick features include:
 - Denylisting performance-impacting virtual tables.
 - Scheduled query optimization and profiling.
 - Query implementation isolation options.
+
+## WSL1 vs WSL2
+
+[Officially,] (https://docs.microsoft.com/en-us/windows/wsl/compare-versions?source=recommendations) WSL2 increases file system performance and supports full system call compatibility. These are the most obvious differences between the two versions and the strongest motivation for users who choose to update from V1 to V2. WSL1 outperforms WSL2, however, in the fact that it supports performance across OS file systems. In WSL2, both filesystems are separate, but workarounds are seen with storing files on their supported OS to avoid incompatibilies. 
+
