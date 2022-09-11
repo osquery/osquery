@@ -211,7 +211,7 @@ GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory t
 
 ## Optional: Setting up Windows Subsytem for Linux (WSL) to follow Linux set-up
 
-If you are on a Windows machine but prefer to build this project in a Linux environment, setting up WSL is very helpful. These steps will set you up with an Ubuntu distribution, so you will have to independently configure WSL with other distributions. Adapted from [Microsoft's official tutorial] (https://docs.microsoft.com/en-us/windows/wsl/setup/environment)
+If you are on a Windows machine but prefer to build this project in a Linux environment, setting up WSL is very helpful. These steps will set you up with an Ubuntu distribution, so you will have to independently configure WSL with other distributions. Adapted from [Microsoft's official tutorial](https://docs.microsoft.com/en-us/windows/wsl/setup/environment)
 
 Open PowerShell (or Windows Command Prompt) and enter:
 
@@ -499,5 +499,5 @@ Some quick features include:
 
 ## WSL1 vs WSL2
 
-[Officially,] (https://docs.microsoft.com/en-us/windows/wsl/compare-versions?source=recommendations) WSL2 increases file system performance and supports full system call compatibility. These are the most obvious differences between the two versions and the strongest motivation for users who choose to update from V1 to V2. WSL1 outperforms WSL2, however, in the fact that it supports performance across OS file systems. In WSL2, both filesystems are separate, but workarounds are seen with storing files on their supported OS to avoid incompatibilies. 
+[Officially,](https://docs.microsoft.com/en-us/windows/wsl/compare-versions?source=recommendations) WSL2 increases file system performance and supports full system call compatibility. These are the most obvious differences between the two versions and the strongest motivation for users who choose to update from V1 to V2. WSL1 outperforms WSL2, however, in the fact that it supports performance across OS file systems. In WSL2, both filesystems are separate, but workarounds are seen with storing files on their supported OS to avoid incompatibilies. 
 
