@@ -26,26 +26,30 @@ namespace osquery {
 
 namespace tables {
 
+// For localgroup_users_info_0_ptr
+extern template class NetApiObjectPtr<LOCALGROUP_USERS_INFO_0>;
+
 void processLocalUserGroups(const User& user,
                             const GroupsCache& groups_cache,
                             QueryData& results) {
   DWORD group_info_level = 0;
   DWORD num_groups = 0;
   DWORD total_groups = 0;
-  LOCALGROUP_USERS_INFO_0* group_info = nullptr;
+  localgroup_users_info_0_ptr group_info;
 
   DWORD ret = 0;
 
   std::wstring username = stringToWstring(user.username);
 
-  ret = NetUserGetLocalGroups(nullptr,
-                              username.c_str(),
-                              group_info_level,
-                              1,
-                              reinterpret_cast<LPBYTE*>(&group_info),
-                              MAX_PREFERRED_LENGTH,
-                              &num_groups,
-                              &total_groups);
+  ret =
+      NetUserGetLocalGroups(nullptr,
+                            username.c_str(),
+                            group_info_level,
+                            1,
+                            reinterpret_cast<LPBYTE*>(group_info.get_new_ptr()),
+                            MAX_PREFERRED_LENGTH,
+                            &num_groups,
+                            &total_groups);
   if (ret == ERROR_MORE_DATA) {
     LOG(WARNING) << "User " << user.username
                  << " group membership exceeds buffer limits, processing "
@@ -57,7 +61,7 @@ void processLocalUserGroups(const User& user,
   }
 
   for (std::size_t i = 0; i < num_groups; i++) {
-    std::string groupname = wstringToString(group_info[i].lgrui0_name);
+    std::string groupname = wstringToString(group_info.get()[i].lgrui0_name);
 
     auto opt_group = groups_cache.getGroupByName(groupname);
 
@@ -71,10 +75,6 @@ void processLocalUserGroups(const User& user,
     r["gid"] = INTEGER(opt_group->gid);
 
     results.push_back(std::move(r));
-  }
-
-  if (group_info != nullptr) {
-    NetApiBufferFree(group_info);
   }
 }
 
