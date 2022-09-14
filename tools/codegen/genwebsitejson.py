@@ -107,19 +107,11 @@ def generate_table_metadata(specs_dir, full_path):
             c["description"] = col.description
             c["type"] = col.type.affinity.replace("_TYPE", "").lower()
 
-            hidden = False
-            required = False
-            index = False
-            for option in col.options:
-                if option == "hidden":
-                    hidden = True
-                elif option == "required":
-                    required = True
-                elif option == "index":
-                    index == True
-            c["hidden"] = hidden
-            c["required"] = required
-            c["index"] = index
+            c["hidden"] = col.options.get("hidden", False)
+            c["required"] = col.options.get("required", False)
+            c["index"] = col.options.get("index", False)
+            if col.platforms != []:
+                c["platforms"] = col.platforms
 
             t["columns"].append(c)
     return t
