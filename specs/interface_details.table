@@ -27,8 +27,8 @@ extended_schema(LINUX, [
     Column("pci_slot", TEXT, "PCI slot number"),
 ])
 
-extended_schema(lambda: WINDOWS() or DARWIN(),[
-    Column("connection_id", TEXT, "Name of the network connection as it appears in the Network Connections Control Panel program."),
+extended_schema(WINDOWS + DARWIN,[
+    Column("connection_id", TEXT, "Name of the network connection as it appears in the Network Connections."),
     Column("description", TEXT, "Short description of the object a one-line string."),
     Column("service", TEXT, "The name of the service the network adapter uses."),
     Column("dhcp_enabled", INTEGER, "If TRUE, the dynamic host configuration protocol (DHCP) server automatically assigns an IP address to the computer system when establishing a network connection."),

@@ -109,7 +109,7 @@ class InterfaceData {
   long dns_search_order;
 };
 
-// Trim white spaces from the string
+// Trim leading and trailing white spaces
 static inline std::string trim(std::string& str) {
   str.erase(str.find_last_not_of(' ') + 1);
   str.erase(0, str.find_first_not_of(' '));
@@ -347,7 +347,8 @@ void updateInterfaceData(Row& row) {
   } else {
     row["dhcp_enabled"] = INTEGER(0);
   }
-  row["connection_id"] = data->service_name;
+
+  row["connection_id"] = data->display_name;
   row["service"] = data->service_id;
   row["dns_domain"] = osquery::join(data->dns_domains, "; ");
   row["dns_server_search_order"] = osquery::join(data->dns_servers, "; ");
