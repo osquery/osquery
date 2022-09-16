@@ -91,22 +91,10 @@ TABLE_ATTRIBUTES = {
     "kernel_required": "KERNEL_REQUIRED", # Deprecated
 }
 
-
-def WINDOWS():
-    return PLATFORM in ['windows', 'win32', 'cygwin']
-
-
-def LINUX():
-    return PLATFORM in ['linux']
-
-
-def POSIX():
-    return PLATFORM in ['linux', 'darwin']
-
-
-def DARWIN():
-    return PLATFORM in ['darwin']
-
+WINDOWS = ['windows', 'win32', 'cygwin']
+LINUX = ['linux']
+POSIX = ['linux', 'darwin']
+DARWIN = ['darwin']
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
@@ -308,11 +296,12 @@ class Column(object):
     documentation generation and reference.
     """
 
-    def __init__(self, name, col_type, description="", aliases=[], **kwargs):
+    def __init__(self, name, col_type, description="", aliases=[], platforms=[], **kwargs):
         self.name = name
         self.type = col_type
         self.description = description
         self.aliases = aliases
+        self.platforms = platforms
         self.options = kwargs
 
 
@@ -353,7 +342,7 @@ def schema(schema_list):
     table.schema = schema_list
 
 
-def extended_schema(check, schema_list):
+def extended_schema(platforms, schema_list):
     """
     define a comparator and a list of Columns objects.
     """
@@ -361,7 +350,8 @@ def extended_schema(check, schema_list):
     for it in schema_list:
         if isinstance(it, Column):
             logging.debug("  - column: %s (%s)" % (it.name, it.type))
-            if not check():
+            it.platforms = platforms
+            if not PLATFORM in platforms:
                 it.options['hidden'] = True
             table.schema.append(it)
 

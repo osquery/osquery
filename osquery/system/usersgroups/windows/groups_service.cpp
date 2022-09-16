@@ -78,16 +78,17 @@ void GroupsService::processLocalGroups(
   DWORD num_groups_read = 0;
   DWORD total_groups = 0;
   DWORD ret = 0;
-  LOCALGROUP_INFO_1* groups_info_buffer = nullptr;
+  localgroup_info_1_ptr groups_info_buffer;
 
   do {
-    ret = NetLocalGroupEnum(nullptr,
-                            group_info_level,
-                            reinterpret_cast<LPBYTE*>(&groups_info_buffer),
-                            MAX_PREFERRED_LENGTH,
-                            &num_groups_read,
-                            &total_groups,
-                            nullptr);
+    ret = NetLocalGroupEnum(
+        nullptr,
+        group_info_level,
+        reinterpret_cast<LPBYTE*>(groups_info_buffer.get_new_ptr()),
+        MAX_PREFERRED_LENGTH,
+        &num_groups_read,
+        &total_groups,
+        nullptr);
 
     if (ret != NERR_Success && ret != ERROR_MORE_DATA) {
       VLOG(1) << "NetLocalGroupEnum failed with return value: " << ret;
@@ -101,7 +102,7 @@ void GroupsService::processLocalGroups(
 
     int groups_updated_since_sleep = 0;
     for (std::size_t i = 0; i < num_groups_read; i++) {
-      PWSTR groupname = groups_info_buffer[i].lgrpi1_name;
+      PWSTR groupname = groups_info_buffer.get()[i].lgrpi1_name;
       auto sid_ptr = getSidFromAccountName(groupname);
 
       if (!sid_ptr) {
@@ -115,9 +116,11 @@ void GroupsService::processLocalGroups(
 
       Group new_group;
       new_group.sid = psidToString(group_sid);
-      new_group.comment = wstringToString(groups_info_buffer[i].lgrpi1_comment);
+      new_group.comment =
+          wstringToString(groups_info_buffer.get()[i].lgrpi1_comment);
       new_group.gid = getRidFromSid(group_sid);
-      new_group.groupname = wstringToString(groups_info_buffer[i].lgrpi1_name);
+      new_group.groupname =
+          wstringToString(groups_info_buffer.get()[i].lgrpi1_name);
 
       update_group_func(std::move(new_group));
       ++groups_updated_since_sleep;
@@ -133,10 +136,6 @@ void GroupsService::processLocalGroups(
       }
     }
 
-    // Free the memory allocated by NetLocalGroupEnum:
-    if (groups_info_buffer != nullptr) {
-      NetApiBufferFree(groups_info_buffer);
-    }
   } while (ret == ERROR_MORE_DATA);
 }
 } // namespace osquery

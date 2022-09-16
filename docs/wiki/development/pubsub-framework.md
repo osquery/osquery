@@ -10,7 +10,7 @@ If no time range is provided, as in: `SELECT * FROM process_events;`, it is assu
 
 ## Query and table usage
 
-Almost every pubsub-based table ends with a `_events` or `_changes`. These tables will perform lookups into the osquery backing storage: RocksDB, for events buffered by the subscribers. These tables are a "query-time" abstraction that allow you to use SQL aggregations and a `time` column for optimizing lookups.
+Every pubsub-based table ends with `_events`. These tables will perform lookups into the osquery backing storage: RocksDB, for events buffered by the subscribers. These tables are a "query-time" abstraction that allow you to use SQL aggregations and a `time` column for optimizing lookups.
 
 When using the `osqueryi` shell, these tables will mostly remain empty. This is because the event loops start and stop with the process. If the shell is not running, no events are being buffered. Furthermore, some of the APIs used by the runloops require super-user privileges or non-default flags and options. The shell does **not** communicate with the osquery daemon, nor does it use the same RocksDB storage. Thus the shell cannot be used to explore events buffered by the daemon.
 
