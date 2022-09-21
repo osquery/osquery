@@ -8,11 +8,10 @@
  */
 
 #include <libproc.h>
+#include <mach-o/dyld_images.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
-
-#include <mach-o/dyld_images.h>
 
 #include <array>
 #include <map>
@@ -36,9 +35,8 @@ namespace tables {
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
 
-#define CPU_TIME_RATIO 1000000
-#define START_TIME_RATIO 1000000000
-#define NSECS_IN_USEC 1000
+#define NSEC_TO_MSEC_RATIO 1000000UL
+#define USEC_TO_SEC_RATIO NSEC_TO_MSEC_RATIO
 
 // Process states are as defined in sys/proc.h
 // SIDL   (1) Process being created by fork
@@ -109,12 +107,14 @@ struct proc_cred {
   } real, effective, saved;
 };
 
-inline bool genProcCred(QueryContext& context,
-                        int pid,
-                        proc_cred& cred,
-                        ProcessesRow& r) {
+inline bool genProcCredAndStartTime(QueryContext& context,
+                                    int pid,
+                                    proc_cred& cred,
+                                    ProcessesRow& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
+
+  r.start_time_col = -1;
 
   if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 1, &bsdinfo, PROC_PIDTBSDINFO_SIZE) ==
       PROC_PIDTBSDINFO_SIZE) {
@@ -128,6 +128,10 @@ inline bool genProcCred(QueryContext& context,
     cred.effective.gid = bsdinfo.pbi_gid;
     cred.saved.uid = bsdinfo.pbi_svuid;
     cred.saved.gid = bsdinfo.pbi_svgid;
+
+    r.start_time_col = ((bsdinfo.pbi_start_tvsec * USEC_TO_SEC_RATIO) +
+                        bsdinfo.pbi_start_tvusec) /
+                       USEC_TO_SEC_RATIO;
   } else if (proc_pidinfo(pid,
                           PROC_PIDT_SHORTBSDINFO,
                           1,
@@ -473,32 +477,21 @@ void genProcResourceUsage(const QueryContext& context,
     // time information
     r.user_time_col =
         ((rusage_info_data.ri_user_time * time_base.numer) / time_base.denom) /
-        CPU_TIME_RATIO;
+        NSEC_TO_MSEC_RATIO;
+
     r.system_time_col = ((rusage_info_data.ri_system_time * time_base.numer) /
                          time_base.denom) /
-                        CPU_TIME_RATIO;
+                        NSEC_TO_MSEC_RATIO;
 
     // disk i/o information
     r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
     r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
-
-    if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
-      uint64_t const absoluteTime = mach_absolute_time();
-      auto const process_age = std::chrono::nanoseconds{
-          (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
-          time_base.numer / time_base.denom};
-
-      r.start_time_col =
-          std::time(nullptr) -
-          std::chrono::duration_cast<std::chrono::seconds>(process_age).count();
-    }
   } else {
     r.wired_size_col = -1;
     r.resident_size_col = -1;
     r.total_size_col = -1;
     r.user_time_col = -1;
     r.system_time_col = -1;
-    r.start_time_col = -1;
   }
 }
 
@@ -516,7 +509,7 @@ TableRows genProcesses(QueryContext& context) {
     genProcRootAndCWD(context, pid, *r);
 
     proc_cred cred;
-    if (!genProcCred(context, pid, cred, *r)) {
+    if (!genProcCredAndStartTime(context, pid, cred, *r)) {
       continue;
     }
 
