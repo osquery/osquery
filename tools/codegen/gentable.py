@@ -195,6 +195,7 @@ class TableState(Singleton):
         self.description = ""
         self.attributes = {}
         self.examples = []
+        self.notes = ""
         self.aliases = []
         self.fuzz_paths = []
         self.has_options = False
@@ -301,12 +302,13 @@ class Column(object):
     documentation generation and reference.
     """
 
-    def __init__(self, name, col_type, description="", aliases=[], platforms=[], **kwargs):
+    def __init__(self, name, col_type, description="", aliases=[], platforms=[], notes="", **kwargs):
         self.name = name
         self.type = col_type
         self.description = description
         self.aliases = aliases
         self.platforms = platforms
+        self.notes = notes
         self.options = kwargs
 
 
@@ -330,6 +332,7 @@ def table_name(name, aliases=[]):
     table.description = ""
     table.attributes = {}
     table.examples = []
+    table.notes = ""
     table.aliases = aliases
 
 
@@ -377,6 +380,8 @@ def select_all(name=None):
 def examples(example_queries):
     table.examples = example_queries
 
+def notes(table_notes):
+    table.notes = table_notes
 
 def attributes(**kwargs):
     for attr in kwargs:

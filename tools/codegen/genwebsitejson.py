@@ -97,6 +97,8 @@ def generate_table_metadata(specs_dir, full_path):
         t["platforms"] = platform_for_spec(full_path)
         t["evented"] = "event_subscriber" in table.attributes
         t["cacheable"] = "cacheable" in table.attributes
+        t["notes"] = table.notes
+        t["examples"] = table.examples
 
         # Now we must iterate through `table.columns` to collect information
         # about each column
@@ -106,6 +108,7 @@ def generate_table_metadata(specs_dir, full_path):
             c["name"] = col.name
             c["description"] = col.description
             c["type"] = col.type.affinity.replace("_TYPE", "").lower()
+            c["notes"] = col.notes
 
             c["hidden"] = col.options.get("hidden", False)
             c["required"] = col.options.get("required", False)
