@@ -49,9 +49,6 @@
 [submodule "libraries/cmake/source/augeas/src"]
 	path = libraries/cmake/source/augeas/src
 	url = https://github.com/hercules-team/augeas
-[submodule "libraries/cmake/source/berkeley-db/src"]
-	path = libraries/cmake/source/berkeley-db/src
-	url = https://github.com/osquery/third-party-berkeley-db
 [submodule "libraries/cmake/source/librpm/src"]
 	path = libraries/cmake/source/librpm/src
 	url = https://github.com/rpm-software-management/rpm
