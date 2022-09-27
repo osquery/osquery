@@ -30,11 +30,7 @@ TEST_F(runningApps, test_sanity) {
   QueryData general_query_data = execute_query("select * from running_apps");
   ASSERT_FALSE(general_query_data.empty());
   validate_rows(general_query_data, row_map);
-
-  QueryData specific_query_data =
-      execute_query("select * from running_apps where is_active = 1");
-  ASSERT_EQ(specific_query_data.size(), 1ul);
-  validate_rows(specific_query_data, row_map);
+  
 }
 
 } // namespace table_tests
