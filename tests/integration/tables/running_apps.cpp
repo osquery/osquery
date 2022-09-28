@@ -23,9 +23,7 @@ class runningApps : public testing::Test {
 };
 
 TEST_F(runningApps, test_sanity) {
-  ValidationMap row_map = {{"pid", IntType},
-                           {"bundle_identifier", NormalType},
-                           {"is_active", IntType}};
+  ValidationMap row_map = {{"pid", IntType}, {"bundle_identifier", NormalType}};
 
   QueryData general_query_data = execute_query("select * from running_apps");
   ASSERT_FALSE(general_query_data.empty());
