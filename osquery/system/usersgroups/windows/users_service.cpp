@@ -48,6 +48,13 @@ const std::set<std::string> kWellKnownSids = {
    when updating the cache */
 constexpr std::uint32_t kUsersBatch = 100;
 
+// For user_info_0_ptr
+extern template class NetApiObjectPtr<USER_INFO_0>;
+// For user_info_2_ptr
+extern template class NetApiObjectPtr<USER_INFO_2>;
+// For user_info_4_ptr
+extern template class NetApiObjectPtr<USER_INFO_4>;
+
 FLAG(uint32,
      users_service_delay,
      250,
@@ -175,17 +182,18 @@ void UsersService::processLocalAccounts(
   DWORD total_users = 0;
   DWORD resume_handle = 0;
   DWORD ret = 0;
-  LPUSER_INFO_0 users_info_buffer = nullptr;
+  user_info_0_ptr users_info_buffer;
 
   do {
-    ret = NetUserEnum(nullptr,
-                      user_info_level,
-                      FILTER_NORMAL_ACCOUNT,
-                      reinterpret_cast<LPBYTE*>(&users_info_buffer),
-                      MAX_PREFERRED_LENGTH,
-                      &num_users_read,
-                      &total_users,
-                      &resume_handle);
+    ret =
+        NetUserEnum(nullptr,
+                    user_info_level,
+                    FILTER_NORMAL_ACCOUNT,
+                    reinterpret_cast<LPBYTE*>(users_info_buffer.get_new_ptr()),
+                    MAX_PREFERRED_LENGTH,
+                    &num_users_read,
+                    &total_users,
+                    &resume_handle);
 
     if (ret != NERR_Success && ret != ERROR_MORE_DATA) {
       VLOG(1) << "NetUserEnum failed with return value " << ret;
@@ -199,21 +207,18 @@ void UsersService::processLocalAccounts(
 
     int users_updated_since_sleep = 0;
     for (DWORD i = 0; i < num_users_read; ++i) {
-      LPUSER_INFO_0 user_info_lvl0 = &users_info_buffer[i];
+      const auto& user_info_lvl0 = users_info_buffer.get()[i];
 
-      LPUSER_INFO_4 user_info_lvl4 = nullptr;
-      ret = NetUserGetInfo(nullptr,
-                           user_info_lvl0->usri0_name,
-                           detailed_user_info_level,
-                           reinterpret_cast<LPBYTE*>(&user_info_lvl4));
+      user_info_4_ptr user_info_lvl4;
+      ret = NetUserGetInfo(
+          nullptr,
+          user_info_lvl0.usri0_name,
+          detailed_user_info_level,
+          reinterpret_cast<LPBYTE*>(user_info_lvl4.get_new_ptr()));
 
       if (ret != NERR_Success || user_info_lvl4 == nullptr) {
-        if (user_info_lvl4 != nullptr) {
-          NetApiBufferFree(user_info_lvl4);
-        }
-
         VLOG(1) << "Failed to get additional information for the user "
-                << wstringToString(user_info_lvl0->usri0_name)
+                << wstringToString(user_info_lvl0.usri0_name)
                 << " with error code " << ret;
         continue;
       }
@@ -236,7 +241,6 @@ void UsersService::processLocalAccounts(
       new_user.directory = getUserHomeDir(sid_string);
       new_user.type = "local";
       new_user.sid = std::move(sid_string);
-      NetApiBufferFree(user_info_lvl4);
 
       update_user_func(std::move(new_user));
       ++users_updated_since_sleep;
@@ -254,6 +258,7 @@ void UsersService::processLocalAccounts(
         }
       }
     }
+
   } while (ret == ERROR_MORE_DATA);
 } // namespace
 
@@ -319,15 +324,15 @@ void UsersService::processRoamingProfiles(
       // Also attempt to get the user account description comment. Move on if
       // NetUserGetInfo returns an error, as it will for some system accounts.
       DWORD basic_user_info_level = 2;
-      LPUSER_INFO_2 user_info_lvl2 = nullptr;
-      ret = NetUserGetInfo(nullptr,
-                           account_name,
-                           basic_user_info_level,
-                           reinterpret_cast<LPBYTE*>(&user_info_lvl2));
+      user_info_2_ptr user_info_lvl2;
+      ret = NetUserGetInfo(
+          nullptr,
+          account_name,
+          basic_user_info_level,
+          reinterpret_cast<LPBYTE*>(user_info_lvl2.get_new_ptr()));
 
       if (ret == NERR_Success && user_info_lvl2 != nullptr) {
         new_user.description = wstringToString(user_info_lvl2->usri2_comment);
-        NetApiBufferFree(user_info_lvl2);
       }
 
       update_user_func(std::move(new_user));

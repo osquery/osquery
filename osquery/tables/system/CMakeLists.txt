@@ -167,21 +167,6 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/xprotect.cpp
     )
 
-  elseif(DEFINED PLATFORM_FREEBSD)
-    list(APPEND source_files
-      freebsd/fbsd_kmods.cpp
-      freebsd/groups.cpp
-      freebsd/mounts.cpp
-      freebsd/os_version.cpp
-      freebsd/pkg_packages.cpp
-      freebsd/process_open_files.cpp
-      freebsd/processes.cpp
-      freebsd/procstat.cpp
-      freebsd/sysctl_utils.cpp
-      freebsd/users.cpp
-      freenux/cpu_time.cpp
-    )
-
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/appcompat_shims.cpp
@@ -355,11 +340,6 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain.h
       darwin/packages.h
       darwin/smbios_utils.h
-    )
-
-  elseif(DEFINED PLATFORM_FREEBSD)
-    list(APPEND platform_public_header_files
-      freebsd/procstat.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)

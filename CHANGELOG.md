@@ -1,5 +1,74 @@
 # osquery Changelog
 
+<a name="5.5.1"></a>
+## [5.5.1](https://github.com/osquery/osquery/releases/tag/5.5.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.4.0...5.5.1)
+
+Osquery 5.5.1 has some really exciting table updates! There is a much
+anticipated `unified_log` for macOS, this table is the replacement for
+`asl`, and uses the current Apple APIs. Additionally, several tables
+have improved their cross-platform support.
+
+Representing commits from 14 contributors! Thank you all.
+
+### New Features
+
+- Add denylist mechanism to distributed queries ([#7675](https://github.com/osquery/osquery/pull/7675))
+
+### Table Changes
+
+- Add `cgroup_path` column to `processes` table on Linux ([#7728](https://github.com/osquery/osquery/pull/7728))
+- Add `firmware_type` column to `platform_info` table on Windows. ([#7710](https://github.com/osquery/osquery/pull/7710))
+- Add `unified_log` table for macOS (UAL) ([#7598](https://github.com/osquery/osquery/pull/7598), [#7713](https://github.com/osquery/osquery/pull/7713))
+- Port `memory_devices` table to Windows ([#7633](https://github.com/osquery/osquery/pull/7633))
+- Port `platform_info` table to M1 Macs ([#7660](https://github.com/osquery/osquery/pull/7660))
+- Restore macOS `kernel_panics` table on modern macOS ([#7585](https://github.com/osquery/osquery/pull/7585))
+- Update `battery` table on macOS m1 with correct raw battery max and current capacity ([#7721](https://github.com/osquery/osquery/pull/7721))
+- Update `mdfind` query timeout to 30 seconds ([#7725](https://github.com/osquery/osquery/pull/7725))
+- Update macos `password_policy` table to use use `-1` as sentinel value for `uid` column ([#7699](https://github.com/osquery/osquery/pull/7699))
+- Update parsing of `authorized_keys` file  ([#7560](https://github.com/osquery/osquery/pull/7560))
+- Update the `registry` table to be case insensitive for `key` ([#7708](https://github.com/osquery/osquery/pull/7708))
+
+
+### Under the Hood improvements
+
+- Add a mechanism to reduce memory retained on Linux ([#7502](https://github.com/osquery/osquery/pull/7502))
+- Add denylist mechanism to distributed queries ([#7675](https://github.com/osquery/osquery/pull/7675))
+- Add table spec support for `COLLATE NOCASE` ([#7680](https://github.com/osquery/osquery/pull/7680))
+- Improve Pidfile handling ([#7304](https://github.com/osquery/osquery/pull/7304))
+- Prevent the audit event system from using too much memory ([#7329](https://github.com/osquery/osquery/pull/7329))
+- carves: use full pathnames while creating an archive ([#7681](https://github.com/osquery/osquery/pull/7681))
+
+### Bug Fixes
+
+- Fix `GetMemorySize` for Windows `memory_devices` table ([#7711](https://github.com/osquery/osquery/pull/7711))
+- Fix `tpm_info` bug where values were out of date ([#7686](https://github.com/osquery/osquery/pull/7686))
+- Fix a crash when parsing ATC config with no columns ([#7693](https://github.com/osquery/osquery/pull/7693))
+- Fix bug in GetHomeDirectories filesystem function ([#7705](https://github.com/osquery/osquery/pull/7705))
+
+### Documentation
+
+- Add core to the type column description of osquery_extensions schema ([#7716](https://github.com/osquery/osquery/pull/7716))
+- Add documentation about 3rd-party dependency security ([#7684](https://github.com/osquery/osquery/pull/7684))
+- Add example for hostname form in `curl_certificate` table ([#7706](https://github.com/osquery/osquery/pull/7706))
+- Adds info on how to use GTEST_FILTER on windows ([#7696](https://github.com/osquery/osquery/pull/7696))
+- Changelog 5.4.0 ([#7678](https://github.com/osquery/osquery/pull/7678))
+- Describe user-context-related caveat for screenlock table ([#7649](https://github.com/osquery/osquery/pull/7649))
+- Update schema for `process_open_sockets.state` ([#7733](https://github.com/osquery/osquery/pull/7733))
+- Update schema to reflect `platform_info` columns not available in Windows ([#7732](https://github.com/osquery/osquery/pull/7732))
+
+### Build
+
+- Add validation integration test for memory_devices ([#7722](https://github.com/osquery/osquery/pull/7722))
+- Temporarily disable memory_devices integration test ([#7717](https://github.com/osquery/osquery/pull/7717))
+- Update minimum macOS support from 10.12 to 10.14 ([#7707](https://github.com/osquery/osquery/pull/7707))
+- ci: Update and temporarily disable the macOS Catalina test job ([#7700](https://github.com/osquery/osquery/pull/7700))
+- cmake: Prevent defining some Linux only targets on other platforms ([#7672](https://github.com/osquery/osquery/pull/7672))
+- libs: Update libxml2 to v2.9.14 ([#7729](https://github.com/osquery/osquery/pull/7729))
+- libs: Update sqlite to version 3.39.2 ([#7736](https://github.com/osquery/osquery/pull/7736))
+- test: Fix Mdfind.test_sanity flakyness ([#7701](https://github.com/osquery/osquery/pull/7701))
+
 <a name="5.4.0"></a>
 ## [5.4.0](https://github.com/osquery/osquery/releases/tag/5.4.0)
 
@@ -173,6 +242,7 @@ This release represents commits from 15 contributors! Thank you all.
 - Replace OS X with macOS in table specs [#7587](https://github.com/osquery/osquery/pull/7587)
 - Update `osquery.example.conf` to omit the CLI only flags [#7595](https://github.com/osquery/osquery/pull/7595)
 - Update documentation about users and groups service flags ([#7596](https://github.com/osquery/osquery/pull/7596))
+- Update the TSC members ([#7543](https://github.com/osquery/osquery/pull/7543))
 
 <a name="5.2.3"></a>
 ## [5.2.3](https://github.com/osquery/osquery/releases/tag/5.2.3)
@@ -186,16 +256,16 @@ since they were not maintained or considered safe anymore.
 
 ### Deprecation Notices
 
-- Remove the `shortcut_files` table [#7545](https://github.com/osquery/osquery/issues/7545)
-- Remove the ssdeep library and remove its support in the `hash` table [#7520](https://github.com/osquery/osquery/issues/7520)
-- Remove the libelfin library and elf parsing tables [#7510](https://github.com/osquery/osquery/issues/7510)
+- Remove the `shortcut_files` table ([#7547](https://github.com/osquery/osquery/pull/7547))
+- Remove the ssdeep library and remove its support in the `hash` table ([#7525](https://github.com/osquery/osquery/pull/7525))
+- Remove the libelfin library and elf parsing tables ([#7524](https://github.com/osquery/osquery/pull/7524))
 
 ### Hardening
 
-- libs: Update OpenSSL from version 1.1.1l to 1.1.1n [#7506](https://github.com/osquery/osquery/pull/7506)
-- libs: Update zlib from v1.2.11 to v1.2.12 [#7548](https://github.com/osquery/osquery/pull/7548)
-- Update librpm to 4.17.0 [#7529](https://github.com/osquery/osquery/pull/7529)
-- libs: Update expat from version 2.2.10 to 2.4.7 [#7526](https://github.com/osquery/osquery/pull/7526)
+- libs: Update OpenSSL from version 1.1.1l to 1.1.1n ([#7506](https://github.com/osquery/osquery/pull/7506))
+- libs: Update zlib from v1.2.11 to v1.2.12 ([#7548](https://github.com/osquery/osquery/pull/7548))
+- Update librpm to 4.17.0 ([#7529](https://github.com/osquery/osquery/pull/7529))
+- libs: Update expat from version 2.2.10 to 2.4.7 ([#7526](https://github.com/osquery/osquery/pull/7526))
 
 <a name="5.2.2"></a>
 ## [5.2.2](https://github.com/osquery/osquery/releases/tag/5.2.2)

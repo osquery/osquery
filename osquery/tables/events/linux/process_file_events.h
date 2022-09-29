@@ -283,7 +283,6 @@ struct AuditdFimSyscallContext final {
 class ProcessFileEventSubscriber final
     : public EventSubscriber<AuditEventPublisher> {
  public:
-  Status setUp() override;
   Status init() override;
 
   /// Applies the user configuration to the subscriber

@@ -34,8 +34,6 @@ def platform():
     platform = sys.platform
     if platform.find("linux") == 0:
         platform = "linux"
-    if platform.find("freebsd") == 0:
-        platform = "freebsd"
     return platform
 
 PLATFORM = platform()
@@ -93,26 +91,10 @@ TABLE_ATTRIBUTES = {
     "kernel_required": "KERNEL_REQUIRED", # Deprecated
 }
 
-
-def WINDOWS():
-    return PLATFORM in ['windows', 'win32', 'cygwin']
-
-
-def LINUX():
-    return PLATFORM in ['linux']
-
-
-def POSIX():
-    return PLATFORM in ['linux', 'darwin', 'freebsd']
-
-
-def DARWIN():
-    return PLATFORM in ['darwin']
-
-
-def FREEBSD():
-    return PLATFORM in ['freebsd']
-
+WINDOWS = ['windows', 'win32', 'cygwin']
+LINUX = ['linux']
+POSIX = ['linux', 'darwin']
+DARWIN = ['darwin']
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
@@ -208,6 +190,7 @@ class TableState(Singleton):
         self.description = ""
         self.attributes = {}
         self.examples = []
+        self.notes = ""
         self.aliases = []
         self.fuzz_paths = []
         self.has_options = False
@@ -314,11 +297,13 @@ class Column(object):
     documentation generation and reference.
     """
 
-    def __init__(self, name, col_type, description="", aliases=[], **kwargs):
+    def __init__(self, name, col_type, description="", aliases=[], platforms=[], notes="", **kwargs):
         self.name = name
         self.type = col_type
         self.description = description
         self.aliases = aliases
+        self.platforms = platforms
+        self.notes = notes
         self.options = kwargs
 
 
@@ -342,6 +327,7 @@ def table_name(name, aliases=[]):
     table.description = ""
     table.attributes = {}
     table.examples = []
+    table.notes = ""
     table.aliases = aliases
 
 
@@ -359,7 +345,7 @@ def schema(schema_list):
     table.schema = schema_list
 
 
-def extended_schema(check, schema_list):
+def extended_schema(platforms, schema_list):
     """
     define a comparator and a list of Columns objects.
     """
@@ -367,7 +353,8 @@ def extended_schema(check, schema_list):
     for it in schema_list:
         if isinstance(it, Column):
             logging.debug("  - column: %s (%s)" % (it.name, it.type))
-            if not check():
+            it.platforms = platforms
+            if not PLATFORM in platforms:
                 it.options['hidden'] = True
             table.schema.append(it)
 
@@ -388,6 +375,8 @@ def select_all(name=None):
 def examples(example_queries):
     table.examples = example_queries
 
+def notes(table_notes):
+    table.notes = table_notes
 
 def attributes(**kwargs):
     for attr in kwargs:

@@ -26,6 +26,13 @@ const std::set<int> kRegistryStringTypes = {
 auto close_reg_handle = [](HKEY handle) { RegCloseKey(handle); };
 using reg_handle_t = std::unique_ptr<HKEY__, decltype(close_reg_handle)>;
 
+template class NetApiObjectPtr<USER_INFO_0>;
+template class NetApiObjectPtr<USER_INFO_2>;
+template class NetApiObjectPtr<USER_INFO_3>;
+template class NetApiObjectPtr<USER_INFO_4>;
+template class NetApiObjectPtr<LOCALGROUP_USERS_INFO_0>;
+template class NetApiObjectPtr<LOCALGROUP_INFO_1>;
+
 const std::wstring kRegProfileKey =
     L"SOFTWARE\\Microsoft\\Windows "
     "NT\\CurrentVersion\\ProfileList";
@@ -109,21 +116,17 @@ std::string getGroupSidFromUsername(LPCWSTR username) {
   std::unique_ptr<BYTE[]> sid_smart_ptr = nullptr;
   PSID sid_ptr = nullptr;
 
-  LPLOCALGROUP_USERS_INFO_0 user_groups_buff = nullptr;
-  auto user_groups_buff_deleter = scope_guard::create([&user_groups_buff]() {
-    if (!user_groups_buff) {
-      NetApiBufferFree(user_groups_buff);
-    }
-  });
+  localgroup_users_info_0_ptr user_groups_buff;
 
-  auto ret = NetUserGetLocalGroups(nullptr,
-                                   username,
-                                   level,
-                                   flags,
-                                   (LPBYTE*)&user_groups_buff,
-                                   pref_max_len,
-                                   &entries_read,
-                                   &total_entries);
+  auto ret = NetUserGetLocalGroups(
+      nullptr,
+      username,
+      level,
+      flags,
+      reinterpret_cast<LPBYTE*>(user_groups_buff.get_new_ptr()),
+      pref_max_len,
+      &entries_read,
+      &total_entries);
 
   if (ret != NERR_Success) {
     VLOG(1) << "Failed to get the local groups of "
@@ -199,16 +202,17 @@ std::optional<std::uint32_t> getGidFromUsername(LPCWSTR username) {
   DWORD total_entries = 0;
   std::unique_ptr<BYTE[]> sid_smart_ptr = nullptr;
   PSID sid = nullptr;
-  LPLOCALGROUP_USERS_INFO_0 user_groups_buff = nullptr;
+  localgroup_users_info_0_ptr user_groups_buff;
 
-  auto ret = NetUserGetLocalGroups(nullptr,
-                                   username,
-                                   level,
-                                   flags,
-                                   reinterpret_cast<LPBYTE*>(&user_groups_buff),
-                                   pref_max_len,
-                                   &entries_read,
-                                   &total_entries);
+  auto ret = NetUserGetLocalGroups(
+      nullptr,
+      username,
+      level,
+      flags,
+      reinterpret_cast<LPBYTE*>(user_groups_buff.get_new_ptr()),
+      pref_max_len,
+      &entries_read,
+      &total_entries);
 
   std::optional<std::uint32_t> gid;
 
@@ -219,14 +223,11 @@ std::optional<std::uint32_t> getGidFromUsername(LPCWSTR username) {
       if (group_sid_ptr) {
         gid = getRidFromSid(group_sid_ptr.get());
       }
-      NetApiBufferFree(user_groups_buff);
       return gid;
     }
   }
 
-  NetApiBufferFree(user_groups_buff);
-
-  LPUSER_INFO_3 user_buff = nullptr;
+  user_info_3_ptr user_buff;
 
   /* If none of the above worked, the user may not have a Local Group.
      Fallback to using the primary group id from its USER_INFO_3 struct */
@@ -234,12 +235,10 @@ std::optional<std::uint32_t> getGidFromUsername(LPCWSTR username) {
   ret = NetUserGetInfo(nullptr,
                        username,
                        user_info_level,
-                       reinterpret_cast<LPBYTE*>(&user_buff));
+                       reinterpret_cast<LPBYTE*>(user_buff.get_new_ptr()));
   if (ret == NERR_Success) {
     gid = user_buff->usri3_primary_group_id;
   }
-
-  NetApiBufferFree(user_buff);
 
   return gid;
 }

@@ -36,12 +36,11 @@ from gentable import *
 # This data structure represents the directories in specs/ and how they map to
 # the operating systems which support tables found in those directories
 PLATFORM_DIRS = {
-    "specs": ["darwin", "linux", "windows", "freebsd"],
-    "utility": ["darwin", "linux", "freebsd", "windows"],
+    "specs": ["darwin", "linux", "windows"],
+    "utility": ["darwin", "linux", "windows"],
     "yara": ["darwin", "linux", "windows"],
     "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
-    "freebsd": ["freebsd"],
     "kernel": ["darwin"],
     "linwin": ["linux", "windows"],
     "linux": ["linux"],
@@ -97,6 +96,8 @@ def generate_table_metadata(specs_dir, full_path):
         t["platforms"] = platform_for_spec(full_path)
         t["evented"] = "event_subscriber" in table.attributes
         t["cacheable"] = "cacheable" in table.attributes
+        t["notes"] = table.notes
+        t["examples"] = table.examples
 
         # Now we must iterate through `table.columns` to collect information
         # about each column
@@ -106,20 +107,13 @@ def generate_table_metadata(specs_dir, full_path):
             c["name"] = col.name
             c["description"] = col.description
             c["type"] = col.type.affinity.replace("_TYPE", "").lower()
+            c["notes"] = col.notes
 
-            hidden = False
-            required = False
-            index = False
-            for option in col.options:
-                if option == "hidden":
-                    hidden = True
-                elif option == "required":
-                    required = True
-                elif option == "index":
-                    index == True
-            c["hidden"] = hidden
-            c["required"] = required
-            c["index"] = index
+            c["hidden"] = col.options.get("hidden", False)
+            c["required"] = col.options.get("required", False)
+            c["index"] = col.options.get("index", False)
+            if col.platforms != []:
+                c["platforms"] = col.platforms
 
             t["columns"].append(c)
     return t

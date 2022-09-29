@@ -21,8 +21,66 @@
 
 namespace osquery {
 
-auto net_api_free = [](LPVOID pointer) { NetApiBufferFree(pointer); };
-using users_info_0_t = std::unique_ptr<LPUSER_INFO_0, decltype(net_api_free)>;
+template <typename T>
+class NetApiObjectPtr final {
+ public:
+  NetApiObjectPtr() noexcept = default;
+  NetApiObjectPtr(NetApiObjectPtr<T>&& other) noexcept
+      : pointer(std::exchange(other.pointer, nullptr)) {}
+
+  ~NetApiObjectPtr() {
+    if (pointer != nullptr) {
+      NetApiBufferFree(pointer);
+    }
+  }
+
+  NetApiObjectPtr& operator=(NetApiObjectPtr<T>&& other) noexcept {
+    if (this != &other) {
+      pointer = std::exchange(other.pointer, nullptr);
+    }
+
+    return *this;
+  }
+
+  NetApiObjectPtr(const NetApiObjectPtr<T>&) = delete;
+  NetApiObjectPtr& operator=(const NetApiObjectPtr<T>&) = delete;
+
+  T* operator->() {
+    return pointer;
+  }
+
+  bool operator==(const T* other) const {
+    return pointer == other;
+  }
+
+  bool operator!=(const T* other) const {
+    return pointer != other;
+  }
+
+  T** get_new_ptr() {
+    // We ensure that the pointer cannot be leaked
+    if (pointer != nullptr) {
+      NetApiBufferFree(pointer);
+      pointer = nullptr;
+    }
+
+    return &pointer;
+  }
+
+  const T* get() const {
+    return pointer;
+  }
+
+ private:
+  T* pointer{nullptr};
+};
+
+using user_info_0_ptr = NetApiObjectPtr<USER_INFO_0>;
+using user_info_2_ptr = NetApiObjectPtr<USER_INFO_2>;
+using user_info_3_ptr = NetApiObjectPtr<USER_INFO_3>;
+using user_info_4_ptr = NetApiObjectPtr<USER_INFO_4>;
+using localgroup_users_info_0_ptr = NetApiObjectPtr<LOCALGROUP_USERS_INFO_0>;
+using localgroup_info_1_ptr = NetApiObjectPtr<LOCALGROUP_INFO_1>;
 
 /**
  * @brief Windows helper function used by to convert a binary SID struct into

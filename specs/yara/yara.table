@@ -1,5 +1,5 @@
 table_name("yara")
-description("Track YARA matches for files or PIDs.")
+description("Triggers one-off YARA query for files at the specified path. Requires one of `sig_group`, `sigfile`, or `sigrule`.")
 schema([
     Column("path", TEXT, "The path scanned",
         index=True, required=True),
@@ -9,7 +9,7 @@ schema([
         additional=True),
     Column("sigfile", TEXT, "Signature file used",
         additional=True),
-	Column("sigrule", TEXT, "Signature strings used",
+    Column("sigrule", TEXT, "Signature strings used",
         additional=True, hidden=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),

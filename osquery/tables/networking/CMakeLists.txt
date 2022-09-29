@@ -52,13 +52,6 @@ function(generateOsqueryTablesNetworking)
       darwin/wifi_utils.mm
     )
 
-  elseif(DEFINED PLATFORM_FREEBSD)
-    list(APPEND source_files
-      freebsd/interface_ip.cpp
-      freebsd/process_open_sockets.cpp
-      freebsd/routes.cpp
-    )
-
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/arp_cache.cpp

@@ -437,9 +437,9 @@ Status YARAConfigParserPlugin::update(const std::string& source,
   if (yara_config.HasMember("signature_urls")) {
     auto& sigurl = yara_config["signature_urls"];
     if (!sigurl.IsArray()) {
-      VLOG(1) << "YARA signature_url must be an array";
+      VLOG(1) << "YARA signature_urls must be an array";
     } else {
-      VLOG(1) << "Compiling YARA signature_url for allowed list";
+      VLOG(1) << "Compiling YARA signature_urls for allowed list";
       for (const auto& element : sigurl.GetArray()) {
         if (element.IsString()) {
           auto url_string = element.GetString();

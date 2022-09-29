@@ -65,38 +65,46 @@ at runtime, rather than have to update (and version-manage) a YARA rules file on
 organization may also treat YARA rules as security-sensitive data, and you may not wish to store that data on the
 filesystem of every osquery host.
 
-To configure osquery to allow the fetching of YARA rules at runtime, first you must set the `enable_yara_sigurl` flag.
+To configure osquery to allow the fetching of YARA rules at runtime, you have to set up your `yara` configuration file
+with the `signature_urls` section. This will be an array that can be a mix of full URLs pointing to single Yara rule,
+or a partial URLs, where the path part can be a regex which will be used to match multiple URLs and rules.
+Each entry exists to later allow single or multiple URLs, provided via the `sigurl` constraint in the query.
 
-Then, set up your `yara` configuration file with the `signature_urls` section, supplying one or more sources for YARA
-rules that will be fetched at runtime:
+Since the path part of a URL string (the part after the domain) is always parsed as regex, we need to escape
+the regex special characters like `.`, if we want to use them to specify a full URL.
+
+Below a configuration example:
 
 ```json
- "yara": { 
-   "signature_urls": { 
-     "sig_url_1": "https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar", 
-     "sig_url_2": "https://raw.githubusercontent.com/Yara-Rules/rules/master/crypto/crypto_signatures.yar", 
-     "sig_url_3": "https://raw.githubusercontent.com/Yara-Rules/rules/master/malware/APT_APT3102.yar"
-   }
- }
+"yara": {
+  "signature_urls": [
+    "https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805\\.yar",
+    "https://raw.githubusercontent.com/Yara-Rules/rules/master/crypto/crypto_signatures\\.yar",
+    "https://raw.githubusercontent.com/Yara-Rules/rules/master/malware/APT_APT3102\\.yar",
+    "https://raw.githubusercontent.com/Yara-Rules/rules/devel/CVE_Rules/CVE-.*"
+  ]
+}
 ```
 
-These references, here named `sig_url_1`, `sig_url_2`, etc. are then supplied with your `yara` table query to specify
-the `sigurl` column. For example:
+and a couple of queries examples:
 
-```sql
-osquery> select * from yara where path like '%' and sigurl='sig_url_2';
-+-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
-| path                    | matches      | count | sig_group | sigfile | sigrule | strings | tags | sigurl    |
-+-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
-| CMakeCache.txt          | Big_Numbers1 | 1     |           |         |         |         |      | sig_url_2 |
-+-------------------------+--------------+-------+-----------+---------+---------+---------+------+-----------+
+```sh
+# This is valid
+SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar';
+
+# This too
+SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/CVE_Rules/CVE-2010-0805.yar';
+
+# This is not allowed
+SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar';
+
+YARA signature url https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar not allowed
+Failed to get YARA rule url: https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar
+Query must specify sig_group, sigfile, or sigrule for scan
 ```
 
 YARA rule strings are omitted from output by default, to prevent disclosure in osquery's results and logs. To include
 the YARA rules in the `sigrule` column, set the `enable_yara_string` flag to `true`.
-
-By nature of the design described above, your source URL for YARA rules (`sigurl`) can only be one of the URLs in the
-osquery config (in the `signature_urls` section). This is your explicit list of allowed source domains for YARA rules.
 
 #### Notes
 
