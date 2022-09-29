@@ -63,14 +63,6 @@ std::unordered_set<std::string> kOptionalSyscallList{"openat2",
 #endif
 };
 
-const std::string kKprobeSyscallPrefix{
-#ifdef __aarch64__
-    "__arm64_sys_"
-#else
-    "__x64_sys_"
-#endif
-};
-
 using FunctionTracerAllocatorList = std::vector<FunctionTracerAllocator>;
 
 const FunctionTracerAllocatorList kFunctionTracerAllocators = {
@@ -216,7 +208,8 @@ Status BPFEventPublisher::setUp() {
       const auto& parameter_list = parameter_list_it->second;
 
       function_tracer_exp = ebpfpub::IFunctionTracer::createFromKprobe(
-          kKprobeSyscallPrefix + tracer_allocator.syscall_name,
+          tracer_allocator.syscall_name,
+          true,
           parameter_list,
           buffer_storage,
           *d->perf_event_array.get(),
