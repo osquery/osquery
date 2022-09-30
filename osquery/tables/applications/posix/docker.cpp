@@ -409,8 +409,11 @@ QueryData genContainers(QueryContext& context) {
           BIGINT(container_details.get_child("State").get<pid_t>("Pid", -1));
       r["started_at"] = container_details.get_child("State").get<std::string>(
           "StartedAt", "");
-      r["finished_at"] = container_details.get_child("State").get<std::string>(
-          "FinishedAt", "");
+      if (r["state"] != "running") {
+        r["finished_at"] =
+            container_details.get_child("State").get<std::string>("FinishedAt",
+                                                                  "");
+      }
       r["privileged"] = container_details.get_child("HostConfig")
                                 .get<bool>("Privileged", false)
                             ? INTEGER(1)
