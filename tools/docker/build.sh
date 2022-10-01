@@ -19,7 +19,7 @@ build_rpm() {
 }
 
 versions='5.2.3'
-deb_platforms='ubuntu:16.04 ubuntu:18.04 ubuntu:20.04 ubuntu:22.04 debian:10 debian:9 debian:8 debian:7'
+deb_platforms='ubuntu:18.04 ubuntu:20.04 ubuntu:22.04 debian:11 debian:10'
 rpm_platforms='centos:6 centos:7 centos:8'
 
 for v in $versions
