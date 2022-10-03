@@ -65,6 +65,7 @@ TableColumns BPFProcessEventsTable::columns() const {
       std::make_tuple("ktime", UNSIGNED_BIGINT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("ppid", INTEGER_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("pid", INTEGER_TYPE, ColumnOptions::DEFAULT),
+      std::make_tuple("cgroup_path_parts", TEXT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("container_name", TEXT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("container_backend", TEXT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("path", TEXT_TYPE, ColumnOptions::DEFAULT),
@@ -93,7 +94,7 @@ TableRows BPFProcessEventsTable::generate(QueryContext& context) {
     row["ktime"] = UNSIGNED_BIGINT(event.ktime);
     row["ppid"] = INTEGER(event.parent_process_id);
     row["pid"] = INTEGER(event.process_id);
-    row["cgroup"] = SQL_TEXT(event.cgroup_path);
+    row["cgroup_path_parts"] = SQL_TEXT(event.cgroup_path);
     row["path"] = event.binary_path;
 
     buffer.str("");
