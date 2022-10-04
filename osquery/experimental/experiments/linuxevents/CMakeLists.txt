@@ -29,5 +29,7 @@ target_include_directories(osquery_experiments_linuxevents SYSTEM INTERFACE
 target_link_libraries(osquery_experiments_linuxevents PUBLIC
   osquery_cxx_settings
   osquery_core
+
+  thirdparty_boost
   thirdparty_linuxevents
 )

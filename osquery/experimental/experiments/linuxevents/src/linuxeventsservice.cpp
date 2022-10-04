@@ -9,9 +9,20 @@
 
 #include "linuxeventsservice.h"
 
+#include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 
 namespace osquery {
+
+CLI_FLAG(uint32,
+         experiments_linuxevents_perf_output_size,
+         12,
+         "Perf ouput size (must be a power of two)");
+
+CLI_FLAG(uint32,
+         experiments_linuxevents_circular_buffer_size,
+         1000,
+         "Size of the circular buffer used by tables to store events");
 
 struct LinuxEventsService::PrivateData final {
   PrivateData(BPFProcessEventsTable& table_) : table(table_) {}
@@ -24,7 +35,8 @@ LinuxEventsService::LinuxEventsService(BPFProcessEventsTable& table)
 LinuxEventsService::~LinuxEventsService() {}
 
 void LinuxEventsService::start() {
-  auto linux_events_exp = tob::linuxevents::ILinuxEvents::create();
+  auto linux_events_exp = tob::linuxevents::ILinuxEvents::create(
+      FLAGS_experiments_linuxevents_perf_output_size);
   if (!linux_events_exp.succeeded()) {
     LOG(ERROR)
         << "linuxevents experiment: Failed to create the LinuxEvents object: "

@@ -9,10 +9,16 @@
 
 #include "bpfprocesseventstable.h"
 
+#include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
+
 #include <tob/linuxevents/ilinuxevents.h>
 
+#include <boost/circular_buffer.hpp>
+
 namespace osquery {
+
+DECLARE_uint32(experiments_linuxevents_circular_buffer_size);
 
 namespace {
 
@@ -25,7 +31,7 @@ const std::vector<std::tuple<std::string, std::string>> kKnownCgroupPrefixList{
 
 struct BPFProcessEventsTable::PrivateData final {
   std::mutex mutex;
-  tob::linuxevents::ILinuxEvents::EventList event_list;
+  boost::circular_buffer<tob::linuxevents::ILinuxEvents::Event> event_list;
 };
 
 Expected<BPFProcessEventsTable::Ptr, BPFProcessEventsTable::ErrorCode>
@@ -52,13 +58,15 @@ void BPFProcessEventsTable::addEvents(
     tob::linuxevents::ILinuxEvents::EventList event_list) {
   std::lock_guard<std::mutex> lock(d->mutex);
 
-  d->event_list.reserve(d->event_list.size() + event_list.size());
   d->event_list.insert(d->event_list.end(),
                        std::make_move_iterator(event_list.begin()),
                        std::make_move_iterator(event_list.end()));
 }
 
-BPFProcessEventsTable::BPFProcessEventsTable() : d(new PrivateData) {}
+BPFProcessEventsTable::BPFProcessEventsTable() : d(new PrivateData) {
+  d->event_list.set_capacity(
+      FLAGS_experiments_linuxevents_circular_buffer_size);
+}
 
 TableColumns BPFProcessEventsTable::columns() const {
   static const TableColumns kColumnList = {
@@ -76,19 +84,12 @@ TableColumns BPFProcessEventsTable::columns() const {
 }
 
 TableRows BPFProcessEventsTable::generate(QueryContext& context) {
-  tob::linuxevents::ILinuxEvents::EventList event_list;
-
-  {
-    std::lock_guard<std::mutex> lock(d->mutex);
-
-    event_list = std::move(d->event_list);
-    d->event_list.clear();
-  }
+  std::lock_guard<std::mutex> lock(d->mutex);
 
   TableRows row_list;
   std::stringstream buffer;
 
-  for (const auto& event : event_list) {
+  for (const auto& event : d->event_list) {
     auto row = make_table_row();
 
     row["ktime"] = UNSIGNED_BIGINT(event.ktime);
