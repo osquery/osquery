@@ -9,8 +9,10 @@
 
 #include "bpfprocesseventstable.h"
 
+#include <ctime>
+#include <fstream>
+
 #include <osquery/core/flags.h>
-#include <osquery/logger/logger.h>
 
 #include <tob/linuxevents/ilinuxevents.h>
 
@@ -22,12 +24,52 @@ DECLARE_uint32(experiments_linuxevents_circular_buffer_size);
 
 namespace {
 
+const std::string kProcUptimeFilePath{"/proc/uptime"};
+
 const std::vector<std::tuple<std::string, std::string>> kKnownCgroupPrefixList{
     {"/libpod-conmon-", "podman"},
     {"/libpod-", "podman"},
 };
 
+std::string getProcUptimeContents() {
+  std::string uptime_contents;
+
+  {
+    std::ifstream uptime_file(kProcUptimeFilePath.c_str(), std::ios::in);
+    if (!uptime_file) {
+      throw std::runtime_error("Failed to access the following path: " +
+                               kProcUptimeFilePath);
+    }
+
+    std::getline(uptime_file, uptime_contents);
+  }
+
+  return uptime_contents;
 }
+
+std::uint64_t getSystemBootTime() {
+  auto current_time = std::time(nullptr);
+  auto uptime_contents = getProcUptimeContents();
+
+  auto separator_index = uptime_contents.find('.');
+  if (separator_index == std::string::npos) {
+    throw std::runtime_error("Invalid data read from " + kProcUptimeFilePath);
+  }
+
+  auto string_uptime = uptime_contents.substr(0, separator_index);
+
+  char* last_parsed_char{nullptr};
+  auto integer_uptime =
+      std::strtoull(string_uptime.c_str(), &last_parsed_char, 10);
+  if (integer_uptime == 0 || last_parsed_char == nullptr ||
+      *last_parsed_char != 0) {
+    throw std::runtime_error("Invalid data read from " + kProcUptimeFilePath);
+  }
+
+  return current_time - integer_uptime;
+}
+
+} // namespace
 
 struct BPFProcessEventsTable::PrivateData final {
   std::mutex mutex;
@@ -70,7 +112,7 @@ BPFProcessEventsTable::BPFProcessEventsTable() : d(new PrivateData) {
 
 TableColumns BPFProcessEventsTable::columns() const {
   static const TableColumns kColumnList = {
-      std::make_tuple("ktime", UNSIGNED_BIGINT_TYPE, ColumnOptions::DEFAULT),
+      std::make_tuple("time", UNSIGNED_BIGINT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("ppid", INTEGER_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("pid", INTEGER_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("cgroup_path_parts", TEXT_TYPE, ColumnOptions::DEFAULT),
@@ -89,10 +131,13 @@ TableRows BPFProcessEventsTable::generate(QueryContext& context) {
   TableRows row_list;
   std::stringstream buffer;
 
+  auto system_boot_time = getSystemBootTime();
+
   for (const auto& event : d->event_list) {
     auto row = make_table_row();
 
-    row["ktime"] = UNSIGNED_BIGINT(event.ktime);
+    auto timestamp = system_boot_time + (event.ktime / 1000000000ULL);
+    row["time"] = UNSIGNED_BIGINT(timestamp);
     row["ppid"] = INTEGER(event.parent_process_id);
     row["pid"] = INTEGER(event.process_id);
     row["cgroup_path_parts"] = SQL_TEXT(event.cgroup_path);
