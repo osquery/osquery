@@ -25,9 +25,18 @@ namespace model = Aws::EC2::Model;
 
 QueryData genEc2InstanceTags(QueryContext& context) {
   QueryData results;
-  std::string instance_id, region;
-  getInstanceIDAndRegion(instance_id, region);
+
+  auto opt_instance_info = getInstanceIDAndRegion();
+
+  if (!opt_instance_info.has_value()) {
+    LOG(WARNING) << "Failed to retrieve region and instance id";
+    return results;
+  }
+
+  const auto& [instance_id, region] = *opt_instance_info;
+
   if (instance_id.empty() || region.empty()) {
+    LOG(WARNING) << "Instance id and region are empty, returning no results";
     return results;
   }
 

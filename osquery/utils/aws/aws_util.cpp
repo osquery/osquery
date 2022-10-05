@@ -34,10 +34,12 @@
 #include <aws/sts/model/Credentials.h>
 
 #include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/logger/data_logger.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/aws/aws_util.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
-#include <osquery/utils/aws/aws_util.h>
 
 namespace pt = boost::property_tree;
 
@@ -82,9 +84,30 @@ FLAG(string,
      "Proxy password for use in AWS client config");
 FLAG(bool, aws_debug, false, "Enable AWS SDK debug logging");
 
+FLAG(uint32,
+     aws_imdsv2_request_attempts,
+     3,
+     "How many attempts to do at requesting an IMDSv2 token");
+
+FLAG(uint32,
+     aws_imdsv2_request_interval,
+     3,
+     "Base seconds to wait between attempts at requesting an IMDSv2 token. "
+     "Scales quadratically with the number of attempts");
+
+FLAG(bool,
+     aws_disable_imdsv1_fallback,
+     false,
+     "Whether to disable support for IMDSv1 and fail if an IMDSv2 token could "
+     "not be retrieved");
+
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
     "http://" + http::kInstanceMetadataAuthority + "/latest/";
+
+/// EC2 instance identity document URL
+const std::string kEc2IdentityDocument =
+    kEc2MetadataUrl + "dynamic/instance-identity/document";
 
 /// Hypervisor UUID file
 const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
@@ -113,6 +136,26 @@ static const std::set<std::string> kAwsRegions = {
 
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
+
+// To protect the access to the AWS instance id and region that are being cached
+static std::mutex cached_values_mutex;
+
+namespace {
+bool validateIMDSV2RequestAttempts(const char* flagname, std::uint32_t value) {
+  if (value == 0) {
+    std::string error_message =
+        "Only values higher than 0 are supported for " + std::string(flagname);
+    osquery::systemLog(error_message);
+    std::cerr << error_message << std::endl;
+
+    return false;
+  }
+
+  return true;
+}
+}; // namespace
+
+DEFINE_validator(aws_imdsv2_request_attempts, validateIMDSV2RequestAttempts);
 
 std::shared_ptr<Aws::Http::HttpClient>
 OsqueryHttpClientFactory::CreateHttpClient(
@@ -295,8 +338,8 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       // Calculate when our credentials will expire.
       token_expire_time_ = current_time + FLAGS_aws_sts_timeout;
     } else {
-      LOG(ERROR) << "Failed to create STS temporary credentials: "
-                    "No STS policy exists for the AWS user/role";
+      LOG(ERROR) << "Failed to create STS temporary credentials, error: "
+                 << sts_outcome.GetError().GetMessage();
     }
   }
   return Aws::Auth::AWSCredentials(
@@ -384,56 +427,56 @@ void initAwsSdk() {
   }
 }
 
-void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
-  static std::atomic<bool> checked(false);
+boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion() {
   static std::string cached_id;
   static std::string cached_region;
-  if (checked || !isEc2Instance()) {
-    // Return if already checked or this is not EC2 instance
-    instance_id = cached_id;
-    region = cached_region;
-    return;
+  static bool init_successfully = false;
+
+  std::lock_guard<std::mutex> lock(cached_values_mutex);
+
+  if (init_successfully) {
+    return {{cached_id, cached_region}};
   }
 
-  static std::once_flag once_flag;
-  std::call_once(once_flag, []() {
-    if (checked) {
-      return;
-    }
+  initAwsSdk();
+  http::Request req(kEc2IdentityDocument);
+  auto opt_token = getIMDSToken();
+  if (opt_token.has_value()) {
+    req << http::Request::Header(kImdsTokenHeader, *opt_token);
+  } else if (FLAGS_aws_disable_imdsv1_fallback) {
+    /* If the IMDSv2 token cannot be retrieved and we disabled IMDSv1,
+       we cannot attempt to do a request, so return with empty results. */
+    VLOG(1) << "Could not retrieve an IMDSv2 token to request the instance id "
+               "and region. The IMDSv1 fallback is disabled";
+    return boost::none;
+  }
 
-    initAwsSdk();
-    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
-    auto token = getIMDSToken();
-    if (!token.empty()) {
-      req << http::Request::Header(kImdsTokenHeader, token);
-    }
-    http::Client::Options options;
-    options.timeout(3);
-    http::Client client(options);
+  http::Client::Options options;
+  options.timeout(3);
+  http::Client client(options);
 
-    try {
-      http::Response res = client.get(req);
-      if (res.status() == 200) {
-        pt::ptree tree;
-        std::stringstream ss(res.body());
-        pt::read_json(ss, tree);
-        cached_id = tree.get<std::string>("instanceId", ""),
-        cached_region = tree.get<std::string>("region", ""),
-        VLOG(1) << "EC2 instance ID: " << cached_id
-                << ". Region: " << cached_region;
-      }
-    } catch (const std::system_error& e) {
-      // Assume that this is not EC2 instance
-      VLOG(1) << "Error getting EC2 instance information: " << e.what();
+  try {
+    http::Response res = client.get(req);
+    if (res.status() == 200) {
+      pt::ptree tree;
+      std::stringstream ss(res.body());
+      pt::read_json(ss, tree);
+      cached_id = tree.get<std::string>("instanceId", ""),
+      cached_region = tree.get<std::string>("region", ""),
+      VLOG(1) << "EC2 instance ID: " << cached_id
+              << ". Region: " << cached_region;
     }
-    checked = true;
-  });
+  } catch (const std::system_error& e) {
+    VLOG(1) << "Error getting EC2 instance information: " << e.what();
+    return boost::none;
+  }
 
-  instance_id = cached_id;
-  region = cached_region;
+  init_successfully = true;
+
+  return {{cached_id, cached_region}};
 }
 
-std::string getIMDSToken() {
+boost::optional<std::string> getIMDSToken() {
   std::string token;
   http::Request req(kEc2MetadataUrl + kImdsTokenResource);
   http::Client::Options options;
@@ -441,57 +484,44 @@ std::string getIMDSToken() {
   http::Client client(options);
   req << http::Request::Header(kImdsTokenTtlHeader, kImdsTokenTtlDefaultValue);
 
-  try {
-    http::Response res = client.put(req, "", "");
-    token = res.status() == 200 ? res.body() : "";
-  } catch (const std::system_error& e) {
-    VLOG(1) << "Request for " << kImdsTokenResource << " failed:" << e.what();
-  }
-  return token;
-}
-
-bool isEc2Instance() {
-  static std::atomic<bool> checked(false);
-  static std::atomic<bool> is_ec2_instance(false);
-  if (checked) {
-    return is_ec2_instance; // Return if already checked
-  }
-
-  static std::once_flag once_flag;
-  std::call_once(once_flag, []() {
-    if (checked) {
-      return;
-    }
-    checked = true;
-
-    std::ifstream fd(kHypervisorUuid, std::ifstream::in);
-    if (fd && !(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
-      return; // Not EC2 instance
-    }
-
-    auto token = getIMDSToken();
-    http::Request req(kEc2MetadataUrl);
-    if (!token.empty()) {
-      req << http::Request::Header(kImdsTokenHeader, token);
-    }
-    http::Client::Options options;
-    options.timeout(3);
-    http::Client client(options);
-
+  std::uint32_t attempts = 0;
+  std::uint32_t interval = FLAGS_aws_imdsv2_request_interval;
+  while (attempts < FLAGS_aws_imdsv2_request_attempts) {
     try {
-      http::Response res = client.get(req);
-      if (res.status() == 200) {
-        is_ec2_instance = true;
-      }
+      http::Response res = client.put(req, "", "");
+      token = res.status() == 200 ? res.body() : "";
     } catch (const std::system_error& e) {
-      // Assume that this is not EC2 instance
-      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
+      VLOG(1) << "Request for " << kImdsTokenResource
+              << " failed: " << e.what();
     } catch (const std::runtime_error& e) {
-      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
+      VLOG(1) << "Request for " << kImdsTokenResource
+              << " failed: " << e.what();
     }
-  });
 
-  return is_ec2_instance;
+    if (token.empty()) {
+      if (attempts < FLAGS_aws_imdsv2_request_attempts) {
+        auto should_shutdown =
+            osquery::waitTimeoutOrShutdown(std::chrono::seconds(interval));
+        if (should_shutdown) {
+          return boost::none;
+        }
+
+        interval *= FLAGS_aws_imdsv2_request_interval;
+        ++attempts;
+      }
+      continue;
+    }
+
+    break;
+  }
+
+  if (attempts == FLAGS_aws_imdsv2_request_attempts) {
+    LOG(ERROR) << "Failed " << FLAGS_aws_imdsv2_request_attempts
+               << " attempts at retrieving an IMDSv2 token";
+    return boost::none;
+  }
+
+  return token;
 }
 
 Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
