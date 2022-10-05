@@ -13,6 +13,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/info/firmware.h>
 
 #include "osquery/core/windows/wmi.h"
 
@@ -112,51 +113,6 @@ std::string to_iso8601_date(const FILETIME& ft) {
   return iso_date.str();
 }
 
-std::string getFirmwareType() {
-  enum class FirmwareType : std::uint32_t {
-    Unknown,
-    Bios,
-    Uefi,
-  };
-  using GetFirmwareTypePtr = BOOL (*)(FirmwareType*);
-
-  auto kernel32_module = GetModuleHandleA("kernel32");
-  auto function_ptr = reinterpret_cast<GetFirmwareTypePtr>(
-      GetProcAddress(kernel32_module, "GetFirmwareType"));
-  FirmwareType firmware_type = FirmwareType::Unknown;
-
-  if (function_ptr == nullptr) {
-    // We are on Windows 7: Attempt to determine the firmware type based on
-    // the registry keys
-    HKEY state_reg_key;
-    auto success =
-        RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-                      "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
-                      0,
-                      KEY_READ,
-                      &state_reg_key);
-
-    if (success != 0 && state_reg_key != INVALID_HANDLE_VALUE) {
-      firmware_type = FirmwareType::Uefi;
-      RegCloseKey(state_reg_key);
-
-    } else {
-      firmware_type = FirmwareType::Bios;
-    }
-
-  } else if (!function_ptr(&firmware_type)) {
-    LOG(ERROR) << "platform_info: Failed to acquire the firmware type";
-  }
-
-  if (firmware_type == FirmwareType::Bios) {
-    return "bios";
-  } else if (firmware_type == FirmwareType::Uefi) {
-    return "uefi";
-  }
-
-  return "unknown";
-}
-
 QueryData genPlatformInfo(QueryContext& context) {
   QueryData results;
 
@@ -188,7 +144,15 @@ QueryData genPlatformInfo(QueryContext& context) {
   auto s = to_iso8601_date(release_date);
   r["date"] = s.empty() ? "-1" : s;
 
-  r["firmware_type"] = SQL_TEXT(getFirmwareType());
+  auto opt_firmware_kind = getFirmwareKind();
+  if (opt_firmware_kind.has_value()) {
+    const auto& firmware_kind = opt_firmware_kind.value();
+    r["firmware_type"] = getFirmwareKindDescription(firmware_kind);
+
+  } else {
+    LOG(ERROR) << "platform_info: Failed to determine the firmware type";
+    r["firmware_type"] = "unknown";
+  }
 
   results.push_back(r);
   return results;

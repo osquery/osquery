@@ -11,8 +11,7 @@
 
 #include <osquery/utils/info/platform_type.h>
 
-namespace osquery {
-namespace table_tests {
+namespace osquery::table_tests {
 
 class Secureboot : public testing::Test {
  protected:
@@ -22,16 +21,33 @@ class Secureboot : public testing::Test {
 };
 
 TEST_F(Secureboot, test_sanity) {
-  QueryData data = execute_query("select * from secureboot");
+  bool secureboot_supported{false};
 
-  ASSERT_EQ(data.size(), 1ul);
+  {
+    auto platform_info_rows =
+        execute_query("SELECT firmware_type FROM platform_info;");
 
-  ValidationMap row_map = {
+    ASSERT_EQ(platform_info_rows.size(), 1);
+
+    const auto& platform_info = platform_info_rows[0];
+    ASSERT_EQ(platform_info.count("firmware_type"), 1);
+
+    secureboot_supported = platform_info.at("firmware_type") == "uefi";
+  }
+
+  auto secureboot_data = execute_query("SELECT * FROM secureboot;");
+  if (!secureboot_supported) {
+    ASSERT_TRUE(secureboot_data.empty());
+    return;
+  }
+
+  ASSERT_EQ(secureboot_data.size(), 1);
+  static const ValidationMap kValidationMap{
       {"secure_boot", IntOrEmpty},
       {"setup_mode", IntOrEmpty},
   };
-  validate_rows(data, row_map);
+
+  validate_rows(secureboot_data, kValidationMap);
 }
 
-} // namespace table_tests
-} // namespace osquery
+} // namespace osquery::table_tests

@@ -353,28 +353,54 @@ function(generateTestsIntegrationTablesTestsTest)
   )
 
   if(DEFINED PLATFORM_LINUX)
-    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test --gtest_filter=-memoryDevices.test_sanity)
+    set(root_test_name_list
+      "memoryDevices.test_sanity"
+      "Secureboot.test_sanity"
+    )
+
+    set(gtest_filter "")
+    foreach(root_test_name ${root_test_name_list})
+      if(NOT gtest_filter STREQUAL "")
+        set(gtest_filter "${gtest_filter}:")
+      endif()
+
+      set(gtest_filter "${gtest_filter}${root_test_name}")
+    endforeach()
+
+    add_test(NAME tests_integration_tables-test
+      COMMAND tests_integration_tables-test "--gtest_filter=-${gtest_filter}"
+    )
+
     set_tests_properties(
       tests_integration_tables-test
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
 
     if(OSQUERY_BUILD_ROOT_TESTS)
-      add_test(NAME tests_integration_tables_root-test COMMAND tests_integration_tables-test --gtest_filter=memoryDevices.test_sanity)
-      set_tests_properties(tests_integration_tables_root-test PROPERTIES LABELS "root-required")
+      add_test(NAME tests_integration_tables_root-test
+        COMMAND tests_integration_tables-test "--gtest_filter=${gtest_filter}"
+      )
+
+      set_tests_properties(tests_integration_tables_root-test PROPERTIES
+        LABELS "root-required"
+      )
+
       set_tests_properties(
           tests_integration_tables_root-test
           PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
       )
-  endif()
- else()
-    add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
-    set_tests_properties(
-      tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
- endif()
+    endif()
 
+  else()
+      add_test(NAME tests_integration_tables-test
+        COMMAND tests_integration_tables-test
+      )
+
+      set_tests_properties(
+        tests_integration_tables-test
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      )
+  endif()
 endfunction()
 
 testsIntegrationTablesMain()

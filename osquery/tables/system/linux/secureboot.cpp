@@ -12,9 +12,11 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/secureboot.hpp>
+#include <osquery/utils/info/firmware.h>
 
-namespace osquery {
-namespace tables {
+namespace osquery::tables {
+
+namespace {
 
 // Linux has 2 places efivars can be accessed:
 //   /sys/firmware/efi/efivars -- Single file, world readable
@@ -25,13 +27,16 @@ namespace tables {
 // interfaces. While the `vars` directory is more usable (having a
 // split data from attributes), the benefit of not requiring root
 // outweighs that.
-const std::string efivarsDir = "/sys/firmware/efi/efivars/";
+//
+// Note that the efivars may not have been mounted
+const std::string kEfiDirectory{"/sys/firmware/efi"};
+const std::string kEfiVarsDirectory{kEfiDirectory + "/efivars"};
 
 void readBoolEfiVar(Row& row,
                     std::string column_name,
                     std::string guid,
                     std::string name) {
-  const std::string efivarPath = efivarsDir + name + '-' + guid;
+  const std::string efivarPath = kEfiVarsDirectory + "/" + name + '-' + guid;
 
   // The first 4 bytes of efivars are attribute data, we don't need
   // that data here, so we can just ignore it. The 5th byte is a
@@ -66,20 +71,31 @@ void readBoolEfiVar(Row& row,
   return;
 }
 
+} // namespace
+
 QueryData genSecureBoot(QueryContext& context) {
-  QueryData results;
-  Row r;
+  auto opt_firmware_kind = getFirmwareKind();
+  if (!opt_firmware_kind.has_value()) {
+    LOG(ERROR) << "secureboot: Failed to determine the firmware type";
+    return {};
+  }
+
+  const auto& firmware_kind = opt_firmware_kind.value();
+  if (firmware_kind != FirmwareKind::Uefi) {
+    VLOG(1) << "secureboot: Secure boot is only supported on UEFI firmware";
+    return {};
+  }
 
   // There's a kernel rate limit on non-root reads to the EFI
   // filesystem of 100 reads per second. We could consider adding a
   // sleep, as a means to a rate limit (this is what the efivar tool
   // does), but this seems unlikely to be an issue in normal osquery
   // use. So we do nothing, aside from note it here.
+  Row r;
   readBoolEfiVar(r, "secure_boot", kEFIBootGUID, kEFISecureBootName);
   readBoolEfiVar(r, "setup_mode", kEFIBootGUID, kEFISetupModeName);
 
-  results.push_back(r);
-  return results;
+  return {std::move(r)};
 }
-} // namespace tables
-} // namespace osquery
+
+} // namespace osquery::tables
