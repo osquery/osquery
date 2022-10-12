@@ -71,8 +71,8 @@ jobs:
         mkdir -p "${rel_build_path}"
         ln -sf "$(pwd)" "${rel_source_path}"
 
-        echo ::set-output name=SOURCE::$(realpath ${rel_source_path})
-        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+        echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -179,7 +179,7 @@ jobs:
       shell: bash
       id: build_job_count
       run: |
-        echo ::set-output name=VALUE::$(($(nproc) + 1))
+        echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -189,9 +189,9 @@ jobs:
       id: debug_symbols_settings
       run: |
         if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
-          echo ::set-output name=VALUE::ON
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=VALUE::OFF
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
     # When we spawn in the container, we are root; create an unprivileged
@@ -200,7 +200,7 @@ jobs:
       id: unprivileged_user
       run: |
         useradd -m -s /bin/bash unprivileged_user
-        echo ::set-output name=NAME::unprivileged_user
+        echo "NAME=unprivileged_user" >> $GITHUB_OUTPUT
 
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
@@ -228,13 +228,13 @@ jobs:
         mv .git "${rel_src_path}"
         ( cd "${rel_src_path}" && git reset --hard )
 
-        echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
-        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
-        echo ::set-output name=CCACHE::$(realpath ${rel_ccache_path})
-        echo ::set-output name=PACKAGING::$(realpath ${rel_packaging_path})
-        echo ::set-output name=PACKAGE_DATA::$(realpath ${rel_package_data_path})
-        echo ::set-output name=REL_PACKAGE_BUILD::${rel_package_build_path}
-        echo ::set-output name=PACKAGE_BUILD::$(realpath ${rel_package_build_path})
+        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
 
     - name: Clone the osquery-packaging repository
       run: |
@@ -364,12 +364,12 @@ jobs:
       id: packages
       shell: bash
       run: |
-        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz
-        echo ::set-output name=REL_UNSIGNED_RELEASE_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)
-        echo ::set-output name=REL_UNSIGNED_DEBUG_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)
-        echo ::set-output name=REL_UNSIGNED_DEBUG_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_aarch64.tar.gz)
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_aarch64.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
