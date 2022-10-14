@@ -1,5 +1,7 @@
 # YARA-based scanning with osquery
 
+YARA is a tool that allows you to scan files for malware (or just about anything you might need to find) using textual or binary patterns. 
+
 There are two YARA-related tables in osquery, which serve very different purposes. The first table, called
 `yara_events`, uses osquery's [Events framework](../development/pubsub-framework.md) to monitor for filesystem changes
 and will execute YARA when a file change event fires. The second table, just called `yara`, is a table for performing an
@@ -7,6 +9,8 @@ on-demand YARA scan.
 
 In this document, "signature file" is intended to be synonymous with "YARA rule file" (plain-text files commonly
 distributed with a `.yar` or `.yara` filename extension, although any extension is allowed).
+
+For more information about YARA, check out the [documentation](https://yara.readthedocs.io/en/stable/). 
 
 ## YARA Configuration
 
