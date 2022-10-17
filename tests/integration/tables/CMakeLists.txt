@@ -323,6 +323,7 @@ function(generateTestsIntegrationTablesTestsTest)
       hvci_status.cpp
       yara.cpp
       tpm_info.cpp
+      security_profile_info.cpp
     )
 
     list(APPEND source_files ${platform_source_files})

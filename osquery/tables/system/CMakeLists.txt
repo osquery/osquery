@@ -202,6 +202,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.cpp
       windows/scheduled_tasks.cpp
       windows/secureboot.cpp
+      windows/security_profile_info.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
