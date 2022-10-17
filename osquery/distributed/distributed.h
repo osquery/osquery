@@ -274,10 +274,13 @@ class Distributed {
    * Given a response from a distributed plugin, parse the results and enqueue
    * them in the internal state of the class
    *
-   * If the response contains one or more "discovery" queries, then only queries
-   * with the following criteria will be enqueued:
-   *  - The query has a corresponding "discovery" query.
-   *  - The corresponding "discovery" query returns one or more results.
+   * Following is the behavior with respect to "discovery" queries in "work":
+   *  - If a query in "queries" has no corresponding query in "discovery",
+   *    then the distributed query is enqueued.
+   *  - If a discovery query in "discovery" returns one or more results,
+   *    then its corresponding distributed query in "queries" is enqueued.
+   *  - If a discovery query in "discovery" returns no results, then its
+   *    corresponding distributed query in "queries" is not enqueued.
    *
    * @param work is the string from DistributedPlugin::getQueries
    * @return a Status indicating the success or failure of the operation

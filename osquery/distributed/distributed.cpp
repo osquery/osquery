@@ -268,11 +268,9 @@ Status Distributed::acceptWork(const std::string& work) {
     return Status(1, "Error Parsing JSON");
   }
 
-  std::set<std::string> queries_to_run;
-
-  auto hasDiscoveryQueries = false;
-
-  // Check for and run discovery queries first
+  // Check for and run discovery queries first.
+  // Store their result in discovery_results.
+  std::map<std::string, bool> discovery_results;
   if (doc.doc().HasMember("discovery")) {
     const auto& queries = doc.doc()["discovery"];
     assert(queries.IsObject());
@@ -288,15 +286,12 @@ Status Distributed::acceptWork(const std::string& work) {
         if (query.empty() || name.empty()) {
           return Status(1, "Distributed discovery query is not a string");
         }
-        hasDiscoveryQueries = true;
 
         SQL sql(query);
         if (!sql.getStatus().ok()) {
           return Status(1, "Distributed discovery query has an SQL error");
         }
-        if (sql.rows().size() > 0) {
-          queries_to_run.insert(name);
-        }
+        discovery_results.insert({name, (sql.rows().size() > 0)});
       }
     }
   }
@@ -317,7 +312,11 @@ Status Distributed::acceptWork(const std::string& work) {
           return Status(1, "Distributed query is not a string");
         }
 
-        if (!hasDiscoveryQueries || queries_to_run.count(name)) {
+        // If a query does not have a corresponding discovery query
+        // or it does and it returned results, then store the query
+        // for execution.
+        const auto result = discovery_results.find(name);
+        if (result == discovery_results.cend() || result->second) {
           setDatabaseValue(kDistributedQueries, name, query);
         }
       }

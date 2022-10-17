@@ -395,15 +395,20 @@ TEST_F(DistributedTests, test_accept_work_with_discovery) {
 
   // Query q1 has a discovery query with > 0 results.
   // Query q2 has a discovery query with 0 results, thus it won't be executed.
-  // Query q3 does not have a discovery query, thus it won't be executed.
-  const auto queries = dist.getPendingQueries();
-  ASSERT_EQ(queries.size(), 1);
-  auto queryName = queries[0];
-  EXPECT_EQ(queryName, "q1");
-  std::string actualQuery;
-  s = getDatabaseValue(kDistributedQueries, queryName, actualQuery);
-  ASSERT_TRUE(s.ok()) << s.getMessage();
-  EXPECT_EQ(actualQuery, "SELECT * FROM system_info;");
+  // Query q3 does not have a discovery query, thus it will be executed.
+  const auto queryNames = dist.getPendingQueries();
+  ASSERT_EQ(queryNames.size(), 2);
+  for (const auto& queryName : queryNames) {
+    ASSERT_TRUE(queryName == "q1" || queryName == "q3");
+    std::string actualQuery;
+    s = getDatabaseValue(kDistributedQueries, queryName, actualQuery);
+    ASSERT_TRUE(s.ok()) << s.getMessage();
+    std::string expectedQuery = "SELECT * FROM system_info;";
+    if (queryName == "q3") {
+      expectedQuery = "SELECT * FROM osquery_info;";
+    }
+    EXPECT_EQ(actualQuery, expectedQuery);
+  }
 }
 
 // Tests https://github.com/osquery/osquery/issues/5260.
