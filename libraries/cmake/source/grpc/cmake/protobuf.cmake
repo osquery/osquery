@@ -14,7 +14,6 @@ function(protobufMain)
     ${library_root}/src/google/protobuf/arenastring.cc
     ${library_root}/src/google/protobuf/arenaz_sampler.cc
     ${library_root}/src/google/protobuf/extension_set.cc
-    #${library_root}/src/google/protobuf/generated_enum_util.cc
     ${library_root}/src/google/protobuf/generated_message_tctable_lite.cc
     ${library_root}/src/google/protobuf/generated_message_util.cc
     ${library_root}/src/google/protobuf/implicit_weak_message.cc
