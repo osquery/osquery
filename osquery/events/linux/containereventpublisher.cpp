@@ -96,7 +96,11 @@ Status ContainerEventPublisher::setUp() {
     return Status::failure("Publisher disabled via configuration");
   }
 
-  grpc_init();
+  try {
+    grpc_init();
+  } catch (const std::bad_alloc&) {
+    return Status::failure("Allocation failure");
+  }
 
   return Status::success();
 }
