@@ -49,7 +49,7 @@ REGISTER(ContainerEventPublisher, "event_publisher", "containerevent");
 FLAG(string,
      containerd_socket,
      "/run/containerd/containerd.sock",
-     "Docker UNIX domain socket path");
+     "containerd UNIX domain socket path");
 
 FLAG(string,
      containerd_events_namespaces,
