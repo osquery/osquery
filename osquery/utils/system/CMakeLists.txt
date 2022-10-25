@@ -28,6 +28,10 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
 
+  if(DEFINED PLATFORM_LINUX)
+    generateOsqueryUtilsSystemBoottime()
+  endif()
+
   if(DEFINED PLATFORM_WINDOWS)
     generateOsqueryUtilsSystemUsersGroups()
   endif()
@@ -246,6 +250,30 @@ function(generateOsqueryUtilsSystemUptime)
   )
 
   generateIncludeNamespace(osquery_utils_system_uptime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+endfunction()
+
+function(generateOsqueryUtilsSystemBoottime)
+
+  if(DEFINED PLATFORM_LINUX)
+    set(source_files
+      linux/boottime.cpp
+    )
+  endif()
+
+  add_osquery_library(osquery_utils_system_boottime EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  target_link_libraries(osquery_utils_system_boottime PUBLIC
+    osquery_cxx_settings
+    osquery_filesystem
+  )
+
+  set(public_header_files
+    boottime.h
+  )
+
+  generateIncludeNamespace(osquery_utils_system_boottime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsSystemUsersGroups)

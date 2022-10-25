@@ -28,9 +28,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/tables/system/linux/processes.h>
-
 #include <osquery/utils/conversions/split.h>
-#include <osquery/utils/system/uptime.h>
+#include <osquery/utils/system/boottime.h>
 
 #include <ctime>
 
@@ -50,10 +49,11 @@ inline std::string readProcCMDLine(const std::string& pid) {
   std::string content;
   readFile(attr, content);
   // Remove \0 delimiters.
-  std::replace_if(content.begin(),
-                  content.end(),
-                  [](const char& c) { return c == 0; },
-                  ' ');
+  std::replace_if(
+      content.begin(),
+      content.end(),
+      [](const char& c) { return c == 0; },
+      ' ');
   // Remove trailing delimiter.
   boost::algorithm::trim(content);
   return content;
@@ -427,7 +427,7 @@ int getOnDisk(const std::string& pid, std::string& path) {
 }
 
 void genProcess(const std::string& pid,
-                long system_boot_time,
+                std::uint64_t system_boot_time,
                 QueryContext& context,
                 TableRows& results) {
   // Parse the process stat and status.
@@ -478,8 +478,9 @@ void genProcess(const std::string& pid,
 
   auto proc_start_time_exp = tryTo<long>(proc_stat.start_time);
   if (proc_start_time_exp.isValue() && system_boot_time > 0) {
-    r["start_time"] = INTEGER(system_boot_time + proc_start_time_exp.take() /
-                                                     sysconf(_SC_CLK_TCK));
+    auto proc_start_time = proc_start_time_exp.take() / sysconf(_SC_CLK_TCK);
+
+    r["start_time"] = BIGINT(system_boot_time + proc_start_time);
   } else {
     r["start_time"] = "-1";
   }
@@ -520,10 +521,7 @@ void genNamespaces(const std::string& pid, QueryData& results) {
 
 TableRows genProcesses(QueryContext& context) {
   TableRows results;
-  auto system_boot_time = getUptime();
-  if (system_boot_time > 0) {
-    system_boot_time = std::time(nullptr) - system_boot_time;
-  }
+  static const std::uint64_t system_boot_time = getBootTime();
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
@@ -565,5 +563,5 @@ QueryData genProcessNamespaces(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
