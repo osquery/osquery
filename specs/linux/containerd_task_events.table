@@ -1,8 +1,8 @@
 table_name("containerd_task_events")
 description("Track containerd task events.")
 schema([
-    Column("time", BIGINT, "When the event has been fired by the event framework"),
-    Column("timestamp", TEXT, "Time of when the event happened"),
+    Column("time", BIGINT, "When osquery received the event, in seconds since the epoch"),
+    Column("timestamp", TEXT, "Event timestamp, as reported by containerd"),
     Column("namespace", TEXT, "Namespace where the container is in"),
     Column("topic", TEXT, "Specific type of the event"),
     Column("container_id", TEXT, "Container ID"),
@@ -14,8 +14,8 @@ schema([
     Column("io_stdin", TEXT, "Path to the stdin file"),
     Column("io_stdout", TEXT, "Path to the stdout file"),
     Column("io_stderr", TEXT, "Path to the stderr file"),
-    Column("io_terminal", INTEGER, "TODO"),
-    Column("checkpoint", TEXT, "TODO"),
+    Column("io_terminal", INTEGER, "Whether the container is connected to a terminal"),
+    Column("checkpoint", TEXT, "Name of the restored checkpoint, if applicable"),
     Column("pid", INTEGER, "Pid of the task process"),
     Column("exit_status", INTEGER, "Exit status of the task process"),
     Column("exited_at", TEXT, "Exit timestamp of the task"),

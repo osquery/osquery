@@ -2,8 +2,8 @@ table_name("containerd_container_events")
 description("Track containerd container events.")
 schema([
     Column("container_id", TEXT, "Container ID"),
-    Column("time", BIGINT, "When the event has been fired by the event framework"),
-    Column("timestamp", TEXT, "Time of when the event happened"),
+    Column("time", BIGINT, "When osquery received the event, in seconds since the epoch"),
+    Column("timestamp", TEXT, "Event timestamp, as reported by containerd"),
     Column("namespace", TEXT, "Namespace where the container is in"),
     Column("topic", TEXT, "Specific type of the event"),
     Column("image_name", TEXT, "Image name"),
