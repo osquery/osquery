@@ -115,7 +115,7 @@ community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-
 
 | Project                                             | License     |
 | --------------------------------------------------- | ----------- |
-| [Fleet](https://github.com/fleetdm/fleet)           | Commercial  |
+| [Fleet](https://github.com/fleetdm/fleet)           | Open Core  |
 | [Kolide](https://www.kolide.com)                    | Freemium    |
 | [OSCTRL](https://github.com/jmpsec/osctrl)          | Open Source |
 | [Zercurity](https://github.com/zercurity/zercurity) | Freemium    |
