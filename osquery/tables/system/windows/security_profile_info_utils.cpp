@@ -46,6 +46,13 @@ Status SceClientHelper::initialize() {
     return Status::success();
   }
 
+  // Sanity check to ensure that function pointers are not initialized if
+  // running process is a WoW64 process
+  Status wow64Status = isWow64Process();
+  if (wow64Status.ok()) {
+    return Status::failure("Init failed: " + wow64Status.getMessage());
+  }
+
   // Checking if the input DLL is already mapped to memory before loading it.
   // If mapped module is not found, LoadLibraryExA() gets called to load the
   // module from system32 folder.
@@ -144,6 +151,15 @@ Status SceClientHelper::releaseSceProfileData(const PVOID& profileData) {
   LocalFree(profileData);
 
   return Status::success();
+}
+
+Status SceClientHelper::isWow64Process() {
+  BOOL wow64 = FALSE;
+  if ((IsWow64Process(GetCurrentProcess(), &wow64)) && (wow64)) {
+    return Status::success();
+  }
+
+  return Status::failure("Current process is a WoW64 process.");
 }
 
 Status SceClientHelper::getSceSecurityProfileInfo(PVOID& profileData) {

@@ -135,6 +135,16 @@ class SceClientHelper : public boost::noncopyable {
    */
   Status releaseSceProfileData(const PVOID& profileData);
 
+  /**
+   * @brief This helper determines if current process is running under WoW64 or
+   * an Intel64 of x64 processor. WOW64 is the x86 emulator that allows 32-bit
+   * Windows-based applications to run seamlessly on 64-bit Windows. This check
+   * is done by calling IsWow64Process().
+   *
+   * @return WoW64 status of the current process
+   */
+  static Status isWow64Process();
+
  private:
   /**
    * @brief Internal helper that checks if process can access the memory layout
@@ -172,18 +182,18 @@ class SceClientHelper : public boost::noncopyable {
    * SceFreeMemory() function. This prototype has not
    * changed since windows 7.
    */
-  using SceFreeMemoryPtr = DWORD (*)(PVOID data, DWORD securityArea);
+  using SceFreeMemoryPtr = DWORD(WINAPI*)(PVOID data, DWORD securityArea);
 
   /**
    * @brief This is the function prototype of the undocumented
    * SceGetSecurityProfileInfo() function. This prototype has not
    * changed since windows 7.
    */
-  using GetSecProfileInfoFnPtr = DWORD (*)(PVOID profileHandle,
-                                           DWORD type,
-                                           DWORD securityArea,
-                                           PVOID profileInfo,
-                                           PVOID errorInfo);
+  using GetSecProfileInfoFnPtr = DWORD(WINAPI*)(PVOID profileHandle,
+                                                DWORD type,
+                                                DWORD securityArea,
+                                                PVOID profileInfo,
+                                                PVOID errorInfo);
 
   /**
    * @brief This handle holds the module reference to scecli.dll
