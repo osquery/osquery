@@ -206,6 +206,7 @@ TEST_F(QueryTests, test_query_name_updated) {
   cf.addNewResults(results, 0, counter, dr);
   EXPECT_FALSE(cf.isNewQuery());
   EXPECT_EQ(counter, 0UL);
+  EXPECT_FALSE(dr.hasNoResults());
 
   query.query += " LIMIT 1";
   counter = 128;
@@ -214,7 +215,8 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_TRUE(cf2.isNewQuery());
   cf2.addNewResults(results, 0, counter, dr);
   EXPECT_FALSE(cf2.isNewQuery());
-  EXPECT_EQ(counter, 0UL);
+  EXPECT_EQ(counter, 1UL);
+  EXPECT_TRUE(dr.hasNoResults());
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {
