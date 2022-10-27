@@ -134,7 +134,7 @@ class Query {
       : query_(q.query), name_(std::move(name)) {}
 
   /**
-   * @brief Serialize the data in RocksDB into a useful data structure
+   * @brief Deserialize the data in RocksDB into a useful data structure
    *
    * This method retrieves the data from RocksDB and returns the data in a
    * std::multiset, in-order to apply binary search in diff function.
@@ -144,6 +144,19 @@ class Query {
    * @return the success or failure of the operation.
    */
   Status getPreviousQueryResults(QueryDataSet& results) const;
+
+  /**
+   * @brief Save query results json to the database
+   *
+   * This method saves updated query results json to the database and
+   * updates the epoch associated with the results.
+   *
+   * @param json  Json serialized results string
+   * @param epoch  Epoch the results are from
+   *
+   * @return the success or failure of the operation.
+   */
+  Status saveQueryResults(const std::string& json, uint64_t epoch) const;
 
   /**
    * @brief Get the epoch associated with the previous query results.
@@ -158,15 +171,18 @@ class Query {
   /**
    * @brief Get the query invocation counter.
    *
-   * This method returns query invocation counter. If the query is a new query,
-   * 0 is returned. Otherwise the counter associated with the query is retrieved
-   * from database and incremented by 1.
+   * This method returns query invocation counter. If the query is returning all
+   * records, the counter resets to 0. If the query is a new query, but not
+   * returning all records, the counter resets to 1. Otherwise the counter
+   * associated with the query is retrieved from the database and incremented
+   * by 1.
    *
+   * @param all_records Whether or not the query is including all records
    * @param new_query Whether or not the query is new.
    *
    * @return the query invocation counter.
    */
-  uint64_t getQueryCounter(bool new_query) const;
+  uint64_t getQueryCounter(bool all_records, bool new_query) const;
 
   /**
    * @brief Check if a given scheduled query exists in the database.
@@ -188,7 +204,9 @@ class Query {
                       bool& new_query) const;
 
   /// Increment and return the query counter.
-  Status incrementCounter(bool reset, uint64_t& counter) const;
+  Status incrementCounter(bool all_records,
+                          bool new_query,
+                          uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage.

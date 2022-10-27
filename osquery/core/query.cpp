@@ -42,10 +42,17 @@ uint64_t Query::getPreviousEpoch() const {
   return epoch;
 }
 
-uint64_t Query::getQueryCounter(bool new_query) const {
+uint64_t Query::getQueryCounter(bool all_records, bool new_query) const {
   uint64_t counter = 0;
-  if (new_query) {
+  if (all_records) {
     return counter;
+  }
+
+  // If it's a new query but not returning all records, start with 1 instead of
+  // 0. This allows consumers to reliably distinguish between differential
+  // results and results with all records.
+  if (new_query) {
+    return counter + 1;
   }
 
   std::string raw;
@@ -68,6 +75,15 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
     return status;
   }
   return Status::success();
+}
+
+Status Query::saveQueryResults(const std::string& json, uint64_t epoch) const {
+  auto status = setDatabaseValue(kQueries, name_, json);
+  if (!status.ok()) {
+    return status;
+  }
+
+  return setDatabaseValue(kQueries, name_ + "epoch", std::to_string(epoch));
 }
 
 std::vector<std::string> Query::getStoredQueryNames() {
@@ -93,16 +109,16 @@ bool Query::isNewQuery() const {
 }
 
 void Query::getQueryStatus(uint64_t epoch,
-                           bool& fresh_results,
+                           bool& new_epoch,
                            bool& new_query) const {
   if (!isQueryNameInDatabase()) {
     // This is the first encounter of the scheduled query.
-    fresh_results = true;
+    new_epoch = true;
     new_query = true;
     LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
     saveQuery(name_, query_);
   } else if (getPreviousEpoch() != epoch) {
-    fresh_results = true;
+    new_epoch = true;
     LOG(INFO) << "New Epoch " << epoch << " for scheduled query " << name_;
   } else if (isNewQuery()) {
     // This query is 'new' in that the previous results may be invalid.
@@ -112,8 +128,10 @@ void Query::getQueryStatus(uint64_t epoch,
   }
 }
 
-Status Query::incrementCounter(bool reset, uint64_t& counter) const {
-  counter = getQueryCounter(reset);
+Status Query::incrementCounter(bool all_records,
+                               bool new_query,
+                               uint64_t& counter) const {
+  counter = getQueryCounter(all_records, new_query);
   return setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
 }
 
@@ -121,18 +139,18 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
                            const uint64_t current_epoch,
                            uint64_t& counter,
                            DiffResults& dr) const {
-  bool fresh_results = false;
+  bool new_epoch = false;
   bool new_query = false;
-  getQueryStatus(current_epoch, fresh_results, new_query);
-  if (fresh_results) {
-    auto status = setDatabaseValue(kQueries, name_, "[]");
+  getQueryStatus(current_epoch, new_epoch, new_query);
+  if (new_epoch) {
+    auto status = saveQueryResults("[]", current_epoch);
     if (!status.ok()) {
       return status;
     }
   }
   dr.added = std::move(current_qd);
   if (!dr.added.empty()) {
-    auto status = incrementCounter(fresh_results || new_query, counter);
+    auto status = incrementCounter(false, new_epoch || new_query, counter);
     if (!status.ok()) {
       return status;
     }
@@ -152,17 +170,16 @@ Status Query::addNewResults(QueryDataTyped current_qd,
                             uint64_t& counter,
                             DiffResults& dr,
                             bool calculate_diff) const {
-  // The current results are 'fresh' when not calculating a differential.
-  bool fresh_results = !calculate_diff;
+  bool new_epoch = false;
   bool new_query = false;
-  getQueryStatus(current_epoch, fresh_results, new_query);
+  getQueryStatus(current_epoch, new_epoch, new_query);
 
   // Use a 'target' avoid copying the query data when serializing and saving.
   // If a differential is requested and needed the target remains the original
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
-  if (!fresh_results && calculate_diff) {
+  if (!new_epoch && calculate_diff) {
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
@@ -187,20 +204,14 @@ Status Query::addNewResults(QueryDataTyped current_qd,
       return status;
     }
 
-    status = setDatabaseValue(kQueries, name_, json);
-    if (!status.ok()) {
-      return status;
-    }
-
-    status = setDatabaseValue(
-        kQueries, name_ + "epoch", std::to_string(current_epoch));
+    status = saveQueryResults(json, current_epoch);
     if (!status.ok()) {
       return status;
     }
   }
 
-  if (update_db || fresh_results || new_query) {
-    auto status = incrementCounter(fresh_results || new_query, counter);
+  if (update_db || new_epoch || new_query) {
+    auto status = incrementCounter(new_epoch, new_query, counter);
     if (!status.ok()) {
       return status;
     }
