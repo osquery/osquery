@@ -35,6 +35,9 @@ class Status;
  */
 struct QueryLogItem {
  public:
+  /// Indicates if results are in snapshot form instead of differential
+  bool isSnapshot;
+
   /// Differential results from the query.
   DiffResults results;
 

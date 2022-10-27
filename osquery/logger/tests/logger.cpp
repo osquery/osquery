@@ -265,25 +265,29 @@ TEST_F(LoggerTests, test_logger_variations) {
 TEST_F(LoggerTests, test_logger_snapshots) {
   // A snapshot query should not include removed items.
   QueryLogItem item;
+  item.isSnapshot = true;
   item.name = "test_query";
   item.identifier = "unknown_test_host";
   item.time = 0;
   item.calendar_time = "no_time";
 
   // Add a fake set of results.
-  item.results.added.push_back({{"test_column", "test_value"}});
-  logSnapshotQuery(item);
+  item.snapshot_results.push_back({{"test_column", "test_value"}});
+  auto status = logSnapshotQuery(item);
+  EXPECT_TRUE(status.ok());
 
   // Expect the plugin to optionally handle snapshot logging.
   EXPECT_EQ(1U, LoggerTests::snapshot_rows_added);
 
   // Expect a single event, event though there were two added.
-  item.results.added.push_back({{"test_column", "test_value"}});
-  logSnapshotQuery(item);
+  item.snapshot_results.push_back({{"test_column", "test_value"}});
+  status = logSnapshotQuery(item);
+  EXPECT_TRUE(status.ok());
   EXPECT_EQ(2U, LoggerTests::snapshot_rows_added);
 
   FLAGS_logger_snapshot_event_type = true;
-  logSnapshotQuery(item);
+  status = logSnapshotQuery(item);
+  EXPECT_TRUE(status.ok());
   EXPECT_EQ(4U, LoggerTests::snapshot_rows_added);
   FLAGS_logger_snapshot_event_type = false;
 }
@@ -350,6 +354,7 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   item.calendar_time = "no_time";
   item.epoch = 0L;
   item.counter = 0L;
+  item.isSnapshot = false;
   item.results.added.push_back({{"test_column", "test_value"}});
   logQueryLogItem(item);
   EXPECT_EQ(1U, LoggerTests::log_lines.size());
@@ -386,6 +391,7 @@ TEST_F(LoggerTests, test_logger_numeric_flag) {
   item.calendar_time = "no_time";
   item.epoch = 0L;
   item.counter = 0L;
+  item.isSnapshot = false;
   item.results.added.push_back({{"test_double_column", 2.000}});
   FLAGS_logger_numerics = true;
   logQueryLogItem(item);

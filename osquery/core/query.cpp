@@ -275,7 +275,7 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 }
 
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
-  if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
+  if (!item.isSnapshot) {
     auto obj = doc.getObject();
     auto status =
         serializeDiffResults(item.results, doc, obj, FLAGS_logger_numerics);
@@ -316,23 +316,28 @@ Status serializeEvent(const QueryLogItem& item,
 
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
-  if (!item.results.added.empty() || !item.results.removed.empty()) {
-    auto status = serializeDiffResults(
-        item.results, temp_doc, temp_doc.doc(), FLAGS_logger_numerics);
-    if (!status.ok()) {
-      return status;
+  if (!item.isSnapshot) {
+    if (!item.results.hasNoResults()) {
+      auto status = serializeDiffResults(
+          item.results, temp_doc, temp_doc.doc(), FLAGS_logger_numerics);
+      if (!status.ok()) {
+        return status;
+      }
+    } else {
+      return Status::success();
     }
-  } else if (!item.snapshot_results.empty()) {
-    auto arr = doc.getArray();
-    auto status = serializeQueryData(
-        item.snapshot_results, temp_doc, arr, FLAGS_logger_numerics);
-    if (!status.ok()) {
-      return status;
-    }
-    temp_doc.add("snapshot", arr);
   } else {
-    // This error case may also be represented in serializeQueryLogItem.
-    return Status(1, "No differential or snapshot results");
+    if (!item.snapshot_results.empty()) {
+      auto arr = doc.getArray();
+      auto status = serializeQueryData(
+          item.snapshot_results, temp_doc, arr, FLAGS_logger_numerics);
+      if (!status.ok()) {
+        return status;
+      }
+      temp_doc.add("snapshot", arr);
+    } else {
+      return Status::success();
+    }
   }
 
   for (auto& action : temp_doc.doc().GetObject()) {
