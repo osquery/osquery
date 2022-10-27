@@ -23,7 +23,6 @@ namespace tables {
 extern const std::vector<std::string> kSystemKeychainPaths;
 extern const std::vector<std::string> kUserKeychainPaths;
 
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains);
 std::string getKeychainPath(const SecKeychainItemRef& item);
 
 /// Generate a list of keychain items for a given item type.
