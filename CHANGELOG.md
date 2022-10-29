@@ -1,5 +1,48 @@
 # osquery Changelog
 
+<a name="5.6.0"></a>
+## [5.6.0](https://github.com/osquery/osquery/releases/tag/5.6.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.5.1...5.6.0)
+
+Representing commits from 10 contributors! Thank you all.
+
+### Table Changes
+
+- Add `firmware_type` column to `platform_info` on macOS ([#7727](https://github.com/osquery/osquery/pull/7727))
+- Add additional vendor support for the windows `wmi_bios_info` table ([#7631](https://github.com/osquery/osquery/pull/7631))
+- Fix `docker_container_processes` on macOS ([#7746](https://github.com/osquery/osquery/pull/7746))
+- Fix `process_file_events` subscriber being incorrectly initialized ([#7759](https://github.com/osquery/osquery/pull/7759))
+- Fix `secureboot` on windows by acquire the necessary process privileges ([#7743](https://github.com/osquery/osquery/pull/7743))
+- Improve macOS `mdfind` -- Reduce table overhead and support interruption ([#7738](https://github.com/osquery/osquery/pull/7738))
+- Remove `binary` column from `firefox_addons` table ([#7735](https://github.com/osquery/osquery/pull/7735))
+- Remove `is_running` column from macOS `running_apps` table ([#7774](https://github.com/osquery/osquery/pull/7774))
+
+### Under the Hood improvements
+
+- Add `notes` field to the schema and associated json ([#7747](https://github.com/osquery/osquery/pull/7747))
+- Add extended platforms to the schema and associated json ([#7760](https://github.com/osquery/osquery/pull/7760))
+- Fix a leak and improve users and groups APIs on Windows ([#7755](https://github.com/osquery/osquery/pull/7755))
+- Have `--tls_dump` output body to `stderr` ([#7715](https://github.com/osquery/osquery/pull/7715))
+- Improvements to osquery AWS logic ([#7714](https://github.com/osquery/osquery/pull/7714))
+- Remove leftover FreeBSD related code and documentation ([#7739](https://github.com/osquery/osquery/pull/7739))
+
+### Documentation
+
+- CHANGELOG 5.5.1 ([#7737](https://github.com/osquery/osquery/pull/7737))
+- Correct the description on how to configure and use Yara signature urls ([#7769](https://github.com/osquery/osquery/pull/7769))
+- Document difference between `yara` and `yara_events` ([#7744](https://github.com/osquery/osquery/pull/7744))
+- Link to the slack archives ([#7786](https://github.com/osquery/osquery/pull/7786))
+- Update docs: `_changes` tables are not evented ([#7762](https://github.com/osquery/osquery/pull/7762))
+
+### Build
+
+- Delete temporary CTest files ([#7782](https://github.com/osquery/osquery/pull/7782))
+- Fix table tests for macOS `running_apps` ([#7775](https://github.com/osquery/osquery/pull/7775))
+- Fix table tests for windows `platform_info` ([#7742](https://github.com/osquery/osquery/pull/7742))
+- Migrate jobs from ubuntu-18.04 to ubuntu-20.04 ([#7745](https://github.com/osquery/osquery/pull/7745))
+- Remove unused find_packages modules and submodule ([#7771](https://github.com/osquery/osquery/pull/7771))
+
 <a name="5.5.1"></a>
 ## [5.5.1](https://github.com/osquery/osquery/releases/tag/5.5.1)
 
