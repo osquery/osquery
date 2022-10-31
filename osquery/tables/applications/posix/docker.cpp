@@ -413,6 +413,8 @@ QueryData genContainers(QueryContext& context) {
         r["finished_at"] =
             container_details.get_child("State").get<std::string>("FinishedAt",
                                                                   "");
+      } else {
+        r["finished_at"] = "";
       }
       r["privileged"] = container_details.get_child("HostConfig")
                                 .get<bool>("Privileged", false)
