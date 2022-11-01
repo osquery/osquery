@@ -3,7 +3,7 @@ description("Track containerd namespace events.")
 schema([
     Column("time", BIGINT, "When osquery received the event, in seconds since the epoch"),
     Column("timestamp", TEXT, "Event timestamp, as reported by containerd"),
-    Column("namespace", TEXT, "Namespace where the container is in"),
+    Column("namespace", TEXT, "Namespace where the container is in, one of /namespaces/{create,update,delete}"),
     Column("topic", TEXT, "Specific type of the event"),
     Column("name", TEXT, "Namespace name"),
     Column("labels", TEXT, "Labels set to the namespace")

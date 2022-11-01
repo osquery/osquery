@@ -5,7 +5,7 @@ schema([
     Column("time", BIGINT, "When osquery received the event, in seconds since the epoch"),
     Column("timestamp", TEXT, "Event timestamp, as reported by containerd"),
     Column("namespace", TEXT, "Namespace where the container is in"),
-    Column("topic", TEXT, "Specific type of the event"),
+    Column("topic", TEXT, "Specific type of the event, one of /containers/{create,update,delete}"),
     Column("image_name", TEXT, "Image name"),
     Column("runtime", TEXT, "Backend runtime used by the container"),
     Column("runtime_root", TEXT, "Root directory used by the backend runtime"),
