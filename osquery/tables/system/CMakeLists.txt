@@ -202,6 +202,8 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.cpp
       windows/scheduled_tasks.cpp
       windows/secureboot.cpp
+      windows/security_profile_info_utils.cpp
+      windows/security_profile_info.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
@@ -349,6 +351,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/certificates.h
       windows/windows_eventlog.h
       windows/windows_update_history.h
+      windows/security_profile_info_utils.h
     )
   endif()
 
