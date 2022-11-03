@@ -911,6 +911,8 @@ QueryData genContainerStats(QueryContext& context) {
           INTEGER(container.get<uint64_t>("precpu_stats.online_cpus", 0));
       r["memory_usage"] =
           BIGINT(container.get<uint64_t>("memory_stats.usage", 0));
+      r["memory_cached"] =
+          BIGINT(container.get<uint64_t>("memory_stats.stats.cache", 0));
       r["memory_max_usage"] =
           BIGINT(container.get<uint64_t>("memory_stats.max_usage", 0));
       r["memory_limit"] =
