@@ -54,6 +54,7 @@ TEST_F(dockerContainerStats, test_sanity) {
   //      {"pre_system_cpu_usage", IntType}
   //      {"pre_online_cpus", IntType}
   //      {"memory_usage", IntType}
+  //      {"memory_cached", IntType}
   //      {"memory_max_usage", IntType}
   //      {"memory_limit", IntType}
   //      {"network_rx_bytes", IntType}
