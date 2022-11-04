@@ -602,14 +602,19 @@ jobs:
           gnu-sed
 
     - name: Install tests dependencies
+      id: install_test_deps
       run: |
-        pip3 install setuptools \
+        python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
+
+        ${python_root}/bin/pip3 install setuptools \
                      pexpect==3.3 \
                      psutil \
                      timeout_decorator \
                      six \
                      thrift==0.11.0 \
                      osquery
+
+        echo ::set-output name=PYTHON_ROOT::${python_root}
 
     - name: Install CMake
       shell: bash
@@ -663,6 +668,7 @@ jobs:
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
+          -DPython3_ROOT_DIR=${{ steps.install_test_deps.outputs.PYTHON_ROOT }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
     - name: Build the project
@@ -761,7 +767,8 @@ jobs:
 
       - name: Install tests dependencies
         run: |
-          pip3 install setuptools \
+          python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
+          ${python_root}/pip3 install setuptools \
                        pexpect==3.3 \
                        psutil \
                        timeout_decorator \
