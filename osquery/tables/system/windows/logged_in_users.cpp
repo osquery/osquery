@@ -117,6 +117,24 @@ QueryData genLoggedInUsers(QueryContext& context) {
       // TODO: IPv6 addresses are given as an array of byte values.
       auto addr = reinterpret_cast<const char*>(wtsClient->ClientAddress);
       r["host"] = std::string(addr, CLIENTADDRESS_LENGTH);
+    } else if (wtsClient->ClientAddressFamily == AF_UNSPEC) {
+      LPWSTR clientName = nullptr;
+      res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
+                                        pSessionInfo[i].SessionId,
+                                        WTSClientName,
+                                        &clientName,
+                                        &bytesRet);
+
+      if (res == 0 || clientName == nullptr) {
+        VLOG(1) << "Error querying WTS clientName information ("
+                << GetLastError() << ")";
+      } else {
+        r["host"] = wstringToString(clientName);
+      }
+
+      if (clientName != nullptr) {
+        WTSFreeMemory(clientName);
+      }
     }
 
     r["pid"] = INTEGER(-1);
