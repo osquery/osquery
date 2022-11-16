@@ -34,7 +34,7 @@ namespace tables {
 const std::set<std::string> kIntelRegisters = {
     "eax", "edi", "ss", "ds", "rax", "rdi", "r8", "r12", "rip", "x0", "x4"};
 
-//TODO: ARM registers?
+// TODO: ARM registers?
 /// Set of ARM registers that we collect from crash logs
 const std::set<std::string> kArmRegisters = {};
 
@@ -49,7 +49,7 @@ const std::string kMobileDiagnosticReportsPath =
 const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Process", "pid"},
     {"Path", "path"},
-    {"Log Location", "crash_path"},  // ignored (we know where it is)
+    {"Log Location", "crash_path"}, // ignored (we know where it is)
     {"Identifier", "identifier"},
     {"Version", "version"},
     {"Parent Process", "parent"},
@@ -66,7 +66,7 @@ const std::map<std::string, std::string> kCrashDumpKeys = {
 void readCrashDumpJSON(const std::string& crashLogFilePath, Row& r) {
   r["crash_path"] = crashLogFilePath;
   std::string rawFileContent;
-  
+
   if (!readFile(crashLogFilePath, rawFileContent).ok()) {
     VLOG(1) << "Could not read the crash log at " << crashLogFilePath;
     return;
@@ -78,27 +78,37 @@ void readCrashDumpJSON(const std::string& crashLogFilePath, Row& r) {
   // the "content":
   std::size_t contentJsonBegin = rawFileContent.find("}") + 1;
 
-  
   try {
     pt::ptree crashLogHeader, crashLogContent;
     std::istringstream issHeader(rawFileContent.substr(0, contentJsonBegin));
     pt::read_json(issHeader, crashLogHeader);
     std::istringstream issContent(rawFileContent.substr(contentJsonBegin));
     pt::read_json(issContent, crashLogContent);
-    
+
     // Parse the fields represented in the JSON:
     r["pid"] = crashLogContent.get<std::string>("pid", "");
     r["path"] = crashLogContent.get<std::string>("procPath", "");
     r["identifier"] = crashLogContent.get<std::string>("coalitionName", "");
-    r["version"] = crashLogContent.get<std::string>("whatever", "");  //bundleInfo.CFBundleShortVersionString
-    r["parent"] = crashLogContent.get<std::string>("parentProc", ""); // note we maybe want to join with + " [" + parentPid + "]"
+    // TODO: if there is no version, do not report back " ()", instead leave
+    // empty
+    r["version"] =
+        crashLogContent.get<std::string>(
+            "bundleInfo.CFBundleShortVersionString", "") +
+        " (" +
+        crashLogContent.get<std::string>("bundleInfo.CFBundleVersion", "") +
+        ")";
+    r["parent"] = crashLogContent.get<std::string>("parentPid", "");
     r["responsible"] = crashLogContent.get<std::string>("procName", "");
     r["uid"] = crashLogContent.get<std::string>("userID", "");
     r["datetime"] = crashLogContent.get<std::string>("captureTime", "");
-    r["crashed_thread"] = crashLogContent.get<std::string>("faultingThread", "");
-    r["exception_type"] = crashLogContent.get<std::string>("whatever", ""); //exception.type + " (" + exception.signal + ")"
-    r["exception_codes"] = crashLogContent.get<std::string>("whatever", ""); //exception.codes
-    r["exception_notes"] = ""; // no longer a field in the log
+    r["crashed_thread"] =
+        crashLogContent.get<std::string>("faultingThread", "");
+    r["exception_type"] =
+        crashLogContent.get<std::string>("exception.type", "") + " (" +
+        crashLogContent.get<std::string>("exception.signal", "") + ")";
+    r["exception_codes"] =
+        crashLogContent.get<std::string>("exception.codes", "");
+    r["exception_notes"] = ""; // as of macOS 12, this is no longer in the log
   } catch (const pt::json_parser::json_parser_error& e) {
     VLOG(1) << "Could not parse JSON from " << crashLogFilePath << ": "
             << e.what();
@@ -142,7 +152,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
       continue;
     }
 
-    if (kCrashDumpKeys.count(toks[0]) == 0 && kIntelRegisters.count(toks[0]) == 0) {
+    if (kCrashDumpKeys.count(toks[0]) == 0 &&
+        kIntelRegisters.count(toks[0]) == 0) {
       continue;
     }
 
@@ -205,7 +216,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
 
 QueryData genCrashLogs(QueryContext& context) {
   QueryData results;
-  // TODO: pass the QueryData to the subroutines instead of the Row, have them results.push_back(r) at the end?
+  // TODO: pass the QueryData to the subroutines instead of the Row, have them
+  // results.push_back(r) at the end?
 
   auto process_crash_logs = [&results](const fs::path& path,
                                        const std::string type) {
@@ -236,7 +248,7 @@ QueryData genCrashLogs(QueryContext& context) {
   // As of macOS 12, also check the subdirectory, /Retired
   auto systemRetiredPath = fs::path(kDiagnosticReportsPath) / "Retired";
   process_crash_logs(systemRetiredPath, "application");
-  
+
   // Process user logs
   auto users = usersFromContext(context);
   for (const auto& user : users) {
@@ -246,7 +258,7 @@ QueryData genCrashLogs(QueryContext& context) {
     // As of macOS 12, also check the subdirectory, /Retired
     auto userRetiredPath = user_home / "Retired";
     process_crash_logs(userRetiredPath, "application");
-    
+
     // Process mobile crash logs
     auto user_mobile_root =
         fs::path(user.at("directory")) / kMobileDiagnosticReportsPath;
