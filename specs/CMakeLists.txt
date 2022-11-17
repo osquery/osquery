@@ -313,6 +313,12 @@ function(generateNativeTables)
       "linux/bpf_socket_events.table:linux"
     )
   endif()
+  
+  if(OSQUERY_BUILD_ETW)
+    list(APPEND platform_dependent_spec_files
+      "windows/etw_process_events.table:windows"
+    )
+  endif()  
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND platform_independent_spec_files

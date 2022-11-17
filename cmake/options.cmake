@@ -102,6 +102,7 @@ endif()
 
 if(DEFINED PLATFORM_WINDOWS)
   option(OSQUERY_ENABLE_INCREMENTAL_LINKING "Whether to enable or disable incremental linking (/INCREMENTAL or /INCREMENTAL:NO). Enabling it greatly increases disk usage")
+  option(OSQUERY_BUILD_ETW "Whether to enable and build ETW support" ON)
 endif()
 
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")

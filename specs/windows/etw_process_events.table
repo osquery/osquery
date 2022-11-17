@@ -1,0 +1,29 @@
+table_name("etw_process_events")
+description("Windows process execution events.")
+schema([
+    Column("type", TEXT, "Event Type"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("ppid", BIGINT, "Parent Process ID"),
+    Column("session_id", INTEGER, "Session ID"),
+    Column("flags", INTEGER, "Process Flags"),
+    Column("exit_code", INTEGER, "Exit Code - Present only on ProcessStop events"),
+    Column("path", TEXT, "Path of executed binary"),
+    Column("cmdline", TEXT, "Command Line"),
+    Column("username", TEXT, "User rights - primary token username"),
+    Column("token_elevation_type", TEXT, "Primary token elevation type - Present only on ProcessStart events"),
+    Column("token_elevation_status", INTEGER, "Primary token elevation status - Present only on ProcessStart events"),
+    Column("mandatory_label", TEXT, "Primary token mandatory label sid - Present only on ProcessStart events"),
+    Column("datetime", TEXT, "Event timestamp in log UTC format"),
+    Column("time_windows", BIGINT, "Event timestamp in Windows format", hidden=True),
+    Column("time", BIGINT, "Event timestamp in Unix format", hidden=True),
+    Column("eid", INTEGER, "Event ID", hidden=True),
+    Column("header_pid", BIGINT, "Process ID of the process reporting the event", hidden=True),
+    Column("process_sequence_number", BIGINT, "Process Sequence Number - Present only on ProcessStart events", hidden=True),
+    Column("parent_process_sequence_number", BIGINT, "Parent Process Sequence Number - Present only on ProcessStart events", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("etw_process_events@etw_process_events::genTable")
+examples([
+	"select * from etw_process_events;",
+	"select * from etw_process_events WHERE time >= (( SELECT unix_time FROM time) - 60 );",
+])

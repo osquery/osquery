@@ -26,6 +26,10 @@ function(osqueryEventsTestsMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     generateOsqueryEventsTestsWindowsusnjournalreadertestsTest()
+	
+    if(OSQUERY_BUILD_ETW)
+      #generateOsqueryEventsTestsEtwtestsTest()
+    endif()	
   endif()
 
 endfunction()
