@@ -95,7 +95,7 @@ class EtwProviderConfig {
    *
    * @param value is EtwEventTypes vector with the event types to handle
    */
-  void addEventType(const EtwEventType& value);
+  void addEventTypeToHandle(const EtwEventType& value);
 
   // Helpers to determine if optional flags were set
   bool isAnyBitmaskSet() const;

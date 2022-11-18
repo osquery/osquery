@@ -158,7 +158,7 @@ void EtwProviderConfig::setEventTypes(const EtwEventTypes& value) {
   eventTypes_.insert(eventTypes_.begin(), value.begin(), value.end());
 }
 
-void EtwProviderConfig::addEventType(const EtwEventType& value) {
+void EtwProviderConfig::addEventTypeToHandle(const EtwEventType& value) {
   if (value == EtwEventType::Invalid) {
     return;
   }

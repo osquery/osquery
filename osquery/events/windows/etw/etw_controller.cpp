@@ -48,7 +48,7 @@ Status EtwController::addProvider(const EtwProviderConfig& configData) {
     return Status::failure(initStatus.getMessage());
   }
 
-  //Adding post-processors callbacks to handle
+  // Adding post-processors callbacks to handle
   Status postProcessingStatus =
       etwPostProcessingEngine_->addProvider(configData);
 
