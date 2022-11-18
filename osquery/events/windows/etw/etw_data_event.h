@@ -146,9 +146,6 @@ struct EtwHeaderData final {
 
   /// Process creation unix timestamp
   LONGLONG UnixTimestamp{0};
-
-  /// Date timestamp
-  std::string DateTime;
 };
 
 /**

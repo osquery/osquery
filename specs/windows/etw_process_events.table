@@ -13,7 +13,7 @@ schema([
     Column("token_elevation_type", TEXT, "Primary token elevation type - Present only on ProcessStart events"),
     Column("token_elevation_status", INTEGER, "Primary token elevation status - Present only on ProcessStart events"),
     Column("mandatory_label", TEXT, "Primary token mandatory label sid - Present only on ProcessStart events"),
-    Column("datetime", TEXT, "Event timestamp in log UTC format"),
+    Column("datetime", DATETIME, "Event timestamp in DATETIME format"),
     Column("time_windows", BIGINT, "Event timestamp in Windows format", hidden=True),
     Column("time", BIGINT, "Event timestamp in Unix format", hidden=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
@@ -26,4 +26,6 @@ implementation("etw_process_events@etw_process_events::genTable")
 examples([
 	"select * from etw_process_events;",
 	"select * from etw_process_events WHERE time >= (( SELECT unix_time FROM time) - 60 );",
+	"select * from etw_process_events WHERE datetime > '2022-11-18 16:48:00';",
+	"select * from etw_process_events WHERE datetime BETWEEN '2022-11-18 16:40:00' AND '2022-11-18 16:50:00';"
 ])

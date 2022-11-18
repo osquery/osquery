@@ -44,7 +44,7 @@ Status EtwProcessEventSubscriber::eventCallback(
 
   // Common fields
   newRow["type"] = SQL_TEXT(eventHeader.TypeInfo);
-  newRow["datetime"] = SQL_TEXT(eventHeader.DateTime);
+  newRow["datetime"] = BIGINT(eventHeader.UnixTimestamp);
   newRow["time_windows"] = BIGINT(eventHeader.WinTimestamp);
   newRow["header_pid"] = BIGINT(eventHeader.RawHeader.ProcessId);
 

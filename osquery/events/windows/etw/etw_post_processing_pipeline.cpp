@@ -48,13 +48,6 @@ bool EtwPostProcessorsRunnable::CommonPostProcessing(EtwEventDataRef& data) {
 
   // Human UTC timestamp
   std::time_t datetime = data->Header.UnixTimestamp;
-  tm tmTimeData{0};
-  if ((gmtime_s(&tmTimeData, &datetime) != 0) || (tmTimeData.tm_year == 0)) {
-    return false;
-  }
-  std::stringstream dumpTimestamp;
-  dumpTimestamp << std::put_time(&tmTimeData, "%Y-%m-%d %H:%M:%S UTC");
-  data->Header.DateTime.assign(dumpTimestamp.str());
 
   // Windows timestamp in 100 nanoseconds resolution
   data->Header.WinTimestamp = data->Header.RawHeader.TimeStamp.QuadPart;
