@@ -160,6 +160,6 @@ struct EtwEventData {
 };
 
 using EtwEventDataRef = std::shared_ptr<EtwEventData>;
-using EventTypes = std::vector<EtwEventType>;
+using EtwEventTypes = std::vector<EtwEventType>;
 
 } // namespace osquery

@@ -23,7 +23,7 @@ EtwPostProcessorsRunnable::~EtwPostProcessorsRunnable() {
 }
 
 Status EtwPostProcessorsRunnable::addProvider(
-    const EtwProviderConfig& configData, const EventTypes& eventTypes) {
+    const EtwProviderConfig& configData) {
   // Sanity check on input ETW Provider configuration data
   Status validProvider = configData.isValid();
   if (!validProvider.ok()) {
@@ -32,7 +32,7 @@ Status EtwPostProcessorsRunnable::addProvider(
   }
 
   // Adding post processor callback to callbacks collection
-  for (const EtwEventType& eventType : eventTypes) {
+  for (const EtwEventType& eventType : configData.getEventTypes()) {
     etwPostProcessors_.insert({eventType, configData.getPostProcessor()});
   }
 

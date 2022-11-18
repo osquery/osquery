@@ -18,8 +18,12 @@ Status EtwProviderConfig::isValid() const {
     return Status::failure("Invalid Provider Set");
   }
 
-  if (getPreProcessor() == nullptr) {
-    return Status::failure("Invalid Provider PreProcessor function");
+  if (eventTypes_.empty()) {
+    return Status::failure("Invalid list of Events to handle");
+  }
+
+  if (getPostProcessor() == nullptr) {
+    return Status::failure("Type handlers were not provided");
   }
 
   if (getPostProcessor() == nullptr) {
@@ -46,6 +50,10 @@ EtwProviderConfig::getPreProcessor() const {
 const EtwProviderConfig::EventProviderPostProcessor&
 EtwProviderConfig::getPostProcessor() const {
   return providerPostProcess_;
+}
+
+const EtwEventTypes& EtwProviderConfig::getEventTypes() const {
+  return eventTypes_;
 }
 
 bool EtwProviderConfig::isAnyBitmaskSet() const {
@@ -140,6 +148,22 @@ void EtwProviderConfig::setPostProcessor(
   if (value) {
     providerPostProcess_ = value;
   }
+}
+
+void EtwProviderConfig::setEventTypes(const EtwEventTypes& value) {
+  if (value.empty()) {
+    return;
+  }
+
+  eventTypes_.insert(eventTypes_.begin(), value.begin(), value.end());
+}
+
+void EtwProviderConfig::addEventType(const EtwEventType& value) {
+  if (value == EtwEventType::Invalid) {
+    return;
+  }
+
+  eventTypes_.push_back(value);
 }
 
 } // namespace osquery

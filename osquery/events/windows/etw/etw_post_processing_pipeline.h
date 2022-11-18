@@ -32,8 +32,7 @@ class EtwPostProcessorsRunnable final : public InternalRunnable {
    * @brief It registers a post-processor callback handler to a list of etw
    * event types to handle.
    */
-  Status addProvider(const EtwProviderConfig& configData,
-                     const EventTypes& eventTypes);
+  Status addProvider(const EtwProviderConfig& configData);
 
  protected:
   /**

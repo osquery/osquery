@@ -48,14 +48,9 @@ Status EtwController::addProvider(const EtwProviderConfig& configData) {
     return Status::failure(initStatus.getMessage());
   }
 
-  // Each post-processing callback needs to know which type of events is going
-  // to handle.
-  EventTypes types;
-  types.push_back(EtwEventType::ProcessStart);
-  types.push_back(EtwEventType::ProcessStop);
-
+  //Adding post-processors callbacks to handle
   Status postProcessingStatus =
-      etwPostProcessingEngine_->addProvider(configData, types);
+      etwPostProcessingEngine_->addProvider(configData);
 
   if (!postProcessingStatus.ok()) {
     return Status::failure(postProcessingStatus.getMessage());

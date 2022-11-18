@@ -59,6 +59,11 @@ class EtwProviderConfig {
   const EventProviderPostProcessor& getPostProcessor() const;
 
   /**
+   * @brief It returns the types of events to handle
+   */
+  const EtwEventTypes& getEventTypes() const;
+
+  /**
    * @brief It sets the pre-processor callback function
    *
    * @param value is a function pointer to the callback function to be used to
@@ -77,6 +82,20 @@ class EtwProviderConfig {
    * signature corresponds to a std::function.
    */
   void setPostProcessor(const EventProviderPostProcessor& value);
+
+  /**
+   * @brief It sets the event types to handle
+   *
+   * @param value is an vector of EtwEventType that will be handled
+   */
+  void setEventTypes(const EtwEventTypes& value);
+
+  /**
+   * @brief It adds an ETW event type to handle to the event handling list
+   *
+   * @param value is EtwEventTypes vector with the event types to handle
+   */
+  void addEventType(const EtwEventType& value);
 
   // Helpers to determine if optional flags were set
   bool isAnyBitmaskSet() const;
@@ -114,6 +133,7 @@ class EtwProviderConfig {
   EtwKernelProviderType kernelProviderType_{EtwKernelProviderType::Invalid};
   EventProviderPreProcessor providerPreProcess_{nullptr};
   EventProviderPostProcessor providerPostProcess_{nullptr};
+  EtwEventTypes eventTypes_; 
   EtwBitmask keywordsAny_{boost::none};
   EtwBitmask keywordsAll_{boost::none};
   EtwLevel level_{boost::none};

@@ -45,6 +45,8 @@ Status EtwPublisherProcesses::setUp() {
   userEtwProviderConfig.setAnyBitmask(processStartStopKeyword);
   userEtwProviderConfig.setPreProcessor(ProviderPreProcessor);
   userEtwProviderConfig.setPostProcessor(getPostProcessorCallback());
+  userEtwProviderConfig.addEventType(EtwEventType::ProcessStart);
+  userEtwProviderConfig.addEventType(EtwEventType::ProcessStop);
 
   // Adding the provider to the ETW Engine
   Status userProviderAddStatus = EtwEngine().addProvider(userEtwProviderConfig);
@@ -58,6 +60,8 @@ Status EtwPublisherProcesses::setUp() {
       EtwProviderConfig::EtwKernelProviderType::Process);
   kernelProviderCfg.setPreProcessor(ProviderPreProcessor);
   kernelProviderCfg.setPostProcessor(getPostProcessorCallback());
+  kernelProviderCfg.addEventType(EtwEventType::ProcessStart);
+  kernelProviderCfg.addEventType(EtwEventType::ProcessStop);
 
   // Adding the provider to the ETW Engine
   Status kernelProviderAddStatus = EtwEngine().addProvider(kernelProviderCfg);
