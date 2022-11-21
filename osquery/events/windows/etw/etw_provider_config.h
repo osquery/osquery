@@ -133,7 +133,7 @@ class EtwProviderConfig {
   EtwKernelProviderType kernelProviderType_{EtwKernelProviderType::Invalid};
   EventProviderPreProcessor providerPreProcess_{nullptr};
   EventProviderPostProcessor providerPostProcess_{nullptr};
-  EtwEventTypes eventTypes_; 
+  EtwEventTypes eventTypes_;
   EtwBitmask keywordsAny_{boost::none};
   EtwBitmask keywordsAll_{boost::none};
   EtwLevel level_{boost::none};
@@ -141,5 +141,7 @@ class EtwProviderConfig {
   EtwInteger tag_{boost::none};
   bool isUserProvider_{true};
 };
+
+using EtwProviderConfigRef = std::shared_ptr<EtwProviderConfig>;
 
 } // namespace osquery

@@ -43,8 +43,8 @@ Status EtwPublisherProcesses::setUp() {
   EtwProviderConfig userEtwProviderConfig;
   userEtwProviderConfig.setName("Microsoft-Windows-Kernel-Process");
   userEtwProviderConfig.setAnyBitmask(processStartStopKeyword);
-  userEtwProviderConfig.setPreProcessor(ProviderPreProcessor);
-  userEtwProviderConfig.setPostProcessor(getPostProcessorCallback());
+  userEtwProviderConfig.setPreProcessor(GetPreProcessorCallback());
+  userEtwProviderConfig.setPostProcessor(GetPostProcessorCallback());
   userEtwProviderConfig.addEventTypeToHandle(EtwEventType::ProcessStart);
   userEtwProviderConfig.addEventTypeToHandle(EtwEventType::ProcessStop);
 
@@ -58,8 +58,8 @@ Status EtwPublisherProcesses::setUp() {
   EtwProviderConfig kernelProviderCfg;
   kernelProviderCfg.setKernelProviderType(
       EtwProviderConfig::EtwKernelProviderType::Process);
-  kernelProviderCfg.setPreProcessor(ProviderPreProcessor);
-  kernelProviderCfg.setPostProcessor(getPostProcessorCallback());
+  kernelProviderCfg.setPreProcessor(GetPreProcessorCallback());
+  kernelProviderCfg.setPostProcessor(GetPostProcessorCallback());
   kernelProviderCfg.addEventTypeToHandle(EtwEventType::ProcessStart);
   kernelProviderCfg.addEventTypeToHandle(EtwEventType::ProcessStop);
 

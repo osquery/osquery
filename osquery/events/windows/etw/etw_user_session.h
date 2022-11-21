@@ -37,8 +37,7 @@ class UserEtwSessionRunnable final : public InternalRunnable {
    * listen. It also registers the preprocesor and postprocessor callbacks to
    * handle incoming ETW events.
    */
-  Status addProvider(const EtwProviderConfig& configData,
-                     const krabs::c_provider_callback& func);
+  Status addProvider(const EtwProviderConfig& configData);
 
  protected:
   /**

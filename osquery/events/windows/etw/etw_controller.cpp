@@ -59,16 +59,14 @@ Status EtwController::addProvider(const EtwProviderConfig& configData) {
   // ETW configuration data contains information to determine if an userspace or
   // kernelspace ETW provider is being requested.
   if (configData.isUserProvider()) {
-    Status addUserProviderStatus =
-        etwUserSession_->addProvider(configData, configData.getPreProcessor());
+    Status addUserProviderStatus = etwUserSession_->addProvider(configData);
 
     if (!addUserProviderStatus.ok()) {
       return Status::failure(addUserProviderStatus.getMessage());
     }
 
   } else {
-    Status addKernelProviderStatus = etwKernelSession_->addProvider(
-        configData, configData.getPreProcessor());
+    Status addKernelProviderStatus = etwKernelSession_->addProvider(configData);
 
     if (!addKernelProviderStatus.ok()) {
       return Status::failure(addKernelProviderStatus.getMessage());

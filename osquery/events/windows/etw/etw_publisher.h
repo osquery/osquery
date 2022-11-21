@@ -23,6 +23,14 @@ namespace osquery {
 #define REGISTER_ETW_SUBSCRIBER(class_name, plugin_name)                       \
   REGISTER(class_name, "event_subscriber", plugin_name)
 
+#define GetPreProcessorCallback()                                              \
+  [](const EVENT_RECORD& rawEvent, const krabs::trace_context& traceCtx) {     \
+    try {                                                                      \
+      ProviderPreProcessor(rawEvent, traceCtx);                                \
+    } catch (...) {                                                            \
+    }                                                                          \
+  }
+
 /**
  * @brief It abstracts the EventPublisher publisher functionality by exposing
  * only what's needed to deal with ETW event collection and dispatching. In
@@ -55,7 +63,7 @@ class EtwPublisherBase {
    * @brief It returns a lambda instance that wraps the access to the post
    * processor callback defined in the publisher.
    */
-  std::function<void(const EtwEventDataRef&)> getPostProcessorCallback() {
+  std::function<void(const EtwEventDataRef&)> GetPostProcessorCallback() {
     return [this](const EtwEventDataRef& data) {
       this->ProviderPostProcessor(data);
     };

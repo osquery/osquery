@@ -26,11 +26,12 @@ UserEtwSessionRunnable::~UserEtwSessionRunnable() {
   if (userTraceSession_) {
     userTraceSession_.reset();
   }
+
+  runningProviders_.clear();
 }
 
 Status UserEtwSessionRunnable::addProvider(
-    const EtwProviderConfig& configData,
-    const krabs::c_provider_callback& func) {
+    const EtwProviderConfig& configData) {
   // Sanity check on input ETW Provider configuration data
   Status validProvider = configData.isValid();
   if (!validProvider.ok()) {
@@ -70,11 +71,16 @@ Status UserEtwSessionRunnable::addProvider(
   }
 
   // Provider preprocessor callback is registered
-  provider->add_on_event_callback(func);
+  provider->add_on_event_callback(configData.getPreProcessor());
 
   // Pausing the trace event session to enable the new provider configuration
   pause();
+
+  // Keeping a reference to the provider object
   runningProviders_.push_back(provider);
+
+  // Enabling ETW provider
+
   userTraceSession_->enable(*provider);
 
   // Resume the trace session listening once provider is ready

@@ -46,9 +46,6 @@ bool EtwPostProcessorsRunnable::CommonPostProcessing(EtwEventDataRef& data) {
   workTime.dwHighDateTime = data->Header.RawHeader.TimeStamp.HighPart;
   data->Header.UnixTimestamp = filetimeToUnixtime(workTime);
 
-  // Human UTC timestamp
-  std::time_t datetime = data->Header.UnixTimestamp;
-
   // Windows timestamp in 100 nanoseconds resolution
   data->Header.WinTimestamp = data->Header.RawHeader.TimeStamp.QuadPart;
 

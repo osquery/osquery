@@ -30,8 +30,7 @@ KernelEtwSessionRunnable::~KernelEtwSessionRunnable() {
 }
 
 Status KernelEtwSessionRunnable::addProvider(
-    const EtwProviderConfig& configData,
-    const krabs::c_provider_callback& func) {
+    const EtwProviderConfig& configData) {
   // Sanity check on input ETW Provider configuration data
   Status validProvider = configData.isValid();
   if (!validProvider.ok()) {
@@ -90,7 +89,7 @@ Status KernelEtwSessionRunnable::addProvider(
   }
 
   // Provider preprocessor callback is registered
-  kernelProvider->add_on_event_callback(func);
+  kernelProvider->add_on_event_callback(configData.getPreProcessor());
 
   // Pausing the trace event session to enable the new provider configuration
   pause();
