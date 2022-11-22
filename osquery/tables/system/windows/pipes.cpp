@@ -37,8 +37,14 @@ QueryData genPipes(QueryContext& context) {
 
     unsigned long pid = 0;
     auto pipePath = L"\\\\.\\pipe\\" + std::wstring(findFileData.cFileName);
-    auto pipeHandle = CreateFileW(
-        pipePath.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    auto pipeHandle =
+        CreateFileW(pipePath.c_str(),
+                    GENERIC_READ,
+                    (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE),
+                    nullptr,
+                    OPEN_EXISTING,
+                    0,
+                    nullptr);
     if (pipeHandle == INVALID_HANDLE_VALUE) {
       results.push_back(r);
       LOG(INFO) << "Failed to open handle to pipe with " << GetLastError();
