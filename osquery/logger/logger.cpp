@@ -326,7 +326,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
                      std::string()});
   }
 
-  // The daemon will relay according to the schedule.
+  // This is for testing only, the daemon will relay according to the schedule.
   if (enabled_ && !isDaemon()) {
     relayStatusLogs(FLAGS_logger_status_sync ? LoggerRelayMode::Sync
                                              : LoggerRelayMode::Async);
@@ -479,6 +479,18 @@ size_t queuedStatuses() {
   return BufferedLogSink::get().dump().size();
 }
 
+void waitLogRelay() {
+  if (kOptBufferedLogSinkSender.has_value()) {
+    /* NOTE: We are not doing a workaround for Windows
+       as in BufferedLogSink::WaitTillSent because we are not and we must not be
+       in a path called by Google Log, and failing to properly wait
+       for the thread to finish will either cause a race condition or a deadlock
+     */
+    kOptBufferedLogSinkSender->wait();
+    kOptBufferedLogSinkSender.reset();
+  }
+}
+
 void relayStatusLogs(LoggerRelayMode relay_mode) {
   if (FLAGS_disable_logging || !databaseInitialized()) {
     // The logger plugins may not be setUp if logging is disabled.
@@ -533,6 +545,9 @@ void relayStatusLogs(LoggerRelayMode relay_mode) {
   if (relay_mode == LoggerRelayMode::Sync) {
     sender();
   } else {
+    // Wait on a previous relaying thread, if present
+    waitLogRelay();
+
     std::packaged_task<void()> task(std::move(sender));
     kOptBufferedLogSinkSender = task.get_future();
     std::thread(std::move(task)).detach();
