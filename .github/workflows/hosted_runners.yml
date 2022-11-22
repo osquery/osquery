@@ -75,8 +75,8 @@ jobs:
         mkdir -p "${rel_build_path}"
         ln -sf "$(pwd)" "${rel_source_path}"
 
-        echo ::set-output name=SOURCE::$(realpath ${rel_source_path})
-        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
+        echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -130,9 +130,9 @@ jobs:
         mv .git "${rel_source_path}"
         ( cd "${rel_source_path}" && git reset --hard )
 
-        echo ::set-output name=SOURCE::$(realpath ${rel_source_path})
-        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
-        echo ::set-output name=REL_BINARY::${rel_build_path}
+        echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+        echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v2
@@ -235,16 +235,16 @@ jobs:
       shell: bash
       id: build_job_count
       run: |
-        echo ::set-output name=VALUE::$(($(nproc) + 1))
+        echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
 
     - name: Select the build options for the tests
       shell: bash
       id: tests_build_settings
       run: |
         if [[ "${{ matrix.build_type }}" == "RelWithDebInfo" ]] ; then
-          echo ::set-output name=VALUE::OFF
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=VALUE::ON
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
         fi
 
     # We don't have enough space on the worker to actually generate all
@@ -255,9 +255,9 @@ jobs:
       id: debug_symbols_settings
       run: |
         if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
-          echo ::set-output name=VALUE::ON
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=VALUE::OFF
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
     # When we spawn in the container, we are root; create an unprivileged
@@ -267,7 +267,7 @@ jobs:
       id: unprivileged_user
       run: |
         useradd -m -s /bin/bash unprivileged_user
-        echo ::set-output name=NAME::unprivileged_user
+        echo "NAME=unprivileged_user" >> $GITHUB_OUTPUT
 
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
@@ -295,13 +295,13 @@ jobs:
         mv .git "${rel_src_path}"
         ( cd "${rel_src_path}" && git reset --hard )
 
-        echo ::set-output name=SOURCE::$(realpath ${rel_src_path})
-        echo ::set-output name=BINARY::$(realpath ${rel_build_path})
-        echo ::set-output name=CCACHE::$(realpath ${rel_ccache_path})
-        echo ::set-output name=PACKAGING::$(realpath ${rel_packaging_path})
-        echo ::set-output name=PACKAGE_DATA::$(realpath ${rel_package_data_path})
-        echo ::set-output name=REL_PACKAGE_BUILD::${rel_package_build_path}
-        echo ::set-output name=PACKAGE_BUILD::$(realpath ${rel_package_build_path})
+        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
 
     - name: Clone the osquery-packaging repository
       run: |
@@ -435,12 +435,12 @@ jobs:
       id: packages
       shell: bash
       run: |
-        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz
-        echo ::set-output name=REL_UNSIGNED_RELEASE_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)
-        echo ::set-output name=REL_UNSIGNED_DEBUG_DEB_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)
-        echo ::set-output name=REL_UNSIGNED_DEBUG_RPM_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
@@ -515,7 +515,7 @@ jobs:
       shell: bash
       id: build_job_count
       run: |
-        echo ::set-output name=VALUE::$(($(sysctl -n hw.logicalcpu) + 1))
+        echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
 
     - name: Setup the build paths
       shell: bash
@@ -537,16 +537,16 @@ jobs:
                  ${rel_package_data_path} \
                  ${rel_package_build_path}
 
-        echo ::set-output name=SOURCE::$(pwd)/${rel_src_path}
-        echo ::set-output name=REL_SOURCE::${rel_src_path}
-        echo ::set-output name=BINARY::$(pwd)/${rel_build_path}
-        echo ::set-output name=CCACHE::$(pwd)/${rel_ccache_path}
-        echo ::set-output name=DOWNLOADS::$(pwd)/${rel_downloads_path}
-        echo ::set-output name=INSTALL::$(pwd)/${rel_install_path}
-        echo ::set-output name=PACKAGING::$(pwd)/${rel_packaging_path}
-        echo ::set-output name=PACKAGE_DATA::$(pwd)/${rel_package_data_path}
-        echo ::set-output name=REL_PACKAGE_BUILD::${rel_package_build_path}
-        echo ::set-output name=PACKAGE_BUILD::$(pwd)/${rel_package_build_path}
+        echo "SOURCE=$(pwd)/${rel_src_path}" >> $GITHUB_OUTPUT
+        echo "REL_SOURCE=${rel_src_path}" >> $GITHUB_OUTPUT
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(pwd)/${rel_ccache_path}" >> $GITHUB_OUTPUT
+        echo "DOWNLOADS=$(pwd)/${rel_downloads_path}" >> $GITHUB_OUTPUT
+        echo "INSTALL=$(pwd)/${rel_install_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(pwd)/${rel_packaging_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(pwd)/${rel_package_data_path}" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(pwd)/${rel_package_build_path}" >> $GITHUB_OUTPUT
 
     - name: Clone the osquery repository
       uses: actions/checkout@v2
@@ -629,14 +629,14 @@ jobs:
       id: xcode_selector
       run: |
         xcode_path="/Applications/Xcode_13.0.app/Contents/Developer"
-        echo ::set-output name=PATH::${path}
+        echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
 
         if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
-          echo ::set-output name=DEPLOYMENT_TARGET::10.14
+          echo "DEPLOYMENT_TARGET=10.14" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=DEPLOYMENT_TARGET::10.15
+          echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
         fi
 
     # We don't have enough space on the worker to actually generate all
@@ -647,9 +647,9 @@ jobs:
       id: debug_symbols_settings
       run: |
         if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
-          echo ::set-output name=VALUE::ON
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=VALUE::OFF
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
     - name: Configure the project
@@ -711,7 +711,7 @@ jobs:
       id: packages
       shell: bash
       run: |
-        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release'
@@ -877,8 +877,8 @@ jobs:
         id: packages
         shell: bash
         run: |
-          echo ::set-output name=REL_UNSIGNED_RELEASE_PKG_PATH::$(ls package_build/*.pkg)
-          echo ::set-output name=REL_UNSIGNED_RELEASE_TGZ_PATH::$(ls package_build/*.tar.gz)
+          echo "REL_UNSIGNED_RELEASE_PKG_PATH=$(ls package_build/*.pkg)" >> $GITHUB_OUTPUT
+          echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls package_build/*.tar.gz)" >> $GITHUB_OUTPUT
 
       - name: Store the PKG unsigned release packages
         uses: actions/upload-artifact@v1
@@ -918,8 +918,8 @@ jobs:
         $rel_sccache_path = "w\sccache"
         $rel_downloads_path = "w\downloads"
         $rel_install_path = "w\install"
-        $rel_package_data_path="w\package_data"
-        $rel_packaging_path="w\osquery-packaging"
+        $rel_package_data_path = "w\package_data"
+        $rel_packaging_path = "w\osquery-packaging"
 
         New-Item -ItemType Directory -Force -Path $rel_build_path
         New-Item -ItemType Directory -Force -Path $rel_sccache_path
@@ -929,14 +929,14 @@ jobs:
 
         $base_dir = (Get-Item .).FullName
 
-        echo "::set-output name=SOURCE::$base_dir\$rel_src_path"
-        echo "::set-output name=REL_SOURCE::$rel_src_path"
-        echo "::set-output name=BINARY::$base_dir\$rel_build_path"
-        echo "::set-output name=SCCACHE::$base_dir\$rel_sccache_path"
-        echo "::set-output name=DOWNLOADS::$base_dir\$rel_downloads_path"
-        echo "::set-output name=INSTALL::$base_dir\$rel_install_path"
-        echo "::set-output name=PACKAGING::$base_dir\$rel_packaging_path"
-        echo "::set-output name=PACKAGE_DATA::$base_dir\$rel_package_data_path"
+        echo "SOURCE=$base_dir\$rel_src_path" >> $env:GITHUB_OUTPUT
+        echo "REL_SOURCE=$rel_src_path" >> $env:GITHUB_OUTPUT
+        echo "BINARY=$base_dir\$rel_build_path" >> $env:GITHUB_OUTPUT
+        echo "SCCACHE=$base_dir\$rel_sccache_path" >> $env:GITHUB_OUTPUT
+        echo "DOWNLOADS=$base_dir\$rel_downloads_path" >> $env:GITHUB_OUTPUT
+        echo "INSTALL=$base_dir\$rel_install_path" >> $env:GITHUB_OUTPUT
+        echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
 
     # Symbolic links are supported by default on Linux and macOS. On
     # Windows, we have to enable them explicitly. They are used to
@@ -960,7 +960,7 @@ jobs:
         cd ${{ steps.build_paths.outputs.SOURCE }}
         $osquery_version=$(git describe --tags --abbrev=0)
 
-        echo "::set-output name=VALUE::$osquery_version"
+        echo "VALUE=$osquery_version" >> $env:GITHUB_OUTPUT
 
     - name: Clone the osquery-packaging repository
       run: |
@@ -1012,7 +1012,7 @@ jobs:
         $python_executable_path = $(Get-Command python.exe | Select-Object -ExpandProperty Definition)
         $python_root_directory = (Get-Item $python_executable_path).Directory.FullName
 
-        echo "::set-output name=VALUE::$python_root_directory"
+        echo "VALUE=$python_root_directory" >> $env:GITHUB_OUTPUT
 
     # Install the Python dependencies needed for our testing framework
     - name: Install tests prerequisites
@@ -1137,7 +1137,7 @@ jobs:
 
         echo "Found compiler version $version"
 
-        echo "::set-output name=COMPILER_VERSION::$version"
+        echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
     - name: Update the cache (sccache)
       uses: actions/cache@v2
@@ -1232,9 +1232,9 @@ jobs:
       id: packages
       shell: bash
       run: |
-        echo ::set-output name=REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH::$(ls *.zip)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_MSI_PATH::$(ls *.msi)
-        echo ::set-output name=REL_UNSIGNED_RELEASE_NUPKG_PATH::$(ls *.nupkg)
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls *.zip)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_MSI_PATH=$(ls *.msi)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls *.nupkg)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
       uses: actions/upload-artifact@v1
