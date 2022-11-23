@@ -73,7 +73,7 @@ void EtwPostProcessorsRunnable::start() {
 
     // callback was found for given event type id
     if (postProcessorFn) {
-      postProcessorFn(data);
+      postProcessorFn(std::move(data));
     }
   }
 }
