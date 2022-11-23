@@ -72,14 +72,69 @@ Status EtwPublisherProcesses::setUp() {
   return Status::success();
 }
 
-// Checking if given ETW event is coming from a kernel provider
-static inline bool isKernelEvent(const EVENT_HEADER& header) {
+// Checking if given ETW event is a supported kernel event
+bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
   bool ret = false;
 
   // ETW events coming from kernel providers have this fields set to zero
   if ((header.EventDescriptor.Channel == 0) &&
       (header.EventDescriptor.Level == 0) &&
-      (header.EventDescriptor.Task == 0)) {
+      (header.EventDescriptor.Task == 0) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwKernelProcVersion::Version3) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwKernelProcVersion::Version4))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event is a supported userspace process start event
+bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
+    const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((header.EventDescriptor.Id == etwProcessStartID) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version0) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version1) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version2) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version3))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event ID is supported by preprocessor logic
+bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((isSupportedKernelEvent(header)) ||
+      (isSupportedUserProcessStartEvent(header)) ||
+      (isSupportedUserProcessStopEvent(header))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event is a supported userspace process stop event
+bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
+    const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((header.EventDescriptor.Id == etwProcessStopID) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version0) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version1) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version2))) {
     ret = true;
   }
 
@@ -89,19 +144,12 @@ static inline bool isKernelEvent(const EVENT_HEADER& header) {
 // Callback to perform pre-processing logic
 void EtwPublisherProcesses::ProviderPreProcessor(
     const EVENT_RECORD& rawEvent, const krabs::trace_context& traceCtx) {
-  static const USHORT etwDefaultKernelID = 0;
-  static const USHORT etwProcessStartID = 1;
-  static const USHORT etwProcessStopID = 2;
-  static const UCHAR etwExpectedKernelVersion = 4;
-  static const UCHAR etwExpectedUserProcStartVersion = 3;
+  // Helper accessors for userspace events
+  const EVENT_HEADER& eventHeader = rawEvent.EventHeader;
+  const unsigned int eventVersion = eventHeader.EventDescriptor.Version;
 
-  // Helpers definition
-  USHORT eventID = rawEvent.EventHeader.EventDescriptor.Id;
-  UCHAR eventVersion = rawEvent.EventHeader.EventDescriptor.Version;
-
-  if ((eventID != etwProcessStartID) && // Userspace Process-start event ID
-      (eventID != etwProcessStartID) && // Userspace Process-stop event ID
-      (eventID != etwDefaultKernelID)) { // Kernelspace default event ID
+  // Checking if new event is a supported one
+  if (!isSupportedEvent(eventHeader)) {
     return;
   }
 
@@ -117,32 +165,38 @@ void EtwPublisherProcesses::ProviderPreProcessor(
 
   // Parsing ETW Event payload based on its type
   bool eventShouldBeDispatched = false;
-  if (isKernelEvent(rawEvent.EventHeader)) {
-    UCHAR opcode = rawEvent.EventHeader.EventDescriptor.Opcode;
+  if (isSupportedKernelEvent(eventHeader)) {
+    // This is an event arriving from the ETW kernel provider!
 
-    // Sanity check on expected kernel events
-    if ((opcode != etwProcessStartID) && (opcode != etwProcessStopID) &&
-        (eventVersion != etwExpectedKernelVersion)) {
-      return;
-    }
+    // Opcode == Event ID
+    UCHAR opcode = eventHeader.EventDescriptor.Opcode;
 
-    // Checking event opcode to determine if this is an event containing
-    // process-start information
     if (opcode == etwProcessStartID) {
+      // Checking event opcode to determine if this is an event containing
+      // process-start information
+
+      // Event type initialization
       newEvent->Header.Type = EtwEventType::ProcessStart;
 
-      // Allocating proce-start specific payload
+      // Allocating process-start specific payload
       auto procStartData = std::make_shared<EtwProcessStartData>();
+      if (!procStartData) {
+        return;
+      }
 
       // Parsing event payload
-      procStartData->Cmdline.assign(
-          wstringToString(parser.parse<std::wstring>(L"CommandLine")));
-      procStartData->Flags = parser.parse<uint32_t>(L"Flags");
       procStartData->ProcessId = parser.parse<uint32_t>(L"ProcessId");
       procStartData->ParentProcessId = parser.parse<uint32_t>(L"ParentId");
       procStartData->SessionId = parser.parse<uint32_t>(L"SessionId");
       krabs::sid userSID = parser.parse<krabs::sid>(L"UserSID");
       procStartData->UserSid.assign(userSID.sid_string);
+
+      if (eventVersion == (unsigned int)etwKernelProcVersion::Version4) {
+        procStartData->Cmdline.assign(
+            wstringToString(parser.parse<std::wstring>(L"CommandLine")));
+        procStartData->Flags = parser.parse<uint32_t>(L"Flags");
+      }
+
       procStartData->KernelDataReady = true;
       newEvent->Payload = procStartData;
 
@@ -152,61 +206,85 @@ void EtwPublisherProcesses::ProviderPreProcessor(
       // Checking event opcode to determine if this is an event containing
       // process-stop information
 
-      // Event type
+      // Event type initialization
       newEvent->Header.Type = EtwEventType::ProcessStop;
 
-      // Payload
+      // Allocating process-stop specific payload
       auto procStopData = std::make_shared<EtwProcessStopData>();
-      procStopData->Cmdline.assign(
-          wstringToString(parser.parse<std::wstring>(L"CommandLine")));
-      procStopData->ExitCode = parser.parse<int32_t>(L"ExitStatus");
-      procStopData->Flags = parser.parse<uint32_t>(L"Flags");
-      procStopData->ImageName.assign(
-          parser.parse<std::string>(L"ImageFileName"));
+      if (!procStopData) {
+        return;
+      }
+
       procStopData->ProcessId = parser.parse<uint32_t>(L"ProcessId");
       procStopData->ParentProcessId = parser.parse<uint32_t>(L"ParentId");
       procStopData->SessionId = parser.parse<uint32_t>(L"SessionId");
       krabs::sid userSID = parser.parse<krabs::sid>(L"UserSID");
       procStopData->UserSid.assign(userSID.sid_string);
+
+      if (eventVersion == (unsigned int)etwKernelProcVersion::Version4) {
+        procStopData->Cmdline.assign(
+            wstringToString(parser.parse<std::wstring>(L"CommandLine")));
+        procStopData->ExitCode = parser.parse<int32_t>(L"ExitStatus");
+        procStopData->Flags = parser.parse<uint32_t>(L"Flags");
+        procStopData->ImageName.assign(
+            parser.parse<std::string>(L"ImageFileName"));
+      }
+
       newEvent->Payload = procStopData;
 
       eventShouldBeDispatched = true;
     }
 
   } else {
-    // this is an ETW event coming from a userspace provider
-    // so event ID needs to be checked
-    if ((eventID == etwProcessStartID) &&
-        (eventVersion == etwExpectedUserProcStartVersion)) {
-      // Event type
+    // This is an ETW event coming from a userspace provider
+
+    if (isSupportedUserProcessStartEvent(eventHeader)) {
+      // Event type initialization
       newEvent->Header.Type = EtwEventType::ProcessStart;
 
-      // Payload
+      // Allocating process-start specific payload
       EtwProcStartDataRef procStartData =
           std::make_shared<EtwProcessStartData>();
-      procStartData->ImageName.assign(
-          wstringToString(parser.parse<std::wstring>(L"ImageName")));
-      procStartData->CreateTime = parser.parse<FILETIME>(L"CreateTime");
-      krabs::sid mandatoryLabel = parser.parse<krabs::sid>(L"MandatoryLabel");
-      procStartData->MandatoryLabelSid.assign(mandatoryLabel.sid_string);
+      if (!procStartData) {
+        return;
+      }
+
       procStartData->ProcessId = parser.parse<uint32_t>(L"ProcessID");
-      procStartData->ProcessSequenceNumber =
-          parser.parse<uint64_t>(L"ProcessSequenceNumber");
+      procStartData->CreateTime = parser.parse<FILETIME>(L"CreateTime");
       procStartData->ParentProcessId =
           parser.parse<uint32_t>(L"ParentProcessID");
-      procStartData->ParentProcessSequenceNumber =
-          parser.parse<uint64_t>(L"ParentProcessSequenceNumber");
-      procStartData->TokenElevationType =
-          parser.parse<uint32_t>(L"ProcessTokenElevationType");
-      procStartData->TokenIsElevated =
-          parser.parse<uint32_t>(L"ProcessTokenIsElevated");
+      procStartData->SessionId = parser.parse<uint32_t>(L"SessionID");
+      procStartData->ImageName.assign(
+          wstringToString(parser.parse<std::wstring>(L"ImageName")));
+
+      if ((eventVersion == (unsigned int)etwUserProcStartVersion::Version1) ||
+          (eventVersion == (unsigned int)etwUserProcStartVersion::Version2)) {
+        procStartData->Flags = parser.parse<uint32_t>(L"Flags");
+
+      } else if (eventVersion ==
+                 (unsigned int)etwUserProcStartVersion::Version3) {
+        procStartData->Flags = parser.parse<uint32_t>(L"Flags");
+        krabs::sid mandatoryLabel = parser.parse<krabs::sid>(L"MandatoryLabel");
+        procStartData->MandatoryLabelSid.assign(mandatoryLabel.sid_string);
+        procStartData->ProcessSequenceNumber =
+            parser.parse<uint64_t>(L"ProcessSequenceNumber");
+        procStartData->ParentProcessSequenceNumber =
+            parser.parse<uint64_t>(L"ParentProcessSequenceNumber");
+        procStartData->TokenElevationType =
+            parser.parse<uint32_t>(L"ProcessTokenElevationType");
+        procStartData->TokenIsElevated =
+            parser.parse<uint32_t>(L"ProcessTokenIsElevated");
+      }
+
       procStartData->UserDataReady = true;
       newEvent->Payload = std::move(procStartData);
 
       eventShouldBeDispatched = true;
+
     }
   }
 
+  // Returning if event should not be sent for post processing
   if (!eventShouldBeDispatched) {
     return;
   }
@@ -271,14 +349,14 @@ void EtwPublisherProcesses::ProviderPostProcessor(
                               procStartData->ParentProcessId;
 
     // Access to the map iterator is required, tryTakeCopy cannot be used here.
-    auto processCacheIt = processCache_.find(searchKey);
-    if (processCacheIt == processCache_.end()) {
+    auto processCacheIt = processStartCache_.find(searchKey);
+    if (processCacheIt == processStartCache_.end()) {
       // this event needs to be agreggated, so cache it for the time being
       if ((procStartData->CreateTime.dwHighDateTime == 0) &&
           (procStartData->CreateTime.dwLowDateTime == 0)) {
         GetSystemTimeAsFileTime(&procStartData->CreateTime);
       }
-      processCache_.insert({searchKey, procStartData});
+      processStartCache_.insert({searchKey, procStartData});
     } else {
       // A previous event was found on the cache, aggregate and dispatch it
       auto procStartCacheData = processCacheIt->second;
@@ -294,6 +372,9 @@ void EtwPublisherProcesses::ProviderPostProcessor(
         procStartData->Flags = procStartCacheData->Flags;
         procStartData->SessionId = procStartCacheData->SessionId;
         procStartData->UserSid.assign(procStartCacheData->UserSid);
+        procStartData->ProcessId = procStartCacheData->ProcessId;
+        procStartData->ParentProcessId = procStartCacheData->ParentProcessId;
+
         shouldDispatch = true;
 
       } else if ((procStartCacheData->UserDataReady) &&
@@ -316,53 +397,21 @@ void EtwPublisherProcesses::ProviderPostProcessor(
         // Event is ready to be dispatched
 
         // Event enrichment phase
-        updateHardVolumeWithLogicalDrive(procStartData);
+        updateHardVolumeWithLogicalDrive(procStartData->ImageName);
         updateUserInfo(procStartData->UserSid, procStartData->UserName);
-        updateTokenInfo(procStartData);
+        updateTokenInfo(procStartData->TokenElevationType,
+                        procStartData->TokenElevationTypeInfo);
 
         // Event dispatch
         event_context->data = std::move(eventData);
         fire(event_context);
 
         // Remove it from the cache
-        processCache_.erase(processCacheIt);
+        processStartCache_.erase(processCacheIt);
 
         // Houskeeping of expired entries
         cleanOldCacheEntries();
       }
-    }
-  }
-}
-
-void EtwPublisherProcesses::cleanOldCacheEntries() {
-  // Time stamp value is expressed in 100 nanosecond units, this is about
-  // 10000000 nanoseconds per second
-  static constexpr LONGLONG expiredTime10secs = 10000000 * 10;
-
-  if (processCache_.empty()) {
-    return;
-  }
-
-  FILETIME currentFiletimeTimestamp{0};
-  GetSystemTimeAsFileTime(&currentFiletimeTimestamp);
-
-  ULARGE_INTEGER currentTimestamp{0};
-  currentTimestamp.HighPart = currentFiletimeTimestamp.dwHighDateTime;
-  currentTimestamp.LowPart = currentFiletimeTimestamp.dwLowDateTime;
-
-  auto it = processCache_.begin();
-  while (it != processCache_.end()) {
-    ULARGE_INTEGER eventTimestamp{0};
-    eventTimestamp.HighPart = it->second->CreateTime.dwHighDateTime;
-    eventTimestamp.LowPart = it->second->CreateTime.dwLowDateTime;
-
-    // check if event is still there after 10 secs
-    if ((eventTimestamp.QuadPart + expiredTime10secs) <
-        currentTimestamp.QuadPart) {
-      // event expire and should be deleted
-      processCache_.erase(it++);
-    } else {
-      ++it;
     }
   }
 }
@@ -382,33 +431,65 @@ void EtwPublisherProcesses::initializeHardVolumeConversions() {
   }
 }
 
+void EtwPublisherProcesses::cleanOldCacheEntries() {
+  // Time stamp value is expressed in 100 nanosecond units, this is about
+  // 10000000 nanoseconds per second
+  static constexpr LONGLONG expiredTime10secs = 10000000 * 10;
+
+  if (processStartCache_.empty()) {
+    return;
+  }
+
+  FILETIME currentFiletimeTimestamp{0};
+  GetSystemTimeAsFileTime(&currentFiletimeTimestamp);
+
+  ULARGE_INTEGER currentTimestamp{0};
+  currentTimestamp.HighPart = currentFiletimeTimestamp.dwHighDateTime;
+  currentTimestamp.LowPart = currentFiletimeTimestamp.dwLowDateTime;
+
+  auto it = processStartCache_.begin();
+  while (it != processStartCache_.end()) {
+    ULARGE_INTEGER eventTimestamp{0};
+    eventTimestamp.HighPart = it->second->CreateTime.dwHighDateTime;
+    eventTimestamp.LowPart = it->second->CreateTime.dwLowDateTime;
+
+    // check if event is still there after 10 secs
+    if ((eventTimestamp.QuadPart + expiredTime10secs) <
+        currentTimestamp.QuadPart) {
+      // event expire and should be deleted
+      processStartCache_.erase(it++);
+    } else {
+      ++it;
+    }
+  }
+}
+
 void EtwPublisherProcesses::updateHardVolumeWithLogicalDrive(
-    EtwProcStartDataRef& eventData) {
+    std::string& path) {
   // Updating the hardvolume entries with logical volume data
   for (auto& [hardVolume, logicalDrive] : hardVolumeDrives_) {
     size_t pos = 0;
-    if ((pos = eventData->ImageName.find(hardVolume, pos)) !=
-        std::string::npos) {
-      eventData->ImageName.replace(pos, hardVolume.length(), logicalDrive);
+    if ((pos = path.find(hardVolume, pos)) != std::string::npos) {
+      path.replace(pos, hardVolume.length(), logicalDrive);
       break;
     }
   }
 }
 
-void EtwPublisherProcesses::updateUserInfo(const std::string& user_sid,
+void EtwPublisherProcesses::updateUserInfo(const std::string& userSid,
                                            std::string& username) {
   // Updating user information using gathered user SIDs as input
-  auto usernameIt = usernamesBySIDs_.find(user_sid);
+  auto usernameIt = usernamesBySIDs_.find(userSid);
   if (usernameIt != usernamesBySIDs_.end()) {
     auto cachedUsername = usernameIt->second;
     username.assign(cachedUsername);
   } else {
     PSID pSid = nullptr;
 
-    if ((!ConvertStringSidToSidA(user_sid.c_str(), &pSid)) ||
+    if ((!ConvertStringSidToSidA(userSid.c_str(), &pSid)) ||
         (pSid == nullptr)) {
       // Inserting empty username to avoid the lookup logic to be called again
-      usernamesBySIDs_.insert({user_sid, ""});
+      usernamesBySIDs_.insert({userSid, ""});
       return;
     }
 
@@ -428,7 +509,7 @@ void EtwPublisherProcesses::updateUserInfo(const std::string& user_sid,
         (strlen(domainNameStr) == 0) || (strlen(userNameStr) == 0) ||
         (sidType == SID_NAME_USE::SidTypeInvalid)) {
       // Inserting empty username to avoid the lookup logic to be called again
-      usernamesBySIDs_.insert({user_sid, ""});
+      usernamesBySIDs_.insert({userSid, ""});
       LocalFree(pSid);
       return;
     }
@@ -439,27 +520,28 @@ void EtwPublisherProcesses::updateUserInfo(const std::string& user_sid,
     username.append("\\");
     username.append(userNameStr);
 
-    usernamesBySIDs_.insert({user_sid, username});
+    usernamesBySIDs_.insert({userSid, username});
   }
 }
 
-void EtwPublisherProcesses::updateTokenInfo(EtwProcStartDataRef& eventData) {
+void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
+                                            std::string& tokenInfo) {
   // Updating token information with descriptive type
-  switch (eventData->TokenElevationType) {
+  switch (tokenType) {
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeDefault:
-    eventData->TokenElevationTypeInfo.assign("TokenElevationTypeDefault");
+    tokenInfo.assign("TokenElevationTypeDefault");
     break;
 
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeFull:
-    eventData->TokenElevationTypeInfo.assign("TokenElevationTypeFull");
+    tokenInfo.assign("TokenElevationTypeFull");
     break;
 
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeLimited:
-    eventData->TokenElevationTypeInfo.assign("TokenElevationTypeLimited");
+    tokenInfo.assign("TokenElevationTypeLimited");
     break;
 
   default:
-    eventData->TokenElevationTypeInfo.assign("TokenElevationTypeInvalid");
+    tokenInfo.assign("TokenElevationTypeInvalid");
   }
 }
 

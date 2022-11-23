@@ -31,7 +31,10 @@ struct EtwProcessEventContext : public EventContext {
 using EtwProcessEventContextRef = std::shared_ptr<EtwProcessEventContext>;
 using EtwProcEventSubContextRef = std::shared_ptr<EtwProcEventSubContext>;
 
-static const std::string kEtwProcessPublisherName = "etw_process_publisher";
+/**
+ * @brief Publisher Name
+ */
+const std::string kEtwProcessPublisherName = "etw_process_publisher";
 
 /**
  * @brief EtwPublisherProcesses implements an EtwPublisher that collects and
@@ -40,6 +43,36 @@ static const std::string kEtwProcessPublisherName = "etw_process_publisher";
 class EtwPublisherProcesses
     : public EtwPublisherBase,
       public EventPublisher<EtwProcEventSubContext, EtwProcessEventContext> {
+  /**
+   * @brief Publisher constants
+   */
+  static const USHORT etwDefaultKernelID = 0;
+  static const USHORT etwProcessStartID = 1;
+  static const USHORT etwProcessStopID = 2;
+
+  /**
+   * @brief Supported User Start Process Events versions
+   */
+  const enum class etwUserProcStartVersion {
+    Version0 = 0,
+    Version1,
+    Version2,
+    Version3
+  };
+
+  /**
+   * @brief Supported User Stop Process Events versions
+   */
+  enum class etwUserProcStopVersion { Version0 = 0, Version1, Version2 };
+
+  /**
+   * @brief Supported Kernel Process Events versions
+   */
+  enum class etwKernelProcVersion { Version3 = 3, Version4 };
+
+  /**
+   * @brief Publisher type declaration
+   */
   DECLARE_PUBLISHER(kEtwProcessPublisherName);
 
  public:
@@ -80,16 +113,29 @@ class EtwPublisherProcesses
   void ProviderPostProcessor(const EtwEventDataRef& data) override;
 
   /// Event post-processing helpers
-  void cleanOldCacheEntries();
   void initializeHardVolumeConversions();
-  void updateHardVolumeWithLogicalDrive(EtwProcStartDataRef& eventData);
-  void updateTokenInfo(EtwProcStartDataRef& eventData);
-  void updateUserInfo(const std::string& user_sid, std::string& username);
+  void cleanOldCacheEntries();
+  void updateHardVolumeWithLogicalDrive(std::string& path);
+  void updateTokenInfo(const std::uint32_t& tokenType, std::string& tokenInfo);
+  void updateUserInfo(const std::string& userSid, std::string& username);
+  static inline bool isSupportedEvent(const EVENT_HEADER& header);
+  static inline bool isKernelEvent(const EVENT_HEADER& header);
+  static inline bool isSupportedKernelEvent(const EVENT_HEADER& header);
+  static inline bool isSupportedUserProcessStartEvent(
+      const EVENT_HEADER& header);
+  static inline bool isSupportedUserProcessStopEvent(
+      const EVENT_HEADER& header);
 
  private:
-  std::unordered_map<std::uint64_t, EtwProcStartDataRef> processCache_;
-  std::unordered_map<std::string, std::string> hardVolumeDrives_;
-  std::unordered_map<std::string, std::string> usernamesBySIDs_;
+  using ProcessStartCacheCollection =
+      std::unordered_map<std::uint64_t, EtwProcStartDataRef>;
+  using HardVolumeDriveCollection =
+      std::unordered_map<std::string, std::string>;
+  using UsernameBySIDCollection = std::unordered_map<std::string, std::string>;
+
+  ProcessStartCacheCollection processStartCache_;
+  HardVolumeDriveCollection hardVolumeDrives_;
+  UsernameBySIDCollection usernamesBySIDs_;
 };
 
 } // namespace osquery
