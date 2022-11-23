@@ -8,6 +8,7 @@
  */
 
 #include <Kernel/kern/cs_blobs.h>
+#include <boost/algorithm/string/join.hpp>
 #include <iomanip>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
@@ -65,8 +66,35 @@ std::string getSigningId(const es_process_t* p) {
              : "";
 }
 
-bool getIsAdhocSigned(const es_process_t* p) {
-  return p->codesigning_flags & CS_ADHOC;
+std::string getCodesigningFlags(const es_process_t* p) {
+  // Parses flags from kern/cs_blobs.h header that are useful for monitoring.
+  // Flags that are commonly set are inverted to make unusual or potentially
+  // insecure processes stand out.
+
+  std::vector<std::string> flags;
+  if (!(p->codesigning_flags & CS_VALID)) {
+    // Process code signature is invalid, either initially or after paging
+    // in an invalid page to a previously valid code signature.
+    flags.push_back("NOT_VALID");
+  }
+
+  if (p->codesigning_flags & CS_ADHOC) {
+    // Process is signed "ad-hoc", without a code signing identity.
+    flags.push_back("ADHOC");
+  }
+
+  if (!(p->codesigning_flags & CS_RUNTIME)) {
+    // Process is signed without using the hardened runtime.
+    flags.push_back("NOT_RUNTIME");
+  }
+
+  if (p->codesigning_flags & CS_INSTALLER) {
+    // Process has installer entitlement, which can modify system integrity
+    // protected (SIP) files.
+    flags.push_back("INSTALLER");
+  }
+
+  return boost::algorithm::join(flags, ", ");
 }
 
 std::string getTeamId(const es_process_t* p) {
@@ -117,7 +145,7 @@ void getProcessProperties(const es_process_t* p,
   ec->team_id = getTeamId(p);
   ec->cdhash = getCDHash(p);
   ec->platform_binary = p->is_platform_binary;
-  ec->adhoc_signed = getIsAdhocSigned(p);
+  ec->codesigning_flags = getCodesigningFlags(p);
 
   auto user = getpwuid(ec->uid);
   ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";

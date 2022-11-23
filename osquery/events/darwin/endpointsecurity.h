@@ -57,7 +57,7 @@ struct EndpointSecurityEventContext : public EventContext {
   std::string team_id;
   std::string cdhash;
   bool platform_binary;
-  bool adhoc_signed;
+  std::string codesigning_flags;
 
   std::string executable;
   std::string username;
