@@ -73,6 +73,10 @@ void BufferedLogForwarder::check() {
     status = send(results, "result");
     if (!status.ok()) {
       VLOG(1) << "Error sending results to logger: " << status.getMessage();
+
+      if (interrupted()) {
+        return;
+      }
     } else {
       // Clear the results logs once they were sent.
       iterate(indexes, ([this](std::string& index) {
@@ -88,6 +92,10 @@ void BufferedLogForwarder::check() {
     status = send(statuses, "status");
     if (!status.ok()) {
       VLOG(1) << "Error sending status to logger: " << status.getMessage();
+
+      if (interrupted()) {
+        return;
+      }
     } else {
       // Clear the status logs once they were sent.
       iterate(indexes, ([this](std::string& index) {
@@ -288,4 +296,4 @@ Status BufferedLogForwarder::deleteValueWithCount(const std::string& domain,
   }
   return status;
 }
-}
+} // namespace osquery

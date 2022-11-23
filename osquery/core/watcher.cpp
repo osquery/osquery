@@ -598,12 +598,6 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
         1, "Memory limits exceeded: " + std::to_string(change.footprint));
   }
 
-  // The worker is sane, no action needed.
-  // Attempt to flush status logs to the well-behaved worker.
-  if (use_worker_ && child.pid() == watcher_->getWorker().pid()) {
-    relayStatusLogs();
-  }
-
   return Status(0);
 }
 

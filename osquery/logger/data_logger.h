@@ -124,6 +124,15 @@ Status logSnapshotQuery(const QueryLogItem& item);
  */
 void relayStatusLogs(LoggerRelayMode relay_mode = LoggerRelayMode::Sync);
 
+/**
+ * @brief Waits for the relay thread to finish
+ *
+ * Waits for the new relay thread launched by the relayStatusLogs function,
+ * called previously on the current thread, to finish.
+ * Must not be called in a path that can be called by Google Log.
+ */
+void waitLogRelay();
+
 /// Inspect the number of internal-buffered status log lines.
 size_t queuedStatuses();
 

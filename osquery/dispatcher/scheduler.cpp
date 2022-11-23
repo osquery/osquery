@@ -224,6 +224,17 @@ void SchedulerRunner::maybeScheduleCarves(uint64_t time_step) {
 
 void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
   if (FLAGS_schedule_reload > 0 && (time_step % FLAGS_schedule_reload) == 0) {
+    /* Before resetting the database we want to ensure that there's no pending
+       log relay thread started by the scheduler thread in a previous loop,
+       to avoid deadlocks.
+       This is because resetDatabase logs and also holds an exclusive lock
+       to the database, so when a log relay thread started via relayStatusLog
+       is pending, log calls done on the same thread that started it
+       (in this case the scheduler thread), will wait until the log relaying
+       thread finishes serializing the logs to the database; but this can't
+       happen due to the exclusive lock. */
+    waitLogRelay();
+
     if (FLAGS_schedule_reload_sql) {
       SQLiteDBManager::resetPrimary();
     }
@@ -232,7 +243,14 @@ void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
 }
 
 void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
-  // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
+  /* In daemon mode we start a log relay thread to flush the logs from the
+     BufferedLogSink to the database.
+     The thread is started from the scheduler thread,
+     since if we did it in the send() function of BufferedLogSink,
+     inline to the log call itself, we would cause deadlocks
+     if there's recursive logging caused by the logger plugins.
+     We do the flush itself also in a new thread so we don't slow down
+     the scheduler thread too much */
   if ((time_step % 3) == 0) {
     relayStatusLogs(LoggerRelayMode::Async);
   }
@@ -280,6 +298,10 @@ void SchedulerRunner::start() {
       break;
     }
   }
+
+  /* Wait for the thread relaying/flushing the logs,
+     to prevent race conditions on shutdown */
+  waitLogRelay();
 
   // Scheduler ended.
   if (!interrupted() && request_shutdown_on_expiration) {

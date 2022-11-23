@@ -308,12 +308,32 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
       this->name = detail.at(1);
     } else if (detail.at(0) == "VmRSS") {
       detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
-      // Memory is reported in kB.
-      this->resident_size = detail.at(1) + "000";
+      // Memory is reported in kB (1024 bytes).
+      auto resident_size_result = osquery::tryTo<std::uint64_t>(detail.at(1));
+
+      if (resident_size_result.isError()) {
+        status =
+            Status::failure("Failed to convert VmRSS string value to integer");
+        return;
+      }
+
+      const auto resident_size = resident_size_result.get() * 1024;
+
+      this->resident_size = std::to_string(resident_size);
     } else if (detail.at(0) == "VmSize") {
       detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
-      // Memory is reported in kB.
-      this->total_size = detail.at(1) + "000";
+      // Memory is reported in kB (1024 bytes).
+      auto virtual_size_result = osquery::tryTo<std::uint64_t>(detail.at(1));
+
+      if (virtual_size_result.isError()) {
+        status =
+            Status::failure("Failed to convert VmSize string value to integer");
+        return;
+      }
+
+      const auto virtual_size = virtual_size_result.get() * 1024;
+
+      this->total_size = std::to_string(virtual_size);
     } else if (detail.at(0) == "Gid") {
       // Format is: R E - -
       auto gid_detail = osquery::split(detail.at(1), "\t");
