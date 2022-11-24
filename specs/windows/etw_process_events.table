@@ -1,7 +1,7 @@
 table_name("etw_process_events")
 description("Windows process execution events.")
 schema([
-    Column("type", TEXT, "Event Type"),
+    Column("type", TEXT, "Event Type (ProcessStart, ProcessStop)"),
     Column("pid", BIGINT, "Process ID"),
     Column("ppid", BIGINT, "Parent Process ID"),
     Column("session_id", INTEGER, "Session ID"),
