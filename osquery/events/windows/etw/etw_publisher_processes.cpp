@@ -12,6 +12,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/events/windows/etw/etw_publisher_processes.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/map_take.h>
 
 namespace osquery {
 
@@ -70,75 +71,6 @@ Status EtwPublisherProcesses::setUp() {
   }
 
   return Status::success();
-}
-
-// Checking if given ETW event is a supported kernel event
-bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
-  bool ret = false;
-
-  // ETW events coming from kernel providers have this fields set to zero
-  if ((header.EventDescriptor.Channel == 0) &&
-      (header.EventDescriptor.Level == 0) &&
-      (header.EventDescriptor.Task == 0) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwKernelProcVersion::Version3) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwKernelProcVersion::Version4))) {
-    ret = true;
-  }
-
-  return ret;
-}
-
-// Checking if given ETW event is a supported userspace process start event
-bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
-    const EVENT_HEADER& header) {
-  bool ret = false;
-
-  if ((header.EventDescriptor.Id == etwProcessStartID) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version0) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version1) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version2) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version3))) {
-    ret = true;
-  }
-
-  return ret;
-}
-
-// Checking if given ETW event ID is supported by preprocessor logic
-bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
-  bool ret = false;
-
-  if ((isSupportedKernelEvent(header)) ||
-      (isSupportedUserProcessStartEvent(header)) ||
-      (isSupportedUserProcessStopEvent(header))) {
-    ret = true;
-  }
-
-  return ret;
-}
-
-// Checking if given ETW event is a supported userspace process stop event
-bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
-    const EVENT_HEADER& header) {
-  bool ret = false;
-
-  if ((header.EventDescriptor.Id == etwProcessStopID) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version0) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version1) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version2))) {
-    ret = true;
-  }
-
-  return ret;
 }
 
 // Callback to perform pre-processing logic
@@ -280,7 +212,6 @@ void EtwPublisherProcesses::ProviderPreProcessor(
       newEvent->Payload = std::move(procStartData);
 
       eventShouldBeDispatched = true;
-
     }
   }
 
@@ -322,6 +253,9 @@ void EtwPublisherProcesses::ProviderPostProcessor(
 
     // Event enrichment phase
     updateUserInfo(procStopData->UserSid, procStopData->UserName);
+    updateImagePath(procStopData->ProcessId,
+                    procStopData->ParentProcessId,
+                    procStopData->ImageName);
 
     // Event dispatch
     event_context->data = std::move(eventData);
@@ -345,18 +279,18 @@ void EtwPublisherProcesses::ProviderPostProcessor(
     }
 
     // This is the search key to be used on the cache of process start events
-    std::uint64_t searchKey = (uint64_t)procStartData->ProcessId << 32 |
-                              procStartData->ParentProcessId;
+    std::uint64_t searchKey = getComposedKey(procStartData->ProcessId,
+                                             procStartData->ParentProcessId);
 
     // Access to the map iterator is required, tryTakeCopy cannot be used here.
-    auto processCacheIt = processStartCache_.find(searchKey);
-    if (processCacheIt == processStartCache_.end()) {
+    auto processCacheIt = processStartAggregationCache_.find(searchKey);
+    if (processCacheIt == processStartAggregationCache_.end()) {
       // this event needs to be agreggated, so cache it for the time being
       if ((procStartData->CreateTime.dwHighDateTime == 0) &&
           (procStartData->CreateTime.dwLowDateTime == 0)) {
         GetSystemTimeAsFileTime(&procStartData->CreateTime);
       }
-      processStartCache_.insert({searchKey, procStartData});
+      processStartAggregationCache_.insert({searchKey, procStartData});
     } else {
       // A previous event was found on the cache, aggregate and dispatch it
       auto procStartCacheData = processCacheIt->second;
@@ -406,11 +340,14 @@ void EtwPublisherProcesses::ProviderPostProcessor(
         event_context->data = std::move(eventData);
         fire(event_context);
 
-        // Remove it from the cache
-        processStartCache_.erase(processCacheIt);
+        // Remove it from the process start aggregation cache
+        processStartAggregationCache_.erase(processCacheIt);
 
-        // Houskeeping of expired entries
-        cleanOldCacheEntries();
+        // Houskeeping of expired aggregation cache entries
+        cleanOldAggregationCacheEntries();
+
+        // Caching image full path
+        processImageCache_.insert({searchKey, procStartData->ImageName});
       }
     }
   }
@@ -431,12 +368,12 @@ void EtwPublisherProcesses::initializeHardVolumeConversions() {
   }
 }
 
-void EtwPublisherProcesses::cleanOldCacheEntries() {
+void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
   // Time stamp value is expressed in 100 nanosecond units, this is about
   // 10000000 nanoseconds per second
   static constexpr LONGLONG expiredTime10secs = 10000000 * 10;
 
-  if (processStartCache_.empty()) {
+  if (processStartAggregationCache_.empty()) {
     return;
   }
 
@@ -447,8 +384,8 @@ void EtwPublisherProcesses::cleanOldCacheEntries() {
   currentTimestamp.HighPart = currentFiletimeTimestamp.dwHighDateTime;
   currentTimestamp.LowPart = currentFiletimeTimestamp.dwLowDateTime;
 
-  auto it = processStartCache_.begin();
-  while (it != processStartCache_.end()) {
+  auto it = processStartAggregationCache_.begin();
+  while (it != processStartAggregationCache_.end()) {
     ULARGE_INTEGER eventTimestamp{0};
     eventTimestamp.HighPart = it->second->CreateTime.dwHighDateTime;
     eventTimestamp.LowPart = it->second->CreateTime.dwLowDateTime;
@@ -457,7 +394,7 @@ void EtwPublisherProcesses::cleanOldCacheEntries() {
     if ((eventTimestamp.QuadPart + expiredTime10secs) <
         currentTimestamp.QuadPart) {
       // event expire and should be deleted
-      processStartCache_.erase(it++);
+      processStartAggregationCache_.erase(it++);
     } else {
       ++it;
     }
@@ -524,6 +461,16 @@ void EtwPublisherProcesses::updateUserInfo(const std::string& userSid,
   }
 }
 
+void EtwPublisherProcesses::updateImagePath(const std::uint64_t& key1,
+                                            const std::uint64_t& key2,
+                                            std::string& imagePath) {
+  // This is the search key to be used on the cache of process start events
+  std::uint64_t searchKey = getComposedKey(key1, key2);
+
+  // Event specific post processing callback logic
+  imagePath = tryTake(processImageCache_, searchKey).takeOr(imagePath);
+}
+
 void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
                                             std::string& tokenInfo) {
   // Updating token information with descriptive type
@@ -543,6 +490,81 @@ void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
   default:
     tokenInfo.assign("TokenElevationTypeInvalid");
   }
+}
+
+// Checking if given ETW event is a supported kernel event
+bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
+  bool ret = false;
+
+  // ETW events coming from kernel providers have this fields set to zero
+  if ((header.EventDescriptor.Channel == 0) &&
+      (header.EventDescriptor.Level == 0) &&
+      (header.EventDescriptor.Task == 0) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwKernelProcVersion::Version3) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwKernelProcVersion::Version4))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event is a supported userspace process start event
+bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
+    const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((header.EventDescriptor.Id == etwProcessStartID) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version0) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version1) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version2) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStartVersion::Version3))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event ID is supported by preprocessor logic
+bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((isSupportedKernelEvent(header)) ||
+      (isSupportedUserProcessStartEvent(header)) ||
+      (isSupportedUserProcessStopEvent(header))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Checking if given ETW event is a supported userspace process stop event
+bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
+    const EVENT_HEADER& header) {
+  bool ret = false;
+
+  if ((header.EventDescriptor.Id == etwProcessStopID) &&
+      ((header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version0) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version1) ||
+       (header.EventDescriptor.Version ==
+        (UCHAR)etwUserProcStopVersion::Version2))) {
+    ret = true;
+  }
+
+  return ret;
+}
+
+// Get uint64 composed kit
+std::uint64_t EtwPublisherProcesses::getComposedKey(const std::uint64_t& key1,
+                                                    const std::uint64_t& key2) {
+  return (std::uint64_t)((std::uint64_t)key1 << 32 | key2);
 }
 
 } // namespace osquery

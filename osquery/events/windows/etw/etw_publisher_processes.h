@@ -114,10 +114,13 @@ class EtwPublisherProcesses
 
   /// Event post-processing helpers
   void initializeHardVolumeConversions();
-  void cleanOldCacheEntries();
+  void cleanOldAggregationCacheEntries();
   void updateHardVolumeWithLogicalDrive(std::string& path);
   void updateTokenInfo(const std::uint32_t& tokenType, std::string& tokenInfo);
   void updateUserInfo(const std::string& userSid, std::string& username);
+  void updateImagePath(const std::uint64_t& key1,
+                       const std::uint64_t& key2,
+                       std::string& imagePath);
   static inline bool isSupportedEvent(const EVENT_HEADER& header);
   static inline bool isKernelEvent(const EVENT_HEADER& header);
   static inline bool isSupportedKernelEvent(const EVENT_HEADER& header);
@@ -125,15 +128,20 @@ class EtwPublisherProcesses
       const EVENT_HEADER& header);
   static inline bool isSupportedUserProcessStopEvent(
       const EVENT_HEADER& header);
+  static inline std::uint64_t getComposedKey(const std::uint64_t& key1,
+                                             const std::uint64_t& key2);
 
  private:
   using ProcessStartCacheCollection =
       std::unordered_map<std::uint64_t, EtwProcStartDataRef>;
+  using ProcessImageCacheCollection =
+      std::unordered_map<std::uint64_t, std::string>;
   using HardVolumeDriveCollection =
       std::unordered_map<std::string, std::string>;
   using UsernameBySIDCollection = std::unordered_map<std::string, std::string>;
 
-  ProcessStartCacheCollection processStartCache_;
+  ProcessStartCacheCollection processStartAggregationCache_;
+  ProcessImageCacheCollection processImageCache_;
   HardVolumeDriveCollection hardVolumeDrives_;
   UsernameBySIDCollection usernamesBySIDs_;
 };
