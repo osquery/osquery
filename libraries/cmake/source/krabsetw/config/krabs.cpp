@@ -8,10 +8,10 @@
  */
 
 // Disable warning for KrabsETW code
-#pragma warning(push)
-#pragma warning(disable : 4244)
+//#pragma warning(push)
+//#pragma warning(disable : 4244)
 #include "krabs.hpp"
-#pragma warning(pop)
+//#pragma warning(pop)
 
 namespace krabs {
 schema_locator dummy;
