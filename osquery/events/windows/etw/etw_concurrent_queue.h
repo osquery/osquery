@@ -56,9 +56,7 @@ class ConcurrentQueue : public boost::noncopyable {
    */
   T pop() {
     std::unique_lock<std::mutex> lock(mutex_);
-    while (queue_.empty()) {
-      condition_.wait(lock);
-    }
+    condition_.wait(lock, [&] { return !queue_.empty(); });
     T data = queue_.front();
     queue_.pop();
     return data;
