@@ -14,6 +14,7 @@ namespace osquery {
 
 #define NTSTATUS ULONG
 #define STATUS_SUCCESS 0L
+#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 
 #define OBJ_CASE_INSENSITIVE 64L
 #define DIRECTORY_QUERY 0x0001
@@ -62,6 +63,31 @@ typedef NTSTATUS(WINAPI* ZwQuerySystemInformation)(
     ULONG SystemInformationLength,
     PULONG ReturnLength);
 
+typedef NTSTATUS(NTAPI *NtQuerySystemInformation) (
+	ULONG SystemInformationClass,
+	PVOID SystemInformation,
+	ULONG SystemInformationLength,
+	PULONG ReturnLength
+);
+
+typedef NTSTATUS(NTAPI *NtDuplicateObject) (
+	HANDLE SourceProcessHandle,
+	HANDLE SourceHandle,
+	HANDLE TargetProcessHandle,
+	PHANDLE TargetHandle,
+	ACCESS_MASK DesiredAccess,
+	ULONG Attributes,
+	ULONG Options
+);
+
+typedef NTSTATUS(NTAPI *NtQueryObject)(
+	HANDLE ObjectHandle,
+	ULONG ObjectInformationClass,
+	PVOID ObjectInformation,
+	ULONG ObjectInformationLength,
+	PULONG ReturnLength
+);
+
 typedef NTSTATUS(WINAPI* NTCLOSE)(HANDLE Handle);
 
 typedef NTSTATUS(WINAPI* NTOPENDIRECTORYOBJECT)(
@@ -86,13 +112,26 @@ typedef NTSTATUS(WINAPI* NTQUERYSYMBOLICLINKOBJECT)(HANDLE LinkHandle,
                                                     PUNICODE_STRING LinkTarget,
                                                     PULONG ReturnedLength);
 
-typedef struct _SYSTEM_HANDLE_INFORMATION {
-  ULONG ProcessId;
-  BYTE ObjectTypeNumber;
-  BYTE Flags;
-  USHORT Handle;
-  PVOID Object;
-  ACCESS_MASK GrantedAccess;
+typedef struct __PUBLIC_OBJECT_TYPE_INFORMATION {
+    UNICODE_STRING TypeName;
+    ULONG Reserved [22];    // reserved for internal use
+} PUBLIC_OBJECT_TYPE_INFORMATION, *PPUBLIC_OBJECT_TYPE_INFORMATION;
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
+{
+    USHORT UniqueProcessId;
+    USHORT CreatorBackTraceIndex;
+    UCHAR ObjectTypeIndex;
+    UCHAR HandleAttributes;
+    USHORT HandleValue;
+    PVOID Object;
+    ULONG GrantedAccess;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION
+{
+    ULONG NumberOfHandles;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
 typedef struct _OBJDIR_INFORMATION {

@@ -1,0 +1,12 @@
+table_name("handles")
+description("Enumerate open handles for any processes on the system.")
+schema([
+    Column("pid", BIGINT, "The process identifier that owns the handle."),
+    Column("object_type", TEXT, "The type of object referenced by the handle."),
+    Column("object_name", TEXT, "The value of the object referenced by the handle."),
+])
+implementation("handles@genHandles")
+attributes(cacheable=True)
+examples([
+  "select * from handles"
+])

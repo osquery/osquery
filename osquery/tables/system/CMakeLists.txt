@@ -229,6 +229,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/hvci_status.cpp
       windows/tpm_info.cpp
       windows/prefetch.cpp
+      windows/handles.cpp
     )
   endif()
 
