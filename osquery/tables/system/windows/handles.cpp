@@ -11,6 +11,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdio.h>
+#include <sstream>
 
 #include <windows.h>
 #include <psapi.h>
@@ -25,7 +26,7 @@
 namespace osquery {
 namespace tables {
 
-using obj_name_type_pair = std::pair<std::wstring, std::wstring>;
+typedef std::tuple<std::string, std::string> ObjectInfoTuple;
 
 #define SystemHandleInformation 16
 #define ObjectNameInformation 1
@@ -33,42 +34,47 @@ using obj_name_type_pair = std::pair<std::wstring, std::wstring>;
 
 #define BUFF_SIZE 1000
 #define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
+#define IS_CONSOLE_HANDLE(h) (((((ULONG_PTR)h) & 0x10000003) == 0x3) ? TRUE : FALSE)
 
-BOOL getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, UNICODE_STRING &objectName)
+typedef struct _OBJECT_NAME_INFORMATION
 {
-    PVOID   objectNameInfo;
-    ULONG   returnLength;
+     UNICODE_STRING Name;
+} OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
 
-    if ((objectNameInfo = malloc(0x1000)) == NULL)
+BOOL getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, std::string &objectName)
+{
+    ULONG   returnLength;
+    OBJECT_NAME_INFORMATION pName[BUFF_SIZE * 2] = { 0 };
+
+
+    if (processDupHandle == 0 || processDupHandle == INVALID_HANDLE_VALUE){
+        return FALSE;
+    }
+    // NtQueryObject returns STATUS_INVALID_HANDLE for Console handles
+    if (IS_CONSOLE_HANDLE(processDupHandle))
     {
+        std::stringstream sstream;
+        sstream << "\\Device\\Console";
+        sstream << std::hex << (DWORD)(DWORD_PTR)processDupHandle;
+        objectName = sstream.str();
+        return TRUE;
+    }
+
+	if (_NtQueryObject(processDupHandle, ObjectNameInformation, &pName, sizeof(pName), &returnLength) != 0){
+        // TODO: Should probably realloc pName
         return FALSE;
     }
 
-	if (_NtQueryObject(processDupHandle, ObjectNameInformation, objectNameInfo, 0x1000, &returnLength) != STATUS_SUCCESS)
-    {
-        // NtQuery failed, surement à cause du manque de buffer, donc on réaloue
-        if ((objectNameInfo = realloc(objectNameInfo, returnLength)) == NULL)
-        {
-            free(objectNameInfo);
-            return FALSE;
-        }
-        // On réessaye de récupérer le nom de l'objet
-        if (_NtQueryObject(processDupHandle, ObjectNameInformation, objectNameInfo, returnLength, NULL) != STATUS_SUCCESS)
-        {
-            free(objectNameInfo);
-            return FALSE;
-        }
+    if (!pName->Name.Length || !pName->Name.Buffer) {
+        return FALSE;
     }
-
-    objectName = *(PUNICODE_STRING)objectNameInfo;
-    free(objectNameInfo);
-    return objectName.Length > 0;
+    objectName = wstringToString(pName->Name.Buffer);
+    return TRUE;
 }
 
-BOOL getFilenameObject(HANDLE handle, std::wstring &filename)
+BOOL getFilenameObject(HANDLE handle, std::string &filename)
 {
-    // Most of the code was taken from
-    // https://learn.microsoft.com/en-us/windows/win32/memory/obtaining-a-file-name-from-a-file-handle
+    // source: https://learn.microsoft.com/en-us/windows/win32/memory/obtaining-a-file-name-from-a-file-handle
     void    *pMem;
     HANDLE  hFileMap;
     TCHAR   pszFilename[MAX_PATH + 1];
@@ -88,12 +94,12 @@ BOOL getFilenameObject(HANDLE handle, std::wstring &filename)
                     0, 
                     1,
                     NULL);
-    if (!hFileMap)
+    if (!hFileMap) {
         return FALSE;
+    }
     
     // Create a file mapping to get the file name.
-    if (!(pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1)))
-    {
+    if (!(pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1))) {
         CloseHandle(hFileMap);
         return FALSE;
     }
@@ -103,19 +109,21 @@ BOOL getFilenameObject(HANDLE handle, std::wstring &filename)
         pszFilename,
         MAX_PATH))
     {
+
         UnmapViewOfFile(pMem);
         CloseHandle(hFileMap);
         return FALSE;
     }
+
     // Translate path with device name to drive letters.
     TCHAR szTemp[BUFF_SIZE];
     szTemp[0] = '\0';
+    BOOL bFound = FALSE;
 
     if (GetLogicalDriveStrings(BUFF_SIZE - 1, szTemp)) 
     {
         TCHAR szName[MAX_PATH];
         TCHAR szDrive[3] = TEXT(" :");
-        BOOL bFound = FALSE;
         TCHAR *p = szTemp;
         do 
         {
@@ -132,10 +140,8 @@ BOOL getFilenameObject(HANDLE handle, std::wstring &filename)
                     bFound = _tcsnicmp(pszFilename, szName, uNameLen) == 0
                         && *(pszFilename + uNameLen) == _T('\\');
 
-                    if (bFound) 
-                    {
-                        filename = szDrive;
-                        filename.append(pszFilename + uNameLen);
+                    if (bFound) {
+                        filename = wstringToString(szDrive) + wstringToString(pszFilename + uNameLen);
                     }
                 }
             }
@@ -143,68 +149,62 @@ BOOL getFilenameObject(HANDLE handle, std::wstring &filename)
             while (*p++);
         } while (!bFound && *p); // end of string
     }
-    else
-    {
-        filename = pszFilename;
+    if (!bFound) {
+        // Could not find drive name, so we set the full file path
+        filename = wstringToString(pszFilename);
     }
     UnmapViewOfFile(pMem);
     CloseHandle(hFileMap);
     return TRUE;
 }
 
-Status getHandleInfo(
+BOOL getObjectType(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, PUBLIC_OBJECT_TYPE_INFORMATION *objectTypeInfo)
+{
+	return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) == STATUS_SUCCESS);
+}
+
+BOOL getHandleInfo(
     const HANDLE  &handle,
     const NtQueryObject &_NtQueryObject,
-    Row &r)
+    ObjectInfoTuple &objInfo)
 {
-    UNICODE_STRING objectName;
+    std::string objectName;
     PPUBLIC_OBJECT_TYPE_INFORMATION objectTypeInfo;
-    PVOID   objectNameInfo;
-    ULONG   returnLength;
 
-	if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL){
-        return Status(GetLastError(), "Could not allocate memory for objectTypeInfo");
+	if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL) {
+		return FALSE;
     }
 
-
-    r["object_type"] = wstringToString(objectTypeInfo->TypeName.Buffer);
-    if (wcscmp(objectTypeInfo->TypeName.Buffer, L"File") == 0 ) {
+    // Récupération du type d'objet
+    if (!getObjectType(_NtQueryObject, handle, objectTypeInfo))
+    {
+		free(objectTypeInfo);
+		return FALSE;
+    }
+    std::get<0>(objInfo) = wstringToString(objectTypeInfo->TypeName.Buffer);
+    if (wcscmp(objectTypeInfo->TypeName.Buffer, L"File") == 0 )
+    {
         // si c'est un fichier, on récupère le chemin complet
-        std::wstring filename;
-        if (getFilenameObject(handle, filename)) {
-            r["object_name"] = "totoototoo";
+        std::string filename;
+
+        if (getFilenameObject(handle, filename))
+        {
+            std::get<1>(objInfo) = filename;
+            return TRUE;
+            // std::cout << "file: "<<filename << std::endl;
         }
         
     }
-    else if (getObjectName(_NtQueryObject, handle, objectName)) {
-        // r["object_name"] = wstringToString(objectName.Buffer.c_str());
-        if (_NtQueryObject(handle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) != STATUS_SUCCESS) {
-            free(objectTypeInfo);
-            return Status(GetLastError(), "Could not get object Type");
-        }
-        if (_NtQueryObject(handle, ObjectNameInformation, objectNameInfo, 0x1000, &returnLength) != STATUS_SUCCESS)
-        {
-            // NtQuery failed, surement à cause du manque de buffer, donc on réaloue
-            if ((objectNameInfo = realloc(objectNameInfo, returnLength)) == NULL)
-            {
-                free(objectNameInfo);
-                return Status(GetLastError(), "Could not realloc objectNameInfo");
-            }
-            // On réessaye de récupérer le nom de l'objet
-            if (_NtQueryObject(handle, ObjectNameInformation, objectNameInfo, returnLength, NULL) != STATUS_SUCCESS)
-            {
-                free(objectNameInfo);
-                return FALSE;
-            }
-        }
-        objectName = *(PUNICODE_STRING)objectNameInfo;
-        r["object_name"] = wstringToString(objectName.Buffer)
-
-
+    else if (getObjectName(_NtQueryObject, handle, objectName))
+    {
+        // std::cout << ">>>" << wstringToString(objectName.Buffer) << std::endl;
+        std::get<1>(objInfo) = objectName;
+        return TRUE;
+        // std::wcout << "ELSE: " << objectName.Buffer << std::endl;
     }
     free(objectTypeInfo);
 
-    return Status::success();
+    return FALSE;
 }
 
 Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
@@ -243,11 +243,6 @@ QueryData genHandles(QueryContext &context) {
     auto _NtDuplicateObject = reinterpret_cast<NtDuplicateObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtDuplicateObject"));
     auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryObject"));
 
-    // if ((ntdllModule = GetModuleHandleA("ntdll.dll")) == NULL) {
-    //     VLOG(1) << L"Unable to get a handle on ntdll.dll";
-    //     return rows;
-    // }
-
     auto status = getSystemHandles(handleInfo);
     if (!status.ok()) {
         VLOG(1) << L"Unable to get system handles: " << status.getCode();
@@ -258,9 +253,9 @@ QueryData genHandles(QueryContext &context) {
 
     for (i = 0; i < handleInfo->NumberOfHandles; i++)
     {
-        if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
-            continue;
-        }
+        // if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
+        //     continue;
+        // }
         handle = handleInfo->Handles[i];
 	    if (!(processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, handle.UniqueProcessId))) {
             continue;
@@ -278,16 +273,19 @@ QueryData genHandles(QueryContext &context) {
             CloseHandle(processDupHandle);
             continue;
         }
-        Row r;
-        // obj_name_type_pair objectPair;
-
-        auto status = getHandleInfo(processDupHandle, _NtQueryObject, r);
-        if (!status.ok()) {
-            continue;
+        ObjectInfoTuple objInfo;
+        if (getHandleInfo(processDupHandle, _NtQueryObject, objInfo)) {
+            std::cout << std::get<0>(objInfo) << " - " <<std::get<1>(objInfo) << std::endl;
         }
+        // Row r;
+        // ObjectInfoTuple objInfo;
+        // if (getHandleInfo(processDupHandle, _NtQueryObject, objInfo)){
+        //     std::cout << handle.UniqueProcessId << " > " << std::get<0>(objInfo) << " - " << std::get<1>(objInfo) << std::endl;   
+        // }
+ 
         // if (objectPair.second.length() != 0 ) {
-            r["pid"] = BIGINT(handleInfo->Handles[i].UniqueProcessId);
-            rows.push_back(r);
+            // r["pid"] = BIGINT(handleInfo->Handles[i].UniqueProcessId);
+            // rows.push_back(r);
         // }
 
     }
