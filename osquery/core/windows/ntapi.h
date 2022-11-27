@@ -14,18 +14,29 @@ namespace osquery {
 
 #define NTSTATUS ULONG
 #define STATUS_SUCCESS 0L
-#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 
 #define OBJ_CASE_INSENSITIVE 64L
 #define DIRECTORY_QUERY 0x0001
 #define SYMBOLIC_LINK_QUERY 0x0001
 
 typedef enum _SYSTEM_INFORMATION_CLASS {
+  SystemBasicInformation,
   SystemProcessorInformation,
   SystemPerformanceInformation,
   SystemTimeOfDayInformation,
   SystemPathInformation,
-  SystemProcessInformation
+  SystemProcessInformation,
+  SystemCallCountInformation,
+  SystemDeviceInformation,
+  SystemProcessorPerformanceInformation,
+  SystemFlagsInformation,
+  SystemCallTimeInformation,
+  SystemModuleInformation,
+  SystemLocksInformation,
+  SystemStackTraceInformation,
+  SystemPagedPoolInformation,
+  SystemNonPagedPoolInformation,
+  SystemHandleInformation
 } SYSTEM_INFORMATION_CLASS;
 
 typedef enum _OBJECT_INFORMATION_CLASS {
@@ -51,6 +62,11 @@ typedef struct _OBJECT_ATTRIBUTES {
   PVOID SecurityQualityOfService;
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
+typedef struct _OBJECT_NAME_INFORMATION {
+  UNICODE_STRING Name;
+} OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
+
+
 typedef NTSTATUS(WINAPI* ZwQueryObject)(HANDLE h,
                                         OBJECT_INFORMATION_CLASS oic,
                                         PVOID ObjectInformation,
@@ -63,30 +79,24 @@ typedef NTSTATUS(WINAPI* ZwQuerySystemInformation)(
     ULONG SystemInformationLength,
     PULONG ReturnLength);
 
-typedef NTSTATUS(NTAPI *NtQuerySystemInformation) (
-	ULONG SystemInformationClass,
-	PVOID SystemInformation,
-	ULONG SystemInformationLength,
-	PULONG ReturnLength
-);
+typedef NTSTATUS(NTAPI* NtQuerySystemInformation)(ULONG SystemInformationClass,
+	                                                PVOID SystemInformation,
+	                                                ULONG SystemInformationLength,
+	                                                PULONG ReturnLength);
 
-typedef NTSTATUS(NTAPI *NtDuplicateObject) (
-	HANDLE SourceProcessHandle,
-	HANDLE SourceHandle,
-	HANDLE TargetProcessHandle,
-	PHANDLE TargetHandle,
-	ACCESS_MASK DesiredAccess,
-	ULONG Attributes,
-	ULONG Options
-);
+typedef NTSTATUS(NTAPI* NtDuplicateObject)(HANDLE SourceProcessHandle,
+	                                         HANDLE SourceHandle,
+	                                         HANDLE TargetProcessHandle,
+	                                         PHANDLE TargetHandle,
+	                                         ACCESS_MASK DesiredAccess,
+	                                         ULONG Attributes,
+	                                         ULONG Options);
 
-typedef NTSTATUS(NTAPI *NtQueryObject)(
-	HANDLE ObjectHandle,
-	ULONG ObjectInformationClass,
-	PVOID ObjectInformation,
-	ULONG ObjectInformationLength,
-	PULONG ReturnLength
-);
+typedef NTSTATUS(NTAPI* NtQueryObject)(HANDLE ObjectHandle,
+                                       ULONG ObjectInformationClass,
+                                       PVOID ObjectInformation,
+                                       ULONG ObjectInformationLength,
+                                       PULONG ReturnLength);
 
 typedef NTSTATUS(WINAPI* NTCLOSE)(HANDLE Handle);
 

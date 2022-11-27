@@ -7,10 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <ctime>
 #include <cstring>
-#include <iostream>
-#include <stdio.h>
 #include <sstream>
 
 #include <windows.h>
@@ -28,27 +25,19 @@ namespace tables {
 
 typedef std::tuple<std::string, std::string> ObjectInfoTuple;
 
-#define SystemHandleInformation 16
-#define ObjectNameInformation 1
-#define ObjectTypeInformation 2
-
 #define BUFF_SIZE 1000
-#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 #define IS_CONSOLE_HANDLE(h) (((((ULONG_PTR)h) & 0x10000003) == 0x3) ? TRUE : FALSE)
+// this should probably be in osquery/core/windows/ntapi.h
+#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 
-typedef struct _OBJECT_NAME_INFORMATION
-{
-     UNICODE_STRING Name;
-} OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
 
-BOOL getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, std::string &objectName)
+Status getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, std::string &objectName)
 {
     ULONG   returnLength;
     OBJECT_NAME_INFORMATION pName[BUFF_SIZE * 2] = { 0 };
 
-
     if (processDupHandle == 0 || processDupHandle == INVALID_HANDLE_VALUE){
-        return FALSE;
+        return Status::failure("Invalid handle");
     }
     // NtQueryObject returns STATUS_INVALID_HANDLE for Console handles
     if (IS_CONSOLE_HANDLE(processDupHandle))
@@ -57,34 +46,32 @@ BOOL getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDup
         sstream << "\\Device\\Console";
         sstream << std::hex << (DWORD)(DWORD_PTR)processDupHandle;
         objectName = sstream.str();
-        return TRUE;
+        return Status::success();
     }
 
-	if (_NtQueryObject(processDupHandle, ObjectNameInformation, &pName, sizeof(pName), &returnLength) != 0){
+	if (_NtQueryObject(processDupHandle, ObjectNameInformation, &pName, sizeof(pName), &returnLength) != STATUS_SUCCESS){
         // TODO: Should probably realloc pName
-        return FALSE;
+        return Status::failure("Could not get object name informations");
     }
 
     if (!pName->Name.Length || !pName->Name.Buffer) {
-        return FALSE;
+        return Status::failure("Object name is empty");
     }
     objectName = wstringToString(pName->Name.Buffer);
-    return TRUE;
+    return Status::success();
 }
 
-BOOL getFilenameObject(HANDLE handle, std::string &filename)
+// Code adapted from: https://learn.microsoft.com/en-us/windows/win32/memory/obtaining-a-file-name-from-a-file-handle
+Status getFilenameObject(HANDLE handle, std::string &filename)
 {
-    // source: https://learn.microsoft.com/en-us/windows/win32/memory/obtaining-a-file-name-from-a-file-handle
     void    *pMem;
     HANDLE  hFileMap;
     TCHAR   pszFilename[MAX_PATH + 1];
     DWORD   dwFileSizeHi = 0;
     DWORD   dwFileSizeLo = GetFileSize(&handle, &dwFileSizeHi); 
 
-    if( dwFileSizeLo == 0 && dwFileSizeHi == 0 )
-    {
-        std::cout << "Cannot map a file with a length of zero." << std::endl;
-        return FALSE;
+    if( dwFileSizeLo == 0 && dwFileSizeHi == 0 ) {
+        return Status::failure("Cannot map a file with a length of zero.");
     }
 
     // Create a file mapping object.
@@ -95,24 +82,24 @@ BOOL getFilenameObject(HANDLE handle, std::string &filename)
                     1,
                     NULL);
     if (!hFileMap) {
-        return FALSE;
+        return Status::failure("Error while trying to map file.");
     }
     
     // Create a file mapping to get the file name.
-    if (!(pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1))) {
+    if (!(pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1)))
+    {
         CloseHandle(hFileMap);
-        return FALSE;
+        return Status::failure("Error while trying to map a view of the file.");
     }
 
     if (!GetMappedFileName(GetCurrentProcess(), 
-        pMem, 
+        pMem,
         pszFilename,
         MAX_PATH))
     {
-
         UnmapViewOfFile(pMem);
         CloseHandle(hFileMap);
-        return FALSE;
+        return Status::failure("Error while trying to get mapped filename.");
     }
 
     // Translate path with device name to drive letters.
@@ -155,7 +142,7 @@ BOOL getFilenameObject(HANDLE handle, std::string &filename)
     }
     UnmapViewOfFile(pMem);
     CloseHandle(hFileMap);
-    return TRUE;
+    return Status::success();
 }
 
 BOOL getObjectType(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, PUBLIC_OBJECT_TYPE_INFORMATION *objectTypeInfo)
@@ -163,7 +150,7 @@ BOOL getObjectType(const NtQueryObject &_NtQueryObject, const HANDLE &processDup
 	return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) == STATUS_SUCCESS);
 }
 
-BOOL getHandleInfo(
+Status getHandleInfo(
     const HANDLE  &handle,
     const NtQueryObject &_NtQueryObject,
     ObjectInfoTuple &objInfo)
@@ -172,39 +159,38 @@ BOOL getHandleInfo(
     PPUBLIC_OBJECT_TYPE_INFORMATION objectTypeInfo;
 
 	if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL) {
-		return FALSE;
+        return Status::failure("Could not allocate memory for objectTypeInfo");
     }
 
-    // Récupération du type d'objet
+    // Retrieve the object type
     if (!getObjectType(_NtQueryObject, handle, objectTypeInfo))
     {
 		free(objectTypeInfo);
-		return FALSE;
+        return Status::failure("Could not get object type informations");
     }
     std::get<0>(objInfo) = wstringToString(objectTypeInfo->TypeName.Buffer);
+
+    // If it's a file, try to retrieve the human readable path name
+    // Otherwise, dumps the object name
     if (wcscmp(objectTypeInfo->TypeName.Buffer, L"File") == 0 )
     {
-        // si c'est un fichier, on récupère le chemin complet
         std::string filename;
-
-        if (getFilenameObject(handle, filename))
+        auto status = getFilenameObject(handle, filename);
+        if (status.ok())
         {
             std::get<1>(objInfo) = filename;
-            return TRUE;
-            // std::cout << "file: "<<filename << std::endl;
+            return Status::success();
         }
         
     }
     else if (getObjectName(_NtQueryObject, handle, objectName))
     {
-        // std::cout << ">>>" << wstringToString(objectName.Buffer) << std::endl;
         std::get<1>(objInfo) = objectName;
-        return TRUE;
-        // std::wcout << "ELSE: " << objectName.Buffer << std::endl;
+        return Status::success();
     }
     free(objectTypeInfo);
 
-    return FALSE;
+    return Status::failure("Could not get object name for " + std::get<0>(objInfo));
 }
 
 Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
@@ -231,7 +217,6 @@ Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
 
 QueryData genHandles(QueryContext &context) {
     QueryData rows;
-
     ULONG   i;
     DWORD   currentPid;
     HANDLE  processHandle;
@@ -253,9 +238,10 @@ QueryData genHandles(QueryContext &context) {
 
     for (i = 0; i < handleInfo->NumberOfHandles; i++)
     {
-        // if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
-        //     continue;
-        // }
+        if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
+            // Do not get handles for the current process
+            continue;
+        }
         handle = handleInfo->Handles[i];
 	    if (!(processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, handle.UniqueProcessId))) {
             continue;
@@ -273,20 +259,19 @@ QueryData genHandles(QueryContext &context) {
             CloseHandle(processDupHandle);
             continue;
         }
+
         ObjectInfoTuple objInfo;
-        if (getHandleInfo(processDupHandle, _NtQueryObject, objInfo)) {
-            std::cout << std::get<0>(objInfo) << " - " <<std::get<1>(objInfo) << std::endl;
+        auto status = getHandleInfo(processDupHandle, _NtQueryObject, objInfo);
+        if (!status.ok()) {
+            VLOG(1) << status.getMessage();
+            continue;
         }
-        // Row r;
-        // ObjectInfoTuple objInfo;
-        // if (getHandleInfo(processDupHandle, _NtQueryObject, objInfo)){
-        //     std::cout << handle.UniqueProcessId << " > " << std::get<0>(objInfo) << " - " << std::get<1>(objInfo) << std::endl;   
-        // }
- 
-        // if (objectPair.second.length() != 0 ) {
-            // r["pid"] = BIGINT(handleInfo->Handles[i].UniqueProcessId);
-            // rows.push_back(r);
-        // }
+        // Build a row from the provided handle informations
+        Row r;
+        r["pid"] = BIGINT(handle.UniqueProcessId);
+        r["object_type"] = std::get<0>(objInfo);
+        r["object_name"] = std::get<1>(objInfo);
+        rows.push_back(r);
 
     }
 
