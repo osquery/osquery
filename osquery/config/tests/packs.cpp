@@ -102,7 +102,7 @@ TEST_F(PacksTests, test_check_platform) {
   fpack.platform_ = "bad_value";
   EXPECT_FALSE(fpack.checkPlatform());
 
-  // We should execute the query if the SDK platform is specifed.
+  // We should execute the query if the SDK platform is specified.
   fpack.platform_ = kSDKPlatform;
   EXPECT_TRUE(fpack.checkPlatform());
   // But not if something other than the SDK platform is speciifed.
@@ -112,13 +112,6 @@ TEST_F(PacksTests, test_check_platform) {
   // For the remaining tests, we exercise all of the valid platform values.
   fpack.platform_ = "darwin";
   if (isPlatform(PlatformType::TYPE_OSX)) {
-    EXPECT_TRUE(fpack.checkPlatform());
-  } else {
-    EXPECT_FALSE(fpack.checkPlatform());
-  }
-
-  fpack.platform_ = "freebsd";
-  if (isPlatform(PlatformType::TYPE_FREEBSD)) {
     EXPECT_TRUE(fpack.checkPlatform());
   } else {
     EXPECT_FALSE(fpack.checkPlatform());

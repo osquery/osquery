@@ -1,5 +1,5 @@
 table_name("package_receipts", aliases=["packages"])
-description("OS X package receipt details.")
+description("macOS package receipt details.")
 schema([
     Column("package_id", TEXT, "Package domain identifier"),
     Column("package_filename", TEXT, "Filename of original .pkg file",

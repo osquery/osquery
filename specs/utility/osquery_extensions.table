@@ -6,7 +6,7 @@ schema([
     Column("version", TEXT, "Extension's version"),
     Column("sdk_version", TEXT, "osquery SDK version used to build the extension"),
     Column("path", TEXT, "Path of the extension's Thrift connection or library path"),
-    Column("type", TEXT, "SDK extension type: extension or module")
+    Column("type", TEXT, "SDK extension type: core, extension, or module")
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryExtensions")

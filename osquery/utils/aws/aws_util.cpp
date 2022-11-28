@@ -34,10 +34,12 @@
 #include <aws/sts/model/Credentials.h>
 
 #include <osquery/core/flags.h>
+#include <osquery/core/shutdown.h>
+#include <osquery/logger/data_logger.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/aws/aws_util.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
-#include <osquery/utils/aws/aws_util.h>
 
 namespace pt = boost::property_tree;
 
@@ -80,10 +82,32 @@ FLAG(string,
      aws_proxy_password,
      "",
      "Proxy password for use in AWS client config");
+FLAG(bool, aws_debug, false, "Enable AWS SDK debug logging");
+
+FLAG(uint32,
+     aws_imdsv2_request_attempts,
+     3,
+     "How many attempts to do at requesting an IMDSv2 token");
+
+FLAG(uint32,
+     aws_imdsv2_request_interval,
+     3,
+     "Base seconds to wait between attempts at requesting an IMDSv2 token. "
+     "Scales quadratically with the number of attempts");
+
+FLAG(bool,
+     aws_disable_imdsv1_fallback,
+     false,
+     "Whether to disable support for IMDSv1 and fail if an IMDSv2 token could "
+     "not be retrieved");
 
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
     "http://" + http::kInstanceMetadataAuthority + "/latest/";
+
+/// EC2 instance identity document URL
+const std::string kEc2IdentityDocument =
+    kEc2MetadataUrl + "dynamic/instance-identity/document";
 
 /// Hypervisor UUID file
 const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
@@ -113,6 +137,26 @@ static const std::set<std::string> kAwsRegions = {
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
+// To protect the access to the AWS instance id and region that are being cached
+static std::mutex cached_values_mutex;
+
+namespace {
+bool validateIMDSV2RequestAttempts(const char* flagname, std::uint32_t value) {
+  if (value == 0) {
+    std::string error_message =
+        "Only values higher than 0 are supported for " + std::string(flagname);
+    osquery::systemLog(error_message);
+    std::cerr << error_message << std::endl;
+
+    return false;
+  }
+
+  return true;
+}
+}; // namespace
+
+DEFINE_validator(aws_imdsv2_request_attempts, validateIMDSV2RequestAttempts);
+
 std::shared_ptr<Aws::Http::HttpClient>
 OsqueryHttpClientFactory::CreateHttpClient(
     const Aws::Client::ClientConfiguration& clientConfiguration) const {
@@ -139,9 +183,11 @@ OsqueryHttpClientFactory::CreateHttpRequest(
 }
 
 std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
-    Aws::Http::HttpRequest& request,
+    const std::shared_ptr<Aws::Http::HttpRequest>& request_ptr,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
+  auto& request = *request_ptr.get();
+
   // AWS allows rate limiters to be passed around, but we are doing rate
   // limiting on the logger plugin side and so don't implement this.
   if (readLimiter != nullptr || writeLimiter != nullptr) {
@@ -166,10 +212,25 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     body = ss.str();
   }
 
-  auto response = std::make_shared<Standard::StandardHttpResponse>(request);
-  try {
-    http::Response resp;
+  auto response = std::make_shared<Standard::StandardHttpResponse>(request_ptr);
+  http::Response resp;
 
+  if (osquery::shutdownRequested()) {
+    /* This is technically a client error, but some AWS requests
+       consider any client error as retryable.
+       Since we want to stop the retries,
+       we use instead a non-retryable response code,
+       although we did not have any response.
+       We also log the reason of the failure to provide more information */
+
+    response->SetResponseCode(Aws::Http::HttpResponseCode::BLOCKED);
+    LOG(WARNING) << "An AWS request has been blocked since a shutdown has been "
+                    "requested";
+
+    return response;
+  }
+
+  try {
     switch (request.GetMethod()) {
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
@@ -185,15 +246,21 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
       break;
     case Aws::Http::HttpMethod::HTTP_PATCH:
       LOG(ERROR) << "osquery-http_client does not support HTTP PATCH";
-      return nullptr;
-      break;
+
+      response->SetResponseCode(Aws::Http::HttpResponseCode::NOT_IMPLEMENTED);
+      return response;
+
     case Aws::Http::HttpMethod::HTTP_DELETE:
       resp = client.delete_(req);
       break;
+
     default:
       LOG(ERROR) << "Unrecognized HTTP Method used: "
                  << static_cast<int>(request.GetMethod());
-      return nullptr;
+
+      response->SetResponseCode(Aws::Http::HttpResponseCode::NOT_IMPLEMENTED);
+      return response;
+
       break;
     }
 
@@ -211,19 +278,16 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
 
   } catch (const std::exception& e) {
     /* NOTE: This exception must NOT be passed by reference. */
-    LOG(ERROR) << "Exception making HTTP request to URL (" << url
-               << "): " << e.what();
-    return nullptr;
+    LOG(ERROR) << "Exception making HTTP "
+               << Aws::Http::HttpMethodMapper::GetNameForHttpMethod(
+                      request.GetMethod())
+               << " request to URL (" << url << "): " << e.what();
+
+    response->SetClientErrorType(Aws::Client::CoreErrors::NETWORK_CONNECTION);
+    response->SetClientErrorMessage(e.what());
   }
 
   return response;
-}
-
-std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
-    const std::shared_ptr<Aws::Http::HttpRequest>& request,
-    Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
-    Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
-  return MakeRequest(*request, readLimiter, writeLimiter);
 }
 
 Aws::Auth::AWSCredentials
@@ -286,11 +350,28 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       access_key_id_ = sts_result.GetCredentials().GetAccessKeyId();
       secret_access_key_ = sts_result.GetCredentials().GetSecretAccessKey();
       session_token_ = sts_result.GetCredentials().GetSessionToken();
+
       // Calculate when our credentials will expire.
       token_expire_time_ = current_time + FLAGS_aws_sts_timeout;
     } else {
-      LOG(ERROR) << "Failed to create STS temporary credentials: "
-                    "No STS policy exists for the AWS user/role";
+      const auto& error = sts_outcome.GetError();
+
+      std::stringstream error_message;
+
+      error_message << static_cast<int>(error.GetErrorType());
+
+      if (error.GetResponseCode() !=
+          Aws::Http::HttpResponseCode::REQUEST_NOT_MADE) {
+        error_message << ", HTTP responde code: "
+                      << static_cast<int>(error.GetResponseCode());
+      }
+
+      if (!error.GetMessage().empty()) {
+        error_message << ", error message: " << error.GetMessage();
+      }
+
+      LOG(ERROR) << "Failed to create STS temporary credentials, error type: "
+                 << error_message.rdbuf();
     }
   }
   return Aws::Auth::AWSCredentials(
@@ -365,6 +446,9 @@ void initAwsSdk() {
   try {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
+      if (FLAGS_aws_debug) {
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
+      }
       options.httpOptions.httpClientFactory_create_fn = []() {
         return std::make_shared<OsqueryHttpClientFactory>();
       };
@@ -375,56 +459,56 @@ void initAwsSdk() {
   }
 }
 
-void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
-  static std::atomic<bool> checked(false);
+boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion() {
   static std::string cached_id;
   static std::string cached_region;
-  if (checked || !isEc2Instance()) {
-    // Return if already checked or this is not EC2 instance
-    instance_id = cached_id;
-    region = cached_region;
-    return;
+  static bool init_successfully = false;
+
+  std::lock_guard<std::mutex> lock(cached_values_mutex);
+
+  if (init_successfully) {
+    return {{cached_id, cached_region}};
   }
 
-  static std::once_flag once_flag;
-  std::call_once(once_flag, []() {
-    if (checked) {
-      return;
-    }
+  initAwsSdk();
+  http::Request req(kEc2IdentityDocument);
+  auto opt_token = getIMDSToken();
+  if (opt_token.has_value()) {
+    req << http::Request::Header(kImdsTokenHeader, *opt_token);
+  } else if (FLAGS_aws_disable_imdsv1_fallback) {
+    /* If the IMDSv2 token cannot be retrieved and we disabled IMDSv1,
+       we cannot attempt to do a request, so return with empty results. */
+    VLOG(1) << "Could not retrieve an IMDSv2 token to request the instance id "
+               "and region. The IMDSv1 fallback is disabled";
+    return boost::none;
+  }
 
-    initAwsSdk();
-    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
-    auto token = getIMDSToken();
-    if (!token.empty()) {
-      req << http::Request::Header(kImdsTokenHeader, token);
-    }
-    http::Client::Options options;
-    options.timeout(3);
-    http::Client client(options);
+  http::Client::Options options;
+  options.timeout(3);
+  http::Client client(options);
 
-    try {
-      http::Response res = client.get(req);
-      if (res.status() == 200) {
-        pt::ptree tree;
-        std::stringstream ss(res.body());
-        pt::read_json(ss, tree);
-        cached_id = tree.get<std::string>("instanceId", ""),
-        cached_region = tree.get<std::string>("region", ""),
-        VLOG(1) << "EC2 instance ID: " << cached_id
-                << ". Region: " << cached_region;
-      }
-    } catch (const std::system_error& e) {
-      // Assume that this is not EC2 instance
-      VLOG(1) << "Error getting EC2 instance information: " << e.what();
+  try {
+    http::Response res = client.get(req);
+    if (res.status() == 200) {
+      pt::ptree tree;
+      std::stringstream ss(res.body());
+      pt::read_json(ss, tree);
+      cached_id = tree.get<std::string>("instanceId", ""),
+      cached_region = tree.get<std::string>("region", ""),
+      VLOG(1) << "EC2 instance ID: " << cached_id
+              << ". Region: " << cached_region;
     }
-    checked = true;
-  });
+  } catch (const std::system_error& e) {
+    VLOG(1) << "Error getting EC2 instance information: " << e.what();
+    return boost::none;
+  }
 
-  instance_id = cached_id;
-  region = cached_region;
+  init_successfully = true;
+
+  return {{cached_id, cached_region}};
 }
 
-std::string getIMDSToken() {
+boost::optional<std::string> getIMDSToken() {
   std::string token;
   http::Request req(kEc2MetadataUrl + kImdsTokenResource);
   http::Client::Options options;
@@ -432,64 +516,51 @@ std::string getIMDSToken() {
   http::Client client(options);
   req << http::Request::Header(kImdsTokenTtlHeader, kImdsTokenTtlDefaultValue);
 
-  try {
-    http::Response res = client.put(req, "", "");
-    token = res.status() == 200 ? res.body() : "";
-  } catch (const std::system_error& e) {
-    VLOG(1) << "Request for " << kImdsTokenResource << " failed:" << e.what();
+  std::uint32_t attempts = 0;
+  std::uint32_t interval = FLAGS_aws_imdsv2_request_interval;
+  while (attempts < FLAGS_aws_imdsv2_request_attempts) {
+    try {
+      http::Response res = client.put(req, "", "");
+      token = res.status() == 200 ? res.body() : "";
+    } catch (const std::system_error& e) {
+      VLOG(1) << "Request for " << kImdsTokenResource
+              << " failed: " << e.what();
+    } catch (const std::runtime_error& e) {
+      VLOG(1) << "Request for " << kImdsTokenResource
+              << " failed: " << e.what();
+    }
+
+    if (token.empty()) {
+      if (attempts < FLAGS_aws_imdsv2_request_attempts) {
+        auto should_shutdown =
+            osquery::waitTimeoutOrShutdown(std::chrono::seconds(interval));
+        if (should_shutdown) {
+          return boost::none;
+        }
+
+        interval *= FLAGS_aws_imdsv2_request_interval;
+        ++attempts;
+      }
+      continue;
+    }
+
+    break;
   }
+
+  if (attempts == FLAGS_aws_imdsv2_request_attempts) {
+    LOG(ERROR) << "Failed " << FLAGS_aws_imdsv2_request_attempts
+               << " attempts at retrieving an IMDSv2 token";
+    return boost::none;
+  }
+
   return token;
 }
 
-bool isEc2Instance() {
-  static std::atomic<bool> checked(false);
-  static std::atomic<bool> is_ec2_instance(false);
-  if (checked) {
-    return is_ec2_instance; // Return if already checked
-  }
-
-  static std::once_flag once_flag;
-  std::call_once(once_flag, []() {
-    if (checked) {
-      return;
-    }
-    checked = true;
-
-    std::ifstream fd(kHypervisorUuid, std::ifstream::in);
-    if (fd && !(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
-      return; // Not EC2 instance
-    }
-
-    auto token = getIMDSToken();
-    http::Request req(kEc2MetadataUrl);
-    if (!token.empty()) {
-      req << http::Request::Header(kImdsTokenHeader, token);
-    }
-    http::Client::Options options;
-    options.timeout(3);
-    http::Client client(options);
-
-    try {
-      http::Response res = client.get(req);
-      if (res.status() == 200) {
-        is_ec2_instance = true;
-      }
-    } catch (const std::system_error& e) {
-      // Assume that this is not EC2 instance
-      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
-    } catch (const std::runtime_error& e) {
-      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
-    }
-  });
-
-  return is_ec2_instance;
-}
-
-Status getAWSRegion(std::string& region, bool sts) {
+Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
   // First try using the explicit region flags (STS or otherwise).
   if (sts && !FLAGS_aws_sts_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_sts_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
       region = FLAGS_aws_sts_region;
       return Status(0);
@@ -500,7 +571,7 @@ Status getAWSRegion(std::string& region, bool sts) {
 
   if (!FLAGS_aws_region.empty()) {
     auto index = kAwsRegions.find(FLAGS_aws_region);
-    if (index != kAwsRegions.end()) {
+    if (index != kAwsRegions.end() || !validate_region) {
       VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
       region = FLAGS_aws_region;
       return Status(0);

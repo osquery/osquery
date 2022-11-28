@@ -27,7 +27,7 @@ std::string lexical_cast<std::string, bool>(const bool& b) {
   ss << std::boolalpha << b;
   return ss.str();
 }
-}
+} // namespace boost
 
 namespace flags = GFLAGS_NAMESPACE;
 
@@ -113,6 +113,17 @@ std::string Flag::getDescription(const std::string& name) {
     return getDescription(instance().aliases_.at(name).description);
   }
   return "";
+}
+
+bool Flag::isCLIOnlyFlag(const std::string& name) {
+  const auto& flags = instance().flags_;
+  const auto it = instance().flags_.find(name);
+
+  if (it == flags.end()) {
+    return false;
+  }
+
+  return it->second.cli;
 }
 
 Status Flag::updateValue(const std::string& name, const std::string& value) {
@@ -218,4 +229,8 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
     fprintf(stdout, "  %s\n", getDescription(flag.second->name).c_str());
   }
 }
+
+void Flag::resetCustomFlags() {
+  instance().custom_.clear();
 }
+} // namespace osquery

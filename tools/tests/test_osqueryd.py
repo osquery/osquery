@@ -13,6 +13,7 @@ import signal
 import shutil
 import time
 import unittest
+from pathlib import Path
 
 # osquery-specific testing utils
 import test_base
@@ -114,26 +115,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         children = daemon.getChildren()
         self.assertTrue(len(children) > 0)
 
-    def test_daemon_sighup(self):
-        # A hangup signal should not do anything to the daemon.
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
-        self.assertTrue(daemon.isAlive())
-
-        # Send SIGHUP on posix. Windows does not have SIGHUP so we use SIGTERM
-        sig = signal.SIGHUP if os.name != "nt" else signal.SIGTERM
-        os.kill(daemon.proc.pid, sig)
-        self.assertTrue(daemon.isAlive())
-
-    def test_daemon_sigint(self):
-        # First check that the pidfile does not exist.
-        # The existance will be used to check if the daemon has run.
-        pidfile_path = test_base.CONFIG["options"]["pidfile"]
-        def pidfile_exists():
-            return os.path.exists(pidfile_path)
-        self.assertFalse(pidfile_exists())
-
+    def daemon_sigint_test_helper(self, pidfile_path):
         # An interrupt signal will cause the daemon to stop.
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -146,6 +128,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Wait for the pidfile to exist.
         # This means the signal handler has been installed.
+        def pidfile_exists():
+            return os.path.exists(pidfile_path)
+
         test_base.expectTrue(pidfile_exists)
         self.assertTrue(pidfile_exists())
 
@@ -155,18 +140,38 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         if os.name != "nt":
             self.assertEqual(daemon.retcode, 0)
 
+        # On Windows, we eventually reopen the file with the delete-on-close
+        # flag, so this file should disappear
+        if os.name == "nt":
+            self.assertFalse(pidfile_exists())
+
+    def test_daemon_sigint(self):
+        pidfile_path = test_base.CONFIG["options"]["pidfile"]
+
+        Path(pidfile_path).touch()
+        self.assertTrue(os.path.exists(pidfile_path))
+        self.daemon_sigint_test_helper(pidfile_path)
+
+        try:
+            os.remove(pidfile_path)
+        except:
+            pass
+
+        self.assertFalse(os.path.exists(pidfile_path))
+        self.daemon_sigint_test_helper(pidfile_path)
+
     def test_logger_mode(self):
         logger_path = test_base.getTestDirectory(test_base.TEMP_DIR)
-        test_mode = 0o754  # Strange mode that should never exist
+        test_mode = "0754" # Strange mode that should never exist
         daemon = self._run_daemon(
             {
                 "disable_watchdog": True,
                 "disable_extensions": True,
                 "disable_logging": False,
+                "logger_mode": test_mode,
             },
             options_only={
                 "logger_path": logger_path,
-                "logger_mode": test_mode,
                 "verbose": True,
             },
         )
@@ -196,7 +201,10 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             if pth.find('.log') > 0 and os.name != "nt":
                 rpath = os.path.realpath(pth)
                 mode = os.stat(rpath).st_mode & 0o777
-                self.assertEqual(mode, test_mode)
+                # NOTE: We are converting test_mode in this way because
+                # the python integer to octal string conversion
+                # uses a format ("0o754") that's not supported by C++
+                self.assertEqual(mode, int(test_mode, 8))
 
         daemon.kill()
 

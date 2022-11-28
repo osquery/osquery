@@ -19,10 +19,6 @@
 #include <boost/endian/buffers.hpp>
 #include <sqlite3.h>
 
-#ifdef OSQUERY_POSIX
-#include <fuzzy.h>
-#endif
-
 namespace errc = boost::system::errc;
 namespace ip = boost::asio::ip;
 
@@ -71,22 +67,6 @@ static void sqliteSHA256Func(sqlite3_context* context,
                              sqlite3_value** argv) {
   hashSqliteValue(context, argc, argv, HASH_TYPE_SHA256);
 }
-
-#ifdef OSQUERY_POSIX
-static void sqliteSsdeepCompareFunc(sqlite3_context* context,
-                                    int argc,
-                                    sqlite3_value** argv) {
-  if (sqlite3_value_type(argv[0]) != SQLITE_TEXT ||
-      sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
-    sqlite3_result_error(
-        context, "Invalid inputs to ssdeep_compare, TEXT was expected", -1);
-    return;
-  }
-  const char* sig1 = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
-  const char* sig2 = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
-  sqlite3_result_int(context, fuzzy_compare(sig1, sig2));
-}
-#endif
 
 static void sqliteCommunityIDv1(sqlite3_context* context,
                                 int argc,
@@ -171,8 +151,11 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   }
 
   // seed . saddr . daddr . proto . 0 . sport . dport
+  std::array<char, 2> buffer;
+  std::memcpy(buffer.data(), seed.data(), buffer.size());
+
   std::stringstream bytes;
-  bytes.write(seed.data(), 2);
+  bytes.write(buffer.data(), buffer.size());
   if (saddr.is_v4()) {
     bytes.write(reinterpret_cast<const char*>(saddr.to_v4().to_bytes().data()),
                 4);
@@ -189,8 +172,12 @@ static void sqliteCommunityIDv1(sqlite3_context* context,
   }
   bytes.write(reinterpret_cast<const char*>(&proto), 1);
   bytes.put(0);
-  bytes.write(sport.data(), 2);
-  bytes.write(dport.data(), 2);
+
+  std::memcpy(buffer.data(), sport.data(), buffer.size());
+  bytes.write(buffer.data(), buffer.size());
+
+  std::memcpy(buffer.data(), dport.data(), buffer.size());
+  bytes.write(buffer.data(), buffer.size());
 
   std::string res = bytes.str();
 
@@ -248,16 +235,6 @@ void registerHashingExtensions(sqlite3* db) {
                           sqliteSHA256Func,
                           nullptr,
                           nullptr);
-#ifdef OSQUERY_POSIX
-  sqlite3_create_function(db,
-                          "ssdeep_compare",
-                          2,
-                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
-                          nullptr,
-                          sqliteSsdeepCompareFunc,
-                          nullptr,
-                          nullptr);
-#endif
   sqlite3_create_function(db,
                           "community_id_v1",
                           5,

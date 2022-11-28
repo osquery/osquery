@@ -7,196 +7,106 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-// see README.api of libdpkg-dev
-#define LIBDPKG_VOLATILE_API
-
-#include <boost/algorithm/string.hpp>
-
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
-#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/linux/idpkgquery.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
-
-extern "C" {
-#include <dpkg/dpkg-db.h>
-#include <dpkg/dpkg.h>
-#include <dpkg/parsedump.h>
-#include <dpkg/pkg-array.h>
-}
 
 namespace osquery {
 namespace tables {
 
-static const std::string kDPKGPath{"/var/lib/dpkg"};
+namespace {
 
-/// A comparator used to sort the packages array.
-int pkg_sorter(const void* a, const void* b) {
-  const struct pkginfo* pa = *(const struct pkginfo**)a;
-  const struct pkginfo* pb = *(const struct pkginfo**)b;
-  const char* arch_a = pa->installed.arch->name;
-  const char* arch_b = pb->installed.arch->name;
+// From the documentation: this directory contains many files that give
+// information about status of installed or uninstalled packages
+const std::string kAdminDir{"/var/lib/dpkg"};
 
-  int res = strcmp(pa->set->name, pb->set->name);
-  if (res != 0) {
-    return res;
-  }
+void logError(Logger& logger,
+              const std::string& message,
+              const Error<IDpkgQuery::ErrorCode>& error,
+              const std::string& admindir) {
+  auto error_code = error.getErrorCode();
 
-  if (pa->installed.arch == pb->installed.arch) {
-    return 0;
-  }
+  const auto& error_description =
+      IDpkgQuery::getErrorCodeDescription(error_code);
 
-  return strcmp(arch_a, arch_b);
+  logger.log(google::GLOG_ERROR,
+             "deb_packages: " + message + ": " + error_description +
+                 " (admindir='" + admindir + "')");
 }
 
-/**
- * @brief A field extractor to fetch the revision of a package.
- *
- * dpkg tracks the revision as part of version, but we need to provide our own
- * fwritefunction for fieldinfos to extract it.
- */
-void w_revision(struct varbuf* vb,
-                const struct pkginfo* pkg,
-                const struct pkgbin* pkgbin,
-                enum fwriteflags flags,
-                const struct fieldinfo* fip) {
-  if (flags & fw_printheader) {
-    varbuf_add_str(vb, "Revision: ");
-  }
-  varbuf_add_str(vb, pkgbin->version.revision);
-  if (flags & fw_printheader) {
-    varbuf_add_char(vb, '\n');
-  }
-}
-
-/**
- * @brief Initialize dpkg and load packages into memory
- */
-void dpkg_setup(struct pkg_array* packages) {
-  dpkg_set_progname("osquery");
-  push_error_context();
-
-  dpkg_db_set_dir(kDPKGPath.c_str());
-  modstatdb_init();
-  modstatdb_open(msdbrw_readonly);
-
-  pkg_array_init_from_db(packages);
-  pkg_array_sort(packages, pkg_sorter);
-}
-
-/**
- * @brief Clean up after dpkg operations
- */
-void dpkg_teardown(struct pkg_array* packages) {
-  pkg_array_destroy(packages);
-
-  pkg_db_reset();
-  modstatdb_done();
-
-  pop_error_context(ehflag_normaltidy);
-}
-
-const std::map<std::string, std::string> kFieldMappings = {
-    {"Package", "name"},
-    {"Version", "version"},
-    {"Installed-Size", "size"},
-    {"Architecture", "arch"},
-    {"Source", "source"},
-    {"Revision", "revision"},
-    {"Status", "status"},
-    {"Maintainer", "maintainer"},
-    {"Section", "section"},
-    {"Priority", "priority"}};
-
-/**
- * @brief Field names and function references to extract information.
- *
- * These are taken from lib/dpkg/parse.c, with a slight modification to
- * add an fwritefunction for Revision. Additional fields can be taken
- * as needed.
- */
-const struct fieldinfo fieldinfos[] = {
-    {FIELD("Package"), f_name, w_name, 0},
-    {FIELD("Installed-Size"),
-     f_charfield,
-     w_charfield,
-     PKGIFPOFF(installedsize)},
-    {FIELD("Architecture"), f_architecture, w_architecture, 0},
-    {FIELD("Source"), f_charfield, w_charfield, PKGIFPOFF(source)},
-    {FIELD("Version"), f_version, w_version, PKGIFPOFF(version)},
-    {FIELD("Revision"), f_revision, w_revision, 0},
-    {FIELD("Status"), f_status, w_status, 0},
-    {FIELD("Maintainer"), f_charfield, w_charfield, PKGIFPOFF(maintainer)},
-    {FIELD("Priority"), f_priority, w_priority, 0},
-    {FIELD("Section"), f_section, w_section, 0},
-    {}};
-
-void extractDebPackageInfo(const struct pkginfo* pkg, QueryData& results) {
-  Row r;
-
-  struct varbuf vb;
-  varbuf_init(&vb, 20);
-
-  // Iterate over the desired fieldinfos, calling their fwritefunctions
-  // to extract the package's information.
-  const struct fieldinfo* fip = nullptr;
-  for (fip = fieldinfos; fip->name; fip++) {
-    fip->wcall(&vb, pkg, &pkg->installed, fw_printheader, fip);
-
-    std::string line = vb.string();
-    if (!line.empty()) {
-      size_t separator_position = line.find(':');
-
-      std::string key = line.substr(0, separator_position);
-      std::string value = line.substr(separator_position + 1, line.length());
-      auto it = kFieldMappings.find(key);
-      if (it != kFieldMappings.end()) {
-        boost::algorithm::trim(value);
-        r[it->second] = std::move(value);
-      }
-    }
-    varbuf_reset(&vb);
-  }
-  varbuf_destroy(&vb);
-
-  if (r.find("size") == r.end()) {
-    // Possible meta-package without an installed-size.
-    r["size"] = "0";
-  }
-
-  r["pid_with_namespace"] = "0";
-
-  results.push_back(r);
-}
+} // namespace
 
 QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
-  QueryData results;
+  std::vector<std::string> admindir_list{};
 
-  if (!osquery::isDirectory(kDPKGPath)) {
-    logger.vlog(1, "Cannot find DPKG database: " + kDPKGPath);
-    return results;
+  if (context.hasConstraint("admindir", EQUALS)) {
+    for (const auto& admindir :
+         context.constraints["admindir"].getAll(EQUALS)) {
+      admindir_list.push_back(admindir);
+    }
+
+  } else {
+    admindir_list.push_back(kAdminDir);
   }
 
+  // Drop to 'nobody' to ensure that the libdpkg library
+  // can't change the package database. Privileges will be
+  // restored automatically when the `dropper` object goes
+  // out of scope.
+  //
+  // Note that this is *NOT* a security feature
   auto dropper = DropPrivileges::get();
   dropper->dropTo("nobody");
 
-  struct pkg_array packages;
-  dpkg_setup(&packages);
+  QueryData results;
 
-  for (int i = 0; i < packages.n_pkgs; i++) {
-    struct pkginfo* pkg = packages.pkgs[i];
-    // Casted to int to allow the older enums that were embedded in the packages
-    // struct to be compared
-    if (static_cast<int>(pkg->status) ==
-        static_cast<int>(PKG_STAT_NOTINSTALLED)) {
+  for (const auto& admindir : admindir_list) {
+    auto dpkg_query_exp = IDpkgQuery::create(admindir);
+    if (dpkg_query_exp.isError()) {
+      logError(logger,
+               "Failed to open the dpkg database",
+               dpkg_query_exp.takeError(),
+               admindir);
+
       continue;
     }
 
-    extractDebPackageInfo(pkg, results);
+    auto dpkg_query = dpkg_query_exp.take();
+
+    auto package_list_exp = dpkg_query->getPackageList();
+    if (package_list_exp.isError()) {
+      logError(logger,
+               "Failed to list the packages",
+               package_list_exp.takeError(),
+               admindir);
+
+      continue;
+    }
+
+    auto package_list = package_list_exp.take();
+
+    for (const auto& package : package_list) {
+      Row r;
+      r["name"] = package.name;
+      r["version"] = package.version;
+      r["arch"] = package.arch;
+      r["status"] = package.status;
+      r["revision"] = package.revision;
+      r["priority"] = package.priority;
+      r["section"] = package.section;
+      r["source"] = package.source;
+      r["size"] = package.size;
+      r["maintainer"] = package.maintainer;
+      r["admindir"] = admindir;
+      r["pid_with_namespace"] = "0";
+
+      results.push_back(std::move(r));
+    }
   }
 
-  dpkg_teardown(&packages);
   return results;
 }
 

@@ -24,15 +24,18 @@ function(generateOsqueryEvents)
       linux/inotify.cpp
       linux/syslog.cpp
       linux/udev.cpp
+      linux/socket_events.cpp
     )
 
     if(OSQUERY_BUILD_BPF)
       list(APPEND source_files
+        linux/bpf/bpferrorstate.cpp
         linux/bpf/bpfeventpublisher.cpp
         linux/bpf/filesystem.cpp
         linux/bpf/processcontextfactory.cpp
         linux/bpf/setrlimit.cpp
         linux/bpf/systemstatetracker.cpp
+        linux/bpf/serializers.cpp
       )
     endif()
 
@@ -41,7 +44,9 @@ function(generateOsqueryEvents)
       audit_flags.cpp
       file_events_flags.cpp
       darwin/diskarbitration.cpp
+      darwin/es_utils.cpp
       darwin/endpointsecurity.cpp
+      darwin/endpointsecurity_fim.cpp
       darwin/event_taps.cpp
       darwin/fsevents.cpp
       darwin/iokit.cpp
@@ -120,6 +125,7 @@ function(generateOsqueryEvents)
 
     if(OSQUERY_BUILD_BPF)
       list(APPEND platform_public_header_files
+        linux/bpf/bpferrorstate.h
         linux/bpf/bpfeventpublisher.h
         linux/bpf/filesystem.h
         linux/bpf/ifilesystem.h
@@ -128,6 +134,7 @@ function(generateOsqueryEvents)
         linux/bpf/processcontextfactory.h
         linux/bpf/setrlimit.h
         linux/bpf/systemstatetracker.h
+        linux/bpf/serializers.h
         linux/bpf/uniquedir.h
       )
     endif()
@@ -135,6 +142,7 @@ function(generateOsqueryEvents)
   elseif(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
       darwin/diskarbitration.h
+      darwin/es_utils.h
       darwin/endpointsecurity.h
       darwin/event_taps.h
       darwin/fsevents.h

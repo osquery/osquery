@@ -16,10 +16,10 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
-#include <osquery/process/windows/process_ops.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},
@@ -117,6 +117,24 @@ QueryData genLoggedInUsers(QueryContext& context) {
       // TODO: IPv6 addresses are given as an array of byte values.
       auto addr = reinterpret_cast<const char*>(wtsClient->ClientAddress);
       r["host"] = std::string(addr, CLIENTADDRESS_LENGTH);
+    } else if (wtsClient->ClientAddressFamily == AF_UNSPEC) {
+      LPWSTR clientName = nullptr;
+      res = WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE,
+                                        pSessionInfo[i].SessionId,
+                                        WTSClientName,
+                                        &clientName,
+                                        &bytesRet);
+
+      if (res == 0 || clientName == nullptr) {
+        VLOG(1) << "Error querying WTS clientName information ("
+                << GetLastError() << ")";
+      } else {
+        r["host"] = wstringToString(clientName);
+      }
+
+      if (clientName != nullptr) {
+        WTSFreeMemory(clientName);
+      }
     }
 
     r["pid"] = INTEGER(-1);
@@ -127,7 +145,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
       wtsClient = nullptr;
     }
 
-    const auto sidBuf = getSidFromUsername(wtsSession->UserName);
+    const auto sidBuf = getSidFromAccountName(wtsSession->UserName);
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);

@@ -25,12 +25,13 @@ QueryData genVideoInfo(QueryContext& context) {
   Row r;
   QueryData results;
 
-  const WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
-  const std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.empty()) {
+  const auto wmiSystemReq =
+      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_VideoController");
+  if (!wmiSystemReq || wmiSystemReq->results().empty()) {
     LOG(WARNING) << "Failed to retrieve video information";
     return {};
   } else {
+    const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
     long bitsPerPixel = 0;
     wmiResults[0].GetLong("CurrentBitsPerPixel", bitsPerPixel);
     r["color_depth"] = INTEGER(bitsPerPixel);

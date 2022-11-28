@@ -71,16 +71,10 @@ function Set-SafePermissions {
     [string] $target = ''
   )
   if ($PSCmdlet.ShouldProcess($target)) {
-    $acl = Get-Acl $target
-
-    # First, to ensure success, we remove the entirety of the ACL
+    # Prepare an initially empty ACL with inheritance disabled, so that only the ACLs specified here will be applied
+    $acl = New-Object System.Security.AccessControl.DirectorySecurity
     $acl.SetAccessRuleProtection($true, $false)
-    foreach ($access in $acl.Access) {
-      $acl.RemoveAccessRule($access)
-    }
-    Set-Acl $target $acl
 
-    $acl = Get-Acl $target
     $inheritanceFlag = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
     $propagationFlag = [System.Security.AccessControl.PropagationFlags]::None
     $permType = [System.Security.AccessControl.AccessControlType]::Allow

@@ -21,38 +21,27 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/expected/expected.h>
+
+#include <openssl/x509.h>
 
 namespace osquery {
 namespace tables {
 
 // Empty string runs default verification on a file
-std::set<std::string> kCheckedArches{"", "i386", "ppc", "arm", "x86_64"};
-
-int getOSMinorVersion() {
-  auto qd = SQL::selectAllFrom("os_version");
-  if (qd.size() != 1) {
-    return -1;
-  }
-
-  return tryTo<int>(qd.front().at("minor")).takeOr(-1);
-}
+// TODO: we may want to eventually add arm64e to this set. As of October 2021,
+// arm64 and arm64e are aliased and duplicated results are returned.
+std::set<std::string> kCheckedArches{
+    "", "i386", "ppc", "arm", "x86_64", "arm64"};
 
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
 // the OS version.
 Status getVerifyFlags(SecCSFlags& flags, bool hashResources) {
-  static const auto minorVersion = getOSMinorVersion();
-  if (minorVersion == -1) {
-    return Status(-1, "Couldn't determine OS X version");
-  }
-
   flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures |
           kSecCSCheckNestedCode;
-  if (minorVersion > 8) {
-    flags |= kSecCSCheckNestedCode;
-  }
 
   if (!hashResources) {
     flags |= kSecCSDoNotValidateResources;
@@ -197,11 +186,8 @@ Status genSignatureForFileAndArch(const std::string& path,
       auto length = CFDataGetLength(der_encoded_data);
       auto x509_cert = d2i_X509(nullptr, &der_bytes, length);
       if (x509_cert != nullptr) {
-        std::string subject;
-        std::string issuer;
-        std::string commonName;
-        genCommonName(x509_cert, subject, commonName, issuer);
-        r["authority"] = commonName;
+        auto opt_common_name = getCertificateCommonName(x509_cert);
+        r["authority"] = SQL_TEXT(opt_common_name.value_or(""));
         X509_free(x509_cert);
       } else {
         VLOG(1) << "Error decoding DER encoded certificate";

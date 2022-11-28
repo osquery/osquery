@@ -26,9 +26,6 @@ namespace osquery {
 
 DECLARE_bool(audit_allow_unix);
 
-/// Internal audit subscriber (socket events) testable methods.
-extern void parseSockAddr(const std::string& saddr, Row& r, bool& unix_socket);
-
 using StringMap = std::map<std::string, std::string>;
 
 /// Generates a fake audit id
@@ -103,34 +100,4 @@ bool SimpleUpdate(size_t t, const StringMap& f, StringMap& m) {
   return true;
 }
 
-TEST_F(AuditTests, test_parse_sock_addr) {
-  Row r;
-  std::string msg = "02001F907F0000010000000000000000";
-  bool unix_socket;
-  parseSockAddr(msg, r, unix_socket);
-  ASSERT_FALSE(r["remote_address"].empty());
-  EXPECT_EQ(r["remote_address"], "127.0.0.1");
-  EXPECT_EQ(r["family"], "2");
-  EXPECT_EQ(r["remote_port"], "8080");
-
-  Row r3;
-  std::string msg2 = "0A001F9100000000FE80000000000000022522FFFEB03684000000";
-  parseSockAddr(msg2, r3, unix_socket);
-  ASSERT_FALSE(r3["remote_address"].empty());
-  EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
-  EXPECT_EQ(r3["remote_port"], "8081");
-
-  auto socket_flag = FLAGS_audit_allow_unix;
-  FLAGS_audit_allow_unix = true;
-  Row r4;
-  std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
-  parseSockAddr(msg3, r4, unix_socket);
-  ASSERT_FALSE(r4["socket"].empty());
-  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
-
-  msg3 = "0100002F746D702F6F7371756572792E656D";
-  parseSockAddr(msg3, r4, unix_socket);
-  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
-  FLAGS_audit_allow_unix = socket_flag;
-}
 }

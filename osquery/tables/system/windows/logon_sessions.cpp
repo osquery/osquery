@@ -17,11 +17,11 @@
 #include <vector>
 
 #include <osquery/core/core.h>
-#include <osquery/logger/logger.h>
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-#include <osquery/process/windows/process_ops.h>
+#include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace osquery {
 namespace tables {

@@ -14,9 +14,9 @@
 #include <osquery/database/database.h>
 #include <osquery/distributed/distributed.h>
 
-#include <osquery/utils/system/time.h>
 #include <osquery/dispatcher/distributed_runner.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/time.h>
 
 namespace osquery {
 
@@ -34,9 +34,8 @@ void DistributedRunner::start() {
   auto dist = Distributed();
   while (!interrupted()) {
     dist.pullUpdates();
-    if (dist.getPendingQueryCount() > 0) {
-      dist.runQueries();
-    }
+    dist.runQueries();
+    dist.cleanupExpiredRunningQueries();
 
     std::string accelerate_checkins_expire_str = "-1";
     Status status = getDatabaseValue(kPersistentSettings,

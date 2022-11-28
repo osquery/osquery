@@ -36,15 +36,14 @@ from gentable import *
 # This data structure represents the directories in specs/ and how they map to
 # the operating systems which support tables found in those directories
 PLATFORM_DIRS = {
-    "specs": ["darwin", "linux", "windows", "freebsd"],
-    "utility": ["darwin", "linux", "freebsd", "windows"],
+    "specs": ["darwin", "linux", "windows"],
+    "utility": ["darwin", "linux", "windows"],
     "yara": ["darwin", "linux", "windows"],
     "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
-    "freebsd": ["freebsd"],
     "kernel": ["darwin"],
+    "linwin": ["linux", "windows"],
     "linux": ["linux"],
-    "lldpd": ["linux"],
     "macwin": ["darwin", "windows"],
     "posix": ["darwin", "linux"],
     "sleuthkit": ["darwin", "linux"],
@@ -61,10 +60,7 @@ def platform_for_spec(path):
     full_path = os.path.abspath(path)
     directory_list = os.path.dirname(full_path).split("/")
     directory = directory_list[len(directory_list)-1]
-    try:
-        return PLATFORM_DIRS[directory]
-    except KeyError:
-        return ["darwin", "linux", "freebsd", "windows"]
+    return PLATFORM_DIRS[directory]
 
 def remove_prefix(text, prefix):
     # python 3.9 has `removeprefix`, but I don't want to add that requirement.
@@ -100,6 +96,8 @@ def generate_table_metadata(specs_dir, full_path):
         t["platforms"] = platform_for_spec(full_path)
         t["evented"] = "event_subscriber" in table.attributes
         t["cacheable"] = "cacheable" in table.attributes
+        t["notes"] = table.notes
+        t["examples"] = table.examples
 
         # Now we must iterate through `table.columns` to collect information
         # about each column
@@ -109,20 +107,13 @@ def generate_table_metadata(specs_dir, full_path):
             c["name"] = col.name
             c["description"] = col.description
             c["type"] = col.type.affinity.replace("_TYPE", "").lower()
+            c["notes"] = col.notes
 
-            hidden = False
-            required = False
-            index = False
-            for option in col.options:
-                if option == "hidden":
-                    hidden = True
-                elif option == "required":
-                    required = True
-                elif option == "index":
-                    index == True
-            c["hidden"] = hidden
-            c["required"] = required
-            c["index"] = index
+            c["hidden"] = col.options.get("hidden", False)
+            c["required"] = col.options.get("required", False)
+            c["index"] = col.options.get("index", False)
+            if col.platforms != []:
+                c["platforms"] = col.platforms
 
             t["columns"].append(c)
     return t
@@ -138,6 +129,11 @@ def main(argc, argv):
 
     for subdir, dirs, files in os.walk(specs_dir):
         for filename in files:
+            # Skip the example spec in the spec/ dir.
+            # There is no actual example table in osquery so it should not be generated into the docs.
+            if filename == "example.table":
+                continue
+
             if filename.endswith(".table"):
                 full_path = os.path.join(subdir, filename)
                 metadata = generate_table_metadata(specs_dir, full_path)

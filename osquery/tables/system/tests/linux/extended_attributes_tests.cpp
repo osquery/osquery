@@ -35,7 +35,9 @@ struct ExtendedAttributeTestValue final {
 const std::string kCapabilitiesAttributeName{"security.capability"};
 const std::string kInputCapabilities{
     "cap_dac_override,cap_net_admin,cap_net_raw+eip"};
-const std::string kExpectedCapabilities{"= " + kInputCapabilities};
+
+const std::string kExpectedCapabilities{
+    "cap_dac_override,cap_net_admin,cap_net_raw=eip"};
 
 const ExtendedAttributeTestValue kCapabilitiesExtendedAttribute = {
     {} /* ignored */, kExpectedCapabilities, false};

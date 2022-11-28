@@ -13,6 +13,7 @@
 #include <osquery/events/linux/apparmor_events.h>
 #include <osquery/events/linux/auditeventpublisher.h>
 #include <osquery/events/linux/selinux_events.h>
+#include <osquery/events/linux/socket_events.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -74,6 +75,14 @@ void AuditEventPublisher::configure() {
   if (audit_netlink_ == nullptr) {
     audit_netlink_ = std::make_unique<AuditdNetlink>();
   }
+
+  // Socket events do not always emit a reliable 'success' field when
+  // O_NONBLOCK has been set. Collect these events even if it appears like
+  // they have failed. The subscribers will know what to do.
+  //
+  // Note: these are captured here since the actual contents depend on
+  //       configuration flags
+  syscalls_allowed_to_fail_ = getSocketEventsSyscalls();
 }
 
 void AuditEventPublisher::tearDown() {
@@ -98,7 +107,10 @@ Status AuditEventPublisher::run() {
   auto event_count_estimate = audit_event_record_queue.size() / 4U;
   event_context->audit_events.reserve(event_count_estimate);
 
-  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
+  ProcessEvents(event_context,
+                audit_event_record_queue,
+                audit_trace_context_,
+                syscalls_allowed_to_fail_);
   if (!event_context->audit_events.empty()) {
     fire(event_context);
   }
@@ -109,7 +121,8 @@ Status AuditEventPublisher::run() {
 void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
-    AuditTraceContext& trace_context) noexcept {
+    AuditTraceContext& trace_context,
+    const std::set<int>& syscalls_allowed_to_fail) noexcept {
   static const auto& selinux_event_set = kSELinuxEventList;
 
   // Assemble each record into a AuditEvent object; multi-record events
@@ -238,9 +251,9 @@ void AuditEventPublisher::ProcessEvents(
       GetStringFieldFromMap(
           syscall_status, audit_event_record.fields, "success", "yes");
 
-      // By discarding this event, we will also automatically discard any other
-      // attached record
-      if (syscall_status != "yes") {
+      data.succeeded = syscall_status == "yes";
+      if (!data.succeeded &&
+          syscalls_allowed_to_fail.count(data.syscall_number) == 0) {
         continue;
       }
 

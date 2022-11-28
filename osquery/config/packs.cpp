@@ -246,13 +246,6 @@ void Pack::initialize(const std::string& name,
     query.options["denylist"] = true;
     if (q.value.HasMember("denylist")) {
       query.options["denylist"] = JSON::valueToBool(q.value["denylist"]);
-    } else if (q.value.HasMember("blacklist")) {
-      query.options["denylist"] = JSON::valueToBool(q.value["blacklist"]);
-      std::call_once(kUseDenylist, []() {
-        LOG(WARNING)
-            << "At least one query in the configuration uses deprecated "
-               "'blacklist' option, please use 'denylist'";
-      });
     }
 
     schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));

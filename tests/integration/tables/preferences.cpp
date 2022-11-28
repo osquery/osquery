@@ -39,7 +39,7 @@ TEST_F(preferences, test_sanity) {
 
   auto const datajoin = execute_query(
       "select users.username, preferences.* from users CROSS JOIN preferences "
-      "USING(username) where preferences.domain = 'com.apple.Preferences';");
+      "USING(username) where preferences.domain LIKE 'com.apple.%';");
   ASSERT_FALSE(datajoin.empty());
   validate_rows(datajoin, row_map);
 }

@@ -25,6 +25,7 @@ const std::string kMemInfoPath = {"/proc/meminfo"};
 const std::map<std::string, std::string> kMemInfoMap = {
     {"memory_total", "MemTotal:"},
     {"memory_free", "MemFree:"},
+    {"memory_available", "MemAvailable:"},
     {"buffers", "Buffers:"},
     {"cached", "Cached:"},
     {"swap_cached", "SwapCached:"},

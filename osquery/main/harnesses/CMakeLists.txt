@@ -73,7 +73,10 @@ function(generateOsqueryFuzzHarness harness_name source_files)
     set_target_properties(${harness_name} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
   endif()
   target_link_libraries(${harness_name} PRIVATE osquery_harnesses)
-  target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
+
+  if(DEFINED PLATFORM_LINUX)
+    target_link_options(${harness_name} PRIVATE -fsanitize=fuzzer)
+  endif()
 endfunction()
 
 osqueryMainHarnesses()

@@ -352,7 +352,7 @@ int rpmdsFind(rpmds ds, const rpmds ods);
 
 /** \ingroup rpmds
  * Merge a dependency set maintaining (N,EVR,Flags) sorted order.
- * @retval *dsp		(merged) dependency set
+ * @param[out] *dsp	(merged) dependency set
  * @param ods		dependency set to merge
  * @return		number of merged dependencies, -1 on error
  */
@@ -406,7 +406,7 @@ int rpmdsNVRMatchesDep(const Header h, const rpmds req, int nopromote);
 
 /**
  * Load rpmlib provides into a dependency set.
- * @retval *dsp		(loaded) dependency set
+ * @param[out] *dsp	(loaded) dependency set
  * @param tblp		rpmlib provides table (NULL uses internal table)
  * @return		0 on success
  */
@@ -462,7 +462,7 @@ rpmds rpmdsSinglePoolTix(rpmstrPool pool, rpmTagVal tagN,
 /**
  * Load rpmlib provides into a dependency set.
  * @param pool		shared string pool (or NULL for private pool)
- * @retval *dsp		(loaded) dependency set
+ * @param[out] *dsp	(loaded) dependency set
  * @param tblp		rpmlib provides table (NULL uses internal table)
  * @return		0 on success
  */

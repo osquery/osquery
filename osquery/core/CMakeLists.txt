@@ -34,7 +34,14 @@ function(generateOsqueryCoreInit)
     osquery_numericmonitoring
     osquery_extensions
     osquery_distributed
+    osquery_utils_pidfile
   )
+
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND dependencies
+      osquery_system_usersgroups_services
+    )
+  endif()
 
   target_link_libraries(osquery_core_init PUBLIC
     osquery_cxx_settings
@@ -48,7 +55,13 @@ function(generateOsqueryCoreInit)
 
   generateIncludeNamespace(osquery_core_init "osquery/core" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_core_tests_watcherpermissionstests-test COMMAND osquery_core_tests_watcherpermissionstests-test)
+  # TODO: This test should actually run as root, but it's currently broken when using that user
+  if(DEFINED PLATFORM_POSIX)
+    add_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
+  endif()
+
+  add_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
+
 endfunction()
 
 function(generateOsqueryCore)
@@ -70,6 +83,7 @@ function(generateOsqueryCore)
       windows/handle.cpp
       windows/platform.cpp
       windows/wmi.cpp
+      windows/global_users_groups_cache.cpp
     )
   endif()
 
@@ -97,6 +111,12 @@ function(generateOsqueryCore)
     thirdparty_sqlite
   )
 
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND dependencies
+      osquery_system_usersgroups_caches
+    )
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     list(APPEND dependencies thirdparty_util-linux)
   endif()
@@ -122,6 +142,7 @@ function(generateOsqueryCore)
       windows/handle.h
       windows/ntapi.h
       windows/wmi.h
+      windows/global_users_groups_cache.h
     )
   endif()
 

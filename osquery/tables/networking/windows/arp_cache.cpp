@@ -11,9 +11,10 @@
 
 #include <osquery/core/tables.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include <osquery/core/windows/wmi.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/networking/windows/interfaces.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -40,9 +41,6 @@ const std::map<unsigned char, const std::string> kMapOfState = {
 QueryData genIPv4ArpCache(QueryContext& context) {
   QueryData results;
   auto interfaces = genInterfaceDetails(context);
-  const WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
-                                (BSTR)L"ROOT\\StandardCimv2");
-  const auto& wmiResults = wmiSystemReq.results();
   std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback
   };
@@ -59,6 +57,13 @@ QueryData genIPv4ArpCache(QueryContext& context) {
   long lPlaceHolder = 0;
   unsigned char cPlaceHolder;
   std::string strPlaceHolder;
+  const auto wmiSystemReq = WmiRequest::CreateWmiRequest(
+      "select * from MSFT_NetNeighbor", (BSTR)L"ROOT\\StandardCimv2");
+  if (!wmiSystemReq) {
+    LOG(WARNING) << wmiSystemReq.getError().getMessage();
+    return results;
+  }
+  const auto& wmiResults = wmiSystemReq->results();
   for (const auto& item : wmiResults) {
     Row r;
     item.GetLong("AddressFamily", lPlaceHolder);

@@ -1,6 +1,6 @@
 # Everything in SQL
 
-It may seem weird at first, but try to think of your operating system a as series of tabular concepts. Each concept becomes a SQL table, like processes, or sockets, the filesystem, a host alias, a running kernel module, etc. There are several informational things — like OS version, CPU features, memory details, UEFI platform vendor details — that are not tabular but rather a body of details with labeled data. We can represent this type of data as a table with a single row and many columns, or a series of key/value rows. When you want to inspect a concept, you `SELECT` the data, and the associated OS APIs are called in real-time.
+It may seem weird at first, but try to think of your operating system as a series of tabular concepts. Each concept becomes a SQL table, like processes, or sockets, the filesystem, a host alias, a running kernel module, etc. There are several informational things — like OS version, CPU features, memory details, UEFI platform vendor details — that are not tabular but rather a body of details with labeled data. We can represent this type of data as a table with a single row and many columns, or a series of key/value rows. When you want to inspect a concept, you `SELECT` the data, and the associated OS APIs are called in real-time.
 
 Now consider event streams: each event is a row, like a new USB device connection, or file attribute modification. These are the same concepts with an 'event-like' twist. We do not inspect event-time data in real-time, but rather buffer the events as they occur and represent that buffer as a table! Concept 'actions' can be represented too, you perform an action and generate tabular data. Consider `stat`-ing a file, hashing a blob of data, parsing JSON, reading a SQLite database, traversing a directory, or requesting a user's list of installed browser plugins. Actions use primary keys as input and generate rows as output, and are best used when `JOIN`ing.
 
@@ -20,7 +20,7 @@ Before diving into osquery's specific implementation of SQL, please familiarize 
 
 Within the shell, try: `.help`
 
-```
+```text
 $ osqueryi
 Using a virtual database. Need help, type '.help'
 osquery> .help
@@ -36,7 +36,7 @@ osquery>
 
 Try the meta-commands `.tables` and `.schema` to list all of the tables and their schema. The `schema` meta-command takes an argument that helps limit the output to a partial string match.
 
-```
+```text
 osquery> .schema process
 [...]
 CREATE TABLE process_memory_map(pid INTEGER, start TEXT, end TEXT, permissions TEXT, offset BIGINT, device TEXT, inode INTEGER, path TEXT, pseudo INTEGER);
@@ -51,7 +51,7 @@ This [complete schema](https://osquery.io/schema/) for all supported platforms i
 
 On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 
-```
+```text
 osquery> SELECT pid, name, path FROM processes LIMIT 1;
 +-----+---------+---------------+
 | pid | name    | path          |
@@ -72,7 +72,7 @@ To really hammer home the real-time representation, try `SELECT * FROM time;`. F
 
 Then, let's look at a "meta" table that provides details to osquery about itself. These tables are prefixed with `osquery_`:
 
-```
+```text
 osquery> .mode line
 osquery> SELECT * FROM osquery_info;
            pid = 15982
@@ -92,7 +92,7 @@ This will always show the current PID of the running osquery process, shell or o
 
 Let's use this to demonstrate `JOIN`ing:
 
-```
+```text
 osquery> SELECT pid, name, path FROM osquery_info JOIN processes USING (pid);
   pid = 15982
  name = osqueryi
@@ -101,7 +101,7 @@ osquery> SELECT pid, name, path FROM osquery_info JOIN processes USING (pid);
 
 Now let's get fancy and complicated, by performing two `JOIN`s and adding a `WHERE` clause:
 
-```
+```text
 osquery> SELECT p.pid, name, p.path as process_path, pf.path as open_path
     ...>   FROM osquery_info i
     ...>   JOIN processes p ON p.pid = i.pid
@@ -480,8 +480,27 @@ There are also encoding functions available, to process query results.
     </p>
     </details>
 
+#### Network functions
+
+- `in_cidr_block(CIDR_RANGE, IP_ADDRESS)`: return 1 if the IP address is within the CIDR block, otherwise 0.
+
+    <details>
+    <summary>in_cidr_block function example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT in_cidr_block('10.0.0.0/26', '10.0.0.24');
+      in_cidr_block('10.0.0.0/26', '10.0.0.24') = 1
+
+      osquery> SELECT in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
+      in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
+
+    </p>
+    </details>
+
 ### Table and column name deprecations
 
-Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
+Over time it may make sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
 osquery makes an effort to mark deprecated tables and create 'clone' `VIEW`s so that previously scheduled queries continue to work. Similarly, for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/osquery/osquery/releases) on GitHub.

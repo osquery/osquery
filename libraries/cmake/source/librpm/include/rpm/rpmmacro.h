@@ -35,6 +35,7 @@ extern const char * macrofiles;
 /**
  * Markers for sources of macros added throughout rpm.
  */
+#define	RMIL_BUILTIN	-20
 #define	RMIL_DEFAULT	-15
 #define	RMIL_MACROFILES	-13
 #define	RMIL_RPMRC	-11
@@ -51,6 +52,9 @@ extern const char * macrofiles;
 
 /* rpm expression parser flags */
 #define RPMEXPR_EXPAND		(1 << 0)	/*!< expand primary terms */
+
+/* rpm macro expansion flags */
+#define RPMEXPAND_EXPAND_ARGS	(1 << 0)	/*!< expand arguments of parametric macros */
 
 typedef enum rpmMacroFlags_e {
     RPMMACRO_DEFAULT	= 0,
@@ -74,6 +78,19 @@ void	rpmDumpMacroTable	(rpmMacroContext mc,
  * @return		negative on failure
  */
 int	rpmExpandMacros	(rpmMacroContext mc, const char * sbuf,
+				char ** obuf, int flags);
+
+/** \ingroup rpmmacro
+ * Expand a specific macro into buffer.
+ * @param mc		macro context (NULL uses global context).
+ * @param n		macro name
+ * @param args		arguments for parametric macros
+ * @param obuf		macro expansion (malloc'ed)
+ * @param flags		flags (currently unused)
+ * @return		negative on failure
+ */
+int	rpmExpandThisMacro (rpmMacroContext mc, const char *n,
+				ARGV_const_t args,
 				char ** obuf, int flags);
 
 /** \ingroup rpmmacro

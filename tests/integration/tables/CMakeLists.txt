@@ -8,7 +8,6 @@
 function(testsIntegrationTablesMain)
   generateTestsIntegrationTablesIntegrationtestshelper()
   generateTestsIntegrationTablesTestsTest()
-
 endfunction()
 
 function(generateTestsIntegrationTablesIntegrationtestshelper)
@@ -25,6 +24,7 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
     osquery_database
     osquery_sql
     osquery_utils
+    tests_helper
     thirdparty_boost
     thirdparty_googletest_headers
   )
@@ -34,6 +34,7 @@ function(generateTestsIntegrationTablesTestsTest)
   set(source_files
     carbon_black_info.cpp
     carves.cpp
+    certificates.cpp
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
@@ -48,6 +49,8 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
+    memory_devices.cpp
+    npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
     osquery_extensions.cpp
@@ -82,7 +85,6 @@ function(generateTestsIntegrationTablesTestsTest)
   if(DEFINED PLATFORM_POSIX)
     set(platform_source_files
       acpi_tables.cpp
-      apt_sources.cpp
       augeas.cpp
       authorized_keys.cpp
       block_devices.cpp
@@ -112,13 +114,11 @@ function(generateTestsIntegrationTablesTestsTest)
       interface_ipv6.cpp
       known_hosts.cpp
       last.cpp
-      lldp_neighbors.cpp
       load_average.cpp
       magic.cpp
       memory_array_mapped_addresses.cpp
       memory_arrays.cpp
       memory_device_mapped_addresses.cpp
-      memory_devices.cpp
       memory_error_info.cpp
       mounts.cpp
       oem_strings.cpp
@@ -135,13 +135,12 @@ function(generateTestsIntegrationTablesTestsTest)
       ulimit_info.cpp
       usb_devices.cpp
       user_events.cpp
-      yum_sources.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
   endif()
 
-  if(OSQUERY_BUILD_AWS AND (DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
+  if(OSQUERY_BUILD_AWS AND(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_WINDOWS))
     list(APPEND source_files
       ec2_instance_metadata.cpp
       ec2_instance_tags.cpp
@@ -150,13 +149,9 @@ function(generateTestsIntegrationTablesTestsTest)
 
   if(DEFINED PLATFORM_LINUX)
     set(platform_source_files
+      apt_sources.cpp
       arp_cache.cpp
       atom_packages.cpp
-      elf_dynamic.cpp
-      elf_info.cpp
-      elf_sections.cpp
-      elf_segments.cpp
-      elf_symbols.cpp
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
@@ -167,7 +162,6 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
-      npm_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp
@@ -177,15 +171,16 @@ function(generateTestsIntegrationTablesTestsTest)
       rpm_package_files.cpp
       rpm_packages.cpp
       selinux_events.cpp
+      secureboot.cpp
       shadow.cpp
       shared_memory.cpp
-      smart_drive_info.cpp
       socket_events.cpp
       startup_items.cpp
       syslog_events.cpp
       systemd_units.cpp
       yara_events.cpp
       yara.cpp
+      yum_sources.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
@@ -212,7 +207,6 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
-      certificates.cpp
       crashes.cpp
       cups_destinations.cpp
       cups_jobs.cpp
@@ -253,13 +247,13 @@ function(generateTestsIntegrationTablesTestsTest)
       sharing_preferences.cpp
       signature.cpp
       sip_config.cpp
-      smart_drive_info.cpp
       smc_keys.cpp
       startup_items.cpp
       system_extensions.cpp
       temperature_sensors.cpp
       time_machine_backups.cpp
       time_machine_destinations.cpp
+      unified_log.cpp
       user_interaction_events.cpp
       virtual_memory_info.cpp
       wifi_networks.cpp
@@ -273,6 +267,7 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
+
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
       appcompat_shims.cpp
@@ -281,8 +276,8 @@ function(generateTestsIntegrationTablesTestsTest)
       autoexec.cpp
       background_activities_moderator.cpp
       bitlocker_info.cpp
-      certificates.cpp
       connectivity.cpp
+      windows_firewall_rules.cpp
       chassis_info.cpp
       chocolatey_packages.cpp
       cpu_info.cpp
@@ -306,11 +301,11 @@ function(generateTestsIntegrationTablesTestsTest)
       programs.cpp
       registry.cpp
       scheduled_tasks.cpp
+      secureboot.cpp
       services.cpp
       shared_resources.cpp
       shellbags.cpp
       shimcache.cpp
-      shortcut_files.cpp
       startup_items.cpp
       userassist.cpp
       video_info.cpp
@@ -319,6 +314,7 @@ function(generateTestsIntegrationTablesTestsTest)
       windows_events.cpp
       windows_eventlog.cpp
       windows_security_products.cpp
+      windows_update_history.cpp
       wmi_bios_info.cpp
       wmi_cli_event_consumers.cpp
       wmi_event_filters.cpp
@@ -326,6 +322,8 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_script_event_consumers.cpp
       hvci_status.cpp
       yara.cpp
+      tpm_info.cpp
+      security_profile_info.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -336,7 +334,6 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     list(APPEND source_files ${platform_source_files})
-
   endif()
 
   add_osquery_executable(tests_integration_tables-test ${source_files})
@@ -356,12 +353,55 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
-  add_test(NAME tests_integration_tables-test COMMAND tests_integration_tables-test)
-  set_tests_properties(
+  if(DEFINED PLATFORM_LINUX)
+    set(root_test_name_list
+      "memoryDevices.test_sanity"
+      "Secureboot.test_sanity"
+    )
+
+    set(gtest_filter "")
+    foreach(root_test_name ${root_test_name_list})
+      if(NOT gtest_filter STREQUAL "")
+        set(gtest_filter "${gtest_filter}:")
+      endif()
+
+      set(gtest_filter "${gtest_filter}${root_test_name}")
+    endforeach()
+
+    add_test(NAME tests_integration_tables-test
+      COMMAND tests_integration_tables-test "--gtest_filter=-${gtest_filter}"
+    )
+
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+
+    if(OSQUERY_BUILD_ROOT_TESTS)
+      add_test(NAME tests_integration_tables_root-test
+        COMMAND tests_integration_tables-test "--gtest_filter=${gtest_filter}"
+      )
+
+      set_tests_properties(tests_integration_tables_root-test PROPERTIES
+        LABELS "root-required"
+      )
+
+      set_tests_properties(
+          tests_integration_tables_root-test
+          PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      )
+    endif()
+
+  else()
+      add_test(NAME tests_integration_tables-test
+        COMMAND tests_integration_tables-test
+      )
+
+      set_tests_properties(
         tests_integration_tables-test
         PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-  )
-
+      )
+  endif()
 endfunction()
 
 testsIntegrationTablesMain()

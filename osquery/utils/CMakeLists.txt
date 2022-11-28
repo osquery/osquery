@@ -9,12 +9,14 @@ function(osqueryUtilsMain)
   if(OSQUERY_BUILD_AWS)
     add_subdirectory("aws")
   endif()
+
   add_subdirectory("azure")
   add_subdirectory("caches")
   add_subdirectory("system")
   add_subdirectory("status")
   add_subdirectory("json")
   add_subdirectory("macros")
+  add_subdirectory("pidfile")
   add_subdirectory("config")
   add_subdirectory("info")
   add_subdirectory("error")
@@ -24,6 +26,10 @@ function(osqueryUtilsMain)
   add_subdirectory("versioning")
   add_subdirectory("schemer")
   add_subdirectory("ycloud")
+
+  if(DEFINED PLATFORM_LINUX)
+    add_subdirectory("linux")
+  endif()
 
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsUtilstestsTest()
@@ -45,6 +51,7 @@ function(generateOsqueryUtils)
       darwin/plist.mm
     )
   endif()
+
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/shellitem.cpp
@@ -114,7 +121,6 @@ function(generateOsqueryUtils)
 endfunction()
 
 function(generateOsqueryUtilsUtilstestsTest)
-
   set(source_files
     tests/base64.cpp
     tests/chars.cpp

@@ -60,7 +60,6 @@ const std::map<std::string, std::string> kFirefoxAddonKeys = {
     {"visible", "visible"},
     {"active", "active"},
     {"applyBackgroundUpdates", "autoupdate"},
-    {"hasBinaryComponents", "native"},
     {"location", "location"},
     {"path", "path"},
 };

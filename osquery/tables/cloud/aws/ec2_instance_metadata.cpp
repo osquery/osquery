@@ -22,6 +22,8 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+DECLARE_bool(aws_disable_imdsv1_fallback);
 namespace tables {
 
 /**
@@ -62,6 +64,12 @@ class Ec2MetaData {
    */
   void get(Row& r) const {
     const std::string http_body = doGet();
+
+    if (http_body.empty()) {
+      LOG(ERROR) << "Failed to get instance metadata from the metadata service";
+      return;
+    }
+
     extractResult(http_body, r);
   }
 };
@@ -127,11 +135,19 @@ class JSONEc2MetaData : public Ec2MetaData {
 std::string Ec2MetaData::doGet() const {
   const static std::string ec2_metadata_url{kEc2MetadataUrl};
 
-  auto token = getIMDSToken();
+  auto opt_token = getIMDSToken();
   http::Request req(ec2_metadata_url + url_suffix_);
-  if (!token.empty()) {
-    req << http::Request::Header(kImdsTokenHeader, token);
+
+  if (opt_token.has_value()) {
+    req << http::Request::Header(kImdsTokenHeader, *opt_token);
+  } else if (FLAGS_aws_disable_imdsv1_fallback) {
+    /* If the IMDSv2 token cannot be retrieved and we disabled IMDSv1,
+       we cannot attempt to do a request, so return with empty results. */
+    VLOG(1) << "Could not retrieve an IMDSv2 token to request the instance id "
+               "and region. The IMDSv1 fallback is disabled";
+    return {};
   }
+
   http::Client::Options options;
   options.timeout(3);
   http::Client client(options);
@@ -142,14 +158,14 @@ std::string Ec2MetaData::doGet() const {
 
     // Silently ignore 404
     if (http_status_code == 404) {
-      return "";
+      return {};
     }
 
     // Log "hard" errors
     if (http_status_code != 200) {
       VLOG(1) << "Unexpected HTTP response for: " << url_suffix_
               << " Status: " << http_status_code;
-      return "";
+      return {};
     }
 
     return res.body();
@@ -209,9 +225,6 @@ void JSONEc2MetaData::extractResult(const std::string& http_body,
 
 QueryData genEc2Metadata(QueryContext& context) {
   QueryData results;
-  if (!isEc2Instance()) {
-    return results;
-  }
 
   const static std::vector<std::shared_ptr<Ec2MetaData>> fields(
       {std::make_shared<JSONEc2MetaData>(

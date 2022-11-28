@@ -10,6 +10,7 @@
 #pragma once
 
 #include <csignal>
+#include <memory>
 #include <mutex>
 #include <string>
 
@@ -45,6 +46,8 @@ class Initializer : private boost::noncopyable {
               char**& argv,
               ToolType tool = ToolType::TEST,
               bool init_glog = true);
+
+  ~Initializer();
 
   /**
    * @brief Sets up the process as an osquery daemon.
@@ -141,7 +144,13 @@ class Initializer : private boost::noncopyable {
   /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
+  static void resourceLimitHit();
+  static bool isResourceLimitHit();
+
  private:
+  struct PrivateData;
+  std::unique_ptr<PrivateData> d;
+
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
@@ -156,22 +165,9 @@ class Initializer : private boost::noncopyable {
 
   /// Is this a worker process
   static bool isWorker_;
+
+  static std::atomic<bool> resource_limit_hit_;
 };
-
-/**
- * @brief Getter for a host's current hostname
- *
- * @return a string representing the host's current hostname
- */
-std::string getHostname();
-
-/**
- * @brief Getter for a host's fully qualified domain name
- *
- * @return a string representation of the hosts fully qualified domain name
- * if the host is joined to a domain, otherwise it simply returns the hostname
- */
-std::string getFqdn();
 
 /**
  * @brief Generate a new generic UUID
@@ -229,13 +225,6 @@ std::string generateHostUUID();
  * @return string to identify this machine
  */
 std::string getHostIdentifier();
-
-/**
- * @brief Create a pid file
- *
- * @return A status object indicating the success or failure of the operation
- */
-Status createPidFile();
 
 /**
  * @brief Getter for determining Admin status

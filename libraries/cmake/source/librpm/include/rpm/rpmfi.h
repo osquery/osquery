@@ -165,8 +165,8 @@ int rpmfiDigestAlgo(rpmfi fi);
 /** \ingroup rpmfi
  * Return current file (binary) digest of file info set iterator.
  * @param fi		file info set iterator
- * @retval algo		digest hash algorithm used (pass NULL to ignore)
- * @retval diglen	digest hash length (pass NULL to ignore)
+ * @param[out] algo	digest hash algorithm used (pass NULL to ignore)
+ * @param[out] diglen	digest hash length (pass NULL to ignore)
  * @return		current file digest, NULL on invalid
  */
 const unsigned char * rpmfiFDigest(rpmfi fi, int *algo, size_t *diglen);
@@ -177,7 +177,7 @@ const unsigned char * rpmfiFDigest(rpmfi fi, int *algo, size_t *diglen);
  * memory, this converts the binary data back to hex presentation used in
  * headers. 
  * @param fi		file info set iterator
- * @retval algo		digest hash algorithm used (pass NULL to ignore)
+ * @param[out] algo	digest hash algorithm used (pass NULL to ignore)
  * @return		current file digest (malloc'ed), NULL on invalid
  */
 char * rpmfiFDigestHex(rpmfi fi, int *algo);
@@ -185,10 +185,19 @@ char * rpmfiFDigestHex(rpmfi fi, int *algo);
 /** \ingroup rpmfi
  * Return current file (binary) signature of file info set iterator.
  * @param fi		file info set iterator
- * @retval siglen	signature length (pass NULL to ignore)
+ * @param[out] siglen	signature length (pass NULL to ignore)
  * @return		current file signature, NULL on invalid
  */
 const unsigned char * rpmfiFSignature(rpmfi fi, size_t *siglen);
+
+/** \ingroup rpmfi
+ * Return current verity (binary) signature of file info set iterator.
+ * @param fi		file info set iterator
+ * @param[out] siglen	signature length (pass NULL to ignore)
+ * @param[out] algo	fsverity algorithm
+ * @return		current verity signature, NULL on invalid
+ */
+const unsigned char * rpmfiVSignature(rpmfi fi, size_t *siglen, uint16_t *algo);
 
 /** \ingroup rpmfi
  * Return current file linkto (i.e. symlink(2) target) from file info set iterator.
@@ -242,7 +251,7 @@ const char * rpmfiFClass(rpmfi fi);
 /** \ingroup rpmfi
  * Return current file depends dictionary from file info set iterator.
  * @param fi		file info set iterator
- * @retval *fddictp	file depends dictionary array (or NULL)
+ * @param[out] *fddictp	file depends dictionary array (or NULL)
  * @return		no. of file depends entries, 0 on invalid
  */
 uint32_t rpmfiFDepends(rpmfi fi,
@@ -306,7 +315,7 @@ const char * rpmfiFLangs(rpmfi fi);
  * Map file stat(2) info.
  * @param fi		file info iterator
  * @param flags		flags
- * @retval sb		mapped stat(2) data
+ * @param[out] sb	mapped stat(2) data
  */
 int rpmfiStat(rpmfi fi, int flags, struct stat *sb);
 

@@ -159,7 +159,7 @@ class Dispatcher : private boost::noncopyable {
   /// When a service ends, it will remove itself from the dispatcher.
   static void removeService(const InternalRunnable* service);
 
- private:
+ public:
   /// For testing only, reset the stopping status for unittests.
   void resetStopping();
 

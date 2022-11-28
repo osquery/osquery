@@ -27,7 +27,7 @@ TEST_F(KernelInfo, test_sanity) {
   ValidationMap row_map = {{"version", NonEmptyString},
                            {"arguments", NormalType},
                            {"path", NormalType},
-                           {"device", NonEmptyString}};
+                           {"device", NormalType}};
   validate_rows(data, row_map);
 }
 

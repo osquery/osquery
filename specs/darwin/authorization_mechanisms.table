@@ -1,5 +1,5 @@
 table_name("authorization_mechanisms")
-description("OS X Authorization mechanisms database.")
+description("macOS Authorization mechanisms database.")
 schema([
     Column("label", TEXT, "Label of the authorization right", index=True),
     Column("plugin", TEXT, "Authorization plugin name"),

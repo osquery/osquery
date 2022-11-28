@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <string>
+#include <thread>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -216,9 +217,13 @@ class Watcher : private boost::noncopyable {
   /// Record the exit status of the most recent worker.
   std::atomic<int> worker_status_{-1};
 
+  /// Used to synchronize a process start with an attempt to stop such process
+  std::mutex new_processes_mutex_;
+
  private:
   friend class WatcherRunner;
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 /**
@@ -274,8 +279,16 @@ class WatcherRunner : public InternalRunnable {
   /// Fork an extension process.
   virtual void createExtension(const std::string& extension);
 
-  /// If a worker/extension has otherwise gone insane, stop it.
-  virtual void stopChild(const PlatformProcess& child) const;
+  /// Signal the worker or extension process to close cleanly.
+  /// If enough time has passed, and the process hasn't closed yet,
+  /// the process will be killed.
+  /// The force argument is used to request a faster timeout
+  /// for the clean shutdown, which is based on the flag
+  /// watchdog_forced_shutdown_delay
+  virtual void stopChild(const PlatformProcess& child,
+                         bool force = false) const;
+
+  virtual void warnWorkerResourceLimitHit(const PlatformProcess& child) const;
 
   /// Return the time the watchdog is delayed until (from start of watcher).
   uint64_t delayedTime() const;
@@ -313,6 +326,7 @@ class WatcherRunner : public InternalRunnable {
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_disabled);
   FRIEND_TEST(WatcherTests, test_watcherrunner_watcherhealth);
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
@@ -331,4 +345,4 @@ class WatcherWatcherRunner : public InternalRunnable {
 
 /// Get a performance limit by name and optional level.
 uint64_t getWorkerLimit(WatchdogLimitType limit);
-}
+} // namespace osquery

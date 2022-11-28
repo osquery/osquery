@@ -21,6 +21,9 @@ namespace osquery {
 const std::vector<std::string> kUserNamespaceList = {
     "cgroup", "ipc", "mnt", "net", "pid", "user", "uts"};
 
+constexpr std::uint64_t kStatmElementsCount = 7;
+constexpr std::uint64_t kMemoryPageSize = 4096;
+
 Status procGetNamespaceInode(ino_t& inode,
                              const std::string& namespace_name,
                              const std::string& process_namespace_root) {
@@ -108,12 +111,62 @@ std::string procDecodeAddressFromHex(const std::string& encoded_address,
   return std::string(addr_buffer);
 }
 
-unsigned short procDecodePortFromHex(const std::string& encoded_port) {
+unsigned short procDecodeUnsignedShortFromHex(
+    const std::string& hex_encoded_short) {
   unsigned short decoded = 0;
-  if (encoded_port.length() == 4) {
-    sscanf(encoded_port.c_str(), "%hX", &decoded);
+  if (hex_encoded_short.length() == 4) {
+    sscanf(hex_encoded_short.c_str(), "%hX", &decoded);
   }
   return decoded;
+}
+
+// Retrieve AF_PACKET sockets out of /proc/net/packet
+// if protocol is set to non 0, return only sockets for this protocol;
+// else, all.
+Status procGetSocketListPacket(int family,
+                               int protocol,
+                               ino_t net_ns,
+                               const std::string& content,
+                               SocketInfoList& result) {
+  // The system's socket information is tokenized by line.
+  bool header = true;
+  int decoded_protocol;
+
+  for (const auto& line : osquery::split(content, "\n")) {
+    if (header) {
+      if (line.find("sl") != 0 && line.find("sk") != 0) {
+        return Status::failure(
+            "Invalid file header when reading packet sockets file contents");
+      }
+      header = false;
+      continue;
+    }
+
+    auto fields = osquery::split(line, " ");
+    if (fields.size() < 9) {
+      VLOG(1) << "Invalid socket descriptor found: '" << line
+              << "'. Skipping this entry";
+      continue;
+    }
+
+    decoded_protocol =
+        procDecodeUnsignedShortFromHex(fields[kPacketLineProtocolIndex]);
+    if (protocol > 0 && decoded_protocol != protocol) {
+      // filter unwanted entry.
+      continue;
+    }
+
+    SocketInfo socket_info = {};
+    socket_info.family = family;
+    socket_info.net_ns = net_ns;
+    socket_info.socket = fields[kPacketLineInodeIndex];
+    socket_info.protocol = decoded_protocol;
+    socket_info.state = kSocketStateNone;
+
+    result.push_back(std::move(socket_info));
+  }
+
+  return Status::success();
 }
 
 static Status procGetSocketListInet(int family,
@@ -157,9 +210,9 @@ static Status procGetSocketListInet(int family,
     socket_info.family = family;
     socket_info.protocol = protocol;
     socket_info.local_address = procDecodeAddressFromHex(locals[0], family);
-    socket_info.local_port = procDecodePortFromHex(locals[1]);
+    socket_info.local_port = procDecodeUnsignedShortFromHex(locals[1]);
     socket_info.remote_address = procDecodeAddressFromHex(remotes[0], family);
-    socket_info.remote_port = procDecodePortFromHex(remotes[1]);
+    socket_info.remote_port = procDecodeUnsignedShortFromHex(remotes[1]);
 
     if (protocol == IPPROTO_TCP) {
       char* null_terminator_ptr = nullptr;
@@ -254,6 +307,9 @@ Status procGetSocketList(int family,
     }
 
     break;
+  case AF_PACKET:
+    path += kPacketPathSuffix;
+    break;
 
   default:
     return Status(1, "Invalid family " + std::to_string(family));
@@ -270,6 +326,10 @@ Status procGetSocketList(int family,
   case AF_INET6:
     status =
         procGetSocketListInet(family, protocol, net_ns, path, content, result);
+    break;
+
+  case AF_PACKET:
+    status = procGetSocketListPacket(family, protocol, net_ns, content, result);
     break;
 
   case AF_UNIX:
@@ -337,6 +397,36 @@ Status procReadDescriptor(const std::string& process,
   } else {
     return Status(1, "Could not call readlink: " + kLinuxProcPath);
   }
+}
+
+Expected<std::uint64_t, ProcError> getProcRSS(const std::string& process) {
+  using ProcExpected = Expected<std::uint64_t, ProcError>;
+
+  std::string statm_content;
+  auto status = osquery::readFile(kLinuxProcPath + "/" + process + "/statm",
+                                  statm_content);
+
+  if (!status.ok()) {
+    return ProcExpected::failure(
+        ProcError::GenericError,
+        "Failed to read statm: " + status.getMessage());
+  }
+
+  auto statm_elements = osquery::split(statm_content, " ");
+
+  if (statm_elements.size() != kStatmElementsCount) {
+    return ProcExpected::failure(ProcError::GenericError,
+                                 "statm has an unexpected format");
+  }
+
+  auto rss_pages_res = tryTo<std::uint64_t>(statm_elements[1]);
+
+  if (rss_pages_res.isError()) {
+    return ProcExpected::failure(ProcError::GenericError,
+                                 "Failed to convert rss pages to a number");
+  }
+
+  return rss_pages_res.take() * kMemoryPageSize;
 }
 
 } // namespace osquery

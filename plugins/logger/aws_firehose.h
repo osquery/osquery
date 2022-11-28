@@ -38,8 +38,9 @@ class FirehoseLogForwarder final : public IFirehoseLogForwarder {
  public:
   FirehoseLogForwarder(const std::string& name,
                        uint64_t log_period,
-                       uint64_t max_lines)
-      : IFirehoseLogForwarder(name, log_period, max_lines) {}
+                       uint64_t max_lines,
+                       const std::string& endpoint_override)
+      : IFirehoseLogForwarder(name, log_period, max_lines, endpoint_override) {}
 
  protected:
   Status internalSetup() override;

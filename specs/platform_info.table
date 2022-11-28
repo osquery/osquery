@@ -5,9 +5,12 @@ schema([
     Column("version", TEXT, "Platform code version"),
     Column("date", TEXT, "Self-reported platform code update date"),
     Column("revision", TEXT, "BIOS major and minor revision"),
+    Column("extra", TEXT, "Platform-specific additional information"),
+    Column("firmware_type", TEXT, "The type of firmware (uefi, bios, iboot, openfirmware, unknown).")
+])
+extended_schema(LINUX + DARWIN,[
     Column("address", TEXT, "Relative address of firmware mapping"),
     Column("size", TEXT, "Size in bytes of firmware"),
-    Column("volume_size", INTEGER, "(Optional) size of firmware volume"),
-    Column("extra", TEXT, "Platform-specific additional information"),
+    Column("volume_size", INTEGER, "(Optional) size of firmware volume")
 ])
 implementation("system@genPlatformInfo")

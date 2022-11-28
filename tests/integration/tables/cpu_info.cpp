@@ -24,7 +24,7 @@ class cpuInfo : public testing::Test {
 
 TEST_F(cpuInfo, test_sanity) {
   const QueryData data = execute_query("select * from cpu_info");
-  ASSERT_EQ(data.size(), 1ul);
+  ASSERT_GE(data.size(), 1ul);
   ValidationMap row_map = {{"device_id", NormalType},
                            {"model", NormalType},
                            {"manufacturer", NormalType},

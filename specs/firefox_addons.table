@@ -16,8 +16,6 @@ schema([
       "1 If the addon is application-disabled else 0"),
     Column("autoupdate", INTEGER,
       "1 If the addon applies background updates else 0"),
-    Column("native", INTEGER,
-      "1 If the addon includes binary components else 0"),
     Column("location", TEXT, "Global, profile location"),
     Column("path", TEXT, "Path to plugin bundle"),
     ForeignKey(column="uid", table="users"),
@@ -25,7 +23,7 @@ schema([
 attributes(user_data=True)
 implementation("applications/browser_firefox@genFirefoxAddons")
 examples([
-    "select * from users join firefox_addons using (uid)",
+    "SELECT * FROM users CROSS JOIN firefox_addons USING (uid)",
 ])
 fuzz_paths([
     "/Library/Application Support/Firefox/Profiles/",

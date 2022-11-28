@@ -8,11 +8,13 @@
  */
 
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
+#include <osquery/utils/system/time.h>
 
 #include <linux/fcntl.h>
 #include <linux/netlink.h>
@@ -25,12 +27,15 @@ namespace osquery {
 namespace {
 
 const std::size_t kMaxFileHandleEntryCount{512U};
-
+const std::uint64_t kExpirationTime{180U};
+const std::size_t kEventsBeforeExpiration{10000U};
 }
 
 struct SystemStateTracker::PrivateData final {
   Context context;
   IProcessContextFactory::Ref process_context_factory;
+  std::uint64_t last_expiration{};
+  std::size_t event_count_since_expiration{};
 };
 
 SystemStateTracker::Ref SystemStateTracker::create() {
@@ -59,6 +64,15 @@ SystemStateTracker::Ref SystemStateTracker::create(
 }
 
 SystemStateTracker::~SystemStateTracker() {}
+
+Status SystemStateTracker::restart() {
+  if (!d->process_context_factory->captureAllProcesses(
+          d->context.process_map)) {
+    return Status::failure("Failed to scan the procfs folder");
+  }
+
+  return Status::success();
+}
 
 bool SystemStateTracker::createProcess(
     const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
@@ -226,17 +240,41 @@ SystemStateTracker::EventList SystemStateTracker::eventList() {
   auto event_list = std::move(d->context.event_list);
   d->context.event_list = {};
 
+  d->event_count_since_expiration += event_list.size();
+
+  auto current_time = getUnixTime();
+  if (d->last_expiration + kExpirationTime < current_time ||
+      d->event_count_since_expiration >= kEventsBeforeExpiration) {
+    IFilesystem::Ref fs;
+    auto status = IFilesystem::create(fs);
+    if (status.ok()) {
+      status = expireProcessContexts(d->context, *fs.get());
+      if (!status.ok()) {
+        LOG(ERROR) << "BPF system state tracker cleanup error: "
+                   << status.getMessage();
+      }
+
+    } else {
+      LOG(ERROR) << "BPF system state tracker cleanup error: "
+                 << status.getMessage();
+    }
+
+    d->last_expiration = current_time;
+    d->event_count_since_expiration = 0;
+  }
+
   return event_list;
 }
 
 SystemStateTracker::SystemStateTracker(
     IProcessContextFactory::Ref process_context_factory)
     : d(new PrivateData) {
+  d->last_expiration = getUnixTime();
   d->process_context_factory = std::move(process_context_factory);
 
-  if (!d->process_context_factory->captureAllProcesses(
-          d->context.process_map)) {
-    throw Status::failure("Failed to scan the procfs folder");
+  auto status = restart();
+  if (!status.ok()) {
+    throw status;
   }
 }
 
@@ -264,6 +302,38 @@ ProcessContext& SystemStateTracker::getProcessContext(
   }
 
   return process_it->second;
+}
+
+Status SystemStateTracker::expireProcessContexts(Context& context,
+                                                 IFilesystem& fs) {
+  tob::utils::UniqueFd procfs_root;
+  if (!fs.open(procfs_root, "/proc", O_DIRECTORY)) {
+    return Status::failure("Failed to open the procfs root: /proc");
+  }
+
+  bool return_error{false};
+  for (auto process_map_it = context.process_map.begin();
+       process_map_it != context.process_map.end();) {
+    auto process_id = std::to_string(process_map_it->first);
+
+    bool exists{false};
+    if (!fs.fileExists(exists, procfs_root.get(), process_id.c_str())) {
+      return_error = true;
+    }
+
+    if (!exists) {
+      process_map_it = context.process_map.erase(process_map_it);
+    } else {
+      ++process_map_it;
+    }
+  }
+
+  if (return_error) {
+    return Status::failure(
+        "Failed to access one or more entries in the procfs directory");
+  }
+
+  return Status::success();
 }
 
 bool SystemStateTracker::createProcess(
@@ -1031,6 +1101,7 @@ bool SystemStateTracker::parseInet6Sockaddr(
   address = {};
   port = 0U;
 
+  // We already know we have at least 2 bytes
   std::uint16_t family{};
   std::memcpy(&family, sockaddr.data(), sizeof(family));
 
@@ -1038,6 +1109,8 @@ bool SystemStateTracker::parseInet6Sockaddr(
     return false;
   }
 
+  // We may have received less bytes than the full structure size, so
+  // make sure we copy only what we have
   auto size = std::min(sizeof(sockaddr_in6), sockaddr.size());
 
   sockaddr_in6 addr{};
@@ -1045,13 +1118,80 @@ bool SystemStateTracker::parseInet6Sockaddr(
 
   port = static_cast<std::uint16_t>(ntohs(addr.sin6_port));
 
-  std::stringstream buffer;
-  for (std::size_t i = 0U; i < 16; ++i) {
-    buffer << std::setfill('0') << std::setw(2) << std::hex
-           << static_cast<int>(addr.sin6_addr.s6_addr[i]);
+  // Convert the address bytes from a byte array to a u16 array.
+  // While we are doing the conversion, also look for the largest
+  // sequence of zeroes that we'll later compress with `::`
+  struct ZeroSequence final {
+    std::size_t start_index;
+    std::size_t end_index;
+  };
 
-    if (i + 1 < sizeof(addr.sin6_addr.s6_addr)) {
+  bool inside_zero_seq{false};
+  ZeroSequence current_zero_seq;
+
+  std::vector<std::uint16_t> part_list;
+  ZeroSequence biggest_zero_sequence{};
+
+  bool should_collapse_zero_seq{false};
+  auto L_updateMaxZeroSequence = [&biggest_zero_sequence,
+                                  &should_collapse_zero_seq](
+                                     const ZeroSequence& seq) {
+    if ((seq.end_index - seq.start_index) >
+        (biggest_zero_sequence.end_index - biggest_zero_sequence.start_index)) {
+      biggest_zero_sequence = seq;
+      should_collapse_zero_seq = true;
+    }
+  };
+
+  for (std::size_t i = 0U; i < 16; i += 2) {
+    std::uint16_t value = addr.sin6_addr.s6_addr[i + 1];
+    value |= static_cast<std::uint16_t>(addr.sin6_addr.s6_addr[i]) << 8;
+
+    if (inside_zero_seq) {
+      if (value != 0) {
+        current_zero_seq.end_index = part_list.size() - 1;
+        L_updateMaxZeroSequence(current_zero_seq);
+
+        current_zero_seq = {};
+        inside_zero_seq = false;
+      }
+
+    } else if (value == 0) {
+      inside_zero_seq = true;
+      current_zero_seq.start_index = part_list.size();
+    }
+
+    part_list.push_back(value);
+  }
+
+  if (inside_zero_seq) {
+    current_zero_seq.end_index = 7;
+    L_updateMaxZeroSequence(current_zero_seq);
+  }
+
+  // Transform each u16 to string, and also handle compression
+  std::stringstream buffer;
+  buffer << std::hex;
+
+  for (std::size_t i = 0U; i < 8;) {
+    if (should_collapse_zero_seq && i >= biggest_zero_sequence.start_index &&
+        i < biggest_zero_sequence.end_index) {
       buffer << ":";
+
+      if (i == 0) {
+        buffer << ":";
+      }
+
+      i = biggest_zero_sequence.end_index + 1;
+
+    } else {
+      buffer << part_list.at(i);
+
+      if (i + 1 < 8) {
+        buffer << ":";
+      }
+
+      ++i;
     }
   }
 
@@ -1107,21 +1247,39 @@ bool SystemStateTracker::parseSocketAddress(
     family = socket_data.opt_domain.value();
   }
 
+  if (family == AF_UNSPEC) {
+    if (sockaddr.size() == sizeof(sockaddr_in)) {
+      family = AF_INET;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_in6)) {
+      family = AF_INET6;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_nl)) {
+      family = AF_NETLINK;
+
+    } else if (sockaddr.size() == sizeof(sockaddr_un)) {
+      family = AF_UNIX;
+    }
+  }
+
   std::string address;
   std::uint16_t port{};
 
   bool succeeded{false};
-  if (family == AF_UNSPEC || family == AF_UNIX) {
-    succeeded = parseUnixSockaddr(address, sockaddr);
-
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET)) {
     succeeded = parseInetSockaddr(address, port, sockaddr);
+  }
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_INET6)) {
     succeeded = parseInet6Sockaddr(address, port, sockaddr);
+  }
 
-  } else if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
+  if (!succeeded && (family == AF_UNSPEC || family == AF_NETLINK)) {
     succeeded = parseNetlinkSockaddr(address, port, sockaddr);
+  }
+
+  if (!succeeded && (family == AF_UNSPEC || family == AF_UNIX)) {
+    succeeded = parseUnixSockaddr(address, sockaddr);
   }
 
   if (succeeded) {

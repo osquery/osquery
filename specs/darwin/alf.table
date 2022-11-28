@@ -1,5 +1,5 @@
 table_name("alf")
-description("OS X application layer firewall (ALF) service details.")
+description("macOS application layer firewall (ALF) service details.")
 schema([
     Column("allow_signed_enabled", INTEGER, "1 If allow signed mode is enabled else 0"),
     Column("firewall_unload", INTEGER, "1 If firewall unloading enabled else 0"),

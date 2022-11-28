@@ -50,4 +50,34 @@ std::vector<std::string> split(const std::string& s,
   return elems;
 }
 
+std::vector<std::string_view> vsplit(const std::string_view source,
+                                     char delimiter) {
+  if (source.empty()) {
+    return {};
+  }
+
+  std::size_t start = source.find_first_not_of(delimiter);
+
+  if (start == std::string_view::npos) {
+    return {};
+  }
+
+  std::vector<std::string_view> elements;
+  std::size_t end = std::string_view::npos;
+
+  do {
+    end = source.find(delimiter, start);
+
+    if (end == std::string_view::npos) {
+      elements.emplace_back(source.substr(start));
+    } else if (start != end) {
+      elements.emplace_back(source.substr(start, end - start));
+    }
+
+    start = end + 1;
+
+  } while (end != std::string_view::npos && start < source.size());
+
+  return elements;
 }
+} // namespace osquery

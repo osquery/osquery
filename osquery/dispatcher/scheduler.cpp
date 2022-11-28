@@ -7,11 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include "osquery/dispatcher/scheduler.h"
+
 #include <algorithm>
 #include <ctime>
 
 #include <boost/format.hpp>
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/carver/carver.h>
 #include <osquery/config/config.h>
@@ -24,12 +26,11 @@
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 #include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
-
+#include <osquery/sql/sqlite_util.h>
+#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/system/time.h>
-
-#include "osquery/dispatcher/scheduler.h"
-#include "osquery/sql/sqlite_util.h"
-#include "plugins/config/parsers/decorators.h"
+#include <osquery/worker/system/memory.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
@@ -86,11 +87,14 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               "pid",
                               EQUALS,
                               pid);
-    auto t0 = getUnixTime();
+
+    using namespace std::chrono;
+    auto t0 = steady_clock::now();
     Config::get().recordQueryStart(name);
     SQLInternal sql(query.query, true);
+
     // Snapshot the performance after, and compare.
-    auto t1 = getUnixTime();
+    auto t1 = steady_clock::now();
     auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
                               "processes",
                               "pid",
@@ -98,7 +102,13 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
                               pid);
     if (r0.size() > 0 && r1.size() > 0) {
       // Always called while processes table is working.
-      Config::get().recordQueryPerformance(name, t1 - t0, r0[0], r1[0]);
+      uint64_t size = sql.getSize();
+      Config::get().recordQueryPerformance(
+          name,
+          duration_cast<milliseconds>(t1 - t0).count(),
+          size,
+          r0[0],
+          r1[0]);
     }
     return sql;
   }
@@ -214,6 +224,17 @@ void SchedulerRunner::maybeScheduleCarves(uint64_t time_step) {
 
 void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
   if (FLAGS_schedule_reload > 0 && (time_step % FLAGS_schedule_reload) == 0) {
+    /* Before resetting the database we want to ensure that there's no pending
+       log relay thread started by the scheduler thread in a previous loop,
+       to avoid deadlocks.
+       This is because resetDatabase logs and also holds an exclusive lock
+       to the database, so when a log relay thread started via relayStatusLog
+       is pending, log calls done on the same thread that started it
+       (in this case the scheduler thread), will wait until the log relaying
+       thread finishes serializing the logs to the database; but this can't
+       happen due to the exclusive lock. */
+    waitLogRelay();
+
     if (FLAGS_schedule_reload_sql) {
       SQLiteDBManager::resetPrimary();
     }
@@ -222,7 +243,14 @@ void SchedulerRunner::maybeReloadSchedule(uint64_t time_step) {
 }
 
 void SchedulerRunner::maybeFlushLogs(uint64_t time_step) {
-  // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
+  /* In daemon mode we start a log relay thread to flush the logs from the
+     BufferedLogSink to the database.
+     The thread is started from the scheduler thread,
+     since if we did it in the send() function of BufferedLogSink,
+     inline to the log call itself, we would cause deadlocks
+     if there's recursive logging caused by the logger plugins.
+     We do the flush itself also in a new thread so we don't slow down
+     the scheduler thread too much */
   if ((time_step % 3) == 0) {
     relayStatusLogs(LoggerRelayMode::Async);
   }
@@ -249,6 +277,11 @@ void SchedulerRunner::start() {
                            1,
                            monitoring::PreAggregationType::Sum,
                            true);
+
+#ifdef OSQUERY_LINUX
+        // Attempt to release some unused memory kept by malloc internal caching
+        releaseRetainedMemory();
+#endif
       }
     }));
 
@@ -265,6 +298,10 @@ void SchedulerRunner::start() {
       break;
     }
   }
+
+  /* Wait for the thread relaying/flushing the logs,
+     to prevent race conditions on shutdown */
+  waitLogRelay();
 
   // Scheduler ended.
   if (!interrupted() && request_shutdown_on_expiration) {

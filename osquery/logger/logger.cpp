@@ -45,7 +45,7 @@ FLAG(bool, verbose, false, "Enable verbose informational messages");
 /// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
+CLI_FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 /// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
@@ -250,7 +250,7 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
   if (init_glog) {
-    google::InitGoogleLogging(name.c_str());
+    google::InitGoogleLogging(name.c_str(), &googleLogCustomPrefix);
   }
 
   if (!FLAGS_disable_logging) {
@@ -326,7 +326,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
                      std::string()});
   }
 
-  // The daemon will relay according to the schedule.
+  // This is for testing only, the daemon will relay according to the schedule.
   if (enabled_ && !isDaemon()) {
     relayStatusLogs(FLAGS_logger_status_sync ? LoggerRelayMode::Sync
                                              : LoggerRelayMode::Async);
@@ -479,6 +479,18 @@ size_t queuedStatuses() {
   return BufferedLogSink::get().dump().size();
 }
 
+void waitLogRelay() {
+  if (kOptBufferedLogSinkSender.has_value()) {
+    /* NOTE: We are not doing a workaround for Windows
+       as in BufferedLogSink::WaitTillSent because we are not and we must not be
+       in a path called by Google Log, and failing to properly wait
+       for the thread to finish will either cause a race condition or a deadlock
+     */
+    kOptBufferedLogSinkSender->wait();
+    kOptBufferedLogSinkSender.reset();
+  }
+}
+
 void relayStatusLogs(LoggerRelayMode relay_mode) {
   if (FLAGS_disable_logging || !databaseInitialized()) {
     // The logger plugins may not be setUp if logging is disabled.
@@ -502,6 +514,12 @@ void relayStatusLogs(LoggerRelayMode relay_mode) {
     {
       WriteLock lock(kBufferedLogSinkLogs);
       auto& status_logs = BufferedLogSink::get().dump();
+
+      // Prevent serializing and broadcasting an empty response
+      if (status_logs.empty()) {
+        return;
+      }
+
       for (auto& log : status_logs) {
         // Copy the host identifier into each status log.
         log.identifier = identifier;
@@ -527,6 +545,9 @@ void relayStatusLogs(LoggerRelayMode relay_mode) {
   if (relay_mode == LoggerRelayMode::Sync) {
     sender();
   } else {
+    // Wait on a previous relaying thread, if present
+    waitLogRelay();
+
     std::packaged_task<void()> task(std::move(sender));
     kOptBufferedLogSinkSender = task.get_future();
     std::thread(std::move(task)).detach();
@@ -537,5 +558,16 @@ void systemLog(const std::string& line) {
 #ifndef WIN32
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
+}
+
+void googleLogCustomPrefix(std::ostream& s,
+                           const LogMessageInfo& l,
+                           void* data) {
+  s << l.severity[0] << std::setw(2) << (l.time.month() + 1) << std::setw(2)
+    << l.time.day() << ' ' << std::setw(2) << l.time.hour() << ':'
+    << std::setw(2) << l.time.min() << ':' << std::setw(2) << l.time.sec()
+    << '.' << std::setw(6) << l.time.usec() << ' ' << std::setfill(' ')
+    << std::setw(5) << l.thread_id << std::setfill('0') << ' ' << l.filename
+    << ':' << l.line_number << ']';
 }
 } // namespace osquery

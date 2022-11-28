@@ -10,7 +10,9 @@
 // Sanity check integration test for firefox_addons
 // Spec file: specs/firefox_addons.table
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 namespace table_tests {
@@ -20,6 +22,19 @@ class firefoxAddons : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
   }
+
+#ifdef OSQUERY_WINDOWS
+  static void SetUpTestSuite() {
+    initUsersAndGroupsServices(true, false);
+  }
+
+  static void TearDownTestSuite() {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+    deinitUsersAndGroupsServices(true, false);
+    Dispatcher::instance().resetStopping();
+  }
+#endif
 };
 
 TEST_F(firefoxAddons, test_sanity) {

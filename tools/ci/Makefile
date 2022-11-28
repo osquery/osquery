@@ -12,7 +12,7 @@ container:
 # push uses the cached builds from `container`
 push: TAG = $(shell git rev-parse --short HEAD)
 push: container
-	docker buildx build --platform linux/amd64,linux/arm64 --push -t osquery/builder18.04:latest  -t osquery/builder18.04:$(TAG) -f osquery-ubuntu18.04-toolchain.dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 --push -t osquery/builder18.04:$(TAG) -f osquery-ubuntu18.04-toolchain.dockerfile .
 
 # These targets use --load, which pushes to the local docker
 # install. Only a single platform is supported.

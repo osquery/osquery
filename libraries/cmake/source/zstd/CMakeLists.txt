@@ -38,9 +38,22 @@ function(zstdMain)
     "${library_root}/deprecated/zbuff_decompress.c"
   )
 
+  # We were previously not passing ZSTD_LEGACY_SUPPORT; by default, in the
+  # original build system, this is set to 0.
+  #
+  # The logic from zstd_legacy.h handles it like this:
+  #
+  #    if !defined (ZSTD_LEGACY_SUPPORT) || (ZSTD_LEGACY_SUPPORT == 0)
+  #      undef ZSTD_LEGACY_SUPPORT
+  #      define ZSTD_LEGACY_SUPPORT 8
+  #    endif
+  #
+  # It is then safe to add this back here and set it to zero since it
+  # does not change the current behavior.
   target_compile_definitions(thirdparty_zstd PRIVATE
     ZSTD_MULTITHREAD
-    XXH_NAMESPACE=zstd_
+    ZSTD_LEGACY_SUPPORT=0
+    XXH_NAMESPACE=ZSTD_
     XXH_PRIVATE_API
   )
 

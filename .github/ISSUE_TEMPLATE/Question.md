@@ -1,6 +1,10 @@
 ---
 name: Question
 about: You have a question about osquery
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Thank you for your interest in osquery! -->
@@ -9,9 +13,11 @@ about: You have a question about osquery
 
 **We are happy to help, however please DO NOT submit issues for questions about osquery.**
 
-We only use issues to track bugs, feature requests or blueprints, for everything else check out Slack or the other channels bellow:
+We only use issues to track bugs, feature requests or blueprints. For everything else, check out Slack or the other channels below:
 
 Slack : https://osquery.slack.com
+
+Slack newcomers, first use this invite link: https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw 
 
 Reddit : https://www.reddit.com/r/osquery/
 

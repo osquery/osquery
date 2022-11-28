@@ -8,10 +8,13 @@
  */
 
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/mock_file_structure.h>
 
 #include <boost/filesystem/path.hpp>
 
 namespace osquery {
+
+const std::string kTopLevelMockFolderName{"辞書"};
 
 namespace fs = boost::filesystem;
 
@@ -19,11 +22,12 @@ fs::path createMockFileStructure() {
   const auto root_dir =
       fs::temp_directory_path() /
       fs::unique_path("osquery.tests.%%%%.%%%%");
-  fs::create_directories(root_dir / "toplevel/");
-  fs::create_directories(root_dir / "toplevel/secondlevel1");
-  fs::create_directories(root_dir / "toplevel/secondlevel2");
-  fs::create_directories(root_dir / "toplevel/secondlevel3");
-  fs::create_directories(root_dir / "toplevel/secondlevel3/thirdlevel1");
+  fs::create_directories(root_dir / kTopLevelMockFolderName / "/");
+  fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel1");
+  fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel2");
+  fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel3");
+  fs::create_directories(root_dir / kTopLevelMockFolderName /
+                         "secondlevel3/thirdlevel1");
   fs::create_directories(root_dir / "deep11/deep2/deep3/");
   fs::create_directories(root_dir / "deep1/deep2/");
   writeTextFile(root_dir / "root.txt", "root");

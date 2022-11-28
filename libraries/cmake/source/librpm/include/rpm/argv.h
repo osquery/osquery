@@ -110,7 +110,7 @@ ARGV_t argvSearch(ARGV_const_t argv, const char *val,
 
 /** \ingroup rpmargv
  * Add an int to an argi array.
- * @retval *argip	argi array
+ * @param[out] *argip	argi array
  * @param ix		argi array index (or -1 to append)
  * @param val		int arg to add
  * @return		0 always
@@ -119,15 +119,24 @@ int argiAdd(ARGI_t * argip, int ix, int val);
 
 /** \ingroup rpmargv
  * Add a string to an argv array.
- * @retval *argvp	argv array
+ * @param[out] *argvp	argv array
  * @param val		string arg to append
  * @return		0 always
  */
 int argvAdd(ARGV_t * argvp, const char *val);
 
 /** \ingroup rpmargv
+ * Add a string to an argv array, does not need to be nil-terminated.
+ * @param[out] *argvp	argv array
+ * @param val		string arg to append
+ * @param len		string arg length
+ * @return		0 always
+ */
+int argvAddN(ARGV_t * argvp, const char *val, size_t len);
+
+/** \ingroup rpmargv
  * Add a number to an argv array (converting to a string).
- * @retval *argvp	argv array
+ * @param[out] *argvp	argv array
  * @param val		numeric arg to append
  * @return		0 always
  */
@@ -135,7 +144,7 @@ int argvAddNum(ARGV_t * argvp, int val);
 
 /** \ingroup rpmargv
  * Append one argv array to another.
- * @retval *argvp	argv array
+ * @param[out] *argvp	argv array
  * @param av		argv array to append
  * @return		0 always
  */
@@ -159,7 +168,7 @@ ARGV_t argvSplitString(const char * str, const char * seps, argvFlags flags);
 
 /** \ingroup rpmargv
  * Split a string into an argv array.
- * @retval *argvp	argv array
+ * @param[out] *argvp	argv array
  * @param str		string arg to split
  * @param seps		separator characters
  * @return		0 always

@@ -93,6 +93,7 @@ typedef struct win_stat {
   std::string volume_serial;
   std::string product_version;
   std::string file_version;
+  std::string original_filename;
 
 } WINDOWS_STAT;
 
@@ -108,8 +109,6 @@ typedef struct {
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
-
-std::string lastErrorMessage(unsigned long);
 
 /**
  * @brief File access modes for PlatformFile.
@@ -428,6 +427,19 @@ boost::filesystem::path getSystemRoot();
  * @return osquery::Status
  */
 Status platformLstat(const std::string& path, struct stat& d_stat);
+
+/**
+ * @brief Verifies if the provided file descriptor points to a file
+ *
+ */
+boost::optional<bool> platformIsFile(int fd);
+
+/**
+ * @brief Calls the platform specific version of fileno
+ *
+ * @return osquery::Status containing the errno
+ */
+Status platformFileno(FILE* file, int& fd);
 
 /**
  * @brief Populates the provided string with a textual representation of the

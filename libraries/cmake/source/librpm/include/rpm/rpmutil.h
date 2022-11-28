@@ -129,6 +129,8 @@ void * rrealloc(void *ptr, size_t size);
 
 char * rstrdup(const char *str);
 
+char * rstrndup(const char *str, size_t n);
+
 /* Rpm specific free() which returns NULL */
 void * rfree(void *ptr);
 

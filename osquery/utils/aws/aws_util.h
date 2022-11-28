@@ -10,6 +10,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <utility>
 
 #include <aws/core/Region.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
@@ -22,6 +24,7 @@
 
 #include <aws/sts/STSClient.h>
 
+#include <boost/optional/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/utils/status/status.h>
@@ -87,12 +90,7 @@ class OsqueryHttpClient : public Aws::Http::HttpClient {
   OsqueryHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      Aws::Http::HttpRequest& request,
-      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
-      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
-          nullptr) const override;
-  std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      const std::shared_ptr<Aws::Http::HttpRequest>& request,
+      const std::shared_ptr<Aws::Http::HttpRequest>& request_ptr,
       Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
       Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter)
       const override;
@@ -175,30 +173,25 @@ void initAwsSdk();
  * This method makes an HTTP PUT request with kImdsTokenTtlHeader
  * to request a token, which can subsequently used to make GET requests to the
  * Instance Metadata Service endpoint.
+ * If it fails to retrieve the token, it does FLAGS_aws_imdsv2_request_attempts
+ * attempts, with an interval of FLAGS_aws_imdsv2_request_interval, which scales
+ * quadratically.
  *
- * @return token as a string if successful, empty string otherwise
+ * @return token as a string if successful, boost::none if not
  */
-std::string getIMDSToken();
-
-/**
- * @brief Checks to see if this machine is EC2 instance.
- *
- * This method caches results after first check and returns cached data. It
- * first checks if /sys/hypervisor/uuid file exists and its contents starts with
- * 'ec2'. If UUID prefix matches, it then connects to EC2 latest metadata URL.
- * If both checks pass, this method returns true. Otherwise false.
- */
-bool isEc2Instance();
+boost::optional<std::string> getIMDSToken();
 
 /**
  * @brief Returns EC2 instance ID and region of this machine.
  *
- * If this is EC2 instance, returns the instance ID and region by querying the
- * EC2 metadata service. If this is not EC2 instance, returns empty strings.
- * This function makes HTTP call to EC2 metadata service. EC2 instance ID and
- * region are cached.
+ * Returns the instance ID and region by making an HTTP request to the EC2
+ * metadata service. If there's any error in retrieving the instance id or
+ * region, they will be empty. One has to ensure that the instance is an EC2 one
+ * before calling this method, using isEc2Instance.
+ *
+ * @return Pair of instance ID and region if successful, otherwise boost::none
  */
-void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
+boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion();
 
 /**
  * @brief Retrieve the Aws::Region from the aws_region flag
@@ -207,7 +200,9 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
  *
  * @return 0 if successful, 1 if the region was not recognized.
  */
-Status getAWSRegion(std::string& region, bool sts = false);
+Status getAWSRegion(std::string& region,
+                    bool sts = false,
+                    bool validate_region = true);
 
 /**
  * @brief Set HTTP/HTTPS proxy information on the AWS ClientConfiguration
@@ -231,23 +226,29 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config);
  * @param client Pointer to the client object to instantiate.
  * @param region AWS region to connect to. If not specified, will try to figure
  * out based on the configuration flags and AWS profile.
+ * @param endpoint_override Custom AWS service endpoint.
  *
  * @return 0 if successful, 1 if there was a problem reading configs.
  */
 template <class Client>
 Status makeAWSClient(std::shared_ptr<Client>& client,
                      const std::string& region = "",
-                     bool sts = true) {
+                     bool sts = true,
+                     const std::string& endpoint_override = "") {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
   if (region.empty()) {
-    Status s = getAWSRegion(client_config.region, sts);
+    // If the endpoint_override is set, we are most likely running in non-AWS
+    // environment, skip region validation.
+    bool validate_region = endpoint_override.empty();
+    Status s = getAWSRegion(client_config.region, sts, validate_region);
     if (!s.ok()) {
       return s;
     }
   } else {
     client_config.region = region;
   }
+  client_config.endpointOverride = endpoint_override;
 
   // Setup any proxy options on the config if desired
   setAWSProxy(client_config);

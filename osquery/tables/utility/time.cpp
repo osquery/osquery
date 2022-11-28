@@ -11,6 +11,11 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
+
+#include <osquery/logger/logger.h>
 #include <osquery/utils/system/time.h>
 
 #include <osquery/core/flags.h>
@@ -19,30 +24,40 @@
 
 namespace osquery {
 
-DECLARE_bool(utc);
-
 namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  time_t local_time = getUnixTime();
-  auto osquery_time = getUnixTime();
-  auto osquery_timestamp = getAsciiTime();
 
-  // The concept of 'now' is configurable.
+  time_t osquery_time = getUnixTime();
+
   struct tm gmt;
-  gmtime_r(&local_time, &gmt);
+  gmtime_r(&osquery_time, &gmt);
+  struct tm now = gmt;
+  auto osquery_timestamp = toAsciiTime(&now);
 
-  struct tm now;
-  if (FLAGS_utc) {
-    now = gmt;
-  } else {
-    localtime_r(&local_time, &now);
+  std::string local_timezone;
+
+  {
+#ifdef WIN32
+    TIME_ZONE_INFORMATION time_zone_information{};
+    if (GetTimeZoneInformation(&time_zone_information) ==
+        TIME_ZONE_ID_INVALID) {
+      LOG(ERROR) << "Failed to acquire the time";
+    } else {
+      local_timezone = wstringToString(time_zone_information.StandardName);
+    }
+
+#else
+    struct tm local {};
+    localtime_r(&osquery_time, &local);
+
+    std::array<char, 5> buffer;
+    strftime(buffer.data(), buffer.size(), "%Z", &local);
+
+    local_timezone.assign(buffer.data());
+#endif
   }
-
-  struct tm local;
-  localtime_r(&local_time, &local);
-  local_time = std::mktime(&local);
 
   char weekday[10] = {0};
   strftime(weekday, sizeof(weekday), "%A", &now);
@@ -50,8 +65,6 @@ QueryData genTime(QueryContext& context) {
   char timezone[5] = {0};
   strftime(timezone, sizeof(timezone), "%Z", &now);
 
-  char local_timezone[5] = {0};
-  strftime(local_timezone, sizeof(local_timezone), "%Z", &local);
 
   char iso_8601[21] = {0};
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
@@ -73,12 +86,8 @@ QueryData genTime(QueryContext& context) {
   r["hour"] = INTEGER(now.tm_hour);
   r["minutes"] = INTEGER(now.tm_min);
   r["seconds"] = INTEGER(now.tm_sec);
-  r["timezone"] = SQL_TEXT(timezone);
-  if (r["timezone"].empty()) {
-    r["timezone"] = "UTC";
-  }
+  r["timezone"] = "UTC";
 
-  r["local_time"] = INTEGER(local_time);
   r["local_timezone"] = SQL_TEXT(local_timezone);
   if (r["local_timezone"].empty()) {
     r["local_timezone"] = "UTC";

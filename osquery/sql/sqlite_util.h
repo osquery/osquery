@@ -80,6 +80,8 @@ const std::unordered_set<std::string> kAllowedSQLitePragmas = {
     "table_xinfo",
     "function_list",
     "journal_mode",
+    "case_sensitive_like",
+    "collation_list",
 };
 
 class SQLiteDBManager;
@@ -456,6 +458,9 @@ class SQLInternal : private only_movable {
   /// ASCII escape the results of the query.
   void escapeResults();
 
+  /// Returns the size
+  uint64_t getSize();
+
  private:
   /// The internal member which holds the typed results of the query.
   QueryDataTyped resultsTyped_;
@@ -508,6 +513,11 @@ void registerEncodingExtensions(sqlite3* db);
  * @brief Register filesystem-related 'custom' functions.
  */
 void registerFilesystemExtensions(sqlite3* db);
+
+/**
+ * @brief Register network-related 'custom' functions.
+ */
+void registerNetworkExtensions(sqlite3* db);
 
 /**
  * @brief Generate the data for auto-constructed sqlite tables

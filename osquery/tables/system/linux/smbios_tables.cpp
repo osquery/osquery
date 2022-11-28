@@ -18,6 +18,7 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/info/firmware.h>
 
 namespace osquery {
 namespace tables {
@@ -270,6 +271,16 @@ QueryData genPlatformInfo(QueryContext& context) {
     r["vendor"] = dmiString(textAddrs, address[0x04], maxlen);
     r["version"] = dmiString(textAddrs, address[0x05], maxlen);
     r["date"] = dmiString(textAddrs, address[0x08], maxlen);
+
+    auto opt_firmware_kind = getFirmwareKind();
+    if (opt_firmware_kind.has_value()) {
+      const auto& firmware_kind = opt_firmware_kind.value();
+      r["firmware_type"] = getFirmwareKindDescription(firmware_kind);
+
+    } else {
+      LOG(ERROR) << "platform_info: Failed to determine the firmware type";
+      r["firmware_type"] = "unknown";
+    }
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];

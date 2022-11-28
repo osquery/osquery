@@ -19,11 +19,11 @@ QueryData genPhysicalDiskPerformance(QueryContext& context) {
   QueryData results;
 
   auto query = "SELECT * FROM Win32_PerfFormattedData_PerfDisk_PhysicalDisk";
-  const WmiRequest perfReq(query);
-  if (!perfReq.getStatus().ok()) {
+  const auto perfReq = WmiRequest::CreateWmiRequest(query);
+  if (!perfReq || !perfReq->getStatus().ok()) {
     return results;
   }
-  const auto& perfRes = perfReq.results();
+  const auto& perfRes = perfReq->results();
   for (const auto& disk : perfRes) {
     Row r;
     std::string sPlaceHolder;

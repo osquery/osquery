@@ -9,7 +9,7 @@
 
 #include <osquery/experimental/events_stream/events_stream_registry.h>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 #include <osquery/registry/registry_factory.h>
 

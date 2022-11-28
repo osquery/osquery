@@ -37,12 +37,16 @@ class AwsLogForwarder : public BufferedLogForwarder {
   using Result = ResultType;
 
  public:
-  AwsLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
+  AwsLogForwarder(const std::string& name,
+                  size_t log_period,
+                  size_t max_lines,
+                  const std::string& endpoint_override)
       : BufferedLogForwarder(std::string("AwsLogForwarder:") + name,
                              name,
                              std::chrono::seconds(log_period),
                              max_lines),
-        name_(name) {}
+        name_(name),
+        endpoint_override_(endpoint_override) {}
 
   /// Common plugin initialization
   Status setUp() override {
@@ -51,7 +55,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
       return s;
     }
 
-    s = makeAWSClient<Client>(client_);
+    s = makeAWSClient<Client>(client_, "", true, endpoint_override_);
     if (!s.ok()) {
       return s;
     }
@@ -79,8 +83,9 @@ class AwsLogForwarder : public BufferedLogForwarder {
     }
 
     std::stringstream output;
-    output << name_ << ": The following log records have been discarded "
-                       "because they were too big:\n";
+    output << name_
+           << ": The following log records have been discarded "
+              "because they were too big:\n";
 
     for (const auto& record : discarded_records) {
       output << record << "\n";
@@ -128,8 +133,9 @@ class AwsLogForwarder : public BufferedLogForwarder {
       if (!status.ok()) {
         // To achieve behavior parity with TLS logger plugin, skip non-JSON
         // content
-        LOG(ERROR) << name_ << ": The following log record has been discarded "
-                               "because it was not in JSON format: "
+        LOG(ERROR) << name_
+                   << ": The following log record has been discarded "
+                      "because it was not in JSON format: "
                    << record;
 
         continue;
@@ -194,6 +200,12 @@ class AwsLogForwarder : public BufferedLogForwarder {
           (retry == 0 ? 0 : base_retry_delay) + (retry * 1000U);
       if (retry_delay != 0) {
         pause(std::chrono::milliseconds(retry_delay));
+
+        /* Stop retrying, osquery should shutdown; we fail the send
+           so that it's attempted again at the next start */
+        if (interrupted()) {
+          return false;
+        }
       }
 
       // Attempt to send the batch
@@ -275,6 +287,15 @@ class AwsLogForwarder : public BufferedLogForwarder {
     for (auto batch_it = batch_list.begin(); batch_it != batch_list.end();) {
       auto& batch = *batch_it;
       if (!sendBatch(batch, status_output)) {
+        /* Since we are shutting down, we don't want to count this send failure
+           as a real error; returning with failure here will make
+           the BufferedLogForwarder try to send this batch again
+           when osquery starts again */
+        if (interrupted()) {
+          return Status::failure(
+              "Interrupted sending log batch due to osquery shutdown");
+        }
+
         // We couldn't write some of the records; log them locally so that the
         // administrator will at least be able to inspect them
         dumpBatchToErrorLog(batch);
@@ -331,5 +352,8 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
   /// Logger name; used when printing messages
   std::string name_;
+
+  /// Service endpoint override
+  std::string endpoint_override_;
 };
-}
+} // namespace osquery

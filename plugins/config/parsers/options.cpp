@@ -102,6 +102,13 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
+    if (Flag::isCLIOnlyFlag(name)) {
+      LOG(WARNING) << "The CLI only flag --" << name
+                   << " set via config file will be ignored, please use a "
+                      "flagfile or pass it to the process at startup";
+      continue;
+    }
+
     Flag::updateValue(name, value);
     // There is a special case for supported Gflags-reserved switches.
     if (kVerboseOptions.count(name)) {
@@ -116,4 +123,4 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
 }
 
 REGISTER_INTERNAL(OptionsConfigParserPlugin, "config_parser", "options");
-}
+} // namespace osquery

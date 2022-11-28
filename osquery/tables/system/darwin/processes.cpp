@@ -8,11 +8,10 @@
  */
 
 #include <libproc.h>
+#include <mach-o/dyld_images.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
-
-#include <mach-o/dyld_images.h>
 
 #include <array>
 #include <map>
@@ -36,9 +35,8 @@ namespace tables {
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
 
-#define CPU_TIME_RATIO 1000000
-#define START_TIME_RATIO 1000000000
-#define NSECS_IN_USEC 1000
+#define NSEC_TO_MSEC_RATIO 1000000UL
+#define USEC_TO_SEC_RATIO NSEC_TO_MSEC_RATIO
 
 // Process states are as defined in sys/proc.h
 // SIDL   (1) Process being created by fork
@@ -109,12 +107,14 @@ struct proc_cred {
   } real, effective, saved;
 };
 
-inline bool genProcCred(QueryContext& context,
-                        int pid,
-                        proc_cred& cred,
-                        ProcessesRow& r) {
+inline bool genProcCredAndStartTime(QueryContext& context,
+                                    int pid,
+                                    proc_cred& cred,
+                                    ProcessesRow& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
+
+  r.start_time_col = -1;
 
   if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 1, &bsdinfo, PROC_PIDTBSDINFO_SIZE) ==
       PROC_PIDTBSDINFO_SIZE) {
@@ -128,6 +128,10 @@ inline bool genProcCred(QueryContext& context,
     cred.effective.gid = bsdinfo.pbi_gid;
     cred.saved.uid = bsdinfo.pbi_svuid;
     cred.saved.gid = bsdinfo.pbi_svgid;
+
+    r.start_time_col = ((bsdinfo.pbi_start_tvsec * USEC_TO_SEC_RATIO) +
+                        bsdinfo.pbi_start_tvusec) /
+                       USEC_TO_SEC_RATIO;
   } else if (proc_pidinfo(pid,
                           PROC_PIDT_SHORTBSDINFO,
                           1,
@@ -292,9 +296,13 @@ void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r) {
 
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   if (!context.isAnyColumnUsed(ProcessesRow::CPU_TYPE |
-                               ProcessesRow::CPU_SUBTYPE)) {
+                               ProcessesRow::CPU_SUBTYPE |
+                               ProcessesRow::TRANSLATED)) {
     return;
   }
+
+  // default the translated column to 0
+  r.translated_col = 0;
 
   struct proc_archinfo {
     cpu_type_t p_cputype;
@@ -313,6 +321,25 @@ void genProcArch(QueryContext& context, int pid, ProcessesRow& r) {
   } else {
     r.cpu_type_col = -1;
     r.cpu_subtype_col = -1;
+  }
+
+  if (archinfo.p_cputype == CPU_TYPE_ARM64) {
+    struct kinfo_proc kinfo {};
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+    size_t size = sizeof(kinfo);
+
+    if (sysctl(mib, 4, &kinfo, &size, nullptr, 0) != 0 ||
+        size < sizeof(kinfo)) {
+      r.translated_col = -1;
+      return;
+    }
+
+    // proc_bsdinfo also has pbi_flags, but that seems to be not always
+    // populated, instead kinfo_proc works better to get at the process flags
+    // and check whether P_TRANSLATED is one of the flags
+    if (kinfo.kp_proc.p_flag & P_TRANSLATED) {
+      r.translated_col = 1;
+    }
   }
 }
 
@@ -436,42 +463,35 @@ void genProcResourceUsage(const QueryContext& context,
       proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
+    // Initialize time conversions.
+    static mach_timebase_info_data_t time_base;
+    if (time_base.denom == 0) {
+      mach_timebase_info(&time_base);
+    }
+
     // size/memory information
     r.wired_size_col = rusage_info_data.ri_wired_size;
     r.resident_size_col = rusage_info_data.ri_resident_size;
     r.total_size_col = rusage_info_data.ri_phys_footprint;
 
     // time information
-    r.user_time_col = rusage_info_data.ri_user_time / CPU_TIME_RATIO;
-    r.system_time_col = rusage_info_data.ri_system_time / CPU_TIME_RATIO;
+    r.user_time_col =
+        ((rusage_info_data.ri_user_time * time_base.numer) / time_base.denom) /
+        NSEC_TO_MSEC_RATIO;
+
+    r.system_time_col = ((rusage_info_data.ri_system_time * time_base.numer) /
+                         time_base.denom) /
+                        NSEC_TO_MSEC_RATIO;
 
     // disk i/o information
     r.disk_bytes_read_col = rusage_info_data.ri_diskio_bytesread;
     r.disk_bytes_written_col = rusage_info_data.ri_diskio_byteswritten;
-
-    if (context.isAnyColumnUsed(ProcessesRow::START_TIME)) {
-      // Initialize time conversions.
-      static mach_timebase_info_data_t time_base;
-      if (time_base.denom == 0) {
-        mach_timebase_info(&time_base);
-      }
-
-      uint64_t const absoluteTime = mach_absolute_time();
-      auto const process_age = std::chrono::nanoseconds{
-          (absoluteTime - rusage_info_data.ri_proc_start_abstime) *
-          time_base.numer / time_base.denom};
-
-      r.start_time_col =
-          std::time(nullptr) -
-          std::chrono::duration_cast<std::chrono::seconds>(process_age).count();
-    }
   } else {
     r.wired_size_col = -1;
     r.resident_size_col = -1;
     r.total_size_col = -1;
     r.user_time_col = -1;
     r.system_time_col = -1;
-    r.start_time_col = -1;
   }
 }
 
@@ -489,7 +509,7 @@ TableRows genProcesses(QueryContext& context) {
     genProcRootAndCWD(context, pid, *r);
 
     proc_cred cred;
-    if (!genProcCred(context, pid, cred, *r)) {
+    if (!genProcCredAndStartTime(context, pid, cred, *r)) {
       continue;
     }
 
@@ -786,5 +806,5 @@ QueryData genProcessMemoryMap(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

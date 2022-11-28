@@ -58,4 +58,12 @@ std::string bstrToString(const BSTR src);
  * @returns The swap endianess (little endian returns big endian, vice-versa)
  */
 std::string swapEndianess(const std::string& endian_string);
+
+/**
+ * @brief Windows helper function to convert error DWORD to string
+ *
+ * @returns The string representation of a windows error
+ */
+std::string errorDwordToString(DWORD errorMessageID);
+
 } // namespace osquery

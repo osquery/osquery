@@ -61,9 +61,7 @@ Status SeccompEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : data) {
-    add(row);
-  }
+  addBatch(data);
 
   return Status::success();
 }

@@ -67,11 +67,11 @@ PlatformType operator|(PlatformType a, PlatformType b);
  * osquery code. Please use them sparingly and prefer the run-time detection
  * methods first. See the %PlatformType class and %isPlatform method.
  *
- * OSQUERY_BUILD_PLATFORM: For Linux, this is the distro name, for OS X this is
+ * OSQUERY_BUILD_PLATFORM: For Linux, this is the distro name, for macOS this is
  *   darwin, and on Windows it is windows. The set of potential values comes
  *   the ./tools/platform scripts and may be overridden.
- * OSQUERY_BUILD_DISTRO: For Linux, this is the version, for OS X this is the
- *   version (10.10, 10.11, 10.12), for Windows this is Win10.
+ * OSQUERY_BUILD_DISTRO: For Linux, this is the version, for macOS this is the
+ *   version (10.14, 10.15, etc.), for Windows this is Win10.
  * OSQUERY_PLATFORM: available as kSDKPlatform, a OSQUERY_BUILD_PLATFORM string.
  */
 #if !defined(OSQUERY_BUILD_PLATFORM)
@@ -82,7 +82,7 @@ PlatformType operator|(PlatformType a, PlatformType b);
 #error The build must define OSQUERY_BUILD_DISTRO.
 #endif
 
-#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
+#define OSQUERY_PLATFORM OSQUERY_BUILD_PLATFORM
 
 /// Identifies the build platform of either the core extension.
 extern const std::string kSDKPlatform;

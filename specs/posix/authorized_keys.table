@@ -3,10 +3,15 @@ description("A line-delimited authorized_keys table.")
 schema([
     Column("uid", BIGINT, "The local owner of authorized_keys file",
       additional=True),
-    Column("algorithm",TEXT,"algorithm of key"),
-    Column("key", TEXT, "parsed authorized keys line"),
+    Column("algorithm", TEXT, "Key type"),
+    Column("key", TEXT, "Key encoded as base64"),
+    Column("options", TEXT, "Optional list of login options"),
+    Column("comment", TEXT, "Optional comment"),
     Column("key_file", TEXT, "Path to the authorized_keys file"),
     ForeignKey(column="uid", table="users"),
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
 ])
 attributes(user_data=True, no_pkey=True)
 implementation("authorized_keys@getAuthorizedKeys")

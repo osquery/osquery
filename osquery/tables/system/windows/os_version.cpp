@@ -10,6 +10,7 @@
 #include <osquery/core/tables.h>
 
 #include <osquery/core/windows/wmi.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -25,8 +26,14 @@ QueryData genOSVersion(QueryContext& context) {
       "SELECT CAPTION,VERSION,INSTALLDATE,OSARCHITECTURE FROM "
       "Win32_OperatingSystem";
 
-  const WmiRequest wmiRequest(kWmiQuery);
-  const std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
+  const auto wmiRequest = WmiRequest::CreateWmiRequest(kWmiQuery);
+
+  if (!wmiRequest) {
+    LOG(WARNING) << wmiRequest.getError().getMessage();
+    return {};
+  }
+
+  const std::vector<WmiResultItem>& wmiResults = wmiRequest->results();
 
   if (wmiResults.empty()) {
     return {};

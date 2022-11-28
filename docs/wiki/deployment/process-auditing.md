@@ -132,7 +132,7 @@ A sample socket_event log entry looks like this:
   "action": "added",
   "columns": {
     "time": "1527895541",
-    "success": "1",
+    "status": "succeeded",
     "remote_port": "80",
     "action": "connect",
     "auid": "1000",
@@ -152,6 +152,24 @@ A sample socket_event log entry looks like this:
 
 If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow_unix`. This will put considerable strain on the system as many default actions use domain sockets. You will also need to explicitly select the `socket` column from the `socket_events` table.
 
+The `success` column has been deprecated and replaced with `status`:
+| Status value | Description |
+|-|-|
+| failed | Definitely failed |
+| succeeded | Definitely succeeded |
+| in_progress | The `connect`()` syscall has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for non-blocking sockets. |
+| no_client | The `accept` or `accept4` syscall returned with EAGAIN since there were not incoming connections. Reserved for non-blocking sockets. |
+
+The behavior of the socket_events table can be changed with the following boolean flags:
+
+| Flag | Description |
+|-|-|
+| --audit_allow_sockets | Allow the audit publisher to install socket-related rules |
+| --audit_allow_unix | Allow socket events to collect domain sockets |
+| --audit_allow_failed_socket_events | Include rows for socket events that have failed |
+| --audit_allow_accept_socket_events | Include rows for accept socket events |
+| --audit_allow_null_accept_socket_events | Allow non-blocking accept() syscalls that returned EAGAIN/EWOULDBLOCK |
+
 ## Troubleshooting Audit-based process and socket auditing on Linux
 
 There are a few different methods to ensure you have configured auditing correctly.
@@ -169,6 +187,33 @@ osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=tr
 If you would like to debug the raw audit events as `osqueryd` sees them, use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's `stdout`.
 
 > NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`.
+
+### Avoid throttling, losing events and interpreting Audit publisher throttling messages
+
+If osquery is CPU constrained and is processing a high enough stream of events, you may receive this warning message:  
+`The Audit publisher has throttled reading records from Netlink for <N> seconds. Some events may have been lost.`.
+
+This message can only appear at most every minute and it indicates that the Audit publisher had to slow down reading records from the Netlink socket for the reported duration, since the previous throttling message.
+This happens when osquery is not processing records fast enough to prevent its internal buffers growing too much and consuming too much memory.
+
+Throttling may cause loss of events, since the Audit subsystem backlog buffer could fill up; if that happens the kernel will be forced to drop some of them.  
+You can check if this is happening looking at the `lost` field via `auditctl -s`.
+
+Throttling currently starts when more than 4096 records have been read and are still in the queue to be processed by osquery; this is a number of records
+which can support high spikes of events, and is a limit for osquery to avoid consuming memory indefinitely.  
+Keep in mind that if the high rate of events continues, even with throttling happening, you might still have to increase your default [watchdog memory limit](../installation/cli-flags.md#daemon-control-flags) or reduce the interval of the scheduled query on the evented table, due to the amount of rows that it will have to generate at once.
+
+There's also a second throttling point in the Audit publisher pipeline, which exists after the records have been read from the Netlink socket and are then parsed into a more computer friendly format.  
+When throttling happens here, another message will be logged which is:  
+`The Audit publisher has throttled record processing for <N> seconds. This may cause further throttling and loss of events.`.
+
+This message exists mostly for debugging purposes and will only appear if `--verbose` is active, because this doesn't necessarily cause loss of events: a bottleneck in this point of the pipeline will have to cause throttling in the Netlink socket reading side, before possibly causing loss of events.  
+So as long as no throttling is happening on the reading side, no loss of events should happen due to this.
+
+To avoid throttling there isn't much to be done beyond reducing constraints on the CPU or in general have osquery process less events.
+
+To attempt avoiding losing events, first of all we should ensure that throttling happens as few times as possible. Then when can try to increase the backlog buffer that the Audit subsystem is using via the `--audit_backlog_limit` flag, to attempt to support bigger/slightly longer events spikes.  
+Keep in mind that increasing this will increase the amount of memory used by the Audit subsystem and that this memory is not allocated by osquery, so it won't be accounted for by the watchdog.
 
 ## User event auditing with Audit
 
@@ -245,7 +290,7 @@ The FDA permission (or lack thereof) is inherited from `Terminal.app` when runni
 | -------- | -------- | -------- |
 | `Terminal.app`¹   | Give Full Disk Access to `Terminal.app` only  | Success     |
 | `Terminal.app`¹  | Give FDA only to osquery only, or do nothing  |  No events |
-| `launchctl`  | Give Full Disk Access to `/usr/local/bin/osqueryd`² only | Success |
+| `launchctl`  | Give Full Disk Access to `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd`² only | Success |
 | `launchctl`  | Give FDA to `launchctl` only, or do nothing  | No events  |
 
 ¹ : if you use a third-party terminal emulator like `iTerm.app`, grant that the permission instead of `Terminal.app`.
@@ -263,9 +308,9 @@ If a macOS host is enrolled in MDM, The FDA permissions can be granted silently 
 To get the appropriate `CodeRequirement` identifier, use the `codesign` tool and then copy everything in the output after the `designated =>`.
 
 ```shell
-> codesign  -dr - /usr/local/bin/osqueryd
-Executable=/usr/local/bin/osqueryd
-designated => identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */
+> codesign  -dr - /opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+Executable=/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd
+designated => identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"
 ```
 
 For your deployment, either generate an equivalent profile using your MDM dashboard (specifying `/usr/local/bin/osqueryd` as `Identifier` and `path` as the `Identifier Type` and setting `SystemPolicyAllFiles` to `Allow`), or just use the example configuration profile below, ensuring the correct value for the following fields:
@@ -303,13 +348,13 @@ For your deployment, either generate an equivalent profile using your MDM dashbo
       <key>Allowed</key>
       <true/>
       <key>CodeRequirement</key>
-      <string>identifier osqueryd and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Sharvil Shah (Q94H84D397)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+      <string>identifier "io.osquery.agent" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "3522FA9PXF"</string>
       <key>Comment</key>
       <string></string>
       <key>Identifier</key>
-      <string>/usr/local/bin/osqueryd</string>
+      <string>io.osquery.agent</string>
       <key>IdentifierType</key>
-      <string>path</string>
+      <string>bundleID</string>
      </dict>
     </array>
    </dict>

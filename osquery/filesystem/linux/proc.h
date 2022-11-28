@@ -58,6 +58,17 @@ const std::map<int, std::string> kLinuxProtocolNames = {
     {IPPROTO_RAW, "raw"},
 };
 
+const std::string kPacketPathSuffix{"packet"};
+
+// For sockets without state (eg. raw sockets).
+const std::string kSocketStateNone{"NONE"};
+
+// Index of protocol number in /proc/net/packet file.
+const std::size_t kPacketLineProtocolIndex{3U};
+
+// Index of inode number in /proc/net/packet file.
+const std::size_t kPacketLineInodeIndex{8U};
+
 const std::vector<std::string> tcp_states = {"UNKNOWN",
                                              "ESTABLISHED",
                                              "SYN_SENT",
@@ -81,6 +92,34 @@ Status procGetProcessNamespaces(
 Status procReadDescriptor(const std::string& process,
                           const std::string& descriptor,
                           std::string& result);
+
+/// From an hex encoded address and its socket family, read from
+/// a /proc/net file, decode the address and return a string.
+///
+/// @param encoded_address The encoded address as a string.
+/// @param int The family to use to decode address (AF_INET, AF_INET6).
+std::string procDecodeAddressFromHex(const std::string& encoded_address,
+                                     int family);
+
+/// From an encoded unsigned short (host port, protocol), decode it and
+/// return it as an unsigned short
+///
+/// @param encoded_port The encoded port as a string.
+unsigned short procDecodeUnsignedShortFromHex(const std::string& encoded_port);
+
+/// Parse the contents issued from a /proc/net/packet file and fill the socket
+/// info list structure.
+///
+/// @param family The family to set in the SocketInfo entry.
+/// @param protocol The protocol entries to result; If 0, return all.
+/// @param net_ns The network namespace to set in the SocketInfo entry.
+/// @param content The /proc/net/packet content to parse.
+/// @param result The SocketInfo list structure to fill with the parsed results.
+Status procGetSocketListPacket(int family,
+                               int protocol,
+                               ino_t net_ns,
+                               const std::string& content,
+                               SocketInfoList& result);
 
 /// This function parses the inode value in the destination of a user namespace
 /// symlink; fail if the namespace name is now what we expect
@@ -231,5 +270,8 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
 
   return Status(0);
 }
+
+enum class ProcError { GenericError };
+Expected<std::uint64_t, ProcError> getProcRSS(const std::string& process);
 
 } // namespace osquery

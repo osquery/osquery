@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <codecvt>
 #include <sstream>
 
 #include <fcntl.h>
@@ -19,6 +20,7 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -92,14 +94,6 @@ struct OpenReadableFile : private boost::noncopyable {
 
     // Open the file descriptor and allow caller to perform error checking.
     fd = std::make_unique<PlatformFile>(path, mode);
-
-    if (!blocking && fd->isSpecialFile()) {
-      // A special file cannot be read in non-blocking mode, reopen in blocking
-      // mode
-      mode &= ~PF_NONBLOCK;
-      blocking_io = true;
-      fd = std::make_unique<PlatformFile>(path, mode);
-    }
   }
 
  public:
@@ -107,13 +101,23 @@ struct OpenReadableFile : private boost::noncopyable {
   bool blocking_io;
 };
 
+void initializeFilesystemAPILocale() {
+#if defined(WIN32)
+  setlocale(LC_ALL, ".UTF-8");
+
+  boost::filesystem::path::imbue(std::locale(
+      std::locale(".UTF-8"), new std::codecvt_utf8_utf16<wchar_t>()));
+#endif
+}
+
 Status readFile(const fs::path& path,
                 size_t size,
                 size_t block_size,
                 bool dry_run,
                 bool preserve_time,
                 std::function<void(std::string& buffer, size_t size)> predicate,
-                bool blocking) {
+                bool blocking,
+                bool log) {
   OpenReadableFile handle(path, blocking);
 
   if (handle.fd == nullptr || !handle.fd->isValid()) {
@@ -131,10 +135,14 @@ Status readFile(const fs::path& path,
   auto read_max = static_cast<off_t>(FLAGS_read_max);
   if (file_size > read_max) {
     if (!dry_run) {
-      LOG(WARNING) << "Cannot read file that exceeds size limit: "
-                   << path.string();
-      VLOG(1) << "Cannot read " << path.string()
-              << " size exceeds limit: " << file_size << " > " << read_max;
+      auto s =
+          Status::failure("Cannot read " + path.string() +
+                          " size exceeds limit: " + std::to_string(file_size) +
+                          " > " + std::to_string(read_max));
+      if (log) {
+        LOG(WARNING) << s.getMessage();
+      }
+      return s;
     }
     return Status::failure("File exceeds read limits");
   }
@@ -153,7 +161,7 @@ Status readFile(const fs::path& path,
   handle.fd->getFileTimes(times);
 
   off_t total_bytes = 0;
-  if (handle.blocking_io) {
+  if (handle.blocking_io || handle.fd->isSpecialFile()) {
     // Reset block size to a sane minimum.
     block_size = (block_size < 4096) ? 4096 : block_size;
     ssize_t part_bytes = 0;
@@ -197,7 +205,8 @@ Status readFile(const fs::path& path,
                 size_t size,
                 bool dry_run,
                 bool preserve_time,
-                bool blocking) {
+                bool blocking,
+                bool log) {
   return readFile(path,
                   size,
                   4096,
@@ -210,7 +219,8 @@ Status readFile(const fs::path& path,
                       content += buffer.substr(0, _size);
                     }
                   }),
-                  blocking);
+                  blocking,
+                  log);
 }
 
 Status readFile(const fs::path& path, bool blocking) {
@@ -220,8 +230,9 @@ Status readFile(const fs::path& path, bool blocking) {
 
 Status forensicReadFile(const fs::path& path,
                         std::string& content,
-                        bool blocking) {
-  return readFile(path, content, 0, false, true, blocking);
+                        bool blocking,
+                        bool log) {
+  return readFile(path, content, 0, false, true, blocking, log);
 }
 
 Status isWritable(const fs::path& path, bool effective) {
@@ -307,11 +318,11 @@ static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
     return false;
   }
 
-  if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
-    dsym_inos.insert(d_stat.st_ino);
-  } else {
-    VLOG(1) << "Symlink loop detected. Ignoring: " << path;
+  if (dsym_inos.find(d_stat.st_ino) != dsym_inos.end()) {
+    // Symlink loop detected. Ignoring
     return true;
+  } else {
+    dsym_inos.insert(d_stat.st_ino);
   }
   return false;
 }
@@ -490,7 +501,9 @@ std::set<fs::path> getHomeDirectories() {
 
   auto users = SQL::selectAllFrom("users");
   for (const auto& user : users) {
-    if (user.at("directory").size() > 0) {
+    // First verify the user has a "directory" entry.
+    auto dir_iter = user.find("directory");
+    if (dir_iter != user.end() && user.at("directory").size() > 0) {
       results.insert(user.at("directory"));
     }
   }

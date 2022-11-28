@@ -27,15 +27,15 @@
 
 namespace osquery {
 
-FLAG(string,
-     disable_tables,
-     "",
-     "Comma-delimited list of table names to be disabled");
+CLI_FLAG(string,
+         disable_tables,
+         "",
+         "Comma-delimited list of table names to be disabled");
 
-FLAG(string,
-     enable_tables,
-     "",
-     "Comma-delimited list of table names to be enabled");
+CLI_FLAG(string,
+         enable_tables,
+         "",
+         "Comma-delimited list of table names to be enabled");
 
 FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
@@ -223,6 +223,28 @@ class StringEscaperVisitor : public boost::static_visitor<> {
   }
 };
 
+class SizeVisitor : public boost::static_visitor<> {
+ public:
+  void operator()(const long long& i) {
+    size = sizeof(i);
+  }
+
+  void operator()(const double& d) {
+    size = sizeof(d);
+  }
+
+  void operator()(const std::string& t) {
+    size = t.length();
+  }
+
+  uint64_t get_size() const {
+    return size;
+  }
+
+ private:
+  uint64_t size{0};
+};
+
 void SQLInternal::escapeResults() {
   StringEscaperVisitor visitor;
   for (auto& rowTyped : resultsTyped_) {
@@ -230,6 +252,19 @@ void SQLInternal::escapeResults() {
       boost::apply_visitor(visitor, column.second);
     }
   }
+}
+
+uint64_t SQLInternal::getSize() {
+  SizeVisitor visitor;
+  uint64_t size = 0;
+  for (const auto& row : rowsTyped()) {
+    for (const auto& column : row) {
+      size += column.first.size();
+      boost::apply_visitor(visitor, column.second);
+      size += visitor.get_size();
+    }
+  }
+  return size;
 }
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {
@@ -318,6 +353,7 @@ static inline void openOptimized(sqlite3*& db) {
   registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
+  registerNetworkExtensions(db);
 
   auto rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
   if (rc != SQLITE_OK) {
@@ -512,8 +548,8 @@ QueryPlanner::QueryPlanner(const std::string& query,
 
   for (const auto& row : plan) {
     auto details = osquery::split(row.at("detail"));
-    if (details.size() > 2 && details[0] == "SCAN") {
-      tables_.push_back(details[2]);
+    if (details.size() > 1 && details[0] == "SCAN") {
+      tables_.push_back(details[1]);
     }
   }
 }

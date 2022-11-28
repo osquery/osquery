@@ -8,7 +8,8 @@
 function(libxml2Main)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  set(library_srcs
+  add_library(thirdparty_libxml2
+    "${library_root}/buf.c"
     "${library_root}/c14n.c"
     "${library_root}/catalog.c"
     "${library_root}/chvalid.c"
@@ -23,17 +24,19 @@ function(libxml2Main)
     "${library_root}/HTMLtree.c"
     "${library_root}/legacy.c"
     "${library_root}/list.c"
+    "${library_root}/nanoftp.c"
+    "${library_root}/nanohttp.c"
     "${library_root}/parser.c"
     "${library_root}/parserInternals.c"
     "${library_root}/pattern.c"
     "${library_root}/relaxng.c"
-    "${library_root}/SAX.c"
     "${library_root}/SAX2.c"
+    "${library_root}/SAX.c"
+    "${library_root}/schematron.c"
     "${library_root}/threads.c"
     "${library_root}/tree.c"
     "${library_root}/uri.c"
     "${library_root}/valid.c"
-    "${library_root}/xinclude.c"
     "${library_root}/xlink.c"
     "${library_root}/xmlIO.c"
     "${library_root}/xmlmemory.c"
@@ -51,74 +54,70 @@ function(libxml2Main)
     "${library_root}/xzlib.c"
   )
 
-  if(DEFINED PLATFORM_POSIX)
-    list(APPEND library_srcs
-      "${library_root}/buf.c"
-    )
-  endif()
+  target_compile_definitions(thirdparty_libxml2
+    PRIVATE
+      _REENTRANT
 
-  add_library(thirdparty_libxml2
-    ${library_srcs}
+    INTERFACE
+      LIBXML_STATIC
   )
 
-  target_compile_definitions(thirdparty_libxml2 PUBLIC
-    _REENTRANT
-    LIBXML_STATIC
-  )
-
-  if(DEFINED PLATFORM_POSIX)
+  if(PLATFORM_WINDOWS)
     target_compile_definitions(thirdparty_libxml2 PRIVATE
-      HAVE_CONFIG_H
-    )
-  elseif(DEFINED PLATFORM_WINDOWS)
-    target_compile_definitions(thirdparty_libxml2 PRIVATE
-      _CRT_NONSTDC_NO_DEPRECATE
-      _CRT_SECURE_NO_DEPRECATE
-      _WINDOWS
-      _MBCS
-    )
-    
-    target_compile_definitions(thirdparty_libxml2 PUBLIC
       HAVE_WIN32_THREADS
     )
   endif()
 
-  target_link_libraries(thirdparty_libxml2 PRIVATE
-    thirdparty_c_settings
+  find_package(Threads REQUIRED)
+  target_link_libraries(thirdparty_libxml2
+    PRIVATE
+      thirdparty_c_settings
+
+    PUBLIC
+      thirdparty_zlib
+      Threads::Threads
+      ${CMAKE_DL_LIBS}
   )
 
-  target_link_libraries(thirdparty_libxml2 PUBLIC
-    thirdparty_icu
-    thirdparty_zlib
-  )
-
-  if(DEFINED PLATFORM_WINDOWS)
-    target_include_directories(thirdparty_libxml2 SYSTEM INTERFACE
-      "${CMAKE_CURRENT_SOURCE_DIR}/version/windows"
-    )
-
-    target_include_directories(thirdparty_libxml2 PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows"
-      "${CMAKE_CURRENT_SOURCE_DIR}/version/windows"
-    )
-  else()
-    target_include_directories(thirdparty_libxml2 SYSTEM INTERFACE
-      "${CMAKE_CURRENT_SOURCE_DIR}/version/posix"
-    )
-
-    target_include_directories(thirdparty_libxml2 PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/posix"
-      "${CMAKE_CURRENT_SOURCE_DIR}/version/posix"
+  if(PLATFORM_POSIX)
+    target_link_libraries(thirdparty_libxml2 PUBLIC
+      m
     )
   endif()
 
-  target_include_directories(thirdparty_libxml2 PRIVATE
+  if(PLATFORM_LINUX)
+    set(include_path_list
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/linux/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/linux/${TARGET_PROCESSOR}"
+    )
+
+  elseif(PLATFORM_WINDOWS)
+    set(include_path_list
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/windows/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/windows/${TARGET_PROCESSOR}"
+    )
+
+  elseif(PLATFORM_MACOS)
+    set(include_path_list
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/macos/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/macos/${TARGET_PROCESSOR}"
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
+
+  list(APPEND include_path_list
     "${library_root}"
     "${library_root}/include"
   )
 
+  target_include_directories(thirdparty_libxml2 PRIVATE
+    ${include_path_list}
+  )
+
   target_include_directories(thirdparty_libxml2 SYSTEM INTERFACE
-    "${library_root}/include"
+    ${include_path_list}
   )
 endfunction()
 

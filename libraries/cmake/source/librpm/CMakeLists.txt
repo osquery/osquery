@@ -14,6 +14,10 @@ function(librpmMain)
     "${library_root}/lib/backend/dbi.c"
     "${library_root}/lib/backend/dummydb.c"
     "${library_root}/lib/backend/dbiset.c"
+    "${library_root}/lib/backend/ndb/glue.c"
+    "${library_root}/lib/backend/ndb/rpmidx.c"
+    "${library_root}/lib/backend/ndb/rpmpkg.c"
+    "${library_root}/lib/backend/ndb/rpmxdb.c"
     "${library_root}/lib/header.c"
     "${library_root}/lib/headerfmt.c"
     "${library_root}/lib/headerutil.c"
@@ -52,7 +56,6 @@ function(librpmMain)
     "${library_root}/lib/verify.c"
     "${library_root}/lib/rpmlock.c"
     "${library_root}/lib/relocation.c"
-    "${library_root}/lib/rpmscript.c"
     "${library_root}/lib/rpmchroot.c"
     "${library_root}/lib/rpmplugins.c"
     "${library_root}/lib/rpmug.c"
@@ -92,6 +95,7 @@ function(librpmMain)
     "${library_root}/rpmio/rpmio.c"
     "${library_root}/rpmio/rpmlog.c"
     "${library_root}/rpmio/rpmmalloc.c"
+    "${library_root}/rpmio/rgetopt.c"
     "${library_root}/rpmio/rpmpgp.c"
     "${library_root}/rpmio/rpmsq.c"
     "${library_root}/rpmio/rpmsw.c"
@@ -125,7 +129,7 @@ function(librpmMain)
   target_compile_definitions(thirdparty_librpm PRIVATE
     HAVE_CONFIG_H
     LIBRPMALIAS_EXECPATH="/usr/local/bin"
-    LIBRPMALIAS_FILENAME="rpmpopt-4.16.1.2"
+    LIBRPMALIAS_FILENAME="rpmpopt-4.17.0"
     LOCALEDIR="/usr/local/share/locale"
     LOCALSTATEDIR="/usr/local/var"
     PIC

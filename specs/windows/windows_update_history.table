@@ -1,0 +1,20 @@
+table_name("windows_update_history")
+description("Provides the history of the windows update events.")
+schema([
+    Column("client_app_id", TEXT, "Identifier of the client application that processed an update"),
+    Column("date", BIGINT, "Date and the time an update was applied"),
+    Column("description", TEXT, "Description of an update"),
+    Column("hresult", BIGINT, "HRESULT value that is returned from the operation on an update"),
+    Column("operation", TEXT, "Operation on an update"),
+    Column("result_code", TEXT, "Result of an operation on an update"),
+    Column("server_selection", TEXT, "Value that indicates which server provided an update"),
+    Column("service_id", TEXT, "Service identifier of an update service that is not a Windows update"),
+    Column("support_url", TEXT, "Hyperlink to the language-specific support information for an update"),
+    Column("title", TEXT, "Title of an update"),
+    Column("update_id", TEXT, "Revision-independent identifier of an update"),
+    Column("update_revision", BIGINT, "Revision number of an update"),
+])
+implementation("windows_update_history@genWindowsUpdateHistory")
+examples([
+    "select * from windows_update_history",
+])

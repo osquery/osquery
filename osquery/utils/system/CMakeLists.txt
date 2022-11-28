@@ -7,12 +7,17 @@
 
 function(osqueryUtilsSystemMain)
 
-  add_subdirectory("linux")
+  if(DEFINED PLATFORM_LINUX)
+    add_subdirectory("linux")
+  endif()
 
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsSystemErrnoErrnotestsTest()
-    generateOsqueryUtilsSystemCpuCputopologytestsTest()
     generateOsqueryUtilsSystemTimeTimetestsTest()
+
+    if(DEFINED PLATFORM_LINUX)
+      generateOsqueryUtilsSystemCpuCputopologytestsTest()
+    endif()
   endif()
 
   generateOsqueryUtilsSystemEnv()
@@ -22,6 +27,14 @@ function(osqueryUtilsSystemMain)
   generateOsqueryUtilsSystemTime()
   generateOsqueryUtilsSystem()
   generateOsqueryUtilsSystemUptime()
+
+  if(DEFINED PLATFORM_LINUX)
+    generateOsqueryUtilsSystemBoottime()
+  endif()
+
+  if(DEFINED PLATFORM_WINDOWS)
+    generateOsqueryUtilsSystemUsersGroups()
+  endif()
 endfunction()
 
 function(generateOsqueryUtilsSystemEnv)
@@ -57,7 +70,6 @@ function(generateOsqueryUtilsSystemEnv)
 endfunction()
 
 function(generateOsqueryUtilsSystemFilepath)
-
   if(DEFINED PLATFORM_WINDOWS)
     add_osquery_library(osquery_utils_system_filepath INTERFACE)
   else()
@@ -66,7 +78,7 @@ function(generateOsqueryUtilsSystemFilepath)
     )
 
     set(public_header_files
-        filepath.h
+      filepath.h
     )
 
     generateIncludeNamespace(osquery_utils_system_filepath "osquery/utils/system" "FILE_ONLY" ${public_header_files})
@@ -75,7 +87,6 @@ function(generateOsqueryUtilsSystemFilepath)
       osquery_cxx_settings
     )
   endif()
-
 endfunction()
 
 function(generateOsqueryUtilsSystemErrno)
@@ -105,9 +116,9 @@ function(generateOsqueryUtilsSystemErrno)
   )
 
   if(DEFINED PLATFORM_POSIX)
-      list(APPEND public_header_files
-        posix/errno.h
-      )
+    list(APPEND public_header_files
+      posix/errno.h
+    )
   endif()
 
   generateIncludeNamespace(osquery_utils_system_errno "osquery/utils/system" "FULL_PATH" ${public_header_files})
@@ -140,7 +151,6 @@ function(generateOsqueryUtilsSystemCputopology)
   else()
     add_osquery_library(osquery_utils_system_cputopology INTERFACE)
   endif()
-
 endfunction()
 
 function(generateOsqueryUtilsSystemTime)
@@ -208,18 +218,21 @@ function(generateOsqueryUtilsSystem)
     thirdparty_googletest_headers
   )
 
+  set(public_header_files
+    system.h
+  )
+
   if(DEFINED PLATFORM_POSIX)
-    set(public_header_files
+    list(APPEND public_header_files
       posix/system.h
     )
-
   elseif(DEFINED PLATFORM_WINDOWS)
-    set(public_header_files
+      list(APPEND public_header_files
       windows/system.h
     )
   endif()
 
-  generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FULL_PATH" ${public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsSystemUptime)
@@ -239,8 +252,48 @@ function(generateOsqueryUtilsSystemUptime)
   generateIncludeNamespace(osquery_utils_system_uptime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
 endfunction()
 
-function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
+function(generateOsqueryUtilsSystemBoottime)
 
+  if(DEFINED PLATFORM_LINUX)
+    set(source_files
+      linux/boottime.cpp
+    )
+  endif()
+
+  add_osquery_library(osquery_utils_system_boottime EXCLUDE_FROM_ALL
+    ${source_files}
+  )
+
+  target_link_libraries(osquery_utils_system_boottime PUBLIC
+    osquery_cxx_settings
+    osquery_filesystem
+  )
+
+  set(public_header_files
+    boottime.h
+  )
+
+  generateIncludeNamespace(osquery_utils_system_boottime "osquery/utils/system" "FILE_ONLY" ${public_header_files})
+endfunction()
+
+function(generateOsqueryUtilsSystemUsersGroups)
+  add_osquery_library(osquery_utils_system_usersgroupshelpers EXCLUDE_FROM_ALL
+    windows/users_groups_helpers.cpp
+  )
+
+  target_link_libraries(osquery_utils_system_usersgroupshelpers PUBLIC
+    osquery_cxx_settings
+    osquery_utils_conversions
+  )
+
+  set(public_header_files
+    windows/users_groups_helpers.h
+  )
+
+  generateIncludeNamespace(osquery_utils_system_usersgroupshelpers "osquery/utils/system" "FULL_PATH" ${public_header_files})
+endfunction()
+
+function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
   set(source_files
     tests/errno.cpp
   )
@@ -259,7 +312,6 @@ function(generateOsqueryUtilsSystemErrnoErrnotestsTest)
 endfunction()
 
 function(generateOsqueryUtilsSystemCpuCputopologytestsTest)
-
   set(source_files
     tests/cpu.cpp
   )

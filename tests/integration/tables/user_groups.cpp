@@ -10,16 +10,31 @@
 // Sanity check integration test for user_groups
 // Spec file: specs/user_groups.table
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 namespace table_tests {
 
 class UserGroups : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
+
+#ifdef OSQUERY_WINDOWS
+  static void SetUpTestSuite() {
+    initUsersAndGroupsServices(true, true);
+  }
+
+  static void TearDownTestSuite() {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+    deinitUsersAndGroupsServices(true, true);
+    Dispatcher::instance().resetStopping();
+  }
+#endif
 };
 
 TEST_F(UserGroups, test_sanity) {

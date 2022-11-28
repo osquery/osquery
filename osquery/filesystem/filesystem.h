@@ -42,6 +42,9 @@ const std::string kSQLGlobWildcard{"%"};
 /// Globbing wildcard recursive character (double wildcard).
 const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
 
+/// Calls the setlocale() API, only used on Windows
+void initializeFilesystemAPILocale();
+
 /**
  * @brief Read a file from disk.
  *
@@ -52,6 +55,7 @@ const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
  * @param dry_run do not actually read the file content.
  * @param preserve_time Attempt to preserve file mtime and atime.
  * @param blocking Request a blocking read.
+ * @param log emit log messages using default logger for read size errors.
  *
  * @return an instance of Status, indicating success or failure.
  */
@@ -60,12 +64,14 @@ Status readFile(const boost::filesystem::path& path,
                 size_t size = 0,
                 bool dry_run = false,
                 bool preserve_time = false,
-                bool blocking = false);
+                bool blocking = false,
+                bool log = true);
 
 /// Read a file and preserve the atime and mtime.
 Status forensicReadFile(const boost::filesystem::path& path,
                         std::string& content,
-                        bool blocking = false);
+                        bool blocking = false,
+                        bool log = true);
 
 /**
  * @brief Return the status of an attempted file read.
@@ -85,7 +91,8 @@ Status readFile(const boost::filesystem::path& path,
                 bool dry_run,
                 bool preserve_time,
                 std::function<void(std::string& buffer, size_t size)> predicate,
-                bool blocking = false);
+                bool blocking = false,
+                bool log = true);
 
 /**
  * @brief Write text to disk.

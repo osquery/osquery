@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemMain)
-
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
   endif()
@@ -18,6 +17,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(source_files
     hash.cpp
     python_packages.cpp
+    npm_packages.cpp
     ssh_keys.cpp
     ssh_configs.cpp
     system_utils.cpp
@@ -30,7 +30,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
-      posix/apt_sources.cpp
       posix/augeas.cpp
       posix/authorized_keys.cpp
       posix/crontab.cpp
@@ -39,13 +38,13 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/load_average.cpp
       posix/logged_in_users.cpp
       posix/magic.cpp
+      posix/openssl_utils.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
       posix/ulimit_info.cpp
-      posix/yum_sources.cpp
     )
   endif()
 
@@ -57,9 +56,10 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusconnection.cpp
       linux/dbus/uniquedbusmessage.cpp
       linux/acpi_tables.cpp
+      linux/apt_sources.cpp
       linux/block_devices.cpp
+      linux/certificates.cpp
       linux/disk_encryption.cpp
-      linux/elf_info.cpp
       linux/extended_attributes.cpp
       linux/groups.cpp
       linux/intel_me.cpp
@@ -70,7 +70,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/memory_map.cpp
       linux/model_specific_register.cpp
       linux/mounts.cpp
-      linux/npm_packages.cpp
       linux/os_version.cpp
       linux/pci_devices.cpp
       linux/portage.cpp
@@ -78,6 +77,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
+      linux/secureboot.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -90,6 +90,8 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/selinux_settings.cpp
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
+      linux/cpu_info.cpp
+      linux/yum_sources.cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
@@ -138,6 +140,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/nvram.cpp
       darwin/os_version.cpp
       darwin/packages.mm
+      darwin/password_policy.cpp
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp
@@ -157,25 +160,11 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/system_extensions.mm
       darwin/system_info.cpp
       darwin/time_machine.cpp
+      darwin/unified_log.mm
       darwin/usb_devices.cpp
       darwin/user_groups.mm
       darwin/virtual_memory_info.cpp
       darwin/xprotect.cpp
-    )
-
-  elseif(DEFINED PLATFORM_FREEBSD)
-    list(APPEND source_files
-      freebsd/fbsd_kmods.cpp
-      freebsd/groups.cpp
-      freebsd/mounts.cpp
-      freebsd/os_version.cpp
-      freebsd/pkg_packages.cpp
-      freebsd/process_open_files.cpp
-      freebsd/processes.cpp
-      freebsd/procstat.cpp
-      freebsd/sysctl_utils.cpp
-      freebsd/users.cpp
-      freenux/cpu_time.cpp
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
@@ -212,10 +201,12 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/programs.cpp
       windows/registry.cpp
       windows/scheduled_tasks.cpp
+      windows/secureboot.cpp
+      windows/security_profile_info_utils.cpp
+      windows/security_profile_info.cpp
       windows/services.cpp
       windows/shared_resources.cpp
       windows/shellbags.cpp
-      windows/shortcut_files.cpp
       windows/shimcache.cpp
       windows/smbios_tables.cpp
       windows/startup_items.cpp
@@ -229,12 +220,14 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_optional_features.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
       windows/wmi_event_filters.cpp
       windows/wmi_filter_consumer_binding.cpp
       windows/wmi_script_event_consumers.cpp
       windows/hvci_status.cpp
+      windows/tpm_info.cpp
       windows/prefetch.cpp
     )
   endif()
@@ -268,14 +261,18 @@ function(generateOsqueryTablesSystemSystemtable)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       thirdparty_augeas
       thirdparty_libmagic
-      thirdparty_libxml2
+    )
+  else()
+    target_link_libraries(osquery_tables_system_systemtable PRIVATE
+      osquery_system_usersgroups_caches
     )
   endif()
 
   if(DEFINED PLATFORM_LINUX)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
+      osquery_utils_linux
+      osquery_utils_system_boottime
       thirdparty_libdevmapper
-      thirdparty_libelfin
       thirdparty_libcryptsetup
       thirdparty_librpm
       thirdparty_popt
@@ -303,6 +300,7 @@ function(generateOsqueryTablesSystemSystemtable)
   set(public_header_files
     efi_misc.h
     intel_me.hpp
+    secureboot.hpp
     smbios_utils.h
     system_utils.h
     user_groups.h
@@ -312,12 +310,14 @@ function(generateOsqueryTablesSystemSystemtable)
 
   if(DEFINED PLATFORM_POSIX)
     set(platform_public_header_files
-      posix/apt_sources.h
       posix/known_hosts.h
       posix/shell_history.h
+      posix/ssh_keys.h
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
+      posix/openssl_utils.h
+      posix/authorized_keys.h
     )
   endif()
 
@@ -329,8 +329,10 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniquedbusconnection.h
       linux/dbus/uniquedbusmessage.h
       linux/dbus/uniqueresource.h
+      linux/apt_sources.h
       linux/md_tables.h
       linux/pci_devices.h
+      linux/processes.h
       linux/smbios_utils.h
     )
 
@@ -343,17 +345,13 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/smbios_utils.h
     )
 
-  elseif(DEFINED PLATFORM_FREEBSD)
-    list(APPEND platform_public_header_files
-      freebsd/procstat.h
-    )
-
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND platform_public_header_files
       windows/registry.h
       windows/certificates.h
-      windows/users.h
       windows/windows_eventlog.h
+      windows/windows_update_history.h
+      windows/security_profile_info_utils.h
     )
   endif()
 

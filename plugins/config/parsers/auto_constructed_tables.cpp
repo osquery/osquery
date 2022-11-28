@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/config/config.h>
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
@@ -162,15 +164,13 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     std::string columns_value;
     columns_value.reserve(256);
 
-    // Always add the implicit path column
-    columns.push_back(
-        make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
-    columns_value += "path,";
-
     if (!params.HasMember("columns") || !params["columns"].IsArray()) {
-      LOG(WARNING) << "ATC Table: " << table_name
-                   << " is misconfigured (no columns)";
+      LOG(WARNING) << "ATC Table: Skipping " << table_name
+                   << " because it is misconfigured (no columns)";
+      continue;
     }
+
+    std::string user_defined_path_column;
 
     for (const auto& column : params["columns"].GetArray()) {
       if (!column.IsString()) {
@@ -179,16 +179,25 @@ Status ATCConfigParserPlugin::update(const std::string& source,
         continue;
       }
 
-      if (std::string(column.GetString()) == std::string("path")) {
-        LOG(WARNING) << "ATC Table: " << table_name
-                     << " is misconfigured. The configuration include `path`,"
-                     << " which is a reserved column";
-        continue;
+      if (boost::iequals(column.GetString(), "path")) {
+        user_defined_path_column = column.GetString();
       }
 
       columns.push_back(make_tuple(
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
+    }
+
+    if (!user_defined_path_column.empty()) {
+      LOG(WARNING) << "ATC Table: " << table_name
+                   << " is misconfigured. The configuration includes `"
+                   << user_defined_path_column
+                   << "`. This is a reserved column name";
+    } else {
+      // Add implicit path column
+      columns.push_back(
+          make_tuple(std::string("path"), TEXT_TYPE, ColumnOptions::DEFAULT));
+      columns_value += "path,";
     }
 
     registered.erase(table_name);

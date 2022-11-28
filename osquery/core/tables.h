@@ -688,7 +688,7 @@ class TablePlugin : public Plugin {
     return ColumnAliasSet();
   }
 
-  /// Define a map of aliases to canoical columns
+  /// Define a map of aliases to canonical columns
   virtual AliasColumnMap aliasedColumns() const {
     AliasColumnMap result;
 

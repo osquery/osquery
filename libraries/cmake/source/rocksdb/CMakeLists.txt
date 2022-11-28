@@ -7,17 +7,22 @@
 
 function(rocksdbMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(crc32_impl "${library_root}/util/crc32c.cc")
 
   add_library(thirdparty_rocksdb
     "${CMAKE_CURRENT_SOURCE_DIR}/version/build_version.cc"
 
+    "${crc32_impl}"
     "${library_root}/cache/cache.cc"
+    "${library_root}/cache/cache_entry_roles.cc"
     "${library_root}/cache/clock_cache.cc"
     "${library_root}/cache/lru_cache.cc"
     "${library_root}/cache/sharded_cache.cc"
     "${library_root}/db/arena_wrapped_db_iter.cc"
+    "${library_root}/db/blob/blob_fetcher.cc"
     "${library_root}/db/blob/blob_file_addition.cc"
     "${library_root}/db/blob/blob_file_builder.cc"
+    "${library_root}/db/blob/blob_file_cache.cc"
     "${library_root}/db/blob/blob_file_garbage.cc"
     "${library_root}/db/blob/blob_file_meta.cc"
     "${library_root}/db/blob/blob_file_reader.cc"
@@ -27,7 +32,6 @@ function(rocksdbMain)
     "${library_root}/db/builder.cc"
     "${library_root}/db/c.cc"
     "${library_root}/db/column_family.cc"
-    "${library_root}/db/compacted_db_impl.cc"
     "${library_root}/db/compaction/compaction.cc"
     "${library_root}/db/compaction/compaction_iterator.cc"
     "${library_root}/db/compaction/compaction_job.cc"
@@ -39,6 +43,7 @@ function(rocksdbMain)
     "${library_root}/db/convenience.cc"
     "${library_root}/db/db_filesnapshot.cc"
     "${library_root}/db/dbformat.cc"
+    "${library_root}/db/db_impl/compacted_db_impl.cc"
     "${library_root}/db/db_impl/db_impl.cc"
     "${library_root}/db/db_impl/db_impl_compaction_flush.cc"
     "${library_root}/db/db_impl/db_impl_debug.cc"
@@ -88,17 +93,20 @@ function(rocksdbMain)
     "${library_root}/db/write_batch.cc"
     "${library_root}/db/write_controller.cc"
     "${library_root}/db/write_thread.cc"
+    "${library_root}/env/composite_env.cc"
     "${library_root}/env/env.cc"
     "${library_root}/env/env_chroot.cc"
     "${library_root}/env/env_encryption.cc"
     "${library_root}/env/env_hdfs.cc"
     "${library_root}/env/file_system.cc"
     "${library_root}/env/file_system_tracer.cc"
+    "${library_root}/env/fs_remap.cc"
     "${library_root}/env/mock_env.cc"
     "${library_root}/file/delete_scheduler.cc"
     "${library_root}/file/filename.cc"
     "${library_root}/file/file_prefetch_buffer.cc"
     "${library_root}/file/file_util.cc"
+    "${library_root}/file/line_file_reader.cc"
     "${library_root}/file/random_access_file_reader.cc"
     "${library_root}/file/readahead_raf.cc"
     "${library_root}/file/read_write_util.cc"
@@ -133,6 +141,7 @@ function(rocksdbMain)
     "${library_root}/monitoring/thread_status_util_debug.cc"
     "${library_root}/options/cf_options.cc"
     "${library_root}/options/configurable.cc"
+    "${library_root}/options/customizable.cc"
     "${library_root}/options/db_options.cc"
     "${library_root}/options/options.cc"
     "${library_root}/options/options_helper.cc"
@@ -205,7 +214,6 @@ function(rocksdbMain)
     "${library_root}/util/comparator.cc"
     "${library_root}/util/compression_context_cache.cc"
     "${library_root}/util/concurrent_task_limiter_impl.cc"
-    "${library_root}/util/crc32c.cc"
     "${library_root}/util/dynamic_bloom.cc"
     "${library_root}/util/file_checksum_helper.cc"
     "${library_root}/util/hash.cc"
@@ -247,8 +255,23 @@ function(rocksdbMain)
     "${library_root}/utilities/simulator_cache/sim_cache.cc"
     "${library_root}/utilities/table_properties_collectors/compact_on_deletion_collector.cc"
     "${library_root}/utilities/trace/file_trace_reader_writer.cc"
-    "${library_root}/utilities/transactions/lock/lock_tracker.cc"
-    "${library_root}/utilities/transactions/lock/point_lock_tracker.cc"
+    "${library_root}/utilities/transactions/lock/lock_manager.cc"
+    "${library_root}/utilities/transactions/lock/point/point_lock_manager.cc"
+    "${library_root}/utilities/transactions/lock/point/point_lock_tracker.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/concurrent_tree.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/keyrange.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/lock_request.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/locktree.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/manager.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/range_buffer.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/treenode.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/txnid_set.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/locktree/wfg.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/standalone_port.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/util/dbt.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/lib/util/memarena.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/range_tree_lock_manager.cc"
+    "${library_root}/utilities/transactions/lock/range/range_tree/range_tree_lock_tracker.cc"
     "${library_root}/utilities/transactions/optimistic_transaction.cc"
     "${library_root}/utilities/transactions/optimistic_transaction_db_impl.cc"
     "${library_root}/utilities/transactions/pessimistic_transaction.cc"
@@ -256,7 +279,6 @@ function(rocksdbMain)
     "${library_root}/utilities/transactions/snapshot_checker.cc"
     "${library_root}/utilities/transactions/transaction_base.cc"
     "${library_root}/utilities/transactions/transaction_db_mutex_impl.cc"
-    "${library_root}/utilities/transactions/transaction_lock_mgr.cc"
     "${library_root}/utilities/transactions/transaction_util.cc"
     "${library_root}/utilities/transactions/write_prepared_txn.cc"
     "${library_root}/utilities/transactions/write_prepared_txn_db.cc"
@@ -268,6 +290,7 @@ function(rocksdbMain)
     "${library_root}/util/murmurhash.cc"
     "${library_root}/util/random.cc"
     "${library_root}/util/rate_limiter.cc"
+    "${library_root}/util/ribbon_config.cc"
     "${library_root}/util/slice.cc"
     "${library_root}/util/status.cc"
     "${library_root}/util/string_util.cc"
@@ -276,12 +299,15 @@ function(rocksdbMain)
     "${library_root}/util/xxhash.cc"
   )
 
-  set_source_files_properties(
-    "${CMAKE_CURRENT_SOURCE_DIR}/version/build_version.cc"
-    PROPERTIES INCLUDE_DIRECTORIES "${library_root}/util"
-  )
+  if(PLATFORM_POSIX)
+    target_sources(thirdparty_rocksdb PRIVATE
+      "${library_root}/env/env_posix.cc"
+      "${library_root}/env/fs_posix.cc"
+      "${library_root}/env/io_posix.cc"
+      "${library_root}/port/port_posix.cc"
+    )
 
-  if(DEFINED PLATFORM_WINDOWS)
+  else()
     target_sources(thirdparty_rocksdb PRIVATE
       "${library_root}/port/win/env_default.cc"
       "${library_root}/port/win/env_win.cc"
@@ -289,66 +315,138 @@ function(rocksdbMain)
       "${library_root}/port/win/port_win.cc"
       "${library_root}/port/win/win_logger.cc"
       "${library_root}/port/win/win_thread.cc"
-      "${library_root}/port/win/xpress_win.cc"
     )
+  endif()
 
-    # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
-    # Status::NotSupported(), so that the caller can use a different way to
-    # determine whether the files are matching. This lets us keep the project-wide
-    # _WIN32_WINNT definition set to Windows 7 under cmake/flags.cmake.
-    set_source_files_properties(
-      "${library_root}/port/win/env_win.cc"
-      PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/patches/env_win.h"
-    )
-
-  else()
+  if(NOT PLATFORM_MACOS)
     target_sources(thirdparty_rocksdb PRIVATE
-      "${library_root}/env/env_posix.cc"
-      "${library_root}/env/fs_posix.cc"
-      "${library_root}/env/io_posix.cc"
-      "${library_root}/port/port_posix.cc"
+      "${library_root}/third-party/folly/folly/detail/Futex.cpp"
+      "${library_root}/third-party/folly/folly/synchronization/AtomicNotification.cpp"
+      "${library_root}/third-party/folly/folly/synchronization/DistributedMutex.cpp"
+      "${library_root}/third-party/folly/folly/synchronization/ParkingLot.cpp"
+      "${library_root}/third-party/folly/folly/synchronization/WaitOptions.cpp"
     )
   endif()
 
-  if(DEFINED PLATFORM_MACOS)
-    set(platform_definitions OS_MACOSX)
+  if(TARGET_PROCESSOR STREQUAL "x86_64")
+    if(NOT PLATFORM_WINDOWS)
+      set_source_files_properties("${crc32_impl}" PROPERTIES
+        COMPILE_FLAGS
+          "-msse4.2 -mpclmul"
+      )
+    endif()
 
-  elseif(DEFINED PLATFORM_LINUX)
-    set(platform_definitions
-      OS_LINUX
+    target_compile_definitions(thirdparty_rocksdb PRIVATE
+      HAVE_SSE42
     )
 
-  elseif(DEFINED PLATFORM_WINDOWS)
-    set(platform_definitions
-      WIN32
-      OS_WIN
-      _MBCS
-      WIN64
-      NOMINMAX
-    )
+    # Enable PCLMUL only if we are on posix platforms, or on Windows 64bit
+    if(DEFINED PLATFORM_POSIX OR (DEFINED PLATFORM_WINDOWS AND CMAKE_SIZEOF_VOID_P EQUAL 8))
+      target_compile_definitions(thirdparty_rocksdb PRIVATE
+        HAVE_PCLMUL
+      )
+    endif()
 
-    target_link_libraries(thirdparty_rocksdb INTERFACE
-      "shlwapi.lib"
-      "rpcrt4.lib"
-    )
-  endif()
-
-  if(DEFINED PLATFORM_POSIX)
-    list(APPEND platform_definitions
-      ROCKSDB_PLATFORM_POSIX
-      ROCKSDB_LIB_IO_POSIX
+  elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+    target_sources(thirdparty_rocksdb PRIVATE
+      "${library_root}/util/crc32c_arm64.cc"
     )
   endif()
 
-  target_compile_definitions(thirdparty_rocksdb PRIVATE
-    ${platform_definitions}
+  if(PLATFORM_LINUX)
+    if(TARGET_PROCESSOR STREQUAL "x86_64")
+      target_compile_definitions(thirdparty_rocksdb
+        PUBLIC
+          ROCKSDB_SUPPORT_THREAD_LOCAL
 
-    ROCKSDB_NO_DYNAMIC_EXTENSION
-    ROCKSDB_SUPPORT_THREAD_LOCAL
-  )
+        PRIVATE
+          NPERF_CONTEXT
+          OS_LINUX
+          ROCKSDB_FALLOCATE_PRESENT
+          ROCKSDB_LIB_IO_POSIX
+          ROCKSDB_MALLOC_USABLE_SIZE
+          ROCKSDB_NO_DYNAMIC_EXTENSION
+          ROCKSDB_PLATFORM_POSIX
+          ROCKSDB_PTHREAD_ADAPTIVE_MUTEX
+          ROCKSDB_RANGESYNC_PRESENT
+          ROCKSDB_SCHED_GETCPU_PRESENT
+      )
 
-  target_link_libraries(thirdparty_rocksdb PRIVATE
-    thirdparty_cxx_settings
+    elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+      target_compile_definitions(thirdparty_rocksdb PRIVATE
+        NIOSTATS_CONTEXT
+        NPERF_CONTEXT
+        OS_LINUX
+        ROCKSDB_LIB_IO_POSIX
+        ROCKSDB_NO_DYNAMIC_EXTENSION
+        ROCKSDB_PLATFORM_POSIX
+      )
+    endif()
+
+  elseif(PLATFORM_MACOS)
+    if(TARGET_PROCESSOR STREQUAL "x86_64")
+      target_compile_definitions(thirdparty_rocksdb
+        PUBLIC
+          ROCKSDB_SUPPORT_THREAD_LOCAL
+
+        PRIVATE
+          NPERF_CONTEXT
+          OS_MACOSX
+          ROCKSDB_LIB_IO_POSIX
+          ROCKSDB_NO_DYNAMIC_EXTENSION
+          ROCKSDB_PLATFORM_POSIX
+      )
+
+    elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+      target_compile_definitions(thirdparty_rocksdb PRIVATE
+        NIOSTATS_CONTEXT
+        NPERF_CONTEXT
+        OS_MACOSX
+        ROCKSDB_LIB_IO_POSIX
+        ROCKSDB_NO_DYNAMIC_EXTENSION
+        ROCKSDB_PLATFORM_POSIX
+      )
+    endif()
+
+  elseif(PLATFORM_WINDOWS)
+    if(TARGET_PROCESSOR STREQUAL "x86_64")
+      target_compile_definitions(thirdparty_rocksdb
+        PUBLIC
+          ROCKSDB_SUPPORT_THREAD_LOCAL
+          OS_WIN
+
+        PRIVATE
+          _MBCS
+          NOMINMAX
+          NPERF_CONTEXT
+          ROCKSDB_NO_DYNAMIC_EXTENSION
+          WIN32
+          WIN64
+      )
+    endif()
+  endif()
+
+  set(library_list)
+
+  if(PLATFORM_LINUX)
+    find_package(Threads REQUIRED)
+    list(APPEND library_list
+      Threads::Threads
+    )
+
+  elseif(PLATFORM_WINDOWS)
+    list(APPEND library_list
+      shlwapi.lib
+      rpcrt4.lib
+    )
+  endif()
+
+  target_link_libraries(thirdparty_rocksdb
+    PRIVATE
+      thirdparty_cxx_settings
+
+    PUBLIC
+      ${library_list}
   )
 
   target_include_directories(thirdparty_rocksdb PRIVATE
@@ -356,19 +454,24 @@ function(rocksdbMain)
     "${library_root}/include"
   )
 
+  if(NOT PLATFORM_MACOS)
+    target_include_directories(thirdparty_rocksdb PRIVATE
+      "${library_root}/third-party/folly"
+    )
+  endif()
+
   target_include_directories(thirdparty_rocksdb SYSTEM INTERFACE
     "${library_root}/include"
   )
 
-  if(DEFINED PLATFORM_MACOS)
-    # This can be removed once we target a newer macOS version
-    # Error message follows
-    # ===
-    # error: aligned deallocation function of type 'void (void *, enum std::align_val_t) noexcept'
-    #        is only available on macOS 10.14 or newer
-
-    target_compile_definitions(thirdparty_rocksdb PRIVATE
-      TEST_CACHE_LINE_SIZE=64U
+  if(PLATFORM_WINDOWS)
+    # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
+    # Status::NotSupported(), so that the caller can use a different way to
+    # determine whether the files are matching. This lets us keep the project-wide
+    # _WIN32_WINNT definition set to Windows 7 under cmake/flags.cmake.
+    set_source_files_properties(
+      "${library_root}/port/win/env_win.cc"
+      PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/patches/env_win.h"
     )
   endif()
 endfunction()

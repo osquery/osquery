@@ -9,7 +9,7 @@
 
 #include <osquery/utils/versioning/semantic.h>
 
-#include <boost/io/detail/quoted_manip.hpp>
+#include <boost/io/quoted.hpp>
 
 namespace osquery {
 

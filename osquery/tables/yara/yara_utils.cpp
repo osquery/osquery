@@ -10,16 +10,69 @@
 #include <map>
 #include <string>
 
+#include <cerrno>
+#include <sys/stat.h>
+
 #include <osquery/config/config.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
-#include <osquery/tables/yara/yara_utils.h>
-
 #include <osquery/remote/uri.h>
+#include <osquery/tables/yara/yara_utils.h>
+#include <osquery/utils/expected/expected.h>
+#include <osquery/utils/status/status.h>
 
 namespace osquery {
 
 DECLARE_bool(enable_yara_string);
+
+namespace {
+Status verifyRuleFilePointer(FILE* rule_file, const std::string& file_path) {
+  int file_fd = -1;
+
+  auto status = platformFileno(rule_file, file_fd);
+
+  if (!status.ok()) {
+    return Status::failure(
+        "Could not convert FILE pointer to file descriptor of file " +
+        file_path + ", error " + std::to_string(status.getCode()));
+  }
+
+  auto opt_is_file = platformIsFile(file_fd);
+
+  if (!opt_is_file.has_value()) {
+    return Status::failure("Could not determine if " + file_path +
+                           " is a file");
+  }
+
+  if (!opt_is_file.value()) {
+    return Status::failure("The rules file path doesn't point to a file");
+  }
+
+  return Status::success();
+}
+
+using YaraCompilerDeleter = void (*)(YR_COMPILER*);
+using YaraCompilerHandle = std::unique_ptr<YR_COMPILER, YaraCompilerDeleter>;
+using YaraCompilerCreateResult =
+    Expected<YaraCompilerHandle, YaraCompilerError>;
+YaraCompilerCreateResult createCompiler() {
+  YR_COMPILER* compiler = nullptr;
+
+  int result = yr_compiler_create(&compiler);
+  if (result != ERROR_SUCCESS) {
+    return YaraCompilerCreateResult::failure("Could not create compiler: " +
+                                             std::to_string(result));
+  }
+
+  return YaraCompilerHandle(compiler, [](YR_COMPILER* compiler) {
+    if (compiler) {
+      yr_compiler_destroy(compiler);
+    }
+  });
+}
+
+} // namespace
 
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
   // avoid special files /dev/x , /proc/x, FIFO's named-pipes, etc.
@@ -75,19 +128,18 @@ Status yaraFinalize(void) {
 /**
  * Compile a single rule file and load it into rule pointer.
  */
-Status compileSingleFile(const std::string& file, YR_RULES** rules) {
-  YR_COMPILER* compiler = nullptr;
+YaraCompilerResult compileSingleFile(const std::string& file) {
+  auto compiler_result = createCompiler();
 
-  int result = yr_compiler_create(&compiler);
-  if (result != ERROR_SUCCESS) {
-    return Status::failure("Could not create compiler: " +
-                           std::to_string(result));
+  if (compiler_result.isError()) {
+    return compiler_result.takeError();
   }
 
-  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+  auto compiler = compiler_result.take();
 
-  bool compiled = false;
-  YR_RULES* tmp_rules;
+  yr_compiler_set_callback(compiler.get(), YARACompilerCallback, nullptr);
+
+  YR_RULES* tmp_rules = nullptr;
   VLOG(1) << "Loading YARA signature file: " << file;
 
   // First attempt to load the file, in case it is saved (pre-compiled)
@@ -95,97 +147,96 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   //
   // If you want to use saved rule files you must have them all in a single
   // file. This is easy to accomplish with yarac(1).
-  result = yr_rules_load(file.c_str(), &tmp_rules);
-  if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
-    yr_compiler_destroy(compiler);
-    return Status::failure("Error loading YARA rules: " +
-                           std::to_string(result));
-  } else if (result == ERROR_SUCCESS) {
-    *rules = tmp_rules;
-  } else {
-    compiled = true;
-    // Try to compile the rules.
-    FILE* rule_file = fopen(file.c_str(), "r");
+  auto result = yr_rules_load(file.c_str(), &tmp_rules);
 
-    if (rule_file == nullptr) {
-      yr_compiler_destroy(compiler);
-      return Status(1, "Could not open file: " + file);
-    }
+  if (result == ERROR_SUCCESS) {
+    return YaraCompilerResult::success(tmp_rules);
+  }
 
-    int errors =
-        yr_compiler_add_file(compiler, rule_file, nullptr, file.c_str());
+  if (result != ERROR_INVALID_FILE) {
+    return YaraCompilerResult::failure("Error loading YARA rules: " +
+                                       std::to_string(result));
+  }
 
+  // The rule file was not a pre-compiled rules file, try to compile it
+  FILE* rule_file = fopen(file.c_str(), "r");
+
+  if (rule_file == nullptr) {
+    return YaraCompilerResult::failure("Could not open file: " + file);
+  }
+
+  /* Verify that the path opened is actually a file,
+     since fopen could be used to open a directory too,
+     which would cause a leak in Yara. */
+  Status status = verifyRuleFilePointer(rule_file, file);
+  if (!status.ok()) {
     fclose(rule_file);
-    rule_file = nullptr;
-
-    if (errors > 0) {
-      yr_compiler_destroy(compiler);
-      // Errors printed via callback.
-      return Status::failure("Compilation errors");
-    }
+    return YaraCompilerResult::failure(status.getMessage());
   }
 
-  if (compiled) {
-    // All the rules for this category have been compiled, save them in the map.
-    result = yr_compiler_get_rules(compiler, *(&rules));
+  int errors =
+      yr_compiler_add_file(compiler.get(), rule_file, nullptr, file.c_str());
 
-    if (result != ERROR_SUCCESS) {
-      yr_compiler_destroy(compiler);
-      return Status::failure("Insufficient memory to get YARA rules");
-    }
+  fclose(rule_file);
+  rule_file = nullptr;
+
+  if (errors > 0) {
+    // Errors printed via callback.
+    return YaraCompilerResult::failure("Compilation errors");
   }
 
-  if (compiler != nullptr) {
-    yr_compiler_destroy(compiler);
-    compiler = nullptr;
+  /* All the rules for this category have been compiled,
+     get a reference to them */
+  result = yr_compiler_get_rules(compiler.get(), &tmp_rules);
+
+  if (result != ERROR_SUCCESS) {
+    return YaraCompilerResult::failure("Insufficient memory to get YARA rules");
   }
 
-  return Status::success();
-}
+  return YaraCompilerResult::success(tmp_rules);
+
+} // namespace osquery
 
 /**
  * Compile yara rules from string and load it into rule pointer.
  */
-Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
-  YR_COMPILER* compiler = nullptr;
+YaraCompilerResult compileFromString(const std::string& rule_defs) {
+  auto compiler_result = createCompiler();
 
-  auto result = yr_compiler_create(&compiler);
-  if (result != ERROR_SUCCESS) {
-    return Status::failure("Could not create compiler: " +
-                           std::to_string(result));
+  if (compiler_result.isError()) {
+    return compiler_result.takeError();
   }
 
-  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+  auto compiler = compiler_result.take();
 
-  result = yr_compiler_add_string(compiler, rule_defs.c_str(), nullptr);
+  yr_compiler_set_callback(compiler.get(), YARACompilerCallback, nullptr);
+
+  auto result =
+      yr_compiler_add_string(compiler.get(), rule_defs.c_str(), nullptr);
   if (result > 0) {
-    yr_compiler_destroy(compiler);
-    return Status::failure("Compilation error " + std::to_string(result));
+    return YaraCompilerResult::failure("Compilation error " +
+                                       std::to_string(result));
   }
 
-  result = yr_compiler_get_rules(compiler, *(&rules));
+  YR_RULES* tmp_rules = nullptr;
+
+  result = yr_compiler_get_rules(compiler.get(), &tmp_rules);
   if (result != ERROR_SUCCESS) {
-    yr_compiler_destroy(compiler);
-    return Status::failure("Insufficient memory to get YARA rules");
+    return YaraCompilerResult::failure("Insufficient memory to get YARA rules");
   }
 
   // The yara rule strings are set to private unless it is disabled. This
   // will protect from data exfiltration
   if (!FLAGS_enable_yara_string) {
     YR_RULE* rule = nullptr;
-    yr_rules_foreach((*rules), rule) {
+    yr_rules_foreach(tmp_rules, rule) {
       if (rule->strings) {
         rule->strings->flags = rule->strings->flags | STRING_FLAGS_PRIVATE;
       }
     }
   }
 
-  if (compiler != nullptr) {
-    yr_compiler_destroy(compiler);
-    compiler = nullptr;
-  }
-
-  return Status::success();
+  return YaraCompilerResult::success(tmp_rules);
 }
 
 /**
@@ -194,15 +245,16 @@ Status compileFromString(const std::string& rule_defs, YR_RULES** rules) {
  */
 Status handleRuleFiles(const std::string& category,
                        const rapidjson::Value& rule_files,
-                       std::map<std::string, YR_RULES*>& rules) {
-  YR_COMPILER* compiler = nullptr;
-  int result = yr_compiler_create(&compiler);
-  if (result != ERROR_SUCCESS) {
-    VLOG(1) << "Could not create compiler: error " + std::to_string(result);
-    return Status(1, "YARA compile error " + std::to_string(result));
+                       std::map<std::string, YaraRulesHandle>& rules) {
+  auto compiler_result = createCompiler();
+
+  if (compiler_result.isError()) {
+    return Status::failure(compiler_result.getError().getMessage());
   }
 
-  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
+  auto compiler = compiler_result.take();
+
+  yr_compiler_set_callback(compiler.get(), YARACompilerCallback, nullptr);
 
   bool compiled = false;
   for (const auto& item : rule_files.GetArray()) {
@@ -231,35 +283,36 @@ Status handleRuleFiles(const std::string& category,
     //
     // If you want to use saved rule files you must have them all in a single
     // file. This is easy to accomplish with yarac(1).
-    result = yr_rules_load(rule.c_str(), &tmp_rules);
+    auto result = yr_rules_load(rule.c_str(), &tmp_rules);
     if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
-      yr_compiler_destroy(compiler);
       return Status(1, "YARA load error " + std::to_string(result));
     } else if (result == ERROR_SUCCESS) {
-      // If there are already rules there, destroy them and put new ones in.
-      if (rules.count(category) > 0) {
-        yr_rules_destroy(rules[category]);
-      }
-
-      rules[category] = tmp_rules;
+      rules.insert_or_assign(category, tmp_rules);
     } else {
       compiled = true;
       // Try to compile the rules.
       FILE* rule_file = fopen(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
-        yr_compiler_destroy(compiler);
         return Status(1, "Could not open file: " + rule);
       }
 
-      int errors =
-          yr_compiler_add_file(compiler, rule_file, nullptr, rule.c_str());
+      /* Verify that the path opened is actually a file,
+       since fopen could be used to open a directory too,
+       which would cause a leak in Yara. */
+      Status status = verifyRuleFilePointer(rule_file, rule);
+      if (!status.ok()) {
+        fclose(rule_file);
+        return status;
+      }
+
+      int errors = yr_compiler_add_file(
+          compiler.get(), rule_file, nullptr, rule.c_str());
 
       fclose(rule_file);
       rule_file = nullptr;
 
       if (errors > 0) {
-        yr_compiler_destroy(compiler);
         // Errors printed via callback.
         return Status(1, "Compilation errors");
       }
@@ -267,18 +320,15 @@ Status handleRuleFiles(const std::string& category,
   }
 
   if (compiled) {
-    // All the rules for this category have been compiled, save them in the map.
-    result = yr_compiler_get_rules(compiler, &rules[category]);
+    YR_RULES* new_rules = nullptr;
+    auto result = yr_compiler_get_rules(compiler.get(), &new_rules);
 
     if (result != ERROR_SUCCESS) {
-      yr_compiler_destroy(compiler);
       return Status(1, "Insufficient memory to get YARA rules");
     }
-  }
 
-  if (compiler != nullptr) {
-    yr_compiler_destroy(compiler);
-    compiler = nullptr;
+    // All the rules for this category have been compiled, save them in the map.
+    rules.insert_or_assign(category, new_rules);
   }
 
   return Status::success();
@@ -387,9 +437,9 @@ Status YARAConfigParserPlugin::update(const std::string& source,
   if (yara_config.HasMember("signature_urls")) {
     auto& sigurl = yara_config["signature_urls"];
     if (!sigurl.IsArray()) {
-      VLOG(1) << "YARA signature_url must be an array";
+      VLOG(1) << "YARA signature_urls must be an array";
     } else {
-      VLOG(1) << "Compiling YARA signature_url for allowed list";
+      VLOG(1) << "Compiling YARA signature_urls for allowed list";
       for (const auto& element : sigurl.GetArray()) {
         if (element.IsString()) {
           auto url_string = element.GetString();

@@ -45,12 +45,6 @@ targets = {
   "ubuntu16" => {
     "box" => "ubuntu/xenial64"
   },
-  "freebsd10" => {
-    "box" => "bento/freebsd-10"
-  },
-  "freebsd11" => {
-    "box" => "bento/freebsd-11"
-  },
   "archlinux" => {
     "box" => "archlinux/archlinux"
   },
@@ -212,35 +206,6 @@ Vagrant.configure("2") do |config|
           ]
       end
 
-      if name.start_with?('freebsd')
-        # configure the NICs
-        build.vm.provider :virtualbox do |vb|
-          vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
-          vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
-        end
-        # Private network for NFS
-        build.vm.network :private_network,
-          ip: "192.168.56.101", :mac => "5CA1AB1E0001"
-        build.vm.synced_folder ".", "/vagrant", type: "rsync",
-          rsync__exclude: [
-            "build",
-            ".git/objects",
-          ]
-        build.vm.provision 'shell',
-          inline:
-            # Switching to latest may cause failures if dependencies are not built.
-            "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
-            "su -m root -c 'hostname vagrant';"\
-            "su -m root -c 'pkg update -f';"\
-            "sudo pkg install -y openjdk8 bash git gmake python ruby;"\
-            "sudo mount -t fdescfs fdesc /dev/fd;"\
-            "sudo mount -t procfs proc /proc;"\
-            "echo -e \""\
-              "fdesc   /dev/fd     fdescfs     rw  0   0\n"\
-              "proc    /proc       procfs      rw  0   0"\
-            "\" | sudo tee /etc/fstab;"\
-            "sudo ln -f `which bash` /bin"
-      end
       if name.start_with?('ubuntu', 'debian')
         build.vm.provision 'bootstrap', type: 'shell' do |s|
           s.inline = 'sudo apt-get update;'\

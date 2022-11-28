@@ -55,13 +55,51 @@ class MockWatcherRunner : public WatcherRunner {
       : WatcherRunner(argc, argv, use_worker, watcher) {}
 
   /// The state machine requested the 'worker' to stop.
-  MOCK_CONST_METHOD1(stopChild, void(const PlatformProcess& child));
+  MOCK_CONST_METHOD2(stopChild, void(const PlatformProcess& child, bool force));
+
+  /// The state machine warned the 'worker' that a resource limit has been hit
+  MOCK_CONST_METHOD1(warnWorkerResourceLimitHit,
+                     void(const PlatformProcess& child));
 
   /// The state machine is inspecting the 'worker' health and performance.
   MOCK_CONST_METHOD1(isChildSane, Status(const PlatformProcess& child));
 
  private:
   FRIEND_TEST(WatcherTests, test_watcher);
+};
+
+class MockWatcherRunnerUnhealthy : public WatcherRunner {
+ public:
+  MockWatcherRunnerUnhealthy(int argc,
+                             char** argv,
+                             bool use_worker,
+                             const std::shared_ptr<Watcher>& watcher)
+      : WatcherRunner(argc, argv, use_worker, watcher) {}
+
+  /// The state machine requested the 'worker' to stop.
+  MOCK_METHOD(void,
+              stopChild,
+              (const PlatformProcess& child, bool force),
+              (const, override));
+
+  /// The state machine warned the 'worker' that a resource limit has been hit
+  MOCK_METHOD(void,
+              warnWorkerResourceLimitHit,
+              (const PlatformProcess& child),
+              (const, override));
+
+  void setProcessRow(QueryData qd) {
+    qd_ = std::move(qd);
+  }
+
+  /// The tests do not have access to the processes table.
+  QueryData getProcessRow(pid_t pid) const override {
+    return qd_;
+  }
+
+ private:
+  QueryData qd_;
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 /**
@@ -96,6 +134,7 @@ class FakePlatformProcess : public PlatformProcess {
   FRIEND_TEST(WatcherTests, test_watcherrunner_watch);
   FRIEND_TEST(WatcherTests, test_watcherrunner_stop);
   FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy);
 };
 
 TEST_F(WatcherTests, test_watcherrunner_watch) {
@@ -114,7 +153,8 @@ TEST_F(WatcherTests, test_watcherrunner_watch) {
 
   // The above expectation returns a sane child state.
   // This ::watch iteration should NOT attempt to stop the worker.
-  EXPECT_CALL(runner, stopChild(_)).Times(0);
+  EXPECT_CALL(runner, warnWorkerResourceLimitHit(_)).Times(0);
+  EXPECT_CALL(runner, stopChild(_, _)).Times(0);
 
   // When triggering a watch, set the assumed process status.
   fake_test_process.setStatus(PROCESS_STILL_ALIVE, 0);
@@ -131,7 +171,8 @@ TEST_F(WatcherTests, test_watcherrunner_stop) {
   auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
 
   EXPECT_CALL(runner, isChildSane(_)).Times(0);
-  EXPECT_CALL(runner, stopChild(_)).Times(0);
+  EXPECT_CALL(runner, warnWorkerResourceLimitHit(_)).Times(0);
+  EXPECT_CALL(runner, stopChild(_, _)).Times(0);
 
   // Now set the process status to an error state.
   fake_test_process.setStatus(PROCESS_ERROR, 0);
@@ -229,13 +270,17 @@ class FakeWatcherRunner : public WatcherRunner {
   }
 
   /// The tests do not have access to the processes table.
-  QueryData getProcessRow(pid_t pid) const {
+  QueryData getProcessRow(pid_t pid) const override {
     return qd_;
   }
 
  private:
   /// If a worker/extension has otherwise gone insane, stop it.
-  void stopChild(const PlatformProcess& child) const {}
+  void stopChild(const PlatformProcess& child,
+                 bool resource_limit_hit) const override {}
+
+  void warnWorkerResourceLimitHit(const PlatformProcess& child) const override {
+  }
 
  private:
   QueryData qd_;
@@ -252,6 +297,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
+  r["total_size"] = INTEGER(100);
   runner.setProcessRow({r});
 
   // Hold the process and process state externally.
@@ -275,6 +321,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   // Now we can alter the performance.
   // Let us emulate the watcher having just allocated 1G of memory.
   r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  r["total_size"] = INTEGER(1024 * 1024 * 1024);
   runner.setProcessRow({r});
 
   auto status = runner.isWatcherHealthy(*test_process, state);
@@ -308,6 +355,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
+  r["total_size"] = INTEGER(100);
   runner.setProcessRow({r});
 
   // Set the worker start time.
@@ -319,6 +367,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   // Update the fake process resident memory, make it unhealthy.
   r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  r["total_size"] = INTEGER(1024 * 1024 * 1024);
   runner.setProcessRow({r});
 
   // Set the watchdog to delay 1000s.
@@ -335,5 +384,46 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   FLAGS_watchdog_delay = delay;
   watcher->workerStartTime(start_time);
+}
+
+TEST_F(WatcherTests, test_watcherrunner_unhealthy) {
+  auto watcher = std::make_shared<Watcher>();
+  MockWatcherRunnerUnhealthy runner(0, nullptr, true, watcher);
+
+  auto test_process = PlatformProcess::getCurrentProcess();
+  auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
+  fake_test_process.setStatus(PROCESS_STILL_ALIVE, 0);
+
+  // Set up a fake test process and place it into an healthy state.
+  Row r;
+  r["parent"] = INTEGER(test_process->pid());
+  r["user_time"] = INTEGER(100);
+  r["system_time"] = INTEGER(100);
+  r["resident_size"] = INTEGER(100);
+  r["total_size"] = INTEGER(100);
+  runner.setProcessRow({r});
+
+  // Check the fake process sanity, which records the state at t=0.
+  EXPECT_TRUE(runner.isChildSane(fake_test_process));
+
+  // Update the fake process resident memory, make it unhealthy.
+  r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  r["total_size"] = INTEGER(1024 * 1024 * 1024);
+  runner.setProcessRow({std::move(r)});
+
+  // Set the worker start time.
+  watcher->workerStartTime(getUnixTime() - 1);
+
+  auto org_delay = FLAGS_watchdog_delay;
+  FLAGS_watchdog_delay = 0;
+
+  /* Verify that the worker is warned about hitting a resource limit
+     and that is asked to be stopped */
+  EXPECT_CALL(runner, warnWorkerResourceLimitHit(_)).Times(1);
+  EXPECT_CALL(runner, stopChild(_, _)).Times(1);
+
+  ASSERT_FALSE(runner.watch(fake_test_process));
+
+  FLAGS_watchdog_delay = org_delay;
 }
 } // namespace osquery

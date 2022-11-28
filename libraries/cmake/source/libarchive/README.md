@@ -1,41 +1,103 @@
-# libarchive
+# libarchive library build notes
 
 ## Linux
 
-Using Ubuntu 14.04 (glibc 2.12)
+Integrate the osquery-toolchain, using the following file as a starting point: `cmake/toolchain.cmake`. Pass the toolchain like this: `-DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain`
 
-```sh
-ldd --version
-ldd (GNU libc) 2.12.2
+## macOS
+
+Append the following to the CMake options:
+
+### macOS x86-64
+
+```bash
+-DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DCMAKE_OSX_ARCHITECTURES=x86_64
 ```
 
-Generated with the following commands:
+### macOS ARM (M1, M2, etc.)
 
-```sh
-export OPENSSL_INCLUDE=../../../../../build/openssl/openssl-prefix/src/openssl/include
-export OPENSSL_LINK=../../../../../build/openssl/openssl-prefix/src/openssl
-export PATH=/usr/local/osquery-toolchain/usr/bin:$PATH
-export CFLAGS="--sysroot /usr/local/osquery-toolchain -I$OPENSSL_INCLUDE"
-export CXXFLAGS="${CFLAGS}"
-export LDFLAGS="${CFLAGS} -L$OPENSSL_LINK"
-export CC=clang
-export CXX=clang++
-
-autoreconf -f -i
-./configure --enable-static --without-lzo2 --without-nettle --without-xml2 --with-openssl --with-expat --enable-static
+```bash
+-DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=arm64
 ```
 
-Then copy
+## Linux/macOS
 
 ```sh
-cp ./config.h ../config/linux/config.h
+cmake \
+  -S . \
+  -B b \
+  -DBUILD_TESTING=OFF \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_BZip2=OFF \
+  -DENABLE_LIBXML2=OFF \
+  -DENABLE_LZMA=OFF \
+  -DENABLE_OPENSSL=OFF \
+  -DENABLE_ZLIB=OFF \
+  -DENABLE_ZSTD=OFF \
+  -DENABLE_ACL=OFF \
+  -DENABLE_CAT=OFF \
+  -DENABLE_CAT_SHARED=OFF \
+  -DENABLE_CNG=OFF \
+  -DENABLE_COVERAGE=OFF \
+  -DENABLE_CPIO=OFF \
+  -DENABLE_CPIO_SHARED=OFF \
+  -DENABLE_EXPAT=OFF \
+  -DENABLE_ICONV=OFF \
+  -DENABLE_INSTALL=OFF \
+  -DENABLE_LIBB2=OFF \
+  -DENABLE_LZ4=OFF \
+  -DENABLE_LZO=OFF \
+  -DENABLE_LibGCC=OFF \
+  -DENABLE_MBEDTLS=OFF \
+  -DENABLE_NETTLE=OFF \
+  -DENABLE_PCREPOSIX=OFF \
+  -DENABLE_SAFESEH=AUTO \
+  -DENABLE_TAR=OFF \
+  -DENABLE_TAR_SHARED=OFF \
+  -DENABLE_TEST=OFF \
+  -DENABLE_WERROR=OFF \
+  -DENABLE_XATTR=OFF
 ```
 
-Then turn on the following defines
+## Windows
 
-- `HAVE_LIBLZMA`
-- `HAVE_LZMA_H`
-- `HAVE_LZMA_STREAM_ENCODER_MT`
-- `HAVE_BZLIB_H`
-- `HAVE_LIBBZ2`
-- `HAVE_LIBXML2`
+```cmd
+cmake ^
+  -S . ^
+  -B b ^
+  -DBUILD_TESTING=OFF ^
+  -DBUILD_SHARED_LIBS=OFF ^
+  -DCMAKE_BUILD_TYPE=Release ^
+  -DENABLE_BZip2=OFF ^
+  -DENABLE_LIBXML2=OFF ^
+  -DENABLE_LZMA=OFF ^
+  -DENABLE_OPENSSL=OFF ^
+  -DENABLE_ZLIB=OFF ^
+  -DENABLE_ZSTD=OFF ^
+  -DENABLE_ACL=OFF ^
+  -DENABLE_CAT=OFF ^
+  -DENABLE_CAT_SHARED=OFF ^
+  -DENABLE_CNG=OFF ^
+  -DENABLE_COVERAGE=OFF ^
+  -DENABLE_CPIO=OFF ^
+  -DENABLE_CPIO_SHARED=OFF ^
+  -DENABLE_EXPAT=OFF ^
+  -DENABLE_ICONV=OFF ^
+  -DENABLE_INSTALL=OFF ^
+  -DENABLE_LIBB2=OFF ^
+  -DENABLE_LZ4=OFF ^
+  -DENABLE_LZO=OFF ^
+  -DENABLE_LibGCC=OFF ^
+  -DENABLE_MBEDTLS=OFF ^
+  -DENABLE_NETTLE=OFF ^
+  -DENABLE_PCREPOSIX=OFF ^
+  -DENABLE_SAFESEH=AUTO ^
+  -DENABLE_TAR=OFF ^
+  -DENABLE_TAR_SHARED=OFF ^
+  -DENABLE_TEST=OFF ^
+  -DENABLE_WERROR=OFF ^
+  -DENABLE_XATTR=OFF
+```
+
+NOTE: If necessary, convert the config.h line endings from CRLF to LF

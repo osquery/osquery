@@ -1,0 +1,37 @@
+table_name("certificates")
+description("Certificate Authorities installed in Keychains/ca-bundles.")
+schema([
+    Column("common_name", TEXT, "Certificate CommonName"),
+    Column("subject", TEXT, "Certificate distinguished name (deprecated, use subject2)"),
+    Column("issuer", TEXT, "Certificate issuer distinguished name (deprecated, use issuer2)"),
+    Column("ca", INTEGER, "1 if CA: true (certificate is an authority) else 0"),
+    Column("self_signed", INTEGER, "1 if self-signed, else 0"),
+    Column("not_valid_before", DATETIME, "Lower bound of valid date"),
+    Column("not_valid_after", DATETIME, "Certificate expiration data"),
+    Column("signing_algorithm", TEXT, "Signing algorithm used"),
+    Column("key_algorithm", TEXT, "Key algorithm used"),
+    Column("key_strength", TEXT, "Key size used for RSA/DSA, or curve name"),
+    Column("key_usage", TEXT, "Certificate key usage and extended key usage"),
+    Column("subject_key_id", TEXT, "SKID an optionally included SHA1"),
+    Column("authority_key_id", TEXT, "AKID an optionally included SHA1"),
+    Column("sha1", TEXT, "SHA1 hash of the raw certificate contents"),
+    Column("path", TEXT, "Path to Keychain or PEM bundle", additional=True),
+    Column("serial", TEXT, "Certificate serial number"),
+
+])
+
+extended_schema(WINDOWS, [
+    Column("sid", TEXT, "SID"),
+    Column("store_location", TEXT, "Certificate system store location"),
+    Column("store", TEXT, "Certificate system store"),
+    Column("username", TEXT, "Username"),
+    Column("store_id", TEXT, "Exists for service/user stores. Contains raw store id provided by WinAPI."),
+])
+
+extended_schema(POSIX, [
+    Column("issuer2", TEXT, "Certificate issuer distinguished name", hidden=True),
+    Column("subject2", TEXT, "Certificate distinguished name", hidden=True),
+])
+
+attributes(cacheable=True)
+implementation("certificates@genCerts")

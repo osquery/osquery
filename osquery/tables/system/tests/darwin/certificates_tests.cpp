@@ -10,12 +10,15 @@
 #include <gtest/gtest.h>
 
 #include <openssl/opensslv.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <osquery/logger/logger.h>
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/darwin/keychain.h>
+#include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/base64.h>
 
 namespace osquery {
@@ -63,32 +66,42 @@ class CACertsTests : public ::testing::Test {
 };
 
 TEST_F(CACertsTests, test_certificate_sha1) {
-  std::string sha1;
-  sha1 = genSHA1ForCertificate(x_cert);
+  auto opt_digest = generateCertificateSHA1Digest(x_cert);
+  ASSERT_TRUE(opt_digest.has_value());
 
-  EXPECT_EQ("f149bae28e3c754ff4bb062b2c1b8bac81b8783e", sha1);
+  EXPECT_EQ("f149bae28e3c754ff4bb062b2c1b8bac81b8783e", opt_digest.value());
 }
 
 TEST_F(CACertsTests, test_certificate_properties) {
-  std::string subject, common_name, issuer;
-  genCommonName(x_cert, subject, common_name, issuer);
-  EXPECT_EQ("localhost.localdomain", common_name);
+  auto opt_issuer_name = getCertificateIssuerName(x_cert, true);
+  EXPECT_TRUE(opt_issuer_name.has_value());
 
-  X509_check_ca(x_cert);
+  opt_issuer_name = getCertificateIssuerName(x_cert, false);
+  EXPECT_TRUE(opt_issuer_name.has_value());
 
-  const auto* subject_key_id = X509_get0_subject_key_id(x_cert);
+  auto opt_subject_name = getCertificateSubjectName(x_cert, true);
+  EXPECT_TRUE(opt_subject_name.has_value());
 
-  ASSERT_NE(subject_key_id, nullptr);
+  opt_subject_name = getCertificateSubjectName(x_cert, false);
+  EXPECT_TRUE(opt_subject_name.has_value());
 
-  auto skid = genKIDProperty(subject_key_id->data, subject_key_id->length);
+  auto opt_common_name = getCertificateCommonName(x_cert);
+  ASSERT_TRUE(opt_common_name.has_value());
+  EXPECT_EQ("localhost.localdomain", opt_common_name.value());
 
-  EXPECT_EQ("f2b99b00e0ee60d57c426ce3e64e3fdc6f6411c0", skid);
+  auto opt_subject_key_id = getCertificateSubjectKeyID(x_cert);
+  ASSERT_TRUE(opt_subject_key_id.has_value());
+  EXPECT_EQ("f2b99b00e0ee60d57c426ce3e64e3fdc6f6411c0",
+            opt_subject_key_id.value());
 
-  auto not_before = std::to_string(genEpoch(X509_get_notBefore(x_cert)));
-  EXPECT_EQ("1408475536", not_before);
+  auto opt_not_valid_before = getCertificateNotValidBefore(x_cert);
+  ASSERT_TRUE(opt_not_valid_before.has_value());
+  EXPECT_EQ(1408475536, opt_not_valid_before.value());
 
-  auto ca = (CertificateIsCA(x_cert)) ? "1" : "0";
-  EXPECT_EQ("1", ca);
+  bool is_ca{};
+  bool is_self_signed{};
+  getCertificateAttributes(x_cert, is_ca, is_self_signed);
+  EXPECT_TRUE(is_ca);
 }
 } // namespace tables
 } // namespace osquery

@@ -11,8 +11,6 @@ schema([
     Column("local_port", INTEGER, "Socket local port"),
     Column("remote_port", INTEGER, "Socket remote port"),
     Column("path", TEXT, "For UNIX sockets (family=AF_UNIX), the domain path"),
-])
-extended_schema(lambda: LINUX() or DARWIN() or WINDOWS(), [
     Column("state", TEXT, "TCP socket state"),
 ])
 extended_schema(LINUX, [
