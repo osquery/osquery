@@ -27,7 +27,6 @@ typedef std::tuple<std::string, std::string> ObjectInfoTuple;
 
 #define BUFF_SIZE 1000
 #define IS_CONSOLE_HANDLE(h) (((((ULONG_PTR)h) & 0x10000003) == 0x3) ? TRUE : FALSE)
-// this should probably be in osquery/core/windows/ntapi.h
 #define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 
 
@@ -69,6 +68,8 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
     TCHAR   pszFilename[MAX_PATH + 1];
     DWORD   dwFileSizeHi = 0;
     DWORD   dwFileSizeLo = GetFileSize(&handle, &dwFileSizeHi); 
+    TCHAR szTemp[BUFF_SIZE];
+    BOOL bFound = FALSE;
 
     if( dwFileSizeLo == 0 && dwFileSizeHi == 0 ) {
         return Status::failure("Cannot map a file with a length of zero.");
@@ -103,9 +104,7 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
     }
 
     // Translate path with device name to drive letters.
-    TCHAR szTemp[BUFF_SIZE];
     szTemp[0] = '\0';
-    BOOL bFound = FALSE;
 
     if (GetLogicalDriveStrings(BUFF_SIZE - 1, szTemp)) 
     {
@@ -224,6 +223,7 @@ QueryData genHandles(QueryContext &context) {
     PSYSTEM_HANDLE_INFORMATION handleInfo;
     SYSTEM_HANDLE_TABLE_ENTRY_INFO  handle;
 
+
     // HMODULE ntdllModule;
     auto _NtDuplicateObject = reinterpret_cast<NtDuplicateObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtDuplicateObject"));
     auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryObject"));
@@ -235,7 +235,6 @@ QueryData genHandles(QueryContext &context) {
     }
 
     currentPid = GetCurrentProcessId();
-
     for (i = 0; i < handleInfo->NumberOfHandles; i++)
     {
         if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
