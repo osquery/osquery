@@ -8,5 +8,7 @@ schema([
 implementation("handles@genHandles")
 attributes(cacheable=True)
 examples([
-  "select * from handles"
+  "select * from handles",
+  "select * from handles where pid = 1234",
+  "select * from handles where pid = 1234 and object_type = 'file'",
 ])
