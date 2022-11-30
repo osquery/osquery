@@ -235,12 +235,18 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
       break;
-    case Aws::Http::HttpMethod::HTTP_POST:
-      resp = client.post(req, body, request.GetContentType());
+    case Aws::Http::HttpMethod::HTTP_POST: {
+      std::string content_type =
+          request.HasContentType() ? request.GetContentType() : "";
+      resp = client.post(req, body, content_type);
       break;
-    case Aws::Http::HttpMethod::HTTP_PUT:
-      resp = client.put(req, body, request.GetContentType());
+    }
+    case Aws::Http::HttpMethod::HTTP_PUT: {
+      std::string content_type =
+          request.HasContentType() ? request.GetContentType() : "";
+      resp = client.put(req, body, content_type);
       break;
+    }
     case Aws::Http::HttpMethod::HTTP_HEAD:
       resp = client.head(req);
       break;
