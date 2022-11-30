@@ -47,8 +47,8 @@ Status getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processD
         objectName = sstream.str();
         return Status::success();
     }
-
-	if (_NtQueryObject(processDupHandle, ObjectNameInformation, &pName, sizeof(pName), &returnLength) != STATUS_SUCCESS){
+    
+    if (_NtQueryObject(processDupHandle, ObjectNameInformation, &pName, sizeof(pName), &returnLength) != STATUS_SUCCESS){
         // TODO: Should probably realloc pName
         return Status::failure("Could not get object name informations");
     }
@@ -146,7 +146,7 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
 
 BOOL getObjectType(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, PUBLIC_OBJECT_TYPE_INFORMATION *objectTypeInfo)
 {
-	return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) == STATUS_SUCCESS);
+    return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) == STATUS_SUCCESS);
 }
 
 Status getHandleInfo(
@@ -157,14 +157,14 @@ Status getHandleInfo(
     std::string objectName;
     PPUBLIC_OBJECT_TYPE_INFORMATION objectTypeInfo;
 
-	if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL) {
+    if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL) {
         return Status::failure("Could not allocate memory for objectTypeInfo");
     }
 
     // Retrieve the object type
     if (!getObjectType(_NtQueryObject, handle, objectTypeInfo))
     {
-		free(objectTypeInfo);
+        free(objectTypeInfo);
         return Status::failure("Could not get object type informations");
     }
     std::get<0>(objInfo) = wstringToString(objectTypeInfo->TypeName.Buffer);
@@ -204,7 +204,7 @@ Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
 
 	while ((ULONG)(ntstatus = _NtQuerySystemInformation(SystemHandleInformation, handleInfo, handleInfoSize, NULL)) == STATUS_INFO_LENGTH_MISMATCH)
     {
-		if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION)realloc(handleInfo, handleInfoSize *= 2)) == NULL){
+        if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION)realloc(handleInfo, handleInfoSize *= 2)) == NULL){
             return Status(GetLastError(), "Could not re-allocate memory for for handleInfo");
         }
     }
