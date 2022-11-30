@@ -68,8 +68,9 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
     TCHAR   pszFilename[MAX_PATH + 1];
     DWORD   dwFileSizeHi = 0;
     DWORD   dwFileSizeLo = GetFileSize(&handle, &dwFileSizeHi); 
-    TCHAR szTemp[BUFF_SIZE];
-    BOOL bFound = FALSE;
+    TCHAR   szTemp[BUFF_SIZE];
+    BOOL    bFound = FALSE;
+    TCHAR   szName[MAX_PATH];
 
     if( dwFileSizeLo == 0 && dwFileSizeHi == 0 ) {
         return Status::failure("Cannot map a file with a length of zero.");
@@ -108,7 +109,6 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
 
     if (GetLogicalDriveStrings(BUFF_SIZE - 1, szTemp)) 
     {
-        TCHAR szName[MAX_PATH];
         TCHAR szDrive[3] = TEXT(" :");
         TCHAR *p = szTemp;
         do 
