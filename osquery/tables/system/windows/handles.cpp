@@ -223,7 +223,6 @@ QueryData genHandles(QueryContext &context) {
     PSYSTEM_HANDLE_INFORMATION handleInfo;
     SYSTEM_HANDLE_TABLE_ENTRY_INFO  handle;
 
-
     // HMODULE ntdllModule;
     auto _NtDuplicateObject = reinterpret_cast<NtDuplicateObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtDuplicateObject"));
     auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryObject"));
