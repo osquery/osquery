@@ -4,6 +4,8 @@ schema([
     Column("pid", BIGINT, "The process identifier that owns the handle."),
     Column("object_type", TEXT, "The type of object referenced by the handle."),
     Column("object_name", TEXT, "The value of the object referenced by the handle."),
+    Column("attributes", TEXT, "Object handle attributes."),
+
 ])
 implementation("handles@genHandles")
 attributes(cacheable=True)

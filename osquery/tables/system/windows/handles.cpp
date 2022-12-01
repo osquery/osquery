@@ -18,6 +18,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/scope_guard.h>
 
 
 namespace osquery {
@@ -192,19 +193,21 @@ Status getHandleInfo(
     return Status::failure("Could not get object name for " + std::get<0>(objInfo));
 }
 
-Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
+Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION_EX &handleInfo) {
     NTSTATUS ntstatus;
     ULONG handleInfoSize = 0x1000;
+    HMODULE ntdllModule = nullptr;
 
-    auto _NtQuerySystemInformation = reinterpret_cast<NtQuerySystemInformation>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQuerySystemInformation"));
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,"ntdll.dll", &ntdllModule);
+    auto _NtQuerySystemInformation = reinterpret_cast<NtQuerySystemInformation>(GetProcAddress(ntdllModule, "NtQuerySystemInformation"));
 
-    if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION)malloc(handleInfoSize)) == NULL){
+    if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(handleInfoSize)) == NULL){
         return Status(GetLastError(), "Could not allocate memory for handleInfo");
     }
 
-	while ((ULONG)(ntstatus = _NtQuerySystemInformation(SystemHandleInformation, handleInfo, handleInfoSize, NULL)) == STATUS_INFO_LENGTH_MISMATCH)
+	while ((ULONG)(ntstatus = _NtQuerySystemInformation(SystemExtendedHandleInformation, handleInfo, handleInfoSize, NULL)) == STATUS_INFO_LENGTH_MISMATCH)
     {
-        if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION)realloc(handleInfo, handleInfoSize *= 2)) == NULL){
+        if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)realloc(handleInfo, handleInfoSize *= 2)) == NULL){
             return Status(GetLastError(), "Could not re-allocate memory for for handleInfo");
         }
     }
@@ -214,18 +217,64 @@ Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION &handleInfo) {
     return Status::success();
 }
 
+std::string getHandleAttributes(const ULONG &handleAttributes) {
+
+    std::stringstream ss;
+
+    if ((handleAttributes & OBJ_INHERIT) == OBJ_INHERIT) {
+        ss << "OBJ_INHERIT";
+    }
+    if ((handleAttributes & OBJ_PERMANENT) == OBJ_PERMANENT) {
+        ss << ",OBJ_PERMANENT";
+    }
+    if ((handleAttributes & OBJ_EXCLUSIVE) == OBJ_EXCLUSIVE) {
+        ss << ",OBJ_EXCLUSIVE";
+    }
+    if ((handleAttributes & OBJ_CASE_INSENSITIVE) == OBJ_CASE_INSENSITIVE) {
+        ss << ",OBJ_CASE_INSENSITIVE";
+    }
+    if ((handleAttributes & OBJ_OPENIF) == OBJ_OPENIF) {
+        ss << ",OBJ_OPENIF";
+    }
+    if ((handleAttributes & OBJ_OPENLINK) == OBJ_OPENLINK) {
+        ss << ",OBJ_OPENLINK";
+    }
+    if ((handleAttributes & OBJ_KERNEL_HANDLE) == OBJ_KERNEL_HANDLE) {
+        ss << ",OBJ_KERNEL_HANDLE";
+    }
+    if ((handleAttributes & OBJ_FORCE_ACCESS_CHECK) == OBJ_FORCE_ACCESS_CHECK) {
+        ss << ",OBJ_FORCE_ACCESS_CHECK";
+    }
+    if ((handleAttributes & OBJ_IGNORE_IMPERSONATED_DEVICEMAP) == OBJ_IGNORE_IMPERSONATED_DEVICEMAP) {
+        ss << ",OBJ_IGNORE_IMPERSONATED_DEVICEMAP";
+    }
+    if ((handleAttributes & OBJ_DONT_REPARSE) == OBJ_DONT_REPARSE) {
+        ss << ",OBJ_DONT_REPARSE";
+    }
+    if ((handleAttributes & OBJ_VALID_ATTRIBUTES) == OBJ_VALID_ATTRIBUTES) {
+        ss << ",OBJ_VALID_ATTRIBUTES";
+    }
+
+    std::string handlesAttrsString = ss.str();
+    if (!handlesAttrsString.empty() && handlesAttrsString.front() == ',') {
+        handlesAttrsString.erase(handlesAttrsString.begin());
+    }
+    return handlesAttrsString;
+}
+
 QueryData genHandles(QueryContext &context) {
     QueryData rows;
     ULONG   i;
-    DWORD   currentPid;
+    // DWORD   currentPid;
     HANDLE  processHandle;
     HANDLE  processDupHandle;
-    PSYSTEM_HANDLE_INFORMATION handleInfo;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO  handle;
+    PSYSTEM_HANDLE_INFORMATION_EX   handleInfo;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX   handle;
+    HMODULE ntdllModule = nullptr;
 
-    // HMODULE ntdllModule;
-    auto _NtDuplicateObject = reinterpret_cast<NtDuplicateObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtDuplicateObject"));
-    auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryObject"));
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,"ntdll.dll", &ntdllModule);
+    auto _NtDuplicateObject = reinterpret_cast<NtDuplicateObject>(GetProcAddress(ntdllModule, "NtDuplicateObject"));
+    auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(ntdllModule, "NtQueryObject"));
 
     auto status = getSystemHandles(handleInfo);
     if (!status.ok()) {
@@ -233,17 +282,21 @@ QueryData genHandles(QueryContext &context) {
         return rows;
     }
 
-    currentPid = GetCurrentProcessId();
+    // currentPid = GetCurrentProcessId();
     for (i = 0; i < handleInfo->NumberOfHandles; i++)
     {
-        if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
-            // Do not get handles for the current process
-            continue;
-        }
+        // if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
+        //     // Do not get handles for the current process
+        //     continue;
+        // }
         handle = handleInfo->Handles[i];
-	    if (!(processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, handle.UniqueProcessId))) {
+        // std::cout << handle.UniqueProcessId << std::endl;
+	    processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, (DWORD)handle.UniqueProcessId);
+	    if (!processHandle) {
             continue;
         }
+        auto const guard_process_handle = scope_guard::create([&processHandle]() { CloseHandle(processHandle); });
+
         if (_NtDuplicateObject(
             processHandle,
             (HANDLE)(intptr_t)handle.HandleValue,
@@ -257,18 +310,29 @@ QueryData genHandles(QueryContext &context) {
             CloseHandle(processDupHandle);
             continue;
         }
+        auto const guard_process_dup_handle = scope_guard::create([processDupHandle]() { CloseHandle(processDupHandle); });
 
         ObjectInfoTuple objInfo;
-        auto status = getHandleInfo(processDupHandle, _NtQueryObject, objInfo);
-        if (!status.ok()) {
-            VLOG(1) << status.getMessage();
+        auto status_hinfo = getHandleInfo(processDupHandle, _NtQueryObject, objInfo);
+        if (!status_hinfo.ok()) {
+            VLOG(1) << status_hinfo.getMessage();
             continue;
         }
         // Build a row from the provided handle informations
+        auto handle_attributes = getHandleAttributes(handle.GrantedAccess);
         Row r;
+        // std::cout << handle.GrantedAccess & 0x00000002 << std::endl;
+        // std::cout << handle.GrantedAccess & 0x00000004 << std::endl;
+        // std::cout << handle.GrantedAccess & 0x00000010 << std::endl;
+        // std::cout << handle.GrantedAccess & 0x00000020 << std::endl;
+        // std::cout << handle.GrantedAccess & 0x00000040 << std::endl;
+        // std::cout << handle.GrantedAccess & 0x00000800 << std::endl;
+        // std::cout << "=>" <<handle.HandleAttributes << std::endl;
+
         r["pid"] = BIGINT(handle.UniqueProcessId);
         r["object_type"] = std::get<0>(objInfo);
         r["object_name"] = std::get<1>(objInfo);
+        r["attributes"] = handle_attributes;
         rows.push_back(r);
 
     }
