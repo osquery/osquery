@@ -24,11 +24,12 @@
 namespace osquery {
 namespace tables {
 
-typedef std::tuple<std::string, std::string> ObjectInfoTuple;
-
-#define BUFF_SIZE 1000
 #define IS_CONSOLE_HANDLE(h) (((((ULONG_PTR)h) & 0x10000003) == 0x3) ? TRUE : FALSE)
 #define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
+
+using ObjectInfoTuple = std::tuple<std::string, std::string>;
+
+const DWORD BUFF_SIZE = 0x1000;
 
 
 Status getObjectName(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, std::string &objectName)
