@@ -147,7 +147,7 @@ Status getFilenameObject(HANDLE handle, std::string &filename)
 
 BOOL getObjectType(const NtQueryObject &_NtQueryObject, const HANDLE &processDupHandle, PUBLIC_OBJECT_TYPE_INFORMATION *objectTypeInfo)
 {
-    return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, 0x1000, NULL) == STATUS_SUCCESS);
+    return (_NtQueryObject(processDupHandle, ObjectTypeInformation, objectTypeInfo, BUFF_SIZE, NULL) == STATUS_SUCCESS);
 }
 
 Status getHandleInfo(
@@ -158,7 +158,7 @@ Status getHandleInfo(
     std::string objectName;
     PPUBLIC_OBJECT_TYPE_INFORMATION objectTypeInfo;
 
-    if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(0x1000)) == NULL) {
+    if ((objectTypeInfo = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(BUFF_SIZE)) == NULL) {
         return Status::failure("Could not allocate memory for objectTypeInfo");
     }
 
@@ -166,7 +166,7 @@ Status getHandleInfo(
     if (!getObjectType(_NtQueryObject, handle, objectTypeInfo))
     {
         free(objectTypeInfo);
-        return Status::failure("Could not get object type informations");
+        return Status::failure("Could not get object type information");
     }
     std::get<0>(objInfo) = wstringToString(objectTypeInfo->TypeName.Buffer);
 
@@ -195,19 +195,19 @@ Status getHandleInfo(
 
 Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION_EX &handleInfo) {
     NTSTATUS ntstatus;
-    ULONG handleInfoSize = 0x1000;
     HMODULE ntdllModule = nullptr;
+    DWORD initialAllocationBuffer = 0x1000;
 
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,"ntdll.dll", &ntdllModule);
     auto _NtQuerySystemInformation = reinterpret_cast<NtQuerySystemInformation>(GetProcAddress(ntdllModule, "NtQuerySystemInformation"));
 
-    if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(handleInfoSize)) == NULL){
+    if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(initialAllocationBuffer)) == NULL){
         return Status(GetLastError(), "Could not allocate memory for handleInfo");
     }
 
-	while ((ULONG)(ntstatus = _NtQuerySystemInformation(SystemExtendedHandleInformation, handleInfo, handleInfoSize, NULL)) == STATUS_INFO_LENGTH_MISMATCH)
+	while ((ULONG)(ntstatus = _NtQuerySystemInformation(SystemExtendedHandleInformation, handleInfo, initialAllocationBuffer, NULL)) == STATUS_INFO_LENGTH_MISMATCH)
     {
-        if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)realloc(handleInfo, handleInfoSize *= 2)) == NULL){
+        if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)realloc(handleInfo, initialAllocationBuffer *= 2)) == NULL){
             return Status(GetLastError(), "Could not re-allocate memory for for handleInfo");
         }
     }
@@ -277,6 +277,8 @@ QueryData genHandles(QueryContext &context) {
     auto _NtQueryObject = reinterpret_cast<NtQueryObject>(GetProcAddress(ntdllModule, "NtQueryObject"));
 
     auto status = getSystemHandles(handleInfo);
+    auto const guard_process_dup_handle = scope_guard::create([processDupHandle]() { CloseHandle(processDupHandle); });
+
     if (!status.ok()) {
         VLOG(1) << L"Unable to get system handles: " << status.getCode();
         return rows;
