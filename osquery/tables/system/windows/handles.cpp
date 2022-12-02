@@ -279,6 +279,8 @@ QueryData genHandles(QueryContext &context) {
     VLOG(1) << L"Unable to get system handles: " << status.getCode();
     return rows;
   }
+  auto const guard_handle_info = scope_guard::create(
+      [handleInfo]() { free(handleInfo); });
 
   for (i = 0; i < handleInfo->NumberOfHandles; i++) {
 
