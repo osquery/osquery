@@ -187,11 +187,6 @@ Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION_EX &handleInfo) {
   auto _NtQuerySystemInformation = reinterpret_cast<NtQuerySystemInformation>(
       GetProcAddress(ntdllModule, "NtQuerySystemInformation"));
 
-  if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(
-           initialAllocationBuffer)) == NULL) {
-    return Status(GetLastError(), "Could not allocate memory for handleInfo");
-  }
-
   while ((ULONG)(ntstatus = _NtQuerySystemInformation(
                      SystemExtendedHandleInformation, handleInfo,
                      initialAllocationBuffer, NULL)) ==
@@ -270,6 +265,14 @@ QueryData genHandles(QueryContext &context) {
       GetProcAddress(ntdllModule, "NtDuplicateObject"));
   auto _NtQueryObject = reinterpret_cast<NtQueryObject>(
       GetProcAddress(ntdllModule, "NtQueryObject"));
+
+  if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(
+           BUFF_SIZE)) == NULL) {
+    VLOG(1) << L"Could not allocate memory for handleInfo";
+    return rows;
+  }
+  auto const guard_handle_info = scope_guard::create(
+      [handleInfo]() { free(handleInfo); });
 
   auto status = getSystemHandles(handleInfo);
   auto const guard_process_dup_handle = scope_guard::create(
