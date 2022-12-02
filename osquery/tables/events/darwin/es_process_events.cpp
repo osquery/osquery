@@ -62,6 +62,7 @@ Status ESProcessEventSubscriber::Callback(
   r["signing_id"] = ec->signing_id;
   r["team_id"] = ec->team_id;
   r["cdhash"] = ec->cdhash;
+  r["codesigning_flags"] = ec->codesigning_flags;
 
   r["cmdline"] = ec->args;
   r["cmdline_count"] = BIGINT(ec->argc);
