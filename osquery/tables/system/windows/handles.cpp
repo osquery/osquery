@@ -187,6 +187,11 @@ Status getSystemHandles(PSYSTEM_HANDLE_INFORMATION_EX &handleInfo) {
   auto _NtQuerySystemInformation = reinterpret_cast<NtQuerySystemInformation>(
       GetProcAddress(ntdllModule, "NtQuerySystemInformation"));
 
+  if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(
+           initialAllocationBuffer)) == NULL) {
+    return Status(GetLastError(), "Could not allocate memory for handleInfo");
+  }
+
   while ((ULONG)(ntstatus = _NtQuerySystemInformation(
                      SystemExtendedHandleInformation, handleInfo,
                      initialAllocationBuffer, NULL)) ==
@@ -266,14 +271,6 @@ QueryData genHandles(QueryContext &context) {
   auto _NtQueryObject = reinterpret_cast<NtQueryObject>(
       GetProcAddress(ntdllModule, "NtQueryObject"));
 
-  if ((handleInfo = (PSYSTEM_HANDLE_INFORMATION_EX)malloc(
-           BUFF_SIZE)) == NULL) {
-    VLOG(1) << L"Could not allocate memory for handleInfo";
-    return rows;
-  }
-  auto const guard_handle_info = scope_guard::create(
-      [handleInfo]() { free(handleInfo); });
-
   auto status = getSystemHandles(handleInfo);
   auto const guard_process_dup_handle = scope_guard::create(
       [processDupHandle]() { CloseHandle(processDupHandle); });
@@ -283,14 +280,9 @@ QueryData genHandles(QueryContext &context) {
     return rows;
   }
 
-  // currentPid = GetCurrentProcessId();
   for (i = 0; i < handleInfo->NumberOfHandles; i++) {
-    // if (handleInfo->Handles[i].UniqueProcessId == currentPid) {
-    //     // Do not get handles for the current process
-    //     continue;
-    // }
+
     handle = handleInfo->Handles[i];
-    // std::cout << handle.UniqueProcessId << std::endl;
     processHandle =
         OpenProcess(PROCESS_DUP_HANDLE, FALSE, (DWORD)handle.UniqueProcessId);
     if (!processHandle) {
@@ -319,13 +311,6 @@ QueryData genHandles(QueryContext &context) {
     // Build a row from the provided handle informations
     auto handle_attributes = getHandleAttributes(handle.GrantedAccess);
     Row r;
-    // std::cout << handle.GrantedAccess & 0x00000002 << std::endl;
-    // std::cout << handle.GrantedAccess & 0x00000004 << std::endl;
-    // std::cout << handle.GrantedAccess & 0x00000010 << std::endl;
-    // std::cout << handle.GrantedAccess & 0x00000020 << std::endl;
-    // std::cout << handle.GrantedAccess & 0x00000040 << std::endl;
-    // std::cout << handle.GrantedAccess & 0x00000800 << std::endl;
-    // std::cout << "=>" <<handle.HandleAttributes << std::endl;
 
     r["pid"] = BIGINT(handle.UniqueProcessId);
     r["object_type"] = std::get<0>(objInfo);
