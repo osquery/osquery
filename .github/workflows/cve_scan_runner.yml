@@ -1,0 +1,36 @@
+name: cve-scan-runner
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "17 23 * * *"
+
+env:
+  # To see the script output in real time
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  scan-and-open-issues:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Clone the osquery repository
+        uses: actions/checkout@v3
+
+      - name: Install python pre-requisites
+        run: |
+          pip3 install -r ./tools/ci/scripts/cve/requirements.txt
+
+      - name: Scan CVEs and open issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIST_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+        run: |
+          ./tools/ci/scripts/cve/validate_manifest_libraries_versions.py --manifest libraries/third_party_libraries_manifest.json \
+          --repository .
+
+          ./tools/ci/scripts/cve/third_party_libraries_cves_scanner.py --manifest libraries/third_party_libraries_manifest.json \
+          --create_issues \
+          --debug

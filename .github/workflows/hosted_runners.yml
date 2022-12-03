@@ -96,10 +96,30 @@ jobs:
 
 
 
+  # This jobs checks that the third party libraries manifest has the correct format
+  # and that is up to date compared to the current state of the repository
+  check_libraries_manifest:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v3
+
+    - name: Install python pre-requisites
+      run: |
+        pip3 install -r ./tools/ci/scripts/cve/requirements.txt
+
+    - name: Verify the third party libraries manifest
+      run: |
+        ./tools/ci/scripts/cve/validate_manifest_libraries_versions.py --manifest libraries/third_party_libraries_manifest.json \
+        --repository .
+
+
+
 
   # This job runs source code analysis tools (currently, just cppcheck)
   check_source_code:
-    needs: check_code_style
+    needs: [check_libraries_manifest, check_libraries_manifest]
 
     runs-on: ${{ matrix.os }}
 
