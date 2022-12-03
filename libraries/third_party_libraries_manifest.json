@@ -295,6 +295,6 @@
     "vendor": "facebook",
     "version": "1.4.0",
     "commit": "83b51e9f886be7c2a4d477b6e7bc6db831791d8d",
-    "ignored-cves": []
+    "ignored-cves": ["CVE-2021-24031"]
   }
 }
