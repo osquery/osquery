@@ -155,7 +155,7 @@ jobs:
         echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -339,7 +339,7 @@ jobs:
         chmod 666 /var/run/docker.sock
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -350,7 +350,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -575,7 +575,7 @@ jobs:
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -586,7 +586,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -597,7 +597,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -634,7 +634,7 @@ jobs:
                      thrift==0.11.0 \
                      osquery
 
-        echo ::set-output name=PYTHON_ROOT::${python_root}
+        echo "PYTHON_ROOT=${python_root}" >> $GITHUB_OUTPUT
 
     - name: Install CMake
       shell: bash
@@ -990,7 +990,7 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
 
@@ -1001,7 +1001,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -1160,7 +1160,7 @@ jobs:
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
     - name: Update the cache (sccache)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
 
