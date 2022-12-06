@@ -30,6 +30,10 @@ practically possible, as a convenience or reference for osquery deployment decis
 question about the determined impact of any particular threat to a dependency, please ask in the osquery Slack or in our
 GitHub issues.
 
+**NOTE**: The osquery project has introduced a CI scan to find CVEs in the third party libraries it uses. They will be opened as issues labeled with `cve`, `security`, and `libraries`.  
+For more details on this new system refer to [Managing CVEs](../development/cve-scan.md).
+
+
 ## librpm prior to 4.17.0, CVE-2021-20266
 
 Conclusion: This has the potential to be used to DoS a query of the affected tables (`rpm` tables).

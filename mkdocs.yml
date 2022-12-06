@@ -36,6 +36,7 @@ nav:
   - Remote Settings: deployment/remote.md
   - Syslog Consumption: deployment/syslog.md
   - Debugging: deployment/debugging.md
+  - Dependency Security: deployment/dependency-security.md
 - Development:
   - Building osquery: development/building.md
   - Creating New Tables: development/creating-tables.md
@@ -46,3 +47,4 @@ nav:
   - Writing Tests: development/unit-tests.md
   - Adding CLI Arguments: development/options-arguments.md
   - Reading/Writing Files: development/reading-files.md
+  - Managing CVEs: development/cve-scan.md
