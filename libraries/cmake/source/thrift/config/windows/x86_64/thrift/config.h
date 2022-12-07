@@ -39,10 +39,10 @@
 /* #undef PACKAGE_URL */
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.15.0"
+#define PACKAGE_VERSION "0.17.0"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING " 0.15.0"
+#define PACKAGE_STRING " 0.17.0"
 
 /************************** DEFINES *************************/
 
@@ -131,7 +131,10 @@
 /* #undef HAVE_SCHED_H */
 
 /* Define to 1 if you have the <strings.h> header file. */
-#define HAVE_STRINGS_H 1
+/* #undef HAVE_STRINGS_H */
+
+/* Define to 1 if you have the <afunix.h> header file. */
+#define HAVE_AF_UNIX_H 1
 
 /*************************** FUNCTIONS ***************************/
 
