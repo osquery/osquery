@@ -42,7 +42,7 @@ function Do-Help {
   Write-Host "    -install                  Install the osqueryd service"
   Write-Host "    -startupArgs              Specifies additional arguments for the service (only used with -install)"
   Write-Host "    -uninstall                Uninstall the osqueryd service"
-  Write-Host "    -forceuninstall           It uninstalls the installed osquery package"
+  Write-Host "    -forceuninstall           Uninstall the installed osquery package"
   Write-Host "    -start                    Start the osqueryd service"
   Write-Host "    -stop                     Stop the osqueryd service"
   Write-Host "    -installWelManifest       Installs the Windows Event Log manifest"
