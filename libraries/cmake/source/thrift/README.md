@@ -34,6 +34,7 @@ cmake \
   -DBUILD_JAVA=OFF \
   -DBUILD_JAVASCRIPT=OFF \
   -DBUILD_NODEJS=OFF \
+  -DBUILD_KOTLIN=OFF \
   -DBUILD_PYTHON=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
@@ -57,6 +58,7 @@ cmake \
   -DBUILD_JAVA=OFF \
   -DBUILD_JAVASCRIPT=OFF \
   -DBUILD_NODEJS=OFF \
+  -DBUILD_KOTLIN=OFF \
   -DBUILD_PYTHON=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_SYSROOT=/Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk \
@@ -80,6 +82,7 @@ cmake ^
   -DBUILD_JAVA=OFF ^
   -DBUILD_JAVASCRIPT=OFF ^
   -DBUILD_NODEJS=OFF ^
+  -DBUILD_KOTLIN=OFF ^
   -DBUILD_PYTHON=OFF ^
   -DCMAKE_BUILD_TYPE=Release ^
   -G "Visual Studio 16 2019" ^
