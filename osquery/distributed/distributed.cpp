@@ -10,6 +10,7 @@
 #include <sstream>
 #include <utility>
 
+#include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
@@ -17,6 +18,7 @@
 #include <osquery/distributed/distributed.h>
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
+#include <osquery/process/process.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -108,6 +110,7 @@ Status Distributed::serializeResults(std::string& json) {
   auto queries_obj = doc.getObject();
   auto statuses_obj = doc.getObject();
   auto messages_obj = doc.getObject();
+  auto stats_obj = doc.getObject();
   for (const auto& result : results_) {
     auto arr = doc.getArray();
     auto s = serializeQueryData(result.results, result.columns, doc, arr);
@@ -117,11 +120,55 @@ Status Distributed::serializeResults(std::string& json) {
     doc.add(result.request.id, arr, queries_obj);
     doc.add(result.request.id, result.status.getCode(), statuses_obj);
     doc.add(result.request.id, result.message, messages_obj);
+
+    auto obj = doc.getObject();
+    Config::get().getPerformanceStats(
+        result.request.id, [&obj](const QueryPerformance& perf) {
+          obj.AddMember("executions",
+                        static_cast<uint64_t>(perf.executions),
+                        obj.GetAllocator());
+          obj.AddMember("last_executed",
+                        static_cast<uint64_t>(perf.last_executed),
+                        obj.GetAllocator());
+          obj.AddMember("output_size",
+                        static_cast<uint64_t>(perf.output_size),
+                        obj.GetAllocator());
+          obj.AddMember("wall_time",
+                        static_cast<uint64_t>(perf.wall_time),
+                        obj.GetAllocator());
+          obj.AddMember("wall_time_ms",
+                        static_cast<uint64_t>(perf.wall_time_ms),
+                        obj.GetAllocator());
+          obj.AddMember("last_wall_time_ms",
+                        static_cast<uint64_t>(perf.last_wall_time_ms),
+                        obj.GetAllocator());
+          obj.AddMember("user_time",
+                        static_cast<uint64_t>(perf.user_time),
+                        obj.GetAllocator());
+          obj.AddMember("last_user_time",
+                        static_cast<uint64_t>(perf.last_user_time),
+                        obj.GetAllocator());
+          obj.AddMember("system_time",
+                        static_cast<uint64_t>(perf.system_time),
+                        obj.GetAllocator());
+          obj.AddMember("last_system_time",
+                        static_cast<uint64_t>(perf.last_system_time),
+                        obj.GetAllocator());
+          obj.AddMember("average_memory",
+                        static_cast<uint64_t>(perf.average_memory),
+                        obj.GetAllocator());
+          obj.AddMember("last_memory",
+                        static_cast<uint64_t>(perf.last_memory),
+                        obj.GetAllocator());
+        });
+
+    doc.add(result.request.id, obj, stats_obj);
   }
 
   doc.add("queries", queries_obj);
   doc.add("statuses", statuses_obj);
   doc.add("messages", messages_obj);
+  doc.add("stats", stats_obj);
   return doc.toString(json);
 }
 
@@ -158,7 +205,7 @@ Status Distributed::runQueries() {
     // Keep track of the currently executing request
     Distributed::setCurrentRequestId(request.id);
 
-    SQL sql(request.query);
+    auto sql = monitor_nonnumeric(request.id, request.query);
     const auto ok = sql.getStatus().ok();
     const auto& msg = ok ? "" : sql.getMessageString();
     if (!ok) {
@@ -465,5 +512,35 @@ std::string hashQuery(const std::string& query) {
 
 uint64_t denylistDuration() {
   return FLAGS_distributed_denylist_duration;
+}
+
+SQL monitor_nonnumeric(const std::string& name, const std::string& query) {
+  // Snapshot the performance and times for the worker before running.
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
+  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+
+  using namespace std::chrono;
+  auto t0 = steady_clock::now();
+  Config::get().recordQueryStart(name);
+  SQL sql(query, true);
+
+  // Snapshot the performance after, and compare.
+  auto t1 = steady_clock::now();
+  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+  if (r0.size() > 0 && r1.size() > 0) {
+    // Always called while processes table is working.
+    uint64_t size = sql.rows().size();
+    Config::get().recordQueryPerformance(
+        name, duration_cast<milliseconds>(t1 - t0).count(), size, r0[0], r1[0]);
+  }
+  return sql;
 }
 } // namespace osquery

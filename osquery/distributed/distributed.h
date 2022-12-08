@@ -14,6 +14,7 @@
 
 #include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -341,4 +342,6 @@ class Distributed {
   FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
   FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
 };
+
+SQL monitor_nonnumeric(const std::string& name, const std::string& query);
 } // namespace osquery
