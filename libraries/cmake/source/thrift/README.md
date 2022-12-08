@@ -9,8 +9,10 @@ cmake \
   -S . \
   -B b \
   -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=OFF \
   -G Ninja \
   -DBoost_USE_STATIC_LIBS=ON \
+  -DBoost_INCLUDE_DIR=/path/to/osquery/libraries/cmake/source/boost/src/libs/config/include/ \
   -DBUILD_SHARED_LIBS=OFF \
   -DWITH_OPENSSL=ON \
   -DWITH_ZLIB=ON \
