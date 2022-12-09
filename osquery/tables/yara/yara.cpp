@@ -27,9 +27,9 @@
 #include <osquery/remote/uri.h>
 #include <osquery/tables/yara/yara_utils.h>
 #include <osquery/utils/status/status.h>
-#include <osquery/worker/system/memory.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
+#include <osquery/worker/system/memory.h>
 
 #ifdef CONCAT
 #undef CONCAT
