@@ -10,7 +10,6 @@
 #include <sstream>
 #include <utility>
 
-#include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/plugins/logger.h>
 #include <osquery/core/system.h>
@@ -121,46 +120,47 @@ Status Distributed::serializeResults(std::string& json) {
     doc.add(result.request.id, result.status.getCode(), statuses_obj);
     doc.add(result.request.id, result.message, messages_obj);
 
+    RecursiveLock lock(performance_mutex_);
     auto obj = doc.getObject();
-    Config::get().getPerformanceStats(
-        result.request.id, [&obj](const QueryPerformance& perf) {
-          obj.AddMember("executions",
-                        static_cast<uint64_t>(perf.executions),
-                        obj.GetAllocator());
-          obj.AddMember("last_executed",
-                        static_cast<uint64_t>(perf.last_executed),
-                        obj.GetAllocator());
-          obj.AddMember("output_size",
-                        static_cast<uint64_t>(perf.output_size),
-                        obj.GetAllocator());
-          obj.AddMember("wall_time",
-                        static_cast<uint64_t>(perf.wall_time),
-                        obj.GetAllocator());
-          obj.AddMember("wall_time_ms",
-                        static_cast<uint64_t>(perf.wall_time_ms),
-                        obj.GetAllocator());
-          obj.AddMember("last_wall_time_ms",
-                        static_cast<uint64_t>(perf.last_wall_time_ms),
-                        obj.GetAllocator());
-          obj.AddMember("user_time",
-                        static_cast<uint64_t>(perf.user_time),
-                        obj.GetAllocator());
-          obj.AddMember("last_user_time",
-                        static_cast<uint64_t>(perf.last_user_time),
-                        obj.GetAllocator());
-          obj.AddMember("system_time",
-                        static_cast<uint64_t>(perf.system_time),
-                        obj.GetAllocator());
-          obj.AddMember("last_system_time",
-                        static_cast<uint64_t>(perf.last_system_time),
-                        obj.GetAllocator());
-          obj.AddMember("average_memory",
-                        static_cast<uint64_t>(perf.average_memory),
-                        obj.GetAllocator());
-          obj.AddMember("last_memory",
-                        static_cast<uint64_t>(perf.last_memory),
-                        obj.GetAllocator());
-        });
+    if (performance_.count(result.request.id) > 0) {
+      auto perf = performance_[result.request.id];
+      obj.AddMember("executions",
+                    static_cast<uint64_t>(perf.executions),
+                    obj.GetAllocator());
+      obj.AddMember("last_executed",
+                    static_cast<uint64_t>(perf.last_executed),
+                    obj.GetAllocator());
+      obj.AddMember("output_size",
+                    static_cast<uint64_t>(perf.output_size),
+                    obj.GetAllocator());
+      obj.AddMember("wall_time",
+                    static_cast<uint64_t>(perf.wall_time),
+                    obj.GetAllocator());
+      obj.AddMember("wall_time_ms",
+                    static_cast<uint64_t>(perf.wall_time_ms),
+                    obj.GetAllocator());
+      obj.AddMember("last_wall_time_ms",
+                    static_cast<uint64_t>(perf.last_wall_time_ms),
+                    obj.GetAllocator());
+      obj.AddMember("user_time",
+                    static_cast<uint64_t>(perf.user_time),
+                    obj.GetAllocator());
+      obj.AddMember("last_user_time",
+                    static_cast<uint64_t>(perf.last_user_time),
+                    obj.GetAllocator());
+      obj.AddMember("system_time",
+                    static_cast<uint64_t>(perf.system_time),
+                    obj.GetAllocator());
+      obj.AddMember("last_system_time",
+                    static_cast<uint64_t>(perf.last_system_time),
+                    obj.GetAllocator());
+      obj.AddMember("average_memory",
+                    static_cast<uint64_t>(perf.average_memory),
+                    obj.GetAllocator());
+      obj.AddMember("last_memory",
+                    static_cast<uint64_t>(perf.last_memory),
+                    obj.GetAllocator());
+    };
 
     doc.add(result.request.id, obj, stats_obj);
   }
@@ -205,7 +205,7 @@ Status Distributed::runQueries() {
     // Keep track of the currently executing request
     Distributed::setCurrentRequestId(request.id);
 
-    auto sql = monitor_nonnumeric(request.id, request.query);
+    auto sql = monitorNonnumeric(request.id, request.query);
     const auto ok = sql.getStatus().ok();
     const auto& msg = ok ? "" : sql.getMessageString();
     if (!ok) {
@@ -399,6 +399,88 @@ void Distributed::setCurrentRequestId(const std::string& cReqId) {
   currentRequestId_ = cReqId;
 }
 
+SQL Distributed::monitorNonnumeric(const std::string& name,
+                                   const std::string& query) {
+  // Snapshot the performance and times for the worker before running.
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
+  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+
+  using namespace std::chrono;
+  auto t0 = steady_clock::now();
+  SQL sql(query, true);
+
+  // Snapshot the performance after, and compare.
+  auto t1 = steady_clock::now();
+  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+  if (r0.size() > 0 && r1.size() > 0) {
+    // Always called while processes table is working.
+    uint64_t size = sql.rows().size();
+    recordQueryPerformance(
+        name, duration_cast<milliseconds>(t1 - t0).count(), size, r0[0], r1[0]);
+  }
+  return sql;
+}
+
+void Distributed::recordQueryPerformance(const std::string& name,
+                                         uint64_t delay_ms,
+                                         uint64_t size,
+                                         const Row& r0,
+                                         const Row& r1) {
+  RecursiveLock lock(performance_mutex_);
+  if (performance_.count(name) == 0) {
+    performance_[name] = QueryPerformance();
+  }
+
+  // Grab access to the non-const schedule item.
+  auto& query = performance_.at(name);
+  if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
+    auto ut1 = tryTo<long long>(r1.at("user_time"));
+    auto ut0 = tryTo<long long>(r0.at("user_time"));
+    auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
+    if (diff > 0) {
+      query.user_time += diff;
+      query.last_user_time = diff;
+    }
+  }
+
+  if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
+    auto st1 = tryTo<long long>(r1.at("system_time"));
+    auto st0 = tryTo<long long>(r0.at("system_time"));
+    auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
+    if (diff > 0) {
+      query.system_time += diff;
+      query.last_system_time = diff;
+    }
+  }
+
+  if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
+    auto rs1 = tryTo<long long>(r1.at("resident_size"));
+    auto rs0 = tryTo<long long>(r0.at("resident_size"));
+    auto diff = (rs1 && rs0) ? rs1.take() - rs0.take() : 0;
+    if (diff > 0) {
+      // Memory is stored as an average of RSS changes between query executions.
+      query.average_memory = (query.average_memory * query.executions) + diff;
+      query.average_memory = (query.average_memory / (query.executions + 1));
+      query.last_memory = diff;
+    }
+  }
+
+  query.last_wall_time_ms = delay_ms;
+  query.wall_time_ms += delay_ms;
+  query.wall_time += (delay_ms / 1000);
+  query.output_size += size;
+  query.executions += 1;
+  query.last_executed = getUnixTime();
+}
+
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
                                         JSON& doc,
                                         rj::Value& obj) {
@@ -514,33 +596,4 @@ uint64_t denylistDuration() {
   return FLAGS_distributed_denylist_duration;
 }
 
-SQL monitor_nonnumeric(const std::string& name, const std::string& query) {
-  // Snapshot the performance and times for the worker before running.
-  auto pid = std::to_string(PlatformProcess::getCurrentPid());
-  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                            "processes",
-                            "pid",
-                            EQUALS,
-                            pid);
-
-  using namespace std::chrono;
-  auto t0 = steady_clock::now();
-  Config::get().recordQueryStart(name);
-  SQL sql(query, true);
-
-  // Snapshot the performance after, and compare.
-  auto t1 = steady_clock::now();
-  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                            "processes",
-                            "pid",
-                            EQUALS,
-                            pid);
-  if (r0.size() > 0 && r1.size() > 0) {
-    // Always called while processes table is working.
-    uint64_t size = sql.rows().size();
-    Config::get().recordQueryPerformance(
-        name, duration_cast<milliseconds>(t1 - t0).count(), size, r0[0], r1[0]);
-  }
-  return sql;
-}
 } // namespace osquery

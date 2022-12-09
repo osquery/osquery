@@ -24,7 +24,6 @@ function(generateOsqueryDistributed)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
-    osquery_config
     osquery_process
     osquery_database
     osquery_logger
