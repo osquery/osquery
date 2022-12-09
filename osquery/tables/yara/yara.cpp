@@ -28,6 +28,8 @@
 #include <osquery/tables/yara/yara_utils.h>
 #include <osquery/utils/status/status.h>
 #include <osquery/worker/system/memory.h>
+#include <osquery/worker/ipc/platform_table_container_ipc.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 #ifdef CONCAT
 #undef CONCAT
@@ -278,7 +280,7 @@ Status getYaraRules(YARAConfigParser parser,
   return Status::success();
 }
 
-QueryData genYara(QueryContext& context) {
+QueryData genYaraImpl(QueryContext& context) {
   QueryData results;
   YaraScanContext scanContext;
 
@@ -417,5 +419,15 @@ QueryData genYara(QueryContext& context) {
 
   return results;
 }
+
+QueryData genYara(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "dns_resovlers", genYaraImpl);
+  } else {
+    GLOGLogger logger;
+    return genYaraImpl(context, logger);
+  }
+}
+
 } // namespace tables
 } // namespace osquery
