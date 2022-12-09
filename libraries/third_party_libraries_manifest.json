@@ -156,7 +156,7 @@
     "vendor": "debian",
     "version": "1.21.7",
     "commit": "e61f582015a9c67bbb3791cb93a864cfeb9c7151",
-    "ignored-cves": []
+    "ignored-cves": ["CVE-2022-1664"]
   },
   "libgcrypt": {
     "product": "libgcrypt",
