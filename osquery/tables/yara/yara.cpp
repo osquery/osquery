@@ -280,14 +280,14 @@ Status getYaraRules(YARAConfigParser parser,
   return Status::success();
 }
 
-QueryData genYaraImpl(QueryContext& context) {
+QueryData genYaraImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   YaraScanContext scanContext;
 
   // Initialize yara library
   auto init_status = yaraInitialize();
   if (!init_status.ok()) {
-    LOG(WARNING) << init_status.toString();
+    logger.log(google::GLOG_WARNING, init_status.toString());
     return results;
   }
 
@@ -312,7 +312,7 @@ QueryData genYaraImpl(QueryContext& context) {
     auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
     auto status = getYaraRules(yaraParser, sigfiles, YC_FILE, scanContext);
     if (!status.ok()) {
-      LOG(WARNING) << status.toString();
+      logger.log(google::GLOG_WARNING, status.toString());
       return results;
     }
   }
@@ -323,7 +323,7 @@ QueryData genYaraImpl(QueryContext& context) {
     auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
     auto status = getYaraRules(yaraParser, sigrules, YC_RULE, scanContext);
     if (!status.ok()) {
-      LOG(WARNING) << status.toString();
+      logger.log(google::GLOG_WARNING, status.toString());
       return results;
     }
   }
@@ -332,7 +332,7 @@ QueryData genYaraImpl(QueryContext& context) {
     auto sigurls = context.constraints["sigurl"].getAll(EQUALS);
     auto status = getYaraRules(yaraParser, sigurls, YC_URL, scanContext);
     if (!status.ok()) {
-      LOG(WARNING) << status.toString();
+      logger.log(google::GLOG_WARNING, status.toString());
       return results;
     }
   }
@@ -409,7 +409,7 @@ QueryData genYaraImpl(QueryContext& context) {
   // more than once it will decrease the reference counter and return
   auto fini_status = yaraFinalize();
   if (!fini_status.ok()) {
-    LOG(WARNING) << fini_status.toString();
+    logger.log(google::GLOG_WARNING, fini_status.toString());
   }
 
 #ifdef OSQUERY_LINUX
