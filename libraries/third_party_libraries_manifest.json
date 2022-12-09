@@ -142,7 +142,10 @@
     "vendor": "cryptsetup_project",
     "version": "1.7.5",
     "commit": "0ba577666c62bb3c82e90f3c8dd01f3f81a26cf4",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2016-4484",
+      "CVE-2021-4122"
+    ]
   },
   "libdevmapper": {
     "product": "lvm2",
