@@ -163,8 +163,6 @@ function(libarchiveMain)
 
   target_compile_definitions(thirdparty_libarchive PRIVATE
     LIBARCHIVE_STATIC
-    USE_BZIP2_STATIC
-    LIBXML_STATIC
     HAVE_CONFIG_H
   )
 
@@ -174,17 +172,8 @@ function(libarchiveMain)
     )
   endif()
 
-  target_link_libraries(thirdparty_libarchive
-    PRIVATE
-      thirdparty_c_settings
-
-    PUBLIC
-      thirdparty_openssl
-      thirdparty_zlib
-      thirdparty_bzip2
-      thirdparty_lzma
-      thirdparty_libxml2
-      thirdparty_zstd
+  target_link_libraries(thirdparty_libarchive PRIVATE
+    thirdparty_c_settings
   )
 endfunction()
 
