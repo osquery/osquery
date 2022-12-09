@@ -9,6 +9,7 @@ Check that the generated `zconf.h` and the compilation enables the defines that 
 Generated with the following commands:
 
 ```bash
+export TOOLCHAIN=/usr/local/osquery-toolchain
 export PATH="${TOOLCHAIN}/usr/bin:${PATH}"
 export CFLAGS="--sysroot ${TOOLCHAIN}"
 export CXXFLAGS="${CFLAGS}"
@@ -24,6 +25,7 @@ make
 Generated with the following commands:
 
 ```bash
+export TOOLCHAIN=/usr/local/osquery-toolchain
 export PATH="/usr/local/osquery-toolchain/usr/bin:${PATH}"
 export CFLAGS="--sysroot /usr/local/osquery-toolchain"
 export CXXFLAGS="${CFLAGS}"
