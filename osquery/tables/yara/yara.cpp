@@ -422,7 +422,7 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
 
 QueryData genYara(QueryContext& context) {
   if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(context, "dns_resovlers", genYaraImpl);
+    return generateInNamespace(context, "yara", genYaraImpl);
   } else {
     GLOGLogger logger;
     return genYaraImpl(context, logger);
