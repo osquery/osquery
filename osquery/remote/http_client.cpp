@@ -458,7 +458,7 @@ Response Client::put(Request& req,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
   req.body() = body;
-  if (!content_type.empty() && content_type.size() < 512) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
@@ -480,7 +480,7 @@ Response Client::put(Request& req,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
   req.body() = std::move(body);
-  if (!content_type.empty() && content_type.size() < 512) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);

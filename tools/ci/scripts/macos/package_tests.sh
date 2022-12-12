@@ -29,7 +29,7 @@ main() {
   local launcher_path="${destination}/run.sh"
 
   printf '#!/usr/bin/env bash\n\n' > "${launcher_path}"
-  printf 'export _OSQUERY_PYTHON_INTERPRETER_PATH="$(which python3)"\n' >> "${launcher_path}"
+  printf 'export _OSQUERY_PYTHON_INTERPRETER_PATH="/usr/local/Frameworks/Python.framework/Versions/Current/bin/python3"\n' >> "${launcher_path}"
   printf 'export RUNNER_ROOT_FOLDER="$(pwd)"\n\n' >> "${launcher_path}"
   printf 'ctest --build-nocmake -V\n' >> "${launcher_path}"
   chmod 755 "${launcher_path}" || return 1

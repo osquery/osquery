@@ -215,17 +215,38 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
   auto response = std::make_shared<Standard::StandardHttpResponse>(request_ptr);
   http::Response resp;
 
+  if (osquery::shutdownRequested()) {
+    /* This is technically a client error, but some AWS requests
+       consider any client error as retryable.
+       Since we want to stop the retries,
+       we use instead a non-retryable response code,
+       although we did not have any response.
+       We also log the reason of the failure to provide more information */
+
+    response->SetResponseCode(Aws::Http::HttpResponseCode::BLOCKED);
+    LOG(WARNING) << "An AWS request has been blocked since a shutdown has been "
+                    "requested";
+
+    return response;
+  }
+
   try {
     switch (request.GetMethod()) {
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
       break;
-    case Aws::Http::HttpMethod::HTTP_POST:
-      resp = client.post(req, body, request.GetContentType());
+    case Aws::Http::HttpMethod::HTTP_POST: {
+      std::string content_type =
+          request.HasContentType() ? request.GetContentType() : "";
+      resp = client.post(req, body, content_type);
       break;
-    case Aws::Http::HttpMethod::HTTP_PUT:
-      resp = client.put(req, body, request.GetContentType());
+    }
+    case Aws::Http::HttpMethod::HTTP_PUT: {
+      std::string content_type =
+          request.HasContentType() ? request.GetContentType() : "";
+      resp = client.put(req, body, content_type);
       break;
+    }
     case Aws::Http::HttpMethod::HTTP_HEAD:
       resp = client.head(req);
       break;
@@ -268,8 +289,8 @@ std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
                       request.GetMethod())
                << " request to URL (" << url << "): " << e.what();
 
-    response->SetResponseCode(
-        static_cast<Aws::Http::HttpResponseCode>(resp.status()));
+    response->SetClientErrorType(Aws::Client::CoreErrors::NETWORK_CONNECTION);
+    response->SetClientErrorMessage(e.what());
   }
 
   return response;
@@ -335,11 +356,28 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       access_key_id_ = sts_result.GetCredentials().GetAccessKeyId();
       secret_access_key_ = sts_result.GetCredentials().GetSecretAccessKey();
       session_token_ = sts_result.GetCredentials().GetSessionToken();
+
       // Calculate when our credentials will expire.
       token_expire_time_ = current_time + FLAGS_aws_sts_timeout;
     } else {
-      LOG(ERROR) << "Failed to create STS temporary credentials, error: "
-                 << sts_outcome.GetError().GetMessage();
+      const auto& error = sts_outcome.GetError();
+
+      std::stringstream error_message;
+
+      error_message << static_cast<int>(error.GetErrorType());
+
+      if (error.GetResponseCode() !=
+          Aws::Http::HttpResponseCode::REQUEST_NOT_MADE) {
+        error_message << ", HTTP responde code: "
+                      << static_cast<int>(error.GetResponseCode());
+      }
+
+      if (!error.GetMessage().empty()) {
+        error_message << ", error message: " << error.GetMessage();
+      }
+
+      LOG(ERROR) << "Failed to create STS temporary credentials, error type: "
+                 << error_message.rdbuf();
     }
   }
   return Aws::Auth::AWSCredentials(
