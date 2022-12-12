@@ -120,7 +120,7 @@
     "product": "krabsetw",
     "vendor": "microsoft",
     "version": "0.0.0",	
-    "commit": "394eb6c52ae26db16b4ae8b3daa556c0ac6732a1",
+    "commit": "db46f40cb4b66308cd8637a9d35245d303913069",
     "ignored-cves": []	
   },
   "libarchive": {
