@@ -117,6 +117,7 @@
     "commit": "8f9ccfe770add9e4c64e9b25c102658e3c763b73"
   },
   "krabsetw": {
+    "product": "krabsetw",
     "vendor": "Microsoft",
     "commit": "394eb6c52ae26db16b4ae8b3daa556c0ac6732a1"
   },
