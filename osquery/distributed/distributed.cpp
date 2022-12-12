@@ -130,12 +130,6 @@ Status Distributed::serializeResults(std::string& json) {
       obj.AddMember("last_executed",
                     static_cast<uint64_t>(perf.last_executed),
                     obj.GetAllocator());
-      obj.AddMember("output_size",
-                    static_cast<uint64_t>(perf.output_size),
-                    obj.GetAllocator());
-      obj.AddMember("wall_time",
-                    static_cast<uint64_t>(perf.wall_time),
-                    obj.GetAllocator());
       obj.AddMember("wall_time_ms",
                     static_cast<uint64_t>(perf.wall_time_ms),
                     obj.GetAllocator());
@@ -439,7 +433,6 @@ void Distributed::recordQueryPerformance(const std::string& name,
     performance_[name] = QueryPerformance();
   }
 
-  // Grab access to the non-const schedule item.
   auto& query = performance_.at(name);
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
     auto ut1 = tryTo<long long>(r1.at("user_time"));
