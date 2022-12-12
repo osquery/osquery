@@ -37,6 +37,7 @@ function(libxml2Main)
     "${library_root}/tree.c"
     "${library_root}/uri.c"
     "${library_root}/valid.c"
+    "${library_root}/xinclude.c"
     "${library_root}/xlink.c"
     "${library_root}/xmlIO.c"
     "${library_root}/xmlmemory.c"
@@ -87,19 +88,19 @@ function(libxml2Main)
 
   if(PLATFORM_LINUX)
     set(include_path_list
-      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/linux/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
       "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/linux/${TARGET_PROCESSOR}"
     )
 
   elseif(PLATFORM_WINDOWS)
     set(include_path_list
-      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/windows/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/windows/${TARGET_PROCESSOR}"
       "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/windows/${TARGET_PROCESSOR}"
     )
 
   elseif(PLATFORM_MACOS)
     set(include_path_list
-      "${CMAKE_CURRENT_SOURCE_DIR}/generated/config/macos/${TARGET_PROCESSOR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/${TARGET_PROCESSOR}"
       "${CMAKE_CURRENT_SOURCE_DIR}/generated/version/macos/${TARGET_PROCESSOR}"
     )
 

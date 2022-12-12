@@ -12,8 +12,6 @@ git reset --hard ; git clean -ffdx
 
 Integrate the osquery-toolchain in the main `CMakeLists.txt` file (see the following file in osquery: `cmake/toolchain.cmake`). Then configure the project.
 
-Force the following `check_include_files()` checks: `stdint.h`, `math.h`, `ctype.h`, `unistd.h`.
-
 ```bash
 cmake \
   -S . \
@@ -23,7 +21,6 @@ cmake \
   -DLIBXML2_WITH_C14N=ON \
   -DLIBXML2_WITH_CATALOG=OFF \
   -DLIBXML2_WITH_DEBUG=OFF \
-  -DLIBXML2_WITH_DOCB=OFF \
   -DLIBXML2_WITH_FTP=OFF \
   -DLIBXML2_WITH_HTML=OFF \
   -DLIBXML2_WITH_HTTP=OFF \
@@ -55,11 +52,7 @@ cmake \
   -DLIBXML2_WITH_XPATH=ON \
   -DLIBXML2_WITH_XPTR=ON \
   -DLIBXML2_WITH_ZLIB=ON \
-  -DHAVE_STDINT_H:BOOL=true \
-  -DHAVE_MATH_H:BOOL=true \
-  -DHAVE_CTYPE_H:BOOL=true \
-  -DHAVE_UNISTD_H:BOOL=true \
-  -DHAVE_VA_COPY:BOOL=true
+  -DHAVE_VA_COPY:BOOL=ON
 ```
 
 Build the project:
@@ -92,7 +85,6 @@ cmake \
   -DLIBXML2_WITH_C14N=ON \
   -DLIBXML2_WITH_CATALOG=OFF \
   -DLIBXML2_WITH_DEBUG=OFF \
-  -DLIBXML2_WITH_DOCB=OFF \
   -DLIBXML2_WITH_FTP=OFF \
   -DLIBXML2_WITH_HTML=OFF \
   -DLIBXML2_WITH_HTTP=OFF \
@@ -155,7 +147,6 @@ cmake ^
   -DLIBXML2_WITH_C14N=ON ^
   -DLIBXML2_WITH_CATALOG=OFF ^
   -DLIBXML2_WITH_DEBUG=OFF ^
-  -DLIBXML2_WITH_DOCB=OFF ^
   -DLIBXML2_WITH_FTP=OFF ^
   -DLIBXML2_WITH_HTML=OFF ^
   -DLIBXML2_WITH_HTTP=OFF ^

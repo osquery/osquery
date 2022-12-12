@@ -29,21 +29,21 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  *
  * the version string like "1.2.3"
  */
-#define LIBXML_DOTTED_VERSION "2.9.14"
+#define LIBXML_DOTTED_VERSION "2.10.3"
 
 /**
  * LIBXML_VERSION:
  *
  * the version number: 1.2.3 value is 10203
  */
-#define LIBXML_VERSION 20914
+#define LIBXML_VERSION 21003
 
 /**
  * LIBXML_VERSION_STRING:
  *
  * the version number string, 1.2.3 value is "10203"
  */
-#define LIBXML_VERSION_STRING "20914"
+#define LIBXML_VERSION_STRING "21003"
 
 /**
  * LIBXML_VERSION_EXTRA:
@@ -58,7 +58,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  * Macro to check that the libxml version in use is compatible with
  * the version the software has been compiled against
  */
-#define LIBXML_TEST_VERSION xmlCheckVersion(20914);
+#define LIBXML_TEST_VERSION xmlCheckVersion(21003);
 
 #ifndef VMS
 #if 0
@@ -230,15 +230,6 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
 #endif
 
 /**
- * LIBXML_DOCB_ENABLED:
- *
- * Whether the SGML Docbook support is configured in
- */
-#if 0
-#define LIBXML_DOCB_ENABLED
-#endif
-
-/**
  * LIBXML_XPATH_ENABLED:
  *
  * Whether XPath is configured in
@@ -254,6 +245,15 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  */
 #if 1
 #define LIBXML_XPTR_ENABLED
+#endif
+
+/**
+ * LIBXML_XPTR_LOCS_ENABLED:
+ *
+ * Whether support for XPointer locations is configured in
+ */
+#if 0
+#define LIBXML_XPTR_LOCS_ENABLED
 #endif
 
 /**
@@ -387,7 +387,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  *
  * the string suffix used by dynamic modules (usually shared libraries)
  */
-#define LIBXML_MODULE_EXTENSION ".dll" 
+#define LIBXML_MODULE_EXTENSION ".dll"
 #endif
 
 /**
@@ -417,11 +417,11 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  */
 
 #ifndef ATTRIBUTE_UNUSED
-# if ((__GNUC__ > 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)))
-#  define ATTRIBUTE_UNUSED __attribute__((unused))
-# else
-#  define ATTRIBUTE_UNUSED
-# endif
+#if ((__GNUC__ > 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)))
+#define ATTRIBUTE_UNUSED __attribute__((unused))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
 #endif
 
 /**
@@ -431,13 +431,14 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  */
 
 #ifndef LIBXML_ATTR_ALLOC_SIZE
-# if (!defined(__clang__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 3))))
-#  define LIBXML_ATTR_ALLOC_SIZE(x) __attribute__((alloc_size(x)))
-# else
-#  define LIBXML_ATTR_ALLOC_SIZE(x)
-# endif
+#if (!defined(__clang__) &&                                                    \
+     ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 3))))
+#define LIBXML_ATTR_ALLOC_SIZE(x) __attribute__((alloc_size(x)))
 #else
-# define LIBXML_ATTR_ALLOC_SIZE(x)
+#define LIBXML_ATTR_ALLOC_SIZE(x)
+#endif
+#else
+#define LIBXML_ATTR_ALLOC_SIZE(x)
 #endif
 
 /**
@@ -447,13 +448,23 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  */
 
 #ifndef LIBXML_ATTR_FORMAT
-# if ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 3)))
-#  define LIBXML_ATTR_FORMAT(fmt,args) __attribute__((__format__(__printf__,fmt,args)))
-# else
-#  define LIBXML_ATTR_FORMAT(fmt,args)
-# endif
+#if ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 3)))
+#define LIBXML_ATTR_FORMAT(fmt, args)                                          \
+  __attribute__((__format__(__printf__, fmt, args)))
 #else
-# define LIBXML_ATTR_FORMAT(fmt,args)
+#define LIBXML_ATTR_FORMAT(fmt, args)
+#endif
+#else
+#define LIBXML_ATTR_FORMAT(fmt, args)
+#endif
+
+#ifndef XML_DEPRECATED
+#ifdef IN_LIBXML
+#define XML_DEPRECATED
+#else
+/* Available since at least GCC 3.1 */
+#define XML_DEPRECATED __attribute__((deprecated))
+#endif
 #endif
 
 #else /* ! __GNUC__ */
@@ -474,12 +485,19 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  *
  * Macro used to indicate to GCC the parameter are printf like
  */
-#define LIBXML_ATTR_FORMAT(fmt,args)
+#define LIBXML_ATTR_FORMAT(fmt, args)
+/**
+ * XML_DEPRECATED:
+ *
+ * Macro used to indicate that a function, variable, type or struct member
+ * is deprecated.
+ */
+#ifndef XML_DEPRECATED
+#define XML_DEPRECATED
+#endif
 #endif /* __GNUC__ */
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 #endif
-
-
