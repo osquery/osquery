@@ -48,7 +48,7 @@ Note that in this threat model, osquery does _not_ currently have mitigations fo
 Tracking and updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
 languages. Ideally, we learn of newly disclosed vulnerabilities in osquery's dependencies through the use of a scheduled
 automated dependency-checking script in our CI workflows. This workflow is designed to produce timely
-[alerts as new GitHub issues](https://github.com/osquery/osquery/issues?q=is%3Aissue+label%3Alibraries+label%3Asecurity+).
+[alerts as new GitHub issues](https://github.com/osquery/osquery/issues?q=is%3Aissue+label%3Acve+).
 We close these issues by either adding the alert to an ignore list (following an assessment of how it does not impact
 osquery), or by updating the appropriate dependency or dependencies.
 
