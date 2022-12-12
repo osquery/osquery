@@ -533,7 +533,6 @@ bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
 // Checking if given ETW event is a supported userspace process stop event
 bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
     const EVENT_HEADER& header) {
-
   return (header.EventDescriptor.Id == etwProcessStopID &&
           (header.EventDescriptor.Version ==
                static_cast<UCHAR>(etwUserProcStopVersion::Version0) ||
