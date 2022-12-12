@@ -37,7 +37,7 @@ using EtwProcEventSubContextRef = std::shared_ptr<EtwProcEventSubContext>;
 const std::string kEtwProcessPublisherName = "etw_process_publisher";
 
 /**
- * @brief EtwPublisherProcesses implements an EtwPublisher that collects and
+ * @brief Implements an EtwPublisher that collects and
  * dispatches ETW events with process-start and process-stop OS information.
  */
 class EtwPublisherProcesses
@@ -79,7 +79,7 @@ class EtwPublisherProcesses
   EtwPublisherProcesses();
 
   /**
-   * @brief Setup() is used to configure the ETW providers to listen, along with
+   * @brief Used to configure the ETW providers to listen, along with
    * its configuration parameters and processing callbacks.
    *
    * @return Status of the provider setup process.
@@ -88,7 +88,7 @@ class EtwPublisherProcesses
 
  private:
   /**
-   * @brief It provides the c-function callback in charge of performing the pre
+   * @brief Provides the c-function callback in charge of performing the pre
    * processing logic. This is the entry point for the event arriving from the
    * ETW OS interface. This callback gets called from the OS for every new ETW
    * event. There should be lightweight logic here, with no significant
@@ -102,15 +102,15 @@ class EtwPublisherProcesses
    * @param traceCtx This is a helper class that it is used to parse the ETW
    * event manifest when needed.
    */
-  static void ProviderPreProcessor(const EVENT_RECORD& rawEvent,
+  static void providerPreProcessor(const EVENT_RECORD& rawEvent,
                                    const krabs::trace_context& traceCtx);
 
   /**
-   * @brief It provides the std::function callback in charge of performing the
+   * @brief Provides the std::function callback in charge of performing the
    * post processing logic. This logic is used to enrich, aggregate and modify
    * the event data before dispatching it to the event subscribers.
    */
-  void ProviderPostProcessor(const EtwEventDataRef& data) override;
+  void providerPostProcessor(const EtwEventDataRef& data) override;
 
   /// Event post-processing helpers
   void initializeHardVolumeConversions();

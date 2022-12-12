@@ -44,8 +44,8 @@ Status EtwPublisherProcesses::setUp() {
   EtwProviderConfig userEtwProviderConfig;
   userEtwProviderConfig.setName("Microsoft-Windows-Kernel-Process");
   userEtwProviderConfig.setAnyBitmask(processStartStopKeyword);
-  userEtwProviderConfig.setPreProcessor(GetPreProcessorCallback());
-  userEtwProviderConfig.setPostProcessor(GetPostProcessorCallback());
+  userEtwProviderConfig.setPreProcessor(getPreProcessorCallback());
+  userEtwProviderConfig.setPostProcessor(getPostProcessorCallback());
   userEtwProviderConfig.addEventTypeToHandle(EtwEventType::ProcessStart);
   userEtwProviderConfig.addEventTypeToHandle(EtwEventType::ProcessStop);
 
@@ -59,8 +59,8 @@ Status EtwPublisherProcesses::setUp() {
   EtwProviderConfig kernelProviderCfg;
   kernelProviderCfg.setKernelProviderType(
       EtwProviderConfig::EtwKernelProviderType::Process);
-  kernelProviderCfg.setPreProcessor(GetPreProcessorCallback());
-  kernelProviderCfg.setPostProcessor(GetPostProcessorCallback());
+  kernelProviderCfg.setPreProcessor(getPreProcessorCallback());
+  kernelProviderCfg.setPostProcessor(getPostProcessorCallback());
   kernelProviderCfg.addEventTypeToHandle(EtwEventType::ProcessStart);
   kernelProviderCfg.addEventTypeToHandle(EtwEventType::ProcessStop);
 
@@ -74,7 +74,7 @@ Status EtwPublisherProcesses::setUp() {
 }
 
 // Callback to perform pre-processing logic
-void EtwPublisherProcesses::ProviderPreProcessor(
+void EtwPublisherProcesses::providerPreProcessor(
     const EVENT_RECORD& rawEvent, const krabs::trace_context& traceCtx) {
   // Helper accessors for userspace events
   const EVENT_HEADER& eventHeader = rawEvent.EventHeader;
@@ -92,6 +92,7 @@ void EtwPublisherProcesses::ProviderPreProcessor(
   // Internal ETW Event allocation - This event will be populated and dispatched
   std::shared_ptr<EtwEventData> newEvent = std::make_shared<EtwEventData>();
   if (newEvent == nullptr) {
+    LOG(WARNING) << "Cannot allocate new EtwEventData event";
     return;
   }
 
@@ -123,7 +124,8 @@ void EtwPublisherProcesses::ProviderPreProcessor(
       krabs::sid userSID = parser.parse<krabs::sid>(L"UserSID");
       procStartData->UserSid.assign(userSID.sid_string);
 
-      if (eventVersion == (unsigned int)etwKernelProcVersion::Version4) {
+      if (eventVersion ==
+          static_cast<unsigned int>(etwKernelProcVersion::Version4)) {
         procStartData->Cmdline.assign(
             wstringToString(parser.parse<std::wstring>(L"CommandLine")));
         procStartData->Flags = parser.parse<uint32_t>(L"Flags");
@@ -153,7 +155,8 @@ void EtwPublisherProcesses::ProviderPreProcessor(
       krabs::sid userSID = parser.parse<krabs::sid>(L"UserSID");
       procStopData->UserSid.assign(userSID.sid_string);
 
-      if (eventVersion == (unsigned int)etwKernelProcVersion::Version4) {
+      if (eventVersion ==
+          static_cast<unsigned int>(etwKernelProcVersion::Version4)) {
         procStopData->Cmdline.assign(
             wstringToString(parser.parse<std::wstring>(L"CommandLine")));
         procStopData->ExitCode = parser.parse<int32_t>(L"ExitStatus");
@@ -189,12 +192,14 @@ void EtwPublisherProcesses::ProviderPreProcessor(
       procStartData->ImageName.assign(
           wstringToString(parser.parse<std::wstring>(L"ImageName")));
 
-      if ((eventVersion == (unsigned int)etwUserProcStartVersion::Version1) ||
-          (eventVersion == (unsigned int)etwUserProcStartVersion::Version2)) {
+      if (eventVersion ==
+              static_cast<unsigned int>(etwUserProcStartVersion::Version1) ||
+          eventVersion ==
+              static_cast<unsigned int>(etwUserProcStartVersion::Version2)) {
         procStartData->Flags = parser.parse<uint32_t>(L"Flags");
 
       } else if (eventVersion ==
-                 (unsigned int)etwUserProcStartVersion::Version3) {
+                 static_cast<unsigned int>(etwUserProcStartVersion::Version3)) {
         procStartData->Flags = parser.parse<uint32_t>(L"Flags");
         krabs::sid mandatoryLabel = parser.parse<krabs::sid>(L"MandatoryLabel");
         procStartData->MandatoryLabelSid.assign(mandatoryLabel.sid_string);
@@ -228,13 +233,13 @@ void EtwPublisherProcesses::ProviderPreProcessor(
 }
 
 // Callback to perform post-processing logic
-void EtwPublisherProcesses::ProviderPostProcessor(
+void EtwPublisherProcesses::providerPostProcessor(
     const EtwEventDataRef& eventData) {
   auto event_context = createEventContext();
 
   // Sanity check on event types that this callback will handle
-  if ((eventData->Header.Type != EtwEventType::ProcessStart) &&
-      (eventData->Header.Type != EtwEventType::ProcessStop)) {
+  if (eventData->Header.Type != EtwEventType::ProcessStart &&
+      eventData->Header.Type != EtwEventType::ProcessStop) {
     return;
   }
 
@@ -286,8 +291,8 @@ void EtwPublisherProcesses::ProviderPostProcessor(
     auto processCacheIt = processStartAggregationCache_.find(searchKey);
     if (processCacheIt == processStartAggregationCache_.end()) {
       // this event needs to be agreggated, so cache it for the time being
-      if ((procStartData->CreateTime.dwHighDateTime == 0) &&
-          (procStartData->CreateTime.dwLowDateTime == 0)) {
+      if (procStartData->CreateTime.dwHighDateTime == 0 &&
+          procStartData->CreateTime.dwLowDateTime == 0) {
         GetSystemTimeAsFileTime(&procStartData->CreateTime);
       }
       processStartAggregationCache_.insert({searchKey, procStartData});
@@ -300,8 +305,7 @@ void EtwPublisherProcesses::ProviderPostProcessor(
 
       // Event Agreggation stage
       bool shouldDispatch = false;
-      if ((procStartCacheData->KernelDataReady) &&
-          (procStartData->UserDataReady)) {
+      if (procStartCacheData->KernelDataReady && procStartData->UserDataReady) {
         procStartData->Cmdline.assign(procStartCacheData->Cmdline);
         procStartData->Flags = procStartCacheData->Flags;
         procStartData->SessionId = procStartCacheData->SessionId;
@@ -311,8 +315,8 @@ void EtwPublisherProcesses::ProviderPostProcessor(
 
         shouldDispatch = true;
 
-      } else if ((procStartCacheData->UserDataReady) &&
-                 (procStartData->KernelDataReady)) {
+      } else if (procStartCacheData->UserDataReady &&
+                 procStartData->KernelDataReady) {
         procStartData->ImageName.assign(procStartCacheData->ImageName);
         procStartData->CreateTime = procStartCacheData->CreateTime;
         procStartData->MandatoryLabelSid.assign(
@@ -354,7 +358,7 @@ void EtwPublisherProcesses::ProviderPostProcessor(
 }
 
 void EtwPublisherProcesses::initializeHardVolumeConversions() {
-  const std::string validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const auto& validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   for (auto& driveLetter : validDriveLetters) {
     std::string queryPath;
@@ -404,7 +408,7 @@ void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
 void EtwPublisherProcesses::updateHardVolumeWithLogicalDrive(
     std::string& path) {
   // Updating the hardvolume entries with logical volume data
-  for (auto& [hardVolume, logicalDrive] : hardVolumeDrives_) {
+  for (const auto& [hardVolume, logicalDrive] : hardVolumeDrives_) {
     size_t pos = 0;
     if ((pos = path.find(hardVolume, pos)) != std::string::npos) {
       path.replace(pos, hardVolume.length(), logicalDrive);
@@ -423,39 +427,40 @@ void EtwPublisherProcesses::updateUserInfo(const std::string& userSid,
   } else {
     PSID pSid = nullptr;
 
-    if ((!ConvertStringSidToSidA(userSid.c_str(), &pSid)) ||
-        (pSid == nullptr)) {
+    if (!ConvertStringSidToSidA(userSid.c_str(), &pSid) || pSid == nullptr) {
       // Inserting empty username to avoid the lookup logic to be called again
       usernamesBySIDs_.insert({userSid, ""});
       return;
     }
 
-    char domainNameStr[MAX_PATH] = {0};
+    std::vector<char> domainNameStr(MAX_PATH - 1, 0x0);
+    std::vector<char> userNameStr(MAX_PATH - 1, 0x0);
     DWORD domainNameSize = MAX_PATH;
-    char userNameStr[MAX_PATH] = {0};
     DWORD userNameSize = MAX_PATH;
     SID_NAME_USE sidType = SID_NAME_USE::SidTypeInvalid;
 
-    if ((!LookupAccountSidA(NULL,
-                            pSid,
-                            userNameStr,
-                            &userNameSize,
-                            domainNameStr,
-                            &domainNameSize,
-                            &sidType)) ||
-        (strlen(domainNameStr) == 0) || (strlen(userNameStr) == 0) ||
-        (sidType == SID_NAME_USE::SidTypeInvalid)) {
+    if (!LookupAccountSidA(NULL,
+                           pSid,
+                           userNameStr.data(),
+                           &userNameSize,
+                           domainNameStr.data(),
+                           &domainNameSize,
+                           &sidType) ||
+        strlen(domainNameStr.data()) == 0 ||
+        strlen(domainNameStr.data()) >= MAX_PATH ||
+        strlen(userNameStr.data()) == 0 ||
+        strlen(userNameStr.data()) >= MAX_PATH ||
+        sidType == SID_NAME_USE::SidTypeInvalid) {
       // Inserting empty username to avoid the lookup logic to be called again
-      usernamesBySIDs_.insert({userSid, ""});
       LocalFree(pSid);
       return;
     }
 
     LocalFree(pSid);
 
-    username.append(domainNameStr);
+    username.append(domainNameStr.data());
     username.append("\\");
-    username.append(userNameStr);
+    username.append(userNameStr.data());
 
     usernamesBySIDs_.insert({userSid, username});
   }
@@ -475,17 +480,17 @@ void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
                                             std::string& tokenInfo) {
   // Updating token information with descriptive type
   switch (tokenType) {
-  case TOKEN_ELEVATION_TYPE::TokenElevationTypeDefault:
+  case TOKEN_ELEVATION_TYPE::TokenElevationTypeDefault: {
     tokenInfo.assign("TokenElevationTypeDefault");
-    break;
+  } break;
 
-  case TOKEN_ELEVATION_TYPE::TokenElevationTypeFull:
+  case TOKEN_ELEVATION_TYPE::TokenElevationTypeFull: {
     tokenInfo.assign("TokenElevationTypeFull");
-    break;
+  } break;
 
-  case TOKEN_ELEVATION_TYPE::TokenElevationTypeLimited:
+  case TOKEN_ELEVATION_TYPE::TokenElevationTypeLimited: {
     tokenInfo.assign("TokenElevationTypeLimited");
-    break;
+  } break;
 
   default:
     tokenInfo.assign("TokenElevationTypeInvalid");
@@ -494,77 +499,55 @@ void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
 
 // Checking if given ETW event is a supported kernel event
 bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
-  bool ret = false;
-
   // ETW events coming from kernel providers have this fields set to zero
-  if ((header.EventDescriptor.Channel == 0) &&
-      (header.EventDescriptor.Level == 0) &&
-      (header.EventDescriptor.Task == 0) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwKernelProcVersion::Version3) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwKernelProcVersion::Version4))) {
-    ret = true;
-  }
-
-  return ret;
+  return (header.EventDescriptor.Channel == 0 &&
+          header.EventDescriptor.Level == 0 &&
+          header.EventDescriptor.Task == 0 &&
+          (header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwKernelProcVersion::Version3) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwKernelProcVersion::Version4)));
 }
 
 // Checking if given ETW event is a supported userspace process start event
 bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
     const EVENT_HEADER& header) {
-  bool ret = false;
-
-  if ((header.EventDescriptor.Id == etwProcessStartID) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version0) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version1) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version2) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStartVersion::Version3))) {
-    ret = true;
-  }
-
-  return ret;
+  return (header.EventDescriptor.Id == etwProcessStartID &&
+          (header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStartVersion::Version0) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStartVersion::Version1) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStartVersion::Version2) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStartVersion::Version3)));
 }
 
 // Checking if given ETW event ID is supported by preprocessor logic
 bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
-  bool ret = false;
-
-  if ((isSupportedKernelEvent(header)) ||
-      (isSupportedUserProcessStartEvent(header)) ||
-      (isSupportedUserProcessStopEvent(header))) {
-    ret = true;
-  }
-
-  return ret;
+  return (isSupportedKernelEvent(header) ||
+          isSupportedUserProcessStartEvent(header) ||
+          isSupportedUserProcessStopEvent(header));
 }
 
 // Checking if given ETW event is a supported userspace process stop event
 bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
     const EVENT_HEADER& header) {
-  bool ret = false;
 
-  if ((header.EventDescriptor.Id == etwProcessStopID) &&
-      ((header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version0) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version1) ||
-       (header.EventDescriptor.Version ==
-        (UCHAR)etwUserProcStopVersion::Version2))) {
-    ret = true;
-  }
-
-  return ret;
+  return (header.EventDescriptor.Id == etwProcessStopID &&
+          (header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStopVersion::Version0) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStopVersion::Version1) ||
+           header.EventDescriptor.Version ==
+               static_cast<UCHAR>(etwUserProcStopVersion::Version2)));
 }
 
 // Get uint64 composed kit
 std::uint64_t EtwPublisherProcesses::getComposedKey(const std::uint64_t& key1,
                                                     const std::uint64_t& key2) {
-  return (std::uint64_t)((std::uint64_t)key1 << 32 | key2);
+  return static_cast<std::uint64_t>(static_cast<std::uint64_t>(key1) << 32 |
+                                    key2);
 }
 
 } // namespace osquery

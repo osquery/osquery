@@ -15,6 +15,29 @@
 
 namespace osquery {
 
+HIDDEN_FLAG(
+    uint32,
+    etw_kernel_trace_buffer_size,
+    kEventTraceBufferSize,
+    "Kilobytes of memory allocated for the ETW kernelspace tracing session");
+
+HIDDEN_FLAG(
+    uint32,
+    etw_kernel_trace_minimum_buffers,
+    kEventTraceMinimumBuffers,
+    "Minimum number of buffers reserved for the tracing session buffer pool");
+
+HIDDEN_FLAG(
+    uint32,
+    etw_kernel_trace_maximum_buffers,
+    kEventTraceMaximumBuffers,
+    "Maximum number of buffers reserved for the tracing session buffer pool");
+
+HIDDEN_FLAG(uint32,
+            etw_kernel_trace_flush_timer,
+            kEventTraceFlushTimer,
+            "How often, in seconds, any non-empty trace buffers are flushed");
+
 KernelEtwSessionRunnable::KernelEtwSessionRunnable(
     const std::string& runnableName)
     : InternalRunnable(runnableName) {
@@ -50,35 +73,35 @@ Status KernelEtwSessionRunnable::addProvider(
       configData.getKernelProviderType();
 
   switch (kProviderType) {
-  case EtwProviderConfig::EtwKernelProviderType::File:
+  case EtwProviderConfig::EtwKernelProviderType::File: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/fileio
     kernelProvider = std::make_shared<krabs::kernel::file_io_provider>();
-    break;
+  } break;
 
-  case EtwProviderConfig::EtwKernelProviderType::ImageLoad:
+  case EtwProviderConfig::EtwKernelProviderType::ImageLoad: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/image-load
     kernelProvider = std::make_shared<krabs::kernel::image_load_provider>();
-    break;
+  } break;
 
-  case EtwProviderConfig::EtwKernelProviderType::Network:
+  case EtwProviderConfig::EtwKernelProviderType::Network: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/tcpip
     kernelProvider = std::make_shared<krabs::kernel::network_tcpip_provider>();
-    break;
+  } break;
 
-  case EtwProviderConfig::EtwKernelProviderType::Process:
+  case EtwProviderConfig::EtwKernelProviderType::Process: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/process
     kernelProvider = std::make_shared<krabs::kernel::process_provider>();
-    break;
+  } break;
 
-  case EtwProviderConfig::EtwKernelProviderType::Registry:
+  case EtwProviderConfig::EtwKernelProviderType::Registry: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/registry
     kernelProvider = std::make_shared<krabs::kernel::registry_provider>();
-    break;
+  } break;
 
-  case EtwProviderConfig::EtwKernelProviderType::ObjectManager:
+  case EtwProviderConfig::EtwKernelProviderType::ObjectManager: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/obtrace
     kernelProvider = std::make_shared<krabs::kernel::object_manager_provider>();
-    break;
+  } break;
 
   default:
     return Status::failure("Unsupported kernel provider was provided.");
@@ -136,29 +159,6 @@ void KernelEtwSessionRunnable::resume() {
     condition_.notify_one();
   }
 }
-
-HIDDEN_FLAG(
-    uint32,
-    etw_kernel_trace_buffer_size,
-    kEventTraceBufferSize,
-    "Kilobytes of memory allocated for the ETW kernelspace tracing session");
-
-HIDDEN_FLAG(
-    uint32,
-    etw_kernel_trace_minimum_buffers,
-    kEventTraceMinimumBuffers,
-    "Minimum number of buffers reserved for the tracing session buffer pool");
-
-HIDDEN_FLAG(
-    uint32,
-    etw_kernel_trace_maximum_buffers,
-    kEventTraceMaximumBuffers,
-    "Maximum number of buffers reserved for the tracing session buffer pool");
-
-HIDDEN_FLAG(uint32,
-            etw_kernel_trace_flush_timer,
-            kEventTraceFlushTimer,
-            "How often, in seconds, any non-empty trace buffers are flushed");
 
 void KernelEtwSessionRunnable::initKernelTraceSession(
     const std::string& sessionName) {

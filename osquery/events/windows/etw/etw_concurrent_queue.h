@@ -34,15 +34,15 @@ class ConcurrentQueue : public boost::noncopyable {
   }
 
   /**
-   * @brief size() returns the current size of the queue.
+   * @brief Returns the current size of the queue.
    */
   unsigned long size() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return (unsigned long)queue_.size();
+    return static_cast<unsigned long>(queue_.size());
   }
 
   /**
-   * @brief empty() checks if the queue is empty
+   * @brief Checks if the queue is empty
    */
   bool empty() const {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -50,7 +50,7 @@ class ConcurrentQueue : public boost::noncopyable {
   }
 
   /**
-   * @brief pop() removes the front element from the queue. This call will block
+   * @brief Removes the front element from the queue. This call will block
    * and return only when an element is successfully obtained from the queue.
    * The returned element will be removed from the queue.
    */
@@ -63,7 +63,7 @@ class ConcurrentQueue : public boost::noncopyable {
   }
 
   /**
-   * @brief push() stores a new element to the back of the queue
+   * @brief Stores a new element to the back of the queue
    */
   void push(const T& item) {
     std::lock_guard<std::mutex> lock(mutex_);

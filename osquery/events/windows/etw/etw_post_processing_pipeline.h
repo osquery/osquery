@@ -18,7 +18,7 @@ namespace osquery {
 class Status;
 
 /**
- * @brief EtwPostProcessorsRunnable manages the collection of post-processing
+ * @brief Manages the collection of post-processing
  * callbacks in-charge of processing and dispatching events to event
  * subscribers.
  */
@@ -29,19 +29,19 @@ class EtwPostProcessorsRunnable final : public InternalRunnable {
   virtual ~EtwPostProcessorsRunnable();
 
   /**
-   * @brief It registers a post-processor callback handler to a list of etw
+   * @brief Registers a post-processor callback handler to a list of etw
    * event types to handle.
    */
   Status addProvider(const EtwProviderConfig& configData);
 
  protected:
   /**
-   * @brief Starts the thread managed by InternalRunnable class
+   * @brief Start the thread managed by InternalRunnable class
    */
   virtual void start() override;
 
   /**
-   * @brief Stops the thread managed by InternalRunnable class
+   * @brief Stop the thread managed by InternalRunnable class
    */
   virtual void stop() override;
 

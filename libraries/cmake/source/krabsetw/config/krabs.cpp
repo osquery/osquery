@@ -7,11 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-// Disable warning for KrabsETW code
-//#pragma warning(push)
-//#pragma warning(disable : 4244)
 #include "krabs.hpp"
-//#pragma warning(pop)
 
 namespace krabs {
 schema_locator dummy;

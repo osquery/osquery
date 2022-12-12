@@ -15,6 +15,29 @@
 
 namespace osquery {
 
+HIDDEN_FLAG(
+    uint32,
+    etw_userspace_trace_buffer_size,
+    kEventTraceBufferSize,
+    "Kilobytes of memory allocated for the ETW userspace tracing session");
+
+HIDDEN_FLAG(
+    uint32,
+    etw_userspace_trace_minimum_buffers,
+    kEventTraceMinimumBuffers,
+    "Minimum number of buffers reserved for the tracing session buffer pool");
+
+HIDDEN_FLAG(
+    uint32,
+    etw_userspace_trace_maximum_buffers,
+    kEventTraceMaximumBuffers,
+    "Maximum number of buffers reserved for the tracing session buffer pool");
+
+HIDDEN_FLAG(uint32,
+            etw_userspace_trace_flush_timer,
+            kEventTraceFlushTimer,
+            "How often, in seconds, any non-empty trace buffers are flushed");
+
 UserEtwSessionRunnable::UserEtwSessionRunnable(const std::string& runnableName)
     : InternalRunnable(runnableName) {
   initUserTraceSession(runnableName);
@@ -123,29 +146,6 @@ void UserEtwSessionRunnable::resume() {
     condition_.notify_one();
   }
 }
-
-HIDDEN_FLAG(
-    uint32,
-    etw_userspace_trace_buffer_size,
-    kEventTraceBufferSize,
-    "Kilobytes of memory allocated for the ETW userspace tracing session");
-
-HIDDEN_FLAG(
-    uint32,
-    etw_userspace_trace_minimum_buffers,
-    kEventTraceMinimumBuffers,
-    "Minimum number of buffers reserved for the tracing session buffer pool");
-
-HIDDEN_FLAG(
-    uint32,
-    etw_userspace_trace_maximum_buffers,
-    kEventTraceMaximumBuffers,
-    "Maximum number of buffers reserved for the tracing session buffer pool");
-
-HIDDEN_FLAG(uint32,
-            etw_userspace_trace_flush_timer,
-            kEventTraceFlushTimer,
-            "How often, in seconds, any non-empty trace buffers are flushed");
 
 void UserEtwSessionRunnable::initUserTraceSession(
     const std::string& sessionName) {

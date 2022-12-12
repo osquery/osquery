@@ -18,7 +18,7 @@ namespace osquery {
 class Status;
 
 /**
- * @brief EtwProviderConfig abstracts the configurable aspects of an ETW
+ * @brief Abstracts the configurable aspects of an ETW
  * provider. It also provides a mechanism to set and retrieve provider-specific
  * callbacks for pre-processing and post-processing logic on events originating
  * from this provider.
@@ -49,22 +49,22 @@ class EtwProviderConfig {
 
  public:
   /**
-   * @brief It returns the set pre-processor callback function
+   * @brief Returns the set pre-processor callback function
    */
   const EventProviderPreProcessor& getPreProcessor() const;
 
   /**
-   * @brief It returns the set post-processor callback function
+   * @brief Returns the set post-processor callback function
    */
   const EventProviderPostProcessor& getPostProcessor() const;
 
   /**
-   * @brief It returns the types of events to handle
+   * @brief Returns the types of events to handle
    */
   const EtwEventTypes& getEventTypes() const;
 
   /**
-   * @brief It sets the pre-processor callback function
+   * @brief Set the pre-processor callback function
    *
    * @param value is a function pointer to the callback function to be used to
    * pre-process the events arriving from the ETW provider. The callback should
@@ -74,7 +74,7 @@ class EtwProviderConfig {
   void setPreProcessor(const EventProviderPreProcessor& value);
 
   /**
-   * @brief It sets the post-processor callback function
+   * @brief Set the post-processor callback function
    *
    * @param value is a function pointer to the callback function to be used to
    * post-process the events arriving from the ETW provider. The callback should
@@ -84,14 +84,14 @@ class EtwProviderConfig {
   void setPostProcessor(const EventProviderPostProcessor& value);
 
   /**
-   * @brief It sets the event types to handle
+   * @brief Set the event types to handle
    *
    * @param value is an vector of EtwEventType that will be handled
    */
   void setEventTypes(const EtwEventTypes& value);
 
   /**
-   * @brief It adds an ETW event type to handle to the event handling list
+   * @brief Adds an ETW event type to handle to the event handling list
    *
    * @param value is EtwEventTypes vector with the event types to handle
    */
@@ -124,7 +124,7 @@ class EtwProviderConfig {
   void setTag(const EtwInteger& value);
 
   /**
-   * @brief It checks if EtwProviderConfig contains valid and expected data
+   * @brief Checks if EtwProviderConfig contains valid and expected data
    */
   Status isValid() const;
 

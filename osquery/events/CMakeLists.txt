@@ -72,6 +72,7 @@ function(generateOsqueryEvents)
         windows/etw/etw_post_processing_pipeline.cpp
         windows/etw/etw_kernel_session.cpp
         windows/etw/etw_controller.cpp
+        windows/etw/etw_publisher.cpp
       )
     endif()	
   endif()

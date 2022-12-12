@@ -9,11 +9,7 @@
 
 #pragma once
 
-// Disable warning for KrabsETW code
-#pragma warning(push)
-#pragma warning(disable : 4244)
 #include "krabs.hpp"
-#pragma warning(pop)
 
 namespace osquery {
 

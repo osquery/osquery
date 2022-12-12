@@ -13,8 +13,8 @@
 namespace osquery {
 
 Status EtwProviderConfig::isValid() const {
-  if ((getName().empty()) &&
-      (kernelProviderType_ == EtwKernelProviderType::Invalid)) {
+  if (getName().empty() &&
+      kernelProviderType_ == EtwKernelProviderType::Invalid) {
     return Status::failure("Invalid Provider Set");
   }
 
@@ -109,8 +109,8 @@ void EtwProviderConfig::setName(
 
 void EtwProviderConfig::setKernelProviderType(
     const EtwKernelProviderType& value) {
-  if ((value > EtwKernelProviderType::Invalid) &&
-      (value <= EtwKernelProviderType::ObjectManager)) {
+  if (value > EtwKernelProviderType::Invalid &&
+      value <= EtwKernelProviderType::ObjectManager) {
     kernelProviderType_ = value;
     isUserProvider_ = false;
   }

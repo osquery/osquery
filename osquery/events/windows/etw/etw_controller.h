@@ -30,15 +30,15 @@ class Status;
 class EtwController : public boost::noncopyable {
  public:
   /**
-   * @brief It ensures that EtwController class only has one instance, and
-   * provides a global point of access to it.
+   * @brief Ensures that EtwController class only has one instance, and
+   * it provides a global point of access to it.
    *
    * @return Reference to the single global EtwController instance
    */
   static EtwController& instance();
 
   /**
-   * @brief It uses a given ETWProviderConfig data object to determine which
+   * @brief Uses a given ETWProviderConfig data object to determine which
    * ETW provider should be listened. It also registers the pre-processor and
    * post-processor user-defined ETW callbacks that will be used during event
    * processing.
@@ -50,7 +50,7 @@ class EtwController : public boost::noncopyable {
   Status addProvider(const EtwProviderConfig& configData);
 
   /**
-   * @brief It dispatches events captured by preprocessor callbacks into the
+   * @brief Dispatches events captured by preprocessor callbacks into the
    * processing pipeline logic.
    */
   void dispatchETWEvents(const EtwEventDataRef& data);
@@ -64,7 +64,7 @@ class EtwController : public boost::noncopyable {
   virtual ~EtwController() = default;
 
   /**
-   * @brief It starts the event listening and event processing pipeline. This
+   * @brief Starts the event listening and event processing pipeline. This
    * also manages the ETW sessions for userspace and kernel ETW providers.
    *
    * @return Status of the ETW listening operations

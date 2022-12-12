@@ -20,7 +20,7 @@ class EtwProviderConfig;
 class Status;
 
 /**
- * @brief KernelEtwSessionRunnable manages the trace session created to listen
+ * @brief Manages the trace session created to listen
  * for ETW kernel space events. This class uses a thread astraction provided by
  * Osquery InternalRunnable class to handle the ETW trace session on a dedicated
  * thread.
@@ -31,7 +31,7 @@ class KernelEtwSessionRunnable final : public InternalRunnable {
   virtual ~KernelEtwSessionRunnable();
 
   /**
-   * @brief It adds a new provider to the list of kernel space providers to
+   * @brief Adds a new provider to the list of kernel space providers to
    * listen. It also registers the preprocesor and postprocessor callbacks to
    * handle incoming ETW events.
    */
@@ -39,12 +39,12 @@ class KernelEtwSessionRunnable final : public InternalRunnable {
 
  protected:
   /**
-   * @brief Starts the thread managed by InternalRunnable class
+   * @brief Start the thread managed by InternalRunnable class
    */
   virtual void start() override;
 
   /**
-   * @brief Stops the thread managed by InternalRunnable class
+   * @brief Stop the thread managed by InternalRunnable class
    */
   virtual void stop() override;
 
