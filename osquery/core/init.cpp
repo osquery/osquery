@@ -822,6 +822,7 @@ class AlarmRunnable : public InterruptibleRunnable {
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
       waited += 200;
       if (waited > FLAGS_alarm_timeout * 1000) {
+        fflush(stdout);
         Initializer::shutdownNow(EXIT_CATASTROPHIC);
       }
     }
