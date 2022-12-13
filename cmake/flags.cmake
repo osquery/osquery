@@ -179,7 +179,7 @@ function(setupBuildFlags)
       )
 
       set(linux_cxx_link_libraries
-        c++abi
+        c++abi.a
         rt
         dl
       )
