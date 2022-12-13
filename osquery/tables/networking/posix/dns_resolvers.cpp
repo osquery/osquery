@@ -79,7 +79,7 @@ QueryData genDNSResolversImpl(QueryContext& context, Logger& logger) {
 
 QueryData genDNSResolvers(QueryContext& context) {
   if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(context, "dns_resovlers", genDNSResolversImpl);
+    return generateInNamespace(context, "dns_resolvers", genDNSResolversImpl);
   } else {
     GLOGLogger logger;
     return genDNSResolversImpl(context, logger);
