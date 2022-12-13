@@ -1,5 +1,5 @@
 table_name("windows_security_products")
-description("Enumeration of registered Windows security products.")
+description("Enumeration of registered Windows security products. Note: Not compatible with Windows Server.")
 schema([
     Column("type", TEXT, "Type of security product"),
     Column("name", TEXT, "Name of product"),
