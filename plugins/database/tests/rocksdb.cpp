@@ -16,6 +16,8 @@
 
 namespace osquery {
 
+DECLARE_string(database_path);
+
 class RocksDBDatabasePluginTests : public DatabasePluginTests {
  protected:
   std::string name() override {
@@ -72,12 +74,12 @@ TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
        boost::filesystem::unique_path(
            "osquery.test_column_families_rollback.%%%%.%%%%.%%%%.%%%%.db"))
           .string();
-  db.alternative_db_path_ = test_db_path;
+  FLAGS_database_path = test_db_path;
 
   auto s = db.setUp();
   ASSERT_TRUE(s.ok()) << s.getMessage();
 
-  db_dirs_.push_back(db.alternative_db_path_);
+  db_dirs_.push_back(test_db_path);
 
   // Introduce a new column family.
   rocksdb::ColumnFamilyHandle* cf = nullptr;
@@ -87,9 +89,8 @@ TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
 
   // Open the existing database that has unknown column family "foo".
   auto db2 = RocksDBDatabasePlugin();
-  db2.alternative_db_path_ = test_db_path;
   s = db2.setUp();
   ASSERT_TRUE(s.ok()) << s.getMessage();
   db2.tearDown();
 }
-}
+} // namespace osquery

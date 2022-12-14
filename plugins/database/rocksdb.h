@@ -105,9 +105,6 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   /// Request RocksDB compact each domain and level to that same level.
   Status compactFiles(const std::string& domain);
 
-  /// Helper method that returns the path of the database.
-  std::string dbPath() const;
-
   /**
    * @brief Helper method to repair a corrupted db. Best effort only.
    *
@@ -150,9 +147,6 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
 
   /// Deconstruction mutex.
   Mutex close_mutex_;
-
-  /// Alternative path for the database (used only for testing purposes).
-  std::string alternative_db_path_;
 
  private:
   friend class GlogRocksDBLogger;

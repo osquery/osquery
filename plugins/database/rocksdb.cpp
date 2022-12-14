@@ -78,10 +78,19 @@ Status RocksDBDatabasePlugin::setUp() {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
-  std::set<std::string> kDomainsSet;
-  auto initializing = false;
+  // Consume the current settings.
+  // A configuration update may change them, but that does not affect state.
+  path_ = fs::path(FLAGS_database_path).make_preferred().string();
+
+  if (pathExists(path_).ok() && !isReadable(path_).ok()) {
+    return Status(1, "Cannot read RocksDB path: " + path_);
+  }
+
+  if (!checkingDB()) {
+    VLOG(1) << "Opening RocksDB handle: " << path_;
+  }
+
   if (!initialized_) {
-    initializing = true;
     initialized_ = true;
 
     // Set meta-data (mostly) handling options.
@@ -114,33 +123,17 @@ Status RocksDBDatabasePlugin::setUp() {
     }
     options_.info_log = logger_;
 
+    std::set<std::string> domain_set;
     column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
         rocksdb::kDefaultColumnFamilyName, options_));
-    kDomainsSet.insert(rocksdb::kDefaultColumnFamilyName);
+    domain_set.insert(rocksdb::kDefaultColumnFamilyName);
 
     for (const auto& cf_name : kDomains) {
       column_families_.push_back(
           rocksdb::ColumnFamilyDescriptor(cf_name, options_));
-      kDomainsSet.insert(cf_name);
+      domain_set.insert(cf_name);
     }
-  }
 
-  // Consume the current settings.
-  // A configuration update may change them, but that does not affect state.
-  path_ = dbPath();
-
-  if (pathExists(path_).ok() && !isReadable(path_).ok()) {
-    return Status(1, "Cannot read RocksDB path: " + path_);
-  }
-
-  if (!checkingDB()) {
-    VLOG(1) << "Opening RocksDB handle: " << path_;
-  }
-
-  // Tests may trash calls to setUp, make sure subsequent calls do not leak.
-  close();
-
-  if (initializing) {
     // To support osquery rollbacks, meaning running with a database
     // written/used by a newer version of osquery that introduced a new column
     // family, we need to open with all column families known by the database.
@@ -152,22 +145,27 @@ Status RocksDBDatabasePlugin::setUp() {
     //
     // Thus, we load all column families known by the database first and use
     // them in the rocksdb::DB::Open call.
-    std::vector<std::string> columnFamiliesInDB;
-    auto s =
-        rocksdb::DB::ListColumnFamilies(options_, path_, &columnFamiliesInDB);
+    std::vector<std::string> column_families_in_db;
+    auto s = rocksdb::DB::ListColumnFamilies(
+        options_, path_, &column_families_in_db);
     // It is possible the DB doesn't exist yet, for "create if not
     // existing" case. The failure is ignored here. We rely on DB::Open()
     // to give us the correct error message for problem with opening
     // existing DB.
     if (s.ok()) {
-      for (const auto& columnFamilyInDB : columnFamiliesInDB) {
-        if (kDomainsSet.find(columnFamilyInDB) == kDomainsSet.end()) {
+      for (const auto& column_family_in_db : column_families_in_db) {
+        if (domain_set.find(column_family_in_db) == domain_set.end()) {
+          VLOG(1) << "Adding unknown column family from DB: "
+                  << column_family_in_db;
           column_families_.push_back(
-              rocksdb::ColumnFamilyDescriptor(columnFamilyInDB, options_));
+              rocksdb::ColumnFamilyDescriptor(column_family_in_db, options_));
         }
       }
     }
   }
+
+  // Tests may trash calls to setUp, make sure subsequent calls do not leak.
+  close();
 
   // Attempt to create a RocksDB instance and handles.
   auto s =
@@ -203,14 +201,6 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   return Status(0);
-}
-
-std::string RocksDBDatabasePlugin::dbPath() const {
-  auto path = fs::path(FLAGS_database_path);
-  if (!alternative_db_path_.empty()) {
-    path = alternative_db_path_;
-  }
-  return path.make_preferred().string();
 }
 
 Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
