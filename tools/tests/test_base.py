@@ -560,6 +560,18 @@ class SequentialTestLoader(unittest.TestLoader):
         test_names.sort(key=testcase_methods.index)
         return test_names
 
+class SelectedTestLoader(unittest.TestLoader):
+    def __init__(self, input_testcases: str):
+        if input_testcases is None:
+            raise TypeError("input_testcases should not be none")
+
+        self.input_testcases = input_testcases
+        super().__init__()
+
+    def getTestCaseNames(self, testCaseClass):
+        testcases = self.input_testcases.split(',')
+
+        return testcases
 
 class Tester(object):
     def __init__(self):
@@ -591,6 +603,12 @@ class Tester(object):
             metavar="PATH",
             default=".",
             help="Path to osquery build (./build/<sys>/).")
+
+        parser.add_argument(
+            "--testcases",
+            type=str,
+            help="List of comma separated test names to execute")
+
         ARGS = parser.parse_args()
 
         if not os.path.exists(ARGS.build):
@@ -613,7 +631,11 @@ class Tester(object):
         unittest_args = [sys.argv[0]]
         if ARGS.verbose:
             unittest_args += ["-v"]
-        unittest.main(argv=unittest_args, testLoader=SequentialTestLoader())
+
+        if ARGS.testcases is None:
+            unittest.main(argv=unittest_args, testLoader=SequentialTestLoader())
+        else:
+            unittest.main(argv=unittest_args, testLoader=SelectedTestLoader(ARGS.testcases))
 
 
 def expect(functional, expected, interval=0.01, timeout=4):
