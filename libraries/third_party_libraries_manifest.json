@@ -280,9 +280,12 @@
   "util-linux": {
     "product": "util-linux",
     "vendor": "kernel",
-    "version": "2.27.1",
-    "commit": "9f5e5bec91a72365b9baa771fa02cbedab804fe3",
-    "ignored-cves": []
+    "version": "2.35.2",
+    "commit": "88a1d6f1812ab05fedc75e295368ff6198e63d89",
+    "ignored-cves": [
+      "CVE-2021-37600",
+      "CVE-2022-0563"
+    ]
   },
   "yara": {
     "product": "yara",
