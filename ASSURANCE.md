@@ -45,21 +45,26 @@ Note that in this threat model, osquery does _not_ currently have mitigations fo
 
 ### Vulnerabilities in Third-party Library Dependencies
 
-Updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
-languages. We learn of newly disclosed vulnerabilities in osquery's dependencies by following community news and
-maintaining a general awareness of new announcements. It's a shared responsibility. There is an effort, currently in
-progress, to add a scheduled automated dependency checking script to our CI workflows. When complete, it should provide
-more timely alerts.
+Tracking and updating native C/C++ library dependencies is a relatively manual process compared to package-managed programming
+languages. Ideally, we learn of newly disclosed vulnerabilities in osquery's dependencies through the use of a scheduled
+automated dependency-checking script in our CI workflows. This workflow is designed to produce timely
+[alerts as new GitHub issues](https://github.com/osquery/osquery/issues?q=is%3Aissue+label%3Acve+).
+We close these issues by either adding the alert to an ignore list (following an assessment of how it does not impact
+osquery), or by updating the appropriate dependency or dependencies.
 
-The osquery maintainers make a best effort to rapidly update vulnerable libraries with a new version of osquery, when
-needed. See an [example](https://github.com/osquery/osquery/commit/0e9efb1497037ded21e8679dda09547d5b0fecd0)
-demonstrating how we update a third-party dependency.)
+The osquery maintainers make a best effort to rapidly update vulnerable libraries by releasing a new version of osquery, when
+needed. Here is an [example code diff](https://github.com/osquery/osquery/pull/7877/files) demonstrating how we update a
+third-party dependency. We must regenerate the dependency's CMake configuration for each of osquery's supported
+platforms, then update its Git submodule hash, and lastly we update the hash in the manifest file we use to power our
+dependency-checking automation.
 
 Finally, a note: sometimes security-dependency-checking tools generate false positives. There may be a vulnerability
 in one of osquery's dependencies, but for one reason or another it may not actually affect osquery. We still make an effort
 to update to fixed versions of libraries, but more or less urgently depending on osquery's actual exposure to the risk.
-Refer to the osquery wiki where we maintain an [updated impact assessment of known issues](https://osquery.readthedocs.io/en/latest/deployment/dependency-security/)
-that have been reported as being vulnerabilities in osquery's third-party dependencies.
+Until recently we used the osquery wiki to maintain an
+[updated impact assessment of all known issues](https://osquery.readthedocs.io/en/latest/deployment/dependency-security/)
+that have been reported as being vulnerabilities in osquery's third-party dependencies. Now, however, we document our
+assessments of the impact directly in the individual GitHub issues.
 
 ## Security Design Considerations of osquery
 
@@ -185,8 +190,7 @@ The osquery development lifecycle includes many practices to mitigate security i
 - issue tracking, code review discussions and contribution management via GitHub
 - use of GitHub's authentication and authorization system to granularly control access permissions
 - limited number of individuals with commit access: the [Technical Steering
-  Committee](https://github.com/orgs/osquery/teams/technical-steering-committee) has control over the GitHub
-  organization, and its members regularly perform code review and merge actions
+  Committee](https://github.com/orgs/osquery/teams/technical-steering-committee) has control over the GitHub organization, and its members regularly perform code review and merge actions
 - all changes are made in branches, and then merged only after review
 - second-party review required to merge a contribution
 - use of cppcheck
@@ -194,12 +198,11 @@ The osquery development lifecycle includes many practices to mitigate security i
 - use of clang sanitizers, to automatically detect memory-corruption errors
 - fuzzed by oss-fuzz ([project page](https://github.com/google/oss-fuzz/tree/master/projects/osquery))
 - use of modern C++, limiting memory-unsafe language use: not C (except where in third-party library dependencies)
-- using warnings as errors: see [the cmake configuration for the project](https://github.com/osquery/osquery/blob/master/cmake/flags.cmake), Wall and pedantic among others are set
+- using warnings as errors: see [the cmake configuration for the project](https://github.com/osquery/osquery/blob/master/cmake/flags.cmake): using `Wall` and `pedantic`, among others
 - reproducible builds
 - third-party dependencies are retrieved using a known commit hash from their respective repositories
-- opting into compile-time security mitigations (stack protectors, full relro, and other compiler-available hardening options): see [the cmake configuration for the project](https://github.com/osquery/osquery/blob/master/cmake/flags.cmake)
+- opting into compile-time security mitigations (stack protectors, full "relro", and other compiler-available hardening options): see [the cmake configuration for the project](https://github.com/osquery/osquery/blob/master/cmake/flags.cmake)
 - only the required subset of the TSC has access to code-signing secrets / key material, and they are protected within a
   separate GitHub repo that performs osquery release signing
 
-See our [CONTRIBUTING doc](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#guidelines-for-contributing-features-to-osquery-core)
-for more information on our guiding principles for osquery development.
+See our [CONTRIBUTING doc](https://github.com/osquery/osquery/blob/master/CONTRIBUTING.md#guidelines-for-contributing-features-to-osquery-core) for more information on our guiding principles for osquery development.
