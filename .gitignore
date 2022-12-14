@@ -66,6 +66,12 @@ tags
 cscope.files
 cscope.out
 
+# CMake generated compile commands
+compile_commands.json
+
+# Pyright type checker config
+pyrightconfig.json
+
 # Ignored components
 /external/*
 !/external/examples
