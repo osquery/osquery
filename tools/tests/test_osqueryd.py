@@ -148,8 +148,12 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_daemon_sigint(self):
         pidfile_path = test_base.CONFIG["options"]["pidfile"]
 
-        Path(pidfile_path).touch()
-        self.assertTrue(os.path.exists(pidfile_path))
+        # Ensure there are no leftovers from previous tests
+        try:
+            os.remove(pidfile_path)
+        except:
+            pass
+
         self.daemon_sigint_test_helper(pidfile_path)
 
         try:
