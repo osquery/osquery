@@ -30,6 +30,12 @@ on:
     branches:
       - '*'
 
+# Cancel old jobs of a PR if a new job is started.
+# Fallback on using the run id if it's not a PR, which is unique, so no job canceling.
+concurrency:
+  group: hosted-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
