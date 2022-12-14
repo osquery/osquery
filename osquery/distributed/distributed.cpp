@@ -120,36 +120,17 @@ Status Distributed::serializeResults(std::string& json) {
     doc.add(result.request.id, result.status.getCode(), statuses_obj);
     doc.add(result.request.id, result.message, messages_obj);
 
-    RecursiveLock lock(performance_mutex_);
     auto obj = doc.getObject();
     if (performance_.count(result.request.id) > 0) {
       auto perf = performance_[result.request.id];
-      obj.AddMember("executions",
-                    static_cast<uint64_t>(perf.executions),
-                    obj.GetAllocator());
-      obj.AddMember("last_executed",
-                    static_cast<uint64_t>(perf.last_executed),
-                    obj.GetAllocator());
       obj.AddMember("wall_time_ms",
                     static_cast<uint64_t>(perf.wall_time_ms),
-                    obj.GetAllocator());
-      obj.AddMember("last_wall_time_ms",
-                    static_cast<uint64_t>(perf.last_wall_time_ms),
                     obj.GetAllocator());
       obj.AddMember("user_time",
                     static_cast<uint64_t>(perf.user_time),
                     obj.GetAllocator());
-      obj.AddMember("last_user_time",
-                    static_cast<uint64_t>(perf.last_user_time),
-                    obj.GetAllocator());
       obj.AddMember("system_time",
                     static_cast<uint64_t>(perf.system_time),
-                    obj.GetAllocator());
-      obj.AddMember("last_system_time",
-                    static_cast<uint64_t>(perf.last_system_time),
-                    obj.GetAllocator());
-      obj.AddMember("average_memory",
-                    static_cast<uint64_t>(perf.average_memory),
                     obj.GetAllocator());
       obj.AddMember("last_memory",
                     static_cast<uint64_t>(perf.last_memory),
@@ -293,6 +274,7 @@ Status Distributed::flushCompleted() {
                      response);
   if (s.ok()) {
     results_.clear();
+    performance_.clear();
   }
 
 #ifdef OSQUERY_LINUX
@@ -428,10 +410,7 @@ void Distributed::recordQueryPerformance(const std::string& name,
                                          uint64_t size,
                                          const Row& r0,
                                          const Row& r1) {
-  RecursiveLock lock(performance_mutex_);
-  if (performance_.count(name) == 0) {
-    performance_[name] = QueryPerformance();
-  }
+  performance_[name] = QueryPerformance();
 
   auto& query = performance_.at(name);
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
@@ -439,8 +418,7 @@ void Distributed::recordQueryPerformance(const std::string& name,
     auto ut0 = tryTo<long long>(r0.at("user_time"));
     auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
     if (diff > 0) {
-      query.user_time += diff;
-      query.last_user_time = diff;
+      query.user_time = diff;
     }
   }
 
@@ -449,8 +427,7 @@ void Distributed::recordQueryPerformance(const std::string& name,
     auto st0 = tryTo<long long>(r0.at("system_time"));
     auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
     if (diff > 0) {
-      query.system_time += diff;
-      query.last_system_time = diff;
+      query.system_time = diff;
     }
   }
 
@@ -459,19 +436,11 @@ void Distributed::recordQueryPerformance(const std::string& name,
     auto rs0 = tryTo<long long>(r0.at("resident_size"));
     auto diff = (rs1 && rs0) ? rs1.take() - rs0.take() : 0;
     if (diff > 0) {
-      // Memory is stored as an average of RSS changes between query executions.
-      query.average_memory = (query.average_memory * query.executions) + diff;
-      query.average_memory = (query.average_memory / (query.executions + 1));
       query.last_memory = diff;
     }
   }
 
-  query.last_wall_time_ms = delay_ms;
-  query.wall_time_ms += delay_ms;
-  query.wall_time += (delay_ms / 1000);
-  query.output_size += size;
-  query.executions += 1;
-  query.last_executed = getUnixTime();
+  query.wall_time_ms = delay_ms;
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,

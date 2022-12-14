@@ -16,7 +16,6 @@
 #include <osquery/core/query.h>
 #include <osquery/core/sql/query_performance.h>
 #include <osquery/sql/sql.h>
-#include <osquery/utils/mutex.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -356,9 +355,6 @@ class Distributed {
 
   // ID of the currently executing query
   static std::string currentRequestId_;
-
-  // Mutex for accessing performance_
-  RecursiveMutex performance_mutex_;
 
   // Performance statistics recorded from distributed queries
   std::map<std::string, QueryPerformance> performance_;
