@@ -119,8 +119,8 @@
   "libarchive": {
     "product": "libarchive",
     "vendor": "libarchive",
-    "version": "3.6.1",
-    "commit": "6c3301111caa75c76e1b2acb1afb2d71341932ef",
+    "version": "3.6.2",
+    "commit": "ba80276ccc3c941c4918ec6e2460059f0c525c43",
     "ignored-cves": []
   },
   "libaudit": {
