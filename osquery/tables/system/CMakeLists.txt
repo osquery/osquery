@@ -149,6 +149,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/running_apps.mm
       darwin/sandboxes.cpp
       darwin/screenlock.mm
+      darwin/secureboot.cpp
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
@@ -166,12 +167,6 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/virtual_memory_info.cpp
       darwin/xprotect.cpp
     )
-
-    if(NOT TARGET_PROCESSOR STREQUAL "aarch64")
-      list(APPEND source_files
-        darwin/secureboot.cpp
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files

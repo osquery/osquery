@@ -243,6 +243,7 @@ function(generateTestsIntegrationTablesTestsTest)
       running_apps.cpp
       safari_extensions.cpp
       sandboxes.cpp
+      secureboot.cpp
       shared_folders.cpp
       sharing_preferences.cpp
       signature.cpp
@@ -265,12 +266,6 @@ function(generateTestsIntegrationTablesTestsTest)
       yara_events.cpp
       yara.cpp
     )
-
-    if(NOT TARGET_PROCESSOR STREQUAL "aarch64")
-      list(APPEND platform_source_files
-        secureboot.cpp
-      )
-    endif()
 
     list(APPEND source_files ${platform_source_files})
 

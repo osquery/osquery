@@ -247,6 +247,7 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
+    "secureboot.table:linux,macos,windows"
     "sleuthkit/device_file.table:linux,macos,windows"
     "sleuthkit/device_hash.table:linux,macos,windows"
     "sleuthkit/device_partitions.table:linux,macos,windows"
@@ -304,12 +305,6 @@ function(generateNativeTables)
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,windows"
   )
-
-  if(NOT (PLATFORM_MACOS AND TARGET_PROCESSOR STREQUAL "aarch64"))
-    list(APPEND platform_dependent_spec_files
-      "secureboot.table:linux,macos,windows"
-    )
-  endif()
 
   if(OSQUERY_BUILD_BPF)
     list(APPEND platform_dependent_spec_files

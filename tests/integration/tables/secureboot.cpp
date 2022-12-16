@@ -36,22 +36,26 @@ TEST_F(Secureboot, test_sanity) {
   }
 
   auto secureboot_data = execute_query("SELECT * FROM secureboot;");
-  if (!secureboot_supported) {
-    ASSERT_TRUE(secureboot_data.empty());
-    return;
-  }
-
+  
+  // There should always be exactly 1 row, regardless:
   ASSERT_EQ(secureboot_data.size(), 1);
+
+  // Values should only ever be integers or empty:
   ValidationMap row_map{
       {"secure_boot", IntOrEmpty},
   };
 
-  if (isPlatform(PlatformType::TYPE_WINDOWS) ||
+  // Windows and Linux have setup_mode, macOS has secure_mode:
+  if (!secureboot_supported) {
+    return;
+  } else if (isPlatform(PlatformType::TYPE_WINDOWS) ||
       isPlatform(PlatformType::TYPE_LINUX)) {
     row_map.emplace("setup_mode", IntOrEmpty);
   } else if (isPlatform(PlatformType::TYPE_OSX)) {
     row_map.emplace("secure_mode", IntOrEmpty);
   }
+  
+  // Check that the above assumptions are true:
   validate_rows(secureboot_data, row_map);
 }
 
