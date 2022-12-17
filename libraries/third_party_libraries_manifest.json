@@ -289,8 +289,8 @@
   "zlib": {
     "product": "zlib",
     "vendor": "zlib",
-    "version": "1.2.12",
-    "commit": "21767c654d31d2dccdde4330529775c6c5fd5389",
+    "version": "1.2.13",
+    "commit": "04f42ceca40f73e2978b50e93806c2a18c1281fc",
     "ignored-cves": []
   },
   "zstd": {
