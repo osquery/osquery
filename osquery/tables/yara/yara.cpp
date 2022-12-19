@@ -168,6 +168,8 @@ void doYARAScan(YR_RULES* rules,
   row["sig_group"] = SQL_TEXT("");
   row["sigfile"] = SQL_TEXT("");
   row["sigrule"] = SQL_TEXT("");
+  // This is a default value to be set by namespace handler as appropriate
+  row["pid_with_namespace"] = "0";
 
   // This could use target_path instead to be consistent with yara_events.
   row["path"] = path;
