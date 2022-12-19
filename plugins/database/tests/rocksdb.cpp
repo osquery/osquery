@@ -12,13 +12,28 @@
 #include <osquery/sql/sql.h>
 #include <plugins/database/rocksdb.h>
 
+#include <boost/filesystem.hpp>
+
 namespace osquery {
+
+DECLARE_string(database_path);
 
 class RocksDBDatabasePluginTests : public DatabasePluginTests {
  protected:
   std::string name() override {
     return "rocksdb";
   }
+
+  void TearDown() override {
+    DatabasePluginTests::TearDown();
+
+    for (const auto& db_dir : db_dirs_) {
+      removePath(db_dir);
+    }
+  }
+
+  /// Holds db directories to cleanup in TearDown.
+  std::vector<std::string> db_dirs_;
 };
 
 // Define the default set of database plugin operation tests.
@@ -51,4 +66,31 @@ TEST_F(RocksDBDatabasePluginTests, test_corruption) {
   resetDatabase();
   EXPECT_FALSE(pathExists(path_ + ".backup"));
 }
+
+TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_column_families_rollback.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  db_dirs_.push_back(test_db_path);
+
+  // Introduce a new column family.
+  rocksdb::ColumnFamilyHandle* cf = nullptr;
+  auto rs = db.db_->CreateColumnFamily(db.options_, "foo", &cf);
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
+  db.tearDown();
+
+  // Open the existing database that has unknown column family "foo".
+  auto db2 = RocksDBDatabasePlugin();
+  s = db2.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+  db2.tearDown();
 }
+} // namespace osquery

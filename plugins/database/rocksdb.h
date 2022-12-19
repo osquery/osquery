@@ -78,7 +78,7 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   /// Database workflow: close and cleanup.
   void tearDown() override;
 
-  /// Need to tear down open resources,
+  /// Need to tear down open resources.
   virtual ~RocksDBDatabasePlugin() {
     close();
   }
@@ -151,5 +151,6 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
  private:
   friend class GlogRocksDBLogger;
   FRIEND_TEST(RocksDBDatabasePluginTests, test_corruption);
+  FRIEND_TEST(RocksDBDatabasePluginTests, test_column_families_rollback);
 };
 } // namespace osquery
