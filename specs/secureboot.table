@@ -5,7 +5,7 @@ schema([
 ])
 
 extended_schema(DARWIN, [
-    Column("secure_mode", INTEGER, "Secure mode for macOS: 0 disabled, 1 full security, 2 medium security"),
+    Column("secure_mode", INTEGER, "Secure mode for Intel-based macOS: 0 disabled, 1 full security, 2 medium security"),
 ])
 
 extended_schema(LINUX + WINDOWS, [

@@ -180,6 +180,12 @@ Status getSecureBootSetting(Row& row) {
 
 QueryData genSecureBoot(QueryContext& context) {
   Row row;
+
+#ifdef __aarch64__
+  LOG(INFO) << "secure_boot unsupported on ARM macOS";
+  return {};
+#endif
+
   auto status = getSecureBootSetting(row);
   if (!status.ok()) {
     LOG(ERROR) << "secureboot error: " << status.toString();
