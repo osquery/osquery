@@ -132,7 +132,7 @@ Status Distributed::serializeResults(std::string& json) {
       obj.AddMember("system_time",
                     static_cast<uint64_t>(perf.system_time),
                     obj.GetAllocator());
-      obj.AddMember("last_memory",
+      obj.AddMember("memory",
                     static_cast<uint64_t>(perf.last_memory),
                     obj.GetAllocator());
     };
