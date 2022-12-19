@@ -22,7 +22,14 @@
 
 namespace osquery {
 
-HIDDEN_FLAG(bool, registry_exceptions, false, "Allow plugin exceptions");
+/* NOTE: the default is false, because it's easier to enable it in one place
+   when starting osquery, instead of having each test enable them,
+   so that they are seen and fixed. */
+HIDDEN_FLAG(bool,
+            ignore_registry_exceptions,
+            false,
+            "Ignore exceptions thrown by the registry. osquery and extensions "
+            "default to true.");
 
 RegistryFactory& RegistryFactory::get() {
   static RegistryFactory instance;
@@ -178,14 +185,14 @@ Status RegistryFactory::call(const std::string& registry_name,
   } catch (const std::exception& e) {
     LOG(ERROR) << registry_name << " registry " << item_name
                << " plugin caused exception: " << e.what();
-    if (FLAGS_registry_exceptions) {
+    if (!FLAGS_ignore_registry_exceptions) {
       throw;
     }
     return Status(1, e.what());
   } catch (...) {
     LOG(ERROR) << registry_name << " registry " << item_name
                << " plugin caused unknown exception";
-    if (FLAGS_registry_exceptions) {
+    if (!FLAGS_ignore_registry_exceptions) {
       throw std::runtime_error(registry_name + ": " + item_name + " failed");
     }
     return Status(2, "Unknown exception");

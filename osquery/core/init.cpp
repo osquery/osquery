@@ -117,6 +117,8 @@ DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
 DECLARE_bool(enable_numeric_monitoring);
+DECLARE_bool(ignore_table_exceptions);
+DECLARE_bool(ignore_registry_exceptions);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -353,6 +355,14 @@ Initializer::Initializer(int& argc,
     // These values are force-set and ignore the configuration and CLI.
     FLAGS_disable_logging = true;
     FLAGS_disable_watchdog = true;
+  }
+
+  if (Flag::isDefault("ignore_table_exceptions")) {
+    FLAGS_ignore_table_exceptions = true;
+  }
+
+  if (Flag::isDefault("ignore_registry_exceptions")) {
+    FLAGS_ignore_registry_exceptions = true;
   }
 
   // Initialize registries and plugins

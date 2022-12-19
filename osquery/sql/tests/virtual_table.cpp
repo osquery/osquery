@@ -21,7 +21,7 @@
 
 namespace osquery {
 
-DECLARE_bool(table_exceptions);
+DECLARE_bool(ignore_table_exceptions);
 
 class VirtualTableTests : public testing::Test {
  public:
@@ -1219,15 +1219,15 @@ TEST_F(VirtualTableTests, test_table_exceptions) {
   attachTableInternal(
       "exceptional", exceptional->columnDefinition(false), dbc, false);
 
-  auto backup_flag = FLAGS_table_exceptions;
-  FLAGS_table_exceptions = false;
+  auto backup_flag = FLAGS_ignore_table_exceptions;
+  FLAGS_ignore_table_exceptions = true;
   {
     QueryData results;
     auto status = queryInternal("SELECT * FROM exceptional", results, dbc);
     EXPECT_FALSE(status.ok());
   }
 
-  FLAGS_table_exceptions = true;
+  FLAGS_ignore_table_exceptions = false;
   {
     EXPECT_THROW(
         {
@@ -1236,7 +1236,7 @@ TEST_F(VirtualTableTests, test_table_exceptions) {
         },
         std::runtime_error);
   }
-  FLAGS_table_exceptions = backup_flag;
+  FLAGS_ignore_table_exceptions = backup_flag;
 }
 
 } // namespace osquery

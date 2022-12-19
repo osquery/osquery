@@ -665,9 +665,9 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
         self.daemon = self._run_daemon({
             # The set of queries will hammer the daemon process.
             "disable_watchdog": True,
-            # Enable the 'hidden' flag "registry_exceptions" to prevent
+            # Enable the 'hidden' flag "ignore_registry_exceptions" to prevent
             # catching.
-            "registry_exceptions": True,
+            "ignore_registry_exceptions": False,
             "ephemeral": True,
             "disable_extensions": False,
         })
