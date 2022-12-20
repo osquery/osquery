@@ -29,7 +29,7 @@ cmake \
   -B b \
   -DBUILD_SHARED_LIBS=OFF \
   -DBoost_USE_STATIC_LIBS=ON \
-  -DBoost_INCLUDE_DIR=../../../../../../cmake/source/boost/src/libs/config/include/ \
+  -DBoost_INCLUDE_DIR=path/to/osquery/libraries/cmake/source/boost/src/libs/config/include/ \
   -DWITH_OPENSSL=ON \
   -DWITH_ZLIB=ON \
   -DBUILD_COMPILER=OFF \
@@ -56,7 +56,7 @@ cmake \
   -B b \
   -DBUILD_SHARED_LIBS=OFF \
   -DBoost_USE_STATIC_LIBS=ON \
-  -DBoost_INCLUDE_DIR=../../../../../../cmake/source/boost/src/libs/config/include \
+  -DBoost_INCLUDE_DIR=path/to/osquery/libraries/cmake/source/boost/src/libs/config/include \
   -DWITH_OPENSSL=ON \
   -DWITH_ZLIB=ON \
   -DBUILD_COMPILER=OFF \
