@@ -362,6 +362,7 @@ int main(int argc, char* argv[]) {
       retcode = osquery::startOsquery(argc, argv);
     } else {
       // An actual error has occurred at this point
+      retcode = 1;
       SLOG("StartServiceCtrlDispatcherA error (lasterror=" +
            std::to_string(le) + ")");
     }
