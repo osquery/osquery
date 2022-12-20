@@ -93,7 +93,7 @@ jobs:
 
 
 
-  # Starts self-hosted runners. TEST TEST TEST
+  # Starts self-hosted runners.
   start_ec2_runners:
     needs: check_code_style
     runs-on: ubuntu-latest
@@ -104,7 +104,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
@@ -136,7 +136,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
@@ -251,7 +251,7 @@ jobs:
         chmod 666 /var/run/docker.sock
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -262,7 +262,7 @@ jobs:
           ccache_${{ matrix.cache_key }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
