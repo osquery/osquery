@@ -166,7 +166,12 @@
     "vendor": "gnupg",
     "version": "1.8.1",
     "commit": "80fd8615048c3897b91a315cca22ab139b056ccd",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2018-0495",
+      "CVE-2018-6829",
+      "CVE-2021-33560",
+      "CVE-2021-40528"
+    ]
   },
   "libgpg-error": {
     "product": "libgpg-error",
