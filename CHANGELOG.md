@@ -21,11 +21,11 @@ Ignored due to not affecting osquery:
 ### Table Changes
 
 - Add column to `es_process_events` for process codesigning flags ([#7726](https://github.com/osquery/osquery/pull/7726))
-- Shimcache: Only check CurrentControlSet to avoid duplicate rows ([#7832](https://github.com/osquery/osquery/pull/7832))
-- processes: Fix the procfs memory unit kB, which is 1024 bytes not 1000 ([#7818](https://github.com/osquery/osquery/pull/7818))
+- `shimcache`: Only check CurrentControlSet to avoid duplicate rows ([#7832](https://github.com/osquery/osquery/pull/7832))
+- `processes`: Fix the procfs memory unit kB, which is 1024 bytes not 1000 ([#7818](https://github.com/osquery/osquery/pull/7818))
 - Fix permissions on opening pipes for reading in `pipes` table ([#7810](https://github.com/osquery/osquery/pull/7810))
 - Fix the empty `host` column from `logged_in_users` table ([#7685](https://github.com/osquery/osquery/pull/7685))
-- docker_containers: Don't report finished_at for a container which is still running ([#7783](https://github.com/osquery/osquery/pull/7783))
+- `docker_containers`: Don't report `finished_at` for a container which is still running ([#7783](https://github.com/osquery/osquery/pull/7783))
 - `processes`: Stabilize the `start_time` column value on macOS and Linux ([#7788](https://github.com/osquery/osquery/pull/7788))
 
 ### Bug Fixes
@@ -38,11 +38,11 @@ Ignored due to not affecting osquery:
 
 - CHANGELOG 5.6.0 ([#7804](https://github.com/osquery/osquery/pull/7804))
 - Add link to official YARA docs ([#7792](https://github.com/osquery/osquery/pull/7792))
-- Fixing typo in keychain_items ([#7790](https://github.com/osquery/osquery/pull/7790))
+- Fix typo in `keychain_items` ([#7790](https://github.com/osquery/osquery/pull/7790))
 
 ### Packs
 
-- packs/incident_response: process_memory_map is also applicable to Darwin ([#7789](https://github.com/osquery/osquery/pull/7789))
+- packs/incident_response: `process_memory_map` is also applicable to Darwin ([#7789](https://github.com/osquery/osquery/pull/7789))
 
 ### Build
 
