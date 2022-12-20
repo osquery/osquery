@@ -111,24 +111,45 @@ sudo ln -sfn /usr/local/bin/git /usr/bin/git
 
 #### Upgrading Python
 
-The version of `Python` on CentOS 6 is too old to complete osquery's CMake configuration steps. We can install Python 3 from source as well.
+The version of `Python` on CentOS 6 is too old to complete osquery's CMake configuration steps. We can install Python
+3.6 as follows:
 
-```sh
-sudo yum -y install gcc openssl-devel bzip2-devel
-wget https://www.python.org/ftp/python/3.6.6/Python-3.6.6.tgz
-tar xzf Python-3.6.6.tgz
-cd Python-3.6.6
-./configure --enable-optimizations
-sudo make altinstall
-sudo ln -sfn /usr/local/bin/python3.6 /usr/bin/python3
-curl -O https://bootstrap.pypa.io/pip/3.6/get-pip.py
-sudo python3 get-pip.py
+First, enable the SCL package repository:
+
+```bash
+yum install centos-release-scl
+```
+
+Update the repository file: `/etc/yum.repos.d/CentOS-SCLo-scl.repo`
+
+```text
+[centos-sclo-sclo]
+name=CentOS-6 - SCLo sclo
+baseurl=https://vault.centos.org/centos/6.10/sclo/x86_64/rh
+# baseurl=http://mirror.centos.org/centos/6/sclo/$basearch/sclo/
+# mirrorlist=http://mirrorlist.centos.org?arch=$basearch&release=6&repo=sclo-sclo
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+```
+
+Now we can install Python:
+
+```bash
+yum install rh-python36-python
+```
+
+Enable Python 3.6:
+
+```bash
+scl enable rh-python36 bash
 ```
 
 #### Additional pre-requisites
 
 ```sh
-sudo yum install ninja-build clang
+sudo yum install epel-release
+sudo yum install ninja-build make automake autoconf
 ```
 
 #### osquery-toolchain

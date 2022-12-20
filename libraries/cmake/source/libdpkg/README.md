@@ -27,7 +27,6 @@ apt update
 apt upgrade -y
 ```
 
-
 ### Install build dependencies (AArch64 only)
 
 ```bash
@@ -122,34 +121,7 @@ make install
 
 ### Install Python 3.6 (x86 only)
 
-Enable the SCL:
-
-```bash
-yum install centos-release-scl
-```
-
-Update the repository file: `/etc/yum.repos.d/CentOS-SCLo-scl.repo`
-
-```
-[centos-sclo-sclo]
-name=CentOS-6 - SCLo sclo
-baseurl=https://vault.centos.org/centos/6.10/sclo/x86_64/rh
-# baseurl=http://mirror.centos.org/centos/6/sclo/$basearch/sclo/
-# mirrorlist=http://mirrorlist.centos.org?arch=$basearch&release=6&repo=sclo-sclo
-gpgcheck=1
-enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
-```
-
-```bash
-yum install rh-python36-python
-```
-
-Enable Python 3.5
-
-```bash
-scl enable rh-python36 bash
-```
+(Refer to the steps in the top-level `osquery/libraries/cmake/README.md`)
 
 ### Build the osquery dependencies: zlib, liblzma, libbz2 (x86 + AArch64)
 
@@ -160,7 +132,7 @@ scl enable rh-python36 bash
 cmake --build build --target thirdparty_zlib thirdparty_lzma thirdparty_bzip2
 ```
 
-Update the environment
+Update the environment:
 
 ```bash
 export OSQUERY_SOURCE_ROOT=/path/to/osquery/source/directory
@@ -177,9 +149,9 @@ ln -sf "${OSQUERY_BUILD_ROOT}/libs/src/lzma/libthirdparty_lzma.a" "${OSQUERY_BUI
 
 Open the `CMakeLists.txt` files for each library, and take note of the `SYSTEM INTERFACE` include directories:
 
- * zlib: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/zlib/src`
- * bzip2: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/bzip2/src`
- * liblzma: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/lzma/src/src/liblzma/api`
+* zlib: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/zlib/src`
+* bzip2: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/bzip2/src`
+* liblzma: `${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/lzma/src/src/liblzma/api`
 
 ### Build libdpkg
 
