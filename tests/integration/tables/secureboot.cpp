@@ -32,22 +32,39 @@ TEST_F(Secureboot, test_sanity) {
     const auto& platform_info = platform_info_rows[0];
     ASSERT_EQ(platform_info.count("firmware_type"), 1);
 
-    secureboot_supported = platform_info.at("firmware_type") == "uefi";
+    if (isPlatform(PlatformType::TYPE_OSX)) {
+#ifdef __aarch64__
+      secureboot_supported = false;
+#endif
+    } else {
+      secureboot_supported = platform_info.at("firmware_type") == "uefi";
+    }
   }
 
-  auto secureboot_data = execute_query("SELECT * FROM secureboot;");
   if (!secureboot_supported) {
-    ASSERT_TRUE(secureboot_data.empty());
     return;
   }
 
+  auto secureboot_data = execute_query("SELECT * FROM secureboot;");
+
+  // There should always be exactly 1 row, regardless:
   ASSERT_EQ(secureboot_data.size(), 1);
-  static const ValidationMap kValidationMap{
+
+  // Values should only ever be integers or empty:
+  ValidationMap row_map{
       {"secure_boot", IntOrEmpty},
-      {"setup_mode", IntOrEmpty},
   };
 
-  validate_rows(secureboot_data, kValidationMap);
+  // Windows and Linux have setup_mode, macOS has secure_mode:
+  if (isPlatform(PlatformType::TYPE_WINDOWS) ||
+      isPlatform(PlatformType::TYPE_LINUX)) {
+    row_map.emplace("setup_mode", IntOrEmpty);
+  } else if (isPlatform(PlatformType::TYPE_OSX)) {
+    row_map.emplace("secure_mode", IntOrEmpty);
+  }
+
+  // Check that the above assumptions are true:
+  validate_rows(secureboot_data, row_map);
 }
 
 } // namespace osquery::table_tests

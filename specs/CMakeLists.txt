@@ -190,7 +190,6 @@ function(generateNativeTables)
     "linux/systemd_units.table:linux"
     "linux/yum_sources.table:linux"
     "linwin/intel_me_info.table:linux,windows"
-    "linwin/secureboot.table:linux,windows"
     "linwin/cpu_info.table:linux,windows"
     "kernel_info.table:linux,macos,windows"
     "posix/extended_attributes.table:linux,macos"
@@ -248,6 +247,7 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
+    "secureboot.table:linux,macos,windows"
     "sleuthkit/device_file.table:linux,macos,windows"
     "sleuthkit/device_hash.table:linux,macos,windows"
     "sleuthkit/device_partitions.table:linux,macos,windows"
@@ -306,7 +306,7 @@ function(generateNativeTables)
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,windows"
   )
-  
+
   if(OSQUERY_BUILD_BPF)
     list(APPEND platform_dependent_spec_files
       "linux/bpf_process_events.table:linux"

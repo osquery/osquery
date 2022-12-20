@@ -243,6 +243,7 @@ function(generateTestsIntegrationTablesTestsTest)
       running_apps.cpp
       safari_extensions.cpp
       sandboxes.cpp
+      secureboot.cpp
       shared_folders.cpp
       sharing_preferences.cpp
       signature.cpp
