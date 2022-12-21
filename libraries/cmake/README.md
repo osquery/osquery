@@ -19,7 +19,7 @@ Beyond what previously described, we use a custom toolchain ([osquery-toolchain]
 
 These are the current targeted versions:
 
-### x86
+### x86-64
 
 CentOS 6.10
 
@@ -80,7 +80,79 @@ uname -r
 4.15.0-1099-aws
 ```
 
-### Troubleshooting Linux
+### Troubleshooting CentOS 6 Linux
+
+CentOS 6 reached "End of Life" status in 2020, so continuing to build osquery on it requires some extra preparation steps.
+
+#### Yum Package Repo
+
+The Yum package repo for CentOS 6 is no longer hosted at its default location, so we must configure it.
+
+```sh
+sudo curl https://www.getpagespeed.com/files/centos6-eol.repo --output /etc/yum.repos.d/CentOS-Base.repo
+sudo yum update
+```
+
+#### Upgrading git
+
+The version of `git` on CentOS 6 is ~1.7, but osquery requires much newer. We can install it from source.
+
+```sh
+sudo yum remove git
+sudo yum -y install curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker
+cd /usr/src
+sudo wget https://www.kernel.org/pub/software/scm/git/git-2.39.0.tar.gz
+sudo tar xzf git-2.39.0.tar.gz
+cd git-2.39.0
+sudo make prefix=/usr/local all
+sudo make prefix=/usr/local install
+sudo ln -sfn /usr/local/bin/git /usr/bin/git
+```
+
+#### Upgrading Python
+
+The version of `Python` on CentOS 6 is too old to complete osquery's CMake configuration steps. We can install Python
+3.6 as follows:
+
+First, enable the SCL package repository:
+
+```bash
+yum install centos-release-scl
+```
+
+Update the repository file: `/etc/yum.repos.d/CentOS-SCLo-scl.repo`
+
+```text
+[centos-sclo-sclo]
+name=CentOS-6 - SCLo sclo
+baseurl=https://vault.centos.org/centos/6.10/sclo/x86_64/rh
+# baseurl=http://mirror.centos.org/centos/6/sclo/$basearch/sclo/
+# mirrorlist=http://mirrorlist.centos.org?arch=$basearch&release=6&repo=sclo-sclo
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+```
+
+Now we can install Python:
+
+```bash
+yum install rh-python36-python
+```
+
+Enable Python 3.6:
+
+```bash
+scl enable rh-python36 bash
+```
+
+#### Additional pre-requisites
+
+```sh
+sudo yum install epel-release
+sudo yum install ninja-build make automake autoconf
+```
+
+#### osquery-toolchain
 
 There are some issues with the osquery-toolchain 1.1.0 when trying to use it on CentOS 6.10.  
 Binaries like `as`, `ar`, etc need to be symlinked to their llvm counterpart, since the original ones are fully static and contain a glibc version that won't work on that old distribution, and will throw a `FATAL: kernel too old`.  
