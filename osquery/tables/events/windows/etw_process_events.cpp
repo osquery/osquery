@@ -70,7 +70,7 @@ Status EtwProcessEventSubscriber::eventCallback(
     newRow["flags"] = INTEGER(eventPayload->Flags);
     newRow["path"] = SQL_TEXT(eventPayload->ImageName);
     newRow["cmdline"] = SQL_TEXT(eventPayload->Cmdline);
-    newRow["username"] = INTEGER(eventPayload->UserName);
+    newRow["username"] = SQL_TEXT(eventPayload->UserName);
     newRow["token_elevation_type"] =
         SQL_TEXT(eventPayload->TokenElevationTypeInfo);
     newRow["token_elevation_status"] = INTEGER(eventPayload->TokenIsElevated);
@@ -107,7 +107,7 @@ Status EtwProcessEventSubscriber::eventCallback(
     newRow["path"] = SQL_TEXT(eventPayload->ImageName);
     newRow["cmdline"] = SQL_TEXT(eventPayload->Cmdline);
     newRow["exit_code"] = INTEGER(eventPayload->ExitCode);
-    newRow["username"] = INTEGER(eventPayload->UserName);
+    newRow["username"] = SQL_TEXT(eventPayload->UserName);
 
     std::vector<Row> rowList;
     rowList.push_back(std::move(newRow));
