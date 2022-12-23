@@ -69,7 +69,7 @@ TEST_F(ETWProcessEventsTests, test_publisher_exists) {
 TEST_F(ETWProcessEventsTests, test_process_event_sanity_check) {
   // Launching process to generate ProcessStart and ProcessStop events
   system("logman.exe query -ets > NUL");
-  Sleep(5000);
+  Sleep(4000);
 
   // Querying for new generated events
   std::string query =
@@ -98,17 +98,17 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
   std::uniform_int_distribution<std::mt19937::result_type> distUint(
       0, UINT_MAX - 1);
 
-  std::uniform_int_distribution<std::mt19937::result_type> dist9999(0, 9999);
+  std::uniform_int_distribution<std::mt19937::result_type> dist999(0, 999);
 
   std::atomic<unsigned long long> totalEventsProduced = 0;
   std::atomic<unsigned long long> totalEventsConsumed = 0;
 
   std::vector<std::thread> producerThreads;
 
-  unsigned int randomNumberOfProducerThreads = dist9999(rng);
+  unsigned int randomNumberOfProducerThreads = dist999(rng);
   for (unsigned int i = 0; i < randomNumberOfProducerThreads; ++i) {
     producerThreads.push_back(std::thread([&]() {
-      unsigned int randomNumberOfThreadsEvents = dist9999(rng);
+      unsigned int randomNumberOfThreadsEvents = dist999(rng);
       for (unsigned int it = 0; it < randomNumberOfThreadsEvents; ++it) {
         testQueue.push(distUint(rng));
         totalEventsProduced++;
