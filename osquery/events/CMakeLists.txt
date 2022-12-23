@@ -219,6 +219,10 @@ function(generateOsqueryEvents)
     add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
     add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
+
+    if(OSQUERY_BUILD_ETW)
+		add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
+    endif()		
   endif()
 endfunction()
 
