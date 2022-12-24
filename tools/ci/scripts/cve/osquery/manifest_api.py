@@ -102,7 +102,11 @@ def validateLibrariesVersions(
 
         if library_name not in manifest:
             manifest_is_valid = False
-            print_err(f"Library {library_name} is missing from the manifest, please add it")
+            print_err(
+                f"Library {library_name} is missing from the manifest, please refer to"
+                " https://osquery.readthedocs.io/en/latest/development/cve-scan/#adding-a-new-library"
+                " and special cases on how to add it"
+            )
             continue
 
         manifest_library_version = manifest[library_name]["version"]
@@ -121,7 +125,11 @@ def validateLibrariesVersions(
 
         if library_name not in manifest:
             manifest_is_valid = False
-            print_err(f"Library {library_name} is missing from the manifest, please add it")
+            print_err(
+                f"Library {library_name} is missing from the manifest, please refer to"
+                " https://osquery.readthedocs.io/en/latest/development/cve-scan/#adding-a-new-library"
+                " and special cases on how to add it"
+            )
             continue
 
         manifest_library_commit = manifest[library_name]["commit"]
