@@ -102,10 +102,13 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
 
   std::atomic<unsigned long long> totalEventsProduced = 0;
   std::atomic<unsigned long long> totalEventsConsumed = 0;
+  std::atomic<unsigned int> nrOfThreadsProducing = 0;
 
   std::vector<std::thread> producerThreads;
 
   unsigned int randomNumberOfProducerThreads = dist999(rng);
+  nrOfThreadsProducing = randomNumberOfProducerThreads;
+
   for (unsigned int i = 0; i < randomNumberOfProducerThreads; ++i) {
     producerThreads.push_back(std::thread([&]() {
       unsigned int randomNumberOfThreadsEvents = dist999(rng);
@@ -113,11 +116,13 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
         testQueue.push(distUint(rng));
         totalEventsProduced++;
       }
+
+      nrOfThreadsProducing--;
     }));
   }
 
   std::thread consumerThread([&]() {
-    while (!testQueue.empty()) {
+    while (!testQueue.empty() || nrOfThreadsProducing != 0) {
       unsigned int value = testQueue.pop();
       totalEventsConsumed++;
     }
