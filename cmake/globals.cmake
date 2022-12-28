@@ -36,6 +36,9 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
   # Apple Silicon
   set(TARGET_PROCESSOR "aarch64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+  # Windows on Arm
+  set(TARGET_PROCESSOR "aarch64")
 else()
   message(FATAL_ERROR "Unsupported architecture ${CMAKE_SYSTEM_PROCESSOR}")
 endif()

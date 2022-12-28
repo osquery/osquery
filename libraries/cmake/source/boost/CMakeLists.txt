@@ -721,6 +721,12 @@ function(generateBoostContext)
     set(context_backend "ucontext")
   endif()
 
+  if(PLATFORM_WINDOWS AND TARGET_PROCESSOR STREQUAL "aarch64")
+    # no fcontext asm support for Windows on Arm
+    # use winfib implementation
+    set(context_backend "winfib")
+  endif()
+
   message(STATUS "osquery: boost::context is using the ${context_backend} backend")
 
   if(context_backend STREQUAL "fcontext")

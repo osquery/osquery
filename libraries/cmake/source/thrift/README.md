@@ -75,6 +75,8 @@ cmake \
 
 ## Windows
 
+### Windows x86-64
+
 ```cmd
 cmake ^
   -S . ^
@@ -93,4 +95,26 @@ cmake ^
   -DCMAKE_BUILD_TYPE=Release ^
   -G "Visual Studio 16 2019" ^
   -A x64
+```
+
+### Windows ARM64
+
+```cmd
+cmake ^
+  -S . ^
+  -B b ^
+  -DBUILD_SHARED_LIBS=OFF ^
+  -DBoost_USE_STATIC_LIBS=ON ^
+  -DWITH_OPENSSL=ON ^
+  -DWITH_ZLIB=ON ^
+  -DBUILD_COMPILER=OFF ^
+  -DBUILD_C_GLIB=OFF ^
+  -DBUILD_JAVA=OFF ^
+  -DBUILD_JAVASCRIPT=OFF ^
+  -DBUILD_NODEJS=OFF ^
+  -DBUILD_KOTLIN=OFF ^
+  -DBUILD_PYTHON=OFF ^
+  -DCMAKE_BUILD_TYPE=Release ^
+  -G "Visual Studio 16 2019" ^
+  -A ARM64
 ```

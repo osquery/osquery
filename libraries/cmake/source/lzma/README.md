@@ -89,9 +89,9 @@ HAVE_CONFIG_H
 TUKLIB_SYMBOL_PREFIX=lzma_
 ```
 
-## Windows
+## Windows (x86_64, ARM64)
 
-Copy `windows\vs2019\config.h` from the `lzma` source to `config\x86_64\windows`.
+Copy `windows\vs2019\config.h` from the `lzma` source to `config\<arch>\windows`.
 
 Then comment these defines inside the `config.h` file:
 

@@ -423,6 +423,21 @@ function(rocksdbMain)
           WIN32
           WIN64
       )
+
+    elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+      target_compile_definitions(thirdparty_rocksdb
+        PUBLIC
+          ROCKSDB_SUPPORT_THREAD_LOCAL
+          OS_WIN
+
+        PRIVATE
+          _MBCS
+          NOMINMAX
+          NPERF_CONTEXT
+          ROCKSDB_NO_DYNAMIC_EXTENSION
+          WIN32
+          WIN64
+      )
     endif()
   endif()
 
