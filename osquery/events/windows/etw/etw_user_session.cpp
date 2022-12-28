@@ -120,7 +120,7 @@ void UserEtwSessionRunnable::start() {
       traceSessionStopped_ = true;
 
       if (!endTraceSession_) {
-        condition_.wait(lock);      
+        condition_.wait(lock);
       }
     }
   }
