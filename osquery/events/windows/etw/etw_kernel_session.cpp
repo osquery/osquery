@@ -131,7 +131,10 @@ void KernelEtwSessionRunnable::start() {
     while (!endTraceSession_) {
       kernelTraceSession_->start();
       traceSessionStopped_ = true;
-      condition_.wait(lock);
+
+      if (!endTraceSession_) {
+        condition_.wait(lock);
+      }
     }
   }
 }
@@ -140,7 +143,6 @@ void KernelEtwSessionRunnable::stop() {
   if (kernelTraceSession_) {
     endTraceSession_ = true;
     kernelTraceSession_->stop();
-    condition_.notify_one();
   }
 }
 

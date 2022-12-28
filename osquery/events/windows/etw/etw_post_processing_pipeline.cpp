@@ -57,28 +57,38 @@ bool EtwPostProcessorsRunnable::CommonPostProcessing(EtwEventDataRef& data) {
 }
 
 void EtwPostProcessorsRunnable::start() {
-  while (!interrupted()) {
+  while (concurrentQueue_ && shouldRun_) {
     // Worker will blockwait until a new element is retrieved from the queue
-    auto data = concurrentQueue_->pop();
+    EtwEventDataRef data;
+    bool elementReady = concurrentQueue_->popWait(data);
 
-    // Common post processing on every ETW event
-    if (!CommonPostProcessing(data)) {
-      return;
+    // Check if thread should return after stop request
+    if (!shouldRun_) {
+      break;
     }
 
-    // Event specific post processing callback logic
-    auto postProcessorFn =
-        tryTakeCopy(etwPostProcessors_, data->Header.Type)
-            .takeOr(EtwProviderConfig::EventProviderPostProcessor{nullptr});
+    // Check if new element is ready to be processed. Otherwise, continue
+    // checking for new element in the queue.
+    if (elementReady && data) {
+      // Common post processing on every ETW event
+      if (!CommonPostProcessing(data)) {
+        return;
+      }
 
-    // callback was found for given event type id
-    if (postProcessorFn) {
-      postProcessorFn(std::move(data));
+      // Getting event specific post processing callback logic
+      auto postProcessorFn =
+          tryTakeCopy(etwPostProcessors_, data->Header.Type)
+              .takeOr(EtwProviderConfig::EventProviderPostProcessor{nullptr});
+
+      // Callback was found for given event type id
+      if (postProcessorFn) {
+        postProcessorFn(std::move(data));
+      }
     }
   }
 }
 
 void EtwPostProcessorsRunnable::stop() {
-  interrupt();
+  shouldRun_ = false;
 }
 } // namespace osquery

@@ -42,9 +42,6 @@ class ETWProcessEventsTests : public testing::Test {
     // Enable ETW process events
     RegistryFactory::get().registry("config_parser")->setUp();
     FLAGS_enable_etw_process_events = true;
-
-    // Start eventing framework
-    attachEvents();
   }
 };
 
@@ -67,6 +64,9 @@ TEST_F(ETWProcessEventsTests, test_publisher_exists) {
 }
 
 TEST_F(ETWProcessEventsTests, test_process_event_sanity_check) {
+  // Start eventing framework
+  attachEvents();
+
   // Launching process to generate ProcessStart and ProcessStop events
   system("logman.exe query -ets > NUL");
   Sleep(4000);
@@ -89,9 +89,13 @@ TEST_F(ETWProcessEventsTests, test_process_event_sanity_check) {
   EXPECT_GT(std::stoul(testEvent.at("pid")), 0U);
   EXPECT_GT(std::stoul(testEvent.at("ppid")), 0U);
   EXPECT_GT(std::stoul(testEvent.at("datetime")), 0U);
+
+  Dispatcher::instance().stopServices();
+  Dispatcher::instance().joinServices();
+  Dispatcher::instance().resetStopping();
 }
 
-TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
+TEST_F(ETWProcessEventsTests, test_concurrent_queue_blockwait) {
   ConcurrentQueue<unsigned int> testQueue;
   std::random_device dev;
   std::mt19937 rng(dev());
@@ -109,6 +113,7 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
   unsigned int randomNumberOfProducerThreads = dist999(rng);
   nrOfThreadsProducing = randomNumberOfProducerThreads;
 
+  // Generating a random number of producer threads
   for (unsigned int i = 0; i < randomNumberOfProducerThreads; ++i) {
     producerThreads.push_back(std::thread([&]() {
       unsigned int randomNumberOfThreadsEvents = dist999(rng);
@@ -121,6 +126,7 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
     }));
   }
 
+  // Starting a single consumer thread
   std::thread consumerThread([&]() {
     while (!testQueue.empty() || nrOfThreadsProducing != 0) {
       unsigned int value = testQueue.pop();
@@ -128,9 +134,66 @@ TEST_F(ETWProcessEventsTests, test_concurrent_queue_big_number_of_events) {
     }
   });
 
+  // Waiting for threads to join
   consumerThread.join();
+  for (auto& producerThread : producerThreads) {
+    producerThread.join();
+  }
 
-  EXPECT_EQ(totalEventsProduced, totalEventsConsumed);
+  EXPECT_TRUE(totalEventsProduced == totalEventsConsumed)
+      << "Events produced: " << totalEventsProduced
+      << " - Events consumed: " << totalEventsConsumed;
 }
 
+TEST_F(ETWProcessEventsTests, test_concurrent_queue_timeout) {
+  ConcurrentQueue<unsigned int> testQueue;
+  std::random_device dev;
+  std::mt19937 rng(dev());
+  std::uniform_int_distribution<std::mt19937::result_type> distUint(
+      0, UINT_MAX - 1);
+
+  std::uniform_int_distribution<std::mt19937::result_type> dist999(0, 999);
+
+  std::atomic<unsigned long long> totalEventsProduced = 0;
+  std::atomic<unsigned long long> totalEventsConsumed = 0;
+  std::atomic<unsigned int> nrOfThreadsProducing = 0;
+
+  std::vector<std::thread> producerThreads;
+
+  unsigned int randomNumberOfProducerThreads = dist999(rng);
+  nrOfThreadsProducing = randomNumberOfProducerThreads;
+
+  // Generating a random number of producer threads
+  for (unsigned int i = 0; i < randomNumberOfProducerThreads; ++i) {
+    producerThreads.push_back(std::thread([&]() {
+      unsigned int randomNumberOfThreadsEvents = dist999(rng);
+      for (unsigned int it = 0; it < randomNumberOfThreadsEvents; ++it) {
+        testQueue.push(distUint(rng));
+        totalEventsProduced++;
+      }
+
+      nrOfThreadsProducing--;
+    }));
+  }
+
+  // Starting a single consumer thread
+  std::thread consumerThread([&]() {
+    while (!testQueue.empty() || nrOfThreadsProducing != 0) {
+      unsigned int value = 0;
+      if (testQueue.popWait(value)) {
+        totalEventsConsumed++;
+      }
+    }
+  });
+
+  // Waiting for threads to join
+  consumerThread.join();
+  for (auto& producerThread : producerThreads) {
+    producerThread.join();
+  }
+
+  EXPECT_TRUE(totalEventsProduced == totalEventsConsumed)
+      << "Events produced: " << totalEventsProduced
+      << " - Events consumed: " << totalEventsConsumed;
+}
 } // namespace osquery

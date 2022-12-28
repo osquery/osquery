@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -60,6 +61,30 @@ class ConcurrentQueue : public boost::noncopyable {
     T data = queue_.front();
     queue_.pop();
     return data;
+  }
+
+  /**
+   * @brief Removes the front element from the queue. This call will block and
+   * return when the condition variable is awakened, or when the queue is not
+   * empty, or after the specified timeout duration. The call will return TRUE
+   * when an element is successfully obtained from the queue. The obtained
+   * element will be returned through the element variable. The call would
+   * return FALSE if no element was found in the queue. The condition variable
+   * timeout is set by default to 300ms.
+   */
+  bool popWait(T& element, const unsigned int timeoutMS = 300) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    condition_.wait_for(lock, std::chrono::milliseconds(timeoutMS), [&] {
+      return !queue_.empty();
+    });
+
+    if (queue_.empty()) {
+      return false;
+    } else {
+      element = queue_.front();
+      queue_.pop();
+      return true;
+    }
   }
 
   /**

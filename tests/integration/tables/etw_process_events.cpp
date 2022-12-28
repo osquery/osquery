@@ -11,6 +11,7 @@
 // Spec file: specs/posix/process_events.table
 
 #include <osquery/config/config.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/events/events.h>
 #include <osquery/registry/registry.h>
 #include <osquery/tests/integration/tables/helper.h>
@@ -32,6 +33,12 @@ class etwProcessEvents : public testing::Test {
 
     // Start eventing framework
     attachEvents();
+  }
+
+  void TearDown() override {
+    Dispatcher::instance().stopServices();
+    Dispatcher::instance().joinServices();
+    Dispatcher::instance().resetStopping();
   }
 };
 

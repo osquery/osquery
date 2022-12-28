@@ -118,7 +118,10 @@ void UserEtwSessionRunnable::start() {
     while (!endTraceSession_) {
       userTraceSession_->start();
       traceSessionStopped_ = true;
-      condition_.wait(lock);
+
+      if (!endTraceSession_) {
+        condition_.wait(lock);      
+      }
     }
   }
 }
@@ -127,7 +130,6 @@ void UserEtwSessionRunnable::stop() {
   if (userTraceSession_) {
     endTraceSession_ = true;
     userTraceSession_->stop();
-    condition_.notify_one();
   }
 }
 

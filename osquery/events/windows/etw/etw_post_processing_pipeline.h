@@ -60,6 +60,11 @@ class EtwPostProcessorsRunnable final : public InternalRunnable {
   ProviderProcessors etwPostProcessors_;
 
   /**
+   * @brief Atomic flag to determine if thread should keep running
+   */
+  std::atomic<bool> shouldRun_{true};
+
+  /**
    * @brief Concurrent event queue reference
    */
   ConcurrentEventQueueRef& concurrentQueue_;
