@@ -20,7 +20,7 @@ function(osqueryTablesEventsTestsMain)
   elseif(DEFINED PLATFORM_WINDOWS)
     generateOsqueryTablesEventsTestsPowershelleventstestsTest()
     generateOsqueryTablesEventsTestsWindowseventstestsTest()
-	generateOsqueryTablesEventsTestsETWtestsTest()
+    generateOsqueryTablesEventsTestsETWtestsTest()
   endif()
 endfunction()
 
