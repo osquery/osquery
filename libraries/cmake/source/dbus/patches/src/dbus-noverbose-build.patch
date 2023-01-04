@@ -1,0 +1,14 @@
+diff --git a/dbus/dbus-transport.c b/dbus/dbus-transport.c
+index f2a96150..97731dbf 100644
+--- a/dbus/dbus-transport.c
++++ b/dbus/dbus-transport.c
+@@ -1072,9 +1072,7 @@ recover_unused_bytes (DBusTransport *transport)
+     {
+       const DBusString *bytes;
+       DBusString *buffer;
+-#ifdef DBUS_ENABLE_VERBOSE_MODE
+       int orig_len;
+-#endif
+       dbus_bool_t succeeded;
+ 
+       _dbus_message_loader_get_buffer (transport->loader,

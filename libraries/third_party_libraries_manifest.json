@@ -91,8 +91,8 @@
   "dbus": {
     "product": "d-bus",
     "vendor": "d-bus_project",
-    "version": "1.12.20",
-    "commit": "ab88811768f750777d1a8b9d9ab12f13390bfd3a",
+    "version": "1.12.24",
+    "commit": "5ff925648e88ba29cef7d708bc2bbc5d6de5fc48",
     "ignored-cves": []
   },
   "ebpfpub": {
