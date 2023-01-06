@@ -2,23 +2,25 @@
 
 ## Linux
 
-You will need to build the following osquery targets first (can be built on other platforms, since building on CentOS 6 doesn't work): thirdparty_popt, thirdparty_libmagic, thidparty_lzma, thirdparty_sqlite, thirdparty_zlib, thirdparty_zstd, openssl.
+You will need to build the following osquery targets first: thirdparty_popt, thirdparty_libmagic, thirdparty_lzma, thirdparty_sqlite, thirdparty_zlib, thirdparty_zstd, openssl.
 
-Then do the following renames of the static libraries just built:
+Then create the following symlinks for each library, excluded openssl (run from the build folder):
 
-libthirdparty_popt.a -> libpopt.a
-libthirdparty_libmagic.a -> libmagic.a
-libthidparty_lzma.a -> liblzma.a
-libthirdparty_sqlite.a -> libsqlite.a
-libthirdparty_zlib.a -> libzlib.a
-libthirdparty_zstd.a -> libztsd.a
+```
+ln -s libthirdparty_popt.a libs/src/popt/libpopt.a
+ln -s libthirdparty_libmagic.a libs/src/libmagic/libmagic.a
+ln -s libthirdparty_lzma.a libs/src/lzma/liblzma.a
+ln -s libthirdparty_sqlite.a libs/src/sqlite/src/libsqlite.a
+ln -s libthirdparty_zlib.a libs/src/zlib/libz.a
+ln -s libthirdparty_zstd.a libs/src/zstd/libzstd.a
+```
 
 
 Then:
-1. Copy the build folder to the CentOS 6 machine and point the `LIBS_BUILD` env var to it
-2. Clone the latest version of osquery to the CentOS 6 machine and point the `LIBS_SRC` env var to it
-3. Copy the patch under `libraries/cmake/source/librpm/build-patches` to the CentOS 6 machine
-4. Move inside the librpm source code and apply with git the patch
+1. Copy the build folder to the target machine and point the `LIBS_BUILD` env var to it
+2. Clone the latest version of osquery to the target machine and point the `LIBS_SRC` env var to it
+3. Copy the patches under `libraries/cmake/source/librpm/build-patches` and `libraries/cmake/source/librpm/patches` to the target machine
+4. Move inside the librpm source code and apply with `git apply` the patches
 
 Then run the following commands:
 
@@ -31,7 +33,7 @@ export OPENSSL_INCLUDE="${LIBS_BUILD}/openssl/openssl-prefix/src/openssl/include
 export OPENSSL_LINK="${LIBS_BUILD}/openssl/openssl-prefix/src/openssl"
 export LIBMAGIC_INCLUDE="${LIBS_SRC}/libraries/cmake/source/libmagic/include"
 export LIBMAGIC_LINK="${LIBS_BUILD}/libs/src/libmagic"
-export POPT_INCLUDE="${LIBS_SRC}/libraries/cmake/source/popt/src"
+export POPT_INCLUDE="${LIBS_SRC}/libraries/cmake/source/popt/src/src"
 export POPT_LINK="${LIBS_BUILD}/libs/src/popt"
 export ZLIB_INCLUDE="${LIBS_SRC}/libraries/cmake/source/zlib/src"
 export ZLIB_LINK="${LIBS_BUILD}/libs/src/zlib"
@@ -45,32 +47,43 @@ export CFLAGS="--sysroot ${TOOLCHAIN} -I${OPENSSL_INCLUDE} -I${LIBMAGIC_INCLUDE}
 export CPPFLAGS="${CFLAGS}"
 export LDFLAGS="${CFLAGS} -L${OPENSSL_LINK} -L${LIBMAGIC_LINK} -L${POPT_LINK} -L${ZLIB_LINK} -L${LZMA_LINK}"
 export CC=${TOOLCHAIN}/usr/bin/clang
+export LIBS="-llzma -lz -lrt"
 
 autoreconf -i
-./configure --enable-static --disable-shared --with-crypto=openssl --without-archive --enable-bdb-ro --enable-sqlite --enable-ndb --disable-plugins --disable-openmp
+./configure \
+  --enable-static \
+  --disable-shared \
+  --with-crypto=openssl \
+  --without-archive \
+  --enable-bdb-ro \
+  --enable-sqlite \
+  --enable-ndb \
+  --disable-plugins \
+  --disable-openmp \
+  --disable-libelf
 ```
 
 Then copy these files to the osquery source
 
-./config.h -> \<osquery librpm folder\>/config/config.h
-./lib/rpmhash.C -> \<osquery librpm folder\>/generated/lib/
+`./config.h` -> `config/<arch>/config.h`
+`./lib/rpmhash.C` -> `/generated/<arch>/lib/`
 
-Run `make` and then copy the include files:
+Run `make` and then copy this additional generated file:
 
-./include -> \<osquery librpm folder\>/
-./lib/tagtbl.C -> \<osquery librpm folder\>/generated/lib/
+`./lib/tagtbl.C` -> `generated/<arch>/lib/`
 
-Make sure `secure_getenv`, `getauxval`, and `syncfs` are not found.
+## Linux x86_64
+
+Make sure that the `config.h` file does not have defined `HAVE_SECURE_GETENV`, `HAVE_GETAUXVAL`, and `HAVE_SYNCFS`.
 
 ### Additional Notes
 
 The build time patch is required to have the configure.ac script work with the version of GETTEXT it's present on CentOS 6.
-It's also required because when testing the availability of libraries like `libmagic` and `lzma` the scripts are not linking all the libraries necessary to make the linking test work, given that it normally expects to work with shared libraries, but we are making it link static libaries.
 Furthermore, librpm has removed the ability to disable the use of Lua, which is not useful for osquery, since we only want to read, so we have to patch it out.
 
 Finally there are two additional patches which are instead applied when we build osquery.
 One, the `remove-lua.patch`, which only touches source code, is a part of the bigger build patch. So when having to update this first generate the build patch, then remove the parts from it that touch build files and the result is this patch.
-The other is generated by `git revert 8cd161b5bb9b639f5b729063272115436caab545` and fixing the merge conflicts.
-If the commit cannot be found because you're using the osquery librpm submodule, you may need to do `git fetch --unshallow` in the librpm repository first.
 
-When updating the patches using a `git diff`, ignore all the `.po` files modified by the build system doing a `git checkout po` first.
+To regenerate the `centos6-support-and-remove-lua.patch`, make all the necessary changes to the build files and then use `git diff -- '*.ac' '*.am'`.
+To regenerate the `remove-lua.patch` make all the necessary changes to the source code to remove lua and then use `git diff -- '*.c' '*.h'`.
+To regenerate the `open-only-pkgs.patch`, the idea is to only open the Packages database, which in the current version can be done by setting the `justPkgs` to 1.

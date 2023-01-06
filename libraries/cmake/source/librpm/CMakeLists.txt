@@ -75,7 +75,6 @@ function(librpmMain)
     "${library_root}/build/parsePreamble.c"
     "${library_root}/build/parsePrep.c"
     "${library_root}/build/parseReqs.c"
-    "${library_root}/build/parseScript.c"
     "${library_root}/build/parseSpec.c"
     "${library_root}/build/parseList.c"
     "${library_root}/build/reqprov.c"
@@ -108,10 +107,12 @@ function(librpmMain)
     "${library_root}/rpmio/rpmver.c"
     "${library_root}/rpmio/rpmvercmp.c"
     "${library_root}/rpmio/digest_openssl.c"
+    "${library_root}/rpmio/rpmpgp_internal.c"
   )
 
   set(rpmmisc_library_srcs
     "${library_root}/misc/fts.c"
+    "${library_root}/misc/fnmatch.c"
   )
 
   set(rpmsign_library_srcs
@@ -126,14 +127,17 @@ function(librpmMain)
     ${rpmsign_library_srcs}
   )
 
+  target_compile_options(thirdparty_librpm PRIVATE
+    -fno-strict-aliasing
+    -fno-strict-overflow
+  )
+
   target_compile_definitions(thirdparty_librpm PRIVATE
     HAVE_CONFIG_H
     LIBRPMALIAS_EXECPATH="/usr/local/bin"
-    LIBRPMALIAS_FILENAME="rpmpopt-4.17.0"
+    LIBRPMALIAS_FILENAME="rpmpopt-4.18.0"
     LOCALEDIR="/usr/local/share/locale"
     LOCALSTATEDIR="/usr/local/var"
-    PIC
-    _REENTRANT
     RPMCONFIGDIR="/usr/local/lib/rpm"
     SYSCONFDIR="/usr/local/etc"
   )
@@ -181,13 +185,13 @@ function(librpmMain)
 
   target_include_directories(thirdparty_librpm PRIVATE
     "${library_root}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/${TARGET_PROCESSOR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
+    "${library_root}/include"
   )
 
   target_include_directories(thirdparty_librpm SYSTEM INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${library_root}/include"
   )
 endfunction()
 

@@ -79,8 +79,17 @@
 /* Define to 1 if OpenSSL has EVP_MD_CTX_new */
 #define HAVE_EVP_MD_CTX_NEW 1
 
+/* Define to 1 if you have the `fchmodat' function. */
+#define HAVE_FCHMODAT 1
+
+/* Define to 1 if you have the `fchownat' function. */
+#define HAVE_FCHOWNAT 1
+
 /* Define to 1 if you have the `fdatasync' function. */
 #define HAVE_FDATASYNC 1
+
+/* Define to 1 if you have the `fstatat' function. */
+#define HAVE_FSTATAT 1
 
 /* Define to 1 if you have the <gelf.h> header file. */
 /* #undef HAVE_GELF_H */
@@ -89,7 +98,7 @@
 #define HAVE_GETADDRINFO 1
 
 /* Define to 1 if you have the `getauxval' function. */
-/* #undef HAVE_GETAUXVAL */
+#define HAVE_GETAUXVAL 1
 
 /* Define to 1 if you have the `getcwd' function. */
 #define HAVE_GETCWD 1
@@ -139,6 +148,9 @@
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
+/* Define to 1 if you have the `linkat' function. */
+#define HAVE_LINKAT 1
+
 /* Define to 1 if you have the <linux/fsverity.h> header file. */
 /* #undef HAVE_LINUX_FSVERITY_H */
 
@@ -163,6 +175,15 @@
 /* Define to 1 if you have the `mergesort' function. */
 /* #undef HAVE_MERGESORT */
 
+/* Define to 1 if you have the `mkdirat' function. */
+#define HAVE_MKDIRAT 1
+
+/* Define to 1 if you have the `mkfifoat' function. */
+#define HAVE_MKFIFOAT 1
+
+/* Define to 1 if you have the `mknodat' function. */
+#define HAVE_MKNODAT 1
+
 /* Define to 1 if you have the `mkstemp' function. */
 #define HAVE_MKSTEMP 1
 
@@ -171,6 +192,9 @@
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 /* #undef HAVE_NDIR_H */
+
+/* Define to 1 if you have the `openat' function. */
+#define HAVE_OPENAT 1
 
 /* Define to 1 if you have the <openssl/dsa.h> header file. */
 #define HAVE_OPENSSL_DSA_H 1
@@ -187,11 +211,17 @@
 /* Define to 1 if you have the `putenv' function. */
 #define HAVE_PUTENV 1
 
+/* Define if readline is available */
+/* #undef HAVE_READLINE */
+
 /* Define to 1 if you have the `realpath' function. */
 #define HAVE_REALPATH 1
 
 /* Define to 1 if you have the `regcomp' function. */
 #define HAVE_REGCOMP 1
+
+/* Define to 1 if you have the `renameat' function. */
+#define HAVE_RENAMEAT 1
 
 /* Define to 1 if OpenSSL has RSA_set0_key */
 #define HAVE_RSA_SET0_KEY 1
@@ -200,7 +230,7 @@
 #define HAVE_SCHED_GETAFFINITY 1
 
 /* Define to 1 if you have the `secure_getenv' function. */
-/* #undef HAVE_SECURE_GETENV */
+#define HAVE_SECURE_GETENV 1
 
 /* Define to 1 if you have the `setenv' function. */
 #define HAVE_SETENV 1
@@ -235,11 +265,14 @@
 /* Define to 1 if `d_type' is a member of `struct dirent'. */
 #define HAVE_STRUCT_DIRENT_D_TYPE 1
 
+/* Define to 1 if you have the `symlinkat' function. */
+#define HAVE_SYMLINKAT 1
+
 /* Define to 1 if you have the `syncfs' function. */
-/* #undef HAVE_SYNCFS */
+#define HAVE_SYNCFS 1
 
 /* Define to 1 if you have the <sys/auxv.h> header file. */
-/* #undef HAVE_SYS_AUXV_H */
+#define HAVE_SYS_AUXV_H 1
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
@@ -267,11 +300,17 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Define to 1 if you have the `unlinkat' function. */
+#define HAVE_UNLINKAT 1
+
 /* Define to 1 if you have the `unsetenv' function. */
 #define HAVE_UNSETENV 1
 
 /* Define to 1 if you have the `unshare' function. */
 #define HAVE_UNSHARE 1
+
+/* Define to 1 if you have the `utimensat' function. */
+#define HAVE_UTIMENSAT 1
 
 /* Define to 1 if you have the `utimes' function. */
 #define HAVE_UTIMES 1
@@ -286,13 +325,12 @@
 #define HAVE___PROGNAME 1
 
 /* Define to 1 if you have the `__secure_getenv' function. */
-#define HAVE___SECURE_GETENV 1
+/* #undef HAVE___SECURE_GETENV */
 
 /* Define as const if the declaration of iconv() needs const. */
 #define ICONV_CONST 
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
@@ -313,7 +351,7 @@
 #define PACKAGE_NAME "rpm"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rpm 4.17.0"
+#define PACKAGE_STRING "rpm 4.18.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rpm"
@@ -322,7 +360,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.17.0"
+#define PACKAGE_VERSION "4.18.0"
 
 /* canonical vendor */
 #define RPMCANONVENDOR "unknown"
@@ -359,7 +397,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.17.0"
+#define VERSION "4.18.0"
 
 /* Build with acl support? */
 /* #undef WITH_ACL */
