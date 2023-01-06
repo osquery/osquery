@@ -13,6 +13,10 @@
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
+
+DECLARE_uint32(aws_imdsv2_request_interval);
+DECLARE_uint32(aws_imdsv2_request_attempts);
+
 namespace table_tests {
 
 class ec2InstanceMetadata : public testing::Test {
@@ -23,6 +27,10 @@ class ec2InstanceMetadata : public testing::Test {
 };
 
 TEST_F(ec2InstanceMetadata, test_sanity) {
+  // Speed up the querying in the case we're not on EC2
+  FLAGS_aws_imdsv2_request_interval = 1;
+  FLAGS_aws_imdsv2_request_attempts = 1;
+
   // 1. Query data
   auto const data = execute_query("select * from ec2_instance_metadata");
   // 2. Check size before validation
