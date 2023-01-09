@@ -3,25 +3,22 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
-/* #undef ENABLE_NLS */
+#define ENABLE_NLS 1
 
 /* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
-#define HAVE_CFLOCALECOPYCURRENT 1
+/* #undef HAVE_CFLOCALECOPYCURRENT */
 
 /* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
-#define HAVE_CFPREFERENCESCOPYAPPVALUE 1
+/* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
-/* #undef HAVE_DCGETTEXT */
+#define HAVE_DCGETTEXT 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
-
-/* Define to 1 if you have the <float.h> header file. */
-#define HAVE_FLOAT_H 1
 
 /* Define to 1 if you have the <fnmatch.h> header file. */
 #define HAVE_FNMATCH_H 1
@@ -30,13 +27,16 @@
 #define HAVE_GETEUID 1
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
-/* #undef HAVE_GETTEXT */
+#define HAVE_GETTEXT 1
 
 /* Define to 1 if you have the `getuid' function. */
 #define HAVE_GETUID 1
 
 /* Define to 1 if you have the <glob.h> header file. */
 #define HAVE_GLOB_H 1
+
+/* Define to 1 if you have the `glob_pattern_p' function. */
+#define HAVE_GLOB_PATTERN_P 1
 
 /* Define if you have the iconv() function and it works. */
 #define HAVE_ICONV 1
@@ -48,22 +48,34 @@
 #define HAVE_LANGINFO_H 1
 
 /* Define to 1 if you have the <libintl.h> header file. */
-/* #undef HAVE_LIBINTL_H */
+#define HAVE_LIBINTL_H 1
+
+/* Define to 1 if you have the `mbsrtowcs' function. */
+#define HAVE_MBSRTOWCS 1
 
 /* Define to 1 if you have the <mcheck.h> header file. */
-/* #undef HAVE_MCHECK_H */
+#define HAVE_MCHECK_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `mtrace' function. */
-/* #undef HAVE_MTRACE */
+#define HAVE_MTRACE 1
 
-/* Define to 1 if you have the `setregid' function. */
-#define HAVE_SETREGID 1
+/* Define to 1 if you have the `secure_getenv' function. */
+#define HAVE_SECURE_GETENV 1
+
+/* Define to 1 if you have the `setreuid' function. */
+#define HAVE_SETREUID 1
+
+/* Define to 1 if you have the `setuid' function. */
+#define HAVE_SETUID 1
 
 /* Define to 1 if you have the `srandom' function. */
 #define HAVE_SRANDOM 1
+
+/* Define to 1 if you have the <stdalign.h> header file. */
+#define HAVE_STDALIGN_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -105,13 +117,13 @@
 #define PACKAGE "popt"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "popt-devel@rpm5.org"
+#define PACKAGE_BUGREPORT "rpm-maint@lists.rpm.org"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "popt"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "popt 1.16"
+#define PACKAGE_STRING "popt 1.19"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "popt"
@@ -120,19 +132,35 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.16"
-
-/* Full path to default POPT configuration directory */
-#define POPT_SYSCONFDIR "NONE/etc"
-
-/* Define to 1 if the C compiler supports function prototypes. */
-#define PROTOTYPES 1
+#define PACKAGE_VERSION "1.19"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# define _ALL_SOURCE 1
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# define _POSIX_PTHREAD_SEMANTICS 1
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# define _TANDEM_SOURCE 1
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# define __EXTENSIONS__ 1
+#endif
+
+
 /* Version number of package */
-#define VERSION "1.16"
+#define VERSION "1.19"
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
 #ifndef _DARWIN_USE_64_BIT_INODE
@@ -145,5 +173,12 @@
 /* Define for large files, on AIX-style hosts. */
 /* #undef _LARGE_FILES */
 
-/* Define like PROTOTYPES; this can be used by system headers. */
-#define __PROTOTYPES 1
+/* Define to 1 if on MINIX. */
+/* #undef _MINIX */
+
+/* Define to 2 if the system does not provide POSIX.1 features except with
+   this defined. */
+/* #undef _POSIX_1_SOURCE */
+
+/* Define to 1 if you need to in order for `stat' and other things to work. */
+/* #undef _POSIX_SOURCE */

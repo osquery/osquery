@@ -276,7 +276,6 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_libdevmapper
       thirdparty_libcryptsetup
       thirdparty_librpm
-      thirdparty_popt
       thirdparty_dbus
       thirdparty_libcap
     )
