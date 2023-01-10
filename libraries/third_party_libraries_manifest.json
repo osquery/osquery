@@ -238,8 +238,8 @@
   "popt": {
     "product": "popt",
     "vendor": "popt_project",
-    "version": "1.16",
-    "commit": "abe4af616ffc0e22e54d691e73a67fabc267cc26",
+    "version": "1.19",
+    "commit": "916e61045d268f7e37ade5ec047eb77e8299e6ad",
     "ignored-cves": []
   },
   "rapidjson": {

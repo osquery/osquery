@@ -9,11 +9,11 @@ function(poptMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
   add_library(thirdparty_popt
-    "${library_root}/popt.c"
-    "${library_root}/poptparse.c"
-    "${library_root}/poptconfig.c"
-    "${library_root}/popthelp.c"
-    "${library_root}/poptint.c"
+    "${library_root}/src/popt.c"
+    "${library_root}/src/poptparse.c"
+    "${library_root}/src/poptconfig.c"
+    "${library_root}/src/popthelp.c"
+    "${library_root}/src/poptint.c"
   )
 
   target_link_libraries(thirdparty_popt PRIVATE
@@ -21,27 +21,17 @@ function(poptMain)
   )
 
   target_compile_definitions(thirdparty_popt PRIVATE
-    _GNU_SOURCE
     HAVE_CONFIG_H
-    _REENTRANT  
+    POPT_SYSCONFDIR=\"/usr/local/etc\"
   )
 
-  if(DEFINED PLATFORM_LINUX)
-    target_include_directories(thirdparty_popt PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
-    )
-  elseif(DEFINED PLATFORM_MACOS)
-    target_include_directories(thirdparty_popt PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/macos"
-    )
-  endif()
-
   target_include_directories(thirdparty_popt PRIVATE
-    "${library_root}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
+    "${library_root}/src"
   )
 
   target_include_directories(thirdparty_popt SYSTEM INTERFACE
-    "${library_root}"
+    "${library_root}/src"
   )
 endfunction()
 

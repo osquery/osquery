@@ -106,7 +106,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin,Windows:lzma"
-    "Linux,Darwin:popt"
+    "Linux:popt"
     "Linux,Darwin,Windows:rapidjson"
     "Linux,Darwin,Windows:rocksdb"
     "Linux,Darwin,Windows:sleuthkit"
