@@ -287,8 +287,8 @@
   "yara": {
     "product": "yara",
     "vendor": "virustotal",
-    "version": "4.1.3",
-    "commit": "b99a808cf9955090b909c72d6a0da5295c3cbc7c",
+    "version": "4.2.3",
+    "commit": "ba94b4f8ebb6d56786d14f6a0f7529b32d7c216f",
     "ignored-cves": []
   },
   "zlib": {

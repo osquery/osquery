@@ -6,22 +6,9 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(yaraMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/libyara")
+  set(library_root "${OSQUERY_yara_ROOT_DIR}/libyara")
 
-  add_library(thirdparty_yara_strutils OBJECT
-    "${CMAKE_CURRENT_SOURCE_DIR}/patches/strutils.cpp"
-  )
-
-  target_link_libraries(thirdparty_yara_strutils PRIVATE
-    thirdparty_cxx_settings
-  )
-
-  target_include_directories(thirdparty_yara_strutils PRIVATE
-    "${library_root}/include"
-    "${library_root}"
-  )
-
-  add_library(thirdparty_yara
+  set(sources
     "${library_root}/ahocorasick.c"
     "${library_root}/arena.c"
     "${library_root}/atoms.c"
@@ -54,21 +41,19 @@ function(yaraMain)
     "${library_root}/stack.c"
     "${library_root}/stopwatch.c"
     "${library_root}/stream.c"
+    "${library_root}/strutils.c"
     "${library_root}/threading.c"
-    "${library_root}/modules/demo/demo.c"
+    "${library_root}/modules/console/console.c"
     "${library_root}/modules/dex/dex.c"
     "${library_root}/modules/dotnet/dotnet.c"
     "${library_root}/modules/elf/elf.c"
     "${library_root}/modules/hash/hash.c"
     "${library_root}/modules/macho/macho.c"
     "${library_root}/modules/math/math.c"
-    "${library_root}/modules/module_list"
     "${library_root}/modules/pe/pe.c"
     "${library_root}/modules/pe/pe_utils.c"
     "${library_root}/modules/tests/tests.c"
     "${library_root}/modules/time/time.c"
-
-    $<TARGET_OBJECTS:thirdparty_yara_strutils>
   )
 
   set(yara_strutils_definitions
@@ -76,56 +61,34 @@ function(yaraMain)
     "strnlen_w=yara_strutils_strnlen_w"
     "strlcpy_w=yara_strutils_strlcpy_w"
     "strcmp_w=yara_strutils_strcmp_w"
-    "strlcpy=yara_strutils_strlcpy"
-    "strlcat=yara_strutils_strlcat"
-    "memmem=yara_strutils_memmem"
     "yr_isalnum=yara_strutils_isalnum"
   )
 
-  set_source_files_properties(
-    "${library_root}/grammar.c"
-    "${library_root}/hex_lexer.c"
-    "${library_root}/lexer.c"
-    "${library_root}/modules/pe/pe.c"
-    "${library_root}/modules/dotnet/dotnet.c"
-    "${library_root}/re_lexer.c"
-    "${library_root}/parser.c"
-    "${library_root}/sizedstr.c"
-    "${library_root}/exec.c"
-    "${library_root}/re.c"
-    "${library_root}/scan.c"
+  if(PLATFORM_POSIX)
+    list(APPEND sources
+      "${library_root}/modules/magic/magic.c"
+    )
 
-    PROPERTIES COMPILE_DEFINITIONS
-      "${yara_strutils_definitions}"
-  )
-
-  if(PLATFORM_WINDOWS)
-    target_sources(thirdparty_yara PRIVATE
+    if(PLATFORM_LINUX)
+      list(APPEND sources
+        "${library_root}/proc/linux.c"
+      )
+    elseif(PLATFORM_MACOS)
+      list(APPEND sources
+        "${library_root}/proc/mach.c"
+      )
+    else()
+      message(FATAL_ERROR "Unsupported posix platform")
+    endif()
+  elseif(PLATFORM_WINDOWS)
+    list(APPEND sources
       "${library_root}/proc/windows.c"
     )
-
-  elseif(PLATFORM_LINUX)
-    target_sources(thirdparty_yara PRIVATE
-      "${library_root}/proc/linux.c"
-      "${library_root}/modules/magic/magic.c"
-    )
-
-  elseif(PLATFORM_MACOS)
-    target_sources(thirdparty_yara PRIVATE
-      "${library_root}/proc/mach.c"
-      "${library_root}/modules/magic/magic.c"
-      "${library_root}/modules/macho/macho.c"
-    )
-
   else()
     message(FATAL_ERROR "Unsupported platform")
   endif()
 
-  target_compile_definitions(thirdparty_yara PRIVATE
-    HAVE_STDBOOL_H=1
-    HAVE_CLOCK_GETTIME=1
-    HAVE_LIBCRYPTO=1
-  )
+  add_library(thirdparty_yara ${sources})
 
   target_link_libraries(thirdparty_yara
     PRIVATE
@@ -135,29 +98,75 @@ function(yaraMain)
       thirdparty_openssl
   )
 
+  target_compile_definitions(thirdparty_yara PRIVATE
+    DOTNET_MODULE
+    HASH_MODULE
+    HAVE_LIBCRYPTO=1
+    ${yara_strutils_definitions}
+  )
+
   if(PLATFORM_POSIX)
+    target_compile_definitions(thirdparty_yara PRIVATE
+      STDC_HEADERS=1
+      HAVE_SYS_TYPES_H=1
+      HAVE_SYS_STAT_H=1
+      HAVE_STDLIB_H=1
+      HAVE_STRING_H=1
+      HAVE_STRINGS_H=1
+      HAVE_INTTYPES_H=1
+      HAVE_STDINT_H=1
+      HAVE_UNISTD_H=1
+      HAVE_DLFCN_H=1
+      HAVE_LIBM=1
+      HAVE_MEMMEM=1
+      HAVE_TIMEGM=1
+      HAVE_CLOCK_GETTIME=1
+      HAVE_STDBOOL_H=1
+      HAVE_MAGIC_H=1
+      HAVE_LIBMAGIC=1
+      HAVE_OPENSSL_MD5_H=1
+      HAVE_OPENSSL_SHA_H=1
+      HAVE_OPENSSL_ASN1_H=1
+      HAVE_OPENSSL_CRYPTO_H=1
+      HAVE_OPENSSL_BIO_H=1
+      HAVE_OPENSSL_PKCS7_H=1
+      HAVE_OPENSSL_X509_H=1
+      HAVE_OPENSSL_SAFESTACK_H=1
+      HAVE_SCAN_PROC_IMPL=1
+      MAGIC_MODULE
+      MACHO_MODULE
+      DEX_MODULE
+    )
+
     target_link_libraries(thirdparty_yara PUBLIC
       thirdparty_libmagic
     )
-  endif()
 
-  if(PLATFORM_LINUX)
-    target_compile_definitions(thirdparty_yara PRIVATE
-      USE_LINUX_PROC
-      HAVE_TIMEGM=1
-    )
+    if(PLATFORM_LINUX)
+      list(APPEND yara_strutils_definitions
+        "strlcpy=yara_strutils_strlcpy"
+        "strlcat=yara_strutils_strlcat"
+      )
 
-  elseif(PLATFORM_MACOS)
-    target_compile_definitions(thirdparty_yara PRIVATE
-      USE_MACH_PROC
-      HAVE_TIMEGM=1
-      MACHO_MODULE
-    )
+      target_compile_definitions(thirdparty_yara PRIVATE
+        HAVE_MEMORY_H=1
+        USE_LINUX_PROC
+        _GNU_SOURCE
+      )
 
+    elseif(PLATFORM_MACOS)
+      target_compile_definitions(thirdparty_yara PRIVATE
+        HAVE_STDIO_H=1
+        HAVE_STRLCAT=1
+        HAVE_STRLCPY=1
+        YYTEXT_POINTER=1
+        USE_MACH_PROC
+        _THREAD_SAFE
+      )
+    endif()
   elseif(PLATFORM_WINDOWS)
     target_compile_definitions(thirdparty_yara PRIVATE
       USE_WINDOWS_PROC
-      HAVE_TIMEGM=0
     )
   endif()
 
