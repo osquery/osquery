@@ -1,0 +1,16 @@
+diff --git a/lib/rpmdb.c b/lib/rpmdb.c
+index b3c5da62d..20bc654fe 100644
+--- a/lib/rpmdb.c
++++ b/lib/rpmdb.c
+@@ -466,9 +466,8 @@ static int openDatabase(const char * prefix,
+     /* Try to ensure db home exists, error out if we can't even create */
+     rc = rpmioMkpath(rpmdbHome(db), 0755, getuid(), getgid());
+     if (rc == 0) {
+-	/* Open just bare minimum when rebuilding a potentially damaged db */
+-	int justPkgs = (db->db_flags & RPMDB_FLAG_REBUILD) &&
+-		       ((db->db_mode & O_ACCMODE) == O_RDONLY);
++	/* Open just bare minimum */
++	int justPkgs = 1;
+ 	rc = doOpen(db, justPkgs);
+ 
+ 	if (!db->db_descr)
