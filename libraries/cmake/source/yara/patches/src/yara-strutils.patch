@@ -1,0 +1,31 @@
+diff --git a/libyara/strutils.c b/libyara/strutils.c
+index 1136bd71..6134c4cf 100644
+--- a/libyara/strutils.c
++++ b/libyara/strutils.c
+@@ -86,7 +86,7 @@ the following implementations were taken from OpenBSD.
+ 
+ */
+ 
+-#if !HAVE_STRLCPY && !defined(strlcpy)
++#if !HAVE_STRLCPY
+ size_t strlcpy(char* dst, const char* src, size_t size)
+ {
+   register char* d = dst;
+@@ -120,7 +120,7 @@ size_t strlcpy(char* dst, const char* src, size_t size)
+ }
+ #endif
+ 
+-#if !HAVE_STRLCAT && !defined(strlcat)
++#if !HAVE_STRLCAT
+ size_t strlcat(char* dst, const char* src, size_t size)
+ {
+   register char* d = dst;
+@@ -203,7 +203,7 @@ size_t strlcpy_w(char* dst, const char* w_src, size_t n)
+   return (s - w_src) / 2;
+ }
+ 
+-#if !HAVE_MEMMEM && !defined(memmem)
++#if !HAVE_MEMMEM
+ void* memmem(
+     const void* haystack,
+     size_t haystack_size,
