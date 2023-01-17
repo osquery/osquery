@@ -52,9 +52,14 @@ function(libmagicMain)
   target_compile_definitions(thirdparty_libmagic PRIVATE
     ${compile_definition_list}
     buffer_init=libmagic_buffer_init
-    strlcat=libmagic_strlcat
-    strlcpy=libmagic_strlcpy
   )
+
+  if(DEFINED PLATFORM_LINUX)
+    target_compile_definitions(thirdparty_libmagic PRIVATE
+      strlcat=libmagic_strlcat
+      strlcpy=libmagic_strlcpy
+    )
+  endif()
 
   target_link_libraries(thirdparty_libmagic PUBLIC
     thirdparty_zlib
