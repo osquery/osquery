@@ -6,6 +6,7 @@ schema([
     Column("load_state", TEXT, "Reflects whether the unit definition was properly loaded"),
     Column("active_state", TEXT, "The high-level unit activation state, i.e. generalization of SUB"),
     Column("sub_state", TEXT, "The low-level unit activation state, values depend on unit type"),
+    Column("unit_file_state", TEXT, "Whether the unit file is enabled, e.g. `enabled`, `masked`, `disabled`, etc"),
     Column("following", TEXT, "The name of another unit that this unit follows in state"),
     Column("object_path", TEXT, "The object path for this unit"),
     Column("job_id", BIGINT, "Next queued job id"),

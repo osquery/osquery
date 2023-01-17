@@ -27,6 +27,7 @@ const std::vector<PropertyQueryDesc> kStringPropertyQueryList = {
     {"FragmentPath", "fragment_path", "org.freedesktop.systemd1.Unit"},
     {"SourcePath", "source_path", "org.freedesktop.systemd1.Unit"},
     {"User", "user", "org.freedesktop.systemd1.Service"},
+    {"UnitFileState", "unit_file_state", "org.freedesktop.systemd1.Unit"},
 };
 } // namespace
 
