@@ -90,6 +90,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     BSTR taskName;
     ret = pRegisteredTask->get_Name(&taskName);
     std::wstring wTaskName(taskName, SysStringLen(taskName));
+    ::SysFreeString(taskName);
     r["name"] = ret == S_OK ? SQL_TEXT(wstringToString(wTaskName.c_str())) : "";
 
     VARIANT_BOOL enabled = false;
@@ -106,6 +107,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     ret = pRegisteredTask->get_Path(&taskPath);
     std::wstring wTaskPath(taskPath, SysStringLen(taskPath));
     r["path"] = ret == S_OK ? wstringToString(wTaskPath.c_str()) : "";
+    ::SysFreeString(taskPath);
 
     VARIANT_BOOL hidden = false;
     pRegisteredTask->get_Enabled(&hidden);
@@ -140,7 +142,9 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     pRegisteredTask->get_Definition(&taskDef);
     if (taskDef != nullptr) {
       taskDef->get_Actions(&tActionCollection);
+      taskDef->Release();
     }
+    pRegisteredTask->Release();
 
     long actionCount = 0;
     if (tActionCollection != nullptr) {
@@ -158,6 +162,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
       }
       act->QueryInterface(IID_IExecAction,
                           reinterpret_cast<void**>(&execAction));
+      act->Release();
       if (execAction == nullptr) {
         continue;
       }
@@ -165,29 +170,29 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
       BSTR taskExecPath;
       execAction->get_Path(&taskExecPath);
       std::wstring wTaskExecPath(taskExecPath, SysStringLen(taskExecPath));
+      ::SysFreeString(taskExecPath);
 
       BSTR taskExecArgs;
       execAction->get_Arguments(&taskExecArgs);
       std::wstring wTaskExecArgs(taskExecArgs, SysStringLen(taskExecArgs));
+      ::SysFreeString(taskExecArgs);
 
       BSTR taskExecRoot;
       execAction->get_WorkingDirectory(&taskExecRoot);
       std::wstring wTaskExecRoot(taskExecRoot, SysStringLen(taskExecRoot));
+      ::SysFreeString(taskExecRoot);
+
+      execAction->Release();
 
       auto full = wTaskExecRoot + L" " + wTaskExecPath + L" " + wTaskExecArgs;
       actions.push_back(wstringToString(full.c_str()));
-      act->Release();
     }
     if (tActionCollection != nullptr) {
       tActionCollection->Release();
     }
-    if (taskDef != nullptr) {
-      taskDef->Release();
-    }
     r["action"] = !actions.empty() ? osquery::join(actions, ",") : "";
 
     results.push_back(r);
-    pRegisteredTask->Release();
   }
   pTaskCollection->Release();
 }
