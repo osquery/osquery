@@ -7,26 +7,28 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
+#include <poll.h>
+#include <sys/socket.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+
 #include <osquery/tables/networking/posix/utils.h>
 
 namespace osquery {
 namespace tables {
 
-#define MAX_NETLINK_SIZE 8192
-#define MAX_NETLINK_ATTEMPTS 8
+#define MAX_NETLINK_SIZE 64 * 1024
 
 constexpr auto kDefaultIpv6Route = "::";
 constexpr auto kDefaultIpv4Route = "0.0.0.0";
+constexpr unsigned kMaxPollWaitInMS{5000}; // MAX poll wait in milliseconds
 
 std::string getNetlinkIP(int family, const char* buffer) {
   char dst[INET6_ADDRSTRLEN] = {0};
@@ -55,56 +57,77 @@ std::string getDefaultRouteIP(int family) {
 
 Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
   struct nlmsghdr* nl_hdr = nullptr;
-
-  size_t message_size = 0;
+  pollfd fds[] = {{socket_fd, POLLIN, 0}};
+  auto start_time_pt = std::chrono::steady_clock::now();
   do {
-    size_t latency = 0;
-    size_t total_bytes = 0;
     ssize_t bytes = 0;
     while (bytes == 0) {
-      bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
-      if (bytes < 0) {
-        // Unrecoverable NETLINK error, bail.
-        return Status(1, "Could not read from NETLINK");
+      auto cur_time_pt = std::chrono::steady_clock::now();
+      auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              cur_time_pt - start_time_pt)
+                              .count();
+      if (time_elapsed >= kMaxPollWaitInMS) {
+        LOG(WARNING) << "Netlink timeout";
+        return Status(1, "Netlink timeout");
       }
 
-      // Bytes were returned by we might need to read more.
-      total_bytes += bytes;
-      if (latency >= MAX_NETLINK_ATTEMPTS) {
-        // Too many attempts to read bytes have occurred.
-        // Prevent the NETLINK socket from handing and bail.
+      int poll_status = ::poll(fds, 1, kMaxPollWaitInMS - time_elapsed);
+      if (poll_status == 0) {
+        LOG(WARNING) << "Netlink timeout";
         return Status(1, "Netlink timeout");
-      } else if (bytes == 0) {
-        if (total_bytes > 0) {
-          // Bytes were read, but now no more are available, attempt to parse
-          // the received NETLINK message.
-          break;
+      } else if (poll_status < 0) {
+        if (errno != EINTR) {
+          LOG(WARNING) << "poll() failed with error " << errno;
+          return Status(1, "poll() failed");
         }
-        ::usleep(20);
-        latency += 1;
+        continue;
       }
+
+      if ((fds[0].revents & POLLIN) == 0) {
+        continue;
+      }
+
+      if (MAX_NETLINK_SIZE - *size >= sizeof(struct nlmsghdr)) {
+        bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - *size, 0);
+        if (bytes < 0) {
+          // Unrecoverable NETLINK error, bail.
+          return Status(1, "Could not read from NETLINK");
+        }
+      } else {
+        break;
+      }
+    }
+
+    if (bytes == 0 && *size == 0) {
+      return Status(1, "No data returned from NETLINK");
     }
 
     // Assure valid header response, and not an error type.
     nl_hdr = (struct nlmsghdr*)output;
     if (NLMSG_OK(nl_hdr, bytes) == 0 || nl_hdr->nlmsg_type == NLMSG_ERROR) {
+      if (*size) {
+        return Status(0, "Process whatever we received");
+      }
       return Status(1, "Read invalid NETLINK message");
+    }
+
+    if (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq ||
+        static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid()) {
+      continue;
     }
 
     if (nl_hdr->nlmsg_type == NLMSG_DONE) {
       break;
     }
 
-    // Move the buffer pointer
+    *size += bytes;
     output += bytes;
-    message_size += bytes;
-    if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) {
-      break;
-    }
-  } while (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq ||
-           static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
 
-  *size = message_size;
+    if ((nl_hdr->nlmsg_flags & NLM_F_MULTI)) {
+      continue;
+    }
+  } while (true);
+
   return Status::success();
 }
 
@@ -230,7 +253,7 @@ QueryData genRoutes(QueryContext& context) {
 
   // Wrap the read socket to support multi-netlink messages
   size_t size = 0;
-  if (!readNetlink(socket_fd, 1, (char*)netlink_msg, &size).ok()) {
+  if (!readNetlink(socket_fd, 0, (char*)netlink_msg, &size).ok()) {
     TLOG << "Cannot read NETLINK response from socket";
     close(socket_fd);
     free(netlink_buffer);
