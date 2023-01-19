@@ -552,6 +552,8 @@ QueryPlanner::QueryPlanner(const std::string& query,
       tables_.push_back(details[1]);
     }
   }
+
+  instance->clearAffectedTables();
 }
 
 Status QueryPlanner::applyTypes(TableColumns& columns) {

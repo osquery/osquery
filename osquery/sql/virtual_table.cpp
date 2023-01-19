@@ -716,6 +716,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   auto* pVtab = (VirtualTable*)tab;
   const auto& columns = pVtab->content->columns;
 
+  pVtab->instance->addAffectedTable(pVtab->content);
+
   ConstraintSet constraints;
   // Keep track of the index used for each valid constraint.
   // Expect this index to correspond with argv within xFilter.
