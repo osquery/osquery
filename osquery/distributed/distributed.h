@@ -14,6 +14,8 @@
 
 #include <osquery/core/plugins/plugin.h>
 #include <osquery/core/query.h>
+#include <osquery/core/sql/query_performance.h>
+#include <osquery/sql/sql.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -330,10 +332,32 @@ class Distributed {
   // Setter for ID of currently executing request
   static void setCurrentRequestId(const std::string& cReqId);
 
+  // Run a query and record its performance statistics
+  SQL monitorNonnumeric(const std::string& name, const std::string& query);
+
+  /**
+   * @brief Calculate query performance and record it into the performance_
+   * object
+   *
+   * @param name Query name, as sent by the server
+   * @param delay_ms Time taken for query to run
+   * @param size number of rows output
+   * @param r0 Row generated from first call to the processes table
+   * @param r1 Row generated from second call to the processes table
+   */
+  void recordQueryPerformance(const std::string& name,
+                              uint64_t delay_ms,
+                              uint64_t size,
+                              const Row& r0,
+                              const Row& r1);
+
   std::vector<DistributedQueryResult> results_;
 
   // ID of the currently executing query
   static std::string currentRequestId_;
+
+  // Performance statistics recorded from distributed queries
+  std::map<std::string, QueryPerformance> performance_;
 
  private:
   friend class DistributedTests;

@@ -20,6 +20,7 @@ function(generatePluginsDistributedTls)
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
+    osquery_config
     osquery_database
     osquery_distributed
     osquery_logger
