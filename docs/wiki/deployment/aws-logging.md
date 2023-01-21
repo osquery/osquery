@@ -4,7 +4,7 @@ As of osquery version 1.7.4, osquery can log results directly to Amazon AWS [Kin
 
 ## Configuration
 
-The Kinesis Streams and Kinesis Firehose logger plugins are named `aws_kinesis` and `aws_firehose` respectively. They can be enabled as with other logger plugins using the config flag `logger_plugin`.
+The Kinesis Streams and Kinesis Firehose logger plugins are named `aws_kinesis` and `aws_firehose` respectively. They can be enabled as with other logger plugins using the [CLI flag](https://github.com/osquery/osquery/blob/master/docs/wiki/installation/cli-flags.md) `logger_plugin`. For this example, both logger plugins must be enabled via `--logger-plugin=aws_kinesis,aws_firehose`.
 
 Some configuration is shared between the two plugins:
 
@@ -56,7 +56,6 @@ Custom endpoint for non-AWS Firehose implementations can be specified with `aws_
   "options": {
     "host_identifier": "hostname",
     "schedule_splay_percent": 10,
-    "logger_plugin": "aws_kinesis,aws_firehose",
     "aws_kinesis_stream": "foo_stream",
     "aws_firehose_stream": "bar_delivery_stream",
     "aws_access_key_id": "ACCESS_KEY",
