@@ -208,7 +208,6 @@ QueryData genXProtectMeta(QueryContext& context) {
           r["identifier"] = ext.second.get("CFBundleIdentifier", "");
           r["developer_id"] = ext.second.get("Developer Identifier", "");
           r["type"] = "extension";
-          r["min_version"] = "any";
           results.push_back(std::move(r));
         }
       } else if (it.first == "PlugInBlacklist") {
@@ -234,5 +233,5 @@ QueryData genXProtectMeta(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
