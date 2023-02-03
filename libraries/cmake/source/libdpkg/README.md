@@ -42,7 +42,8 @@ export PATH="${TOOLCHAIN}/usr/bin:${PATH}"
 export CFLAGS="--sysroot ${TOOLCHAIN}"
 export CXXFLAGS="${CFLAGS}"
 export CPPFLAGS="${CFLAGS}"
-export CC=clang
+export LDFLAGS="${CFLAGS}"
+export CC=${TOOLCHAIN}/usr/bin/clang
 ```
 
 ### Install perl (x86 + AArch64)
@@ -52,7 +53,14 @@ curl https://www.cpan.org/src/5.0/perl-5.34.1.tar.gz -L -O
 tar xzf perl-5.34.1.tar.gz
 ```
 
-Then, run the `./Configure` script and follow the instructions. Make sure to pass `clang` as compiler.
+Then, run the `./Configure` script and follow the instructions. Make sure to pass `/usr/local/osquery-toolchain/usr/bin/clang --sysroot=/usr/local/osquery-toolchain` as compiler.
+
+And finally
+
+```bash
+make -j $(nproc)
+make install
+```
 
 ### Install autoconf (x86 + AArch64)
 
@@ -109,7 +117,7 @@ make install
 ### Install pkg-config (AArch64)
 
 ```bash
-https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz -L -O
+curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz -L -O
 tar xzf pkg-config-0.29.2.tar.gz
 ```
 

@@ -8,55 +8,40 @@
 function(libdpkgMain)
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-  #
-  # For the sake of completeness, here's the internal libcompat.a
-  # library that libdpkg builds.
-  #
-  # We don't need to actually build it, as we already fullfill all
-  # the required functions that the library expects to find.
-  #
+  add_library(thirdparty_libdpkg_compat
+   "${library_root}/lib/compat/md5.c"
+   "${library_root}/lib/compat/empty.c"
+  )
 
-  #add_library(thirdparty_libdpkg_compat
-  #  "${library_root}/lib/compat/md5.c"
-  #  "${library_root}/lib/compat/strchrnul.c"
-  #  "${library_root}/lib/compat/strnlen.c"
-  #  "${library_root}/lib/compat/strndup.c"
-  #  "${library_root}/lib/compat/strsignal.c"
-  #  "${library_root}/lib/compat/snprintf.c"
-  #  "${library_root}/lib/compat/vsnprintf.c"
-  #  "${library_root}/lib/compat/asprintf.c"
-  #  "${library_root}/lib/compat/vasprintf.c"
-  #  "${library_root}/lib/compat/alphasort.c"
-  #  "${library_root}/lib/compat/scandir.c"
-  #  "${library_root}/lib/compat/unsetenv.c"
-  #  "${library_root}/lib/compat/strerror.c"
-  #  "${library_root}/lib/compat/empty.c"
-  #)
-  #
-  #target_link_libraries(thirdparty_libdpkg_compat PUBLIC
-  #  thirdparty_lzma
-  #  thirdparty_zlib
-  #  thirdparty_bzip2
-  #)
-  #
-  #target_link_libraries(thirdparty_libdpkg_compat PRIVATE
-  #  thirdparty_c_settings
-  #)
-  #
-  #target_compile_definitions(thirdparty_libdpkg_compat PRIVATE
-  #  HAVE_CONFIG_H
-  #  TEST_LIBCOMPAT=1
-  #)
-  #
-  #target_include_directories(thirdparty_libdpkg_compat PRIVATE
-  #  "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
-  #  "${library_root}/lib/compat"
-  #  "${library_root}"
-  #)
-  #
-  #target_include_directories(thirdparty_libdpkg_compat SYSTEM INTERFACE
-  #  "${library_root}/lib/compat"
-  #)
+  target_link_libraries(thirdparty_libdpkg_compat PRIVATE
+   thirdparty_c_settings
+  )
+
+  target_compile_definitions(thirdparty_libdpkg_compat PRIVATE
+   HAVE_CONFIG_H
+   TEST_LIBCOMPAT=1
+  )
+
+  # Rename common MD5 symbols to prevent collisions
+  target_compile_definitions(thirdparty_libdpkg_compat PUBLIC
+    MD5Init=dpkg_MD5Init
+    MD5Update=dpkg_MD5Update
+    MD5Pad=dpkg_MD5Pad
+    MD5Final=dpkg_MD5Final
+    MD5Transform=dpkg_MD5Transform
+    MD5_CTX=dpkg_MD5_CTX
+    MD5Context=dpkg_MD5Context
+  )
+
+  target_include_directories(thirdparty_libdpkg_compat PRIVATE
+   "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
+   "${library_root}/lib/compat"
+   "${library_root}"
+  )
+
+  target_include_directories(thirdparty_libdpkg_compat SYSTEM INTERFACE
+   "${library_root}/lib/compat"
+  )
 
   add_library(thirdparty_libdpkg_dpkg
     "${library_root}/lib/dpkg/ar.c"
@@ -135,6 +120,7 @@ function(libdpkgMain)
   target_link_libraries(thirdparty_libdpkg_dpkg
     PRIVATE
       thirdparty_c_settings
+      thirdparty_libdpkg_compat
 
     PUBLIC
       thirdparty_lzma
