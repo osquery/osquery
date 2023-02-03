@@ -1,4 +1,4 @@
-table_name("etw_process_events")
+table_name("process_etw_events")
 description("Windows process execution events.")
 schema([
     Column("type", TEXT, "Event Type (ProcessStart, ProcessStop)"),
@@ -22,10 +22,10 @@ schema([
     Column("parent_process_sequence_number", BIGINT, "Parent Process Sequence Number - Present only on ProcessStart events", hidden=True),
 ])
 attributes(event_subscriber=True)
-implementation("etw_process_events@etw_process_events::genTable")
+implementation("process_etw_events@etw_process_events::genTable")
 examples([
-	"select * from etw_process_events;",
-	"select * from etw_process_events WHERE time >= (( SELECT unix_time FROM time) - 60 );",
-	"select * from etw_process_events WHERE datetime > '2022-11-18 16:48:00';",
-	"select * from etw_process_events WHERE datetime BETWEEN '2022-11-18 16:40:00' AND '2022-11-18 16:50:00';"
+	"select * from process_etw_events;",
+	"select * from process_etw_events WHERE time >= (( SELECT unix_time FROM time) - 60 );",
+	"select * from process_etw_events WHERE datetime > '2022-11-18 16:48:00';",
+	"select * from process_etw_events WHERE datetime BETWEEN '2022-11-18 16:40:00' AND '2022-11-18 16:50:00';"
 ])

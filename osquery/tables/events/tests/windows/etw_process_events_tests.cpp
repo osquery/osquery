@@ -27,8 +27,8 @@
 
 namespace osquery {
 
-DECLARE_bool(enable_etw_process_events);
-const char* ETW_SUBSCRIBER_NAME = "etw_process_events";
+DECLARE_bool(enable_process_etw_events);
+const char* ETW_SUBSCRIBER_NAME = "process_etw_events";
 const char* ETW_PUBLISHER_NAME = kEtwProcessPublisherName.c_str();
 
 class ETWProcessEventsTests : public testing::Test {
@@ -41,7 +41,7 @@ class ETWProcessEventsTests : public testing::Test {
 
     // Enable ETW process events
     RegistryFactory::get().registry("config_parser")->setUp();
-    FLAGS_enable_etw_process_events = true;
+    FLAGS_enable_process_etw_events = true;
   }
 };
 
@@ -73,7 +73,7 @@ TEST_F(ETWProcessEventsTests, test_process_event_sanity_check) {
 
   // Querying for new generated events
   std::string query =
-      "select * from etw_process_events where path LIKE '%logman.exe%'";
+      "select * from process_etw_events where path LIKE '%logman.exe%'";
   SQL results(query);
 
   // ProcessStart and ProcessStop events

@@ -10,6 +10,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/events/windows/etw/etw_kernel_session.h>
 #include <osquery/events/windows/etw/etw_provider_config.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/status/status.h>
 
@@ -76,32 +77,38 @@ Status KernelEtwSessionRunnable::addProvider(
   case EtwProviderConfig::EtwKernelProviderType::File: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/fileio
     kernelProvider = std::make_shared<krabs::kernel::file_io_provider>();
-  } break;
+    break;
+  }
 
   case EtwProviderConfig::EtwKernelProviderType::ImageLoad: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/image-load
     kernelProvider = std::make_shared<krabs::kernel::image_load_provider>();
-  } break;
+    break;
+  }
 
   case EtwProviderConfig::EtwKernelProviderType::Network: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/tcpip
     kernelProvider = std::make_shared<krabs::kernel::network_tcpip_provider>();
-  } break;
+    break;
+  }
 
   case EtwProviderConfig::EtwKernelProviderType::Process: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/process
     kernelProvider = std::make_shared<krabs::kernel::process_provider>();
-  } break;
+    break;
+  }
 
   case EtwProviderConfig::EtwKernelProviderType::Registry: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/registry
     kernelProvider = std::make_shared<krabs::kernel::registry_provider>();
-  } break;
+    break;
+  }
 
   case EtwProviderConfig::EtwKernelProviderType::ObjectManager: {
     // https://learn.microsoft.com/en-us/windows/win32/etw/obtrace
     kernelProvider = std::make_shared<krabs::kernel::object_manager_provider>();
-  } break;
+    break;
+  }
 
   default:
     return Status::failure("Unsupported kernel provider was provided.");
@@ -165,6 +172,7 @@ void KernelEtwSessionRunnable::resume() {
 void KernelEtwSessionRunnable::initKernelTraceSession(
     const std::string& sessionName) {
   if (sessionName.empty()) {
+    LOG(ERROR) << "KernelTraceSession does not have a name.";
     return;
   }
 
@@ -188,6 +196,8 @@ void KernelEtwSessionRunnable::initKernelTraceSession(
 void KernelEtwSessionRunnable::stopKernelTraceSession(
     const std::string& sessionName) {
   if (sessionName.empty()) {
+    LOG(ERROR) << "Failed to stop kernel trace session - session does not have "
+                  "a name.";
     return;
   }
 
@@ -204,9 +214,13 @@ void KernelEtwSessionRunnable::stopKernelTraceSession(
       (ULONG)sizeof(EVENT_TRACE_PROPERTIES);
 
   /// Best effort to stop ongoing trace session
-  ControlTraceA(NULL,
-                sessionName.c_str(),
-                &sessionInfo.Properties,
-                EVENT_TRACE_CONTROL_STOP);
+  /// return code is captured only for logging purposes
+  ULONG retCtrl = ControlTraceA(NULL,
+                                sessionName.c_str(),
+                                &sessionInfo.Properties,
+                                EVENT_TRACE_CONTROL_STOP);
+  if (retCtrl != ERROR_SUCCESS && retCtrl != ERROR_WMI_INSTANCE_NOT_FOUND) {
+    LOG(WARNING) << "ControlTrace() failed with error code " << retCtrl;
+  }
 }
 } // namespace osquery

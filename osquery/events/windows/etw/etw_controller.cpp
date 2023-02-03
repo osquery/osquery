@@ -17,13 +17,13 @@
 
 namespace osquery {
 
-//  Returns a reference to the single global EtwController instance
+// Returns a reference to the single global EtwController instance
 EtwController& EtwController::instance() {
   static EtwController instance;
   return instance;
 }
 
-//  New events get store in the post-processing queue
+//  New events get stored in the post-processing queue
 void EtwController::dispatchETWEvents(const EtwEventDataRef& data) {
   // storing the event in the thread-safe concurrent event queue
   if (concurrentQueue_) {

@@ -10,6 +10,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/events/windows/etw/etw_provider_config.h>
 #include <osquery/events/windows/etw/etw_user_session.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/status/status.h>
 
@@ -191,9 +192,13 @@ void UserEtwSessionRunnable::stopUserTraceSession(
       (ULONG)sizeof(EVENT_TRACE_PROPERTIES);
 
   /// Best effort to stop ongoing trace session
-  ControlTraceA(NULL,
-                sessionName.c_str(),
-                &sessionInfo.Properties,
-                EVENT_TRACE_CONTROL_STOP);
+  /// return code is captured only for logging purposes
+  ULONG retCtrl = ControlTraceA(NULL,
+                                sessionName.c_str(),
+                                &sessionInfo.Properties,
+                                EVENT_TRACE_CONTROL_STOP);
+  if (retCtrl != ERROR_SUCCESS && retCtrl != ERROR_WMI_INSTANCE_NOT_FOUND) {
+    LOG(WARNING) << "ControlTrace() failed with error code " << retCtrl;
+  }
 }
 } // namespace osquery

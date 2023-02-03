@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-DECLARE_bool(enable_etw_process_events);
+DECLARE_bool(enable_process_etw_events);
 
 namespace table_tests {
 
@@ -29,7 +29,7 @@ class etwProcessEvents : public testing::Test {
 
     // Enable ETW process events
     RegistryFactory::get().registry("config_parser")->setUp();
-    FLAGS_enable_etw_process_events = true;
+    FLAGS_enable_process_etw_events = true;
 
     // Start eventing framework
     attachEvents();
@@ -53,7 +53,7 @@ TEST_F(etwProcessEvents, test_sanity) {
       "username, token_elevation_type, token_elevation_status, "
       "mandatory_label, datetime, time_windows, time, eid, header_pid, "
       "process_sequence_number, parent_process_sequence_number from "
-      "etw_process_events");
+      "process_etw_events");
 
   // 3. Check size before validation
   ASSERT_GE(data.size(), 0ul);

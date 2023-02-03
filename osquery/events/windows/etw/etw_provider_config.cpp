@@ -19,7 +19,7 @@ Status EtwProviderConfig::isValid() const {
   }
 
   if (eventTypes_.empty()) {
-    return Status::failure("Invalid list of Events to handle");
+    return Status::failure("Empty list of Events to handle");
   }
 
   if (getPostProcessor() == nullptr) {

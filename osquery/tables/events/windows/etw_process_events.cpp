@@ -17,11 +17,11 @@
 
 namespace osquery {
 
-REGISTER_ETW_SUBSCRIBER(EtwProcessEventSubscriber, "etw_process_events");
-DECLARE_bool(enable_etw_process_events);
+REGISTER_ETW_SUBSCRIBER(EtwProcessEventSubscriber, "process_etw_events");
+DECLARE_bool(enable_process_etw_events);
 
 Status EtwProcessEventSubscriber::init() {
-  if (!FLAGS_enable_etw_process_events) {
+  if (!FLAGS_enable_process_etw_events) {
     return Status::failure("subscriber disabled via configuration.");
   }
   auto subscription_context = createSubscriptionContext();

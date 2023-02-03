@@ -11,15 +11,16 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/events/windows/etw/etw_publisher_processes.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/map_take.h>
 
 namespace osquery {
 
 FLAG(bool,
-     enable_etw_process_events,
+     enable_process_etw_events,
      false,
-     "Enables the etw_process_events publisher");
+     "Enables the process_etw_events publisher");
 
 // ETW Event publisher registration into the Osquery pub-sub framework
 REGISTER_ETW_PUBLISHER(EtwPublisherProcesses, kEtwProcessPublisherName.c_str());
@@ -33,7 +34,7 @@ EtwPublisherProcesses::EtwPublisherProcesses()
 // There are multiple ETW providers being setup here. Events arriving from
 // these providers will be aggregated in the post-processing phase.
 Status EtwPublisherProcesses::setUp() {
-  if (!FLAGS_enable_etw_process_events) {
+  if (!FLAGS_enable_process_etw_events) {
     return Status::failure(kEtwProcessPublisherName +
                            " publisher disabled via configuration.");
   }
@@ -92,7 +93,7 @@ void EtwPublisherProcesses::providerPreProcessor(
   // Internal ETW Event allocation - This event will be populated and dispatched
   std::shared_ptr<EtwEventData> newEvent = std::make_shared<EtwEventData>();
   if (newEvent == nullptr) {
-    LOG(WARNING) << "Cannot allocate new EtwEventData event";
+    LOG(WARNING) << "Cannot allocate a new EtwEventData event";
     return;
   }
 
@@ -114,6 +115,7 @@ void EtwPublisherProcesses::providerPreProcessor(
       // Allocating process-start specific payload
       auto procStartData = std::make_shared<EtwProcessStartData>();
       if (!procStartData) {
+        LOG(WARNING) << "Cannot allocate a new EtwProcessStartData event";
         return;
       }
 
@@ -146,6 +148,7 @@ void EtwPublisherProcesses::providerPreProcessor(
       // Allocating process-stop specific payload
       auto procStopData = std::make_shared<EtwProcessStopData>();
       if (!procStopData) {
+        LOG(WARNING) << "Cannot allocate a new EtwProcessStopData event";
         return;
       }
 
@@ -181,6 +184,7 @@ void EtwPublisherProcesses::providerPreProcessor(
       EtwProcStartDataRef procStartData =
           std::make_shared<EtwProcessStartData>();
       if (!procStartData) {
+        LOG(WARNING) << "Cannot allocate a new EtwProcessStartData event";
         return;
       }
 
@@ -360,7 +364,7 @@ void EtwPublisherProcesses::providerPostProcessor(
 void EtwPublisherProcesses::initializeHardVolumeConversions() {
   const auto& validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-  for (auto& driveLetter : validDriveLetters) {
+  for (const auto& driveLetter : validDriveLetters) {
     std::string queryPath;
     queryPath.push_back(driveLetter);
     queryPath.push_back(':');
@@ -398,10 +402,10 @@ void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
     if ((eventTimestamp.QuadPart + expiredTime10secs) <
         currentTimestamp.QuadPart) {
       // event expire and should be deleted
-      processStartAggregationCache_.erase(it++);
-    } else {
-      ++it;
+      processStartAggregationCache_.erase(it);
     }
+
+    ++it;
   }
 }
 
@@ -452,6 +456,7 @@ void EtwPublisherProcesses::updateUserInfo(const std::string& userSid,
         strlen(userNameStr.data()) >= MAX_PATH ||
         sidType == SID_NAME_USE::SidTypeInvalid) {
       // Inserting empty username to avoid the lookup logic to be called again
+      usernamesBySIDs_.insert({userSid, ""});
       LocalFree(pSid);
       return;
     }
@@ -482,15 +487,18 @@ void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
   switch (tokenType) {
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeDefault: {
     tokenInfo.assign("TokenElevationTypeDefault");
-  } break;
+    break;
+  }
 
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeFull: {
     tokenInfo.assign("TokenElevationTypeFull");
-  } break;
+    break;
+  }
 
   case TOKEN_ELEVATION_TYPE::TokenElevationTypeLimited: {
     tokenInfo.assign("TokenElevationTypeLimited");
-  } break;
+    break;
+  }
 
   default:
     tokenInfo.assign("TokenElevationTypeInvalid");
