@@ -37,7 +37,9 @@ Do not pass `-Ddbus_1_EXPORTS` but `-DBUS_STATIC_BUILD`.
 We do not need to pass `--export-dynamic` (or `-rdynamic`), because the backtrace created by the assert already works;
 we do need to pass `-DDBUS_BUILT_R_DYNAMIC` to get the backtrace though.
 
-Finally copy the following generated files from the build folder:
+Copy the following generated files from the build folder:
 
 `config.h` -> `config/<arch>/config.h`
 `dbus/dbus-arch-deps.h` -> `generated/<arch>/dbus-arch-deps.h`
+
+Finally in the `config.h` file substitute the path prefix `/usr/local/` with `/usr`, except for the paths that contain `/var`; in that case fully remove the `/usr/local` prefix, so that `/var` is at the root. This is needed because Dbus has to access files that on the system, not under some custom prefix.
