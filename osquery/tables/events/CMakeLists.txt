@@ -31,7 +31,15 @@ function(generateOsqueryTablesEventsEventstable)
       linux/syslog_events.cpp
       linux/user_events.cpp
       linux/apparmor_events.cpp
+      linux/containerd_events.cpp
     )
+
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND source_files
+        linux/bpf_process_events.cpp
+        linux/bpf_socket_events.cpp
+      )
+    endif()
 
     if(OSQUERY_BUILD_BPF)
       list(APPEND source_files

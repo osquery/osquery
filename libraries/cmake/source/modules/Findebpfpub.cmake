@@ -29,6 +29,8 @@ if("${llvm_bpfcodegen_lib}" STREQUAL "llvm_bpfcodegen_lib-NOTFOUND")
 else()
   importSourceSubmodule(
     NAME "ebpfpub"
-    SUBMODULES "src"
+    SUBMODULES
+      "src"
+      "src/libraries/ebpf-common"
   )
 endif()

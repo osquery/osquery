@@ -1,0 +1,12 @@
+table_name("containerd_content_events")
+description("Track containerd content events.")
+schema([
+    Column("time", BIGINT, "When osquery received the event, in seconds since the epoch"),
+    Column("timestamp", TEXT, "Event timestamp, as reported by containerd"),
+    Column("namespace", TEXT, "Namespace where the container is in"),
+    Column("topic", TEXT, "Specific type of the event, always /content/delete"),
+    Column("digest", TEXT, "Digest of the content")
+])
+
+attributes(event_subscriber=True)
+implementation("containerd_content_events@containerd_content_events::genTable")

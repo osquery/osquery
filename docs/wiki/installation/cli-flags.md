@@ -410,6 +410,19 @@ List of Windows Event Log channels for osquery to subscribe to. By default, osqu
 
 This is a comma-separated list of UDEV types to drop. On machines with flash-backed storage it is likely you'll encounter lots of noise from `disk` and `partition` types.
 
+`--enable_containerd_events_publisher=true`
+
+Enable events from the containerd CRI (container runtime interface). This allows you to use several tables, named `containerd_{container,content,image,namespace,snapshot,task}_events`.
+
+`--containerd_events_namespaces=foo,bar`
+
+Containerd namespaces from which to receive events. These are specified containerd clients and may not be related to the Linux "namespace" mechanism used for isolating containers.
+If this is empty (the default) then all events will be recorded.
+
+`--containerd_socket=/path/to/containerd.sock`
+
+Unix socket used for connecting to containerd. The default of `/run/containerd/containerd.sock` will work for most default setups.
+
 ### macOS-only events control flags
 
 `--disable_endpointsecurity=true`

@@ -1,0 +1,31 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 25990a5d8a..e24eb3aa31 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2339,7 +2339,7 @@ target_include_directories(grpc
+     ${_gRPC_XXHASH_INCLUDE_DIR}
+     ${_gRPC_ZLIB_INCLUDE_DIR}
+ )
+-target_link_libraries(grpc
++target_link_libraries(grpc PRIVATE
+   ${_gRPC_BASELIB_LIBRARIES}
+   ${_gRPC_ZLIB_LIBRARIES}
+   ${_gRPC_CARES_LIBRARIES}
+@@ -2364,7 +2364,7 @@ target_link_libraries(grpc
+   upb
+ )
+ if(_gRPC_PLATFORM_IOS OR _gRPC_PLATFORM_MAC)
+-  target_link_libraries(grpc "-framework CoreFoundation")
++  target_link_libraries(grpc PRIVATE "-framework CoreFoundation")
+ endif()
+ 
+ foreach(_hdr
+@@ -3165,7 +3165,7 @@ target_include_directories(grpc++
+     ${_gRPC_ZLIB_INCLUDE_DIR}
+     ${_gRPC_PROTO_GENS_DIR}
+ )
+-target_link_libraries(grpc++
++target_link_libraries(grpc++ PRIVATE
+   ${_gRPC_BASELIB_LIBRARIES}
+   ${_gRPC_PROTOBUF_LIBRARIES}
+   ${_gRPC_ALLTARGETS_LIBRARIES}
