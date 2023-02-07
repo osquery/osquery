@@ -327,6 +327,12 @@ function(generateTestsIntegrationTablesTestsTest)
       security_profile_info.cpp
     )
 
+    if(OSQUERY_BUILD_ETW)
+      list(APPEND platform_source_files
+        etw_process_events.cpp
+      )
+    endif()
+
     list(APPEND source_files ${platform_source_files})
   elseif(DEFINED PLATFORM_FREEBSD)
     set(platform_source_files

@@ -20,6 +20,7 @@ function(osqueryTablesEventsTestsMain)
   elseif(DEFINED PLATFORM_WINDOWS)
     generateOsqueryTablesEventsTestsPowershelleventstestsTest()
     generateOsqueryTablesEventsTestsWindowseventstestsTest()
+    generateOsqueryTablesEventsTestsETWtestsTest()
   endif()
 endfunction()
 
@@ -99,6 +100,25 @@ function(generateOsqueryTablesEventsTestsBPFtestsTest)
   )
 
   target_link_libraries(osquery_tables_events_tests_bpftests-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_database
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_logger
+    osquery_registry
+    osquery_tables_events_eventstable
+    tests_helper
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesEventsTestsETWtestsTest)
+  add_osquery_executable(osquery_tables_events_tests_etwtests-test
+    windows/etw_process_events_tests.cpp
+  )
+
+  target_link_libraries(osquery_tables_events_tests_etwtests-test PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_database

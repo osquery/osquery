@@ -63,6 +63,18 @@ function(generateOsqueryEvents)
       windows/windowseventlogparserservice.cpp
       windows/windowseventlogparser.cpp
     )
+	
+    if(OSQUERY_BUILD_ETW)
+      list(APPEND source_files
+        windows/etw/etw_user_session.cpp
+        windows/etw/etw_publisher_processes.cpp
+        windows/etw/etw_provider_config.cpp
+        windows/etw/etw_post_processing_pipeline.cpp
+        windows/etw/etw_kernel_session.cpp
+        windows/etw/etw_controller.cpp
+        windows/etw/etw_publisher.cpp
+      )
+    endif()	
   endif()
 
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL
@@ -101,6 +113,13 @@ function(generateOsqueryEvents)
     target_link_libraries(osquery_events PUBLIC
       plugins_config_parsers
     )
+	
+    if(OSQUERY_BUILD_ETW)
+      target_link_libraries(osquery_events PUBLIC
+        thirdparty_krabsetw
+      )
+    endif()
+  
   endif()
 
   set(public_header_files
@@ -160,6 +179,21 @@ function(generateOsqueryEvents)
       windows/windowseventlogparserservice.h
       windows/windowseventlogparser.h
     )
+	
+    if(OSQUERY_BUILD_ETW)
+      list(APPEND platform_public_header_files
+        windows/etw/etw_user_session.h
+        windows/etw/etw_publisher_processes.h
+        windows/etw/etw_publisher.h
+        windows/etw/etw_provider_config.h
+        windows/etw/etw_post_processing_pipeline.h
+        windows/etw/etw_krabs.h
+        windows/etw/etw_kernel_session.h
+        windows/etw/etw_data_event.h
+        windows/etw/etw_controller.h
+        windows/etw/etw_concurrent_queue.h
+      )
+    endif()	
   endif()
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
@@ -185,6 +219,10 @@ function(generateOsqueryEvents)
     add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
     add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
+
+    if(OSQUERY_BUILD_ETW)
+		add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
+    endif()		
   endif()
 endfunction()
 

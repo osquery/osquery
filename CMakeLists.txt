@@ -139,6 +139,12 @@ function(importLibraries)
       "Linux:libdpkg"
     )
   endif()
+  
+  if(OSQUERY_BUILD_ETW)
+    list(APPEND library_descriptor_list
+      "Windows:krabsetw"
+    )
+  endif()  
 
   # Create a target that builds all the third party libraries for convenience
   add_custom_target(thirdparty_libraries)

@@ -50,6 +50,7 @@ windows_expected_libraries = [
     "WINTRUST.dll",
     "SETUPAPI.dll",
     "wevtapi.dll",
+    "tdh.dll",
 ]
 
 

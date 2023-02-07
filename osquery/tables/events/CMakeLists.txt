@@ -58,6 +58,12 @@ function(generateOsqueryTablesEventsEventstable)
       windows/powershell_events.cpp
       windows/windows_events.cpp
     )
+	
+    if(OSQUERY_BUILD_ETW)
+      list(APPEND source_files
+        windows/etw_process_events.cpp
+      )
+    endif()	
   endif()
 
   add_osquery_library(osquery_tables_events_eventstable EXCLUDE_FROM_ALL
@@ -118,6 +124,12 @@ function(generateOsqueryTablesEventsEventstable)
       windows/powershell_events.h
       windows/windows_events.h
     )
+	
+    if(OSQUERY_BUILD_ETW)
+      list(APPEND platform_public_header_files
+        windows/etw_process_events.h
+      )
+    endif()
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
   endif()

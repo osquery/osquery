@@ -66,11 +66,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   Status addBatch(std::vector<Row>& row_list);
 
- private:
-  /// Overload add for tests and allow them to override the event time.
+ protected:
+  /// Overload to allow events to override the event time.
   virtual Status addBatch(std::vector<Row>& row_list,
                           EventTime custom_event_time) final;
 
+ private:
   /// Scans the database to enumerate all the data keys and build a new index
   Status generateEventDataIndex();
 

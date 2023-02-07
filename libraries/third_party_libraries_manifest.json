@@ -116,6 +116,13 @@
     "version": "0.5.0",
     "commit": "8f9ccfe770add9e4c64e9b25c102658e3c763b73"
   },
+  "krabsetw": {
+    "product": "krabsetw",
+    "vendor": "microsoft",
+    "version": "0.0.0",	
+    "commit": "db46f40cb4b66308cd8637a9d35245d303913069",
+    "ignored-cves": []	
+  },
   "libarchive": {
     "product": "libarchive",
     "vendor": "libarchive",
