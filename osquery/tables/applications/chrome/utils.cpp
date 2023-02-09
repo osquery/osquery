@@ -109,6 +109,10 @@ const std::vector<std::string> kBuiltInExtPathList{
     "resources/edge_feedback/manifest.json",
     "resources/microsoft_voices/manifest.json",
     "resources/edge_pdf/manifest.json",
+    "resources/identity_scope_approval_dialog/manifest.json",
+    "resources/brave_rewards/manifest.json",
+    "resources/brave_webtorrent/manifest.json",
+    "resources/brave_extension/manifest.json",
     "resources/webrtc_internals/manifest.json"};
 
 /// A extension property that needs to be copied
