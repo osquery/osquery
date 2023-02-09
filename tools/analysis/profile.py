@@ -262,6 +262,10 @@ if __name__ == "__main__":
         help="Use scheduled queries from a config."
     )
     group.add_argument(
+        "--pack", metavar="PACK", default=None,
+        help="Use queries from an osquery pack."
+    )
+    group.add_argument(
         "--query", metavar="STRING", default=None,
         help="Profile a single query."
     )
@@ -339,6 +343,8 @@ if __name__ == "__main__":
             for config_file in os.listdir(args.config + ".d"):
                 queries.update(utils.queries_from_config(os.path.join(
                     args.config + ".d", config_file)))
+    elif args.pack is not None:
+        queries = utils.queries_from_pack(args.pack)
     elif args.query is not None:
         queries["manual"] = args.query
     elif args.force:
