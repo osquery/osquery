@@ -354,8 +354,11 @@ if __name__ == "__main__":
     if len(queries) == 0:
         print("0 queries were loaded from %s" % query_source)
         exit(1)
+    elif len(queries) == 1:
+        print("%d query loaded from %s\n" % (len(queries), query_source))
+    else:
+        print("%d queries loaded from %s\n" % (len(queries), query_source))
 
-    print("%d queries loaded from %s\n" % (len(queries), query_source))
     if args.leaks:
         results = profile_leaks(
             args.shell, queries, count=args.count,
