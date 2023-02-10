@@ -80,6 +80,11 @@ def queries_from_config(config_path):
         print("Cannot open/parse config: %s" % str(e))
         exit(1)
     queries = {}
+
+    if "schedule" not in config and "packs" not in config:
+        print("%s parsed as JSON, but does not contain a 'schedule' or 'packs' stanza. Is it really an osquery configuration file?" % config_path)
+        exit(1)
+
     if "schedule" in config:
         for name, details in config["schedule"].items():
             queries[name] = details["query"]

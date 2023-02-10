@@ -329,7 +329,10 @@ if __name__ == "__main__":
         exit(1)
 
     queries = {}
+    query_source = "<none provided>"
+
     if args.config is not None:
+        query_source = args.config
         if not os.path.exists(args.config):
             print("Cannot find --config: %s" % (args.config))
             exit(1)
@@ -340,11 +343,21 @@ if __name__ == "__main__":
                 queries.update(utils.queries_from_config(os.path.join(
                     args.config + ".d", config_file)))
     elif args.query is not None:
+        query_source = "--query"
         queries["manual"] = args.query
     elif args.force:
         queries["force"] = True
     else:
+        query_source = args.tables
         queries = utils.queries_from_tables(args.tables, args.restrict)
+
+    if len(queries) == 0:
+        print("0 queries were loaded from %s" % query_source)
+        exit(1)
+    elif len(queries) == 1:
+        print("%d query loaded from %s\n" % (len(queries), query_source))
+    else:
+        print("%d queries loaded from %s\n" % (len(queries), query_source))
 
     if args.leaks:
         results = profile_leaks(
