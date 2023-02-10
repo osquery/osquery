@@ -163,6 +163,30 @@ class BPFEventPublisher final : public EventPublisher<BPFEventSC, BPFEventEC> {
   static bool processListenEvent(
       ISystemStateTracker& state,
       const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processCapCapableEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processPtraceEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processInitModuleEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processFinitModuleEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processIoctlEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
+
+  static bool processDeleteModuleEvent(
+      ISystemStateTracker& state,
+      const tob::ebpfpub::IFunctionTracer::Event& event);
 };
 
 } // namespace osquery

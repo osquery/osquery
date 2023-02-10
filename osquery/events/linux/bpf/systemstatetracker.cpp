@@ -236,6 +236,86 @@ bool SystemStateTracker::openByHandleAt(pid_t process_id,
                         newfd);
 }
 
+bool SystemStateTracker::capCapable(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int capability) {
+  return capCapable(d->context,
+                    *d->process_context_factory.get(),
+                    event_header,
+                    process_id,
+                    capability);
+}
+
+bool SystemStateTracker::ptrace(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t request,
+    pid_t thread_id) {
+  return ptrace(d->context,
+                *d->process_context_factory.get(),
+                event_header,
+                process_id,
+                request,
+                thread_id);
+}
+
+bool SystemStateTracker::initModule(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t module_image,
+    std::uint64_t len,
+    const std::string& param_values) {
+  return initModule(d->context,
+                    *d->process_context_factory.get(),
+                    event_header,
+                    process_id,
+                    module_image,
+                    len,
+                    param_values);
+}
+
+bool SystemStateTracker::finitModule(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t fd,
+    const std::string& param_values,
+    std::uint64_t flags) {
+  return finitModule(d->context,
+                     *d->process_context_factory.get(),
+                     event_header,
+                     process_id,
+                     fd,
+                     param_values,
+                     flags);
+}
+
+bool SystemStateTracker::ioctl(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t fd,
+    std::uint64_t request) {
+  return ioctl(d->context,
+               *d->process_context_factory.get(),
+               event_header,
+               process_id,
+               fd,
+               request);
+}
+
+bool SystemStateTracker::deleteModule(
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    const std::string& name,
+    std::uint64_t flags) {
+  return deleteModule(d->context,
+                      *d->process_context_factory.get(),
+                      event_header,
+                      process_id,
+                      name,
+                      flags);
+}
+
 SystemStateTracker::EventList SystemStateTracker::eventList() {
   auto event_list = std::move(d->context.event_list);
   d->context.event_list = {};
@@ -1039,6 +1119,207 @@ bool SystemStateTracker::openByHandleAt(
   fd_info.data = std::move(file_data);
 
   process_context.fd_map.insert({newfd, std::move(fd_info)});
+  return true;
+}
+
+bool SystemStateTracker::capCapable(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    int capability) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  if (process_context.capabilities.count(capability) > 0) {
+    return true;
+  }
+
+  process_context.capabilities.insert(capability);
+
+  Event::CapableData data;
+  data.capability = capability;
+
+  Event event;
+  event.type = Event::Type::Capable;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::ptrace(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t request,
+    pid_t thread_id) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  auto request_set_it = process_context.ptrace_request_map.find(thread_id);
+  if (request_set_it == process_context.ptrace_request_map.end()) {
+    auto insert_status =
+        process_context.ptrace_request_map.insert({thread_id, {}});
+
+    request_set_it = insert_status.first;
+  }
+
+  auto& request_set = request_set_it->second;
+  if (request_set.count(request)) {
+    return true;
+  }
+
+  request_set.insert(request);
+
+  Event::PtraceData data;
+  data.thread_id = thread_id;
+  data.request = request;
+
+  Event event;
+  event.type = Event::Type::Ptrace;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::initModule(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t module_image,
+    std::uint64_t len,
+    const std::string& param_values) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  Event::InitModuleData data;
+  data.module_image = module_image;
+  data.len = len;
+  data.param_values = param_values;
+
+  Event event;
+  event.type = Event::Type::InitModule;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::finitModule(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t fd,
+    const std::string& param_values,
+    std::uint64_t flags) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  Event::FinitModuleData data;
+  data.fd = fd;
+  data.param_values = param_values;
+  data.flags = flags;
+
+  auto fd_info_it = process_context.fd_map.find(fd);
+  if (fd_info_it != process_context.fd_map.end()) {
+    auto fd_info = fd_info_it->second;
+    if (std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      const auto& file_data =
+          std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+      data.opt_path = file_data.path;
+    }
+  }
+
+  Event event;
+  event.type = Event::Type::FinitModule;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::ioctl(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    std::uint64_t fd,
+    std::uint64_t request) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  Event::IoctlData data;
+  data.fd = fd;
+  data.request = request;
+
+  auto fd_info_it = process_context.fd_map.find(fd);
+  if (fd_info_it != process_context.fd_map.end()) {
+    auto fd_info = fd_info_it->second;
+    if (std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+            fd_info.data)) {
+      const auto& file_data =
+          std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data);
+      data.opt_path = file_data.path;
+    }
+  }
+
+  Event event;
+  event.type = Event::Type::Ioctl;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
+  return true;
+}
+
+bool SystemStateTracker::deleteModule(
+    Context& context,
+    IProcessContextFactory& process_context_factory,
+    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    pid_t process_id,
+    const std::string& name,
+    std::uint64_t flags) {
+  auto& process_context =
+      getProcessContext(context, process_context_factory, process_id);
+
+  Event::DeleteModuleData data;
+  data.name = name;
+  data.flags = flags;
+
+  Event event;
+  event.type = Event::Type::DeleteModule;
+  event.parent_process_id = process_context.parent_process_id;
+  event.binary_path = process_context.binary_path;
+  event.cwd = process_context.cwd;
+  event.bpf_header = event_header;
+  event.data = std::move(data);
+
+  context.event_list.push_back(std::move(event));
   return true;
 }
 

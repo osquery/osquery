@@ -317,6 +317,107 @@ const ParameterListMap kParameterListMap = {
 
     {"vfork", {}},
     {"fork", {}},
+
+    {"cap_capable",
+     {{"cred",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"targ_ns",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"cap",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"opts",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
+
+    {"ptrace",
+     {{"request",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"pid",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"addr",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"data",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
+
+    {"init_module",
+     {{"module_image",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"len",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"param_values",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::String,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::Out,
+       {}}}},
+
+    {"finit_module",
+     {{"fd",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"param_values",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::String,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::Out,
+       {}},
+
+      {"flags",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
+
+    {"ioctl",
+     {{"fd",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"request",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U},
+
+      {"arg",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
+
+    {"delete_module",
+     {{"name",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::String,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::Out,
+       {}},
+
+      {"flags",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
 };
 
 } // namespace osquery
