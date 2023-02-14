@@ -94,6 +94,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   QueryLogItem item;
   item.epoch = 0L;
   item.counter = 0L;
+  item.isSnapshot = true;
   getDecorations(item.decorations);
   ASSERT_EQ(item.decorations.size(), 2U);
   EXPECT_EQ(item.decorations.at("internal_60_test"), "test");

@@ -149,6 +149,7 @@ TEST_F(FilesystemLoggerTests, test_log_status) {
 
 TEST_F(FilesystemLoggerTests, test_log_snapshot) {
   QueryLogItem item;
+  item.isSnapshot = true;
   item.name = "test";
   item.identifier = "test";
   item.time = 0;

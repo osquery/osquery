@@ -141,13 +141,21 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
+  item.isSnapshot = false;
   getDecorations(item.decorations);
 
   if (query.isSnapshotQuery()) {
-    // This is a snapshot query, emit results with a differential or state.
+    // This is a snapshot query, emit results without a differential or state.
+    item.isSnapshot = true;
     item.snapshot_results = std::move(sql.rowsTyped());
-    logSnapshotQuery(item);
-    return Status::success();
+    auto status = logSnapshotQuery(item);
+    if (!status.ok()) {
+      // If log directory is not available, then the daemon shouldn't continue.
+      std::string message = "Error logging the results of query: " + name +
+                            ": " + status.toString();
+      requestShutdown(EXIT_CATASTROPHIC, message);
+    }
+    return status;
   }
 
   // Create a database-backed set of query results.
@@ -178,8 +186,9 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     diff_results.removed.clear();
   }
 
-  if (diff_results.hasNoResults()) {
-    // No diff results or events to emit.
+  if (diff_results.hasNoResults() && item.counter != 0) {
+    // No diff results or events to emit, return unless this is a
+    // periodic snapshot (counter=0) which can emit an empty result.
     return status;
   }
 
