@@ -17,6 +17,7 @@
 namespace osquery {
 namespace tables {
 
+// All the kSMBIOS* mappings have been taken from the SMBIOS spec PDF
 const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions = {
     {0, "BIOS Information"},
     {1, "System Information"},
