@@ -96,6 +96,7 @@ function(generateNativeTables)
     "darwin/authorizations.table:macos"
     "darwin/battery.table:macos"
     "darwin/browser_plugins.table:macos"
+    "darwin/connected_displays.table:macos"
     "darwin/crashes.table:macos"
     "darwin/cups_destinations.table:macos"
     "darwin/cups_jobs.table:macos"

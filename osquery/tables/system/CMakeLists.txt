@@ -112,6 +112,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/battery.mm
       darwin/block_devices.cpp
       darwin/certificates.mm
+      darwin/connected_displays.mm
       darwin/cpu_time.cpp
       darwin/crashes.cpp
       darwin/cups_destinations.cpp
