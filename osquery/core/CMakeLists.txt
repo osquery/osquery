@@ -35,6 +35,7 @@ function(generateOsqueryCoreInit)
     osquery_extensions
     osquery_distributed
     osquery_utils_pidfile
+    osquery_experiments_loader
   )
 
   if(DEFINED PLATFORM_WINDOWS)

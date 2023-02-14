@@ -36,6 +36,7 @@ function(boostMain)
     thirdparty_boost_property_tree
     thirdparty_boost_uuid
     thirdparty_boost_scope_exit
+    thirdparty_boost_circular_buffer
   )
 endfunction()
 
@@ -129,6 +130,7 @@ function(importBoostInterfaceLibraries)
     "tti:config,function_types,mpl,preprocessor,type_traits"
     "dynamic_bitset:assert,config,container_hash,core,integer,move,static_assert,throw_exception"
     "scope_exit:config,function,preprocessor,type_traits,typeof"
+    "circular_buffer:assert,concept_check,config,core,move,static_assert,throw_exception,type_traits"
   )
 
   foreach(library_descriptor ${library_descriptor_list})

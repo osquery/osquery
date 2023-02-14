@@ -26,6 +26,7 @@ importSourceSubmodule(
     "src/libs/beast"
     "src/libs/bind"
     "src/libs/chrono"
+    "src/libs/circular_buffer"
     "src/libs/concept_check"
     "src/libs/config"
     "src/libs/container"
