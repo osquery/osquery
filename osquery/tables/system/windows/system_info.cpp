@@ -38,9 +38,11 @@ QueryData genSystemInfo(QueryContext& context) {
 
   const auto wmiSystemReq =
       WmiRequest::CreateWmiRequest("select * from Win32_ComputerSystem");
+  auto wmiExecutedSuccessful = wmiSystemReq.isValue();
   const auto wmiSystemReqProc =
       WmiRequest::CreateWmiRequest("select * from Win32_Processor");
-  if (wmiSystemReq && wmiSystemReqProc && !wmiSystemReq->results().empty() &&
+  wmiExecutedSuccessful &= wmiSystemReqProc.isValue();
+  if (wmiExecutedSuccessful && !wmiSystemReq->results().empty() &&
       !wmiSystemReqProc->results().empty()) {
     const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
     const std::vector<WmiResultItem>& wmiResultsProc =
