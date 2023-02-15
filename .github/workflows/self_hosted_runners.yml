@@ -325,6 +325,11 @@ jobs:
           --target install \
           -j ${{ steps.build_job_count.outputs.VALUE }}
 
+        # Do some targeted cleanups to get additional free space before installing dependencies,
+        # we are unfortunately out of space otherwise.
+        find . -name "*.a" -exec rm {} \;
+        find . -name "*.o" -exec rm {} \;
+
     # Since we need to run CMake to create the packages with osquery-packaging, the
     # configuration will fail unless the C and C++ compilers are found
     - name: Install packaging dependencies
