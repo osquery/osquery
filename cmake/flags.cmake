@@ -258,6 +258,7 @@ function(setupBuildFlags)
         APPLE=1
         DARWIN=1
         BSD=1
+        OSQUERY_DARWIN=1
         OSQUERY_BUILD_PLATFORM="darwin"
         OSQUERY_BUILD_DISTRO="10.14"
       )

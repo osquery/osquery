@@ -24,6 +24,7 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/darwin/smbios_utils.h>
 #include <osquery/tables/system/smbios_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
@@ -37,24 +38,51 @@ namespace tables {
 #define kIOSMBIOSPropertyName_ "SMBIOS"
 #define kIOSMBIOSEPSPropertyName_ "SMBIOS-EPS"
 
-class DarwinSMBIOSParser : public SMBIOSParser {
- public:
-  void setData(uint8_t* tables, size_t length) {
-    table_data_ = tables;
-    table_size_ = length;
+#include <IOKit/IOKitLib.h>
+
+enum class FirmwareType {
+  EFI,
+  iBoot,
+  OpenFirmware,
+};
+
+bool getFirmwareType(FirmwareType& firmware_type) {
+  // clang-format off
+  static const std::unordered_map<FirmwareType, std::string> kFirmwareToRegistryPath{
+    { FirmwareType::EFI, kIODeviceTreePlane ":/efi" },
+    { FirmwareType::iBoot, kIODeviceTreePlane ":/chosen/iBoot" },
+    { FirmwareType::OpenFirmware, kIODeviceTreePlane ":/openprom" },
+  };
+  // clang-format on
+
+  mach_port_t master_port{};
+  if (IOMasterPort(MACH_PORT_NULL, &master_port) != 0) {
+    return false;
   }
 
-  bool discover();
+  boost::optional<FirmwareType> opt_detected_firmware_type;
 
-  ~DarwinSMBIOSParser() {
-    if (smbios_data_ != nullptr) {
-      free(smbios_data_);
+  for (const auto& p : kFirmwareToRegistryPath) {
+    const auto& firmware_type = p.first;
+    const auto& registry_path = p.second;
+
+    auto registry_entry =
+        IORegistryEntryFromPath(master_port, registry_path.c_str());
+
+    if (registry_entry != MACH_PORT_NULL) {
+      IOObjectRelease(registry_entry);
+
+      opt_detected_firmware_type = firmware_type;
+      break;
     }
   }
 
- private:
-  uint8_t* smbios_data_{nullptr};
-};
+  if (opt_detected_firmware_type.has_value()) {
+    firmware_type = opt_detected_firmware_type.value();
+  }
+
+  return opt_detected_firmware_type.has_value();
+}
 
 bool DarwinSMBIOSParser::discover() {
   auto matching = IOServiceMatching(kIOSMBIOSClassName_);

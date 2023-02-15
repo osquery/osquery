@@ -17,6 +17,7 @@
 namespace osquery {
 namespace tables {
 
+// All the kSMBIOS* mappings have been taken from the SMBIOS spec PDF
 const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions = {
     {0, "BIOS Information"},
     {1, "System Information"},
@@ -186,6 +187,9 @@ const std::map<uint8_t, std::string> kSMBIOSMemoryErrorOperationTable = {
     {0x04, "Write"},
     {0x05, "Partial write"},
 };
+
+const std::map<std::string, std::string> kSMBIOSProcessorTypeFriendlyName = {
+    {"3", "CPU"}, {"4", "MATH"}, {"5", "DSP"}, {"6", "GPU"}};
 
 template <class T>
 static inline std::string toHexStr(T num, int width = 4) {

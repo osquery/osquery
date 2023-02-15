@@ -18,7 +18,8 @@ extern const std::string kIOUSBDeviceClassName_;
 extern const std::string kIOPCIDeviceClassName_;
 extern const std::string kIOPlatformExpertDeviceClassName_;
 extern const std::string kIOACPIPlatformDeviceClassName_;
-extern const std::string kIOPlatformDeviceClassname_;
+extern const std::string kIOPlatformDeviceClassName_;
+extern const std::string kAppleARMIODeviceClassName_;
 
 struct IOKitPCIProperties {
   std::string vendor_id;

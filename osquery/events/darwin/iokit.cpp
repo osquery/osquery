@@ -28,14 +28,13 @@ struct DeviceTracker : private boost::noncopyable {
   io_object_t notification{0};
 };
 
-
 void IOKitEventPublisher::restart() {
   static std::vector<const std::string*> device_classes = {
       &kIOUSBDeviceClassName_,
       &kIOPCIDeviceClassName_,
       &kIOPlatformExpertDeviceClassName_,
       &kIOACPIPlatformDeviceClassName_,
-      &kIOPlatformDeviceClassname_,
+      &kIOPlatformDeviceClassName_,
   };
 
   if (run_loop_ == nullptr) {
@@ -264,4 +263,4 @@ void IOKitEventPublisher::tearDown() {
   // Do not keep a reference to the run loop.
   run_loop_ = nullptr;
 }
-}
+} // namespace osquery
