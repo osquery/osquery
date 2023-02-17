@@ -175,6 +175,72 @@ As of osquery version 2.1.2, the distributed write API includes a top-level `sta
 }
 ```
 
+### Discovery queries on distributed queries
+
+Distributed queries support "discovery queries", which are similar in semantics to [discovery queries in Packs](./configuration.md#discovery-queries).
+A distributed discovery query controls whether or not a distributed query will be executed on a host.
+- If a distributed query has no corresponding discovery query, then it is always executed on the host.
+- If a discovery query returns one or more results, then its corresponding distributed query will be executed on the host.
+- If a discovery query returns no results, then its corresponding distributed query will not be executed on the host.
+
+Sample of a `distributed/read` response with discovery queries:
+```json
+{
+  "queries": {
+      "always_execute": "select version from osquery_info;",
+      "windows_info": "select name from system_info;",
+      "darwin_time": "select day from time;"
+  },
+  "discovery": {
+      "windows_info": "select * from os_version where platform='windows';",
+      "darwin_time": "select * from os_version where platform='darwin';"
+  }
+}
+```
+
+When processing the above `distributed/read` response, osquery will:
+- Always execute the `"always_execute"` query because there isn't a discovery query defined for it.
+- Only execute `"windows_info"` query on Windows hosts.
+- Only execute `"darwin_time"` on macOS hosts.
+
+Here's the corresponding osquery `distributed/write` request on a Windows host:
+```json
+{
+  "node_key": "...",
+  "queries": {
+    "always_execute": [
+      {"version": "5.5.1"}
+    ],
+    "windows_info": [
+      {"name": "windows"}
+    ]
+  },
+  "statuses": {
+    "always_execute": 0,
+    "windows_info": 0
+  }
+}
+```
+
+Here's the corresponding osquery `distributed/write` request on a macOS host:
+```json
+{
+  "node_key": "...",
+  "queries": {
+    "always_execute": [
+      {"version": "5.4.0"}
+    ],
+    "darwin_time": [
+      {"day": "17"}
+    ]
+  },
+  "statuses": {
+    "always_execute": 0,
+    "darwin_time": 0
+  }
+}
+```
+
 ## Customizations
 
 There are several unlisted flags to further control the remote settings. These controls are helpful if using a somewhat opaque API.

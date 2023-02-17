@@ -45,7 +45,7 @@ The above code is very simple. If you're unfamiliar with the syntax/concepts of 
 Each component of osquery you're working on has its own "CMakeLists.txt" file. For example, the _tables_ component (folder) has its own "CMakeLists.txt" file at [osquery/tables/CMakeLists.txt](https://github.com/osquery/osquery/blob/master/osquery/tables/CMakeLists.txt). The file that we're going to be modifying today is [osquery/CMakeLists.txt](https://github.com/osquery/osquery/tree/master/osquery/CMakeLists.txt). Edit that file to include the following content:
 
 ```CMake
-ADD_OSQUERY_TEST(example_test example_test.cpp)
+add_osquery_executable(example_test example_test.cpp)
 ```
 
 After you specify the test sources, add whatever libraries you have to link against and properly set the compiler flags, make sure you call `ADD_TEST` with your unit test. This registers it with CTest (CMake's test runner).
