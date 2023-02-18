@@ -156,6 +156,7 @@ function(generateTestsIntegrationTablesTestsTest)
       iptables.cpp
       kernel_info.cpp
       kernel_modules.cpp
+      kernel_keys.cpp
       md_devices.cpp
       md_drives.cpp
       md_personalities.cpp
