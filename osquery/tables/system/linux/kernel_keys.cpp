@@ -38,7 +38,7 @@ QueryData genKernelKeys(QueryContext& context) {
     Row r = {};
     auto details = osquery::split(key, " ");
     if (details.size() != 10) {
-      // Interesting error case, the key line is not well formed.
+      VLOG(1) << "Malformed key format: " << key;
       continue;
     }
 
