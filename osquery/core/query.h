@@ -192,11 +192,11 @@ class Query {
   bool isQueryNameInDatabase() const;
 
   /**
-   * @brief Check if a query (not query name) is 'new' or altered.
+   * @brief Check if a query's SQL (not query name) is 'new' or altered.
    *
-   * @return true if the scheduled query has not been altered.
+   * @return true if the scheduled query has been altered.
    */
-  bool isNewQuery() const;
+  bool isNewQuerySql() const;
 
   /// Determines if this is a first run or new query.
   void getQueryStatus(uint64_t epoch,

@@ -75,11 +75,11 @@ TEST_F(QueryTests, test_get_query_status) {
   auto cf = Query("query_status", query);
 
   // We have never seen this query before (it has no results yet either).
-  bool new_epoch = false;
-  bool new_query = false;
-  cf.getQueryStatus(100, new_epoch, new_query);
-  EXPECT_TRUE(new_epoch);
-  EXPECT_TRUE(new_query);
+  bool new_query_epoch = false;
+  bool new_query_sql = false;
+  cf.getQueryStatus(100, new_query_epoch, new_query_sql);
+  EXPECT_TRUE(new_query_epoch);
+  EXPECT_TRUE(new_query_sql);
 
   // Add results for this query (this action is not under test).
   uint64_t counter = 0;
@@ -87,31 +87,31 @@ TEST_F(QueryTests, test_get_query_status) {
   ASSERT_TRUE(status.ok());
 
   // The query has results and the query text has not changed.
-  new_epoch = false;
-  new_query = false;
-  cf.getQueryStatus(100, new_epoch, new_query);
-  EXPECT_FALSE(new_epoch);
-  EXPECT_FALSE(new_query);
+  new_query_epoch = false;
+  new_query_sql = false;
+  cf.getQueryStatus(100, new_query_epoch, new_query_sql);
+  EXPECT_FALSE(new_query_epoch);
+  EXPECT_FALSE(new_query_sql);
 
   // The epoch changed so the previous results are invalid.
-  new_epoch = false;
-  new_query = false;
-  cf.getQueryStatus(101, new_epoch, new_query);
-  EXPECT_TRUE(new_epoch);
-  EXPECT_FALSE(new_query);
+  new_query_epoch = false;
+  new_query_sql = false;
+  cf.getQueryStatus(101, new_query_epoch, new_query_sql);
+  EXPECT_TRUE(new_query_epoch);
+  EXPECT_FALSE(new_query_sql);
 
   // Add results for the new epoch (this action is not under test).
   status = cf.addNewResults(getTestDBExpectedResults(), 101, counter);
   ASSERT_TRUE(status.ok());
 
   // The epoch is the same but the query text has changed.
-  new_epoch = false;
-  new_query = false;
+  new_query_epoch = false;
+  new_query_sql = false;
   query.query += " LIMIT 1";
   auto cf2 = Query("query_status", query);
-  cf2.getQueryStatus(101, new_epoch, new_query);
-  EXPECT_FALSE(new_epoch);
-  EXPECT_TRUE(new_query);
+  cf2.getQueryStatus(101, new_query_epoch, new_query_sql);
+  EXPECT_FALSE(new_query_epoch);
+  EXPECT_TRUE(new_query_sql);
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {
