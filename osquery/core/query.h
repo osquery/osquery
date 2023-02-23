@@ -172,17 +172,16 @@ class Query {
    * @brief Get the query invocation counter.
    *
    * This method returns query invocation counter. If the query is returning all
-   * records, the counter resets to 0. If the query is a new query, but not
-   * returning all records, the counter resets to 1. Otherwise the counter
-   * associated with the query is retrieved from the database and incremented
-   * by 1.
+   * records, the counter resets to 0. If the counter is resetting, but not
+   * returning all records, it resets to 1. Otherwise the counter associated
+   * with the query is retrieved from the database and incremented by 1.
    *
    * @param all_records Whether or not the query is including all records
-   * @param new_query Whether or not the query is new.
+   * @param is_reset Whether or not the query counter is reset.
    *
    * @return the query invocation counter.
    */
-  uint64_t getQueryCounter(bool all_records, bool new_query) const;
+  uint64_t getQueryCounter(bool all_records, bool is_reset) const;
 
   /**
    * @brief Check if a given scheduled query exists in the database.
