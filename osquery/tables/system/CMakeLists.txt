@@ -65,6 +65,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/intel_me.cpp
       linux/kernel_info.cpp
       linux/kernel_modules.cpp
+      linux/kernel_keys.cpp
       linux/md_tables.cpp
       linux/memory_info.cpp
       linux/memory_map.cpp

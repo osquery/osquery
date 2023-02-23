@@ -1,0 +1,23 @@
+table_name("kernel_keys")
+description("List of security data, authentication keys and encryption keys.")
+schema([
+    Column("serial_number", TEXT, "The serial key of the key."),
+    Column("flags", TEXT, "A set of flags describing the state of the key."),
+    Column("usage", BIGINT, "the number of threads and open file references that"
+                     "refer to this key."),
+    Column("timeout", TEXT, "The amount of time until the key will expire,"
+                     "expressed in human-readable form. The string perm here"
+                     "means that the key is permanent (no timeout).  The"
+                     "string expd means that the key has already expired."),
+    Column("permissions", TEXT, "The key permissions, expressed as four hexadecimal"
+                     "bytes containing, from left to right, the"
+                     "possessor, user, group, and other permissions."),
+    Column("uid", BIGINT, "The user ID of the key owner."),
+    Column("gid", BIGINT, "The group ID of the key."),
+    Column("type", TEXT, "The key type."),
+    Column("description", TEXT, "The key description."),
+])
+implementation("system/kernel_keys@genKernelKeys")
+examples([
+  "select * from kernel_keys"
+])

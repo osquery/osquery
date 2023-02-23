@@ -158,6 +158,7 @@ function(generateNativeTables)
     "linux/apparmor_profiles.table:linux"
     "linux/apt_sources.table:linux"
     "linux/iptables.table:linux"
+    "linux/kernel_keys.table:linux"
     "linux/kernel_modules.table:linux"
     "linux/lxd_instances.table:linux"
     "linux/lxd_instance_config.table:linux"
