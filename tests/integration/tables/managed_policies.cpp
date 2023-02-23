@@ -26,22 +26,20 @@ TEST_F(managedPolicies, test_sanity) {
   // 1. Query data
   auto const data = execute_query("select * from managed_policies");
   // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
+  ASSERT_GE(data.size(), 0);
   // 3. Build validation map
   // See helper.h for available flags
   // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"domain", NormalType}
-  //      {"uuid", NormalType}
-  //      {"name", NormalType}
-  //      {"value", NormalType}
-  //      {"username", NormalType}
-  //      {"manual", IntType}
-  //}
+  ValidationMap row_map = {
+      {"domain", NormalType},
+      {"uuid", NormalType},
+      {"name", NormalType},
+      {"value", NormalType},
+      {"username", NormalType},
+      {"manual", IntType},
+  };
   // 4. Perform validation
-  // validate_rows(data, row_map);
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
