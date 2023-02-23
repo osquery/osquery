@@ -46,28 +46,24 @@ TEST_F(QueryTests, test_increment_counter) {
   auto cf = Query("foobar", query);
 
   uint64_t counter = 1;
-  // start with new epoch (all records) and new query
+  // start with with a reset that includes all records
   auto status = cf.incrementCounter(true, true, counter);
   ASSERT_TRUE(status.ok());
   EXPECT_EQ(0, counter);
 
-  // increment counter normally a couple times
-  status = cf.incrementCounter(false, false, counter);
+  // increment counter normally where reset_has_all_records should be ignored
+  status = cf.incrementCounter(false, true, counter);
   ASSERT_TRUE(status.ok());
   EXPECT_EQ(1, counter);
+  // increment counter normally again (with non reset_has_all_records case)
   status = cf.incrementCounter(false, false, counter);
   ASSERT_TRUE(status.ok());
   EXPECT_EQ(2, counter);
 
-  // check a new query in the same epoch resets it to 1
-  status = cf.incrementCounter(false, true, counter);
-  ASSERT_TRUE(status.ok());
-  EXPECT_EQ(1, counter);
-
-  // check a new epoch with same query resets it to 0
+  // check a reset that doesn't return all records resets to 1 instead
   status = cf.incrementCounter(true, false, counter);
   ASSERT_TRUE(status.ok());
-  EXPECT_EQ(0, counter);
+  EXPECT_EQ(1, counter);
 }
 
 TEST_F(QueryTests, test_get_query_status) {
@@ -83,7 +79,8 @@ TEST_F(QueryTests, test_get_query_status) {
 
   // Add results for this query (this action is not under test).
   uint64_t counter = 0;
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 100, counter);
+  DiffResults dr;
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 100, counter, dr);
   ASSERT_TRUE(status.ok());
 
   // The query has results and the query text has not changed.
@@ -101,7 +98,7 @@ TEST_F(QueryTests, test_get_query_status) {
   EXPECT_FALSE(new_query_sql);
 
   // Add results for the new epoch (this action is not under test).
-  status = cf.addNewResults(getTestDBExpectedResults(), 101, counter);
+  status = cf.addNewResults(getTestDBExpectedResults(), 101, counter, dr);
   ASSERT_TRUE(status.ok());
 
   // The epoch is the same but the query text has changed.
@@ -120,7 +117,8 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
   uint64_t counter = 128;
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter);
+  DiffResults dr;
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter, dr);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
   EXPECT_EQ(counter, 0UL);
@@ -137,7 +135,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
     // Add the "current" results and output the differentials.
     DiffResults dr;
     counter = 128;
-    auto s = cf.addNewResults(result.second, 0, counter, dr, true);
+    auto s = cf.addNewResults(result.second, 0, counter, dr);
     EXPECT_TRUE(s.ok());
     EXPECT_EQ(counter, expected_counter++);
 
@@ -198,7 +196,6 @@ TEST_F(QueryTests, test_query_name_updated) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("will_update_query", query);
   EXPECT_TRUE(cf.isNewQuerySql());
-  EXPECT_TRUE(cf.isNewQuerySql());
 
   DiffResults dr;
   uint64_t counter = 128;
@@ -208,6 +205,13 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_EQ(counter, 0UL);
   EXPECT_FALSE(dr.hasNoResults());
 
+  // Add more results to increment counter normally and set up
+  // state for differential check below
+  results.resize(1);
+  cf.addNewResults(results, 0, counter, dr);
+
+  // Changing query SQL does a normal differential without resetting counter
+  results = getTestDBExpectedResults();
   query.query += " LIMIT 1";
   counter = 128;
   auto cf2 = Query("will_update_query", query);
@@ -215,8 +219,8 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_TRUE(cf2.isNewQuerySql());
   cf2.addNewResults(results, 0, counter, dr);
   EXPECT_FALSE(cf2.isNewQuerySql());
-  EXPECT_EQ(counter, 1UL);
-  EXPECT_TRUE(dr.hasNoResults());
+  EXPECT_EQ(counter, 2UL);
+  EXPECT_EQ(dr.added.size(), results.size() - 1);
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {

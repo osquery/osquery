@@ -42,17 +42,18 @@ uint64_t Query::getPreviousEpoch() const {
   return epoch;
 }
 
-uint64_t Query::getQueryCounter(bool all_records, bool is_reset) const {
+uint64_t Query::getQueryCounter(bool is_reset,
+                                bool reset_has_all_records) const {
   uint64_t counter = 0;
-  if (all_records) {
-    return counter;
-  }
-
-  // If it's a reset but not returning all records, start with 1 instead of
-  // 0. This allows consumers to reliably distinguish between differential
-  // results and results with all records.
   if (is_reset) {
-    return counter + 1;
+    if (reset_has_all_records) {
+      return counter;
+    } else {
+      // If it's a reset but not returning all records, start with 1 instead of
+      // 0. This allows consumers to reliably distinguish between differential
+      // results and results with all records.
+      return counter + 1;
+    }
   }
 
   std::string raw;
@@ -129,10 +130,10 @@ void Query::getQueryStatus(uint64_t epoch,
   }
 }
 
-Status Query::incrementCounter(bool all_records,
-                               bool is_reset,
+Status Query::incrementCounter(bool is_reset,
+                               bool reset_has_all_records,
                                uint64_t& counter) const {
-  counter = getQueryCounter(all_records, is_reset);
+  counter = getQueryCounter(is_reset, reset_has_all_records);
   return setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
 }
 
@@ -151,8 +152,7 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   }
   dr.added = std::move(current_qd);
   if (!dr.added.empty()) {
-    auto status =
-        incrementCounter(false, new_query_epoch || new_query_sql, counter);
+    auto status = incrementCounter(new_query_epoch, false, counter);
     if (!status.ok()) {
       return status;
     }
@@ -160,18 +160,10 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   return Status::success();
 }
 
-Status Query::addNewResults(QueryDataTyped qd,
-                            const uint64_t epoch,
-                            uint64_t& counter) const {
-  DiffResults dr;
-  return addNewResults(std::move(qd), epoch, counter, dr, false);
-}
-
 Status Query::addNewResults(QueryDataTyped current_qd,
                             const uint64_t current_epoch,
                             uint64_t& counter,
-                            DiffResults& dr,
-                            bool calculate_diff) const {
+                            DiffResults& dr) const {
   bool new_query_epoch = false;
   bool new_query_sql = false;
   getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
@@ -181,8 +173,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
-  bool all_records = false;
-  if (!new_query_epoch && calculate_diff) {
+  if (!new_query_epoch) {
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
@@ -195,7 +186,6 @@ Status Query::addNewResults(QueryDataTyped current_qd,
 
     update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
-    all_records = true;
     dr.added = std::move(current_qd);
     target_gd = &dr.added;
   }
@@ -214,9 +204,8 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     }
   }
 
-  if (update_db || new_query_epoch || new_query_sql) {
-    auto status = incrementCounter(
-        all_records, new_query_epoch || new_query_sql, counter);
+  if (update_db || new_query_epoch) {
+    auto status = incrementCounter(new_query_epoch, true, counter);
     if (!status.ok()) {
       return status;
     }

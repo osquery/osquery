@@ -171,17 +171,19 @@ class Query {
   /**
    * @brief Get the query invocation counter.
    *
-   * This method returns query invocation counter. If the query is returning all
-   * records, the counter resets to 0. If the counter is resetting, but not
-   * returning all records, it resets to 1. Otherwise the counter associated
-   * with the query is retrieved from the database and incremented by 1.
+   * This method returns query invocation counter. If the counter is resetting
+   * and returning all records, the counter resets to 0. If the counter is
+   * resetting, but not returning all records, it resets to 1. Otherwise the
+   * counter associated with the query is retrieved from the database and
+   * incremented by 1.
    *
-   * @param all_records Whether or not the query is including all records
    * @param is_reset Whether or not the query counter is reset.
+   * @param reset_has_all_records Whether or not a reset would include all
+   * records
    *
    * @return the query invocation counter.
    */
-  uint64_t getQueryCounter(bool all_records, bool is_reset) const;
+  uint64_t getQueryCounter(bool is_reset, bool reset_has_all_records) const;
 
   /**
    * @brief Check if a given scheduled query exists in the database.
@@ -203,25 +205,9 @@ class Query {
                       bool& new_query) const;
 
   /// Increment and return the query counter.
-  Status incrementCounter(bool all_records,
-                          bool new_query,
+  Status incrementCounter(bool is_reset,
+                          bool reset_has_all_records,
                           uint64_t& counter) const;
-
-  /**
-   * @brief Add a new set of results to the persistent storage.
-   *
-   * Given the results of the execution of a scheduled query, add the results
-   * to the database using addNewResults.
-   *
-   * @param qd the QueryDataTyped object, which has the results of the query.
-   * @param epoch the epoch associated with QueryData
-   * @param counter [output] the output that holds the query execution counter.
-   *
-   * @return the success or failure of the operation.
-   */
-  Status addNewResults(QueryDataTyped qd,
-                       uint64_t epoch,
-                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -235,15 +221,13 @@ class Query {
    * @param epoch the epoch associated with QueryData
    * @param counter the output that holds the query execution counter.
    * @param dr an output to a DiffResults object populated based on last run.
-   * @param calculate_diff default true to populate dr.
    *
    * @return the success or failure of the operation.
    */
   Status addNewResults(QueryDataTyped qd,
                        uint64_t epoch,
                        uint64_t& counter,
-                       DiffResults& dr,
-                       bool calculate_diff = true) const;
+                       DiffResults& dr) const;
 
   /// A version of adding new results for events-based queries.
   Status addNewEvents(QueryDataTyped current_qd,
