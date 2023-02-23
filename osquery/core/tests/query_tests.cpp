@@ -197,14 +197,14 @@ TEST_F(QueryTests, test_query_name_updated) {
   QueryDataSet previous_qd;
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("will_update_query", query);
-  EXPECT_TRUE(cf.isNewQuery());
-  EXPECT_TRUE(cf.isNewQuery());
+  EXPECT_TRUE(cf.isNewQuerySql());
+  EXPECT_TRUE(cf.isNewQuerySql());
 
   DiffResults dr;
   uint64_t counter = 128;
   auto results = getTestDBExpectedResults();
   cf.addNewResults(results, 0, counter, dr);
-  EXPECT_FALSE(cf.isNewQuery());
+  EXPECT_FALSE(cf.isNewQuerySql());
   EXPECT_EQ(counter, 0UL);
   EXPECT_FALSE(dr.hasNoResults());
 
@@ -212,9 +212,9 @@ TEST_F(QueryTests, test_query_name_updated) {
   counter = 128;
   auto cf2 = Query("will_update_query", query);
   EXPECT_TRUE(cf2.isQueryNameInDatabase());
-  EXPECT_TRUE(cf2.isNewQuery());
+  EXPECT_TRUE(cf2.isNewQuerySql());
   cf2.addNewResults(results, 0, counter, dr);
-  EXPECT_FALSE(cf2.isNewQuery());
+  EXPECT_FALSE(cf2.isNewQuerySql());
   EXPECT_EQ(counter, 1UL);
   EXPECT_TRUE(dr.hasNoResults());
 }
