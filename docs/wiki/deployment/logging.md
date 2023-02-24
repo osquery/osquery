@@ -279,7 +279,7 @@ To aid with this, osquery maintains an `epoch` marker along with each scheduled 
 
 ### Schedule counter
 
-When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial `added` records. `counter` can be used to identify if the added records are all records from initial query of if they are new records. For initial query results that includes all records counter will be **"0"**. For subsequent query executions counter will be incremented by **1**. When `epoch` changes, counter will be reset back to `0`.
+When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial `added` records. `counter` can be used to identify if the added records are all records from initial query or if they are new records. For initial query results that include all records counter will be **"0"**, while initial results without all records (like event tables) will start at **"1"**. For subsequent query executions counter will be incremented by **1**. When `epoch` changes, counter will be reset back to the initial query state.
 
 ### Numerics
 

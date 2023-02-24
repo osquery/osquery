@@ -95,6 +95,7 @@ function(generateOsqueryUtils)
   if(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
       darwin/plist.h
+      darwin/iokit_helpers.h
     )
 
     generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})

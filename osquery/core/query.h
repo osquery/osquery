@@ -35,6 +35,9 @@ class Status;
  */
 struct QueryLogItem {
  public:
+  /// Indicates if results are in snapshot form instead of differential
+  bool isSnapshot;
+
   /// Differential results from the query.
   DiffResults results;
 
@@ -134,7 +137,7 @@ class Query {
       : query_(q.query), name_(std::move(name)) {}
 
   /**
-   * @brief Serialize the data in RocksDB into a useful data structure
+   * @brief Deserialize the data in RocksDB into a useful data structure
    *
    * This method retrieves the data from RocksDB and returns the data in a
    * std::multiset, in-order to apply binary search in diff function.
@@ -144,6 +147,19 @@ class Query {
    * @return the success or failure of the operation.
    */
   Status getPreviousQueryResults(QueryDataSet& results) const;
+
+  /**
+   * @brief Save query results json to the database
+   *
+   * This method saves updated query results json to the database and
+   * updates the epoch associated with the results.
+   *
+   * @param json  Json serialized results string
+   * @param epoch  Epoch the results are from
+   *
+   * @return the success or failure of the operation.
+   */
+  Status saveQueryResults(const std::string& json, uint64_t epoch) const;
 
   /**
    * @brief Get the epoch associated with the previous query results.
@@ -158,15 +174,19 @@ class Query {
   /**
    * @brief Get the query invocation counter.
    *
-   * This method returns query invocation counter. If the query is a new query,
-   * 0 is returned. Otherwise the counter associated with the query is retrieved
-   * from database and incremented by 1.
+   * This method returns query invocation counter. If the counter is resetting
+   * and returning all records, the counter resets to 0. If the counter is
+   * resetting, but not returning all records, it resets to 1. Otherwise the
+   * counter associated with the query is retrieved from the database and
+   * incremented by 1.
    *
-   * @param new_query Whether or not the query is new.
+   * @param is_reset Whether or not the query counter is reset.
+   * @param reset_has_all_records Whether or not a reset would include all
+   * records
    *
    * @return the query invocation counter.
    */
-  uint64_t getQueryCounter(bool new_query) const;
+  uint64_t getQueryCounter(bool is_reset, bool reset_has_all_records) const;
 
   /**
    * @brief Check if a given scheduled query exists in the database.
@@ -176,11 +196,11 @@ class Query {
   bool isQueryNameInDatabase() const;
 
   /**
-   * @brief Check if a query (not query name) is 'new' or altered.
+   * @brief Check if a query's SQL (not query name) is 'new' or altered.
    *
-   * @return true if the scheduled query has not been altered.
+   * @return true if the scheduled query has been altered.
    */
-  bool isNewQuery() const;
+  bool isNewQuerySql() const;
 
   /// Determines if this is a first run or new query.
   void getQueryStatus(uint64_t epoch,
@@ -188,23 +208,9 @@ class Query {
                       bool& new_query) const;
 
   /// Increment and return the query counter.
-  Status incrementCounter(bool reset, uint64_t& counter) const;
-
-  /**
-   * @brief Add a new set of results to the persistent storage.
-   *
-   * Given the results of the execution of a scheduled query, add the results
-   * to the database using addNewResults.
-   *
-   * @param qd the QueryDataTyped object, which has the results of the query.
-   * @param epoch the epoch associated with QueryData
-   * @param counter [output] the output that holds the query execution counter.
-   *
-   * @return the success or failure of the operation.
-   */
-  Status addNewResults(QueryDataTyped qd,
-                       uint64_t epoch,
-                       uint64_t& counter) const;
+  Status incrementCounter(bool is_reset,
+                          bool reset_has_all_records,
+                          uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -218,15 +224,13 @@ class Query {
    * @param epoch the epoch associated with QueryData
    * @param counter the output that holds the query execution counter.
    * @param dr an output to a DiffResults object populated based on last run.
-   * @param calculate_diff default true to populate dr.
    *
    * @return the success or failure of the operation.
    */
   Status addNewResults(QueryDataTyped qd,
                        uint64_t epoch,
                        uint64_t& counter,
-                       DiffResults& dr,
-                       bool calculate_diff = true) const;
+                       DiffResults& dr) const;
 
   /// A version of adding new results for events-based queries.
   Status addNewEvents(QueryDataTyped current_qd,

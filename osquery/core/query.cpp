@@ -42,10 +42,18 @@ uint64_t Query::getPreviousEpoch() const {
   return epoch;
 }
 
-uint64_t Query::getQueryCounter(bool new_query) const {
+uint64_t Query::getQueryCounter(bool is_reset,
+                                bool reset_has_all_records) const {
   uint64_t counter = 0;
-  if (new_query) {
-    return counter;
+  if (is_reset) {
+    if (reset_has_all_records) {
+      return counter;
+    } else {
+      // If it's a reset but not returning all records, start with 1 instead of
+      // 0. This allows consumers to reliably distinguish between differential
+      // results and results with all records.
+      return counter + 1;
+    }
   }
 
   std::string raw;
@@ -70,6 +78,15 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   return Status::success();
 }
 
+Status Query::saveQueryResults(const std::string& json, uint64_t epoch) const {
+  auto status = setDatabaseValue(kQueries, name_, json);
+  if (!status.ok()) {
+    return status;
+  }
+
+  return setDatabaseValue(kQueries, name_ + "epoch", std::to_string(epoch));
+}
+
 std::vector<std::string> Query::getStoredQueryNames() {
   std::vector<std::string> results;
   scanDatabaseKeys(kQueries, results);
@@ -86,34 +103,37 @@ static inline void saveQuery(const std::string& name,
   setDatabaseValue(kQueries, "query." + name, query);
 }
 
-bool Query::isNewQuery() const {
+bool Query::isNewQuerySql() const {
   std::string query;
   getDatabaseValue(kQueries, "query." + name_, query);
   return (query != query_);
 }
 
 void Query::getQueryStatus(uint64_t epoch,
-                           bool& fresh_results,
-                           bool& new_query) const {
+                           bool& new_query_epoch,
+                           bool& new_query_sql) const {
   if (!isQueryNameInDatabase()) {
     // This is the first encounter of the scheduled query.
-    fresh_results = true;
-    new_query = true;
+    new_query_epoch = true;
+    new_query_sql = true;
     LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
     saveQuery(name_, query_);
   } else if (getPreviousEpoch() != epoch) {
-    fresh_results = true;
+    new_query_epoch = true;
     LOG(INFO) << "New Epoch " << epoch << " for scheduled query " << name_;
-  } else if (isNewQuery()) {
-    // This query is 'new' in that the previous results may be invalid.
-    new_query = true;
+  } else if (isNewQuerySql()) {
+    // This query sql is 'new' indicating that the previous results may be
+    // invalid.
+    new_query_sql = true;
     LOG(INFO) << "Scheduled query has been updated: " + name_;
     saveQuery(name_, query_);
   }
 }
 
-Status Query::incrementCounter(bool reset, uint64_t& counter) const {
-  counter = getQueryCounter(reset);
+Status Query::incrementCounter(bool is_reset,
+                               bool reset_has_all_records,
+                               uint64_t& counter) const {
+  counter = getQueryCounter(is_reset, reset_has_all_records);
   return setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
 }
 
@@ -121,18 +141,18 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
                            const uint64_t current_epoch,
                            uint64_t& counter,
                            DiffResults& dr) const {
-  bool fresh_results = false;
-  bool new_query = false;
-  getQueryStatus(current_epoch, fresh_results, new_query);
-  if (fresh_results) {
-    auto status = setDatabaseValue(kQueries, name_, "[]");
+  bool new_query_epoch = false;
+  bool new_query_sql = false;
+  getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
+  if (new_query_epoch) {
+    auto status = saveQueryResults("[]", current_epoch);
     if (!status.ok()) {
       return status;
     }
   }
   dr.added = std::move(current_qd);
   if (!dr.added.empty()) {
-    auto status = incrementCounter(fresh_results || new_query, counter);
+    auto status = incrementCounter(new_query_epoch, false, counter);
     if (!status.ok()) {
       return status;
     }
@@ -140,29 +160,20 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   return Status::success();
 }
 
-Status Query::addNewResults(QueryDataTyped qd,
-                            const uint64_t epoch,
-                            uint64_t& counter) const {
-  DiffResults dr;
-  return addNewResults(std::move(qd), epoch, counter, dr, false);
-}
-
 Status Query::addNewResults(QueryDataTyped current_qd,
                             const uint64_t current_epoch,
                             uint64_t& counter,
-                            DiffResults& dr,
-                            bool calculate_diff) const {
-  // The current results are 'fresh' when not calculating a differential.
-  bool fresh_results = !calculate_diff;
-  bool new_query = false;
-  getQueryStatus(current_epoch, fresh_results, new_query);
+                            DiffResults& dr) const {
+  bool new_query_epoch = false;
+  bool new_query_sql = false;
+  getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
 
   // Use a 'target' avoid copying the query data when serializing and saving.
   // If a differential is requested and needed the target remains the original
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
-  if (!fresh_results && calculate_diff) {
+  if (!new_query_epoch) {
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
@@ -187,20 +198,14 @@ Status Query::addNewResults(QueryDataTyped current_qd,
       return status;
     }
 
-    status = setDatabaseValue(kQueries, name_, json);
-    if (!status.ok()) {
-      return status;
-    }
-
-    status = setDatabaseValue(
-        kQueries, name_ + "epoch", std::to_string(current_epoch));
+    status = saveQueryResults(json, current_epoch);
     if (!status.ok()) {
       return status;
     }
   }
 
-  if (update_db || fresh_results || new_query) {
-    auto status = incrementCounter(fresh_results || new_query, counter);
+  if (update_db || new_query_epoch) {
+    auto status = incrementCounter(new_query_epoch, true, counter);
     if (!status.ok()) {
       return status;
     }
@@ -275,7 +280,7 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 }
 
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
-  if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
+  if (!item.isSnapshot) {
     auto obj = doc.getObject();
     auto status =
         serializeDiffResults(item.results, doc, obj, FLAGS_logger_numerics);
@@ -316,23 +321,28 @@ Status serializeEvent(const QueryLogItem& item,
 
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
-  if (!item.results.added.empty() || !item.results.removed.empty()) {
-    auto status = serializeDiffResults(
-        item.results, temp_doc, temp_doc.doc(), FLAGS_logger_numerics);
-    if (!status.ok()) {
-      return status;
+  if (!item.isSnapshot) {
+    if (!item.results.hasNoResults()) {
+      auto status = serializeDiffResults(
+          item.results, temp_doc, temp_doc.doc(), FLAGS_logger_numerics);
+      if (!status.ok()) {
+        return status;
+      }
+    } else {
+      return Status::success();
     }
-  } else if (!item.snapshot_results.empty()) {
-    auto arr = doc.getArray();
-    auto status = serializeQueryData(
-        item.snapshot_results, temp_doc, arr, FLAGS_logger_numerics);
-    if (!status.ok()) {
-      return status;
-    }
-    temp_doc.add("snapshot", arr);
   } else {
-    // This error case may also be represented in serializeQueryLogItem.
-    return Status(1, "No differential or snapshot results");
+    if (!item.snapshot_results.empty()) {
+      auto arr = doc.getArray();
+      auto status = serializeQueryData(
+          item.snapshot_results, temp_doc, arr, FLAGS_logger_numerics);
+      if (!status.ok()) {
+        return status;
+      }
+      temp_doc.add("snapshot", arr);
+    } else {
+      return Status::success();
+    }
   }
 
   for (auto& action : temp_doc.doc().GetObject()) {

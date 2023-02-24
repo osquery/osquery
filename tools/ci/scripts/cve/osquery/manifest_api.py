@@ -15,6 +15,7 @@ libraries_without_commit = ["openssl"]
 # There are no CPE for these libraries
 libraries_without_cpe = [
     "ebpfpub",
+    "linuxevents",
     "gflags",
     "glog",
     "librdkafka",

@@ -144,6 +144,7 @@ std::pair<JSON, QueryLogItem> getSerializedQueryLogItem() {
   QueryLogItem i;
   JSON doc = JSON::newObject();
   auto dr = getSerializedDiffResults();
+  i.isSnapshot = false;
   i.results = std::move(dr.second);
   i.name = "foobar";
   i.calendar_time = "Mon Aug 25 12:10:57 2014";

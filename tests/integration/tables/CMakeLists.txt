@@ -38,6 +38,7 @@ function(generateTestsIntegrationTablesTestsTest)
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
+    cpu_info.cpp
     etc_hosts.cpp
     etc_protocols.cpp
     etc_services.cpp
@@ -156,6 +157,7 @@ function(generateTestsIntegrationTablesTestsTest)
       iptables.cpp
       kernel_info.cpp
       kernel_modules.cpp
+      kernel_keys.cpp
       md_devices.cpp
       md_drives.cpp
       md_personalities.cpp
@@ -282,7 +284,6 @@ function(generateTestsIntegrationTablesTestsTest)
       windows_firewall_rules.cpp
       chassis_info.cpp
       chocolatey_packages.cpp
-      cpu_info.cpp
       default_environment.cpp
       disk_info.cpp
       drivers.cpp
@@ -365,6 +366,7 @@ function(generateTestsIntegrationTablesTestsTest)
     set(root_test_name_list
       "memoryDevices.test_sanity"
       "Secureboot.test_sanity"
+      "cpuInfo.test_sanity"
     )
 
     set(gtest_filter "")
@@ -395,8 +397,8 @@ function(generateTestsIntegrationTablesTestsTest)
       )
 
       set_tests_properties(
-          tests_integration_tables_root-test
-          PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+        tests_integration_tables_root-test
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
       )
     endif()
 

@@ -931,7 +931,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release]
-        bitness: [32, 64]
+        bitness: [64]
         os: [windows-2019]
 
     steps:

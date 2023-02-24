@@ -198,15 +198,15 @@ TEST_F(DistributedTests, test_workflow) {
   auto dist = Distributed();
   auto s = dist.pullUpdates();
   ASSERT_TRUE(s.ok()) << s.getMessage();
-  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(s.getMessage(), "OK");
 
   auto queries = dist.getPendingQueries();
 
   EXPECT_EQ(queries.size(), 2U);
   EXPECT_EQ(dist.results_.size(), 0U);
   s = dist.runQueries();
-  ASSERT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+  EXPECT_EQ(s.getMessage(), "OK");
 
   queries = dist.getPendingQueries();
   EXPECT_EQ(queries.size(), 0U);
@@ -341,5 +341,98 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
       getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts2);
   ASSERT_FALSE(status.ok()); // NotFound
   ASSERT_TRUE(ts2.empty());
+}
+
+TEST_F(DistributedTests, test_accept_work_basic) {
+  auto dist = Distributed();
+
+  const std::string work = R"json(
+{
+  "queries": {
+    "q1": "SELECT * FROM system_info;",
+    "q2": "SELECT * FROM osquery_info;"
+  }
+}
+)json";
+  auto s = dist.acceptWork(work);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+  const auto queries = dist.getPendingQueries();
+  ASSERT_EQ(queries.size(), 2);
+  for (const auto& queryName : queries) {
+    ASSERT_FALSE(queryName.compare("q1") && queryName.compare("q2"))
+        << queryName;
+    std::string actualQuery;
+    s = getDatabaseValue(kDistributedQueries, queryName, actualQuery);
+    ASSERT_TRUE(s.ok()) << s.getMessage();
+    std::string expectedQuery;
+    if (queryName.compare("q1") == 0) {
+      expectedQuery = "SELECT * FROM system_info;";
+    } else { // q2
+      expectedQuery = "SELECT * FROM osquery_info;";
+    }
+    EXPECT_EQ(actualQuery, expectedQuery);
+  }
+}
+
+TEST_F(DistributedTests, test_accept_work_with_discovery) {
+  auto dist = Distributed();
+
+  const std::string work = R"json(
+{
+  "queries": {
+    "q1": "SELECT * FROM system_info;",
+    "q2": "SELECT * FROM time;",
+    "q3": "SELECT * FROM osquery_info;"
+  },
+  "discovery": {
+    "q1": "SELECT 1;",
+    "q2": "SELECT 1 WHERE false;"
+  }
+}
+)json";
+  auto s = dist.acceptWork(work);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  // Query q1 has a discovery query with > 0 results.
+  // Query q2 has a discovery query with 0 results, thus it won't be executed.
+  // Query q3 does not have a discovery query, thus it will be executed.
+  const auto queryNames = dist.getPendingQueries();
+  ASSERT_EQ(queryNames.size(), 2);
+  for (const auto& queryName : queryNames) {
+    ASSERT_TRUE(queryName == "q1" || queryName == "q3");
+    std::string actualQuery;
+    s = getDatabaseValue(kDistributedQueries, queryName, actualQuery);
+    ASSERT_TRUE(s.ok()) << s.getMessage();
+    std::string expectedQuery = "SELECT * FROM system_info;";
+    if (queryName == "q3") {
+      expectedQuery = "SELECT * FROM osquery_info;";
+    }
+    EXPECT_EQ(actualQuery, expectedQuery);
+  }
+}
+
+// Tests https://github.com/osquery/osquery/issues/5260.
+TEST_F(DistributedTests, test_accept_work_with_discovery_all_fail) {
+  auto dist = Distributed();
+
+  const std::string work = R"json(
+{
+  "queries": {
+    "q1": "SELECT * FROM system_info;",
+    "q2": "SELECT * FROM osquery_info;"
+  },
+  "discovery": {
+    "q1": "SELECT 1 WHERE false;",
+    "q2": "SELECT 1 WHERE false;"
+  }
+}
+)json";
+  auto s = dist.acceptWork(work);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  // Both queries q1 and q2 have a discovery query with 0 results,
+  // thus they won't be executed.
+  const auto queries = dist.getPendingQueries();
+  ASSERT_EQ(queries.size(), 0);
 }
 } // namespace osquery

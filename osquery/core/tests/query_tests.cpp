@@ -46,11 +46,22 @@ TEST_F(QueryTests, test_increment_counter) {
   auto cf = Query("foobar", query);
 
   uint64_t counter = 1;
-  auto status = cf.incrementCounter(true, counter);
+  // start with with a reset that includes all records
+  auto status = cf.incrementCounter(true, true, counter);
   ASSERT_TRUE(status.ok());
   EXPECT_EQ(0, counter);
 
-  status = cf.incrementCounter(false, counter);
+  // increment counter normally where reset_has_all_records should be ignored
+  status = cf.incrementCounter(false, true, counter);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(1, counter);
+  // increment counter normally again (with non reset_has_all_records case)
+  status = cf.incrementCounter(false, false, counter);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(2, counter);
+
+  // check a reset that doesn't return all records resets to 1 instead
+  status = cf.incrementCounter(true, false, counter);
   ASSERT_TRUE(status.ok());
   EXPECT_EQ(1, counter);
 }
@@ -60,43 +71,44 @@ TEST_F(QueryTests, test_get_query_status) {
   auto cf = Query("query_status", query);
 
   // We have never seen this query before (it has no results yet either).
-  bool fresh_results = false;
-  bool new_query = false;
-  cf.getQueryStatus(100, fresh_results, new_query);
-  EXPECT_TRUE(fresh_results);
-  EXPECT_TRUE(new_query);
+  bool new_query_epoch = false;
+  bool new_query_sql = false;
+  cf.getQueryStatus(100, new_query_epoch, new_query_sql);
+  EXPECT_TRUE(new_query_epoch);
+  EXPECT_TRUE(new_query_sql);
 
   // Add results for this query (this action is not under test).
   uint64_t counter = 0;
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 100, counter);
+  DiffResults dr;
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 100, counter, dr);
   ASSERT_TRUE(status.ok());
 
   // The query has results and the query text has not changed.
-  fresh_results = false;
-  new_query = false;
-  cf.getQueryStatus(100, fresh_results, new_query);
-  EXPECT_FALSE(fresh_results);
-  EXPECT_FALSE(new_query);
+  new_query_epoch = false;
+  new_query_sql = false;
+  cf.getQueryStatus(100, new_query_epoch, new_query_sql);
+  EXPECT_FALSE(new_query_epoch);
+  EXPECT_FALSE(new_query_sql);
 
   // The epoch changed so the previous results are invalid.
-  fresh_results = false;
-  new_query = false;
-  cf.getQueryStatus(101, fresh_results, new_query);
-  EXPECT_TRUE(fresh_results);
-  EXPECT_FALSE(new_query);
+  new_query_epoch = false;
+  new_query_sql = false;
+  cf.getQueryStatus(101, new_query_epoch, new_query_sql);
+  EXPECT_TRUE(new_query_epoch);
+  EXPECT_FALSE(new_query_sql);
 
   // Add results for the new epoch (this action is not under test).
-  status = cf.addNewResults(getTestDBExpectedResults(), 101, counter);
+  status = cf.addNewResults(getTestDBExpectedResults(), 101, counter, dr);
   ASSERT_TRUE(status.ok());
 
   // The epoch is the same but the query text has changed.
-  fresh_results = false;
-  new_query = false;
+  new_query_epoch = false;
+  new_query_sql = false;
   query.query += " LIMIT 1";
   auto cf2 = Query("query_status", query);
-  cf2.getQueryStatus(101, fresh_results, new_query);
-  EXPECT_FALSE(fresh_results);
-  EXPECT_TRUE(new_query);
+  cf2.getQueryStatus(101, new_query_epoch, new_query_sql);
+  EXPECT_FALSE(new_query_epoch);
+  EXPECT_TRUE(new_query_sql);
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {
@@ -105,7 +117,8 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
   uint64_t counter = 128;
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter);
+  DiffResults dr;
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter, dr);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
   EXPECT_EQ(counter, 0UL);
@@ -122,7 +135,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
     // Add the "current" results and output the differentials.
     DiffResults dr;
     counter = 128;
-    auto s = cf.addNewResults(result.second, 0, counter, dr, true);
+    auto s = cf.addNewResults(result.second, 0, counter, dr);
     EXPECT_TRUE(s.ok());
     EXPECT_EQ(counter, expected_counter++);
 
@@ -182,24 +195,32 @@ TEST_F(QueryTests, test_query_name_updated) {
   QueryDataSet previous_qd;
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("will_update_query", query);
-  EXPECT_TRUE(cf.isNewQuery());
-  EXPECT_TRUE(cf.isNewQuery());
+  EXPECT_TRUE(cf.isNewQuerySql());
 
   DiffResults dr;
   uint64_t counter = 128;
   auto results = getTestDBExpectedResults();
   cf.addNewResults(results, 0, counter, dr);
-  EXPECT_FALSE(cf.isNewQuery());
+  EXPECT_FALSE(cf.isNewQuerySql());
   EXPECT_EQ(counter, 0UL);
+  EXPECT_FALSE(dr.hasNoResults());
 
+  // Add more results to increment counter normally and set up
+  // state for differential check below
+  results.resize(1);
+  cf.addNewResults(results, 0, counter, dr);
+
+  // Changing query SQL does a normal differential without resetting counter
+  results = getTestDBExpectedResults();
   query.query += " LIMIT 1";
   counter = 128;
   auto cf2 = Query("will_update_query", query);
   EXPECT_TRUE(cf2.isQueryNameInDatabase());
-  EXPECT_TRUE(cf2.isNewQuery());
+  EXPECT_TRUE(cf2.isNewQuerySql());
   cf2.addNewResults(results, 0, counter, dr);
-  EXPECT_FALSE(cf2.isNewQuery());
-  EXPECT_EQ(counter, 0UL);
+  EXPECT_FALSE(cf2.isNewQuerySql());
+  EXPECT_EQ(counter, 2UL);
+  EXPECT_EQ(dr.added.size(), results.size() - 1);
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {

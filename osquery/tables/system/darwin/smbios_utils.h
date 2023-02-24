@@ -41,5 +41,5 @@ class DarwinSMBIOSParser : public SMBIOSParser {
  private:
   uint8_t* smbios_data_{nullptr};
 };
-}
-}
+} // namespace tables
+} // namespace osquery
