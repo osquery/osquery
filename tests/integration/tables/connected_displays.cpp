@@ -31,7 +31,7 @@ TEST_F(connectedDisplays, test_sanity) {
       {"display_id", NormalType},
       {"pixels", NormalType},
       {"resolution", NormalType},
-      {"ambient_brightness", IntType},
+      {"ambient_brightness_enabled", IntType},
       {"connection_type", NormalType},
       {"display_type", NormalType},
       {"main", IntType},

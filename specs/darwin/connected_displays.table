@@ -10,7 +10,7 @@ schema([
     Column("display_id", TEXT, "The display ID."),
     Column("pixels", TEXT, "The number of pixels of the display."),
     Column("resolution", TEXT, "The resolution of the display."),
-    Column("ambient_brightness", TEXT, "The ambient brightness of the display. This will be 1 if enabled and is 0 if disabled or not supported."),
+    Column("ambient_brightness_enabled", TEXT, "The ambient brightness setting associated with the display. This will be 1 if enabled and is 0 if disabled or not supported."),
     Column("connection_type", TEXT, "The connection type associated with the display."),
     Column("display_type", TEXT, "The type of display."),
     Column("main", INTEGER, "If the display is the main display."),
