@@ -163,8 +163,6 @@ QueryData genConnectedDisplays(QueryContext& context) {
           [[obj valueForKey:@"spdisplays_connection_type"] UTF8String]);
     }
 
-    
-
     if ([obj valueForKey:@"spdisplays_display_type"]) {
       r["display_type"] = TEXT(
           [[obj valueForKey:@"spdisplays_display_type"] UTF8String]);

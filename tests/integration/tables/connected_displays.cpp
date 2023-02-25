@@ -7,17 +7,17 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
- #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/integration/tables/helper.h>
 
- namespace osquery {
- namespace table_tests {
+namespace osquery {
+namespace table_tests {
 
- class connectedDisplays : public testing::Test {
-  protected:
-   void SetUp() override {
-     setUpEnvironment();
-   }
- };
+class connectedDisplays : public testing::Test {
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
+};
 
  TEST_F(connectedDisplays, test_sanity) {
    auto const data = execute_query("select * from connected_displays");
