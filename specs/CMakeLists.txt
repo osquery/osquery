@@ -312,6 +312,7 @@ function(generateNativeTables)
     list(APPEND platform_dependent_spec_files
       "linux/bpf_process_events.table:linux"
       "linux/bpf_socket_events.table:linux"
+      "linux/bpf_file_events.table:linux"
     )
   endif()
   
