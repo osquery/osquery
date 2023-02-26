@@ -1,0 +1,22 @@
+table_name("bpf_file_events")
+description("Track network socket opens and closes.")
+schema([
+    Column("tid", BIGINT, "Thread ID"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("parent", BIGINT, "Parent process ID"),
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID"),
+    Column("cid", INTEGER, "Cgroup ID"),
+    Column("fd", INTEGER, "File descriptor"),
+    Column("probe_error", INTEGER, "Set to 1 if one or more buffers could not be captured"),
+    Column("syscall", TEXT, "System call name"),
+    Column("path", TEXT, "Path of executed file"),
+    Column("file_path", TEXT, "File path which was opened"),
+    Column("flags", TEXT, "Flags used for file opening"),
+    Column("ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
+    Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
+    Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
+    Column("uptime", TEXT, "Time of execution in system uptime"),
+])
+attributes(event_subscriber=True)
+implementation("bpf_file_events@bpf_file_events::genTable")
