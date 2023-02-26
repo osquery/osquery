@@ -80,7 +80,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
     return results;
   }
 
-  #pragma clang diagnostic pop
+#pragma clang diagnostic pop
 
   cleanup = [&]() {
     CFRelease((__bridge CFTypeRef)document);
@@ -88,10 +88,11 @@ QueryData genConnectedDisplays(QueryContext& context) {
     CFRelease(bundle);
   };
 
-  NSDictionary* report = [[[document reportForDataType:@"SPDisplaysDataType"] objectForKey:@"_items"] lastObject];
+  NSDictionary* report = [[[document reportForDataType:@"SPDisplaysDataType"]
+      objectForKey:@"_items"] lastObject];
   NSArray* data = [report valueForKeyPath:@"spdisplays_ndrvs"];
 
-  for (NSString *obj in data) {
+  for (NSString* obj in data) {
     Row r;
 
     if (data == nullptr) {
@@ -99,8 +100,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
     }
 
     if ([obj valueForKey:@"_name"]) {
-      r["name"] = TEXT(
-          [[obj valueForKey:@"_name"] UTF8String]);
+      r["name"] = TEXT([[obj valueForKey:@"_name"] UTF8String]);
     }
 
     if ([obj valueForKey:@"_spdisplays_display-product-id"]) {
@@ -114,70 +114,70 @@ QueryData genConnectedDisplays(QueryContext& context) {
     }
 
     if ([obj valueForKey:@"_spdisplays_display-vendor-id"]) {
-      r["vendor_id"] = TEXT(
-          [[obj valueForKey:@"_spdisplays_display-vendor-id"] UTF8String]);
+      r["vendor_id"] =
+          TEXT([[obj valueForKey:@"_spdisplays_display-vendor-id"] UTF8String]);
     }
 
     if ([obj valueForKey:@"_spdisplays_display-week"]) {
-      r["display_week"] = INTEGER(
-        [[obj valueForKey:@"_spdisplays_display-week"] intValue]);
+      r["manufactured_week"] =
+          INTEGER([[obj valueForKey:@"_spdisplays_display-week"] intValue]);
     } else {
-      r["display_week"] = INTEGER(0);
+      r["manufactured_week"] = INTEGER(0);
     }
 
     if ([obj valueForKey:@"_spdisplays_display-year"]) {
-      r["display_year"] = TEXT(
-        [[obj valueForKey:@"_spdisplays_display-year"] intValue]);
+      r["manufactured_year"] =
+          TEXT([[obj valueForKey:@"_spdisplays_display-year"] intValue]);
     } else {
-      r["display_year"] = INTEGER(0);
+      r["manufactured_year"] = INTEGER(0);
     }
 
     if ([obj valueForKey:@"_spdisplays_displayID"]) {
-      r["display_id"] = TEXT(
-          [[obj valueForKey:@"_spdisplays_displayID"] UTF8String]);
+      r["display_id"] =
+          TEXT([[obj valueForKey:@"_spdisplays_displayID"] UTF8String]);
     }
 
     if ([obj valueForKey:@"_spdisplays_pixels"]) {
-      r["pixels"] = TEXT(
-          [[obj valueForKey:@"_spdisplays_pixels"] UTF8String]);
+      r["pixels"] = TEXT([[obj valueForKey:@"_spdisplays_pixels"] UTF8String]);
     }
 
     if ([obj valueForKey:@"_spdisplays_resolution"]) {
-      r["resolution"] = TEXT(
-          [[obj valueForKey:@"_spdisplays_resolution"] UTF8String]);
+      r["resolution"] =
+          TEXT([[obj valueForKey:@"_spdisplays_resolution"] UTF8String]);
     }
 
-    if (NSString* ambient_brightness = [obj valueForKey:@"spdisplays_ambient_brightness"]) {
-      if ([ambient_brightness isEqualToString: @"spdisplays_yes"]) {
+    if (NSString* ambient_brightness =
+            [obj valueForKey:@"spdisplays_ambient_brightness"]) {
+      if ([ambient_brightness isEqualToString:@"spdisplays_yes"]) {
         r["ambient_brightness"] = INTEGER(1);
-      } 
-      if ([ambient_brightness isEqualToString: @"spdisplays_no"]) {
+      }
+      if ([ambient_brightness isEqualToString:@"spdisplays_no"]) {
         r["ambient_brightness"] = INTEGER(0);
-      } 
+      }
     } else {
-        r["ambient_brightness"] = INTEGER(0);
+      r["ambient_brightness"] = INTEGER(0);
     }
 
     if ([obj valueForKey:@"spdisplays_connection_type"]) {
-      r["connection_type"] = TEXT(
-          [[obj valueForKey:@"spdisplays_connection_type"] UTF8String]);
+      r["connection_type"] =
+          TEXT([[obj valueForKey:@"spdisplays_connection_type"] UTF8String]);
     }
 
     if ([obj valueForKey:@"spdisplays_display_type"]) {
-      r["display_type"] = TEXT(
-          [[obj valueForKey:@"spdisplays_display_type"] UTF8String]);
+      r["display_type"] =
+          TEXT([[obj valueForKey:@"spdisplays_display_type"] UTF8String]);
     }
 
     if (NSString* main = [obj valueForKey:@"spdisplays_main"]) {
-      if ([main isEqualToString: @"spdisplays_yes"]) {
+      if ([main isEqualToString:@"spdisplays_yes"]) {
         r["main"] = INTEGER(1);
-      } 
+      }
     } else {
-        r["main"] = INTEGER(0);
+      r["main"] = INTEGER(0);
     }
 
     if (NSString* mirror = [obj valueForKey:@"spdisplays_mirror"]) {
-      if ([mirror isEqualToString: @"spdisplays_on"]) {
+      if ([mirror isEqualToString:@"spdisplays_on"]) {
         r["mirror"] = INTEGER(1);
       } else {
         r["mirror"] = INTEGER(0);
@@ -185,7 +185,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
     }
 
     if (NSString* online = [obj valueForKey:@"spdisplays_online"]) {
-      if ([online isEqualToString: @"spdisplays_yes"]) {
+      if ([online isEqualToString:@"spdisplays_yes"]) {
         r["online"] = INTEGER(1);
       } else {
         r["online"] = INTEGER(0);
@@ -193,13 +193,13 @@ QueryData genConnectedDisplays(QueryContext& context) {
     }
 
     if (NSString* rotation = [obj valueForKey:@"spdisplays_rotation"]) {
-      if ([rotation isEqualToString: @"spdisplays_supported"]) {
+      if ([rotation isEqualToString:@"spdisplays_supported"]) {
         r["rotation"] = INTEGER(1);
       } else {
         r["rotation"] = INTEGER(0);
       }
     } else {
-        r["rotation"] = INTEGER(0);
+      r["rotation"] = INTEGER(0);
     }
 
     results.push_back(r);
@@ -207,6 +207,6 @@ QueryData genConnectedDisplays(QueryContext& context) {
 
   cleanup();
   return results;
-} // context 
+} // context
 } // namespace tables
 } // namespace osquery
