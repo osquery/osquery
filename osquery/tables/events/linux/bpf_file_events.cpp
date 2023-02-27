@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/logger/logger.h>
+
 #include <osquery/config/config.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
@@ -55,16 +55,9 @@ void configure_filtering() {
     Config::get().files([&accesses](const std::string& category,
                 const std::vector<std::string>& files) {
                 for (auto file : files) {
-                    replaceGlobWildcards(file);
-                    //std::cout << "File pattern: " << file << std::endl;
-
+                    replaceGlobWildcards(file)
                     std::vector<std::string> file_path_list = {};
                     resolveFilePattern(file, file_path_list);
-
-                    //for (const auto& file_path : file_path_list) {
-                    //    std::cout << "\t File path: " << file_path << std::endl;
-                    //}
-
                     monitored_paths.insert(monitored_paths.end(), file_path_list.begin(), file_path_list.end());
                 }
     });
