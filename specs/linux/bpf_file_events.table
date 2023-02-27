@@ -1,5 +1,5 @@
 table_name("bpf_file_events")
-description("Track network socket opens and closes.")
+description("A File Integrity Monitor implementation using the bpf service. Track file opens and closes.")
 schema([
     Column("tid", BIGINT, "Thread ID"),
     Column("pid", BIGINT, "Process ID"),
