@@ -61,7 +61,7 @@ function(generateOsqueryCoreInit)
     add_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
   endif()
 
-  add_test(NAME osquery_core_tests_watchertests-test COMMAND osquery_core_tests_watchertests-test)
+  add_test(NAME osquery_core_tests_mergedtests-test COMMAND osquery_core_tests_mergedtests-test)
 
 endfunction()
 
@@ -149,10 +149,6 @@ function(generateOsqueryCore)
 
   generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${public_header_files})
 
-  add_test(NAME osquery_core_tests_flagstests-test COMMAND osquery_core_tests_flagstests-test)
-  add_test(NAME osquery_core_tests_systemtests-test COMMAND osquery_core_tests_systemtests-test)
-  add_test(NAME osquery_core_tests_tablestests-test COMMAND osquery_core_tests_tablestests-test)
-  add_test(NAME osquery_core_tests_querytests-test COMMAND osquery_core_tests_querytests-test)
   add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
 
   if(DEFINED PLATFORM_WINDOWS)

@@ -7,13 +7,9 @@
 
 function(osqueryEventsTestsMain)
   generateOsqueryEventsTestsTest()
-  generateOsqueryEventsTestsEventsdatabasetestsTest()
 
   if(DEFINED PLATFORM_LINUX)
-    generateOsqueryEventsTestsSyslogtestsTest()
-    generateOsqueryEventsTestsAudittestsTest()
-    generateOsqueryEventsTestsProcessfileeventstestsTest()
-    generateOsqueryEventsTestsInotifytestsTest()
+    generateOsqueryEventsLinuxtestsTest()
 
     if(OSQUERY_BUILD_BPF)
       generateOsqueryEventsTestsBpftestsTest()
@@ -31,77 +27,19 @@ function(osqueryEventsTestsMain)
 endfunction()
 
 function(generateOsqueryEventsTestsTest)
-  add_osquery_executable(osquery_events_tests-test events_tests.cpp)
+  set(source_files
+      events_tests.cpp
+      mockedosquerydatabase.cpp
+      eventsubscriberplugin.cpp
+  )
+
+  add_osquery_executable(osquery_events_tests-test ${source_files})
 
   target_link_libraries(osquery_events_tests-test PRIVATE
-    osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
     osquery_core_sql
-    osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryEventsTestsEventsdatabasetestsTest)
-  add_osquery_executable(osquery_events_tests_eventsdatabasetests-test
-    mockedosquerydatabase.cpp
-    eventsubscriberplugin.cpp
-  )
-
-  target_link_libraries(osquery_events_tests_eventsdatabasetests-test PRIVATE
     osquery_cxx_settings
-    osquery_core
-    osquery_core_sql
-    osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem
-    osquery_tables_system_systemtable
-    osquery_utils
-    osquery_utils_conversions
-    specs_tables
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryEventsTestsSyslogtestsTest)
-  add_osquery_executable(osquery_events_tests_syslogtests-test linux/syslog_tests.cpp)
-
-  target_link_libraries(osquery_events_tests_syslogtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem
-    osquery_utils
-    osquery_utils_conversions
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryEventsTestsAudittestsTest)
-  add_osquery_executable(osquery_events_tests_audittests-test
-    linux/audit_tests.cpp
-    linux/socket_events.cpp
-  )
-
-  target_link_libraries(osquery_events_tests_audittests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_sql
     osquery_database
     osquery_events
     osquery_extensions
@@ -116,13 +54,21 @@ function(generateOsqueryEventsTestsAudittestsTest)
   )
 endfunction()
 
-function(generateOsqueryEventsTestsProcessfileeventstestsTest)
-  add_osquery_executable(osquery_events_tests_processfileeventstests-test linux/process_file_events_tests.cpp)
+function(generateOsqueryEventsLinuxtestsTest)
+  set(source_files
+      linux/syslog_tests.cpp
+      linux/audit_tests.cpp
+      linux/socket_events.cpp
+      linux/process_file_events_tests.cpp
+      linux/inotify_tests.cpp
+  )
 
-  target_link_libraries(osquery_events_tests_processfileeventstests-test PRIVATE
-    osquery_cxx_settings
+  add_osquery_executable(osquery_events_tests_linuxtests-test ${source_files})
+
+  target_link_libraries(osquery_events_tests_linuxtests-test PRIVATE
     osquery_core
     osquery_core_sql
+    osquery_cxx_settings
     osquery_database
     osquery_events
     osquery_extensions
@@ -132,9 +78,11 @@ function(generateOsqueryEventsTestsProcessfileeventstestsTest)
     osquery_utils
     osquery_utils_conversions
     specs_tables
+    tests_helper
     thirdparty_googletest
   )
 endfunction()
+
 
 function(generateOsqueryEventsTestsBpftestsTest)
   add_osquery_executable(
@@ -159,23 +107,6 @@ function(generateOsqueryEventsTestsBpftestsTest)
   )
 endfunction()
 
-function(generateOsqueryEventsTestsInotifytestsTest)
-  add_osquery_executable(osquery_events_tests_inotifytests-test linux/inotify_tests.cpp)
-
-  target_link_libraries(osquery_events_tests_inotifytests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_events
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem
-    osquery_utils
-    osquery_utils_conversions
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
 
 function(generateOsqueryEventsTestsFseventstestsTest)
   add_osquery_executable(osquery_events_tests_fseventstests-test darwin/fsevents_tests.cpp)
