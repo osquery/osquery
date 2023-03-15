@@ -138,6 +138,7 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
   QueryLogItem item;
   item.name = name;
   item.identifier = ident;
+  item.counter = 1; // default to 1 to differ from new epoch case (counter=0)
   item.time = osquery::getUnixTime();
   item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
