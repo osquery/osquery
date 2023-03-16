@@ -35,8 +35,13 @@ function(generateOsqueryCoreInit)
     osquery_extensions
     osquery_distributed
     osquery_utils_pidfile
-    osquery_experiments_loader
   )
+
+  if(OSQUERY_BUILD_EXPERIMENTS)
+    list(APPEND dependencies
+      osquery_experiments_loader
+    )
+  endif()
 
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND dependencies
