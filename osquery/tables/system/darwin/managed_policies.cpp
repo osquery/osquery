@@ -25,7 +25,11 @@ void genPolicy(const std::string& path,
                const std::string& username,
                QueryData& results) {
   Row r;
-  r["username"] = fs::path(username).stem().string();
+  auto usernameDir = fs::path(username);
+  if (usernameDir.filename_is_dot()) {
+    usernameDir = usernameDir.parent_path();
+  }
+  r["username"] = usernameDir.stem().string();
   r["domain"] = fs::path(path).stem().string();
   if (r.at("domain") == "complete") {
     // There is a special meta list that aggregates the user/system policy.
