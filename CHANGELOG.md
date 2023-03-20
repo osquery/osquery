@@ -15,13 +15,13 @@ Representing commits from 22 contributors! Thank you all.
 
 - Add ETW-based process events table for Windows ([#7821](https://github.com/osquery/osquery/pull/7821))
 - Add `pid_with_namespace` for `yara` table ([#7920](https://github.com/osquery/osquery/pull/7920))
-- Add a new table `kernel keys` to the Linux platform ([#7876](https://github.com/osquery/osquery/pull/7876))
-- Leave min_version empty in xprotect_meta when not specified ([#7926](https://github.com/osquery/osquery/pull/7926))
+- Add a new table `kernel_keys` to the Linux platform ([#7876](https://github.com/osquery/osquery/pull/7876))
+- Leave `min_version` empty in `xprotect_meta` when not specified ([#7926](https://github.com/osquery/osquery/pull/7926))
 - Port the `secureboot` table to macOS ([#7692](https://github.com/osquery/osquery/pull/7692))
 - Update `docker_container_stats` table to include `cached_memory` column ([#7807](https://github.com/osquery/osquery/pull/7807))
 - `cpu_info`: Port the table to macOS x86 and Apple Silicon ([#7757](https://github.com/osquery/osquery/pull/7757))
-- experiments: Implement a new bpf_process_events_v2 table ([#7773](https://github.com/osquery/osquery/pull/7773))
-- systemd_units: Add new unit_file_state column ([#7895](https://github.com/osquery/osquery/pull/7895))
+- experiments: Implement a new `bpf_process_events_v2` table ([#7773](https://github.com/osquery/osquery/pull/7773))
+- `systemd_units`: Add new `unit_file_state` column ([#7895](https://github.com/osquery/osquery/pull/7895))
 
 ### Under the Hood improvements
 
@@ -35,18 +35,18 @@ Representing commits from 22 contributors! Thank you all.
 
 - Clear cached constraints and columns in xBestIndex ([#7435](https://github.com/osquery/osquery/pull/7435))
 - Fix assert fail for unverified WMI request result ([#7921](https://github.com/osquery/osquery/pull/7921))
-- Fix leaks in scheduled_tasks (#7903) ([#7904](https://github.com/osquery/osquery/pull/7904))
+- Fix leaks in `scheduled_tasks` (#7903) ([#7904](https://github.com/osquery/osquery/pull/7904))
 - Flush console buffer during ungraceful exit ([#7829](https://github.com/osquery/osquery/pull/7829))
 - Propagate windows errors to the exit code ([#7896](https://github.com/osquery/osquery/pull/7896))
 - Relax osquery safe permissions check ([#7763](https://github.com/osquery/osquery/pull/7763))
 - Silence warnings for more builtin Chrome and Brave extensions ([#7932](https://github.com/osquery/osquery/pull/7932))
-- Workaround for hung routes table ([#7916](https://github.com/osquery/osquery/pull/7916))
+- Workaround for hung `routes` table ([#7916](https://github.com/osquery/osquery/pull/7916))
 - dns_resolvers: fix typo in the name when spawning in namespace ([#7875](https://github.com/osquery/osquery/pull/7875))
 - test: Fix flaky test_daemon_sigint ([#7888](https://github.com/osquery/osquery/pull/7888))
 
 ### Documentation
 
-- Add note about windows_security_products compatibility ([#7880](https://github.com/osquery/osquery/pull/7880))
+- Add note about `windows_security_products` compatibility ([#7880](https://github.com/osquery/osquery/pull/7880))
 - CHANGELOG 5.7.0 ([#7894](https://github.com/osquery/osquery/pull/7894))
 - Docs: mention the recent adoption of automatic CVE scanning ([#7878](https://github.com/osquery/osquery/pull/7878))
 - Fix broken link in CODE_OF_CONDUCT.md ([#7922](https://github.com/osquery/osquery/pull/7922))
