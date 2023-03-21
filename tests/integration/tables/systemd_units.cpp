@@ -33,6 +33,7 @@ TEST_F(SystemdUnitsTest, test_sanity) {
       {"load_state", NormalType},
       {"active_state", NormalType},
       {"sub_state", NormalType},
+      {"unit_file_state", NormalType},
       {"following", NormalType},
       {"object_path", NormalType},
       {"job_id", NormalType},
