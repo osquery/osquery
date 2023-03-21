@@ -367,15 +367,7 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
   HRESULT hr = E_FAIL;
 
   IWbemLocator* locator = nullptr;
-  hr = ::CoInitializeSecurity(nullptr,
-                              -1,
-                              nullptr,
-                              nullptr,
-                              RPC_C_AUTHN_LEVEL_DEFAULT,
-                              RPC_C_IMP_LEVEL_IMPERSONATE,
-                              nullptr,
-                              EOAC_NONE,
-                              nullptr);
+
   hr = ::CoCreateInstance(CLSID_WbemLocator,
                           0,
                           CLSCTX_INPROC_SERVER,
@@ -409,6 +401,57 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed to connect to server";
   }
+
+  // We need to set specific authentication information on the IWbemServices
+  // interface proxy prior making a call on one of this interface. This can
+  // be done by using QueryBlanket and SetBlanket() on the IClientSecurity
+  // interface.
+  IClientSecurity* pSecurity = NULL;
+  hr = services->QueryInterface(IID_IClientSecurity, (LPVOID*)&pSecurity);
+  if (FAILED(hr) || !pSecurity) {
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in IClientSecurity interface query";
+  }
+
+  // Querying the current authentication information
+  DWORD authnSvc = 0;
+  DWORD authzSvc = 0;
+  LPOLESTR serverPrincName = NULL;
+  DWORD authnLevel = 0;
+  DWORD impLevel = 0;
+  RPC_AUTH_IDENTITY_HANDLE authInfo = NULL;
+  DWORD ifCapabilites = 0;
+
+  hr = pSecurity->QueryBlanket(services,
+                               &authnSvc,
+                               &authzSvc,
+                               &serverPrincName,
+                               &authnLevel,
+                               &impLevel,
+                               &authInfo,
+                               &ifCapabilites);
+  if (FAILED(hr)) {
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in QueryBlanket call";
+  }
+
+  // Setting authentication information on proxy interface
+  hr = pSecurity->SetBlanket(services,
+                             authnSvc,
+                             authzSvc,
+                             serverPrincName,
+                             RPC_C_AUTHN_LEVEL_DEFAULT,
+                             RPC_C_IMP_LEVEL_IMPERSONATE,
+                             authInfo,
+                             EOAC_NONE);
+
+  if (FAILED(hr)) {
+    return createError(WmiError::ConstructionError)
+           << "WmiRequest creation failed in SetBlanket call";
+  }
+
+  pSecurity->Release();
+
   wmi_request.services_.reset(services);
 
   IEnumWbemClassObject* wbem_enum = nullptr;
