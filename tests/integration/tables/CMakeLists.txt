@@ -38,7 +38,6 @@ function(generateTestsIntegrationTablesTestsTest)
     chrome_extensions.cpp
     curl.cpp
     curl_certificate.cpp
-    cpu_info.cpp
     etc_hosts.cpp
     etc_protocols.cpp
     etc_services.cpp
@@ -50,7 +49,6 @@ function(generateTestsIntegrationTablesTestsTest)
     interface_details.cpp
     listening_ports.cpp
     logged_in_users.cpp
-    memory_devices.cpp
     npm_packages.cpp
     os_version.cpp
     osquery_events.cpp
@@ -78,6 +76,13 @@ function(generateTestsIntegrationTablesTestsTest)
     device_partitions.cpp
     ycloud_instance_metadata.cpp
   )
+
+  if(NOT PLATFORM_LINUX OR OSQUERY_BUILD_ROOT_TESTS)
+    list(APPEND source_files
+      cpu_info.cpp
+      memory_devices.cpp
+    )
+  endif()
 
   if(TARGET_PROCESSOR STREQUAL "x86_64")
     list(APPEND source_files cpuid.cpp)
@@ -173,7 +178,6 @@ function(generateTestsIntegrationTablesTestsTest)
       rpm_package_files.cpp
       rpm_packages.cpp
       selinux_events.cpp
-      secureboot.cpp
       shadow.cpp
       shared_memory.cpp
       socket_events.cpp
@@ -184,6 +188,12 @@ function(generateTestsIntegrationTablesTestsTest)
       yara.cpp
       yum_sources.cpp
     )
+
+    if(OSQUERY_BUILD_ROOT_TESTS)
+      list(APPEND platform_source_files
+        secureboot.cpp
+      )
+    endif()
 
     if(OSQUERY_BUILD_DPKG)
       list(APPEND platform_source_files
