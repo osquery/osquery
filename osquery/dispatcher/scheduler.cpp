@@ -158,6 +158,12 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
     return status;
   }
 
+  // Set counter to 1 here to be able to tell if this was a new epoch
+  // (counter=0) in the differential stream. Whenever actually logging
+  // results below, this counter value will have been overwritten in
+  // addNewResults or addNewEvents.
+  item.counter = 1;
+
   // Create a database-backed set of query results.
   auto dbQuery = Query(name, query);
   // Comparisons and stores must include escaped data.
