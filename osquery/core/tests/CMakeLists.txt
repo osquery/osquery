@@ -36,7 +36,6 @@ function(generateOsqueryCoreTestsMergedtestsTest)
     osquery_cxx_settings
     osquery_extensions
     osquery_extensions_implthrift
-    osquery_main
     osquery_process
     osquery_registry
     osquery_sql_tests_sqltestutils
@@ -53,7 +52,6 @@ function(generateOsqueryCoreTestsProcesstestsTest)
     osquery_cxx_settings
     osquery_extensions
     osquery_extensions_implthrift
-    osquery_main
     osquery_process
     tests_helper
     thirdparty_googletest
