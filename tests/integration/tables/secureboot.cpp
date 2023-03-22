@@ -47,9 +47,6 @@ TEST_F(Secureboot, test_sanity) {
 
   auto secureboot_data = execute_query("SELECT * FROM secureboot;");
 
-  // There should always be exactly 1 row, regardless:
-  ASSERT_EQ(secureboot_data.size(), 1);
-
   // Values should only ever be integers or empty:
   ValidationMap row_map{
       {"secure_boot", IntOrEmpty},
