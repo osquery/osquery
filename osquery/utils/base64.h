@@ -29,7 +29,7 @@ std::string decode(std::string encoded);
  * @param A string to encode.
  * @return Encoded string.
  */
-std::string encode(const std::string& unencoded);
+std::string encode(const std::string_view unencoded);
 
 } // namespace base64
 
