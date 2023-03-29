@@ -84,11 +84,36 @@ void genPackage(const std::string& path, Row& r, Logger& logger) {
   }
 }
 
+Status stdListDirectoriesInDirectory(const fs::path& path,
+                                     std::vector<std::string>& results,
+                                     bool recursive) {
+  if (path.empty() || !pathExists(path)) {
+    return Status(1, "Target directory is invalid");
+  }
+
+  if (recursive) {
+    for (const auto& entry : fs::recursive_directory_iterator(path)) {
+      if (fs::is_directory(entry)) {
+        results.push_back(entry.path().string());
+      }
+    }
+  } else {
+    for (const auto& entry : fs::directory_iterator(path)) {
+      if (fs::is_directory(entry)) {
+        results.push_back(entry.path().string());
+      }
+    }
+  }
+
+  return Status::success();
+}
+
 void genSiteDirectories(const std::string& site,
                         QueryData& results,
                         Logger& logger) {
   std::vector<std::string> directories;
-  if (!listDirectoriesInDirectory(site, directories, true).ok()) {
+
+  if (!stdListDirectoriesInDirectory(site, directories, true).ok()) {
     return;
   }
 
