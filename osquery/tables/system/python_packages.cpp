@@ -113,8 +113,14 @@ void genSiteDirectories(const std::string& site,
                         Logger& logger) {
   std::vector<std::string> directories;
 
-  if (!stdListDirectoriesInDirectory(site, directories, true).ok()) {
-    return;
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    if (!stdListDirectoriesInDirectory(site, directories, true).ok()) {
+      return;
+    }
+  } else {
+    if (!listDirectoriesInDirectory(site, directories, true).ok()) {
+      return;
+    }
   }
 
   for (const auto& directory : directories) {
