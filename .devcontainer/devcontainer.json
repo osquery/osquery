@@ -12,7 +12,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "make setup && cd build",
+	"postCreateCommand": "make setup",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
