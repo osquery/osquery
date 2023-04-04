@@ -25,8 +25,9 @@ test.specific.filtered:
 build:
 	cd build; cmake --build . -j${THREAD_COUNT}
 
-# setup: @ Setup this host, typically a container
+#setup: @ Setup this host, typically a container
 setup:
-	$(shell git rev-parse --show-toplevel)/.devcontainer/postCreateCommand.sh
+	mkdir -p build
+	cd build; cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 
 .PHONY: help test.all test.all.detail build setup

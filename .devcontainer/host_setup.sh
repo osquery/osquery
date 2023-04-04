@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 
@@ -23,10 +23,3 @@ sudo tar xvf /tmp/osquery-toolchain.tar.xz -C /usr/local
 # Afterward, verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`.
 wget -O /tmp/cmake-3.21.4-linux-$(uname -m).tar.gz https://cmake.org/files/v3.21/cmake-3.21.4-linux-$(uname -m).tar.gz
 sudo tar xvf /tmp/cmake-3.21.4-linux-$(uname -m).tar.gz -C /usr/local --strip 1
-
-# Create build dir
-mkdir -p build
-cd build
-
-# Build
-cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
