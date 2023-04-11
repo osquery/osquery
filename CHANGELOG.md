@@ -1,5 +1,32 @@
 # osquery Changelog
 
+<a name="5.8.2"></a>
+## [5.8.2](https://github.com/osquery/osquery/releases/tag/5.8.2)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.8.1...5.8.2)
+
+Representing commits from 6 contributors! Thank you all.
+
+
+### Bug Fixes
+
+- Fix empty batch result set reporting ([#7958](https://github.com/osquery/osquery/pull/7958))
+- Fix COM security initialization  by setting COM security per interface level ([#7963](https://github.com/osquery/osquery/pull/7963))
+- Fix username field in managed_policy table ([#7944](https://github.com/osquery/osquery/pull/7944))
+
+### Documentation
+
+- CHANGELOG 5.8.1 ([#7957](https://github.com/osquery/osquery/pull/7957))
+
+### Build
+
+- test: Do not always expect a row from the secureboot table ([#7967](https://github.com/osquery/osquery/pull/7967))
+- cmake: Only link against the experiments loader when needed ([#7959](https://github.com/osquery/osquery/pull/7959))
+- tests: Fix some tests becoming osquery shells ([#7964](https://github.com/osquery/osquery/pull/7964))
+- test: Fix SystemdUnitsTest missing the unit_file_state column ([#7965](https://github.com/osquery/osquery/pull/7965))
+- tests: Do not always build root tests on Linux ([#7966](https://github.com/osquery/osquery/pull/7966))
+
+
 <a name="5.8.1"></a>
 ## [5.8.1](https://github.com/osquery/osquery/releases/tag/5.8.1)
 
