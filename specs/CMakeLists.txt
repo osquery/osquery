@@ -304,6 +304,7 @@ function(generateNativeTables)
     "windows/prefetch.table:windows"
     "windows/tpm_info.table:windows"
     "windows/security_profile_info.table:windows"
+    "windows/windows_search.table:windows"
     "yara/yara_events.table:linux,macos"
     "yara/yara.table:linux,macos,windows"
   )
@@ -314,12 +315,12 @@ function(generateNativeTables)
       "linux/bpf_socket_events.table:linux"
     )
   endif()
-  
+
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files
       "windows/process_etw_events.table:windows"
     )
-  endif()  
+  endif()
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND platform_independent_spec_files

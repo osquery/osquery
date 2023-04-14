@@ -1,0 +1,13 @@
+table_name("windows_search")
+description("Run searches against the windows system index database.")
+schema([
+    Column("entity", TEXT, "index of entity"),
+    Column("attribute", TEXT, "attribute"),
+    Column("value", TEXT, "value"),
+    Column("query", TEXT, "windows search query", required=True),
+])
+implementation("system/windows/windows_search@genWindowsSearch")
+examples([
+    "select * from windows_search where query = 'select top 10 system.itempathdisplay from systemindex where scope = ''file:c:\'''",
+    "select * from windows_search where query = 'select top 10 system.itempathdisplay,system.size from systemindex where scope = ''file:c:\'''",
+])
