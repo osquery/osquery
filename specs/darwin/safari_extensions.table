@@ -12,6 +12,7 @@ schema([
     Column("developer_id", TEXT, "Optional developer identifier"),
     Column("description", TEXT, "Optional extension description text"),
     Column("path", TEXT, "Path to extension XAR bundle"),
+    Column("extension_type", TEXT, "Extension Type: WebOrAppExtension or LegacyExtension"),	
     ForeignKey(column="uid", table="users")
 ])
 attributes(user_data=True)
