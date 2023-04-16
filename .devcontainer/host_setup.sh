@@ -6,7 +6,7 @@ set -e
 sudo apt update
 
 # Install the prerequisites
-sudo apt install -y --no-install-recommends wget sudo xz-utils nano bc git python3 bison flex make cppcheck
+sudo apt install -y --no-install-recommends wget sudo xz-utils nano bc git python3 bison flex make cppcheck gdb
 
 # Optional: install python tests prerequisites
 sudo apt install -y --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
