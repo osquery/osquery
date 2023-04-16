@@ -25,7 +25,7 @@ test.specific.filtered:
 setup:
 	.devcontainer/host_setup.sh
 
-#cmake: @ Run cmake to prepare for build.  In a Devcontainer this was done for you already
+#cmake: @ Run cmake to prepare for build. In a Devcontainer this was done for you already
 cmake:
 	mkdir -p build
 	cd build; cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
