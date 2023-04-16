@@ -24,9 +24,9 @@ namespace osquery {
 
 static PlatformPidType __declspec(nothrow)
     duplicateHandle(osquery::PlatformPidType src) {
-  auto handle = osquery::kInvalidPid;
+  auto handle = kInvalidPid;
 
-  if (src != osquery::kInvalidPid) {
+  if (src != kInvalidPid) {
     if (!::DuplicateHandle(GetCurrentProcess(),
                            src,
                            GetCurrentProcess(),
@@ -34,7 +34,7 @@ static PlatformPidType __declspec(nothrow)
                            0,
                            FALSE,
                            DUPLICATE_SAME_ACCESS)) {
-      handle = osquery::kInvalidPid;
+      handle = kInvalidPid;
     }
   }
   return handle;
@@ -81,8 +81,10 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 }
 
 int PlatformProcess::pid() const {
-  auto pid = (id_ == INVALID_HANDLE_VALUE) ? -1 : GetProcessId(id_);
-  return static_cast<int>(pid);
+  if (!isValid()) {
+    return -1;
+  }
+  return static_cast<int>(::GetProcessId(id_));
 }
 
 bool PlatformProcess::kill() const {
@@ -201,10 +203,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   //       involved... Windows command line argument parsing is extremely
   //       nitpicky and is different in behavior than POSIX argv parsing.
   //
-  // We don't directly use argv.c_str() as the value for lpCommandLine in
-  // CreateProcess since that argument requires a modifiable buffer. So,
-  // instead, we off-load the contents of argv into a vector which will have its
-  // backing memory as modifiable.
   for (size_t i = 0; i < argc; i++) {
     std::wstring component(stringToWstring(argv[i]));
     if (component.find(' ') != std::string::npos) {
@@ -216,9 +214,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   }
 
   auto cmdline = argv_stream.str();
-  std::vector<WCHAR> mutable_argv(cmdline.begin(), cmdline.end());
-  mutable_argv.push_back(L'\0');
-
   LPWCH retrievedEnvironment = GetEnvironmentStrings();
   LPCWSTR currentEnvironment = retrievedEnvironment;
   std::wstringstream childEnvironment;
@@ -246,7 +241,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
   auto status =
       ::CreateProcess(nullptr,
-                      mutable_argv.data(),
+                      cmdline.data(),
                       nullptr,
                       nullptr,
                       TRUE,
@@ -293,13 +288,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   argv_stream << L"--timeout " << stringToWstring(extensions_timeout) << L" ";
   argv_stream << L"--interval " << stringToWstring(extensions_interval) << L" ";
 
-  // We don't directly use argv.c_str() as the value for lpCommandLine in
-  // CreateProcess since that argument requires a modifiable buffer. So,
-  // instead, we off-load the contents of argv into a vector which will have its
-  // backing memory as modifiable.
+  // Since C++17 std::basic_string<>::data() returns pointer to a mutable buffer
+  // of the string content. Also it is guaranteed that the buffer is
+  // null-terminated. See
+  // https://en.cppreference.com/w/cpp/string/basic_string/data
   auto argv = argv_stream.str();
-  std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
-  mutable_argv.push_back(L'\0');
 
   // In POSIX, this environment variable is set to the child's process ID. But
   // that is not easily accomplishable on Windows and provides no value since
@@ -312,12 +305,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
   // We are autoloading a Python extension, so pass off to our helper
   if (ext_path.extension().wstring() == L".ext") {
-    return launchTestPythonScript(wstringToString(
-        std::wstring(mutable_argv.begin(), mutable_argv.end())));
+    return launchTestPythonScript(wstringToString(argv));
   } else {
     auto status =
         ::CreateProcess(nullptr,
-                        mutable_argv.data(),
+                        argv.data(),
                         nullptr,
                         nullptr,
                         TRUE,
@@ -344,10 +336,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
   STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
-
-  auto argv = L"python " + stringToWstring(args);
-  std::vector<WCHAR> mutable_argv(argv.begin(), argv.end());
-  mutable_argv.push_back(L'\0');
   si.cb = sizeof(si);
 
   const auto pythonEnv = getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
@@ -356,10 +344,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   }
 
   auto pythonPath = *pythonEnv;
+  auto argv = L"python " + stringToWstring(args);
 
   std::shared_ptr<PlatformProcess> process;
   if (::CreateProcessW(stringToWstring(pythonPath).c_str(),
-                       mutable_argv.data(),
+                       argv.data(),
                        nullptr,
                        nullptr,
                        FALSE,
