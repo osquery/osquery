@@ -21,13 +21,17 @@ test.specific:
 test.specific.filtered: 
 	cd build; GTEST_FILTER=${FILTER} ctest -R ${TEST} -V
 
+#setup: @ Setup this host, typically a container. In a Devcontainer this was done for you already
+setup:
+	.devcontainer/host_setup.sh
+
+#cmake: @ Run cmake to prepare for build.  In a Devcontainer this was done for you already
+cmake:
+	mkdir -p build
+	cd build; cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
+
 #build: @ Build osquery binary
 build:
 	cd build; cmake --build . -j${THREAD_COUNT}
 
-#setup: @ Setup this host, typically a container
-setup:
-	mkdir -p build
-	cd build; cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
-
-.PHONY: help test.all test.all.detail build setup
+.PHONY: help test.all test.all.detail setup cmake build
