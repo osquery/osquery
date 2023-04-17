@@ -362,17 +362,17 @@ inline bool isUserExtension(const fs::path& app_extension_plist,
   // Gather user extension metainformation
   pt::ptree app_extension_ptree;
   pt::ptree web_extension_ptree;
-  getPtreeFromPlist(app_extension_plist, app_extension_ptree);
-  getPtreeFromPlist(web_extension_plist, web_extension_ptree);
 
   // Iterate over the list of user extensions and check if there is a match with
   // extension identifier
+  getPtreeFromPlist(app_extension_plist, app_extension_ptree);
   for (const auto& entry : app_extension_ptree) {
     if (!boost::algorithm::contains(entry.first, ext_data.identifier)) {
       return true;
     }
   }
 
+  getPtreeFromPlist(web_extension_plist, web_extension_ptree);
   for (const auto& entry : web_extension_ptree) {
     if (!boost::algorithm::contains(entry.first, ext_data.identifier)) {
       return true;
