@@ -16,7 +16,9 @@ pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 sudo apt install -y --no-install-recommends rpm binutils
 
 # Download and install the osquery toolchain
-wget -O /tmp/osquery-toolchain.tar.xz https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz
+sudo apt install -y jq
+version=$(curl https://api.github.com/repos/osquery/osquery-toolchain/releases | jq -r '.[0].tag_name')
+wget -O /tmp/osquery-toolchain.tar.xz https://github.com/osquery/osquery-toolchain/releases/download/${version}/osquery-toolchain-${version}-$(uname -m).tar.xz
 sudo tar xvf /tmp/osquery-toolchain.tar.xz -C /usr/local
 
 # Download and install a newer CMake.
