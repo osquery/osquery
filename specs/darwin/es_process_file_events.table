@@ -1,5 +1,5 @@
 table_name("es_process_file_events")
-description("Process execution events from EndpointSecurity.")
+description("File integrity monitoring events from EndpointSecurity including process context.")
 schema([
     Column("version", INTEGER, "Version of EndpointSecurity event"),
     Column("seq_num", BIGINT, "Per event sequence number"),

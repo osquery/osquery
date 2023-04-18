@@ -27,6 +27,30 @@ function(generateOsqueryHashing)
   )
 
   generateIncludeNamespace(osquery_hashing "osquery/hashing" "FILE_ONLY" ${public_header_files})
+
+  if(OSQUERY_BUILD_TESTS)
+    generateOsqueryHashingTestsTest()
+  endif()
+
+  add_test(NAME osquery_hashing_tests-test COMMAND osquery_hashing_tests-test)
+endfunction()
+
+function(generateOsqueryHashingTestsTest)
+  set(source_files
+    tests/hashing.cpp
+  )
+
+  add_osquery_executable(osquery_hashing_tests-test ${source_files})
+
+  target_link_libraries(osquery_hashing_tests-test PRIVATE
+    osquery_cxx_settings
+    osquery_hashing
+    osquery_filesystem
+    osquery_extensions
+    osquery_extensions_implthrift
+    tests_helper
+    thirdparty_googletest
+  )
 endfunction()
 
 osqueryHashingMain()
