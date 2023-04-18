@@ -27,6 +27,15 @@ namespace osquery {
 /// The buffer read size from file IO to hashing structures.
 const size_t kHashChunkSize{4096};
 
+Hash::Hash(Hash&& other)
+    : algorithm_(other.algorithm_),
+      encoding_(other.encoding_),
+      ctx_(other.ctx_),
+      length_(other.length_) {
+  // Reset the state of the original Hash object.
+  other.ctx_ = nullptr;
+}
+
 Hash::~Hash() {
   if (ctx_ != nullptr) {
     free(ctx_);
@@ -84,14 +93,10 @@ std::string Hash::digest() {
     }
     return digest.str();
   } else if (encoding_ == HASH_ENCODING_TYPE_BASE64) {
-    std::stringstream digest;
-    for (size_t i = 0; i < length_; i++) {
-      digest << hash[i];
-    }
-    return base64::encode(digest.str());
+    return base64::encode(std::string(hash.begin(), hash.end()));
   }
 
-  return "";
+  return std::string();
 }
 
 std::string hashFromBuffer(HashType hash_type,
@@ -103,11 +108,17 @@ std::string hashFromBuffer(HashType hash_type,
 }
 
 MultiHashes hashMultiFromFile(int mask, const std::string& path) {
-  std::map<HashType, std::shared_ptr<Hash>> hashes = {
-      {HASH_TYPE_MD5, std::make_shared<Hash>(HASH_TYPE_MD5)},
-      {HASH_TYPE_SHA1, std::make_shared<Hash>(HASH_TYPE_SHA1)},
-      {HASH_TYPE_SHA256, std::make_shared<Hash>(HASH_TYPE_SHA256)},
-  };
+  MultiHashes mh = {};
+  std::vector<std::pair<Hash, std::string*>> hashes;
+  if (mask & HASH_TYPE_MD5) {
+    hashes.emplace_back(Hash(HASH_TYPE_MD5), &mh.md5);
+  }
+  if (mask & HASH_TYPE_SHA1) {
+    hashes.emplace_back(Hash(HASH_TYPE_SHA1), &mh.sha1);
+  }
+  if (mask & HASH_TYPE_SHA256) {
+    hashes.emplace_back(Hash(HASH_TYPE_SHA256), &mh.sha256);
+  }
 
   auto blocking = isPlatform(PlatformType::TYPE_WINDOWS);
   auto s = readFile(path,
@@ -115,29 +126,19 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
                     kHashChunkSize,
                     false,
                     true,
-                    ([&hashes, &mask](std::string& buffer, size_t size) {
+                    ([&hashes](std::string& buffer, size_t size) {
                       for (auto& hash : hashes) {
-                        if (mask & hash.first) {
-                          hash.second->update(&buffer[0], size);
-                        }
+                        hash.first.update(&buffer[0], size);
                       }
                     }),
                     blocking);
-
-  MultiHashes mh = {};
   if (!s.ok()) {
     return mh;
   }
 
   mh.mask = mask;
-  if (mask & HASH_TYPE_MD5) {
-    mh.md5 = hashes.at(HASH_TYPE_MD5)->digest();
-  }
-  if (mask & HASH_TYPE_SHA1) {
-    mh.sha1 = hashes.at(HASH_TYPE_SHA1)->digest();
-  }
-  if (mask & HASH_TYPE_SHA256) {
-    mh.sha256 = hashes.at(HASH_TYPE_SHA256)->digest();
+  for (auto& hash : hashes) {
+    *hash.second = hash.first.digest();
   }
   return mh;
 }
@@ -145,11 +146,11 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
 std::string hashFromFile(HashType hash_type, const std::string& path) {
   auto hashes = hashMultiFromFile(hash_type, path);
   if (hash_type == HASH_TYPE_MD5) {
-    return hashes.md5;
+    return std::move(hashes.md5);
   } else if (hash_type == HASH_TYPE_SHA1) {
-    return hashes.sha1;
+    return std::move(hashes.sha1);
   } else {
-    return hashes.sha256;
+    return std::move(hashes.sha256);
   }
 }
 } // namespace osquery

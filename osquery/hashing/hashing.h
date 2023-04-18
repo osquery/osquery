@@ -79,6 +79,16 @@ class Hash : private boost::noncopyable {
   explicit Hash(HashType algorithm, HashEncodingType encoding);
 
   /**
+   * @brief Hash move constructor
+   *
+   * Initialize the Hash class from an existing object and take ownership of the
+   * context.
+   *
+   * @param other Source objest to move the state from.
+   */
+  Hash(Hash&& other);
+
+  /**
    * @brief Hash destructor
    */
   ~Hash();
@@ -107,14 +117,14 @@ class Hash : private boost::noncopyable {
    *
    * The osquery::Hash class should only ever be instantiated with a HashType
    */
-  Hash(){};
+  Hash() = delete;
 
  private:
   /// The hashing algorithm which is used to compute the hash
-  HashType algorithm_;
+  const HashType algorithm_;
 
   /// The encoding type used to encode the digest.
-  HashEncodingType encoding_;
+  const HashEncodingType encoding_;
 
   /// The buffer used to maintain the context and state of the hashing
   /// operations

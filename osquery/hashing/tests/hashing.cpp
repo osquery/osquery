@@ -56,6 +56,7 @@ TEST_F(HashingFilesystemTests, test_multi_hashing_file) {
   const auto mask = HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256;
   const auto hashes = hashMultiFromFile(mask, file_path.string());
 
+  EXPECT_EQ(hashes.mask, mask);
   EXPECT_EQ(hashes.md5, kHelloMD5Digest);
   EXPECT_EQ(hashes.sha1, kHelloSHA1Digest);
   EXPECT_EQ(hashes.sha256, kHelloSHA256Digest);
