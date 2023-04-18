@@ -20,39 +20,20 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #pragma comment(lib, "comsuppw.lib")
 
 namespace osquery {
 namespace tables {
 
-void writeDate(double date, std::wstringstream& wss)
-{
-    SYSTEMTIME sysTime;
-    BOOL ok = VariantTimeToSystemTime(date, &sysTime);
-    if (ok)
-    {
-        SYSTEMTIME localTime;
-        ok = SystemTimeToTzSpecificLocalTime(NULL, &sysTime, &localTime);
-        if (ok)
-        {
-            WCHAR szBuffer[100];
-            ok = GetDateFormat(LOCALE_USER_DEFAULT, 0, &localTime, NULL, szBuffer, ARRAYSIZE(szBuffer) / sizeof(WCHAR));
-            if (ok)
-            {
-                wss << szBuffer;
-                ok = GetTimeFormat(LOCALE_USER_DEFAULT, 0, &localTime, NULL, szBuffer, ARRAYSIZE(szBuffer) / sizeof(WCHAR));
-                if (ok)
-                {
-                    wss << szBuffer;
-                }
-            }
-        }
-    }
-    if (!ok)
-    {
-        wss << "could not write date " << date;
-    }
+LONGLONG dateToUnixTime(const DATE date) {
+    SYSTEMTIME st;
+    FILETIME ft;
+
+    VariantTimeToSystemTime(date, &st);
+    SystemTimeToFileTime(&st, &ft);
+    return filetimeToUnixtime(ft);
 }
 
 // This helper function can print some propvariants and handles BSTR vectors
@@ -97,7 +78,7 @@ void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss)
         case VT_I4: wss << variant.lVal; break;
         case VT_UI8: wss << variant.uhVal.HighPart << variant.uhVal.LowPart; break;
         case VT_I8: wss << variant.hVal.HighPart << variant.hVal.LowPart; break;
-        case VT_DATE: writeDate(variant.date, wss); break;
+        case VT_DATE: wss << dateToUnixTime(variant.date); break;
         default:
             wss << "unhandled variant type " << variant.vt;
             break;
@@ -157,8 +138,8 @@ std::string ccomandColumnStringValue(CCommand<CDynamicAccessor, CRowset>& cComma
             wss << *static_cast<LONGLONG*>(cCommand.GetValue(columnIndex));
             break;
         case DBTYPE_DATE:
-            writeDate(*static_cast<DATE*>(cCommand.GetValue(columnIndex)), wss);
-            break;
+            wss << dateToUnixTime(*static_cast<DATE*>(cCommand.GetValue(columnIndex)));
+        break;
         default:
             wss << "unhandled database type " << type;
             break;
