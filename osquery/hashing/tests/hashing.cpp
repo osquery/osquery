@@ -22,10 +22,16 @@ namespace osquery {
 
 namespace {
 const std::string kHelloString("HELLO");
+
 const std::string kHelloMD5Digest("eb61eead90e3b899c6bcbe27ac581660");
 const std::string kHelloSHA1Digest("c65f99f8c5376adadddc46d5cbcf5762f9e55eb7");
 const std::string kHelloSHA256Digest(
     "3733cd977ff8eb18b987357e22ced99f46097f31ecb239e878ae63760e83e4d5");
+
+const std::string kHelloMD5DigestBase64("62HurZDjuJnGvL4nrFgWYA==");
+const std::string kHelloSHA1DigestBase64("xl+Z+MU3atrd3EbVy89XYvnlXrc=");
+const std::string kHelloSHA256DigestBase64(
+    "NzPNl3/46xi5hzV+Is7Zn0YJfzHssjnoeK5jdg6D5NU=");
 } // namespace
 
 class HashingFilesystemTests : public testing::Test {
@@ -74,6 +80,12 @@ TEST(HashingTests, test_hashing_md5) {
   auto digest = hash.digest();
   EXPECT_EQ(digest, kHelloMD5Digest);
 
+  Hash hashBase64(HASH_TYPE_MD5, HASH_ENCODING_TYPE_BASE64);
+  hashBase64.update(kHelloString.c_str(), kHelloString.length());
+
+  digest = hashBase64.digest();
+  EXPECT_EQ(digest, kHelloMD5DigestBase64);
+
   digest = hashFromBuffer(
       HASH_TYPE_MD5, kHelloString.c_str(), kHelloString.length());
   EXPECT_EQ(digest, kHelloMD5Digest);
@@ -86,6 +98,12 @@ TEST(HashingTests, test_hashing_sha1) {
   auto digest = hash.digest();
   EXPECT_EQ(digest, kHelloSHA1Digest);
 
+  Hash hashBase64(HASH_TYPE_SHA1, HASH_ENCODING_TYPE_BASE64);
+  hashBase64.update(kHelloString.c_str(), kHelloString.length());
+
+  digest = hashBase64.digest();
+  EXPECT_EQ(digest, kHelloSHA1DigestBase64);
+
   digest = hashFromBuffer(
       HASH_TYPE_SHA1, kHelloString.c_str(), kHelloString.length());
   EXPECT_EQ(digest, kHelloSHA1Digest);
@@ -97,6 +115,12 @@ TEST(HashingTests, test_hashing_sha256) {
 
   auto digest = hash.digest();
   EXPECT_EQ(digest, kHelloSHA256Digest);
+
+  Hash hashBase64(HASH_TYPE_SHA256, HASH_ENCODING_TYPE_BASE64);
+  hashBase64.update(kHelloString.c_str(), kHelloString.length());
+
+  digest = hashBase64.digest();
+  EXPECT_EQ(digest, kHelloSHA256DigestBase64);
 
   digest = hashFromBuffer(
       HASH_TYPE_SHA256, kHelloString.c_str(), kHelloString.length());
