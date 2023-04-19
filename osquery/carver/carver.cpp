@@ -343,12 +343,16 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
       block.resize(r);
     }
 
+    // It is safe enough to cast `unsigned char*` to `[signed] char *` here.
+    // Underlying bits representation and aligment is the same (§3.9.1/1)
+    // and the pointer itself should not be changed after the cast (§5.2.10/7).
+    const std::string_view encode_data(reinterpret_cast<char*>(block.data()),
+                                       block.size());
     JSON params;
     params.add("block_id", i);
     params.add("session_id", session_id);
     params.add("request_id", requestId_);
-    params.add("data",
-               base64::encode(std::string_view(block.data(), block.size())));
+    params.add("data", base64::encode(encode_data));
 
     // TODO: Error sending files.
     status = contRequest.call(params);
