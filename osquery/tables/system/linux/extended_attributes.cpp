@@ -146,9 +146,11 @@ Status generateXattrRowsForPath(QueryData& output, const std::string& path) {
       --value_size;
     }
 
-    const std::string_view value(key_value.data(), value_size);
+    auto value = std::string(value_size, 0);
+    std::memcpy(&value[0], key_value.data(), value_size);
+
     if (!printable) {
-      value = base64::encode(value);
+      value = base64::encode(std::move(value));
     }
 
     row["key"] = TEXT(key_name);
