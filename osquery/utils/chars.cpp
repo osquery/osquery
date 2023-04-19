@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-bool isPrintable(const std::string& check) {
+bool isPrintable(std::string_view check) {
   for (const unsigned char ch : check) {
     if (ch >= 0x7F || ch <= 0x1F) {
       return false;

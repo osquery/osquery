@@ -347,7 +347,8 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     params.add("block_id", i);
     params.add("session_id", session_id);
     params.add("request_id", requestId_);
-    params.add("data", base64::encode(std::string(block.begin(), block.end())));
+    params.add("data",
+               base64::encode(std::string_view(block.data(), block.size())));
 
     // TODO: Error sending files.
     status = contRequest.call(params);
