@@ -417,7 +417,6 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
     // Traverse app directories to obtain app extension data if present
     SandboxedExtensionsData sandboxed_ext_data;
     for (const auto& app_directory : app_directories) {
-
       std::vector<std::string> app_internal_dirs;
       if (!listDirectoriesInDirectory(app_directory, app_internal_dirs, true)) {
         continue;
