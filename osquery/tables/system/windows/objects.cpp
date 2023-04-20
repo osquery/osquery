@@ -207,8 +207,8 @@ QueryData genBaseNamedObjects(QueryContext& context) {
     for (auto& object : objects) {
       Row r;
       r["session_id"] = INTEGER(tryTo<int>(session.first).takeOr(0));
-      r["object_name"] = wstringToString(object.first.c_str());
-      r["object_type"] = wstringToString(object.second.c_str());
+      r["object_name"] = wstringToString(object.first);
+      r["object_type"] = wstringToString(object.second);
 
       results.push_back(r);
     }

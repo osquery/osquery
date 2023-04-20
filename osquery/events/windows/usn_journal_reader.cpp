@@ -278,7 +278,7 @@ Status USNJournalReader::initialize() {
     if (!getWindowsErrorDescription(description, error_code)) {
       description = L"Unknown error";
     }
-    error_message << wstringToString(description.c_str());
+    error_message << wstringToString(description);
 
     return Status::failure(error_message.str());
   }
@@ -331,7 +331,7 @@ Status USNJournalReader::acquireRecords() {
     if (!getWindowsErrorDescription(description, ::GetLastError())) {
       description = L"Unknown error";
     }
-    error_message << wstringToString(description.c_str());
+    error_message << wstringToString(description);
 
     return Status::failure(error_message.str());
   }
@@ -803,7 +803,7 @@ bool GetEventString(std::string& buffer, const USN_RECORD* record) {
   }
 
   std::wstring wide_chars_file_name(filename, (name_length / sizeof(wchar_t)));
-  buffer = wstringToString(wide_chars_file_name.c_str());
+  buffer = wstringToString(wide_chars_file_name);
 
   return true;
 }

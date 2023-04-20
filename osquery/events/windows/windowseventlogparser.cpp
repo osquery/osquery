@@ -78,7 +78,7 @@ Status parseWindowsEventLogXML(pt::ptree& event_object,
   event_object = {};
 
   try {
-    auto converted_xml_event = wstringToString(xml_event.c_str());
+    auto converted_xml_event = wstringToString(xml_event);
     std::stringstream stream(std::move(converted_xml_event));
 
     pt::ptree output;
