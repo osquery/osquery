@@ -431,6 +431,9 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
                                &authInfo,
                                &ifCapabilites);
   if (FAILED(hr)) {
+    CoTaskMemFree(serverPrincName);
+    pSecurity->Release();
+
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in QueryBlanket call";
   }
@@ -444,13 +447,13 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
                              RPC_C_IMP_LEVEL_IMPERSONATE,
                              authInfo,
                              EOAC_NONE);
+  CoTaskMemFree(serverPrincName);
+  pSecurity->Release();
 
   if (FAILED(hr)) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in SetBlanket call";
   }
-
-  pSecurity->Release();
 
   wmi_request.services_.reset(services);
 
