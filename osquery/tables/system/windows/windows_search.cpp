@@ -31,9 +31,23 @@ LONGLONG dateToUnixTime(const DATE date) {
   SYSTEMTIME st;
   FILETIME ft;
 
-  VariantTimeToSystemTime(date, &st);
-  SystemTimeToFileTime(&st, &ft);
-  return filetimeToUnixtime(ft);
+  if (!VariantTimeToSystemTime(date, &st)) {
+    LOG(ERROR) << "Failed to convert date to system time";
+    return 0;
+  }
+
+  if (!SystemTimeToFileTime(&st, &ft)) {
+    LOG(ERROR) << "Failed to convert system time to file time";
+    return 0;
+  }
+
+  LONGLONG unixtime = filetimeToUnixtime(ft);
+  if (unixtime == 0) {
+    LOG(ERROR) << "Failed to convert file time to unix time";
+    return 0;
+  }
+
+  return unixtime;
 }
 
 // This helper function can print some propvariants and handles BSTR vectors
