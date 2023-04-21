@@ -30,6 +30,7 @@ TEST_F(KeychainItemsTest, test_sanity) {
       {"account", NormalType},
       {"created", NormalType},
       {"modified", NormalType},
+      {"pk_hash", NormalType},
       {"type",
        SpecificValuesCheck{"password",
                            "internet password",
