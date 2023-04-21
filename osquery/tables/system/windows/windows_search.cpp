@@ -54,25 +54,27 @@ LONGLONG dateToUnixTime(const DATE date) {
 void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss) {
   if (variant.vt == (VT_ARRAY | VT_BSTR) && variant.parray->cDims == 1) {
     BSTR* pBStr;
-    HRESULT hr =
-        SafeArrayAccessData(variant.parray, reinterpret_cast<void**>(&pBStr));
-    if (SUCCEEDED(hr)) {
-      for (unsigned int i = 0; i < variant.parray->rgsabound[0].cElements;
-           i++) {
-        if (i == 0) {
-          wss << "[";
-        } else {
-          wss << ";";
-        }
-        wss << pBStr[i];
-      }
-      wss << "]";
-      SafeArrayUnaccessData(variant.parray);
-    } else {
-      wss << "could not write vector";
+    HRESULT hr = SafeArrayAccessData(variant.parray, reinterpret_cast<void**>(&pBStr));
+
+    if (FAILED(hr)) {
+      LOG(ERROR) << "SafeArrayAccessData failed";
+      return;
     }
-  } else {
-    switch (variant.vt) {
+
+    for (unsigned int i = 0; i < variant.parray->rgsabound[0].cElements; i++) {
+      if (i == 0) {
+        wss << "[";
+      } else {
+        wss << ";";
+      }
+      wss << pBStr[i];
+    }
+    wss << "]";
+    SafeArrayUnaccessData(variant.parray);
+    return;
+  }
+
+  switch (variant.vt) {
     case VT_LPWSTR:
       wss << variant.pwszVal;
       break;
@@ -106,12 +108,10 @@ void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss) {
     default:
       wss << "unhandled variant type " << variant.vt;
       break;
-    }
   }
 }
 
-std::string ccomandColumnStringValue(
-    CCommand<CDynamicAccessor, CRowset>& cCommand, DBORDINAL columnIndex) {
+std::string ccomandColumnStringValue(CCommand<CDynamicAccessor, CRowset>& cCommand, DBORDINAL columnIndex) {
   DBTYPE type;
   cCommand.GetColumnType(columnIndex, &type);
 
@@ -119,57 +119,69 @@ std::string ccomandColumnStringValue(
 
   DBSTATUS status;
   cCommand.GetStatus(columnIndex, &status);
-  if (status == DBSTATUS_S_ISNULL) {
-    wss << "NULL";
-  } else if (status == DBSTATUS_S_OK || status == DBSTATUS_S_TRUNCATED) {
-    DBTYPE type;
-    cCommand.GetColumnType(columnIndex, &type);
-    switch (type) {
-    case DBTYPE_VARIANT:
-      writePropVariant(
-          *(static_cast<PROPVARIANT*>(cCommand.GetValue(columnIndex))), wss);
-      break;
-    case DBTYPE_WSTR: {
-      DBLENGTH cbLen;
-      cCommand.GetLength(columnIndex, &cbLen);
-      WCHAR szBuffer[2048];
-      StringCchCopyN(szBuffer,
-                     ARRAYSIZE(szBuffer),
-                     static_cast<WCHAR*>(cCommand.GetValue(columnIndex)),
-                     cbLen / sizeof(WCHAR));
-      wss << szBuffer;
-    } break;
-    case DBTYPE_I1:
-      wss << *static_cast<UCHAR*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_UI2:
-      wss << *static_cast<USHORT*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_I2:
-      wss << *static_cast<SHORT*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_UI4:
-      wss << *static_cast<DWORD*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_I4:
-      wss << *static_cast<INT*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_UI8:
-      wss << *static_cast<ULONGLONG*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_I8:
-      wss << *static_cast<LONGLONG*>(cCommand.GetValue(columnIndex));
-      break;
-    case DBTYPE_DATE:
-      wss << dateToUnixTime(
-          *static_cast<DATE*>(cCommand.GetValue(columnIndex)));
-      break;
-    default:
-      wss << "unhandled database type " << type;
+  switch (status) {
+    case DBSTATUS_S_ISNULL: {
+      wss << "NULL";
       break;
     }
-  } else {
-    wss << "error reading column";
+    case DBSTATUS_S_OK:
+    case DBSTATUS_S_TRUNCATED: {
+      switch (type) {
+        case DBTYPE_VARIANT: {
+          writePropVariant(*(static_cast<PROPVARIANT*>(cCommand.GetValue(columnIndex))), wss);
+          break;
+        }
+        case DBTYPE_WSTR: {
+          DBLENGTH cbLen;
+          cCommand.GetLength(columnIndex, &cbLen);
+          WCHAR szBuffer[2048];
+          StringCchCopyN(szBuffer, ARRAYSIZE(szBuffer), static_cast<WCHAR*>(cCommand.GetValue(columnIndex)), cbLen / sizeof(WCHAR));
+          wss << szBuffer;
+          break;
+        }
+        case DBTYPE_I1: {
+          wss << *static_cast<UCHAR*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_UI2: {
+          wss << *static_cast<USHORT*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_I2: {
+          wss << *static_cast<SHORT*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_UI4: {
+          wss << *static_cast<DWORD*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_I4: {
+          wss << *static_cast<INT*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_UI8: {
+          wss << *static_cast<ULONGLONG*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_I8: {
+          wss << *static_cast<LONGLONG*>(cCommand.GetValue(columnIndex));
+          break;
+        }
+        case DBTYPE_DATE: {
+          wss << dateToUnixTime(*static_cast<DATE*>(cCommand.GetValue(columnIndex)));
+          break;
+        }
+        default: {
+          wss << "unhandled database type " << type;
+          break;
+        }
+      }
+      break;
+    }
+    default: {
+      wss << "error reading column";
+      break;
+    }
   }
 
   std::wstring wideStr = wss.str();
@@ -177,15 +189,15 @@ std::string ccomandColumnStringValue(
   return converter.to_bytes(wideStr);
 }
 
-std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(
-    CSession& cSession, const std::string& query) {
+
+std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSession& cSession, const std::string& query) {
   HRESULT hr;
   std::vector<std::map<std::string, std::string>> results;
 
   CCommand<CDynamicAccessor, CRowset> cCommand;
   hr = cCommand.Open(cSession, query.c_str());
 
-  if (!SUCCEEDED(hr)) {
+  if (FAILED(hr)) {
     LOG(ERROR) << "error executing query";
     return results;
   }
@@ -218,7 +230,7 @@ QueryData genWindowsSearch(QueryContext& context) {
       L"provider=Search.CollatorDSO.1;EXTENDED "
       L"PROPERTIES=\"Application=Windows\"");
 
-  if (!SUCCEEDED(hr)) {
+  if (FAILED(hr)) {
     LOG(ERROR) << "error initializing CDataSource";
     return results;
   }
@@ -226,7 +238,7 @@ QueryData genWindowsSearch(QueryContext& context) {
   CSession cSession;
   hr = cSession.Open(cDataSource);
 
-  if (!SUCCEEDED(hr)) {
+  if (FAILED(hr)) {
     LOG(ERROR) << "error opening CSession";
     return results;
   }
