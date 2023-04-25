@@ -9,13 +9,15 @@
 
 #include <gtest/gtest.h>
 
+#include <oleauto.h>
+
 #include <osquery/core/system.h>
 
 #include "osquery/core/windows/bstr.h"
 
 namespace osquery {
 
-TEST_F(BstrTests, test_copy) {
+TEST(BstrTests, test_copy) {
   Bstr bstr;
 
   {
@@ -29,14 +31,14 @@ TEST_F(BstrTests, test_copy) {
   // here `bstr` object should be deleted.
 }
 
-TEST_F(BstrTests, test_reset) {
+TEST(BstrTests, test_reset) {
   Bstr bstr(SysAllocString(L"hello"));
   bstr.reset();
 
   EXPECT_EQ(nullptr, bstr.get());
 }
 
-TEST_F(BstrTests, test_release) {
+TEST(BstrTests, test_release) {
   Bstr bstr(SysAllocString(L"hello"));
   auto raw_bstr = bstr.release();
 
