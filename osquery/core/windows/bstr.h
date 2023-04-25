@@ -9,6 +9,8 @@
 
 #include <osquery/utils/system/system.h>
 
+#include <string>
+
 #include <wtypes.h>
 
 #include <osquery/utils/only_movable.h>
@@ -17,6 +19,8 @@ namespace osquery {
 
 class Bstr : private only_movable {
  public:
+  static Bstr fromString();
+
   Bstr() = default;
   ~Bstr();
 

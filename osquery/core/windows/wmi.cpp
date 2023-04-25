@@ -382,8 +382,8 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
   wmi_request.locator_.reset(locator);
 
   IWbemServices* services = nullptr;
-  Bstr nspace_str(SysAllocString(nspace.c_str()));
-  if (nullptr == nspace_str.get()) {
+  Bstr nspace_str = Bstr::fromString(nspace);
+  if (!nspace_str) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in nspace_str allocation";
   }
@@ -455,14 +455,14 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
 
   IEnumWbemClassObject* wbem_enum = nullptr;
 
-  Bstr language_str(SysAllocString(L"WQL"));
-  if (nullptr == language_str.get()) {
+  Bstr language_str = Bstr::fromString(L"WQL");
+  if (!language_str) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in language_str allocation";
   }
 
-  Bstr wql_str(SysAllocString(wql.c_str()));
-  if (nullptr == wql_str.get()) {
+  Bstr wql_str = Bstr::fromString(wql);
+  if (!wql_str) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in wql_str allocation";
   }
@@ -559,7 +559,7 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
   // and method name
   IWbemClassObject* out_params = nullptr;
 
-  Bstr wmi_meth_name(SysAllocString(property_name.c_str()));
+  Bstr wmi_meth_name = Bstr::fromString(property_name);
   if (!wmi_meth_name) {
     return Status::failure("Out of memory");
   }
@@ -571,8 +571,8 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
 
   // Execute the WMI method, the return value and out-params all exist in
   // out_params
-  hr = services_->ExecMethod(wmi_obj_path,
-                             wmi_meth_name,
+  hr = services_->ExecMethod(wmi_obj_path.get(),
+                             wmi_meth_name.get(),
                              0,
                              nullptr,
                              args_inst.get(),
