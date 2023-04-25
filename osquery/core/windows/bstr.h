@@ -19,7 +19,7 @@ namespace osquery {
 
 class Bstr : private only_movable {
  public:
-  static Bstr fromString();
+  static Bstr fromString(std::wstring_view);
 
   Bstr() = default;
   ~Bstr();

@@ -22,7 +22,7 @@ static_assert(sizeof(Bstr) == sizeof(BSTR), "BstrSize");
 
 // static
 Bstr Bstr::fromString(std::wstring_view s) {
-  return Bstr(SysAllocString(s.c_str()));
+  return Bstr(SysAllocString(s.data()));
 }
 
 Bstr::~Bstr() {
