@@ -33,9 +33,12 @@ TEST(BstrTests, test_copy) {
 
 TEST(BstrTests, test_reset) {
   Bstr bstr(SysAllocString(L"hello"));
+  EXPECT_TRUE(static_cast<bool>(bstr));
+
   bstr.reset();
 
   EXPECT_EQ(nullptr, bstr.get());
+  EXPECT_FALSE(static_cast<bool>(bstr));
 }
 
 TEST(BstrTests, test_release) {
@@ -46,6 +49,13 @@ TEST(BstrTests, test_release) {
 
   *bstr.receiveAddress() = raw_bstr;
   EXPECT_EQ(0, wcscmp(bstr.get(), L"hello"));
+}
+
+TEST(BstrTests, test_from_string) {
+  Bstr bstr = Bstr::fromString(std::wstring(L"hello"));
+  EXPECT_TRUE(static_cast<bool>(bstr));
+  EXPECT_EQ(0, wcscmp(bstr.get(), L"hello"));
+  EXPECT_EQ(4, bstr.length());
 }
 
 } // namespace osquery
