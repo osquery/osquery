@@ -9,6 +9,8 @@
 
 #include <osquery/utils/system/system.h>
 
+#include <oleauto.h>
+
 #include <osquery/core/windows/bstr.h>
 
 namespace osquery {
