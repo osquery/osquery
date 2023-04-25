@@ -102,6 +102,8 @@ function(generateOsqueryCoreTestsBstrtestsTest)
   target_link_libraries(osquery_core_tests_bstrtests-test PRIVATE
     osquery_cxx_settings
     osquery_core
+    osquery_extensions
+    osquery_extensions_implthrift
     osquery_utils_info
     tests_helper
     thirdparty_googletest
