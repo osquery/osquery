@@ -29,7 +29,7 @@ class Bstr : private only_movable {
   Bstr(Bstr&& other);
   Bstr& operator=(Bstr&&);
 
-  explicit operator() const {
+  explicit operator bool() const {
     return !!bstr_;
   }
 
