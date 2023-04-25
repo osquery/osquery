@@ -9,9 +9,9 @@
 
 #include <gtest/gtest.h>
 
-#include <oleauto.h>
-
 #include <osquery/core/system.h>
+
+#include <oleauto.h>
 
 #include "osquery/core/windows/bstr.h"
 

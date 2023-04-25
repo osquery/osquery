@@ -10,6 +10,7 @@
 #include <locale>
 #include <string>
 
+#include <osquery/core/windows/bstr.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -138,8 +139,9 @@ Status WmiResultItem::GetDateTime(const std::string& name,
     return Status::failure("Failed to set SWbemDateTime value.");
   }
 
-  BSTR filetime_str = {0};
-  hr = dt->GetFileTime(is_local ? VARIANT_TRUE : VARIANT_FALSE, &filetime_str);
+  Bstr filetime_str;
+  hr = dt->GetFileTime(is_local ? VARIANT_TRUE : VARIANT_FALSE,
+                       filetime_str.receiveAddress());
   if (!SUCCEEDED(hr)) {
     dt->Release();
     return Status::failure("GetFileTime failed.");
@@ -147,11 +149,10 @@ Status WmiResultItem::GetDateTime(const std::string& name,
 
   ULARGE_INTEGER ui = {};
 
-  ui.QuadPart = _wtoi64(filetime_str);
+  ui.QuadPart = _wtoi64(filetime_str.get());
   ft.dwLowDateTime = ui.LowPart;
   ft.dwHighDateTime = ui.HighPart;
 
-  SysFreeString(filetime_str);
   dt->Release();
 
   return Status::success();
@@ -381,13 +382,13 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
   wmi_request.locator_.reset(locator);
 
   IWbemServices* services = nullptr;
-  BSTR nspace_str = SysAllocString(nspace.c_str());
-  if (nullptr == nspace_str) {
+  Bstr nspace_str(SysAllocString(nspace.c_str()));
+  if (nullptr == nspace_str.get()) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in nspace_str allocation";
   }
 
-  hr = wmi_request.locator_->ConnectServer(nspace_str,
+  hr = wmi_request.locator_->ConnectServer(nspace_str.get(),
                                            nullptr,
                                            nullptr,
                                            nullptr,
@@ -395,8 +396,6 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
                                            nullptr,
                                            nullptr,
                                            &services);
-  SysFreeString(nspace_str);
-
   if (hr != S_OK) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed to connect to server";
@@ -456,24 +455,24 @@ Expected<WmiRequest, WmiError> WmiRequest::CreateWmiRequest(
 
   IEnumWbemClassObject* wbem_enum = nullptr;
 
-  BSTR language_str = SysAllocString(L"WQL");
-  if (nullptr == language_str) {
+  Bstr language_str(SysAllocString(L"WQL"));
+  if (nullptr == language_str.get()) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in language_str allocation";
   }
 
-  BSTR wql_str = SysAllocString(wql.c_str());
-  if (nullptr == wql_str) {
-    SysFreeString(language_str);
+  Bstr wql_str(SysAllocString(wql.c_str()));
+  if (nullptr == wql_str.get()) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in wql_str allocation";
   }
 
-  hr = wmi_request.services_->ExecQuery(
-      language_str, wql_str, WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
+  hr = wmi_request.services_->ExecQuery(language_str.get(),
+                                        wql_str.get(),
+                                        WBEM_FLAG_FORWARD_ONLY,
+                                        nullptr,
+                                        &wbem_enum);
 
-  SysFreeString(wql_str);
-  SysFreeString(language_str);
   if (hr != S_OK) {
     return createError(WmiError::ConstructionError)
            << "WmiRequest creation failed in ExecQuery";
@@ -507,15 +506,14 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
   std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> in_def{nullptr};
   std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> class_obj{nullptr};
 
-  BSTR wmi_class_name = WbemClassObjectPropToBSTR(object, "__CLASS");
-  if (wmi_class_name == nullptr) {
+  const Bstr wmi_class_name(WbemClassObjectPropToBSTR(object, "__CLASS"));
+  if (!wmi_class_name) {
     return Status::failure("Class name out of memory");
   }
 
   // GetObject obtains a CIM Class definition object
-  HRESULT hr = services_->GetObject(wmi_class_name, 0, nullptr, &raw, nullptr);
-  SysFreeString(wmi_class_name);
-
+  HRESULT hr =
+      services_->GetObject(wmi_class_name.get(), 0, nullptr, &raw, nullptr);
   if (FAILED(hr)) {
     return Status::failure("Failed to GetObject");
   }
@@ -561,14 +559,13 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
   // and method name
   IWbemClassObject* out_params = nullptr;
 
-  auto wmi_meth_name = SysAllocString(property_name.c_str());
-  if (wmi_meth_name == nullptr) {
+  Bstr wmi_meth_name(SysAllocString(property_name.c_str()));
+  if (!wmi_meth_name) {
     return Status::failure("Out of memory");
   }
 
-  auto wmi_obj_path = WbemClassObjectPropToBSTR(object, "__PATH");
-  if (wmi_obj_path == nullptr) {
-    SysFreeString(wmi_meth_name);
+  Bstr wmi_obj_path(WbemClassObjectPropToBSTR(object, "__PATH"));
+  if (!wmi_obj_path) {
     return Status::failure("Out of memory");
   }
 
@@ -581,10 +578,6 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
                              args_inst.get(),
                              &out_params,
                              nullptr);
-
-  SysFreeString(wmi_meth_name);
-  SysFreeString(wmi_obj_path);
-
   if (FAILED(hr)) {
     return Status::failure("Failed to ExecMethod");
   }

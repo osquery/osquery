@@ -25,6 +25,10 @@ class Bstr : private only_movable {
   Bstr(Bstr&& other);
   Bstr& operator=(Bstr&&);
 
+  explicit operator() const {
+    return !!bstr_;
+  }
+
   BSTR get() const {
     return bstr_;
   }
