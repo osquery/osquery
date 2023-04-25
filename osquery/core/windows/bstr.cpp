@@ -11,6 +11,7 @@
 
 #include <oleauto.h>
 
+#include <cassert>
 #include <osquery/core/windows/bstr.h>
 
 namespace osquery {
