@@ -25,12 +25,15 @@ test.specific.filtered:
 check:
 	cd build; cmake --build . --target cppcheck
 
-#setup: @ Setup this host, typically a container. In a Devcontainer this was done for you already
-setup:
+#setup.all: @ Perform all setup actions required before building osquery
+setup.all: setup.host setup.cmake
+
+#setup.host: @ Setup this host, typically a container. In a Devcontainer this was done for you already
+setup.host:
 	.devcontainer/host_setup.sh
 
-#cmake: @ Run cmake to prepare for build. In a Devcontainer this was done for you already
-cmake:
+#setup.cmake: @ Run cmake to prepare for build. In a Devcontainer this was done for you already
+setup.cmake:
 	mkdir -p build
 	cd build; cmake -DOSQUERY_BUILD_TESTS=ON -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
 
