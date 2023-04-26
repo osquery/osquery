@@ -5,7 +5,7 @@ THREAD_COUNT=$(shell echo "$(shell nproc --all)*.8/1" | bc)
 help:
 	@grep -E '[a-zA-Z\.\-]+:.*?@ .*$$' $(MAKEFILE_LIST)| tr -d '#'  | awk 'BEGIN {FS = ":.*?@ "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-#test.all:	@ Run all tests
+#test.all: @ Run all tests
 test.all:
 	cd build; cmake --build . --target test
 
@@ -20,6 +20,10 @@ test.specific:
 #test.specific.filtered: @ Run specific test, specified like TEST=networking with additional filter specified like FILTER="sharedMemory.*"
 test.specific.filtered: 
 	cd build; GTEST_FILTER=${FILTER} ctest -R ${TEST} -V
+
+#check: @ Run cppcheck 
+check:
+	cd build; cmake --build . --target cppcheck
 
 #setup: @ Setup this host, typically a container. In a Devcontainer this was done for you already
 setup:
