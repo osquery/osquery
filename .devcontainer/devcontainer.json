@@ -14,7 +14,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "make cmake && make build",
+	"postCreateCommand": "make setup.cmake && make build",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
