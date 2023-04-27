@@ -104,6 +104,17 @@ class ComPtr {
     return reinterpret_cast<BlockIUnknownMethods*>(ptr_);
   }
 
+  ScopedComPtr<Interface, interface_id>& operator=(Interface* rhs) {
+    // AddRef first so that self assignment should work.
+    if (rhs)
+      rhs->AddRef();
+    Interface* old_ptr = ptr_;
+    ptr_ = rhs;
+    if (old_ptr)
+      old_ptr->Release();
+    return *this;
+  }
+
   ComPtr<Interface, interface_id>& operator=(
       const ComPtr<Interface, interface_id>& rhs) {
     return *this = rhs.ptr_;

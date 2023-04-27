@@ -42,12 +42,19 @@ TEST_F(ComPtrTests, test_basic_comptr) {
   EXPECT_TRUE(qi_test.get() != nullptr);
   qi_test.release();
 
-  // test ComPtr& constructor
+  // Test ComPtr& constructor.
   ComPtr<IMalloc> copy1(mem_alloc);
   IMalloc* naked_copy = copy1.detach();
-  naked_copy->Release();
 
+  // Test the =(T*) operator.
+  copy1 = naked_copy;
+  naked_copy->Release();
   copy1.release();
+
+  // Test =(ComPtr&) operator.
+  copy1 = mem_alloc;
+  // Compare pointer but not the reference counter.
+  EXPECT_EQ(copy1, mem_alloc);
 }
 
 } // namespace osquery
