@@ -99,7 +99,7 @@ endfunction()
 function(generateOsqueryCoreTestsComptrtestsTest)
    add_osquery_executable(osquery_core_tests_comptrtests-test windows/comptr_tests.cpp)
 
-   target_link_libraries(osquery_core_tests_bstrtests-test PRIVATE
+   target_link_libraries(osquery_core_tests_comptrtests-test PRIVATE
      osquery_cxx_settings
      osquery_core
      osquery_extensions

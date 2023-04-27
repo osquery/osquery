@@ -37,6 +37,8 @@ class ComPtr {
   ~ComPtr() {
     static_assert(sizeof(ComPtr<Interface, interface_id>) == sizeof(Interface*),
                   ComPtrSize);
+
+    release();
   }
 
   explicit operator bool() const {
