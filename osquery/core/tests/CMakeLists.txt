@@ -17,6 +17,7 @@ function(osqueryCoreTestsMain)
 
   if(DEFINED PLATFORM_WINDOWS)
     generateOsqueryCoreTestsWmitestsTest()
+    generateOsqueryCoreTestsComptrtestsTest()
   endif()
 endfunction()
 
@@ -94,5 +95,19 @@ function(generateOsqueryCoreTestsWmitestsTest)
     thirdparty_googletest
   )
 endfunction()
+
+function(generateOsqueryCoreTestsComptrtestsTest)
+   add_osquery_executable(osquery_core_tests_comptrtests-test windows/comptr_tests.cpp)
+
+   target_link_libraries(osquery_core_tests_bstrtests-test PRIVATE
+     osquery_cxx_settings
+     osquery_core
+     osquery_extensions
+     osquery_extensions_implthrift
+     osquery_utils_info
+     tests_helper
+     thirdparty_googletest
+   )
+ endfunction()
 
 osqueryCoreTestsMain()
