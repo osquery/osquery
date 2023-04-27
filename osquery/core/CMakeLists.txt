@@ -145,6 +145,7 @@ function(generateOsqueryCore)
 
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND public_header_files
+      windows/comptr.h
       windows/handle.h
       windows/ntapi.h
       windows/wmi.h

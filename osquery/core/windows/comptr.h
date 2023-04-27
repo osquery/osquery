@@ -28,8 +28,9 @@ class ComPtr {
   ComPtr() = default;
 
   explicit ComPtr(Interface* p) : ptr_(p) {
-    if (ptr_)
+    if (ptr_) {
       ptr_->AddRef();
+    }
   }
 
   ComPtr(const ComPtr<Interface, interface_id>& p) : ComPtr(p.get()) {}
@@ -42,7 +43,7 @@ class ComPtr {
   }
 
   explicit operator bool() const {
-    return ptr_ != nullptr;
+    return !!ptr_;
   }
 
   void release() {
