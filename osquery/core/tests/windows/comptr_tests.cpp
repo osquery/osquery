@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/config/tests/test_utils.h>
 #include <osquery/core/core.h>
 #include <osquery/core/system.h>
 
@@ -28,14 +27,14 @@ class ComPtrTests : public testing::Test {
 
 TEST_F(ComPtrTests, test_basic_comptr) {
   ComPtr<IUnknown> unk;
-  EXPECT_TRUE(SUCCEEDED(unk.createInstance(CLSID_ShellLink)));
+  EXPECT_HRESULT_SUCCEEDED(unk.createInstance(CLSID_ShellLink));
   ComPtr<IUnknown> unk2;
   unk2.attach(unk.detach());
   EXPECT_TRUE(unk == nullptr);
   EXPECT_TRUE(unk2 != nullptr);
 
   ComPtr<IMalloc> mem_alloc;
-  EXPECT_TRUE(SUCCEEDED(CoGetMalloc(1, mem_alloc.receive())));
+  EXPECT_HRESULT_SUCCEEDED(CoGetMalloc(1, mem_alloc.receive()));
 
   ComPtr<IUnknown> qi_test;
   EXPECT_HRESULT_SUCCEEDED(
