@@ -42,6 +42,10 @@ class ComPtr {
     release();
   }
 
+  Interface* get() const {
+    return ptr_;
+  }
+
   explicit operator bool() const {
     return !!ptr_;
   }
@@ -79,6 +83,12 @@ class ComPtr {
     assert(p);
     assert(ptr_);
     return ptr_->QueryInterface(p);
+  }
+
+  HRESULT queryInterface(const IID& iid, void** obj) {
+    assert(p);
+    assert(ptr_);
+    return ptr_->QueryInterface(iid, obj);
   }
 
   HRESULT createInstance(const CLSID& clsid,

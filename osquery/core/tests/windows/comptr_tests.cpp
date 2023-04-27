@@ -30,8 +30,8 @@ TEST_F(ComPtrTests, test_basic_comptr) {
   EXPECT_HRESULT_SUCCEEDED(unk.createInstance(CLSID_ShellLink));
   ComPtr<IUnknown> unk2;
   unk2.attach(unk.detach());
-  EXPECT_TRUE(unk == nullptr);
-  EXPECT_TRUE(unk2 != nullptr);
+  EXPECT_TRUE(!unk);
+  EXPECT_TRUE(unk2);
 
   ComPtr<IMalloc> mem_alloc;
   EXPECT_HRESULT_SUCCEEDED(CoGetMalloc(1, mem_alloc.receive()));
