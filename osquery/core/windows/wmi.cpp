@@ -10,6 +10,7 @@
 #include <locale>
 #include <string>
 
+#include <osquery/core/windows/comptr.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -122,9 +123,10 @@ Status WmiResultItem::GetDateTime(const std::string& name,
     return Status::failure("Expected VT_BSTR, got something else.");
   }
 
-  ISWbemDateTime* dt = nullptr;
-  hr = CoCreateInstance(
-      CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dt));
+  ComPtr<ISWbemDateTime> dt;
+  hr = dt.createInstance(CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER);
+  assert(static_cast<bool>(dt));
+
   if (!SUCCEEDED(hr)) {
     VariantClear(&value);
     return Status::failure("Failed to create SWbemDateTime object.");
@@ -134,14 +136,12 @@ Status WmiResultItem::GetDateTime(const std::string& name,
   VariantClear(&value);
 
   if (!SUCCEEDED(hr)) {
-    dt->Release();
     return Status::failure("Failed to set SWbemDateTime value.");
   }
 
   BSTR filetime_str = {0};
   hr = dt->GetFileTime(is_local ? VARIANT_TRUE : VARIANT_FALSE, &filetime_str);
   if (!SUCCEEDED(hr)) {
-    dt->Release();
     return Status::failure("GetFileTime failed.");
   }
 
@@ -152,7 +152,6 @@ Status WmiResultItem::GetDateTime(const std::string& name,
   ft.dwHighDateTime = ui.HighPart;
 
   SysFreeString(filetime_str);
-  dt->Release();
 
   return Status::success();
 }
@@ -502,46 +501,38 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
                               WmiResultItem& out_result) const {
   std::wstring property_name = stringToWstring(method);
 
-  IWbemClassObject* raw = nullptr;
-
-  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> in_def{nullptr};
-  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> class_obj{nullptr};
-
   BSTR wmi_class_name = WbemClassObjectPropToBSTR(object, "__CLASS");
   if (wmi_class_name == nullptr) {
     return Status::failure("Class name out of memory");
   }
 
+  ComPtr<IWbemClassObject> class_obj;
   // GetObject obtains a CIM Class definition object
-  HRESULT hr = services_->GetObject(wmi_class_name, 0, nullptr, &raw, nullptr);
+  HRESULT hr = services_->GetObject(
+      wmi_class_name, 0, nullptr, class_obj.receive(), nullptr);
   SysFreeString(wmi_class_name);
 
   if (FAILED(hr)) {
     return Status::failure("Failed to GetObject");
   }
 
-  class_obj.reset(raw);
-  raw = nullptr;
-
+  ComPtr<IWbemClassObject> in_def;
   // GetMethod only works on CIM class definition objects. This is why
   // we don't use result_
-  hr = class_obj->GetMethod(property_name.c_str(), 0, &raw, nullptr);
+  hr =
+      class_obj->GetMethod(property_name.c_str(), 0, in_def.receive(), nullptr);
   if (FAILED(hr)) {
     return Status::failure("Failed to GetMethod");
   }
 
-  in_def.reset(raw);
-  raw = nullptr;
-
-  std::unique_ptr<IWbemClassObject, impl::WmiObjectDeleter> args_inst{nullptr};
+  ComPtr<IWbemClassObject> args_inst;
 
   // in_def can be nullptr if the chosen method has no in-parameters
-  if (in_def != nullptr) {
-    hr = in_def->SpawnInstance(0, &raw);
+  if (in_def) {
+    hr = in_def->SpawnInstance(0, args_inst.receive());
     if (FAILED(hr)) {
       return Status::failure("Failed to SpawnInstance");
     }
-    args_inst.reset(raw);
 
     // Build up the WMI method call arguments
     for (const auto& p : args.GetArguments()) {
@@ -557,10 +548,6 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
     }
   }
 
-  // In order to execute a WMI method, we need to know the specific object name
-  // and method name
-  IWbemClassObject* out_params = nullptr;
-
   auto wmi_meth_name = SysAllocString(property_name.c_str());
   if (wmi_meth_name == nullptr) {
     return Status::failure("Out of memory");
@@ -571,6 +558,10 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
     SysFreeString(wmi_meth_name);
     return Status::failure("Out of memory");
   }
+
+  // In order to execute a WMI method, we need to know the specific object name
+  // and method name
+  IWbemClassObject* out_params = nullptr;
 
   // Execute the WMI method, the return value and out-params all exist in
   // out_params
