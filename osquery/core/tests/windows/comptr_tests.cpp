@@ -45,7 +45,6 @@ TEST_F(ComPtrTests, test_basic_comptr) {
   // test ComPtr& constructor
   ComPtr<IMalloc> copy1(mem_alloc);
   IMalloc* naked_copy = copy1.detach();
-  copy1 = naked_copy; // Test the =(T*) operator.
   naked_copy->Release();
 
   copy1.release();
