@@ -226,10 +226,9 @@ QueryData gen_wsp(QueryContext& context) {
     Row r;
     r["type"] = tryTakeCopy(kSecurityProviders, product.provider)
                     .takeOr(std::string("Unknown"));
-    r["name"] = wstringToString(product.product_name.c_str());
-    r["state_timestamp"] =
-        wstringToString(product.product_state_timestamp.c_str());
-    r["remediation_path"] = wstringToString(product.remediation_path.c_str());
+    r["name"] = wstringToString(product.product_name);
+    r["state_timestamp"] = wstringToString(product.product_state_timestamp);
+    r["remediation_path"] = wstringToString(product.remediation_path);
     r["state"] = tryTakeCopy(kSecurityProviderStates, product.product_state)
                      .takeOr(std::string("Unknown"));
     r["signatures_up_to_date"] =

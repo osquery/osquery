@@ -342,7 +342,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
       return false;
     }
 
-    value = wstringToString(buffer.c_str());
+    value = wstringToString(buffer);
     return true;
   };
 

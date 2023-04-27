@@ -239,7 +239,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
       description = L"Unknown error";
     }
 
-    message << wstringToString(description.c_str());
+    message << wstringToString(description);
     return Status::failure(message.str());
   }
 
@@ -273,7 +273,7 @@ Status NTFSEventPublisher::getPathFromReferenceNumber(
       description = L"Unknown error";
     }
 
-    message << wstringToString(description.c_str());
+    message << wstringToString(description);
     return Status::failure(message.str());
   }
 
@@ -377,7 +377,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
       description = L"Unknown error";
     }
 
-    message << wstringToString(description.c_str());
+    message << wstringToString(description);
     return Status::failure(message.str());
   }
 
@@ -407,7 +407,7 @@ Status NTFSEventPublisher::getVolumeData(VolumeData& volume,
       description = L"Unknown error";
     }
 
-    message << wstringToString(description.c_str());
+    message << wstringToString(description);
     return Status::failure(message.str());
   }
 
