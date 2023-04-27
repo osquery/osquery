@@ -37,7 +37,7 @@ class ComPtr {
 
   ~ComPtr() {
     static_assert(sizeof(ComPtr<Interface, interface_id>) == sizeof(Interface*),
-                  ComPtrSize);
+                  "ComPtr size bigger than raw pointer");
 
     release();
   }
