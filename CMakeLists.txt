@@ -86,6 +86,8 @@ endfunction()
 
 function(importLibraries)
   set(library_descriptor_list
+    # Leave lz4 at the top (see LZ4 CMakeLists.txt)
+    "Linux,Darwin,Windows:lz4"
     "Linux,Darwin:augeas"
     "Linux,Darwin,Windows:boost"
     "Linux,Darwin,Windows:bzip2"

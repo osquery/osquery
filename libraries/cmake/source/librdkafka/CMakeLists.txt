@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(librdkafkaMain)
+
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
   if(PLATFORM_LINUX)
@@ -26,9 +27,6 @@ function(librdkafkaMain)
 
   add_library(thirdparty_rdkafka_c
     "${library_root}/src/crc32c.c"
-    "${library_root}/src/lz4.c"
-    "${library_root}/src/lz4frame.c"
-    "${library_root}/src/lz4hc.c"
     "${library_root}/src/rdaddr.c"
     "${library_root}/src/rdavl.c"
     "${library_root}/src/rdbuf.c"
@@ -112,8 +110,11 @@ function(librdkafkaMain)
     )
   endif()
 
+  renameLZ4APIs("RDKAFKA" "lz4_frame_renames")
+
   target_compile_definitions(thirdparty_rdkafka_c PRIVATE
     XXH_NAMESPACE=RDKAFKA_
+    ${lz4_frame_renames}
   )
 
   target_include_directories(thirdparty_rdkafka_c PRIVATE
@@ -148,8 +149,8 @@ function(librdkafkaMain)
   target_link_libraries(thirdparty_rdkafka_c
     PRIVATE
       thirdparty_c_settings
-
-    PUBLIC
+      thirdparty_lz4
+      thirdparty_lz4_frame
       thirdparty_openssl
       thirdparty_zlib
       thirdparty_zstd

@@ -320,5 +320,12 @@
     "version": "1.4.0",
     "commit": "83b51e9f886be7c2a4d477b6e7bc6db831791d8d",
     "ignored-cves": ["CVE-2021-24031"]
+  },
+  "lz4": {
+    "product": "lz4",
+    "vendor": "lz4_project",
+    "version": "1.9.4",
+    "commit": "5ff839680134437dbf4678f3d0c7b371d84f4964",
+    "ignored-cves": []
   }
 }

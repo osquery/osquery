@@ -154,3 +154,6 @@
 [submodule "osquery/experimental/experiments/linuxevents/libraries/linuxevents/src"]
 	path = osquery/experimental/experiments/linuxevents/libraries/linuxevents/src
 	url = https://github.com/trailofbits/linuxevents
+[submodule "libraries/cmake/source/lz4/src"]
+	path = libraries/cmake/source/lz4/src
+	url = https://github.com/lz4/lz4.git
