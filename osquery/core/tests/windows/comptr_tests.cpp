@@ -18,6 +18,29 @@
 
 namespace osquery {
 
+namespace {
+
+// Mock object that can count AddRef and Release calls.
+// Will *not* delete the object if reference count is 0.
+struct MockCOMObject {
+  MockCOMObject() : adds(0), releases(0) {}
+  void AddRef() {
+    ++adds;
+  }
+  void Release() {
+    ++releases;
+  }
+
+  int adds;
+  int releases;
+};
+
+extern const IID mockObjectIID;
+const IID mockObjectIID = {
+    0x12345678u, 0x1234u, 0x5678u, 01, 23, 45, 67, 89, 01, 23, 45};
+
+} // namespace
+
 class ComPtrTests : public testing::Test {
  protected:
   void SetUp() override {
@@ -55,6 +78,48 @@ TEST_F(ComPtrTests, test_basic_comptr) {
   copy1 = mem_alloc;
   // Compare pointer but not the reference counter.
   EXPECT_EQ(copy1, mem_alloc);
+}
+
+TEST_F(ComPtrTests, test_mock_counters) {
+  MockCOMObject mockObj;
+  // Initial state.
+  EXPECT_EQ(0, mockObj.adds);
+  EXPECT_EQ(0, mockObj.releases);
+
+  // Make a ComPtr that will guard our mock object.
+  ComPtr<MockCOMObject, &mockObjectIID> mockPtr(&mockObj);
+
+  EXPECT_EQ(1, mockObj.adds);
+  EXPECT_EQ(0, mockObj.releases);
+
+  {
+    // Make a copy of the first guard.
+    ComPtr<MockCOMObject, &mockObjectIID> mockPtr2(mockPtr);
+
+    // Should add more refs.
+    EXPECT_EQ(2, mockObj.adds);
+    EXPECT_EQ(0, mockObj.releases);
+  }
+
+  EXPECT_EQ(1, mockObj.releases);
+
+  // New object.
+  MockCOMObject mockObj2;
+
+  mockPtr = &mockObj2;
+
+  // First object should be released.
+  EXPECT_EQ(2, mockObj.adds);
+  EXPECT_EQ(2, mockObj.releases);
+
+  // Second object should be referenced.
+  EXPECT_EQ(1, mockObj2.adds);
+  EXPECT_EQ(0, mockObj2.releases);
+
+  mockPtr.release();
+  // Second object should be released.
+  EXPECT_EQ(1, mockObj2.adds);
+  EXPECT_EQ(1, mockObj2.releases);
 }
 
 } // namespace osquery
