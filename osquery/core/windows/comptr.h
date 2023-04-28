@@ -11,6 +11,8 @@
 
 #include <cassert>
 
+#include <unknwn.h>
+
 namespace osquery {
 
 template <class Interface, const IID* interface_id = &__uuidof(Interface)>
