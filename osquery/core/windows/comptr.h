@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-template <class Interface, const IID* interface_id = &__uuidof(Interface)>
+template <class Interface, const IID* InterfaceId = &__uuidof(Interface)>
 class ComPtr {
   Interface* ptr_{nullptr};
 
@@ -35,10 +35,10 @@ class ComPtr {
     }
   }
 
-  ComPtr(const ComPtr<Interface, interface_id>& p) : ComPtr(p.get()) {}
+  ComPtr(const ComPtr<Interface, InterfaceId>& p) : ComPtr(p.get()) {}
 
   ~ComPtr() {
-    static_assert(sizeof(ComPtr<Interface, interface_id>) == sizeof(Interface*),
+    static_assert(sizeof(ComPtr<Interface, InterfaceId>) == sizeof(Interface*),
                   "ComPtr size bigger than raw pointer");
 
     release();
@@ -97,7 +97,7 @@ class ComPtr {
                          IUnknown* outer = nullptr,
                          DWORD context = CLSCTX_ALL) {
     HRESULT hr =
-        ::CoCreateInstance(clsid, outer, context, *interface_id, receiveVoid());
+        ::CoCreateInstance(clsid, outer, context, *InterfaceId, receiveVoid());
     return hr;
   }
 
@@ -106,19 +106,19 @@ class ComPtr {
     return reinterpret_cast<BlockIUnknownMethods*>(ptr_);
   }
 
-  ScopedComPtr<Interface, interface_id>& operator=(Interface* rhs) {
+  ComPtr<Interface, InterfaceId>& operator=(Interface* rhs) {
     // AddRef first so that self assignment should work.
     if (rhs)
       rhs->AddRef();
-    Interface* old_ptr = ptr_;
+    Interface* oldPtr = ptr_;
     ptr_ = rhs;
-    if (old_ptr)
-      old_ptr->Release();
+    if (oldPtr)
+      oldPtr->Release();
     return *this;
   }
 
-  ComPtr<Interface, interface_id>& operator=(
-      const ComPtr<Interface, interface_id>& rhs) {
+  ComPtr<Interface, InterfaceId>& operator=(
+      const ComPtr<Interface, InterfaceId>& rhs) {
     return *this = rhs.ptr_;
   }
 
@@ -127,11 +127,11 @@ class ComPtr {
     return *ptr_;
   }
 
-  bool operator==(const ComPtr<Interface, interface_id>& rhs) const {
+  bool operator==(const ComPtr<Interface, InterfaceId>& rhs) const {
     return ptr_ == rhs.get();
   }
 
-  void swap(ComPtr<Interface, interface_id>& r) {
+  void swap(ComPtr<Interface, InterfaceId>& r) {
     Interface* tmp = ptr_;
     ptr_ = r.ptr_;
     r.ptr_ = tmp;
