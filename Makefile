@@ -13,6 +13,10 @@ test.all:
 test.all.detail:
 	cd build; CTEST_OUTPUT_ON_FAILURE=1 cmake --build . --target test
 
+#test.failed: @ Re-run all failed test with high detail output
+test.failed:
+	cd build; ctest --rerun-failed --output-on-failure
+
 #test.specific: @ Run specific test, specified like TEST=networking
 test.specific: 
 	cd build; ctest -R ${TEST} -V
