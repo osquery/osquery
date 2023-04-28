@@ -123,14 +123,14 @@ QueryData genConnectedDisplays(QueryContext& context) {
         r["manufactured_week"] =
             INTEGER([[obj valueForKey:@"_spdisplays_display-week"] intValue]);
       } else {
-        r["manufactured_week"] = INTEGER(0);
+        r["manufactured_week"] = INTEGER(-1);
       }
 
       if ([obj valueForKey:@"_spdisplays_display-year"]) {
         r["manufactured_year"] =
             TEXT([[obj valueForKey:@"_spdisplays_display-year"] intValue]);
       } else {
-        r["manufactured_year"] = INTEGER(0);
+        r["manufactured_year"] = INTEGER(-1);
       }
 
       if ([obj valueForKey:@"_spdisplays_displayID"]) {
@@ -157,7 +157,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
           r["ambient_brightness_enabled"] = INTEGER(0);
         }
       } else {
-        r["ambient_brightness_enabled"] = INTEGER(0);
+        r["ambient_brightness_enabled"] = INTEGER(-1);
       }
 
       if ([obj valueForKey:@"spdisplays_connection_type"]) {
