@@ -55,6 +55,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
     };
 
 #pragma clang diagnostic push
+// We are silencing here because we don't know the selector beforehand
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 
     id cls = NSClassFromString(@"SPDocument");
