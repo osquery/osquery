@@ -219,6 +219,7 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
+      connected_displays.cpp
       crashes.cpp
       cups_destinations.cpp
       cups_jobs.cpp

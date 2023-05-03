@@ -1,0 +1,21 @@
+table_name("connected_displays")
+description("Provides information about the connected displays of the machine.")
+schema([
+    Column("name", TEXT, "The name of the display."),
+    Column("product_id", TEXT, "The product ID of the display."),
+    Column("serial_number", TEXT, "The serial number of the display."), 
+    Column("vendor_id", TEXT, "The vendor ID of the display."),
+    Column("manufactured_week", INTEGER, "The manufacture week of the display. This field is 0 if not supported"), 
+    Column("manufactured_year", INTEGER, "The manufacture year of the display. This field is 0 if not supported"),
+    Column("display_id", TEXT, "The display ID."),
+    Column("pixels", TEXT, "The number of pixels of the display."),
+    Column("resolution", TEXT, "The resolution of the display."),
+    Column("ambient_brightness_enabled", TEXT, "The ambient brightness setting associated with the display. This will be 1 if enabled and is 0 if disabled or not supported."),
+    Column("connection_type", TEXT, "The connection type associated with the display."),
+    Column("display_type", TEXT, "The type of display."),
+    Column("main", INTEGER, "If the display is the main display."),
+    Column("mirror", INTEGER, "If the display is mirrored or not. This field is 1 if mirrored and 0 if not mirrored."),
+    Column("online", INTEGER, "The online status of the display. This field is 1 if the display is online and 0 if it is offline."),
+    Column("rotation", TEXT, "The orientation of the display."),
+])
+implementation("connected_displays@genConnectedDisplays")
