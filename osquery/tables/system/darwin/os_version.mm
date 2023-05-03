@@ -53,6 +53,7 @@ CFDictionaryRef fetchSupplementalVersionDict() {
   CFDictionaryRef versionDict = copy_version();
 
   CFRelease(bootstrapBundle);
+  CFRelease(bundle_url);
 
   return versionDict;
 }
@@ -82,6 +83,7 @@ CFDictionaryRef fetchVersionDict() {
   CFDictionaryRef versionDict = copy_version();
 
   CFRelease(bootstrapBundle);
+  CFRelease(bundle_url);
 
   return versionDict;
 }
@@ -137,6 +139,8 @@ QueryData genOSVersion(QueryContext& context) {
       r["major"] = INTEGER(version[0]);
       break;
     }
+
+    CFRelease(smallVersionDict);
   }
 
   // Fetch supplemental version data available in modern versions
@@ -159,6 +163,8 @@ QueryData genOSVersion(QueryContext& context) {
         r["supplemental_build"] = value;
       }
     }
+
+    CFRelease(fullVersionDict);
   } else {
     VLOG(1) << "Failed to query supplemental version information";
   }
