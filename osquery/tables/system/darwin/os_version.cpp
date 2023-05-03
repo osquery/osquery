@@ -20,8 +20,13 @@
 namespace osquery {
 namespace tables {
 
-const std::string kVersionPath{
+static const std::string kVersionPath{
     "/System/Library/CoreServices/SystemVersion.plist"};
+
+// https://support.apple.com/guide/deployment/manage-rapid-security-responses-dep93ff7ea78/web
+// macos 13+ only
+static const std::string kRRVersionPath{
+    "/System/Cryptexes/OS/System/Library/CoreServices/SystemVersion.plist"};
 
 QueryData genOSVersion(QueryContext& context) {
   Row r;
@@ -37,11 +42,20 @@ QueryData genOSVersion(QueryContext& context) {
   }
 
   // The version path plist is parsed by the OS X tool: sw_vers.
-  auto sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);
+  QueryData sw_vers;
+  if (__builtin_available(macOS 13.0, *)) {
+    sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kRRVersionPath);
+    if (sw_vers.empty()) {
+      sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);
+    }
+  } else {
+    sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);
+  }
   if (sw_vers.empty()) {
     return {r};
   }
 
+  std::string extra;
   for (const auto& row : sw_vers) {
     // Iterate over each plist key searching for the version string.
     if (row.at("key") == "ProductBuildVersion") {
@@ -50,6 +64,8 @@ QueryData genOSVersion(QueryContext& context) {
       r["version"] = row.at("value");
     } else if (row.at("key") == "ProductName") {
       r["name"] = row.at("value");
+    } else if (row.at("key") == "ProductVersionExtra") {
+      extra = row.at("value");
     }
   }
 
@@ -63,6 +79,9 @@ QueryData genOSVersion(QueryContext& context) {
   case 1:
     r["major"] = INTEGER(version[0]);
     break;
+  }
+  if (!extra.empty()) {
+    r["version"] = r["version"] + " " + extra;
   }
   return {r};
 }
