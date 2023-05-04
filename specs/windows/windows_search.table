@@ -1,13 +1,18 @@
 table_name("windows_search")
 description("Run searches against the windows system index database.")
 schema([
-    Column("entity", TEXT, "index of entity"),
+    Column("path", TEXT, "path of item"),
     Column("attribute", TEXT, "attribute"),
     Column("value", TEXT, "value"),
-    Column("query", TEXT, "windows search query", required=True),
+    Column("max_results", INTEGER, "maximum number of results returned by windows api", additional=True),
+    Column("sort", TEXT, "sort for windows api", additional=True),
+    Column("select_columns", TEXT, "columns to include", additional=True),
+    Column("query", TEXT, "windows search query", additional=True),
 ])
 implementation("system/windows/windows_search@genWindowsSearch")
 examples([
-    "select * from windows_search where query = 'select top 10 system.itempathdisplay from systemindex where scope = ''file:c:\'''",
-    "select * from windows_search where query = 'select top 10 system.itempathdisplay,system.size from systemindex where scope = ''file:c:\'''",
+    "select * from windows_search",
+    "select * from windows_search where max_results = 10 and select_columns = 'system.size' and sort = 'system.size desc'",
+    "select * from windows_search where query = '"some text in file"';
+    "select * from windows_search where query = 'foldername:downloads date:pastmonth size:>1000'";
 ])

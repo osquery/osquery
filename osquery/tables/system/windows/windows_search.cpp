@@ -9,6 +9,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <windows.h>
+#include <atlbase.h>
+#include <searchapi.h>
 #include <atldbcli.h>
 #include <codecvt>
 #include <comutil.h>
@@ -17,12 +20,13 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/conversions/join.h>
 #include <sstream>
 #include <strsafe.h>
 #include <vector>
-#include <windows.h>
 
 #pragma comment(lib, "comsuppw.lib")
+#pragma comment(lib, "SearchSDK.lib")
 
 namespace osquery {
 namespace tables {
@@ -189,7 +193,6 @@ std::string ccomandColumnStringValue(CCommand<CDynamicAccessor, CRowset>& cComma
   return converter.to_bytes(wideStr);
 }
 
-
 std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSession& cSession, const std::string& query) {
   HRESULT hr;
   std::vector<std::map<std::string, std::string>> results;
@@ -220,6 +223,85 @@ std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSessi
   return results;
 }
 
+LPCWSTR convertStringToLPCWSTR(std::string originalString) {
+    int stringLength = MultiByteToWideChar(CP_UTF8, 0, originalString.c_str(), -1, NULL, 0);
+    LPWSTR wideString = new WCHAR[stringLength];
+    MultiByteToWideChar(CP_UTF8, 0, originalString.c_str(), -1, wideString, stringLength);
+    return wideString;
+}
+
+std::string convertLPWSTRtoString(LPWSTR lpwstr) {
+    size_t len = wcslen(lpwstr);
+    int len_int = static_cast<int>(len);
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, lpwstr, len_int, NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, lpwstr, len_int, &strTo[0], size_needed, NULL, NULL);
+    return strTo;
+}
+
+std::string generateSqlFromUserQuery(const std::string& userInput, std::string columns, std::string sort, LONG maxResults) {
+    HRESULT hr = CoInitialize(nullptr);
+
+    // Create ISearchManager instance
+    ISearchManager* pSearchManager;
+    // Use library SearchSDK.lib for CLSID_CSearchManager.
+    hr = CoCreateInstance(CLSID_CSearchManager, NULL, CLSCTX_LOCAL_SERVER, IID_PPV_ARGS(&pSearchManager));
+    if (FAILED(hr)) {
+      LOG(ERROR) << "Failed to create ISearchManager instance";
+      return "";
+    }
+
+    // Create ISearchCatalogManager instance
+    ISearchCatalogManager* pSearchCatalogManager;
+    // Call ISearchManager::GetCatalog for "SystemIndex" to access the catalog to the ISearchCatalogManager
+    hr = pSearchManager->GetCatalog(L"SystemIndex", &pSearchCatalogManager);
+    if (FAILED(hr)) {
+      LOG(ERROR) << "Failed to get catalog manager";
+      return "";
+    }
+
+    // Call ISearchCatalogManager::GetQueryHelper to get the ISearchQueryHelper interface
+    ISearchQueryHelper* pQueryHelper;
+    hr = pSearchCatalogManager->GetQueryHelper(&pQueryHelper);
+    if (FAILED(hr)) {
+      LOG(ERROR) << "Failed to get query helper";
+      return "";
+    }
+
+    hr = pQueryHelper->put_QueryMaxResults(maxResults);
+    if (FAILED(hr)) {
+      LOG(ERROR) << "Failed to set max results";
+      return "";
+    }
+
+    if (!columns.empty()) {
+      hr = pQueryHelper->put_QuerySelectColumns(convertStringToLPCWSTR(columns));
+      if (FAILED(hr)) {
+        LOG(ERROR) << "Failed to set columns";
+        return "";
+      }
+    }
+
+    if (!sort.empty()) {
+      hr = pQueryHelper->put_QuerySorting(convertStringToLPCWSTR(sort));
+      if (FAILED(hr)) {
+        LOG(ERROR) << "Failed to set sort";
+        return "";
+      }
+    }
+
+    LPWSTR sql;
+    hr =  pQueryHelper->GenerateSQLFromUserQuery(convertStringToLPCWSTR(userInput), &sql);
+    if (FAILED(hr)) {
+        LOG(ERROR) << "Failed to generate SQL from user query";
+        return "";
+    }
+
+    std::string ret = convertLPWSTRtoString(sql);
+    CoTaskMemFree(sql);
+    return ret;
+}
+
 QueryData genWindowsSearch(QueryContext& context) {
   QueryData results;
 
@@ -229,7 +311,6 @@ QueryData genWindowsSearch(QueryContext& context) {
   hr = cDataSource.OpenFromInitializationString(
       L"provider=Search.CollatorDSO.1;EXTENDED "
       L"PROPERTIES=\"Application=Windows\"");
-
   if (FAILED(hr)) {
     LOG(ERROR) << "error initializing CDataSource";
     return results;
@@ -237,26 +318,62 @@ QueryData genWindowsSearch(QueryContext& context) {
 
   CSession cSession;
   hr = cSession.Open(cDataSource);
-
   if (FAILED(hr)) {
     LOG(ERROR) << "error opening CSession";
     return results;
   }
 
-  auto queries = context.constraints["query"].getAll(EQUALS);
+  LONG maxResults = 100;
+  if (context.hasConstraint("max_results", EQUALS)) {
+    auto maxResultsConstraint = context.constraints["max_results"].getAll(EQUALS);
+    auto maxResultsStr = SQL_TEXT(*maxResultsConstraint.begin());
+    maxResults = std::stol(maxResultsStr);
+  }
 
-  for (const auto& query : queries) {
-    auto queryResults = executeWindowsSearchQuery(cSession, query);
+  std::string columns = "system.itempathdisplay";
+  std::string userInputColumns = "";
+  if (context.hasConstraint("select_columns", EQUALS)) {
+    auto columnsConstraint = context.constraints["select_columns"].getAll(EQUALS);
+    userInputColumns = SQL_TEXT(*columnsConstraint.begin());
+  }
 
-    for (size_t i = 0; i < queryResults.size(); i++) {
-      for (const auto& [key, value] : queryResults[i]) {
-        Row r;
-        r["entity"] = INTEGER(i);
-        r["attribute"] = key;
-        r["value"] = value;
-        r["query"] = query;
-        results.push_back(r);
-      }
+  if (userInputColumns.empty()) {
+    // if the user did not provide any select_columns use the default
+    userInputColumns = columns;
+  } else {
+    // if the user did provide a select_columns, add them to the columns to make sure we got system.itempathdisplay
+    // duplicates are removed when sql is generated
+    columns += "," + userInputColumns;
+  }
+
+  std::string sort = "";
+  if (context.hasConstraint("sort", EQUALS)) {
+    auto sortConstraint = context.constraints["sort"].getAll(EQUALS);
+    sort = SQL_TEXT(*sortConstraint.begin());
+  }
+
+  std::string query = "*";
+  if (context.hasConstraint("query", EQUALS)) {
+    auto queryContext = context.constraints["query"].getAll(EQUALS);
+    query = SQL_TEXT(*queryContext.begin());
+  }
+
+  auto generatedQuery = generateSqlFromUserQuery(query, columns, sort, maxResults);
+  auto queryResults = executeWindowsSearchQuery(cSession, generatedQuery);
+
+  for (size_t i = 0; i < queryResults.size(); i++) {
+    auto path = queryResults[i]["system.itempathdisplay"];
+
+    for (const auto& [key, value] : queryResults[i]) {
+      Row r;
+      r["path"] = path;
+      r["attribute"] = key;
+      r["value"] = value;
+      r["select_columns"] = userInputColumns;
+      r["sort"] = sort;
+      r["max_results"] = INTEGER(maxResults);
+      r["query"] = query;
+      results.push_back(r);
     }
   }
 
