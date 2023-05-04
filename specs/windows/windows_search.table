@@ -13,6 +13,6 @@ implementation("system/windows/windows_search@genWindowsSearch")
 examples([
     "select * from windows_search",
     "select * from windows_search where max_results = 10 and select_columns = 'system.size' and sort = 'system.size desc'",
-    "select * from windows_search where query = '"some text in file"';
-    "select * from windows_search where query = 'foldername:downloads date:pastmonth size:>1000'";
+    "select * from windows_search where query = '\"some text in file\"'",
+    "select * from windows_search where query = 'foldername:downloads date:pastmonth size:>1000'",
 ])

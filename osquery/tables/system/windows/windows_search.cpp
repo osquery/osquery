@@ -57,7 +57,7 @@ LONGLONG dateToUnixTime(const DATE date) {
 // This helper function can print some propvariants and handles BSTR vectors
 void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss) {
   if (variant.vt == (VT_ARRAY | VT_BSTR) && variant.parray->cDims == 1) {
-    BSTR* pBStr;
+    BSTR* pBStr = nullptr;
     HRESULT hr = SafeArrayAccessData(variant.parray, reinterpret_cast<void**>(&pBStr));
 
     if (FAILED(hr)) {
@@ -194,7 +194,7 @@ std::string ccomandColumnStringValue(CCommand<CDynamicAccessor, CRowset>& cComma
 }
 
 std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSession& cSession, const std::string& query) {
-  HRESULT hr;
+  HRESULT hr = NULL;
   std::vector<std::map<std::string, std::string>> results;
 
   CCommand<CDynamicAccessor, CRowset> cCommand;
@@ -240,10 +240,10 @@ std::string convertLPWSTRtoString(LPWSTR lpwstr) {
 }
 
 std::string generateSqlFromUserQuery(const std::string& userInput, std::string columns, std::string sort, LONG maxResults) {
-    HRESULT hr = CoInitialize(nullptr);
+    HRESULT hr = NULL;
 
     // Create ISearchManager instance
-    ISearchManager* pSearchManager;
+    ISearchManager* pSearchManager = nullptr;
     // Use library SearchSDK.lib for CLSID_CSearchManager.
     hr = CoCreateInstance(CLSID_CSearchManager, NULL, CLSCTX_LOCAL_SERVER, IID_PPV_ARGS(&pSearchManager));
     if (FAILED(hr)) {
@@ -252,7 +252,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     // Create ISearchCatalogManager instance
-    ISearchCatalogManager* pSearchCatalogManager;
+    ISearchCatalogManager* pSearchCatalogManager = nullptr;
     // Call ISearchManager::GetCatalog for "SystemIndex" to access the catalog to the ISearchCatalogManager
     hr = pSearchManager->GetCatalog(L"SystemIndex", &pSearchCatalogManager);
     if (FAILED(hr)) {
@@ -261,7 +261,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     // Call ISearchCatalogManager::GetQueryHelper to get the ISearchQueryHelper interface
-    ISearchQueryHelper* pQueryHelper;
+    ISearchQueryHelper* pQueryHelper = nullptr;
     hr = pSearchCatalogManager->GetQueryHelper(&pQueryHelper);
     if (FAILED(hr)) {
       LOG(ERROR) << "Failed to get query helper";
@@ -304,8 +304,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
 
 QueryData genWindowsSearch(QueryContext& context) {
   QueryData results;
-
-  HRESULT hr = CoInitialize(NULL);
+  HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 
   CDataSource cDataSource;
   hr = cDataSource.OpenFromInitializationString(
