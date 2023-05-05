@@ -77,6 +77,7 @@ void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss) {
       wss << pBStr[i];
     }
     wss << "]";
+
     SafeArrayUnaccessData(variant.parray);
     return;
   }

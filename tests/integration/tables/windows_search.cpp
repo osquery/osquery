@@ -24,7 +24,10 @@ class windows_search : public testing::Test {
 };
 
 TEST_F(windows_search, test_sanity) {
-  auto const data = execute_query("select * from windows_search where query = '*' and max_results = 1 and select_columns = 'system.size' and sort = 'system.size desc'");
+  auto const data = execute_query(
+      "select * from windows_search where query = '*' and max_results = 1 and "
+      "select_columns = 'system.size,system.author' and sort = 'system.size "
+      "desc'");
 
   ValidationMap row_map = {
       {"path", NormalType},
