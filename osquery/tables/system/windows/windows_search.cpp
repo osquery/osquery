@@ -21,6 +21,7 @@
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/scope_guard.h>
 #include <sstream>
 #include <strsafe.h>
 #include <vector>
@@ -250,6 +251,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
       LOG(ERROR) << "Failed to create ISearchManager instance";
       return "";
     }
+    auto const pSearchManagerGuard = scope_guard::create([pSearchManager]() { pSearchManager->Release(); });
 
     // Create ISearchCatalogManager instance
     ISearchCatalogManager* pSearchCatalogManager = nullptr;
@@ -259,6 +261,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
       LOG(ERROR) << "Failed to get catalog manager";
       return "";
     }
+    auto const pSearchCatalogManagerGuard = scope_guard::create([pSearchCatalogManager]() { pSearchCatalogManager->Release(); });
 
     // Call ISearchCatalogManager::GetQueryHelper to get the ISearchQueryHelper interface
     ISearchQueryHelper* pQueryHelper = nullptr;
@@ -267,6 +270,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
       LOG(ERROR) << "Failed to get query helper";
       return "";
     }
+    auto const pQueryHelperGuard = scope_guard::create([pQueryHelper]() { pQueryHelper->Release(); });
 
     hr = pQueryHelper->put_QueryMaxResults(maxResults);
     if (FAILED(hr)) {
@@ -275,7 +279,9 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     if (!columns.empty()) {
-      hr = pQueryHelper->put_QuerySelectColumns(convertStringToLPCWSTR(columns));
+      auto columnsLpc = convertStringToLPCWSTR(columns);
+      hr = pQueryHelper->put_QuerySelectColumns(columnsLpc);
+      CoTaskMemFree((LPVOID)columnsLpc);
       if (FAILED(hr)) {
         LOG(ERROR) << "Failed to set columns";
         return "";
@@ -283,7 +289,9 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     if (!sort.empty()) {
-      hr = pQueryHelper->put_QuerySorting(convertStringToLPCWSTR(sort));
+      auto sortLpc = convertStringToLPCWSTR(sort);
+      hr = pQueryHelper->put_QuerySorting(sortLpc);
+      CoTaskMemFree((LPVOID)sortLpc);
       if (FAILED(hr)) {
         LOG(ERROR) << "Failed to set sort";
         return "";
@@ -291,7 +299,9 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     LPWSTR sql;
-    hr =  pQueryHelper->GenerateSQLFromUserQuery(convertStringToLPCWSTR(userInput), &sql);
+    auto userInputLpc = convertStringToLPCWSTR(userInput);
+    hr =  pQueryHelper->GenerateSQLFromUserQuery(userInputLpc, &sql);
+    CoTaskMemFree((LPVOID)userInputLpc);
     if (FAILED(hr)) {
         LOG(ERROR) << "Failed to generate SQL from user query";
         return "";
@@ -305,6 +315,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
 QueryData genWindowsSearch(QueryContext& context) {
   QueryData results;
   HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+  auto const coUninitalizeGuard = scope_guard::create([hr]() { CoUninitialize(); });
 
   CDataSource cDataSource;
   hr = cDataSource.OpenFromInitializationString(
@@ -314,6 +325,7 @@ QueryData genWindowsSearch(QueryContext& context) {
     LOG(ERROR) << "error initializing CDataSource";
     return results;
   }
+  auto const cDataSourceGuard = scope_guard::create([&cDataSource]() { cDataSource.Close(); });
 
   CSession cSession;
   hr = cSession.Open(cDataSource);
@@ -321,6 +333,7 @@ QueryData genWindowsSearch(QueryContext& context) {
     LOG(ERROR) << "error opening CSession";
     return results;
   }
+  auto const cSessionGuard = scope_guard::create([&cSession]() { cSession.Close(); });
 
   LONG maxResults = 100;
   if (context.hasConstraint("max_results", EQUALS)) {
@@ -376,9 +389,6 @@ QueryData genWindowsSearch(QueryContext& context) {
     }
   }
 
-  cSession.Close();
-  cDataSource.Close();
-  CoUninitialize();
   return results;
 }
 
