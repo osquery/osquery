@@ -1,13 +1,13 @@
 table_name("windows_search")
-description("Run searches against the windows system index database.")
+description("Run searches against the Windows system index database using Advanced Query Syntax. See https://learn.microsoft.com/en-us/windows/win32/search/-search-3x-advancedquerysyntax for details.")
 schema([
     Column("path", TEXT, "path of item"),
     Column("attribute", TEXT, "attribute"),
     Column("value", TEXT, "value"),
-    Column("max_results", INTEGER, "maximum number of results returned by windows api", additional=True),
-    Column("sort", TEXT, "sort for windows api", additional=True),
-    Column("select_columns", TEXT, "columns to include", additional=True),
-    Column("query", TEXT, "windows search query", additional=True),
+    Column("max_results", INTEGER, "maximum number of results returned by windows api", additional=True, hidden=True),
+    Column("sort", TEXT, "sort for windows api", additional=True, hidden=True),
+    Column("select_columns", TEXT, "columns to include", additional=True, hidden=True),
+    Column("query", TEXT, "windows search query", additional=True, hidden=True),
 ])
 implementation("system/windows/windows_search@genWindowsSearch")
 examples([
