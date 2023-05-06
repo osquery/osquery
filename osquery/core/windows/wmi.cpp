@@ -10,11 +10,16 @@
 #include <locale>
 #include <string>
 
+#include <wrl.h>
+
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
+
+template <typename T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 WmiMethodArgs::WmiMethodArgs(WmiMethodArgs&& src) {
   std::swap(arguments, src.arguments);
