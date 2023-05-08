@@ -128,8 +128,10 @@ Status WmiResultItem::GetDateTime(const std::string& name,
   }
 
   ComPtr<ISWbemDateTime> dt;
-  hr = CoCreateInstance(
-      CLSID_SWbemDateTime, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dt.GetAddressOf()));
+  hr = CoCreateInstance(CLSID_SWbemDateTime,
+                        nullptr,
+                        CLSCTX_INPROC_SERVER,
+                        IID_PPV_ARGS(dt.GetAddressOf()));
   if (!SUCCEEDED(hr)) {
     VariantClear(&value);
     return Status::failure("Failed to create SWbemDateTime object.");
@@ -513,7 +515,8 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
 
   ComPtr<IWbemClassObject> class_obj;
   // GetObject obtains a CIM Class definition object
-  HRESULT hr = services_->GetObject(wmi_class_name, 0, nullptr, class_obj.GetAddressOf(), nullptr);
+  HRESULT hr = services_->GetObject(
+      wmi_class_name, 0, nullptr, class_obj.GetAddressOf(), nullptr);
   SysFreeString(wmi_class_name);
 
   if (FAILED(hr)) {
@@ -523,7 +526,8 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
   ComPtr<IWbemClassObject> in_def;
   // GetMethod only works on CIM class definition objects. This is why
   // we don't use result_
-  hr = class_obj->GetMethod(property_name.c_str(), 0, in_def.GetAddressOf(), nullptr);
+  hr = class_obj->GetMethod(
+      property_name.c_str(), 0, in_def.GetAddressOf(), nullptr);
   if (FAILED(hr)) {
     return Status::failure("Failed to GetMethod");
   }
@@ -570,7 +574,7 @@ Status WmiRequest::ExecMethod(const WmiResultItem& object,
                              wmi_meth_name,
                              0,
                              nullptr,
-                             args_inst.get(),
+                             args_inst.Get(),
                              &out_params,
                              nullptr);
 
