@@ -9,12 +9,20 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+// Windows headers
 #include <windows.h>
 #include <atlbase.h>
 #include <searchapi.h>
 #include <atldbcli.h>
-#include <codecvt>
 #include <comutil.h>
+
+// standard library headers
+#include <codecvt>
+#include <sstream>
+#include <strsafe.h>
+#include <vector>
+
+// osquery headers
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
@@ -22,12 +30,6 @@
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/scope_guard.h>
-#include <sstream>
-#include <strsafe.h>
-#include <vector>
-
-#pragma comment(lib, "comsuppw.lib")
-#pragma comment(lib, "SearchSDK.lib")
 
 namespace osquery {
 namespace tables {
@@ -59,7 +61,7 @@ LONGLONG dateToUnixTime(const DATE date) {
 
 // This helper function can print some propvariants and handles BSTR vectors
 void writePropVariant(REFPROPVARIANT variant, std::wstringstream& wss) {
-  if (variant.vt == (VT_ARRAY | VT_BSTR) && variant.parray->cDims == 1) {
+  if (variant.vt == (VT_ARRAY | VT_BSTR) && variant.parray && variant.parray->cDims == 1) {
     BSTR* pBStr = nullptr;
     HRESULT hr = SafeArrayAccessData(variant.parray, reinterpret_cast<void**>(&pBStr));
 
@@ -197,7 +199,7 @@ std::string ccomandColumnStringValue(CCommand<CDynamicAccessor, CRowset>& cComma
   return converter.to_bytes(wideStr);
 }
 
-std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSession& cSession, const std::string& query) {
+osquery::QueryData executeWindowsSearchQuery(CSession& cSession, const std::string& query) {
   HRESULT hr = NULL;
   std::vector<std::map<std::string, std::string>> results;
 
@@ -225,22 +227,6 @@ std::vector<std::map<std::string, std::string>> executeWindowsSearchQuery(CSessi
 
   cCommand.Close();
   return results;
-}
-
-LPCWSTR convertStringToLPCWSTR(std::string originalString) {
-    int stringLength = MultiByteToWideChar(CP_UTF8, 0, originalString.c_str(), -1, NULL, 0);
-    LPWSTR wideString = new WCHAR[stringLength];
-    MultiByteToWideChar(CP_UTF8, 0, originalString.c_str(), -1, wideString, stringLength);
-    return wideString;
-}
-
-std::string convertLPWSTRtoString(LPWSTR lpwstr) {
-    size_t len = wcslen(lpwstr);
-    int len_int = static_cast<int>(len);
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, lpwstr, len_int, NULL, 0, NULL, NULL);
-    std::string strTo(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, lpwstr, len_int, &strTo[0], size_needed, NULL, NULL);
-    return strTo;
 }
 
 std::string generateSqlFromUserQuery(const std::string& userInput, std::string columns, std::string sort, LONG maxResults) {
@@ -282,9 +268,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     if (!columns.empty()) {
-      auto columnsLpc = convertStringToLPCWSTR(columns);
-      hr = pQueryHelper->put_QuerySelectColumns(columnsLpc);
-      CoTaskMemFree((LPVOID)columnsLpc);
+      hr = pQueryHelper->put_QuerySelectColumns(stringToWstring(columns).c_str());
       if (FAILED(hr)) {
         LOG(ERROR) << windowsSearchTableName << ": failed to set columns";
         return "";
@@ -292,9 +276,7 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     if (!sort.empty()) {
-      auto sortLpc = convertStringToLPCWSTR(sort);
-      hr = pQueryHelper->put_QuerySorting(sortLpc);
-      CoTaskMemFree((LPVOID)sortLpc);
+      hr = pQueryHelper->put_QuerySorting(stringToWstring(sort).c_str());
       if (FAILED(hr)) {
         LOG(ERROR) << windowsSearchTableName << ": failed to set sort";
         return "";
@@ -302,15 +284,13 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     LPWSTR sql;
-    auto userInputLpc = convertStringToLPCWSTR(userInput);
-    hr =  pQueryHelper->GenerateSQLFromUserQuery(userInputLpc, &sql);
-    CoTaskMemFree((LPVOID)userInputLpc);
+    hr =  pQueryHelper->GenerateSQLFromUserQuery(stringToWstring(userInput).c_str(), &sql);
     if (FAILED(hr)) {
         LOG(ERROR) << windowsSearchTableName << ": failed to generate SQL from user query";
         return "";
     }
 
-    std::string ret = convertLPWSTRtoString(sql);
+    std::string ret = wstringToString(sql);
     CoTaskMemFree(sql);
     return ret;
 }
