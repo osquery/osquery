@@ -34,15 +34,17 @@ TEST_F(OsVersion, test_sanity) {
       {"major", NonNegativeInt},
       {"minor", NonNegativeInt},
       {"patch", NormalType},
-      {"extra", NormalType},
       {"build", NormalType},
-      {"supplemental_build", NormalType},
       {"platform", NonEmptyString},
       {"platform_like", NonEmptyString},
       {"codename", NormalType},
       {"arch", NonEmptyString},
 #ifdef OSQUERY_WINDOWS
       {"install_date", NonEmptyString},
+#endif
+#ifdef OSQUERY_DARWIN
+      {"extra", NormalType},
+      {"supplemental_build", NormalType},
 #endif
   };
 

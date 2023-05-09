@@ -38,16 +38,21 @@ CFDictionaryRef fetchSupplementalVersionDict() {
 
   CFBundleRef bootstrapBundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
 
-  if (bootstrapBundle == NULL) {
-    return NULL;
+  if (bootstrapBundle == nullptr) {
+    CFRelease(bundle_url);
+    VLOG(1) << "Failed to load CoreFoundation framework";
+    return nullptr;
   }
 
   copy_version_t copy_version =
       (copy_version_t)CFBundleGetFunctionPointerForName(
           bootstrapBundle, CFSTR("_CFCopySupplementalVersionDictionary"));
 
-  if (copy_version == NULL) {
-    return NULL;
+  if (copy_version == nullptr) {
+    CFRelease(bootstrapBundle);
+    CFRelease(bundle_url);
+    VLOG(1) << "Failed to load _CFCopySupplementalVersionDictionary function pointer";
+    return nullptr;
   }
 
   CFDictionaryRef versionDict = copy_version();
@@ -68,16 +73,21 @@ CFDictionaryRef fetchVersionDict() {
 
   CFBundleRef bootstrapBundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
 
-  if (bootstrapBundle == NULL) {
-    return NULL;
+  if (bootstrapBundle == nullptr) {
+    CFRelease(bundle_url);
+    VLOG(1) << "Failed to load CoreFoundation framework";
+    return nullptr;
   }
 
   copy_version_t copy_version =
       (copy_version_t)CFBundleGetFunctionPointerForName(
           bootstrapBundle, CFSTR("_CFCopySystemVersionDictionary"));
 
-  if (copy_version == NULL) {
-    return NULL;
+  if (copy_version == nullptr) {
+    CFRelease(bootstrapBundle);
+    CFRelease(bundle_url);
+    VLOG(1) << "Failed to load _CFCopySystemVersionDictionary function pointer";
+    return nullptr;
   }
 
   CFDictionaryRef versionDict = copy_version();
@@ -119,25 +129,25 @@ QueryData genOSVersion(QueryContext& context) {
       auto value = stringFromCFString((CFStringRef)values[i]);
 
       // switch on key name to each value
-      if (key == "ProductVersion") {
+      if (key == "ShortVersionString") {
         r["version"] = value;
       } else if (key == "ProductBuildVersion") {
         r["build"] = value;
       } else if (key == "ProductName") {
         r["name"] = value;
+      } else if (key == "ProductVersion") {
+        // Break out version parts
+        auto version = osquery::split(value, ".");
+        switch (version.size()) {
+        case 3:
+          r["patch"] = INTEGER(version[2]);
+        case 2:
+          r["minor"] = INTEGER(version[1]);
+        case 1:
+          r["major"] = INTEGER(version[0]);
+          break;
+        }
       }
-    }
-
-    // Break out version parts
-    auto version = osquery::split(r["version"], ".");
-    switch (version.size()) {
-    case 3:
-      r["patch"] = INTEGER(version[2]);
-    case 2:
-      r["minor"] = INTEGER(version[1]);
-    case 1:
-      r["major"] = INTEGER(version[0]);
-      break;
     }
 
     CFRelease(smallVersionDict);
@@ -157,7 +167,9 @@ QueryData genOSVersion(QueryContext& context) {
       auto value = stringFromCFString((CFStringRef)values[i]);
 
       // switch on key name to each value
-      if (key == "ProductVersionExtra") {
+      if (key == "ShortVersionString") {
+        r["version"] = value; // If we get a more detailed version in supplemental call, use it
+      } else if (key == "ProductVersionExtra") {
         r["extra"] = value;
       } else if (key == "ProductBuildVersion") {
         r["supplemental_build"] = value;

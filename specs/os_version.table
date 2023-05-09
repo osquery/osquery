@@ -6,14 +6,18 @@ schema([
     Column("major", INTEGER, "Major release version"),
     Column("minor", INTEGER, "Minor release version"),
     Column("patch", INTEGER, "Optional patch release"),
-    Column("extra", TEXT, "Optional extra release specification"),
     Column("build", TEXT, "Optional build-specific or variant string"),
-    Column("supplemental_build", TEXT, "Optional supplemental build-specific or variant string"),
     Column("platform", TEXT, "OS Platform or ID"),
     Column("platform_like", TEXT, "Closely related platforms"),
     Column("codename", TEXT, "OS version codename"),
     Column("arch", TEXT, "OS Architecture"),
 ])
+
+extended_schema(DARWIN, [
+    Column("extra", TEXT, "Optional extra release specification"),
+    Column("supplemental_build", TEXT, "Optional supplemental build-specific or variant string"),
+])
+
 extended_schema(WINDOWS, [
     Column("install_date", BIGINT, "The install date of the OS."),
 ])
