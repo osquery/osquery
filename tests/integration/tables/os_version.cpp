@@ -44,7 +44,6 @@ TEST_F(OsVersion, test_sanity) {
 #endif
 #ifdef OSQUERY_DARWIN
       {"extra", NormalType},
-      {"supplemental_build", NormalType},
 #endif
   };
 

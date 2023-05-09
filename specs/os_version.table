@@ -15,7 +15,6 @@ schema([
 
 extended_schema(DARWIN, [
     Column("extra", TEXT, "Optional extra release specification"),
-    Column("supplemental_build", TEXT, "Optional supplemental build-specific or variant string"),
 ])
 
 extended_schema(WINDOWS, [

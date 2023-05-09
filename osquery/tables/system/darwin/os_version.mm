@@ -51,7 +51,8 @@ CFDictionaryRef fetchSupplementalVersionDict() {
   if (copy_version == nullptr) {
     CFRelease(bootstrapBundle);
     CFRelease(bundle_url);
-    VLOG(1) << "Failed to load _CFCopySupplementalVersionDictionary function pointer";
+    VLOG(1) << "Failed to load _CFCopySupplementalVersionDictionary function "
+               "pointer";
     return nullptr;
   }
 
@@ -168,11 +169,12 @@ QueryData genOSVersion(QueryContext& context) {
 
       // switch on key name to each value
       if (key == "ShortVersionString") {
-        r["version"] = value; // If we get a more detailed version in supplemental call, use it
+        r["version"] = value; // If we get a more detailed version in
+                              // supplemental call, use it
       } else if (key == "ProductVersionExtra") {
         r["extra"] = value;
       } else if (key == "ProductBuildVersion") {
-        r["supplemental_build"] = value;
+        r["build"] = value;
       }
     }
 
