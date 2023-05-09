@@ -55,6 +55,10 @@ const std::vector<std::string> kFileNameList{
 
 DECLARE_uint64(read_max);
 
+extern inline Status listInAbsoluteDirectory(const fs::path& path,
+                                             std::vector<std::string>& results,
+                                             GlobLimits limits);
+
 class FilesystemTests : public testing::Test {
  protected:
   fs::path test_working_dir_;
@@ -161,6 +165,14 @@ class FilesystemTests : public testing::Test {
     static std::uniform_int_distribution<unsigned int> dist(1, MAX_DIST_NUMBER);
 
     return dist(engine);
+  }
+
+  // legacy listDirectoriesInDirectory logic
+  Status legacyListDirectoriesInDirectory(const fs::path& path,
+                                          std::vector<std::string>& results,
+                                          bool recursive) {
+    return listInAbsoluteDirectory(
+        (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
   }
 
  protected:
@@ -852,6 +864,86 @@ TEST_F(FilesystemTests, test_directory_listing_with_nested_dirs_and_symlinks) {
 
   ASSERT_TRUE(found_directories.size() ==
               (size_t)(created_symlink_directories + created_raw_directories));
+
+  deleteDirectoryContent(test_root_raw_dirs);
+  deleteDirectoryContent(test_root_work_dirs);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
+  // This test verifies that a recursive directory junction can be handled by
+  // listDirectoriesInDirectory logic
+
+  const unsigned int EXPECTED_NR_OF_DIRECTORIES = 1;
+
+  const fs::path test_root_raw = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_raw));
+  const fs::path junction_dir = test_root_raw / genRandomName();
+
+  // Creating a junction directory that points to itself
+  std::string junction_dir_str = junction_dir.string();
+  std::string target_cmdline = "mklink /J ";
+  target_cmdline.append(junction_dir_str);
+  target_cmdline.append(" ");
+  target_cmdline.append(junction_dir_str);
+  target_cmdline.append(" > NUL");
+  system(target_cmdline.c_str());
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_raw, found_directories, false));
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() == EXPECTED_NR_OF_DIRECTORIES);
+
+  deleteDirectoryContent(test_root_raw);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_legacy_logic) {
+  // This test verifies that symlinks and nested directories are properly
+  // listed with current and legacy logic.
+
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_raw_dirs =
+      fs::temp_directory_path() / genRandomName();
+  const fs::path test_root_work_dirs =
+      fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_raw_dirs));
+  ASSERT_TRUE(fs::create_directory(test_root_work_dirs));
+
+  unsigned int created_target_symlink_directories = 0;
+  unsigned int created_symlink_directories = 0;
+  unsigned int created_raw_directories = 0;
+
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path raw_dir = test_root_raw_dirs / genRandomName();
+    const fs::path symlink_dir = test_root_work_dirs / genRandomName();
+    const fs::path work_dir = test_root_work_dirs / genRandomName();
+
+    ASSERT_TRUE(createNestedDirectories(
+        raw_dir, 0, created_target_symlink_directories));
+
+    ASSERT_TRUE(createDirectorySymlink(
+        raw_dir, symlink_dir, created_symlink_directories));
+
+    ASSERT_TRUE(createNestedDirectories(
+        work_dir, getRandomNumber(), created_raw_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_work_dirs, found_directories, true));
+
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() ==
+              (size_t)(created_symlink_directories + created_raw_directories));
+
+  std::vector<std::string> found_directories_legacy_logic;
+  ASSERT_TRUE(legacyListDirectoriesInDirectory(
+      test_root_work_dirs, found_directories_legacy_logic, true));
+  ASSERT_TRUE(found_directories.size() ==
+              found_directories_legacy_logic.size());
 
   deleteDirectoryContent(test_root_raw_dirs);
   deleteDirectoryContent(test_root_work_dirs);

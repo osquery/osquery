@@ -457,13 +457,17 @@ Status listDirectoriesInDirectory(const fs::path& path,
 
   if (recursive) {
     for (const auto& entry : fs::recursive_directory_iterator(path)) {
-      if (fs::is_directory(entry)) {
+      if (fs::is_symlink(entry)) {
+        results.push_back(entry.path().string());
+      } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
       }
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_directory(entry)) {
+      if (fs::is_symlink(entry)) {
+        results.push_back(entry.path().string());
+      } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
       }
     }
