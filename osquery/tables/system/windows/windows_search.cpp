@@ -325,7 +325,8 @@ QueryData genWindowsSearch(QueryContext& context) {
     maxResults = std::stol(maxResultsStr);
   }
 
-  std::string columns = "system.itempathdisplay";
+  const std::string defaultColumn = "System.ItemPathDisplay";
+  std::string columns = defaultColumn;
   std::string userInputColumns = "";
   if (context.hasConstraint("select_columns", EQUALS)) {
     auto columnsConstraint = context.constraints["select_columns"].getAll(EQUALS);
@@ -357,7 +358,7 @@ QueryData genWindowsSearch(QueryContext& context) {
   auto queryResults = executeWindowsSearchQuery(cSession, generatedQuery);
 
   for (size_t i = 0; i < queryResults.size(); i++) {
-    auto path = queryResults[i]["system.itempathdisplay"];
+    auto path = queryResults[i][defaultColumn];
 
     for (const auto& [key, value] : queryResults[i]) {
       Row r;
