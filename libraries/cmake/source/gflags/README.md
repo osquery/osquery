@@ -20,10 +20,18 @@ cmake ../ -DCMAKE_BUILD_TYPE=Release -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothre
 
 ## Windows
 
+### x86-64
+
 Configure with
 
 ```sh
 cmake -G "Visual Studio 16 2019" -A x64 ../ -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothreads_LIB=OFF -DGFLAGS_NAMESPACE=gflags
+```
+
+### ARM64
+
+```sh
+cmake -G "Visual Studio 16 2019" -A ARM64 ../ -DBUILD_gflags_LIB=ON -DBUILD_gflags_nothreads_LIB=OFF -DGFLAGS_NAMESPACE=gflags
 ```
 
 ## macOS

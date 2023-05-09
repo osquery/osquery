@@ -119,7 +119,7 @@ cmake \
   -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl@1.1/1.1.1k
 ```
 
-## Windows
+## Windows (x86-64, ARM64)
 
 ```cmd
 cmake ^

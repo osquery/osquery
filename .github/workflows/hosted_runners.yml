@@ -931,7 +931,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release]
-        bitness: [64]
+        bitness: [64, arm64]
         os: [windows-2019]
 
     steps:
@@ -963,6 +963,17 @@ jobs:
         echo "INSTALL=$base_dir\$rel_install_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
+
+    - name: Setup the VC arch
+      shell: powershell
+      id: vc_arch
+      run: |
+        $arch = switch ("${{ matrix.bitness }}")
+        {
+            "64" { "x64" }
+            "arm64" { "x64_arm64" }
+        }
+        echo "VC_ARCH=$arch" >> $env:GITHUB_OUTPUT
 
     # Symbolic links are supported by default on Linux and macOS. On
     # Windows, we have to enable them explicitly. They are used to
@@ -1116,7 +1127,15 @@ jobs:
         SCCACHE_CACHE_SIZE: "5G"
 
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        @echo on
+
+        set cross_compilation=
+        if ${{ matrix.bitness }}==arm64 (
+            echo set (CMAKE_SYSTEM_NAME Windows^) > cross.cmake
+            echo set (CMAKE_SYSTEM_PROCESSOR ARM64^) >> cross.cmake
+            set cross_compilation=-DCMAKE_TOOLCHAIN_FILE=cross.cmake
+        )
 
         cmake -G Ninja ^
           -DCMAKE_C_COMPILER=cl.exe ^
@@ -1126,7 +1145,8 @@ jobs:
           -DCMAKE_C_COMPILER_LAUNCHER="sccache.exe" ^
           -DCMAKE_CXX_COMPILER_LAUNCHER="sccache.exe" ^
           -DPython3_ROOT_DIR=${{ steps.python_root_directory.outputs.VALUE }} ^
-          ${{ steps.build_paths.outputs.SOURCE }}
+          ${{ steps.build_paths.outputs.SOURCE }} ^
+          %cross_compilation%
 
     - name: Determine compiler version
       id: determine_compiler_version
@@ -1185,7 +1205,8 @@ jobs:
         SCCACHE_CACHE_SIZE: "5G"
 
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        @echo on
 
         cmake --build . -j 3
 
@@ -1193,10 +1214,13 @@ jobs:
         sccache.exe --stop-server
 
     - name: Run the tests
+      # arm64 tests can't be run on x64 machine
+      if: matrix.bitness != 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: cmd
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        @echo on
         ctest --build-nocmake -C Release -V
 
     - name: Run the install target
@@ -1213,7 +1237,8 @@ jobs:
       shell: cmd
 
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.bitness }}.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        @echo on
 
         cd ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
@@ -1222,6 +1247,11 @@ jobs:
           ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+
+        if ${{ matrix.bitness }}==arm64 (
+           echo Do not create other packages for arm64
+           exit 0
+        )
 
         cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ^
           -DCPACK_GENERATOR=WIX ^
@@ -1269,12 +1299,14 @@ jobs:
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release MSI artifact
+      if: matrix.bitness != 'arm64'
       uses: actions/upload-artifact@v1
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_msi
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_MSI_PATH }}
 
     - name: Store the unsigned release NUPKG artifact
+      if: matrix.bitness != 'arm64'
       uses: actions/upload-artifact@v1
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_nupkg

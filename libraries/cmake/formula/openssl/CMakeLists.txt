@@ -22,6 +22,12 @@ function(opensslMain)
   add_library(thirdparty_openssl_ssl STATIC IMPORTED GLOBAL)
   add_library(thirdparty_openssl_crypto STATIC IMPORTED GLOBAL)
 
+  # 1.1.1t is broken for windows-arm64 (between 1.1.1s and 1.1.1t, from 43d8f88)
+  # Following commit fixes it, but will be available only in 1.1.1u:
+  # https://github.com/openssl/openssl/commit/eec34033552c810132736c772d37547f097a
+  set(patch_command
+    git apply ${CMAKE_CURRENT_LIST_DIR}/0001-rsa-add-msvc-intrinsic-for-non-x64-platforms.patch)
+
   if("${CMAKE_GENERATOR}" STREQUAL "Unix Makefiles")
     set(make_command "$(MAKE)")
   else()
@@ -199,6 +205,7 @@ function(opensslMain)
     INSTALL_COMMAND ""
     BUILD_IN_SOURCE true
     EXCLUDE_FROM_ALL true
+    PATCH_COMMAND ${patch_command}
   )
 
   ExternalProject_Get_property(openssl SOURCE_DIR)

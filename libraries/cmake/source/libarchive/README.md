@@ -60,7 +60,7 @@ cmake \
   -DENABLE_XATTR=OFF
 ```
 
-## Windows
+## Windows (x86-64, ARM64)
 
 ```cmd
 cmake ^
