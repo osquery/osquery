@@ -130,13 +130,13 @@ QueryData genOSVersion(QueryContext& context) {
       auto value = stringFromCFString((CFStringRef)values[i]);
 
       // switch on key name to each value
-      if (key == "ShortVersionString") {
-        r["version"] = value;
-      } else if (key == "ProductBuildVersion") {
+      if (key == "ProductBuildVersion") {
         r["build"] = value;
       } else if (key == "ProductName") {
         r["name"] = value;
       } else if (key == "ProductVersion") {
+        r["version"] = value;
+
         // Break out version parts
         auto version = osquery::split(value, ".");
         switch (version.size()) {
