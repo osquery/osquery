@@ -10,26 +10,29 @@
  */
 
 // Windows headers
-#include <windows.h>
 #include <atlbase.h>
-#include <searchapi.h>
 #include <atldbcli.h>
 #include <comutil.h>
+#include <searchapi.h>
+#include <windows.h>
 
 // standard library headers
 #include <codecvt>
 #include <sstream>
 #include <strsafe.h>
-#include <vector>
+
 
 // osquery headers
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-#include <osquery/utils/conversions/join.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/scope_guard.h>
+
 
 namespace osquery {
 namespace tables {
@@ -229,7 +232,7 @@ osquery::QueryData executeWindowsSearchQuery(CSession& cSession, const std::stri
   return results;
 }
 
-std::string generateSqlFromUserQuery(const std::string& userInput, std::string columns, std::string sort, LONG maxResults) {
+std::string generateSqlFromUserQuery(const std::string& userInput, std::set<std::string> columns, std::string sort, LONG maxResults) {
     HRESULT hr = NULL;
 
     // Create ISearchManager instance
@@ -268,7 +271,20 @@ std::string generateSqlFromUserQuery(const std::string& userInput, std::string c
     }
 
     if (!columns.empty()) {
-      hr = pQueryHelper->put_QuerySelectColumns(stringToWstring(columns).c_str());
+      // TODO: find a way to verify that the columns requested exist before the query
+      // else we just get an error. If a new column is added or dropped on an OS
+      // could break existing queries.
+      std::string selectColumns;
+      for (const auto& k : columns) {
+          selectColumns += k + ",";
+      }
+
+      // Remove the last comma
+      if (!selectColumns.empty()) {
+          selectColumns.pop_back();
+      }
+
+      hr = pQueryHelper->put_QuerySelectColumns(stringToWstring(selectColumns).c_str());
       if (FAILED(hr)) {
         LOG(ERROR) << windowsSearchTableName << ": failed to set columns";
         return "";
@@ -325,21 +341,37 @@ QueryData genWindowsSearch(QueryContext& context) {
     maxResults = std::stol(maxResultsStr);
   }
 
-  const std::string defaultColumn = "System.ItemPathDisplay";
-  std::string columns = defaultColumn;
-  std::string userInputColumns = "";
-  if (context.hasConstraint("select_columns", EQUALS)) {
-    auto columnsConstraint = context.constraints["select_columns"].getAll(EQUALS);
-    userInputColumns = SQL_TEXT(*columnsConstraint.begin());
+  class windowsToOsqueryColumn {
+  public:
+    std::string osqueryColumnName;
+    std::string osqueryColumnType;
+  };
+
+  std::map<std::string, windowsToOsqueryColumn> defaultWindowsPropertiesToOsqueryColumns = {
+    {"system.itemname", {"name", "TEXT"}},
+    {"system.itempathdisplay", {"path", "TEXT"}},
+    {"system.size", {"size", "INTEGER"}},
+    {"system.datecreated", {"date_created", "INTEGER"}},
+    {"system.datemodified", {"date_modified", "INTEGER"}},
+    {"system.fileowner", {"owner", "TEXT"}},
+    {"system.itemtype", {"type", "TEXT"}},
+  };
+
+  // this set is what gets passed to query generator func to populate select columns
+  std::set<std::string> allProperties;
+  for (const auto& kv : defaultWindowsPropertiesToOsqueryColumns) {
+    allProperties.insert(kv.first);
   }
 
-  if (userInputColumns.empty()) {
-    // if the user did not provide any select_columns use the default
-    userInputColumns = columns;
-  } else {
-    // if the user did provide a select_columns, add them to the columns to make sure we got system.itempathdisplay
-    // duplicates are removed when sql is generated
-    columns += "," + userInputColumns;
+  std::string userInputAdditionalProperties = "";
+  if (context.hasConstraint("additional_properties", EQUALS)) {
+    auto additionalPropertiesConstraint = context.constraints["additional_properties"].getAll(EQUALS);
+    userInputAdditionalProperties = SQL_TEXT(*additionalPropertiesConstraint.begin());
+
+    // include the user defined additional properties in all properties
+    for (const auto& v : osquery::split(userInputAdditionalProperties, ",")) {
+      allProperties.insert(v);
+    }
   }
 
   std::string sort = "";
@@ -354,23 +386,54 @@ QueryData genWindowsSearch(QueryContext& context) {
     query = SQL_TEXT(*queryContext.begin());
   }
 
-  auto generatedQuery = generateSqlFromUserQuery(query, columns, sort, maxResults);
+  auto generatedQuery = generateSqlFromUserQuery(query, allProperties, sort, maxResults);
   auto queryResults = executeWindowsSearchQuery(cSession, generatedQuery);
 
   for (size_t i = 0; i < queryResults.size(); i++) {
-    auto path = queryResults[i][defaultColumn];
+
+    Row r;
+    r["sort"] = sort;
+    r["max_results"] = INTEGER(maxResults);
+    r["query"] = query;
+    r["additional_properties"] = userInputAdditionalProperties;
+
+    auto additionalPropertiesJson = JSON::newObject();
 
     for (const auto& [key, value] : queryResults[i]) {
-      Row r;
-      r["path"] = path;
-      r["attribute"] = key;
-      r["value"] = value;
-      r["select_columns"] = userInputColumns;
-      r["sort"] = sort;
-      r["max_results"] = INTEGER(maxResults);
-      r["query"] = query;
-      results.push_back(r);
+
+      // if the property is not found in all properties, it's neither
+      // a default nor user defined, so don't include in results
+      // these can be added by the query
+      if (!allProperties.count(key)) {
+        continue;
+      }
+
+      // property was requested by user
+      if (!defaultWindowsPropertiesToOsqueryColumns.count(key)) {
+        additionalPropertiesJson.add(key, value);
+        continue;
+      }
+
+      // default integer
+      if (defaultWindowsPropertiesToOsqueryColumns[key].osqueryColumnType == "INTEGER") {
+        r[defaultWindowsPropertiesToOsqueryColumns[key].osqueryColumnName] = INTEGER(value);
+        continue;
+      }
+
+      // default string
+      r[defaultWindowsPropertiesToOsqueryColumns[key].osqueryColumnName] = SQL_TEXT(value);
     }
+
+    std::string jsonString = "";
+    additionalPropertiesJson.toString(jsonString);
+    // if we got an empty json string just
+    // set colmn to empty string
+    if (jsonString == "{}"){
+      jsonString = "";
+    }
+    r["properties"] = jsonString;
+
+    results.push_back(r);
   }
 
   return results;
