@@ -25,18 +25,24 @@ class windows_search : public testing::Test {
 
 TEST_F(windows_search, test_sanity) {
   auto const data = execute_query(
-      "select * from windows_search where query = '*' and max_results = 1 and "
-      "select_columns = 'system.size,system.author' and sort = 'system.size "
-      "desc'");
+      "select * from windows_search where query = '\"some text in file\" "
+      "folder:documents' and additional_properties = "
+      "'system.mimetype,system.itemurl' and max_results = 10 and sort = "
+      "'system.size desc");
 
   ValidationMap row_map = {
+      {"name", NormalType},
       {"path", NormalType},
-      {"attribute", NormalType},
-      {"value", NormalType},
-      {"max_results", IntType},
-      {"sort", NormalType},
-      {"select_columns", NormalType},
+      {"size", IntType},
+      {"date_created", IntType},
+      {"date_modified", IntType},
+      {"owner", NormalType},
+      {"type", NormalType},
+      {"properties", NormalType},
       {"query", NormalType},
+      {"sort", NormalType},
+      {"max_results", IntType},
+      {"additional_properties", NormalType},
   };
 
   validate_rows(data, row_map);
