@@ -9,7 +9,7 @@ schema([
     Column("path", TEXT, "Supplied path from event"),
     Column("address", TEXT, "The Internet protocol address or family ID"),
     Column("terminal", TEXT, "The network protocol ID"),
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])

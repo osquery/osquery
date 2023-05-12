@@ -18,7 +18,7 @@ schema([
     Column("sha256", TEXT, "The SHA256 of the file after change"),
     Column("hashed", INTEGER,
       "1 if the file was hashed, 0 if not, -1 if hashing failed"),
-    Column("time", BIGINT, "Time of file event"),
+    Column("time", BIGINT, "Time of file event", additional=True),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)

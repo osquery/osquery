@@ -16,7 +16,7 @@ schema([
     Column("remote_port", INTEGER, "Remote network protocol port number"),
     Column("socket", TEXT, "The local path (UNIX domain socket only)",
         hidden=True),
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
     Column("success", INTEGER, "Deprecated. Use the 'status' column instead", hidden=True),

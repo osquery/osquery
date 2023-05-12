@@ -16,7 +16,7 @@ schema([
     Column("vendor", TEXT, "Disk event vendor string"),
     Column("filesystem", TEXT, "Filesystem if available"),
     Column("checksum", TEXT, "UDIF Master checksum if available (CRC32)"),
-    Column("time", BIGINT, "Time of appearance/disappearance in UNIX time"),
+    Column("time", BIGINT, "Time of appearance/disappearance in UNIX time", additional=True),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)

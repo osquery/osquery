@@ -3,7 +3,7 @@ description("Track AppArmor events.")
 schema([
     Column("type", TEXT, "Event type"),
     Column("message", TEXT, "Raw audit message"),
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
     Column("apparmor", TEXT, "Apparmor Status like ALLOWED, DENIED etc."),
