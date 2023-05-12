@@ -869,6 +869,7 @@ TEST_F(FilesystemTests, test_directory_listing_with_nested_dirs_and_symlinks) {
   deleteDirectoryContent(test_root_work_dirs);
 }
 
+#ifdef OSQUERY_WINDOWS
 TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
   // This test verifies that a recursive directory junction can be handled by
   // listDirectoriesInDirectory logic
@@ -897,6 +898,7 @@ TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
 
   deleteDirectoryContent(test_root_raw);
 }
+#endif
 
 TEST_F(FilesystemTests, test_directory_listing_with_legacy_logic) {
   // This test verifies that symlinks and nested directories are properly
