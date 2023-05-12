@@ -38,8 +38,8 @@ namespace tables {
 const std::string windowsSearchTableName = "windows_search";
 
 LONGLONG dateToUnixTime(const DATE date) {
-  SYSTEMTIME st;
-  FILETIME ft;
+  SYSTEMTIME st = {0};
+  FILETIME ft = {0};
 
   if (!VariantTimeToSystemTime(date, &st)) {
     LOG(ERROR) << windowsSearchTableName
@@ -461,8 +461,8 @@ QueryData genWindowsSearch(QueryContext& context) {
 
     std::string jsonString = "";
     additionalPropertiesJson.toString(jsonString);
-    // if we got an empty json string just
-    // set colmn to empty string
+    // if we got an empty json object just
+    // set column to empty string
     if (jsonString == "{}") {
       jsonString = "";
     }
