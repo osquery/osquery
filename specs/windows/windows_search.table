@@ -22,4 +22,6 @@ examples([
     "select * from windows_search where query = '\"some text in file\" folder:documents' and additional_properties = 'system.mimetype,system.itemurl'",
     "select * from windows_search where sort = 'system.size desc'",
     "select * from windows_search where sort = 'system.size desc' and max_results = 10",
+    "select *, json_extract(properties, '$.\"system.itemurl\"') as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
+    "select properties -> '$.\"system.itemurl\"' as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
 ])
