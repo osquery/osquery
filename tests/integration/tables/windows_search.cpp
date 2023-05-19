@@ -28,7 +28,7 @@ TEST_F(windows_search, test_sanity) {
       "select * from windows_search where query = '\"some text in file\" "
       "folder:documents' and additional_properties = "
       "'system.mimetype,system.itemurl' and max_results = 10 and sort = "
-      "'system.size desc");
+      "'system.size desc'");
 
   ValidationMap row_map = {
       {"name", NormalType},
