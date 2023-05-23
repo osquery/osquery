@@ -42,6 +42,9 @@ TEST_F(OsVersion, test_sanity) {
 #ifdef OSQUERY_WINDOWS
       {"install_date", NonEmptyString},
 #endif
+#ifdef OSQUERY_DARWIN
+      {"extra", NormalType},
+#endif
   };
 
   validate_rows(data, row_map);

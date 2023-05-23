@@ -12,6 +12,11 @@ schema([
     Column("codename", TEXT, "OS version codename"),
     Column("arch", TEXT, "OS Architecture"),
 ])
+
+extended_schema(DARWIN, [
+    Column("extra", TEXT, "Optional extra release specification"),
+])
+
 extended_schema(WINDOWS, [
     Column("install_date", BIGINT, "The install date of the OS."),
 ])

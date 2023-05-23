@@ -141,7 +141,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
-      darwin/os_version.cpp
+      darwin/os_version.mm
       darwin/packages.mm
       darwin/password_policy.cpp
       darwin/pci_devices.cpp
