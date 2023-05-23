@@ -41,7 +41,7 @@ class Ec2MetaData {
    *
    * @return HTTP body.
    */
-  std::string doGet() const;
+  boost::optional<std::string> doGet() const;
 
   /**
    * @brief Extract relevant data from return API call, pure virtual
@@ -63,14 +63,15 @@ class Ec2MetaData {
    * @param r The row to which the value need to be added
    */
   void get(Row& r) const {
-    const std::string http_body = doGet();
+    auto opt_http_body = doGet();
 
-    if (http_body.empty()) {
-      LOG(ERROR) << "Failed to get instance metadata from the metadata service";
+    if (!opt_http_body.has_value()) {
+      LOG(ERROR) << "Failed to get instance metadata from the metadata service "
+                 << url_suffix_;
       return;
     }
 
-    extractResult(http_body, r);
+    extractResult(*opt_http_body, r);
   }
 };
 
@@ -132,7 +133,7 @@ class JSONEc2MetaData : public Ec2MetaData {
   virtual ~JSONEc2MetaData() {}
 };
 
-std::string Ec2MetaData::doGet() const {
+boost::optional<std::string> Ec2MetaData::doGet() const {
   const static std::string ec2_metadata_url{kEc2MetadataUrl};
 
   auto opt_token = getIMDSToken();
@@ -156,24 +157,27 @@ std::string Ec2MetaData::doGet() const {
     http::Response res = client.get(req);
     boost::uint16_t http_status_code = res.status();
 
-    // Silently ignore 404
+    // Don't consider 404 an error, but log it
     if (http_status_code == 404) {
-      return {};
+      VLOG(1) << "The metadata service " << url_suffix_
+              << " could not be found";
+      return std::string();
     }
 
     // Log "hard" errors
     if (http_status_code != 200) {
       VLOG(1) << "Unexpected HTTP response for: " << url_suffix_
               << " Status: " << http_status_code;
-      return {};
+      return boost::none;
     }
 
     return res.body();
   } catch (std::system_error& e) {
     VLOG(1) << "Request for " << url_suffix_ << " failed: " << e.what();
+    return boost::none;
   }
 
-  return "";
+  return std::string();
 }
 
 void setRowField(const ColumnType sql_type,
