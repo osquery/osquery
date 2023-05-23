@@ -88,6 +88,7 @@ void genSiteDirectories(const std::string& site,
                         QueryData& results,
                         Logger& logger) {
   std::vector<std::string> directories;
+
   if (!listDirectoriesInDirectory(site, directories, true).ok()) {
     return;
   }

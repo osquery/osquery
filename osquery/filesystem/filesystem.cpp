@@ -451,8 +451,29 @@ Status listFilesInDirectory(const fs::path& path,
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  return listInAbsoluteDirectory(
-      (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
+  if (path.empty() || !pathExists(path)) {
+    return Status(1, "Target directory is invalid");
+  }
+
+  if (recursive) {
+    for (const auto& entry : fs::recursive_directory_iterator(path)) {
+      if (fs::is_symlink(entry)) {
+        results.push_back(entry.path().string());
+      } else if (fs::is_directory(entry)) {
+        results.push_back(entry.path().string());
+      }
+    }
+  } else {
+    for (const auto& entry : fs::directory_iterator(path)) {
+      if (fs::is_symlink(entry)) {
+        results.push_back(entry.path().string());
+      } else if (fs::is_directory(entry)) {
+        results.push_back(entry.path().string());
+      }
+    }
+  }
+
+  return Status::success();
 }
 
 Status isDirectory(const fs::path& path) {

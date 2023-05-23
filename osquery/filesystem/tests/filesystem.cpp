@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <random>
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -16,15 +17,18 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/filesystem/filesystem.h>
 
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/filesystem/mock_file_structure.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/utils/info/platform_type.h>
-#include <osquery/filesystem/mock_file_structure.h>
 
 // Some proc* functions are only compiled when building on linux
 #ifdef __linux__
@@ -51,6 +55,10 @@ const std::vector<std::string> kFileNameList{
 
 DECLARE_uint64(read_max);
 
+extern inline Status listInAbsoluteDirectory(const fs::path& path,
+                                             std::vector<std::string>& results,
+                                             GlobLimits limits);
+
 class FilesystemTests : public testing::Test {
  protected:
   fs::path test_working_dir_;
@@ -60,9 +68,8 @@ class FilesystemTests : public testing::Test {
     initializeFilesystemAPILocale();
 
     fake_directory_ = fs::canonical(createMockFileStructure());
-    test_working_dir_ =
-        fs::temp_directory_path() /
-        fs::unique_path("osquery.test_working_dir.%%%%.%%%%");
+    test_working_dir_ = fs::temp_directory_path() /
+                        fs::unique_path("osquery.test_working_dir.%%%%.%%%%");
     fs::create_directories(test_working_dir_);
 
     if (isPlatform(PlatformType::TYPE_WINDOWS)) {
@@ -91,6 +98,81 @@ class FilesystemTests : public testing::Test {
   /// Helper method to check if a path was included in results.
   bool contains(const std::vector<std::string>& all, const std::string& n) {
     return !(std::find(all.begin(), all.end(), n) == all.end());
+  }
+
+  /// Helper method to generate a random names
+  std::string genRandomName() {
+    return boost::uuids::to_string(boost::uuids::random_generator()());
+  }
+
+  /// Helper method to create nested directory structures
+  bool createNestedDirectories(const fs::path& parent,
+                               unsigned int subdir_count,
+                               unsigned int& created_dirs) {
+    if (!fs::create_directory(parent)) {
+      return false;
+    }
+
+    created_dirs++;
+    for (unsigned int it = 0; it < subdir_count; ++it) {
+      if (fs::create_directory(parent / genRandomName())) {
+        created_dirs++;
+      }
+    }
+
+    return true;
+  }
+
+  /// Helper method to create directory symlinks
+  bool createDirectorySymlink(const fs::path& target,
+                              const fs::path& link,
+                              unsigned int& created_dir_symlink) {
+    bool ret = false;
+
+    try {
+      fs::create_directory_symlink(target, link);
+      created_dir_symlink++;
+      ret = true;
+    } catch (const fs::filesystem_error& e) {
+      std::cerr << "Error creating symlink: " << e.what() << std::endl;
+    }
+
+    return ret;
+  }
+
+  /// Helper method to delete directory and its content
+  bool deleteDirectoryContent(const fs::path& dir_path) {
+    bool ret = false;
+
+    try {
+      fs::remove_all(dir_path);
+      ret = true;
+    } catch (const fs::filesystem_error& e) {
+      std::cerr << "Error deleting directory content: " << e.what()
+                << std::endl;
+    }
+
+    return ret;
+  }
+
+  /// Helper method to get a random number
+  unsigned int getRandomNumber() {
+    const unsigned int MAX_DIST_NUMBER = 30;
+    static std::default_random_engine engine(
+        (unsigned int)std::chrono::system_clock::now()
+            .time_since_epoch()
+            .count());
+    static std::uniform_int_distribution<unsigned int> dist(1, MAX_DIST_NUMBER);
+
+    return dist(engine);
+  }
+
+  // legacy listDirectoriesInDirectory logic
+  Status legacyListDirectoriesInDirectory(const fs::path& path,
+                                          std::vector<std::string>& results,
+                                          bool recursive) {
+    return listInAbsoluteDirectory(
+        (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
   }
 
  protected:
@@ -251,10 +333,9 @@ TEST_F(FilesystemTests, test_intermediate_globbing_directories) {
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
-  std::string complex_path =
-      (fs::path(fake_directory_) / "deep1/../deep1/..")
-          .make_preferred()
-          .string();
+  std::string complex_path = (fs::path(fake_directory_) / "deep1/../deep1/..")
+                                 .make_preferred()
+                                 .string();
   std::string simple_path = fake_directory_.make_preferred().string();
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
@@ -269,16 +350,16 @@ TEST_F(FilesystemTests, test_canonicalization) {
   replaceGlobWildcards(complex_path);
   EXPECT_EQ(simple_path, complex_path);
 
-  // Now apply the same inline replacement on the simple_path directory and expect
-  // no change to the comparison.
+  // Now apply the same inline replacement on the simple_path directory and
+  // expect no change to the comparison.
   replaceGlobWildcards(simple_path);
   EXPECT_EQ(simple_path, complex_path);
 
   // Now add a wildcard within the complex_path pattern. The replacement method
   // will not canonicalize past a '*' as the proceeding paths are limiters.
   complex_path = (fs::path(fake_directory_) / "*/deep2/../deep2/")
-                .make_preferred()
-                .string();
+                     .make_preferred()
+                     .string();
   replaceGlobWildcards(complex_path);
   EXPECT_EQ(complex_path,
             (fs::path(fake_directory_) / "*/deep2/../deep2/")
@@ -290,7 +371,7 @@ TEST_F(FilesystemTests, test_simple_globs) {
   std::vector<std::string> results;
 
   // Test the shell '*', we will support SQL's '%' too.
-  auto status = resolveFilePattern(fake_directory_  / "*", results);
+  auto status = resolveFilePattern(fake_directory_ / "*", results);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 7U);
 
@@ -653,6 +734,221 @@ TEST_F(FilesystemTests, test_read_fifo) {
   ASSERT_TRUE(content.empty());
   CloseHandle(pipe_handle);
 #endif
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_no_nested_dirs) {
+  // This test verifies that directories are properly listed. No nested dir
+  // structure is generated. Recursive directory listing flag in
+  // listDirectoriesInDirectory() is set to false.
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  unsigned int created_directories = 0;
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path work_dir = test_root_dir / genRandomName();
+    ASSERT_TRUE(createNestedDirectories(work_dir, 0, created_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, false));
+
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() == (size_t)created_directories);
+
+  deleteDirectoryContent(test_root_dir);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_nested_dirs) {
+  // This test verifies that directories are properly listed. Nested dir
+  // structure is generated. Recursive directory listing flag in
+  // listDirectoriesInDirectory() is set to true.
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  unsigned int created_directories = 0;
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path work_dir = test_root_dir / genRandomName();
+    ASSERT_TRUE(createNestedDirectories(
+        work_dir, getRandomNumber(), created_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
+
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() == (size_t)created_directories);
+
+  deleteDirectoryContent(test_root_dir);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_dir_symlink) {
+  // This test verifies that symlinks are properly listed. Nested dir
+  // structure is not generated. Recursive directory listing flag in
+  // listDirectoriesInDirectory() is set to false.
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_raw_dirs =
+      fs::temp_directory_path() / genRandomName();
+  const fs::path test_root_symlink_dirs =
+      fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_raw_dirs));
+  ASSERT_TRUE(fs::create_directory(test_root_symlink_dirs));
+
+  unsigned int created_raw_directories = 0;
+  unsigned int created_symlink_directories = 0;
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path raw_dir = test_root_raw_dirs / genRandomName();
+    const fs::path symlink_dir = test_root_symlink_dirs / genRandomName();
+    ASSERT_TRUE(createNestedDirectories(raw_dir, 0, created_raw_directories));
+
+    ASSERT_TRUE(createDirectorySymlink(
+        raw_dir, symlink_dir, created_symlink_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(listDirectoriesInDirectory(
+      test_root_symlink_dirs, found_directories, false));
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() == (size_t)created_symlink_directories);
+
+  deleteDirectoryContent(test_root_raw_dirs);
+  deleteDirectoryContent(test_root_symlink_dirs);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_nested_dirs_and_symlinks) {
+  // This test verifies that symlinks and nested directories are properly
+  // listed. Nested dir structure is generated. Recursive directory listing flag
+  // in listDirectoriesInDirectory() is set to false.
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_raw_dirs =
+      fs::temp_directory_path() / genRandomName();
+  const fs::path test_root_work_dirs =
+      fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_raw_dirs));
+  ASSERT_TRUE(fs::create_directory(test_root_work_dirs));
+
+  unsigned int created_target_symlink_directories = 0;
+  unsigned int created_symlink_directories = 0;
+  unsigned int created_raw_directories = 0;
+
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path raw_dir = test_root_raw_dirs / genRandomName();
+    const fs::path symlink_dir = test_root_work_dirs / genRandomName();
+    const fs::path work_dir = test_root_work_dirs / genRandomName();
+
+    ASSERT_TRUE(createNestedDirectories(
+        raw_dir, 0, created_target_symlink_directories));
+
+    ASSERT_TRUE(createDirectorySymlink(
+        raw_dir, symlink_dir, created_symlink_directories));
+
+    ASSERT_TRUE(createNestedDirectories(
+        work_dir, getRandomNumber(), created_raw_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_work_dirs, found_directories, true));
+
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() ==
+              (size_t)(created_symlink_directories + created_raw_directories));
+
+  deleteDirectoryContent(test_root_raw_dirs);
+  deleteDirectoryContent(test_root_work_dirs);
+}
+
+#ifdef OSQUERY_WINDOWS
+TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
+  // This test verifies that a recursive directory junction can be handled by
+  // listDirectoriesInDirectory logic
+
+  const unsigned int EXPECTED_NR_OF_DIRECTORIES = 1;
+
+  const fs::path test_root_raw = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_raw));
+  const fs::path junction_dir = test_root_raw / genRandomName();
+
+  // Creating a junction directory that points to itself
+  std::string junction_dir_str = junction_dir.string();
+  std::string target_cmdline = "mklink /J ";
+  target_cmdline.append(junction_dir_str);
+  target_cmdline.append(" ");
+  target_cmdline.append(junction_dir_str);
+  target_cmdline.append(" > NUL");
+  system(target_cmdline.c_str());
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_raw, found_directories, false));
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() == EXPECTED_NR_OF_DIRECTORIES);
+
+  deleteDirectoryContent(test_root_raw);
+}
+#endif
+
+TEST_F(FilesystemTests, test_directory_listing_with_legacy_logic) {
+  // This test verifies that symlinks and nested directories are properly
+  // listed with current and legacy logic.
+
+  const unsigned int MAX_DIRS = 450;
+  const fs::path test_root_raw_dirs =
+      fs::temp_directory_path() / genRandomName();
+  const fs::path test_root_work_dirs =
+      fs::temp_directory_path() / genRandomName();
+
+  ASSERT_TRUE(fs::create_directory(test_root_raw_dirs));
+  ASSERT_TRUE(fs::create_directory(test_root_work_dirs));
+
+  unsigned int created_target_symlink_directories = 0;
+  unsigned int created_symlink_directories = 0;
+  unsigned int created_raw_directories = 0;
+
+  for (unsigned int i = 0; i < MAX_DIRS; ++i) {
+    const fs::path raw_dir = test_root_raw_dirs / genRandomName();
+    const fs::path symlink_dir = test_root_work_dirs / genRandomName();
+    const fs::path work_dir = test_root_work_dirs / genRandomName();
+
+    ASSERT_TRUE(createNestedDirectories(
+        raw_dir, 0, created_target_symlink_directories));
+
+    ASSERT_TRUE(createDirectorySymlink(
+        raw_dir, symlink_dir, created_symlink_directories));
+
+    ASSERT_TRUE(createNestedDirectories(
+        work_dir, getRandomNumber(), created_raw_directories));
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_work_dirs, found_directories, true));
+
+  ASSERT_TRUE(!found_directories.empty());
+
+  ASSERT_TRUE(found_directories.size() ==
+              (size_t)(created_symlink_directories + created_raw_directories));
+
+  std::vector<std::string> found_directories_legacy_logic;
+  ASSERT_TRUE(legacyListDirectoriesInDirectory(
+      test_root_work_dirs, found_directories_legacy_logic, true));
+  ASSERT_TRUE(found_directories.size() ==
+              found_directories_legacy_logic.size());
+
+  deleteDirectoryContent(test_root_raw_dirs);
+  deleteDirectoryContent(test_root_work_dirs);
 }
 
 } // namespace osquery
