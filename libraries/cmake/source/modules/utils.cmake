@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to show all warnings in the source modules. Not recommended" OFF)
-option(OSQUERY_DISABLE_SHALLOW_CLONE "Set this option to ON to force off shallow clones. For Development only" OFF)
+option(OSQUERY_DISABLE_SHALLOW_CLONE "Set this option to ON to do a full git clone. For Development only" OFF)
 
 function(initializeGitSubmodule submodule_path no_recursive shallow)
   file(GLOB submodule_folder_contents "${submodule_path}/*")
