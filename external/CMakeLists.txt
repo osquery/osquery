@@ -47,6 +47,7 @@ function(externalsExamples)
     "config_plugin"
     "read_only_table"
     "writable_table"
+    "string_batch"
   )
 
   foreach(example_name ${example_name_list})
