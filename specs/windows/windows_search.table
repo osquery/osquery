@@ -4,15 +4,15 @@ schema([
     Column("name", TEXT, "The name of the item"),
     Column("path", TEXT, "The full path of the item."),
     Column("size", BIGINT, "The item size in bytes."),
-    Column("date_created", TEXT, "The date and time the item was created."),
-    Column("date_modified", TEXT, "The date and time the item was last modified"),
+    Column("date_created", DATETIME, "The date and time the item was created."),
+    Column("date_modified", DATETIME, "The date and time the item was last modified"),
     Column("owner", TEXT, "The owner of the item"),
     Column("type", TEXT, "The item type"),
     Column("properties", TEXT, "Additional property values JSON"),
     Column("query", TEXT, "Windows search query", additional=True, hidden=True),
     Column("sort", TEXT, "Sort for windows api", additional=True, hidden=True),
-    Column("max_results", INTEGER, "Maximum number of results returned by windows api, set to -1 for unlimited.", additional=True, hidden=True),
-    Column("additional_properties", TEXT, "Columns to include in properties JSON", additional=True, hidden=True),
+    Column("max_results", INTEGER, "Maximum number of results returned by windows api, set to -1 for unlimited", additional=True, hidden=True),
+    Column("additional_properties", TEXT, "Comma separated list of columns to include in properties JSON", additional=True, hidden=True),
 ])
 implementation("system/windows/windows_search@genWindowsSearch")
 examples([
