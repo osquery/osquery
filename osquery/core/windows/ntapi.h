@@ -15,16 +15,40 @@ namespace osquery {
 #define NTSTATUS ULONG
 #define STATUS_SUCCESS 0L
 
-#define OBJ_CASE_INSENSITIVE 64L
 #define DIRECTORY_QUERY 0x0001
 #define SYMBOLIC_LINK_QUERY 0x0001
+#define SystemExtendedHandleInformation 0x40
+
+#define OBJ_INHERIT 2L
+#define OBJ_PERMANENT 16L
+#define OBJ_EXCLUSIVE 32L
+#define OBJ_CASE_INSENSITIVE 64L
+#define OBJ_OPENIF 128L
+#define OBJ_OPENLINK 256L
+#define OBJ_KERNEL_HANDLE 512L
+#define OBJ_FORCE_ACCESS_CHECK 1024L
+#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP 2048L
+#define OBJ_DONT_REPARSE 4096L
+#define OBJ_VALID_ATTRIBUTES 8178L
 
 typedef enum _SYSTEM_INFORMATION_CLASS {
+  SystemBasicInformation,
   SystemProcessorInformation,
   SystemPerformanceInformation,
   SystemTimeOfDayInformation,
   SystemPathInformation,
-  SystemProcessInformation
+  SystemProcessInformation,
+  SystemCallCountInformation,
+  SystemDeviceInformation,
+  SystemProcessorPerformanceInformation,
+  SystemFlagsInformation,
+  SystemCallTimeInformation,
+  SystemModuleInformation,
+  SystemLocksInformation,
+  SystemStackTraceInformation,
+  SystemPagedPoolInformation,
+  SystemNonPagedPoolInformation,
+  SystemHandleInformation
 } SYSTEM_INFORMATION_CLASS;
 
 typedef enum _OBJECT_INFORMATION_CLASS {
@@ -50,6 +74,11 @@ typedef struct _OBJECT_ATTRIBUTES {
   PVOID SecurityQualityOfService;
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
+typedef struct _OBJECT_NAME_INFORMATION {
+  UNICODE_STRING Name;
+} OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
+
+
 typedef NTSTATUS(WINAPI* ZwQueryObject)(HANDLE h,
                                         OBJECT_INFORMATION_CLASS oic,
                                         PVOID ObjectInformation,
@@ -61,6 +90,25 @@ typedef NTSTATUS(WINAPI* ZwQuerySystemInformation)(
     PVOID SystemInformation,
     ULONG SystemInformationLength,
     PULONG ReturnLength);
+
+typedef NTSTATUS(NTAPI* NtQuerySystemInformation)(ULONG SystemInformationClass,
+	                                                PVOID SystemInformation,
+	                                                ULONG SystemInformationLength,
+	                                                PULONG ReturnLength);
+
+typedef NTSTATUS(NTAPI* NtDuplicateObject)(HANDLE SourceProcessHandle,
+	                                         HANDLE SourceHandle,
+	                                         HANDLE TargetProcessHandle,
+	                                         PHANDLE TargetHandle,
+	                                         ACCESS_MASK DesiredAccess,
+	                                         ULONG Attributes,
+	                                         ULONG Options);
+
+typedef NTSTATUS(NTAPI* NtQueryObject)(HANDLE ObjectHandle,
+                                       ULONG ObjectInformationClass,
+                                       PVOID ObjectInformation,
+                                       ULONG ObjectInformationLength,
+                                       PULONG ReturnLength);
 
 typedef NTSTATUS(WINAPI* NTCLOSE)(HANDLE Handle);
 
@@ -86,14 +134,47 @@ typedef NTSTATUS(WINAPI* NTQUERYSYMBOLICLINKOBJECT)(HANDLE LinkHandle,
                                                     PUNICODE_STRING LinkTarget,
                                                     PULONG ReturnedLength);
 
-typedef struct _SYSTEM_HANDLE_INFORMATION {
-  ULONG ProcessId;
-  BYTE ObjectTypeNumber;
-  BYTE Flags;
-  USHORT Handle;
-  PVOID Object;
-  ACCESS_MASK GrantedAccess;
+typedef struct __PUBLIC_OBJECT_TYPE_INFORMATION {
+    UNICODE_STRING TypeName;
+    ULONG Reserved [22];    // reserved for internal use
+} PUBLIC_OBJECT_TYPE_INFORMATION, *PPUBLIC_OBJECT_TYPE_INFORMATION;
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
+{
+    USHORT UniqueProcessId;
+    USHORT CreatorBackTraceIndex;
+    UCHAR ObjectTypeIndex;
+    UCHAR HandleAttributes;
+    USHORT HandleValue;
+    PVOID Object;
+    ULONG GrantedAccess;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+
+typedef struct _SYSTEM_HANDLE_INFORMATION
+{
+    ULONG NumberOfHandles;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX
+{
+    PVOID Object;
+    ULONG_PTR UniqueProcessId;
+    ULONG_PTR HandleValue;
+    ULONG GrantedAccess;
+    USHORT CreatorBackTraceIndex;
+    USHORT ObjectTypeIndex;
+    ULONG HandleAttributes;
+    ULONG Reserved;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION_EX
+{
+    ULONG_PTR NumberOfHandles;
+    ULONG_PTR Reserved;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
+} SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 typedef struct _OBJDIR_INFORMATION {
   UNICODE_STRING ObjectName;
