@@ -123,9 +123,9 @@
   "krabsetw": {
     "product": "krabsetw",
     "vendor": "microsoft",
-    "version": "0.0.0",	
+    "version": "0.0.0",
     "commit": "db46f40cb4b66308cd8637a9d35245d303913069",
-    "ignored-cves": []	
+    "ignored-cves": []
   },
   "libarchive": {
     "product": "libarchive",
@@ -170,7 +170,9 @@
     "vendor": "debian",
     "version": "1.21.7",
     "commit": "e61f582015a9c67bbb3791cb93a864cfeb9c7151",
-    "ignored-cves": ["CVE-2022-1664"]
+    "ignored-cves": [
+      "CVE-2022-1664"
+    ]
   },
   "libgcrypt": {
     "product": "libgcrypt",
@@ -228,8 +230,8 @@
   "libxml2": {
     "product": "libxml2",
     "vendor": "xmlsoft",
-    "version": "2.10.3",
-    "commit": "f507d167f1755b7eaea09fb1a44d29aab828b6d1",
+    "version": "2.11.2",
+    "commit": "838bf42d54f94c8ff99b6e5022899a32875ed5d7",
     "ignored-cves": []
   },
   "linenoise-ng": {
@@ -279,7 +281,9 @@
     "vendor": "sqlite",
     "version": "3.39.2",
     "commit": "cea3fbb89fb5dbf9a613964a3786867df17a0204",
-    "ignored-cves": ["CVE-2022-46908"]
+    "ignored-cves": [
+      "CVE-2022-46908"
+    ]
   },
   "thrift": {
     "product": "thrift",
@@ -319,7 +323,9 @@
     "vendor": "facebook",
     "version": "1.4.0",
     "commit": "83b51e9f886be7c2a4d477b6e7bc6db831791d8d",
-    "ignored-cves": ["CVE-2021-24031"]
+    "ignored-cves": [
+      "CVE-2021-24031"
+    ]
   },
   "lz4": {
     "product": "lz4",
