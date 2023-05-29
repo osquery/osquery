@@ -32,6 +32,7 @@ TEST_F(SystemInfo, test_sanity) {
                            {"cpu_brand", NormalType},
                            {"cpu_physical_cores", NonNegativeInt},
                            {"cpu_logical_cores", NonNegativeInt},
+                           {"cpu_sockets", NonNegativeInt},
                            {"cpu_microcode", NormalType},
                            {"physical_memory", NonNegativeInt},
                            {"hardware_vendor", NormalType},
