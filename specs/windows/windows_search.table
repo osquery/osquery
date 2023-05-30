@@ -4,8 +4,8 @@ schema([
     Column("name", TEXT, "The name of the item"),
     Column("path", TEXT, "The full path of the item."),
     Column("size", BIGINT, "The item size in bytes."),
-    Column("date_created", DATETIME, "The date and time the item was created."),
-    Column("date_modified", DATETIME, "The date and time the item was last modified"),
+    Column("date_created", INTEGER, "The unix timestamp of when the item was created."),
+    Column("date_modified", INTEGER, "The unix timestamp of when the item was last modified"),
     Column("owner", TEXT, "The owner of the item"),
     Column("type", TEXT, "The item type"),
     Column("properties", TEXT, "Additional property values JSON"),
@@ -24,4 +24,7 @@ examples([
     "select * from windows_search where sort = 'system.size desc' and max_results = 10",
     "select *, json_extract(properties, '$.\"system.itemurl\"') as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
     "select properties -> '$.\"system.itemurl\"' as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
+    "select * from windows_search WHERE query = 'folder:documents' AND date_created >= (( SELECT unix_time FROM time) - 60 )",
+    "select *, datetime(date_created, 'unixepoch') as datetime from windows_search WHERE query = 'folder:documents' AND datetime > '2022-11-18 16:48:00'",
+    "select *, datetime(date_created, 'unixepoch') as datetime from windows_search WHERE query = 'folder:documents' AND datetime BETWEEN '2022-11-18 16:40:00' AND '2023-11-18 16:50:00'",
 ])
