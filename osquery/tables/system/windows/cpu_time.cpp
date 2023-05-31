@@ -22,25 +22,20 @@ namespace tables {
 QueryData genCpuTime(QueryContext& context) {
   QueryData results;
 
+  // System uptime: time since the system was last started, in seconds
+  long long uptime; 
   const Expected<WmiRequest, WmiError> wmiSystemReq_uptime =
       WmiRequest::CreateWmiRequest(
-          "select ElapsedTime, Name from "
-          "Win32_PerfFormattedData_PerfProc_Process");
+          "select SystemUpTime from Win32_PerfFormattedData_PerfOS_System");
   if (!wmiSystemReq_uptime || wmiSystemReq_uptime->results().empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
     return results;
   }
 
   const std::vector<WmiResultItem>& uptimeData = wmiSystemReq_uptime->results();
-  std::unordered_map<std::string, long long> uptimeMap;
-  for (const auto& data : uptimeData) {
-    std::string name;
-    data.GetString("Name", name);
-    long long temp = 0;
-    data.GetLongLong("ElapsedTime", temp);
-    uptimeMap[name] = temp; // in seconds
-  }
+  uptimeData[0].GetLongLong("SystemUpTime", uptime);
 
+  // Percentage of time each core spent in different parts
   const Expected<WmiRequest, WmiError> wmiSystemReq =
       WmiRequest::CreateWmiRequest(
           "select Name, PercentUserTime, PercentPrivilegedTime, "
@@ -53,10 +48,7 @@ QueryData genCpuTime(QueryContext& context) {
 
   const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
-    std::string name;
-    data.GetString("Name", name);
-    r["core"] = name;
-    long long uptime = uptimeMap[name];
+    data.GetString("Name", r["core"]);
     long percent = 0;
     data.GetLongLong("PercentUserTime", percent);
     // Hundredths of a second, percent / 100 * uptime * 100
