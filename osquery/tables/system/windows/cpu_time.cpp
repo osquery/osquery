@@ -23,7 +23,7 @@ QueryData genCpuTime(QueryContext& context) {
   QueryData results;
 
   // System uptime: time since the system was last started, in seconds
-  long long uptime; 
+  long long uptime;
   const Expected<WmiRequest, WmiError> wmiSystemReq_uptime =
       WmiRequest::CreateWmiRequest(
           "select SystemUpTime from Win32_PerfFormattedData_PerfOS_System");
