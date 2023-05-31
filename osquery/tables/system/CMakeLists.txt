@@ -222,6 +222,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_crashes.cpp
       windows/windows_eventlog.cpp
       windows/windows_optional_features.cpp
+      windows/windows_search.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
       windows/windows_update_history.cpp

@@ -325,6 +325,8 @@ function(setupBuildFlags)
       shell32.lib
       gdi32.lib
       mswsock.lib
+      comsuppw.lib
+      SearchSDK.lib
     )
 
     if(OSQUERY_ENABLE_INCREMENTAL_LINKING)

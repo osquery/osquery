@@ -326,6 +326,7 @@ function(generateTestsIntegrationTablesTestsTest)
       windows_crashes.cpp
       windows_events.cpp
       windows_eventlog.cpp
+      windows_search.cpp
       windows_security_products.cpp
       windows_update_history.cpp
       wmi_bios_info.cpp

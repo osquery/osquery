@@ -1,0 +1,30 @@
+table_name("windows_search")
+description("Run searches against the Windows system index database using Advanced Query Syntax. See https://learn.microsoft.com/en-us/windows/win32/search/-search-3x-advancedquerysyntax for details.")
+schema([
+    Column("name", TEXT, "The name of the item"),
+    Column("path", TEXT, "The full path of the item."),
+    Column("size", BIGINT, "The item size in bytes."),
+    Column("date_created", INTEGER, "The unix timestamp of when the item was created."),
+    Column("date_modified", INTEGER, "The unix timestamp of when the item was last modified"),
+    Column("owner", TEXT, "The owner of the item"),
+    Column("type", TEXT, "The item type"),
+    Column("properties", TEXT, "Additional property values JSON"),
+    Column("query", TEXT, "Windows search query", additional=True, hidden=True),
+    Column("sort", TEXT, "Sort for windows api", additional=True, hidden=True),
+    Column("max_results", INTEGER, "Maximum number of results returned by windows api, set to -1 for unlimited", additional=True, hidden=True),
+    Column("additional_properties", TEXT, "Comma separated list of columns to include in properties JSON", additional=True, hidden=True),
+])
+implementation("system/windows/windows_search@genWindowsSearch")
+examples([
+    "select * from windows_search",
+    "select * from windows_search where query = 'folder:documents'",
+    "select * from windows_search where query = '\"some text in file\" folder:documents'",
+    "select * from windows_search where query = '\"some text in file\" folder:documents' and additional_properties = 'system.mimetype,system.itemurl'",
+    "select * from windows_search where sort = 'system.size desc'",
+    "select * from windows_search where sort = 'system.size desc' and max_results = 10",
+    "select *, json_extract(properties, '$.\"system.itemurl\"') as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
+    "select properties -> '$.\"system.itemurl\"' as itemurl from windows_search where max_results = 5 and additional_properties = 'system.itemurl' and sort = 'system.size desc'",
+    "select * from windows_search WHERE query = 'folder:documents' AND date_created >= (( SELECT unix_time FROM time) - 60 )",
+    "select *, datetime(date_created, 'unixepoch') as datetime from windows_search WHERE query = 'folder:documents' AND datetime > '2022-11-18 16:48:00'",
+    "select *, datetime(date_created, 'unixepoch') as datetime from windows_search WHERE query = 'folder:documents' AND datetime BETWEEN '2022-11-18 16:40:00' AND '2023-11-18 16:50:00'",
+])
