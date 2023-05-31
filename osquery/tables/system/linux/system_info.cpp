@@ -88,7 +88,7 @@ QueryData genSystemInfo(QueryContext& context) {
         if (details.size() == 2) {
           unsigned int logical_cores_per_socket = std::stoi(details[1]);
           r["cpu_sockets"] =
-              (logical_cores > 0)
+              (logical_cores > 0 && logical_cores_per_socket > 0)
                   ? INTEGER(logical_cores / logical_cores_per_socket)
                   : "-1";
         }
