@@ -1,7 +1,7 @@
 table_name("powershell_events")
 description("Powershell script blocks reconstructed to their full script content, this table requires script block logging to be enabled.")
 schema([
-    Column("time", BIGINT, "Timestamp the event was received by the osquery event publisher"),
+    Column("time", BIGINT, "Timestamp the event was received by the osquery event publisher", additional=True),
     Column("datetime", TEXT, "System time at which the Powershell script event occurred"),
     Column("script_block_id", TEXT, "The unique GUID of the powershell script to which this block belongs"),
     Column("script_block_count", INTEGER, "The total number of script blocks for this script"),

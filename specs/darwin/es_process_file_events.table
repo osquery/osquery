@@ -10,7 +10,7 @@ schema([
     Column("filename", TEXT, "The source or target filename for the event"),
     Column("dest_filename", TEXT, "Destination filename for the event"),
     Column("event_type", TEXT, "Type of EndpointSecurity event"),
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)

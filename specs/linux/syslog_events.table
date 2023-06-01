@@ -1,6 +1,6 @@
 table_name("syslog_events", aliases=["syslog"])
 schema([
-    Column("time", BIGINT, "Current unix epoch time"),
+    Column("time", BIGINT, "Current unix epoch time", additional=True),
     Column("datetime", TEXT, "Time known to syslog"),
     Column("host", TEXT, "Hostname configured for syslog"),
     Column("severity", INTEGER, "Syslog severity"),

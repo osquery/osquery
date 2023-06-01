@@ -16,7 +16,7 @@ schema([
     Column("duration", INTEGER, "How much time was spent inside the syscall (nsecs)"),
     Column("json_cmdline", TEXT, "Command line arguments, in JSON format", hidden=True),
     Column("ntime", TEXT, "The nsecs uptime timestamp as obtained from BPF"),
-    Column("time", BIGINT, "Time of execution in UNIX time", hidden=True),
+    Column("time", BIGINT, "Time of execution in UNIX time", hidden=True, additional=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)

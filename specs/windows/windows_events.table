@@ -1,7 +1,7 @@
 table_name("windows_events")
 description("Windows Event logs.")
 schema([
-    Column("time", BIGINT, "Timestamp the event was received"),
+    Column("time", BIGINT, "Timestamp the event was received", additional=True),
     Column("datetime", TEXT, "System time at which the event occurred"),
     Column("source", TEXT, "Source or channel of the event"),
     Column("provider_name", TEXT, "Provider name of the event"),

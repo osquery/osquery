@@ -15,7 +15,7 @@ schema([
     Column("mandatory_label", TEXT, "Primary token mandatory label sid - Present only on ProcessStart events"),
     Column("datetime", DATETIME, "Event timestamp in DATETIME format"),
     Column("time_windows", BIGINT, "Event timestamp in Windows format", hidden=True),
-    Column("time", BIGINT, "Event timestamp in Unix format", hidden=True),
+    Column("time", BIGINT, "Event timestamp in Unix format", hidden=True, additional=True),
     Column("eid", INTEGER, "Event ID", hidden=True),
     Column("header_pid", BIGINT, "Process ID of the process reporting the event", hidden=True),
     Column("process_sequence_number", BIGINT, "Process Sequence Number - Present only on ProcessStart events", hidden=True),

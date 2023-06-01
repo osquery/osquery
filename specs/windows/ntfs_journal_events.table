@@ -12,7 +12,7 @@ schema ([
     Column("drive_letter", TEXT, "The drive letter identifying the source journal"),
     Column("file_attributes", TEXT, "File attributes"),
     Column("partial", BIGINT, "Set to 1 if either path or old_path only contains the file or folder name"),
-    Column("time", BIGINT, "Time of file event"),
+    Column("time", BIGINT, "Time of file event", additional=True),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 

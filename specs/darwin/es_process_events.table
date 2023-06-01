@@ -24,7 +24,7 @@ schema([
     Column("platform_binary", INTEGER, "Indicates if the binary is Apple signed binary (1) or not (0)"),
     Column("exit_code", INTEGER, "Exit code of a process in case of an exit event"),
     Column("child_pid", BIGINT, "Process ID of a child process in case of a fork event"),
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("event_type", TEXT, "Type of EndpointSecurity event"),
     Column("eid", TEXT, "Event ID", hidden=True),
     Column("codesigning_flags", TEXT, "Codesigning flags matching one of these options, in a comma separated list: NOT_VALID, ADHOC, NOT_RUNTIME, INSTALLER. See kern/cs_blobs.h in XNU for descriptions."),

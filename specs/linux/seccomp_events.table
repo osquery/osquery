@@ -3,7 +3,7 @@ table_name("seccomp_events")
 description("A virtual table that tracks seccomp events.")
 
 schema([
-    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("auid", UNSIGNED_BIGINT, "Audit user ID (loginuid) of the user who started the analyzed process"),
     Column("uid", UNSIGNED_BIGINT, "User ID of the user who started the analyzed process"),
