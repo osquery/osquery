@@ -83,6 +83,15 @@ QueryData genSystemInfo(QueryContext& context) {
         if (details.size() == 2) {
           r["cpu_microcode"] = details[1];
         }
+      } else if (line.find("siblings") == 0) {
+        auto details = osquery::split(line, ":");
+        if (details.size() == 2) {
+          unsigned int logical_cores_per_socket = std::stoi(details[1]);
+          r["cpu_sockets"] =
+              (logical_cores > 0 && logical_cores_per_socket > 0)
+                  ? INTEGER(logical_cores / logical_cores_per_socket)
+                  : "-1";
+        }
       }
 
       // Minor optimization to not parse every line.
