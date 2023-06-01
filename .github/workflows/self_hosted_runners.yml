@@ -104,7 +104,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
@@ -112,7 +112,7 @@ jobs:
 
       - name: Start aarch64 EC2 runner
         id: start_ec2_runner
-        uses: theopolis/ec2-github-runner@main
+        uses: osquery/ec2-github-runner@v2.3.3
         with:
           mode: start
           github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
@@ -136,14 +136,14 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.EC2_GITHUB_RUNNER_AWS_REGION }}
 
       - name: Stop aarch64 EC2 runner
-        uses: theopolis/ec2-github-runner@main
+        uses: osquery/ec2-github-runner@v2.3.3
         with:
           mode: stop
           github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
