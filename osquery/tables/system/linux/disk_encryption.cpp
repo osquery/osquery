@@ -29,15 +29,37 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
+// Calls to block_devices is done here to allow genFDEStatusForBlockDevice
+// to query parent block devices for crypt status after initial queries.
+void queryBlockDevice(const bool& runSelectAll,
+                      const std::string& device,
+                      std::map<std::string, Row>& block_devices) {
+  // There's protection around calls, but this ensures no duplicates.
+  if ((runSelectAll && block_devices.size() > 0) ||
+      (!runSelectAll && block_devices.count(device) > 0)) {
+    return;
+  }
 
-void genFDEStatusForBlockDevice(const std::string& name,
-                                const std::string& uuid,
-                                const std::string& parent_name,
-                                std::map<std::string, Row>& encrypted_rows,
-                                QueryData& results) {
+  auto data = runSelectAll
+                  ? SQL::selectAllFrom("block_devices")
+                  : SQL::selectAllFrom("block_devices", "name", EQUALS, device);
+  for (const auto& row : data) {
+    if (row.count("name") > 0) {
+      block_devices[row.at("name")] = row;
+    }
+  }
+}
+
+void genFDEStatusForBlockDevice(const bool& runSelectAll,
+                                const Row& block_device,
+                                std::map<std::string, Row>& block_devices,
+                                std::map<std::string, Row>& encrypted_rows) {
+  const auto name = block_device.at("name");
+  const auto parent_name =
+      (block_device.count("parent") > 0 ? block_device.at("parent") : "");
   Row r;
   r["name"] = name;
-  r["uuid"] = uuid;
+  r["uuid"] = (block_device.count("uuid") > 0) ? block_device.at("uuid") : "";
 
   struct crypt_device* cd = nullptr;
   auto ci = crypt_status(cd, name.c_str());
@@ -47,6 +69,7 @@ void genFDEStatusForBlockDevice(const std::string& name,
   case CRYPT_BUSY: {
     r["encrypted"] = "1";
     r["encryption_status"] = kEncryptionStatusEncrypted;
+    r["type"] = "";
 
     auto crypt_init = crypt_init_by_name_and_header(&cd, name.c_str(), nullptr);
     if (crypt_init < 0) {
@@ -79,31 +102,42 @@ void genFDEStatusForBlockDevice(const std::string& name,
     }
 
     r["type"] = osquery::join(items, "-");
-    encrypted_rows[name] = r;
     break;
   }
-
-    // If there's no good crypt status, check to see if we've already
-    // defined the parent_name. If so, inherit data from there. This
-    // works because the `SQL::selectAllFrom("block_devices")` is
-    // ordered enough. If that order proves inadequate, we may need
-    // to explicitly sort it.
+  // If there's no good crypt status, use the parent device's crypt status.
   default:
-    if (encrypted_rows.count(parent_name)) {
+    // Step through each parent once until we either reach
+    // the root device, or a device with valid encryption.
+    if (!parent_name.empty()) {
+      if (!encrypted_rows.count(parent_name)) {
+        if (!block_devices.count(parent_name)) {
+          queryBlockDevice(runSelectAll, parent_name, block_devices);
+        }
+
+        genFDEStatusForBlockDevice(runSelectAll,
+                                   block_devices[parent_name],
+                                   block_devices,
+                                   encrypted_rows);
+      }
+
+      // The recursive calls return back, and each child
+      // device takes the encryption values of their parent.
       auto parent_row = encrypted_rows[parent_name];
-      r["encryption_status"] = kEncryptionStatusEncrypted;
-      r["encrypted"] = "1";
+      r["encryption_status"] = parent_row["encryption_status"];
+      r["encrypted"] = parent_row["encrypted"];
       r["type"] = parent_row["type"];
     } else {
       r["encryption_status"] = kEncryptionStatusNotEncrypted;
       r["encrypted"] = "0";
+      r["type"] = "";
     }
   }
+
+  encrypted_rows[name] = r;
 
   if (cd != nullptr) {
     crypt_free(cd);
   }
-  results.push_back(r);
 }
 
 QueryData genFDEStatus(QueryContext& context) {
@@ -114,34 +148,40 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
-  std::map<std::string, Row> encrypted_rows;
-
   bool runSelectAll(true);
-  QueryData block_devices;
+  std::vector<std::string> queried_devices;
+  std::map<std::string, Row> block_devices;
+  std::map<std::string, Row> encrypted_rows;
 
   if (auto constraint_it = context.constraints.find("name");
       constraint_it != context.constraints.end()) {
     const auto& constraints = constraint_it->second;
-    for (const auto& name : constraints.getAll(EQUALS)) {
+    for (const auto& device : constraints.getAll(EQUALS)) {
       runSelectAll = false;
 
-      auto data = SQL::selectAllFrom("block_devices", "name", EQUALS, name);
-      for (const auto& row : data) {
-        block_devices.push_back(row);
+      if (!block_devices.count(device)) {
+        queryBlockDevice(runSelectAll, device, block_devices);
+        queried_devices.push_back(device);
       }
     }
   }
 
   if (runSelectAll) {
-    block_devices = SQL::selectAllFrom("block_devices");
+    queryBlockDevice(runSelectAll, "", block_devices);
   }
 
-  for (const auto& row : block_devices) {
-    const auto name = (row.count("name") > 0) ? row.at("name") : "";
-    const auto uuid = (row.count("uuid") > 0) ? row.at("uuid") : "";
-    const auto parent_name = (row.count("parent") > 0 ? row.at("parent") : "");
-    genFDEStatusForBlockDevice(
-        name, uuid, parent_name, encrypted_rows, results);
+  // Generate and add an encryption row result for each queried block device.
+  for (const auto& pair : block_devices) {
+    if (!encrypted_rows.count(pair.first)) {
+      genFDEStatusForBlockDevice(
+          runSelectAll, pair.second, block_devices, encrypted_rows);
+    }
+
+    if (queried_devices.empty() ||
+        std::count(
+            queried_devices.begin(), queried_devices.end(), pair.first)) {
+      results.push_back(encrypted_rows[pair.first]);
+    }
   }
 
   return results;
