@@ -111,6 +111,8 @@ class ExtendedAttributesTableTests : public testing::Test {
       std::cerr << "cap_set_file() failed with errno " << errno
                 << ". Skipping tests on capabilities\n";
     }
+
+    cap_free(capabilities);
   }
 
   void TearDown() override {
