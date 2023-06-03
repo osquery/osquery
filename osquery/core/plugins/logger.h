@@ -12,6 +12,7 @@
 #include <string>
 
 #include <osquery/core/plugins/plugin.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
@@ -194,6 +195,34 @@ class LoggerPlugin : public Plugin {
    */
   virtual Status logEvent(const std::string& /*s*/) {
     return Status(1, "Not enabled");
+  }
+
+  /**
+   * @brief Optionally handle a batch of published events via the logger.
+   *
+   * It is possible to skip the database representation of event subscribers
+   * and instead forward a batch of added events to the active logger plugin.
+   */
+  virtual Status logStringBatch(const std::string& event_batch) {
+    rapidjson::Document doc;
+    if (doc.Parse(event_batch).HasParseError()) {
+      return Status::failure("Invalid event batch passed to logEventBatch");
+    }
+
+    std::size_t error_count{};
+    for (auto& event : doc.GetArray()) {
+      auto status = logString(event.GetString());
+      if (!status.ok()) {
+        ++error_count;
+      }
+    }
+
+    if (error_count != 0) {
+      return Status::failure("logEventBatch has failed to log " +
+                             std::to_string(error_count) + "events");
+    }
+
+    return Status::success();
   }
 
  protected:
