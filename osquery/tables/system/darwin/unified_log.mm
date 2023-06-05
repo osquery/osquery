@@ -302,8 +302,14 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       // handle predicate constraint in query
       std::string predicate_constraint = "";
       if (queryContext.hasConstraint("predicate", EQUALS)) {
-        predicate_constraint =
-            *queryContext.constraints["predicate"].getAll(EQUALS).begin();
+        auto predicate_constraints =
+            queryContext.constraints["predicate"].getAll(EQUALS);
+        if (predicate_constraints.size() > 1) {
+          TLOG << "error: can only accept a single predicate constraint";
+          return {};
+        }
+        predicate_constraint = *predicate_constraints.begin();
+
         // predicateWithFormat accepts a format string, so this makes sure
         // the input does not include variables or additional arguments.
         if (predicate_constraint.find("$") != std::string::npos ||
