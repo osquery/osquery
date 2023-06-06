@@ -10,6 +10,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace osquery {
 
@@ -19,7 +20,7 @@ namespace osquery {
  * @param A string to check.
  * @return If the string is printable.
  */
-bool isPrintable(const std::string& check);
+bool isPrintable(std::string_view check);
 
 /**
  * @brief In-line helper function for use with utf8StringSize

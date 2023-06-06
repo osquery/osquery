@@ -16,12 +16,26 @@ namespace osquery {
 class Base64Tests : public testing::Test {};
 
 TEST_F(Base64Tests, test_base64) {
-  std::string unencoded = "HELLO";
+  std::string_view unencoded("HELLO");
   auto encoded = base64::encode(unencoded);
   EXPECT_NE(encoded.size(), 0U);
 
-  auto unencoded2 = base64::decode(encoded);
+  // Decode input as a string_view.
+  auto unencoded2 = base64::decode(std::string_view(encoded));
   EXPECT_EQ(unencoded, unencoded2);
+
+  // Skip line breaks while decoding.
+  std::string encoded_with_line_breaks = "\n" + encoded + "\r\n==";
+  auto unencoded3 = base64::decode(encoded_with_line_breaks);
+  EXPECT_EQ(unencoded3, unencoded2);
+
+  // Check that the string_view input with line breaks still can be decoded.
+  auto unencoded4 = base64::decode(std::string_view(encoded_with_line_breaks));
+  EXPECT_EQ(unencoded4, unencoded2);
+
+  // Decode rvalue reference from the encoded string.
+  auto unencoded5 = base64::decode(std::move(encoded_with_line_breaks));
+  EXPECT_EQ(unencoded5, unencoded2);
 }
 
 } // namespace osquery

@@ -8,6 +8,7 @@
  */
 
 #include <string>
+#include <string_view>
 
 #include <sqlite3.h>
 
@@ -38,7 +39,7 @@ static void b64SqliteValue(sqlite3_context* ctx,
   const auto* value = sqlite3_value_text(argv[0]);
   auto size = static_cast<size_t>(sqlite3_value_bytes(argv[0]));
 
-  std::string input(reinterpret_cast<const char*>(value), size);
+  const std::string_view input(reinterpret_cast<const char*>(value), size);
   std::string result;
   switch (encode) {
   case B64Type::B64_ENCODE_CONDITIONAL:

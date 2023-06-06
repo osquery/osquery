@@ -10,6 +10,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace osquery {
 
@@ -21,7 +22,17 @@ namespace base64 {
  * @param encoded The encode base64 string.
  * @return Decoded string.
  */
-std::string decode(std::string encoded);
+std::string decode(std::string_view encoded);
+
+/**
+ * @brief Decode a base64 encoded string in the form of rvalue reference.
+ *
+ * This function can change the encoded string content.
+ *
+ * @param encoded The encode base64 string.
+ * @return Decoded string.
+ */
+std::string decode(std::string&& encoded);
 
 /**
  * @brief Encode a  string.
@@ -29,7 +40,7 @@ std::string decode(std::string encoded);
  * @param A string to encode.
  * @return Encoded string.
  */
-std::string encode(const std::string& unencoded);
+std::string encode(std::string_view unencoded);
 
 } // namespace base64
 
