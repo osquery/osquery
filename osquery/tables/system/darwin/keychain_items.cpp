@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/hex.hpp>
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -25,9 +26,12 @@ const std::vector<CFTypeRef> kKeychainItemTypes = {
     kSecClassIdentity,
 };
 
-const std::map<SecItemAttr, std::string> kKeychainItemAttrs = {
+const std::map<FourCharCode, std::string> kKeychainItemAttrs = {
     {kSecLabelItemAttr, "label"},
+    {kSecKeyPrintName, "label"},
     {kSecDescriptionItemAttr, "description"},
+    {kSecKeyLabel, "pk_hash"},
+    {kSecPublicKeyHashItemAttr, "pk_hash"},
     {kSecCommentItemAttr, "comment"},
     {kSecAccountItemAttr, "account"},
     {kSecCreationDateItemAttr, "created"},
@@ -75,7 +79,23 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
       for (size_t i = 0; i < attr_list->count; ++i) {
         SecKeychainAttribute* attr = &attr_list->attr[i];
         if (attr->length > 0) {
-          r[attr_tag.second] = std::string((char*)attr->data, attr->length);
+          auto raw_data = std::string((char*)attr->data, attr->length);
+          std::string encoded;
+
+          // key hashes need to be hex encoded
+          if (attr_tag.first == kSecPublicKeyHashItemAttr ||
+              attr_tag.first == kSecKeyLabel) {
+            // skip for symmetric keys since they do not have a public key
+            if (item_class != kSecSymmetricKeyItemClass) {
+              boost::algorithm::hex(raw_data.begin(),
+                                    raw_data.end(),
+                                    std::back_inserter(encoded));
+            }
+          } else {
+            encoded = raw_data;
+          }
+
+          r[attr_tag.second] = encoded;
         }
       }
       SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
