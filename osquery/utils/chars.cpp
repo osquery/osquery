@@ -7,17 +7,16 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
+#include "chars.h"
+
 #include <cstddef>
 
 #include <osquery/logger/logger.h>
-
-#include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 
-bool isPrintable(const std::string& check) {
+bool isPrintable(const std::string_view check) {
   for (const unsigned char ch : check) {
     if (ch >= 0x7F || ch <= 0x1F) {
       return false;

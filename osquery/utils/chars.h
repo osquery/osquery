@@ -10,16 +10,17 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace osquery {
 
 /**
  * @brief Check if a string is ASCII printable
  *
- * @param A string to check.
+ * @param check string to check.
  * @return If the string is printable.
  */
-bool isPrintable(const std::string& check);
+bool isPrintable(const std::string_view check);
 
 /**
  * @brief In-line helper function for use with utf8StringSize

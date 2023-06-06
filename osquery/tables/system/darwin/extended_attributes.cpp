@@ -8,30 +8,24 @@
  */
 
 #include <CoreServices/CoreServices.h>
-#include <sys/xattr.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/posix/xattrs.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/chars.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
-
-// Structure of any OS X extended attribute
-struct XAttrAttribute {
-  std::string attribute_data;
-  int return_value;
-  int buffer_length;
-};
 
 const std::string kMetadataXattr = "com.apple.metadata:kMDItemWhereFroms";
 const std::string kQuarantineXattr = "com.apple.quarantine";
@@ -45,55 +39,6 @@ const std::map<std::string, std::string> kQuarantineKeys = {
     {"quarantine_data_url", "LSQuarantineDataURL"},
     {"quarantine_origin_url", "LSQuarantineOriginURL"}};
 
-// Pull the requested extended attribute from the path and return
-// the XAttrAttribute structure
-struct XAttrAttribute getAttribute(const std::string& path,
-                                   const std::string& attribute) {
-  struct XAttrAttribute x_att;
-  x_att.buffer_length =
-      getxattr(path.c_str(), attribute.c_str(), nullptr, (size_t)0, 0, 0);
-  char* buffer = (char*)malloc(x_att.buffer_length);
-  if (buffer == nullptr) {
-    return x_att;
-  }
-
-  x_att.return_value = getxattr(
-      path.c_str(), attribute.c_str(), buffer, x_att.buffer_length, 0, 0);
-
-  if (x_att.return_value != -1) {
-    x_att.attribute_data = std::string(buffer, x_att.buffer_length);
-  } else {
-    x_att.attribute_data = std::string("");
-    x_att.buffer_length = 0;
-  }
-  free(buffer);
-  return x_att;
-}
-
-// Pull the list of all the extended attributes for a path
-std::vector<std::string> parseExtendedAttributeList(const std::string& path) {
-  std::vector<std::string> attributes;
-  ssize_t value = listxattr(path.c_str(), nullptr, (size_t)0, 0);
-  char* content = (char*)malloc(value);
-  if (content == nullptr) {
-    return attributes;
-  }
-
-  ssize_t ret = listxattr(path.c_str(), content, value, 0);
-  if (ret == 0) {
-    free(content);
-    return attributes;
-  }
-
-  char* stable = content;
-  do {
-    attributes.push_back(std::string(content));
-    content += attributes.back().size() + 1;
-  } while (content - stable < value);
-  free(stable);
-  return attributes;
-}
-
 void setRow(QueryData& results,
             const std::string& path,
             const std::string& key,
@@ -103,8 +48,8 @@ void setRow(QueryData& results,
   r["directory"] = boost::filesystem::path(path).parent_path().string();
   r["key"] = key;
   auto value_printable = isPrintable(value);
-  r["value"] = (value_printable) ? value : base64::encode(value);
-  r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
+  r["value"] = value_printable ? value : base64::encode(value);
+  r["base64"] = value_printable ? INTEGER(0) : INTEGER(1);
   results.push_back(r);
 }
 
@@ -201,16 +146,46 @@ void parseQuarantineFile(QueryData& results, const std::string& path) {
 
 // Process a file and extract all attribute information, parsed or not.
 void getFileData(QueryData& results, const std::string& path) {
-  std::vector<std::string> attributes = parseExtendedAttributeList(path);
-  for (const auto& attribute : attributes) {
-    struct XAttrAttribute x_att = getAttribute(path, attribute);
+  int fd = open(path.c_str(), O_RDONLY);
 
+  if (fd < 0) {
+    if (errno != ENOENT) {
+      LOG(ERROR) << "Failed to open file to read extended attributes at the "
+                    "following path: "
+                 << path;
+    }
+    return;
+  }
+
+  auto fd_guard = scope_guard::create([&] { close(fd); });
+
+  XAttrNameListResult attributes_res = getExtendedAttributesNames(fd);
+
+  if (attributes_res.isError()) {
+    LOG(ERROR) << xAttrFileErrorToString(attributes_res.getErrorCode(), path);
+    return;
+  }
+
+  const auto& attributes = attributes_res.get();
+
+  for (const auto& attribute : attributes) {
     if (attribute == kMetadataXattr) {
       parseWhereFrom(results, path);
     } else if (attribute == kQuarantineXattr) {
       parseQuarantineFile(results, path);
     } else {
-      setRow(results, path, attribute, x_att.attribute_data);
+      XAttrValueResult value_res = getExtendedAttributeValue(fd, attribute);
+
+      if (value_res.isError()) {
+        VLOG(1) << xAttrValueErrorToString(
+            value_res.getErrorCode(), path, attribute);
+        continue;
+      }
+
+      const auto& value_buffer = value_res.get();
+
+      const auto value = std::string(value_buffer.begin(), value_buffer.end());
+      setRow(results, path, attribute, value);
     }
   }
 }
@@ -279,5 +254,5 @@ QueryData genXattr(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

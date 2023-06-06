@@ -16,15 +16,17 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/sql/query_data.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/filesystem/posix/xattrs.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
 namespace tables {
 
-std::vector<std::string> parseExtendedAttributeList(const std::string &path);
-void parseQuarantineFile(QueryData &results, const std::string &path);
-void parseWhereFrom(QueryData &results, const std::string &path);
-void getFileData(QueryData &results, const std::string &path);
+std::vector<std::string> parseExtendedAttributeList(const std::string& path);
+void parseQuarantineFile(QueryData& results, const std::string& path);
+void parseWhereFrom(QueryData& results, const std::string& path);
+void getFileData(QueryData& results, const std::string& path);
 
 const std::string kQuarantineKey = "com.apple.quarantine";
 const unsigned char kQuarantineValue[] = {
@@ -60,25 +62,61 @@ const unsigned char kFsckValue[] = {0x38, 0xFF, 0xBE, 0x7E, 0xEF, 0xBE, 0x27,
 
 const std::string kDiskImagefsckBase64 = "OP++fu++J8B7AGyIsqFQTRZwbHo=";
 
-void removexattrs(const std::string &path) {
-  auto xattrs = parseExtendedAttributeList(path);
-  for (const auto &xattr : xattrs) {
+boost::optional<std::vector<std::string>> getExtendedAttributesNames(
+    const std::string& path) {
+  int fd = open(path.c_str(), O_RDONLY);
+
+  if (fd < 0) {
+    return boost::none;
+  }
+
+  auto fd_guard = scope_guard::create([&]() { close(fd); });
+
+  XAttrNameListResult attributes_res = osquery::getExtendedAttributesNames(fd);
+
+  if (attributes_res.isError()) {
+    return boost::none;
+  }
+
+  return attributes_res.take();
+}
+
+void removexattrs(const std::string& path) {
+  auto opt_xattrs = getExtendedAttributesNames(path);
+
+  ASSERT_TRUE(opt_xattrs.has_value());
+
+  const auto& xattrs = *opt_xattrs;
+
+  for (const auto& xattr : xattrs) {
     removexattr(path.c_str(), xattr.c_str(), XATTR_NOFOLLOW);
   }
 }
 
-void setxattrs(const std::string &path) {
-  setxattr(path.c_str(), kQuarantineKey.c_str(), (void *)kQuarantineValue,
-           sizeof(kQuarantineValue), 0, XATTR_NOFOLLOW);
-  setxattr(path.c_str(), kMetedataKey.c_str(), (void *)kMetadataWhereFromValue,
-           sizeof(kMetadataWhereFromValue), 0, XATTR_NOFOLLOW);
-  setxattr(path.c_str(), kFsckKey.c_str(), (void *)kFsckValue,
-           sizeof(kFsckValue), 0, XATTR_NOFOLLOW);
+void setxattrs(const std::string& path) {
+  setxattr(path.c_str(),
+           kQuarantineKey.c_str(),
+           (void*)kQuarantineValue,
+           sizeof(kQuarantineValue),
+           0,
+           XATTR_NOFOLLOW);
+  setxattr(path.c_str(),
+           kMetedataKey.c_str(),
+           (void*)kMetadataWhereFromValue,
+           sizeof(kMetadataWhereFromValue),
+           0,
+           XATTR_NOFOLLOW);
+  setxattr(path.c_str(),
+           kFsckKey.c_str(),
+           (void*)kFsckValue,
+           sizeof(kFsckValue),
+           0,
+           XATTR_NOFOLLOW);
   // insert arbitrary xattr
   const std::string key = "foobar";
   const unsigned char val[] = {0x62, 0x61, 0x7A}; // baz
-  setxattr(path.c_str(), key.c_str(), (void *)val, sizeof(val), 0,
-           XATTR_NOFOLLOW);
+  setxattr(
+      path.c_str(), key.c_str(), (void*)val, sizeof(val), 0, XATTR_NOFOLLOW);
 }
 
 class ExtendedAttributesTests : public testing::Test {
@@ -88,7 +126,9 @@ class ExtendedAttributesTests : public testing::Test {
     setxattrs(kTestFilePath);
   }
 
-  virtual void TearDown() { removexattrs(kTestFilePath); }
+  virtual void TearDown() {
+    removexattrs(kTestFilePath);
+  }
 
   const std::string kTestFilePath =
       (getTestConfigDirectory() / "test_xattrs.txt").string();
@@ -128,5 +168,5 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
     }
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
