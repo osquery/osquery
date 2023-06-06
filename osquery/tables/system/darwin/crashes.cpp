@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -24,26 +25,31 @@
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
 
-/// Set of registers, x86 and x64, that we collect from crash logs
-const std::set<std::string> kRegisters = {
+/// Set of x86 and x64 registers that we collect from crash logs
+const std::set<std::string> kIntelRegisters = {
     "eax", "edi", "ss", "ds", "rax", "rdi", "r8", "r12", "rip", "x0", "x4"};
 
-/// Location of the system application crash logs in OS X
+// TODO: ARM registers?
+/// Set of ARM registers that we collect from crash logs
+const std::set<std::string> kArmRegisters = {};
+
+/// Location of the crash logs in macOS (also exists in each user's directory)
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
 
-/// Location of the user mobile devices crash logs in OS X
+/// Location of the user's mobile devices' crash logs in macOS
 const std::string kMobileDiagnosticReportsPath =
     "/Library/Logs/CrashReporter/MobileDevice";
 
-/// Map of the values we currently parse out of the log file
+/// (macOS 11 and older) Map of the values we parse out of the '.crash' files
 const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Process", "pid"},
     {"Path", "path"},
-    {"Log Location", "crash_path"},
+    {"Log Location", "crash_path"}, // ignored (we know where it is)
     {"Identifier", "identifier"},
     {"Version", "version"},
     {"Parent Process", "parent"},
@@ -57,11 +63,64 @@ const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Triggered by Thread", "crashed_thread"},
 };
 
+void readCrashDumpJSON(const std::string& crashLogFilePath, Row& r) {
+  r["crash_path"] = crashLogFilePath;
+  std::string rawFileContent;
+
+  if (!readFile(crashLogFilePath, rawFileContent).ok()) {
+    VLOG(1) << "Could not read the crash log at " << crashLogFilePath;
+    return;
+  }
+
+  // A "diagnostic report" (crash dump), as of macOS 12, is contained in a
+  // file with the ".ips" extension containing two JSON objects in series
+  // (non-standard JSON). Find where the second JSON object begins. This is
+  // the "content":
+  std::size_t contentJsonBegin = rawFileContent.find("}") + 1;
+
+  try {
+    pt::ptree crashLogHeader, crashLogContent;
+    std::istringstream issHeader(rawFileContent.substr(0, contentJsonBegin));
+    pt::read_json(issHeader, crashLogHeader);
+    std::istringstream issContent(rawFileContent.substr(contentJsonBegin));
+    pt::read_json(issContent, crashLogContent);
+
+    // Parse the fields represented in the JSON:
+    r["pid"] = crashLogContent.get<std::string>("pid", "");
+    r["path"] = crashLogContent.get<std::string>("procPath", "");
+    r["identifier"] = crashLogContent.get<std::string>("coalitionName", "");
+    // TODO: if there is no version, do not report back " ()", instead leave
+    // empty
+    r["version"] =
+        crashLogContent.get<std::string>(
+            "bundleInfo.CFBundleShortVersionString", "") +
+        " (" +
+        crashLogContent.get<std::string>("bundleInfo.CFBundleVersion", "") +
+        ")";
+    r["parent"] = crashLogContent.get<std::string>("parentPid", "");
+    r["responsible"] = crashLogContent.get<std::string>("procName", "");
+    r["uid"] = crashLogContent.get<std::string>("userID", "");
+    r["datetime"] = crashLogContent.get<std::string>("captureTime", "");
+    r["crashed_thread"] =
+        crashLogContent.get<std::string>("faultingThread", "");
+    r["exception_type"] =
+        crashLogContent.get<std::string>("exception.type", "") + " (" +
+        crashLogContent.get<std::string>("exception.signal", "") + ")";
+    r["exception_codes"] =
+        crashLogContent.get<std::string>("exception.codes", "");
+    r["exception_notes"] = ""; // as of macOS 12, this is no longer in the log
+  } catch (const pt::json_parser::json_parser_error& e) {
+    VLOG(1) << "Could not parse JSON from " << crashLogFilePath << ": "
+            << e.what();
+  }
+}
+
 void readCrashDump(const std::string& app_log, Row& r) {
   r["crash_path"] = app_log;
   std::string content;
 
   if (!readFile(app_log, content).ok()) {
+    VLOG(1) << "Could not read the crash log at " << app_log;
     return;
   }
 
@@ -93,12 +152,13 @@ void readCrashDump(const std::string& app_log, Row& r) {
       continue;
     }
 
-    if (kCrashDumpKeys.count(toks[0]) == 0 && kRegisters.count(toks[0]) == 0) {
+    if (kCrashDumpKeys.count(toks[0]) == 0 &&
+        kIntelRegisters.count(toks[0]) == 0) {
       continue;
     }
 
     // Process and grab all register values
-    if (kRegisters.count(toks[0]) > 0) {
+    if (kIntelRegisters.count(toks[0]) > 0) {
       boost::trim(line);
 
       line = std::regex_replace(line, rx_spaces, " ");
@@ -156,6 +216,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
 
 QueryData genCrashLogs(QueryContext& context) {
   QueryData results;
+  // TODO: pass the QueryData to the subroutines instead of the Row, have them
+  // results.push_back(r) at the end?
 
   auto process_crash_logs = [&results](const fs::path& path,
                                        const std::string type) {
@@ -168,6 +230,11 @@ QueryData genCrashLogs(QueryContext& context) {
           r["type"] = type;
           readCrashDump(lf, r);
           results.push_back(r);
+        } else if (alg::ends_with(lf, ".ips")) {
+          Row r;
+          r["type"] = type;
+          readCrashDumpJSON(lf, r);
+          results.push_back(r);
         }
       }
     }
@@ -178,11 +245,19 @@ QueryData genCrashLogs(QueryContext& context) {
     process_crash_logs(kDiagnosticReportsPath, "application");
   }
 
+  // As of macOS 12, also check the subdirectory, /Retired
+  auto systemRetiredPath = fs::path(kDiagnosticReportsPath) / "Retired";
+  process_crash_logs(systemRetiredPath, "application");
+
   // Process user logs
   auto users = usersFromContext(context);
   for (const auto& user : users) {
     auto user_home = fs::path(user.at("directory")) / kDiagnosticReportsPath;
     process_crash_logs(user_home, "application");
+
+    // As of macOS 12, also check the subdirectory, /Retired
+    auto userRetiredPath = user_home / "Retired";
+    process_crash_logs(userRetiredPath, "application");
 
     // Process mobile crash logs
     auto user_mobile_root =
@@ -197,5 +272,5 @@ QueryData genCrashLogs(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
