@@ -49,13 +49,14 @@ for submodule_relative_path in submodule_relative_paths:
 
 external_libraries_name_and_version = []
 
-with open(repository + "/libraries/cmake/formula/openssl/CMakeLists.txt") as openss_cmake:
+with open(repository + "/libraries/cmake/formula/openssl/CMakeLists.txt") as openssl_cmake:
     match_version = re.compile('OPENSSL_VERSION[\\s]*"(.*)"')
 
-    for line in openss_cmake:
+    for line in openssl_cmake:
         match = match_version.search(line)
         if match:
             external_libraries_name_and_version.append(("openssl", match.group(1)))
+            break
 
 
 print("Found the following libraries in the repository:\n")
