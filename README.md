@@ -19,7 +19,7 @@ Available for Linux, macOS, and Windows.
 - Stack Overflow: [Stack Overflow questions](https://stackoverflow.com/questions/tagged/osquery)
 - Table Schema: [osquery.io/schema](https://osquery.io/schema)
 - Query Packs: [osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
-- Slack: [Browse the archives](https://chat.osquery.io/c/general) or [Join the conversation](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)
+- Slack: [Browse the archives](https://chat.osquery.io/c/general) or [Join the conversation](https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ)
 - Build Status: [![GitHub Actions Build x86 Status](https://github.com/osquery/osquery/actions/workflows/hosted_runners.yml/badge.svg?branch=master)](https://github.com/osquery/osquery/actions/workflows/hosted_runners.yml) [![GitHub Actions Build AArch64 Status](https://github.com/osquery/osquery/actions/workflows/self_hosted_runners.yml/badge.svg?branch=master)](https://github.com/osquery/osquery/actions/workflows/self_hosted_runners.yml) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
 - CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
 
@@ -109,7 +109,7 @@ We will mark the release as 'stable' on GitHub when enough testing has occurred,
 Building osquery from source is encouraged! Check out our [build
 guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
 check out our [contributing guide](CONTRIBUTING.md) and join the
-community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw).
+community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ).
 
 ## License
 
@@ -136,4 +136,4 @@ for background on the project, visit the [users
 guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite
-[here](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-s2DBtGUTW4CFel0f0IjTEw)!
+[here](https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ)!
