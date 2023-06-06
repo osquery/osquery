@@ -12,6 +12,8 @@ schema([
     Column("developer_id", TEXT, "Optional developer identifier"),
     Column("description", TEXT, "Optional extension description text"),
     Column("path", TEXT, "Path to extension XAR bundle"),
+    Column("bundle_version", TEXT, "The version of the build that identifies an iteration of the bundle"),
+    Column("copyright", TEXT, "A human-readable copyright notice for the bundle"),
     Column("extension_type", TEXT, "Extension Type: WebOrAppExtension or LegacyExtension"),	
     ForeignKey(column="uid", table="users")
 ])

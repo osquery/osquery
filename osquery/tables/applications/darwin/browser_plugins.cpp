@@ -107,6 +107,15 @@ struct SandboxedExtensionData {
 
   /// Parent App
   std::string app_path;
+
+  /// Human Readable Description
+  std::string hr_description;
+
+  /// CF Bundle Version
+  std::string cf_bundle_version;
+
+  /// NS Human Readable Copyright
+  std::string ns_hr_copyright;
 };
 
 using SandboxedExtensionsData = std::vector<SandboxedExtensionData>;
@@ -329,6 +338,7 @@ inline void getSandboxedExtensionData(const std::string& extension_path,
   // Parse the plist content
   pt::ptree tree;
   if (!getPtreeFromPlist(plist_path, tree)) {
+    TLOG << "Ptree parsing failed: " << plist_path;
     return;
   }
 
@@ -339,6 +349,11 @@ inline void getSandboxedExtensionData(const std::string& extension_path,
   entry.name = tree.get<std::string>("CFBundleDisplayName", "");
   entry.sdk = tree.get<std::string>("CFBundleInfoDictionaryVersion", "");
   entry.version = tree.get<std::string>("CFBundleShortVersionString", "");
+  entry.cf_bundle_version = tree.get<std::string>("CFBundleVersion", "");
+  entry.ns_hr_copyright = tree.get<std::string>("NSHumanReadableCopyright", "");
+  entry.hr_description =
+      tree.get<std::string>("NSHumanReadableDescription", "");
+
   data.push_back(entry);
 }
 
@@ -384,8 +399,57 @@ inline bool isUserExtension(const fs::path& app_extension_plist,
 
 inline void genSafariSandboxedExtensions(const QueryContext& context,
                                          QueryData& results) {
-  // Getting user data
+  // Returning if there is no user context information
   auto users = usersFromContext(context);
+  if (users.empty()) {
+    return;
+  }
+
+  // We need to get the sandboxed extension data first
+
+  // Checking that an extensions directory exists
+  if (!pathExists(kSafariAppExtensionsPath).ok()) {
+    return;
+  }
+
+  // Getting app directories
+  std::vector<std::string> app_directories;
+  if (!listDirectoriesInDirectory(
+          kSafariAppExtensionsPath, app_directories, false)) {
+    return;
+  }
+
+  // Traverse app directories to obtain app extension data if present
+  SandboxedExtensionsData sandboxed_ext_data;
+  for (const auto& app_directory : app_directories) {
+    if (isExtensionAppExcluded(app_directory)) {
+      continue;
+    }
+
+    std::vector<std::string> app_internal_dirs;
+    if (!listDirectoriesInDirectory(app_directory, app_internal_dirs, true)) {
+      continue;
+    }
+
+    // Get global sandboxed extensions data
+    for (const auto& app_int_dir : app_internal_dirs) {
+      if (boost::algorithm::ends_with(app_int_dir,
+                                      kSafariSandboxedExtensionsPattern)) {
+        getSandboxedExtensionData(
+            app_directory, app_int_dir + "Info.plist", sandboxed_ext_data);
+      }
+    }
+  }
+
+  // Return if no sandboxed extensions were found - No extensions installed
+  if (sandboxed_ext_data.empty()) {
+    return;
+  }
+
+  // We have the sandboxed extension metainformation, we now need to check
+  // if extensions were installed by a given user
+
+  // Iterating over provided user context
   for (const auto& row : users) {
     auto uid = row.at("uid");
     auto user_dir = row.at("directory");
@@ -400,45 +464,6 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
       continue;
     }
 
-    // We need to get the sandboxed extension data first
-
-    // Check that an extensions directory exists.
-    if (!pathExists(kSafariAppExtensionsPath).ok()) {
-      return;
-    }
-
-    // Getting app directories
-    std::vector<std::string> app_directories;
-    if (!listDirectoriesInDirectory(
-            kSafariAppExtensionsPath, app_directories, false)) {
-      return;
-    }
-
-    // Traverse app directories to obtain app extension data if present
-    SandboxedExtensionsData sandboxed_ext_data;
-    for (const auto& app_directory : app_directories) {
-      std::vector<std::string> app_internal_dirs;
-      if (!listDirectoriesInDirectory(app_directory, app_internal_dirs, true)) {
-        continue;
-      }
-
-      // Get global sandboxed extensions data
-      for (const auto& app_int_dir : app_internal_dirs) {
-        if (boost::algorithm::ends_with(app_int_dir,
-                                        kSafariSandboxedExtensionsPattern)) {
-          getSandboxedExtensionData(
-              app_directory, app_int_dir + "Info.plist", sandboxed_ext_data);
-        }
-      }
-    }
-
-    // Return if no sandboxed extensions were found - No extensions installed
-    if (sandboxed_ext_data.empty()) {
-      return;
-    }
-
-    // We now have the sandboxed extension metainformation, we now need to check
-    // if extensions were installed by current user
     auto user_app_extensions_plist =
         fs::path(user_dir) / kAppExtensionsPlistPath;
 
@@ -458,6 +483,9 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
         r["version"] = extension_data.version;
         r["sdk"] = extension_data.sdk;
         r["path"] = extension_data.app_path;
+        r["bundle_version"] = extension_data.cf_bundle_version;
+        r["copyright"] = extension_data.ns_hr_copyright;
+        r["description"] = extension_data.hr_description;
         r["extension_type"] = kSafariAppExtensionType;
         results.push_back(r);
       }
