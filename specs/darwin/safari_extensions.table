@@ -1,5 +1,5 @@
 table_name("safari_extensions")
-description("Safari browser extension details for all users.")
+description("Safari browser extension details for all users. This table requires Full Disk Access (FDA) permission.")
 schema([
     Column("uid", BIGINT, "The local user that owns the extension",
       index=True),
@@ -20,6 +20,7 @@ schema([
 attributes(user_data=True)
 implementation("applications/browser_plugins@genSafariExtensions")
 examples([
+  "select * from safari_extensions where uid=501",
   "select count(*) from users JOIN safari_extensions using (uid)",
 ])
 fuzz_paths([
