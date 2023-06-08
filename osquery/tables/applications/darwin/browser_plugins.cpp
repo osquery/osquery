@@ -51,11 +51,15 @@ inline void jsonBoolAsInt(std::string& s) {
 /// Safari extensions will not load unless they have the expected pattern.
 #define kSafariLegacyExtensionsPattern "%.safariextz"
 
+/// Safari Extension Point Identifier
+#define kSafariExtensionPointIdentifier "com.apple.Safari"
+
 /// Safari App Extensions root directory
 #define kSafariAppExtensionsPath "/Applications/"
 
-/// Safari Sandboxed Extensions directory pattern.
-#define kSafariSandboxedExtensionsPattern ".appex/Contents/"
+/// Safari App Extensions Plist path
+#define kSafariAppExtensionsPlistPath                                          \
+  "Contents/PlugIns/%.appex/Contents/Info.plist"
 
 /// User Safari extension path
 #define kUserSafariExtensionsPath                                              \
@@ -344,6 +348,22 @@ inline void getSandboxedExtensionData(const std::string& extension_path,
 
   // Populating SandboxedExtensionData entry
   SandboxedExtensionData entry;
+
+  // Checking first if this is a Safari extension by looking into NSExtension
+  if (tree.count("NSExtension") == 0) {
+    return;
+  }
+
+  const auto& extensionIdentifier =
+      tree.get_child("NSExtension")
+          .get<std::string>("NSExtensionPointIdentifier", "");
+
+  if (!boost::algorithm::contains(extensionIdentifier,
+                                  kSafariExtensionPointIdentifier)) {
+    return;
+  }
+
+  // We found a Safari extension! Let's extract its metadata
   entry.app_path = extension_path;
   entry.identifier = tree.get<std::string>("CFBundleIdentifier", "");
   entry.name = tree.get<std::string>("CFBundleDisplayName", "");
@@ -421,22 +441,20 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
 
   // Traverse app directories to obtain app extension data if present
   SandboxedExtensionsData sandboxed_ext_data;
-  for (const auto& app_directory : app_directories) {
+  for (auto& app_directory : app_directories) {
     if (isExtensionAppExcluded(app_directory)) {
       continue;
     }
 
-    std::vector<std::string> app_internal_dirs;
-    if (!listDirectoriesInDirectory(app_directory, app_internal_dirs, true)) {
-      continue;
-    }
-
-    // Get global sandboxed extensions data
-    for (const auto& app_int_dir : app_internal_dirs) {
-      if (boost::algorithm::ends_with(app_int_dir,
-                                      kSafariSandboxedExtensionsPattern)) {
+    // Grabbing the extension plist metadata if present
+    std::vector<std::string> plist_paths;
+    boost::filesystem::path pattern(
+        app_directory.append(kSafariAppExtensionsPlistPath));
+    auto status = resolveFilePattern(pattern, plist_paths);
+    if (status.ok()) {
+      for (const auto& plist_path : plist_paths) {
         getSandboxedExtensionData(
-            app_directory, app_int_dir + "Info.plist", sandboxed_ext_data);
+            app_directory, plist_path, sandboxed_ext_data);
       }
     }
   }
