@@ -116,7 +116,11 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
       for (auto i = 0; i < ec->argc; i++) {
         auto arg = es_exec_arg(&message->event.exec, i);
         auto s = getStringFromToken(&arg);
-        args << s << ' ';
+        if (s.find(" ") != std::string::npos) {
+          args << std::quoted(s) << ' ';
+        } else {
+          args << s << ' ';
+        }
       }
       ec->args = args.str();
     }
@@ -127,7 +131,11 @@ void EndpointSecurityPublisher::handleMessage(const es_message_t* message) {
       for (auto i = 0; i < ec->envc; i++) {
         auto env = es_exec_env(&message->event.exec, i);
         auto s = getStringFromToken(&env);
-        envs << s << ' ';
+        if (s.find(" ") != std::string::npos) {
+          envs << std::quoted(s) << ' ';
+        } else {
+          envs << s << ' ';
+        }
       }
       ec->envs = envs.str();
     }
