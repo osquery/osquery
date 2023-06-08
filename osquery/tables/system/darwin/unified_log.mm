@@ -251,27 +251,35 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       int max_rows = getMaxRows(queryContext);
       bool isSequential = getSequential(queryContext);
 
-      // the timestamp column can be used to aggressively filter
+      // The timestamp column can be used to aggressively filter
       // results returned from the log store
-      if (!isSequential &&
-          (queryContext.hasConstraint("timestamp", GREATER_THAN) ||
-           queryContext.hasConstraint("timestamp", GREATER_THAN_OR_EQUALS))) {
-        std::string start_time;
-        if (queryContext.hasConstraint("timestamp", GREATER_THAN)) {
-          start_time = *queryContext.constraints["timestamp"]
-                            .getAll(GREATER_THAN)
-                            .begin();
-        } else {
-          start_time = *queryContext.constraints["timestamp"]
-                            .getAll(GREATER_THAN_OR_EQUALS)
-                            .begin();
-        }
 
+      // First apply sequential extraction, then look at > or >= timestamp
+      // constraints
+      double latest_timestamp = -1;
+      if (isSequential) {
+        latest_timestamp = sc.timestamp;
+      }
+      for (const auto& constraint :
+           queryContext.constraints["timestamp"].getAll(GREATER_THAN)) {
         double provided_timestamp =
-            [[NSString stringWithUTF8String:start_time.c_str()] doubleValue];
+            [[NSString stringWithUTF8String:constraint.c_str()] doubleValue];
+        if (provided_timestamp > latest_timestamp) {
+          latest_timestamp = provided_timestamp;
+        }
+      }
+      for (const auto& constraint :
+           queryContext.constraints["timestamp"].getAll(
+               GREATER_THAN_OR_EQUALS)) {
+        double provided_timestamp =
+            [[NSString stringWithUTF8String:constraint.c_str()] doubleValue];
+        if (provided_timestamp > latest_timestamp) {
+          latest_timestamp = provided_timestamp;
+        }
+      }
+      if (latest_timestamp > -1) {
         NSDate* provided_date =
-            [NSDate dateWithTimeIntervalSince1970:provided_timestamp];
-
+            [NSDate dateWithTimeIntervalSince1970:latest_timestamp];
         position = [logstore positionWithDate:provided_date];
       }
 
@@ -291,14 +299,38 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
         }
       }
 
+      // handle predicate constraint in query
+      std::string predicate_constraint = "";
+      if (queryContext.hasConstraint("predicate", EQUALS)) {
+        auto predicate_constraints =
+            queryContext.constraints["predicate"].getAll(EQUALS);
+        if (predicate_constraints.size() > 1) {
+          TLOG << "error: can only accept a single predicate constraint";
+          return {};
+        }
+        predicate_constraint = *predicate_constraints.begin();
+
+        // predicateWithFormat accepts a format string, so this makes sure
+        // the input does not include variables or additional arguments.
+        if (predicate_constraint.find("$") != std::string::npos ||
+            predicate_constraint.find("%") != std::string::npos) {
+          TLOG << "error: predicate should not contain '$' or '%'";
+          return {};
+        }
+        NSString* predicate_str =
+            [NSString stringWithUTF8String:predicate_constraint.c_str()];
+        NSPredicate* pred;
+        try {
+          pred = [NSPredicate predicateWithFormat:predicate_str];
+        } catch (NSException* e) {
+          TLOG << "error: invalid predicate";
+          return {};
+        }
+        [subpredicates addObject:pred];
+      }
+
       NSPredicate* predicate =
           [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
-
-      // Apply sequential extraction
-      if (isSequential) {
-        NSDate* last_date = [NSDate dateWithTimeIntervalSince1970:sc.timestamp];
-        position = [logstore positionWithDate:last_date];
-      }
 
       // enumerate the entries in ascending order by timestamp
       OSLogEnumeratorOptions option = 0;
@@ -328,20 +360,20 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
           first = false;
         }
 
+        // Escape if the rows number reached the limit
+        if (++rows_counter > max_rows)
+          break;
+
         if (isSequential) {
           // Save timestamp and count
           double load_date = [[entry date] timeIntervalSince1970];
           if (sc.timestamp == load_date) {
             sc.count++;
           } else {
-            sc.count = 0;
+            sc.count = 1;
             sc.timestamp = load_date;
           }
         }
-
-        // Escape if the rows number reached the limit
-        if (++rows_counter > max_rows)
-          break;
 
         Row r;
 
@@ -395,6 +427,8 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
         }
         // sqlite engine will apply the filter max_rows = N
         r["max_rows"] = INTEGER(max_rows);
+        // sqlite engine will apply the filter predicate = X
+        r["predicate"] = SQL_TEXT(predicate_constraint);
         results.push_back(r);
       }
       sc.save();

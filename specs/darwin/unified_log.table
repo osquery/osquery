@@ -1,8 +1,12 @@
 table_name("unified_log")
 description("Queries the OSLog framework for entries in the system log. "
             "The maximum number of rows returned is limited for performance issues. "
+            "Use timestamp > or >= constraints to optimize query performance. "
             "This table introduces a new idiom for extracting sequential data in batches using multiple queries, ordered by timestamp. "
-            "To trigger it, the user should include the condition \"timestamp > -1\", and the table will handle pagination.")
+            "To trigger it, the user should include the condition \"timestamp > -1\", and the table will handle pagination. "
+            "Note that the saved pagination counter is incremented globally across all queries and table invocations within a query. "
+            "To avoid multiple table invocations within a query, use only AND and = constraints in WHERE clause."
+            )
 
 schema([
   Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
@@ -16,12 +20,17 @@ schema([
   Column("category", TEXT, "the category of the os_log_t used", additional=True),
   Column("subsystem", TEXT, "the subsystem of the os_log_t used", additional=True),
   Column("level", TEXT, "the severity level of the entry"),
-  Column("max_rows", INTEGER, "the max number of rows returned (defaults to 100)", additional=True, hidden=True)
+  Column("max_rows", INTEGER, "the max number of rows returned (defaults to 100)", additional=True, hidden=True),
+  Column("predicate", TEXT, "predicate to search (see `log help predicates`), note that this is merged into the predicate created from the column constraints", additional=True, hidden=True)
 ])
 examples([
   "select * from unified_log",
+  "select * from unified_log where process = 'osqueryd'",
+  "select * from unified_log where predicate = 'process = \"osqueryd\" OR process = \"Santa\"'",
+  "select * from unified_log where predicate = 'processImagePath = \"/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd\"'",
   "select * from unified_log where max_rows = 1234",
   "select * from unified_log where timestamp > -1",
   "select * from unified_log where timestamp > -1 and max_rows = 500",
+  "select * from unified_log where timestamp > -1 and timestamp > (select unix_time - 86400 from time)",
 ])
 implementation("unified_log@genUnifiedLog")
