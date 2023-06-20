@@ -132,7 +132,9 @@
     "vendor": "libarchive",
     "version": "3.6.2",
     "commit": "ba80276ccc3c941c4918ec6e2460059f0c525c43",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2023-30571"
+    ]
   },
   "libaudit": {
     "product": "audit-userspace",
