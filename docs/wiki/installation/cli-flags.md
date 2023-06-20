@@ -645,3 +645,9 @@ Base seconds to wait between attempts at requesting an IMDSv2 token. Scales quad
 `--aws_disable_imdsv1_fallback=false`
 
 Whether to disable support for IMDSv1 and fail if an IMDSv2 token could not be retrieved
+
+`--aws_enforce_fips`
+
+Enforces that only FIPS endpoints can be used for the logger plugins (Kinesis, Firehose), the STS authentication and the EC2 tables.  
+Using a non compliant region for the logger plugins will cause osquery to fail to start; for other non compliant cases the specific service will fail to work.  
+In all non compliant cases, an error or warning message will be printed. In verbose mode an additional message will show if a certain service has FIPS enforced.

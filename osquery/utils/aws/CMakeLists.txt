@@ -26,6 +26,9 @@ function(generateOsqueryUtilsAws)
     osquery_utils_json
     osquery_utils_status
     thirdparty_aws-cpp-sdk-sts
+    thirdparty_aws-cpp-sdk-ec2
+    thirdparty_aws-cpp-sdk-kinesis
+    thirdparty_aws-cpp-sdk-firehose
   )
 
   set(public_header_files

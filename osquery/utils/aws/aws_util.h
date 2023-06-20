@@ -22,6 +22,9 @@
 #include <aws/core/http/standard/StandardHttpResponse.h>
 #include <aws/core/utils/StringUtils.h>
 
+#include <aws/ec2/EC2Client.h>
+#include <aws/firehose/FirehoseClient.h>
+#include <aws/kinesis/KinesisClient.h>
 #include <aws/sts/STSClient.h>
 
 #include <boost/optional/optional.hpp>
@@ -194,9 +197,16 @@ boost::optional<std::string> getIMDSToken();
 boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion();
 
 /**
- * @brief Retrieve the Aws::Region from the aws_region flag
+ * @brief Retrieve the configured Aws::Region
  *
- * @param region The output string containing the region name.
+ * The region can come from the aws_region flag, the aws_sts_region flag
+ * if the sts parameter is true, or the local AWS profile,
+ * if no flag was specified.
+ *
+ * @param region The output string containing the region name
+ * @param sts If to retrieve the STS region in the aws_sts_region flag or not
+ * @param validate_region If the function should validate the region name found
+ * against a list of known values.
  *
  * @return 0 if successful, 1 if the region was not recognized.
  */
@@ -214,6 +224,12 @@ Status getAWSRegion(std::string& region,
  *  on which to set the proxy values
  */
 void setAWSProxy(Aws::Client::ClientConfiguration& config);
+
+Status setAwsClientConfig(const std::string& region,
+                          const std::string& service_type,
+                          const std::string& endpoint_override,
+                          bool sts,
+                          Aws::Client::ClientConfiguration& config);
 
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs,
@@ -235,23 +251,26 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
                      const std::string& region = "",
                      bool sts = true,
                      const std::string& endpoint_override = "") {
-  // Set up client
-  Aws::Client::ClientConfiguration client_config;
-  if (region.empty()) {
-    // If the endpoint_override is set, we are most likely running in non-AWS
-    // environment, skip region validation.
-    bool validate_region = endpoint_override.empty();
-    Status s = getAWSRegion(client_config.region, sts, validate_region);
-    if (!s.ok()) {
-      return s;
-    }
-  } else {
-    client_config.region = region;
-  }
-  client_config.endpointOverride = endpoint_override;
+  std::string service_type;
 
-  // Setup any proxy options on the config if desired
-  setAWSProxy(client_config);
+  Aws::Client::ClientConfiguration client_config;
+
+  if constexpr (std::is_same_v<Client, Aws::Kinesis::KinesisClient>) {
+    service_type = "kinesis";
+  } else if constexpr (std::is_same_v<Client, Aws::Firehose::FirehoseClient>) {
+    service_type = "firehose";
+  } else if constexpr (std::is_same_v<Client, Aws::STS::STSClient>) {
+    service_type = "sts";
+  } else if constexpr (std::is_same_v<Client, Aws::EC2::EC2Client>) {
+    service_type = "ec2";
+  }
+
+  Status s = setAwsClientConfig(
+      region, service_type, endpoint_override, sts, client_config);
+
+  if (!s.ok()) {
+    return s;
+  }
 
   client = std::make_shared<Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
@@ -269,4 +288,12 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
  * @return 0 if successful, 1 if there were issues
  */
 Status appendLogTypeToJson(const std::string& log_type, std::string& log);
+
+/**
+ * @brief Enable the FIPS endpoint for the specified region
+ *
+ * @param config AWS client configuration to be modified to enable FIPS
+ */
+void enableFIPSInClientConfig(const std::string& service,
+                              Aws::Client::ClientConfiguration& config);
 } // namespace osquery

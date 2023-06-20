@@ -101,6 +101,11 @@ FLAG(bool,
      "Whether to disable support for IMDSv1 and fail if an IMDSv2 token could "
      "not be retrieved");
 
+CLI_FLAG(bool,
+         aws_enforce_fips,
+         false,
+         "Whether to enforce AWS FIPS endpoints for all services or not");
+
 /// EC2 instance latestmetadata URL
 const std::string kEc2MetadataUrl =
     "http://" + http::kInstanceMetadataAuthority + "/latest/";
@@ -134,6 +139,13 @@ static const std::set<std::string> kAwsRegions = {
     "us-east-2",      "us-gov-east-1", "us-gov-west-1",  "us-west-1",
     "us-west-2"};
 
+static const std::set<std::string> kAwsFipsRegions = {"us-east-1",
+                                                      "us-east-2",
+                                                      "us-gov-east-1",
+                                                      "us-west-1",
+                                                      "us-west-2",
+                                                      "us-gov-west-1"};
+
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
@@ -149,7 +161,7 @@ bool validateIMDSV2RequestAttempts(const char* flagname, std::uint32_t value) {
     std::cerr << error_message << std::endl;
 
     return false;
-  }
+  } // namespace osquery
 
   return true;
 }
@@ -599,6 +611,51 @@ Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
   return Status(0);
 }
 
+Status setAwsClientConfig(const std::string& region,
+                          const std::string& service_type,
+                          const std::string& endpoint_override,
+                          bool sts,
+                          Aws::Client::ClientConfiguration& client_config) {
+  // Set up client
+  if (region.empty()) {
+    // If the endpoint_override is set, we are most likely running in non-AWS
+    // environment, skip region validation.
+    bool validate_region = endpoint_override.empty();
+    Status s = getAWSRegion(client_config.region, sts, validate_region);
+    if (!s.ok()) {
+      return s;
+    }
+  } else {
+    client_config.region = region;
+  }
+
+  if (FLAGS_aws_enforce_fips) {
+    if (service_type.empty()) {
+      return Status::failure(
+          "Attempted FIPS communication towards an unsupported service");
+    }
+
+    if (kAwsFipsRegions.find(client_config.region) == kAwsFipsRegions.end()) {
+      return Status::failure(service_type +
+                             " client cannot communicate with region " +
+                             client_config.region + " when FIPS is enforced");
+    }
+    enableFIPSInClientConfig(service_type, client_config);
+
+    VLOG(1) << "Enforcing FIPS for " << service_type << " client in region "
+            << client_config.region;
+  } else {
+    VLOG(1) << "Configuring " << service_type << " client in region "
+            << client_config.region;
+    client_config.endpointOverride = endpoint_override;
+
+    // Setup any proxy options on the config if desired
+    setAWSProxy(client_config);
+  }
+
+  return Status::success();
+}
+
 Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   if (log_type.empty()) {
     return Status(1, "log_type is empty");
@@ -645,5 +702,17 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config) {
     config.proxyUserName = FLAGS_aws_proxy_username;
     config.proxyPassword = FLAGS_aws_proxy_password;
   }
+}
+
+void enableFIPSInClientConfig(const std::string& service,
+                              Aws::Client::ClientConfiguration& config) {
+  // Gov FIPS endpoints for Kinesis, EC2, STS are used as-is, do nothing
+  if (config.region.rfind("us-gov") == 0 &&
+      (service == "kinesis" || service == "ec2" || service == "sts")) {
+    return;
+  }
+
+  config.endpointOverride =
+      service + "-fips." + config.region + ".amazonaws.com";
 }
 } // namespace osquery
