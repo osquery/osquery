@@ -76,9 +76,11 @@ Status pingExtension(const std::string& path);
  * loaded or broadcasted a registry.
  *
  * @param predicate return true or set stop to end the timeout loop.
+ * @param delay the value to check the timeout against.
  * @return the last status from the predicate.
  */
-Status applyExtensionDelay(std::function<Status(bool& stop)> predicate);
+Status applyExtensionDelay(std::function<Status(bool& stop)> predicate,
+                           size_t& delay);
 
 /**
  * @brief Read the autoload flags and return a set of autoload paths.
