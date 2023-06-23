@@ -90,15 +90,13 @@ The level limits are as follows:
 Memory: default 200M, restrictive 100M
 CPU: default 10% (for 12 seconds), restrictive 5% (for 6 seconds)
 
-The normal level allows for 10 restarts if the limits are violated. The restrictive allows for only 4, then the service will be disabled. For both there is a linear backoff of 5 seconds, doubling each retry.
-
 It is better to set the level to disabled (`-1`) rather than disabling the watchdog outright, as the worker/watcher concept is used for extensions auto-loading too.
 
 The watchdog "profiles" can be overridden for Memory and CPU Utilization.
 
 `--watchdog_memory_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 1G. This memory limit is expressed as a value representing MB.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 10G. This memory limit is expressed as a value representing MB.
 
 `--watchdog_utilization_limit=0`
 
@@ -131,7 +129,7 @@ By default the watchdog monitors extensions for improper shutdown, but NOT for p
 
 `--table_delay=0`
 
-Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
+Add a millisecond delay between multiple table calls (when a table is used in a JOIN). A `200` millisecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
 
 `--hash_cache_max=500`
 
