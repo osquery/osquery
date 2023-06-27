@@ -127,6 +127,11 @@ Note that on Windows this doesn't have any effect currently, since the watchdog 
 
 By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.
 
+`--enable_watchdog_debug=false`
+
+If set to true, every 3 seconds the watchdog will log the measured CPU utilization and memory footprint of all the monitored processes.
+(To generate the logs this flag requires `--verbose` to be set.)
+
 `--table_delay=0`
 
 Add a millisecond delay between multiple table calls (when a table is used in a JOIN). A `200` millisecond delay will trade about 20% additional time for a reduced 5% CPU utilization.

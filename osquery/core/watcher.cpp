@@ -138,10 +138,10 @@ CLI_FLAG(uint64,
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
-HIDDEN_FLAG(bool,
-            enable_watchdog_logging,
-            false,
-            "Enable logging of CPU and memory footprint of watched processes");
+CLI_FLAG(bool,
+         enable_watchdog_debug,
+         false,
+         "Enable logging of CPU and memory footprint of watched processes");
 
 DECLARE_uint64(alarm_timeout);
 
@@ -533,7 +533,7 @@ PerformanceChange getChange(const int pid,
     change.footprint = change.footprint - state.initial_footprint;
   }
 
-  if (FLAGS_enable_watchdog_logging) {
+  if (FLAGS_enable_watchdog_debug) {
     VLOG(1) << "pid: " << pid << ", cpu: " << cpu_utilization_time << "ms/"
             << cpu_ul << "ms"
             << ", memory: " << std::fixed << std::setprecision(2)
