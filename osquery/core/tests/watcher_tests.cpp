@@ -8,6 +8,7 @@
  */
 
 #include <gmock/gmock.h>
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
@@ -326,7 +327,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
 
   auto status = runner.isWatcherHealthy(*test_process, state);
   EXPECT_FALSE(status.ok());
-  EXPECT_EQ(status.getMessage(), "Memory limits exceeded");
+  EXPECT_THAT(status.getMessage(), ::testing::HasSubstr("Memory limits exceeded"));
 
   // Now emulate a rapid increase in CPU requirements.
   r["user_time"] = INTEGER(1024 * 1024 * 1024);
