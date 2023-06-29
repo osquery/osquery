@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
@@ -327,7 +327,8 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
 
   auto status = runner.isWatcherHealthy(*test_process, state);
   EXPECT_FALSE(status.ok());
-  EXPECT_THAT(status.getMessage(), ::testing::HasSubstr("Memory limits exceeded"));
+  EXPECT_THAT(status.getMessage(),
+              ::testing::HasSubstr("Memory limits exceeded"));
 
   // Now emulate a rapid increase in CPU requirements.
   r["user_time"] = INTEGER(1024 * 1024 * 1024);
