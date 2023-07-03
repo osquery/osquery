@@ -100,9 +100,21 @@ If this value is >0 then the watchdog level (`--watchdog_level`) for maximum mem
 
 `--watchdog_utilization_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of a thread for more than `--watchdog_latency_limit` seconds of wall time. The length of sustained utilization is configurable with `--watchdog_latency_limit`.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of CPU for more than `--watchdog_latency_limit` seconds of wall time. The length of sustained utilization is configurable with `--watchdog_latency_limit`.
 
-This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
+This value sets a maximum number of allowed CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default value is is `10`, meaning 10% of CPU utilization allowed.
+
+The CPU utilization limit is calculated the following way:
+```text
+cpu_limit_ms = number_of_real_cores * check_interval_ms * (watchdog_utilization_limit / 100.0)
+```
+Where:
+- `number_of_real_cores` is the number of physical (not virtual) cores.
+- `check_interval_ms` is 3 seconds. It is how often the watchdog checks worker and extension processes for CPU utilization.
+
+Example: On a 2020 MacBook with Quad-Core Intel Core i7, `number_of_real_cores` is 4 (virtual cores are 8), thus by default the CPU utilization limit is `1200ms` meaning that every three seconds the processes are expected to use less than `1200ms` of CPU time (10% of all the CPU time `4 * 3000ms`).
+
+> NOTE: On the example above you can see that, on systems with virtual cores, osquery is actually setting the limit to half of the configured utilization (`1200ms` is actually 5% of the full `8 * 3000ms` CPU time).
 
 `--watchdog_latency_limit=0`
 
@@ -113,6 +125,8 @@ utilization limit for longer than the defaults.
 
 This value is a duration in seconds that the watchdog allows osquery to spend
 at maximum sustained CPU utilization.
+
+The default value is 12 seconds.
 
 `--watchdog_delay=60`
 
