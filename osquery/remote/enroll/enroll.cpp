@@ -13,6 +13,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/remote/enroll/enroll.h>
@@ -106,14 +107,26 @@ std::string getNodeKey(const std::string& enroll_plugin) {
 const std::string getEnrollSecret() {
   std::string enrollment_secret;
 
-  if (FLAGS_enroll_secret_path != "") {
-    readFile(FLAGS_enroll_secret_path, enrollment_secret);
-    boost::trim(enrollment_secret);
-  } else {
-    auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
-    if (env_secret.is_initialized()) {
-      enrollment_secret = *env_secret;
+  if (!FLAGS_enroll_secret_path.empty()) {
+    auto status = readFile(FLAGS_enroll_secret_path, enrollment_secret);
+
+    if (!status.ok()) {
+      LOG(WARNING) << "Could not read the enroll secret file at "
+                   << FLAGS_enroll_secret_path
+                   << ", error: " << status.getMessage();
+      return {};
     }
+
+    boost::trim(enrollment_secret);
+  } else if (!FLAGS_enroll_secret_env.empty()) {
+    auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
+    if (!env_secret.has_value()) {
+      LOG(WARNING) << "Could not get enroll secret from environment variable: "
+                   << FLAGS_enroll_secret_env;
+
+      return {};
+    }
+    enrollment_secret = *env_secret;
   }
 
   return enrollment_secret;
