@@ -1,7 +1,7 @@
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "1.1.1u")
-set(OPENSSL_ARCHIVE_SHA256 "e2f8d84b523eecd06c7be7626830370300fbcc15386bf5142d72758f6963ebc6")
+set(OPENSSL_VERSION "3.1.1")
+set(OPENSSL_ARCHIVE_SHA256 "b3aa61334233b852b63ddb048df181177c2c659eb9d4376008118f9c08d07674")
 
 set(OSQUERY_OPENSSL_ARCHIVE_PATH "" CACHE FILEPATH "Optional path to an openssl archive to use instead of downloading it")
 
@@ -10,7 +10,6 @@ include(ExternalProject)
 function(opensslMain)
 
   set(common_options
-    no-ssl2
     no-ssl3
     no-asm
     no-shared
@@ -55,15 +54,15 @@ function(opensslMain)
     )
 
     set(openssl_libs
-      "${install_prefix}/lib/libssl.a"
-      "${install_prefix}/lib/libcrypto.a"
+      "${install_prefix}/lib64/libssl.a"
+      "${install_prefix}/lib64/libcrypto.a"
     )
 
     set_target_properties(thirdparty_openssl_ssl PROPERTIES IMPORTED_LOCATION
-      "${install_prefix}/lib/libssl.a"
+      "${install_prefix}/lib64/libssl.a"
     )
     set_target_properties(thirdparty_openssl_crypto PROPERTIES IMPORTED_LOCATION
-      "${install_prefix}/lib/libcrypto.a"
+      "${install_prefix}/lib64/libcrypto.a"
     )
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
@@ -219,6 +218,11 @@ function(opensslMain)
   target_link_libraries(thirdparty_openssl INTERFACE
     thirdparty_openssl_ssl
     thirdparty_openssl_crypto
+  )
+
+  # Set compatibility to openssl 1.1.1 APIs until all the libraries are updated to work with openssl 3.x
+  target_compile_definitions(thirdparty_openssl INTERFACE
+    OPENSSL_API_COMPAT=10101
   )
 endfunction()
 
