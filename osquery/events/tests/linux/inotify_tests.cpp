@@ -550,5 +550,7 @@ TEST_F(INotifyTests, test_inotify_embedded_wildcards) {
   // Assume there is one watched path: real_test_dir.
   ASSERT_EQ(event_pub_->numDescriptors(), 1U);
   EXPECT_EQ(event_pub_->path_descriptors_.count(real_test_dir + "/2/1/"), 1U);
+
+  EventFactory::deregisterEventPublisher("inotify");
 }
-}
+} // namespace osquery
