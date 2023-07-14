@@ -90,21 +90,31 @@ The level limits are as follows:
 Memory: default 200M, restrictive 100M
 CPU: default 10% (for 12 seconds), restrictive 5% (for 6 seconds)
 
-The normal level allows for 10 restarts if the limits are violated. The restrictive allows for only 4, then the service will be disabled. For both there is a linear backoff of 5 seconds, doubling each retry.
-
 It is better to set the level to disabled (`-1`) rather than disabling the watchdog outright, as the worker/watcher concept is used for extensions auto-loading too.
 
 The watchdog "profiles" can be overridden for Memory and CPU Utilization.
 
 `--watchdog_memory_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 1G. This memory limit is expressed as a value representing MB.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 10G. This memory limit is expressed as a value representing MB.
 
 `--watchdog_utilization_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of a thread for more than `--watchdog_latency_limit` seconds of wall time. The length of sustained utilization is configurable with `--watchdog_latency_limit`.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of CPU for `--watchdog_latency_limit` seconds of wall time.
 
-This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
+This value sets a maximum number of allowed CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default value is `10`, meaning 10% of CPU utilization allowed.
+
+The CPU utilization limit is calculated the following way:
+```text
+cpu_limit_ms = number_of_real_cores * check_interval_ms * (watchdog_utilization_limit / 100.0)
+```
+Where:
+- `number_of_real_cores` is the number of physical (not virtual) cores.
+- `check_interval_ms` is 3 seconds. It is how often the watchdog checks worker and extension processes for CPU utilization.
+
+Example: On a 2020 MacBook with Quad-Core Intel Core i7, `number_of_real_cores` is 4 (virtual cores are 8), thus by default the CPU utilization limit is `1200ms` meaning that every three seconds the processes are expected to use less than `1200ms` of CPU time (10% of all the CPU time `4 * 3000ms`).
+
+> NOTE: On the example above you can see that, on systems with virtual cores, osquery is actually setting the limit to half of the configured utilization (`1200ms` is actually 5% of the full `8 * 3000ms` CPU time).
 
 `--watchdog_latency_limit=0`
 
@@ -115,6 +125,8 @@ utilization limit for longer than the defaults.
 
 This value is a duration in seconds that the watchdog allows osquery to spend
 at maximum sustained CPU utilization.
+
+The default value is 12 seconds.
 
 `--watchdog_delay=60`
 
@@ -129,9 +141,14 @@ Note that on Windows this doesn't have any effect currently, since the watchdog 
 
 By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.
 
+`--enable_watchdog_debug=false`
+
+If set to true, every 3 seconds the watchdog will log the measured CPU utilization and memory footprint of all the monitored processes.
+(To generate the logs this flag requires `--verbose` to be set.)
+
 `--table_delay=0`
 
-Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
+Add a millisecond delay between multiple table calls (when a table is used in a JOIN). A `200` millisecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
 
 `--hash_cache_max=500`
 

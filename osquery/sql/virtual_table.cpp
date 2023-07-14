@@ -28,7 +28,7 @@ FLAG(bool, enable_foreign, false, "Enable no-op foreign virtual tables");
 FLAG(uint64,
      table_delay,
      0,
-     "Add an optional microsecond delay between table scans");
+     "Add an optional millisecond delay between table scans");
 
 FLAG(bool,
      extensions_default_index,

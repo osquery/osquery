@@ -48,10 +48,20 @@ struct LimitDefinition {
 };
 
 struct PerformanceChange {
+  /// Number of consecutive times the CPU limit was exceeded.
   size_t sustained_latency{0};
+  /// Memory footprint.
   uint64_t footprint{0};
-  uint64_t iv{0};
+  /// Watcher check interval in seconds.
+  uint64_t check_interval{0};
+  /// Process ID of the parent process.
   pid_t parent{0};
+
+  /**
+   * @brief Returns the configured CPU utilization time limit accounting
+   * for the check interval time window.
+   */
+  UNSIGNED_BIGINT_LITERAL cpuUtilizationTimeLimit();
 };
 
 using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
@@ -64,7 +74,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
 
-    // % of (User + System + Idle) CPU time worker can utilize
+    // % of (User + System) CPU time worker can utilize
     // for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {10, 5, 100}},
 
@@ -128,7 +138,24 @@ CLI_FLAG(uint64,
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
+CLI_FLAG(bool,
+         enable_watchdog_debug,
+         false,
+         "Enable logging of CPU and memory footprint of watched processes");
+
 DECLARE_uint64(alarm_timeout);
+
+UNSIGNED_BIGINT_LITERAL PerformanceChange::cpuUtilizationTimeLimit() {
+  auto percent_ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
+  percent_ul = (percent_ul > 100) ? 100 : percent_ul;
+
+  const UNSIGNED_BIGINT_LITERAL check_interval_milliseconds =
+      check_interval * 1000;
+  const UNSIGNED_BIGINT_LITERAL cpu_ul =
+      (percent_ul * check_interval_milliseconds * kNumOfCPUs) / 100;
+
+  return cpu_ul;
+}
 
 void Watcher::resetWorkerCounters(uint64_t respawn_time) {
   // Reset the monitoring counters for the watcher.
@@ -451,11 +478,13 @@ void WatcherRunner::warnWorkerResourceLimitHit(
   child.warnResourceLimitHit();
 }
 
-PerformanceChange getChange(const Row& r, PerformanceState& state) {
+PerformanceChange getChange(const int pid,
+                            const Row& r,
+                            PerformanceState& state) {
   PerformanceChange change;
 
-  // IV is the check interval in seconds, and utilization is set per-second.
-  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
+  change.check_interval =
+      std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   long long user_time = 0, system_time = 0;
   try {
     change.parent =
@@ -472,13 +501,8 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   }
 
   // Check the difference of CPU time used since last check.
-  auto percent_ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
-  percent_ul = (percent_ul > 100) ? 100 : percent_ul;
 
-  UNSIGNED_BIGINT_LITERAL iv_milliseconds = change.iv * 1000;
-  UNSIGNED_BIGINT_LITERAL cpu_ul =
-      (percent_ul * iv_milliseconds * kNumOfCPUs) / 100;
-
+  const UNSIGNED_BIGINT_LITERAL cpu_ul = change.cpuUtilizationTimeLimit();
   auto user_time_diff = user_time - state.user_time;
   auto sys_time_diff = system_time - state.system_time;
   UNSIGNED_BIGINT_LITERAL cpu_utilization_time = user_time_diff + sys_time_diff;
@@ -509,6 +533,14 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
     change.footprint = change.footprint - state.initial_footprint;
   }
 
+  if (FLAGS_enable_watchdog_debug) {
+    VLOG(1) << "pid: " << pid << ", cpu: " << cpu_utilization_time << "ms/"
+            << cpu_ul << "ms"
+            << ", memory: " << std::fixed << std::setprecision(2)
+            << double(change.footprint) / (1024 * 1024) << "MB/"
+            << getWorkerLimit(WatchdogLimitType::MEMORY_LIMIT) << "MB";
+  }
+
   return change;
 }
 
@@ -526,21 +558,27 @@ static bool exceededCyclesLimit(const PerformanceChange& change) {
     return false;
   }
 
-  auto latency = change.sustained_latency * change.iv;
+  auto latency = change.sustained_latency * change.check_interval;
   return (latency >= getWorkerLimit(WatchdogLimitType::LATENCY_LIMIT));
 }
 
 Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
                                        PerformanceState& watcher_state) const {
-  auto rows = getProcessRow(watcher.pid());
+  const auto watcher_pid = watcher.pid();
+  auto rows = getProcessRow(watcher_pid);
   if (rows.size() == 0) {
     // Could not find worker process?
     return Status(1, "Cannot find watcher process");
   }
 
-  auto change = getChange(rows[0], watcher_state);
+  auto change = getChange(watcher_pid, rows[0], watcher_state);
   if (exceededMemoryLimit(change)) {
-    return Status(1, "Memory limits exceeded");
+    return Status(
+        1,
+        "Memory limits exceeded: " + std::to_string(change.footprint) +
+            " bytes (limit is " +
+            std::to_string(getWorkerLimit(WatchdogLimitType::MEMORY_LIMIT)) +
+            "MB)");
   }
 
   return Status(0);
@@ -574,7 +612,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   PerformanceChange change;
   {
     auto& state = watcher_->getState(child);
-    change = getChange(rows[0], state);
+    change = getChange(child.pid(), rows[0], state);
   }
 
   // Only make a decision about the child sanity if it is still the watcher's
@@ -587,15 +625,23 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   }
 
   if (exceededCyclesLimit(change)) {
-    return Status(1,
-                  "Maximum sustainable CPU utilization limit exceeded: " +
-                      std::to_string(change.sustained_latency * change.iv));
+    return Status(
+        1,
+        "Maximum sustainable CPU utilization limit " +
+            std::to_string(change.cpuUtilizationTimeLimit()) +
+            "ms exceeded for " +
+            std::to_string(change.sustained_latency * change.check_interval) +
+            " seconds");
   }
 
   // Check if the private memory exceeds a memory limit.
   if (exceededMemoryLimit(change)) {
     return Status(
-        1, "Memory limits exceeded: " + std::to_string(change.footprint));
+        1,
+        "Memory limits exceeded: " + std::to_string(change.footprint) +
+            " bytes (limit is " +
+            std::to_string(getWorkerLimit(WatchdogLimitType::MEMORY_LIMIT)) +
+            "MB)");
   }
 
   return Status(0);
