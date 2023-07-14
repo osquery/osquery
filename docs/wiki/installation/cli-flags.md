@@ -100,9 +100,9 @@ If this value is >0 then the watchdog level (`--watchdog_level`) for maximum mem
 
 `--watchdog_utilization_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of CPU for more than `--watchdog_latency_limit` seconds of wall time. The length of sustained utilization is configurable with `--watchdog_latency_limit`.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 10% of CPU for `--watchdog_latency_limit` seconds of wall time.
 
-This value sets a maximum number of allowed CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default value is is `10`, meaning 10% of CPU utilization allowed.
+This value sets a maximum number of allowed CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default value is `10`, meaning 10% of CPU utilization allowed.
 
 The CPU utilization limit is calculated the following way:
 ```text
