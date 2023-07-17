@@ -79,15 +79,20 @@ Expected<UniqueBIO, OpenSSLError> createFileBasedBIO(
   return UniqueBIO(bio_ptr, BIO_free);
 }
 
+void sk_X509_INFO_pop_free_wrapper(stack_st_X509_INFO* sk) {
+  sk_X509_INFO_pop_free(sk, X509_INFO_free);
+}
+
 Expected<UniqueX509InfoStack, OpenSSLError> readCertificateStackFromBIO(
     BIO* bio) {
   auto stack_ptr = PEM_X509_INFO_read_bio(bio, nullptr, nullptr, nullptr);
+
   if (stack_ptr == nullptr) {
     return createError(OpenSSLError::ReadFailed)
            << "Failed to read from the certificate file";
   }
 
-  return UniqueX509InfoStack(stack_ptr, sk_X509_INFO_free);
+  return UniqueX509InfoStack(stack_ptr, sk_X509_INFO_pop_free_wrapper);
 }
 
 Expected<CertificateInformation, OpenSSLError> generateCertificateInformation(

@@ -89,6 +89,7 @@ function(importLibraries)
     # Leave lz4 at the top (see LZ4 CMakeLists.txt)
     "Linux,Darwin,Windows:lz4"
     "Linux,Darwin:augeas"
+    "Linux,Darwin,Windows:openssl"
     "Linux,Darwin,Windows:boost"
     "Linux,Darwin,Windows:bzip2"
     "Linux,Darwin,Windows:gflags"
@@ -118,7 +119,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:yara"
     "Linux,Darwin,Windows:zlib"
     "Linux,Darwin,Windows:zstd"
-    "Linux,Darwin,Windows:openssl"
     "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"

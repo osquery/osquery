@@ -2,9 +2,8 @@
   "openssl": {
     "product": "openssl",
     "vendor": "openssl",
-    "version": "1.1.1u",
+    "version": "3.1.1",
     "ignored-cves": [
-      "CVE-2007-5536",
       "CVE-2019-0190"
     ]
   },
