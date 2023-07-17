@@ -85,6 +85,7 @@ TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
   rocksdb::ColumnFamilyHandle* cf = nullptr;
   auto rs = db.db_->CreateColumnFamily(db.options_, "foo", &cf);
   ASSERT_TRUE(rs.ok()) << rs.ToString();
+  db.db_->DestroyColumnFamilyHandle(cf);
   db.tearDown();
 
   // Open the existing database that has unknown column family "foo".
