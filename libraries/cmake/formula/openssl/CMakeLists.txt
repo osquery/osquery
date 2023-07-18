@@ -53,16 +53,22 @@ function(opensslMain)
       ${make_command} install_sw install_ssldirs
     )
 
+    if(TARGET_PROCESSOR STREQUAL "aarch64")
+      set(lib_folder_name "lib")
+    else()
+      set(lib_folder_name "lib64")
+    endif()
+
     set(openssl_libs
-      "${install_prefix}/lib64/libssl.a"
-      "${install_prefix}/lib64/libcrypto.a"
+      "${install_prefix}/${lib_folder_name}/libssl.a"
+      "${install_prefix}/${lib_folder_name}/libcrypto.a"
     )
 
     set_target_properties(thirdparty_openssl_ssl PROPERTIES IMPORTED_LOCATION
-      "${install_prefix}/lib64/libssl.a"
+      "${install_prefix}/${lib_folder_name}/libssl.a"
     )
     set_target_properties(thirdparty_openssl_crypto PROPERTIES IMPORTED_LOCATION
-      "${install_prefix}/lib64/libcrypto.a"
+      "${install_prefix}/${lib_folder_name}/libcrypto.a"
     )
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
