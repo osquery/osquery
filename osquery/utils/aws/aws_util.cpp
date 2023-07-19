@@ -139,6 +139,8 @@ static const std::set<std::string> kAwsRegions = {
     "us-east-2",      "us-gov-east-1", "us-gov-west-1",  "us-west-1",
     "us-west-2"};
 
+/// Map of AWS region names that support FIPS,
+/// taken from https://aws.amazon.com/compliance/fips/
 static const std::set<std::string> kAwsFipsRegions = {"us-east-1",
                                                       "us-east-2",
                                                       "us-gov-east-1",
@@ -707,7 +709,7 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config) {
 void enableFIPSInClientConfig(const std::string& service,
                               Aws::Client::ClientConfiguration& config) {
   // Gov FIPS endpoints for Kinesis, EC2, STS are used as-is, do nothing
-  if (config.region.rfind("us-gov") == 0 &&
+  if (config.region.rfind("us-gov", 0) == 0 &&
       (service == "kinesis" || service == "ec2" || service == "sts")) {
     return;
   }
