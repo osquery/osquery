@@ -24,18 +24,18 @@ namespace osquery {
 const std::string kYCloudMetadataPathAndQuery =
     "/computeMetadata/v1/instance/?alt=json&recursive=true";
 const std::string kAttributes = "attributes";
+const std::string kVendor = "vendor";
 const int kYCloudMetadataTimeout = 3;
 
-std::tuple<std::string, std::string> getFolderIdAndZoneFromZoneField(
-    const std::string& zone) {
+std::string getZoneId(const std::string& zone) {
   if (boost::algorithm::starts_with(zone, "projects/")) {
     auto s = osquery::split(zone, "/");
     if (s.size() >= 4) {
-      return {s[1], s[3]};
+      return s[3];
     }
   }
 
-  return {"", ""};
+  return "";
 }
 
 std::string getSerialPortEnabled(JSON& doc) {
@@ -58,6 +58,26 @@ std::string getSerialPortEnabled(JSON& doc) {
   }
 
   return doc.doc()[kAttributes][kSerialPortFlag].GetString();
+}
+
+std::string getVendorKey(JSON& doc, const std::string& key) {
+  if (!doc.doc().HasMember(kVendor)) {
+    return "";
+  }
+
+  if (!doc.doc()[kVendor].IsObject()) {
+    return "";
+  }
+
+  if (!doc.doc()[kVendor].HasMember(key)) {
+    return "";
+  }
+
+  if (!doc.doc()[kVendor][key].IsString()) {
+    return "";
+  }
+
+  return doc.doc()[kVendor][key].GetString();
 }
 
 std::string getYCloudSshKey(JSON& doc) {

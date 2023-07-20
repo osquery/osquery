@@ -3,6 +3,7 @@ description("Yandex.Cloud instance metadata.")
 schema([
     Column("instance_id", TEXT, "Unique identifier for the VM", index=True),
     Column("folder_id", TEXT, "Folder identifier for the VM"),
+    Column("cloud_id", TEXT, "Cloud identifier for the VM"),
     Column("name", TEXT, "Name of the VM"),
     Column("description", TEXT, "Description of the VM"),
     Column("hostname", TEXT, "Hostname of the VM"),

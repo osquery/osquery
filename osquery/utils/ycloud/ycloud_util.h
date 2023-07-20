@@ -14,9 +14,9 @@
 
 namespace osquery {
 std::string getYCloudKey(JSON& doc, const std::string& key);
+std::string getVendorKey(JSON& doc, const std::string& key);
 std::string getYCloudSshKey(JSON& doc);
 std::string getSerialPortEnabled(JSON& doc);
-std::tuple<std::string, std::string> getFolderIdAndZoneFromZoneField(
-    const std::string& zone);
+std::string getZoneId(const std::string& zone);
 Status fetchYCloudMetadata(JSON& doc, const std::string& endpoint);
 } // namespace osquery

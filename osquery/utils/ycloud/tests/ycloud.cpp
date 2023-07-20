@@ -17,15 +17,13 @@ class YCloudUtilsTests : public testing::Test {};
 
 TEST_F(YCloudUtilsTests, pass) {
   const std::string zone = "projects/b1g1slgali4fssudpn26/zones/ru-central1-a";
-  auto [folder_id, zone_id] = getFolderIdAndZoneFromZoneField(zone);
-  EXPECT_EQ(folder_id, "b1g1slgali4fssudpn26");
+  std::string zone_id = getZoneId(zone);
   EXPECT_EQ(zone_id, "ru-central1-a");
 }
 
 TEST_F(YCloudUtilsTests, fail) {
   const std::string zone = "projects/b1g1slgali4fssudpn26/zones-ru-central1-a";
-  auto [folder_id, zone_id] = getFolderIdAndZoneFromZoneField(zone);
-  EXPECT_EQ(folder_id, "");
+  std::string zone_id = getZoneId(zone);
   EXPECT_EQ(zone_id, "");
 }
 

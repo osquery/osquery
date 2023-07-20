@@ -50,11 +50,10 @@ QueryData genYCloudMetadata(QueryContext& context) {
       continue;
     }
 
-    auto [folderId, zone] =
-        getFolderIdAndZoneFromZoneField(getYCloudKey(doc, "zone"));
     r["instance_id"] = getYCloudKey(doc, "id");
-    r["folder_id"] = folderId;
-    r["zone"] = zone;
+    r["folder_id"] = getVendorKey(doc, "folderId");
+    r["cloud_id"] = getVendorKey(doc, "cloudId");
+    r["zone"] = getZoneId(getYCloudKey(doc, "zone"));
     r["name"] = getYCloudKey(doc, "name");
     r["description"] = getYCloudKey(doc, "description");
     r["hostname"] = getYCloudKey(doc, "hostname");
