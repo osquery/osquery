@@ -100,7 +100,7 @@ void genShellHistoryFromFile(
     }
   };
 
-  if (!readFile(history_file, 0, 4096, false, false, parseChunk, false)) {
+  if (!readFile(history_file, 0, 4096, false, parseChunk, false)) {
     return;
   }
 

@@ -232,7 +232,7 @@ void genBOMPaths(const std::string& path,
 void genPackageBOM(const std::string& path, QueryData& results) {
   std::string content;
   // Read entire BOM file.
-  if (!forensicReadFile(path, content).ok()) {
+  if (!readFile(path, content).ok()) {
     return;
   }
 

@@ -269,9 +269,6 @@ class PlatformFile : private boost::noncopyable {
   /// Return the modified, created, birth, updated, etc times.
   bool getFileTimes(PlatformTime& times);
 
-  /// Change the file times.
-  bool setFileTimes(const PlatformTime& times);
-
   /// Read a number of bytes into a buffer.
   ssize_t read(void* buf, size_t nbyte);
 

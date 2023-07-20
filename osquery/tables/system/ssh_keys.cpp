@@ -146,7 +146,7 @@ void genSSHkeyForHosts(const std::string& uid,
   // Go through each file
   for (const auto& kfile : files_list) {
     std::string keys_content;
-    auto s = forensicReadFile(kfile, keys_content, false, false);
+    auto s = readFile(kfile, keys_content, false, false, false);
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_WARNING, s.getMessage());

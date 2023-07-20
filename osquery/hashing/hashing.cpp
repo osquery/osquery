@@ -114,7 +114,6 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
                     0,
                     kHashChunkSize,
                     false,
-                    true,
                     ([&hashes, &mask](std::string& buffer, size_t size) {
                       for (auto& hash : hashes) {
                         if (mask & hash.first) {

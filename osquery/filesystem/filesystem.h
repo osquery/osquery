@@ -63,15 +63,8 @@ Status readFile(const boost::filesystem::path& path,
                 std::string& content,
                 size_t size = 0,
                 bool dry_run = false,
-                bool preserve_time = false,
                 bool blocking = false,
                 bool log = true);
-
-/// Read a file and preserve the atime and mtime.
-Status forensicReadFile(const boost::filesystem::path& path,
-                        std::string& content,
-                        bool blocking = false,
-                        bool log = true);
 
 /**
  * @brief Return the status of an attempted file read.
@@ -89,7 +82,6 @@ Status readFile(const boost::filesystem::path& path,
                 size_t size,
                 size_t block_size,
                 bool dry_run,
-                bool preserve_time,
                 std::function<void(std::string& buffer, size_t size)> predicate,
                 bool blocking = false,
                 bool log = true);
@@ -376,7 +368,8 @@ Status readRawMem(size_t base, size_t length, void** buffer);
  * Given a set of paths we bundle these into a tar archive.
  */
 Status archive(const std::set<boost::filesystem::path>& path,
-               const boost::filesystem::path& out, std::size_t block_size = 8192);
+               const boost::filesystem::path& out,
+               std::size_t block_size = 8192);
 
 /*
  * @brief Given a path, compress it with zstd and save to out.
