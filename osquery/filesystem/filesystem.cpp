@@ -621,25 +621,4 @@ std::string lsperms(int mode) {
   bits += rwx[(mode >> 0) & 7];
   return bits;
 }
-
-Status parseJSON(const fs::path& path, pt::ptree& tree) {
-  try {
-    pt::read_json(path.string(), tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    return Status(1, "Could not parse JSON from file");
-  }
-  return Status::success();
-}
-
-Status parseJSONContent(const std::string& content, pt::ptree& tree) {
-  // Read the extensions data into a JSON blob, then property tree.
-  try {
-    std::stringstream json_stream;
-    json_stream << content;
-    pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    return Status(1, "Could not parse JSON from file");
-  }
-  return Status::success();
-}
 } // namespace osquery
