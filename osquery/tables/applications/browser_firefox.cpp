@@ -141,7 +141,7 @@ void genFirefoxAddonsFromExtensions(const std::string& uid,
         continue;
       }
 
-      r[it.second] = TEXT(*value);
+      r[it.second] = SQL_TEXT(*value);
     }
 
     // There are several ways to disabled the addon, check each.
