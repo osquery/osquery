@@ -20,7 +20,7 @@ namespace osquery {
 namespace tables {
 
 void setGroupRow(Row& r, const group* grp) {
-  r["groupname"] = TEXT(grp->gr_name);
+  r["groupname"] = SQL_TEXT(grp->gr_name);
   r["gid"] = INTEGER(grp->gr_gid);
   r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
   r["pid_with_namespace"] = "0";

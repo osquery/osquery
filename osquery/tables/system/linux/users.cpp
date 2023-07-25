@@ -26,19 +26,19 @@ void genUser(const struct passwd* pwd, QueryData& results) {
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
 
   if (pwd->pw_name != nullptr) {
-    r["username"] = TEXT(pwd->pw_name);
+    r["username"] = SQL_TEXT(pwd->pw_name);
   }
 
   if (pwd->pw_gecos != nullptr) {
-    r["description"] = TEXT(pwd->pw_gecos);
+    r["description"] = SQL_TEXT(pwd->pw_gecos);
   }
 
   if (pwd->pw_dir != nullptr) {
-    r["directory"] = TEXT(pwd->pw_dir);
+    r["directory"] = SQL_TEXT(pwd->pw_dir);
   }
 
   if (pwd->pw_shell != nullptr) {
-    r["shell"] = TEXT(pwd->pw_shell);
+    r["shell"] = SQL_TEXT(pwd->pw_shell);
   }
   r["pid_with_namespace"] = "0";
   results.push_back(r);
@@ -97,5 +97,5 @@ QueryData genUsers(QueryContext& context) {
     return genUsersImpl(context, logger);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery

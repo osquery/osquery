@@ -84,21 +84,21 @@ BOOL genIopmBatteryInfo(Row& r) {
     return NO;
   }
   if ([batteryInfo objectForKey:@kIOPSHardwareSerialNumberKey]) {
-    r["serial_number"] = TEXT([
-        [batteryInfo objectForKey:@kIOPSHardwareSerialNumberKey] UTF8String]);
+    r["serial_number"] = SQL_TEXT(
+        [[batteryInfo objectForKey:@kIOPSHardwareSerialNumberKey] UTF8String]);
   }
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthKey]) {
-    r["health"] =
-        TEXT([[batteryInfo objectForKey:@kIOPSBatteryHealthKey] UTF8String]);
+    r["health"] = SQL_TEXT(
+        [[batteryInfo objectForKey:@kIOPSBatteryHealthKey] UTF8String]);
   }
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthConditionKey]) {
-    r["condition"] = TEXT([[batteryInfo
+    r["condition"] = SQL_TEXT([[batteryInfo
         objectForKey:@kIOPSBatteryHealthConditionKey] UTF8String]);
   } else {
-    r["condition"] = TEXT("Normal");
+    r["condition"] = SQL_TEXT("Normal");
   }
   if ([batteryInfo objectForKey:@kIOPSPowerSourceStateKey]) {
-    r["state"] = TEXT(
+    r["state"] = SQL_TEXT(
         [[batteryInfo objectForKey:@kIOPSPowerSourceStateKey] UTF8String]);
   }
   if ([batteryInfo objectForKey:@kIOPSIsChargingKey]) {
@@ -111,8 +111,8 @@ BOOL genIopmBatteryInfo(Row& r) {
     r["charged"] = INTEGER(0);
   }
   if ([batteryInfo objectForKey:@kIOPSCurrentCapacityKey]) {
-    r["percent_remaining"] = INTEGER(
-        [[batteryInfo objectForKey:@kIOPSCurrentCapacityKey] intValue]);
+    r["percent_remaining"] =
+        INTEGER([[batteryInfo objectForKey:@kIOPSCurrentCapacityKey] intValue]);
   }
   if ([batteryInfo objectForKey:@kIOPSTimeToEmptyKey]) {
     r["minutes_until_empty"] =
@@ -131,7 +131,7 @@ BOOL genAdvancedBatteryInfo(Row& r) {
     return NO;
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSManufacturerKey]) {
-    r["manufacturer"] = TEXT([[advancedBatteryInfo
+    r["manufacturer"] = SQL_TEXT([[advancedBatteryInfo
         objectForKey:@kIOPMPSManufacturerKey] UTF8String]);
   }
 
@@ -158,7 +158,7 @@ BOOL genAdvancedBatteryInfo(Row& r) {
     r["manufacture_date"] = INTEGER([date timeIntervalSince1970]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMDeviceNameKey]) {
-    r["model"] = TEXT(
+    r["model"] = SQL_TEXT(
         [[advancedBatteryInfo objectForKey:@kIOPMDeviceNameKey] UTF8String]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSCycleCountKey]) {
@@ -182,8 +182,8 @@ BOOL genAdvancedBatteryInfo(Row& r) {
         [[advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPSVoltageKey]) {
-    r["voltage"] = INTEGER(
-        [[advancedBatteryInfo objectForKey:@kIOPSVoltageKey] intValue]);
+    r["voltage"] =
+        INTEGER([[advancedBatteryInfo objectForKey:@kIOPSVoltageKey] intValue]);
   }
   return YES;
 }
@@ -192,7 +192,7 @@ QueryData genBatteryInfo(QueryContext& context) {
   QueryData results;
   Row row;
   @autoreleasepool {
-    if (genIopmBatteryInfo(row)){
+    if (genIopmBatteryInfo(row)) {
       genAdvancedBatteryInfo(row);
       results.push_back(row);
     }

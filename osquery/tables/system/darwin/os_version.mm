@@ -111,7 +111,7 @@ QueryData genOSVersion(QueryContext& context) {
   struct utsname uname_buf {};
 
   if (uname(&uname_buf) == 0) {
-    r["arch"] = TEXT(uname_buf.machine);
+    r["arch"] = SQL_TEXT(uname_buf.machine);
   } else {
     LOG(INFO) << "Failed to determine the OS architecture, error " << errno;
   }

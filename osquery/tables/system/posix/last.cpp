@@ -46,13 +46,13 @@ std::string typeNameForType(const utmpx& ut) {
 void genLastAccessForRow(const utmpx& ut, QueryData& results) {
   if (ut.ut_type == USER_PROCESS || ut.ut_type == DEAD_PROCESS) {
     Row r;
-    r["username"] = TEXT(ut.ut_user);
-    r["tty"] = TEXT(ut.ut_line);
+    r["username"] = SQL_TEXT(ut.ut_user);
+    r["tty"] = SQL_TEXT(ut.ut_line);
     r["pid"] = INTEGER(ut.ut_pid);
     r["type"] = INTEGER(ut.ut_type);
-    r["type_name"] = TEXT(typeNameForType(ut));
+    r["type_name"] = SQL_TEXT(typeNameForType(ut));
     r["time"] = INTEGER(ut.ut_tv.tv_sec);
-    r["host"] = TEXT(ut.ut_host);
+    r["host"] = SQL_TEXT(ut.ut_host);
     results.push_back(r);
   }
 }
@@ -88,5 +88,5 @@ QueryData genLastAccess(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

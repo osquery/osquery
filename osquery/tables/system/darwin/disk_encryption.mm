@@ -418,7 +418,7 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
       uuid_string_t uuid_string = {0};
       if (genUid(uid, uuid_string).ok()) {
         r["uid"] = BIGINT(uid);
-        r["user_uuid"] = TEXT(uuid_string);
+        r["user_uuid"] = SQL_TEXT(uuid_string);
       }
     }
     r["type"] = (r.at("encrypted") == "1") ? kEncryptionType : std::string();

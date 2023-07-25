@@ -86,10 +86,10 @@ Status generateXattrRowsForPath(QueryData& output, const std::string& path) {
   }
 
   Row row = {};
-  row["path"] = TEXT(path);
+  row["path"] = SQL_TEXT(path);
 
   auto path_obj = boost::filesystem::path(path);
-  row["directory"] = TEXT(path_obj.parent_path().string());
+  row["directory"] = SQL_TEXT(path_obj.parent_path().string());
 
   std::string capabilities;
   bool capabilities_found{false};
@@ -97,8 +97,8 @@ Status generateXattrRowsForPath(QueryData& output, const std::string& path) {
   auto status = getCapabilities(capabilities, path);
   if (status.ok()) {
     if (!capabilities.empty()) {
-      row["key"] = TEXT(kSecurityCapabilityXattrName);
-      row["value"] = TEXT(capabilities);
+      row["key"] = SQL_TEXT(kSecurityCapabilityXattrName);
+      row["value"] = SQL_TEXT(capabilities);
       row["base64"] = INTEGER(0);
 
       output.push_back(row);
@@ -119,8 +119,8 @@ Status generateXattrRowsForPath(QueryData& output, const std::string& path) {
 
     // Add empty values as base64
     if (key_value.empty()) {
-      row["key"] = TEXT(key_name);
-      row["value"] = TEXT("");
+      row["key"] = SQL_TEXT(key_name);
+      row["value"] = SQL_TEXT("");
       row["base64"] = INTEGER("1");
 
       output.push_back(row);
@@ -146,8 +146,9 @@ Status generateXattrRowsForPath(QueryData& output, const std::string& path) {
       });
     }
 
-    row["key"] = TEXT(key_name);
-    row["value"] = printable ? TEXT(std::string(value)) : base64::encode(value);
+    row["key"] = SQL_TEXT(key_name);
+    row["value"] =
+        printable ? SQL_TEXT(std::string(value)) : base64::encode(value);
     row["base64"] = printable ? INTEGER(0) : INTEGER(1);
 
     output.push_back(row);

@@ -56,16 +56,16 @@ TableRows genSystemdUnits(QueryContext& context) {
   for (const auto& unit : unit_list) {
     auto row = make_table_row();
 
-    row["id"] = TEXT(unit.id);
-    row["description"] = TEXT(unit.description);
-    row["load_state"] = TEXT(unit.load_state);
-    row["active_state"] = TEXT(unit.active_state);
-    row["sub_state"] = TEXT(unit.sub_state);
-    row["following"] = TEXT(unit.following);
-    row["object_path"] = TEXT(unit.path);
+    row["id"] = SQL_TEXT(unit.id);
+    row["description"] = SQL_TEXT(unit.description);
+    row["load_state"] = SQL_TEXT(unit.load_state);
+    row["active_state"] = SQL_TEXT(unit.active_state);
+    row["sub_state"] = SQL_TEXT(unit.sub_state);
+    row["following"] = SQL_TEXT(unit.following);
+    row["object_path"] = SQL_TEXT(unit.path);
     row["job_id"] = BIGINT(unit.job_id);
-    row["job_type"] = TEXT(unit.job_type);
-    row["job_path"] = TEXT(unit.job_path);
+    row["job_type"] = SQL_TEXT(unit.job_type);
+    row["job_path"] = SQL_TEXT(unit.job_path);
 
     for (const auto& query : kStringPropertyQueryList) {
       std::string property_value;
@@ -81,7 +81,7 @@ TableRows genSystemdUnits(QueryContext& context) {
                    << " on the following systemd unit: " << unit.path;
       }
 
-      row[query.column_name] = TEXT(property_value);
+      row[query.column_name] = SQL_TEXT(property_value);
     }
 
     results.push_back(std::move(row));

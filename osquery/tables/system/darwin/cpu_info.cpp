@@ -267,7 +267,7 @@ QueryData genAarch64CpuInfo(QueryContext& context) {
       sysctlbyname("machdep.cpu.brand_string", &brand_string, &len, nullptr, 0);
 
   if (res == 0) {
-    r["model"] = TEXT(brand_string.data());
+    r["model"] = SQL_TEXT(brand_string.data());
   }
   r["manufacturer"] = "Apple";
   r["processor_type"] = INTEGER(3); // 3 = Central Processor
