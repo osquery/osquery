@@ -117,7 +117,7 @@ Status windowsShortPathToLongPath(const std::string& shortPath,
   if (ret == 0) {
     return Status(GetLastError(), "Failed to convert short path to long path");
   }
-  rLongPath = wstringToString(longPath);
+  rLongPath = wstringToString(longPath, ARRAYSIZE(longPath));
   return Status::success();
 }
 
@@ -131,8 +131,7 @@ Status windowsGetVersionInfo(const std::string& path,
   if (verInfo == nullptr) {
     return Status(1, "Failed to malloc for version info");
   }
-  auto err = GetFileVersionInfoW(
-      stringToWstring(path).c_str(), handle, verSize, verInfo.get());
+  auto err = GetFileVersionInfoW(wpath.c_str(), handle, verSize, verInfo.get());
   if (err == 0) {
     return Status(GetLastError(), "Failed to get file version info");
   }
@@ -1587,7 +1586,7 @@ boost::optional<std::string> getHomeDirectory() {
     return value;
   } else if (SUCCEEDED(::SHGetFolderPathW(
                  nullptr, CSIDL_PROFILE, nullptr, 0, profile.data()))) {
-    return wstringToString(profile.data());
+    return wstringToString(profile.data(), profile.size());
   } else {
     return boost::none;
   }
@@ -1778,12 +1777,15 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // std::string, in which case, internal fs::path conversion to wstring will be
   // performed incorrectly.
 
-  if (PathIsDirectoryW(stringToWstring(path.string()).c_str())) {
+  std::string path_str = path.string();
+  std::wstring path_wstr = stringToWstring(path_str);
+
+  if (PathIsDirectoryW(path_wstr.c_str())) {
     FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
   }
 
   // Get the handle of the file object.
-  auto file_handle = CreateFileW(stringToWstring(path.string()).c_str(),
+  auto file_handle = CreateFileW(path_wstr.c_str(),
                                  GENERIC_READ,
                                  FILE_SHARE_READ | FILE_SHARE_WRITE,
                                  nullptr,
@@ -1795,7 +1797,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   if (file_handle == INVALID_HANDLE_VALUE) {
     CloseHandle(file_handle);
     return Status(-1,
-                  "CreateFile failed for " + path.string() + " with " +
+                  "CreateFile failed for " + path_str + " with " +
                       std::to_string(GetLastError()));
   }
 
@@ -1817,7 +1819,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   if (ret != ERROR_SUCCESS) {
     CloseHandle(file_handle);
     return Status(-1,
-                  "GetSecurityInfo failed for " + path.string() + " with " +
+                  "GetSecurityInfo failed for " + path_str + " with " +
                       std::to_string(GetLastError()));
   }
 
@@ -1828,7 +1830,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
     CloseHandle(file_handle);
     LocalFree(security_descriptor);
     return Status(-1,
-                  "GetFileInformationByHandle failed for " + path.string() +
+                  "GetFileInformationByHandle failed for " + path_str +
                       " with " + std::to_string(GetLastError()));
   }
 
@@ -1908,7 +1910,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                                          : wfile_stat->size = li.QuadPart;
 
   const char* drive_letter = nullptr;
-  auto drive_letter_index = PathGetDriveNumberW(path.wstring().c_str());
+  auto drive_letter_index = PathGetDriveNumberW(path_wstr.c_str());
 
   if (drive_letter_index != -1 && kDriveLetters.count(drive_letter_index)) {
     drive_letter = kDriveLetters.at(drive_letter_index).c_str();
@@ -1944,12 +1946,10 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   (!ret) ? wfile_stat->ctime = -1
          : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
 
-  windowsGetVersionInfo(wstringToString(path.wstring()),
-                        wfile_stat->product_version,
-                        wfile_stat->file_version);
+  windowsGetVersionInfo(
+      path_str, wfile_stat->product_version, wfile_stat->file_version);
 
-  windowsGetOriginalFilename(wstringToString(path.wstring()),
-                             wfile_stat->original_filename);
+  windowsGetOriginalFilename(path_str, wfile_stat->original_filename);
 
   CloseHandle(file_handle);
 

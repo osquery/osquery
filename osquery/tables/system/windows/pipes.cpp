@@ -33,10 +33,12 @@ QueryData genPipes(QueryContext& context) {
   do {
     Row r;
 
-    r["name"] = wstringToString(findFileData.cFileName);
+    std::wstring filename = findFileData.cFileName;
+
+    r["name"] = wstringToString(filename);
 
     unsigned long pid = 0;
-    auto pipePath = L"\\\\.\\pipe\\" + std::wstring(findFileData.cFileName);
+    auto pipePath = L"\\\\.\\pipe\\" + filename;
     auto pipeHandle =
         CreateFileW(pipePath.c_str(),
                     GENERIC_READ,
@@ -82,5 +84,5 @@ QueryData genPipes(QueryContext& context) {
   FindClose(findHandle);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

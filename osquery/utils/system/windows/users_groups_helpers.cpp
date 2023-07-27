@@ -324,11 +324,8 @@ std::string getUserHomeDir(const std::string& sid) {
   }
 
   DWORD value_type;
-  DWORD value_data_length;
-  std::wstring value_data;
-  value_data.resize(max_value_data_length);
-
-  value_data_length = max_value_data_length;
+  DWORD value_data_length = max_value_data_length;
+  std::wstring value_data(max_value_data_length / sizeof(WCHAR), L'\0');
 
   ret = RegQueryValueExW(registry_handle.get(),
                          kProfileValueName.c_str(),
@@ -349,6 +346,8 @@ std::string getUserHomeDir(const std::string& sid) {
             << wstringToString(profile_key_path) << " is not a string";
     return {};
   }
+
+  value_data.resize(value_data_length / sizeof(WCHAR));
 
   return wstringToString(value_data);
 }

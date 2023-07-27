@@ -39,7 +39,7 @@ void GetSystemDriveGUID(Row& r) {
   auto sysRoot = getSystemRoot().root_name().wstring() + L"\\";
   if (GetVolumeNameForVolumeMountPoint(
           sysRoot.c_str(), static_cast<LPWSTR>(buf), 50)) {
-    r["device"] = SQL_TEXT(wstringToString(buf));
+    r["device"] = SQL_TEXT(wstringToString(buf, ARRAYSIZE(buf)));
   }
 }
 

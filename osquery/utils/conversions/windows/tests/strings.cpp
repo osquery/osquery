@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <fcntl.h>
+#include <io.h>
+
 #include <string>
 
 #include <gtest/gtest.h>
@@ -32,37 +35,37 @@ class ConversionsTests : public testing::Test {
 };
 
 TEST_F(ConversionsTests, test_string_to_wstring) {
-  std::string narrowString{"The quick brown fox jumps over the lazy dog"};
-  auto wideString = stringToWstring(narrowString);
+  std::string narrow_string{"The quick brown fox jumps over the lazy dog"};
+  auto wide_string = stringToWstring(narrow_string);
   std::wstring expected{L"The quick brown fox jumps over the lazy dog"};
-  EXPECT_EQ(wideString, expected);
+  EXPECT_EQ(wide_string, expected);
 }
 
 TEST_F(ConversionsTests, test_cim_datetime_to_unixtime) {
-  std::string cimDateTime{"20190724000000.000000-000"};
-  auto unixtime = cimDatetimeToUnixtime(cimDateTime);
+  std::string cim_date_time{"20190724000000.000000-000"};
+  auto unixtime = cimDatetimeToUnixtime(cim_date_time);
   EXPECT_EQ(unixtime, 1563926400);
 }
 
 TEST_F(ConversionsTests, test_wstring_to_string) {
-  std::wstring wideString{L"The quick brown fox jumps over the lazy dog"};
-  auto narrowString = wstringToString(wideString);
+  std::wstring wide_string{L"The quick brown fox jumps over the lazy dog"};
+  auto narrow_string = wstringToString(wide_string);
   std::string expected{"The quick brown fox jumps over the lazy dog"};
-  EXPECT_EQ(narrowString, expected);
+  EXPECT_EQ(narrow_string, expected);
 }
 
 TEST_F(ConversionsTests, test_string_to_wstring_extended) {
-  std::string narrowString{"fr\xc3\xb8tz-jorn"};
-  auto wideString = stringToWstring(narrowString);
+  std::string narrow_string{"fr\xc3\xb8tz-jorn"};
+  auto wide_string = stringToWstring(narrow_string);
   std::wstring expected{L"fr\x00f8tz-jorn"};
-  EXPECT_EQ(wideString, expected);
+  EXPECT_EQ(wide_string, expected);
 }
 
 TEST_F(ConversionsTests, test_wstring_to_string_extended) {
-  std::wstring wideString{L"fr\x00f8tz-jorn"};
-  auto narrowString = wstringToString(wideString);
+  std::wstring wide_string{L"fr\x00f8tz-jorn"};
+  auto narrow_string = wstringToString(wide_string);
   std::string expected{"fr\xc3\xb8tz-jorn"};
-  EXPECT_EQ(narrowString, expected);
+  EXPECT_EQ(narrow_string, expected);
 }
 
 TEST_F(ConversionsTests, test_swapendianiess) {
@@ -70,6 +73,57 @@ TEST_F(ConversionsTests, test_swapendianiess) {
   auto swapendian = swapEndianess(little_endian);
   std::string expected{"ABCDEFGHIJ"};
   EXPECT_EQ(swapendian, expected);
+}
+
+TEST_F(ConversionsTests, test_string_to_wstring_embedded_nulls) {
+  /* A std::string is supposed to contain the entire data,
+     therefore supporting embedded nulls.
+     No additional scan of the string to find a null terminator
+     will be done for the conversion. */
+  std::string narrow_string = "123\0\0\0123";
+  auto wide_string = stringToWstring(narrow_string);
+
+  std::wstring expected = L"123\0\0\0123";
+  EXPECT_EQ(wide_string, expected);
+
+  // Using a char* does the scan instead
+  expected = L"123";
+  wide_string = stringToWstring(narrow_string.c_str());
+  EXPECT_EQ(wide_string, expected);
+}
+
+TEST_F(ConversionsTests, test_wstring_to_string_embedded_nulls) {
+  /* A std::wstring is supposed to contain the entire data,
+     therefore supporting embedded nulls.
+     No additional scan of the string to find a null terminator
+     will be done for the conversion. */
+  std::wstring wide_string = L"123\0\0\0123";
+  auto narrow_string = wstringToString(wide_string);
+
+  std::string expected = "123\0\0\0123";
+  EXPECT_EQ(narrow_string, expected);
+
+  // Using a char* does the scan instead
+  expected = "123";
+  narrow_string = wstringToString(wide_string.c_str());
+  EXPECT_EQ(narrow_string, expected);
+}
+
+TEST_F(ConversionsTests, test_wstring_to_string_max_conversion_factor) {
+  // Surrogate pairs
+  std::wstring wide_string = L"\U0001F600\U0001F601";
+  auto narrow_string = wstringToString(wide_string);
+
+  std::string expected = u8"\U0001F600\U0001F601";
+
+  EXPECT_EQ(narrow_string, expected);
+
+  // U0800 to U0FFF
+  wide_string = L"\u0800\u0801";
+  narrow_string = wstringToString(wide_string);
+
+  expected = u8"\u0800\u0801";
+  EXPECT_EQ(narrow_string, expected);
 }
 
 } // namespace osquery
