@@ -547,13 +547,12 @@ Example:
 {
   "auto_table_construction": {
     "tcc_system_entries": {
-      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "query": "SELECT service, client, auth_value, last_modified FROM access;",
       "path": "/Library/Application Support/com.apple.TCC/TCC.db",
       "columns": [
         "service",
         "client",
-        "allowed",
-        "prompt_count",
+        "auth_value",
         "last_modified"
       ],
       "platform": "darwin"
@@ -583,7 +582,7 @@ If you run `select * from access`, you'll see this table contains permissions gr
 
 ```
 sqlite> .schema access
-CREATE TABLE access (    service        TEXT        NOT NULL,     client         TEXT        NOT NULL,     client_type    INTEGER     NOT NULL,     allowed        INTEGER     NOT NULL,     prompt_count   INTEGER     NOT NULL,     csreq          BLOB,     policy_id      INTEGER,     indirect_object_identifier_type    INTEGER,     indirect_object_identifier         TEXT,     indirect_object_code_identity      BLOB,     flags          INTEGER,     last_modified  INTEGER     NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)),     PRIMARY KEY (service, client, client_type, indirect_object_identifier),    FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE ON UPDATE CASCADE);
+CREATE TABLE access (  service    TEXT    NOT NULL,   client     TEXT    NOT NULL,   client_type  INTEGER   NOT NULL,   auth_value   INTEGER   NOT NULL,   auth_reason  INTEGER   NOT NULL,   auth_version  INTEGER   NOT NULL,   csreq     BLOB,   policy_id   INTEGER,   indirect_object_identifier_type  INTEGER,   indirect_object_identifier     TEXT NOT NULL DEFAULT 'UNUSED',   indirect_object_code_identity   BLOB,   flags     INTEGER,   last_modified INTEGER   NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)),   PRIMARY KEY (service, client, client_type, indirect_object_identifier),  FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE ON UPDATE CASCADE);
 ```
 
 Open a text editor and create a file named `atc_tables.json` using the columns, path, and SQLite table you discovered:
@@ -592,25 +591,23 @@ Open a text editor and create a file named `atc_tables.json` using the columns, 
 {
   "auto_table_construction": {
     "tcc_system_entries": {
-      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "query": "SELECT service, client, auth_value, last_modified FROM access;",
       "path": "/Library/Application Support/com.apple.TCC/TCC.db",
       "columns": [
         "service",
         "client",
-        "allowed",
-        "prompt_count",
+        "auth_value",
         "last_modified"
       ],
       "platform": "darwin"
     },
     "tcc_user_entries": {
-      "query": "SELECT service, client, allowed, prompt_count, last_modified FROM access;",
+      "query": "SELECT service, client, auth_value, last_modified FROM access;",
       "path": "/Users/%/Library/Application Support/com.apple.TCC/TCC.db",
       "columns": [
         "service",
         "client",
-        "allowed",
-        "prompt_count",
+        "auth_value",
         "last_modified"
       ],
       "platform": "darwin"
