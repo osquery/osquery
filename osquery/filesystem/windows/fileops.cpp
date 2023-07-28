@@ -1333,7 +1333,7 @@ bool platformSetSafeDbPerms(const std::string& path) {
     return false;
   }
 
-  std::wstring wide_path = stringToWstring(path.c_str());
+  std::wstring wide_path = stringToWstring(path);
   // Apply 'safe' DACL and avoid returning to attempt applying the DACL
   ret = SetNamedSecurityInfoW(
       const_cast<PWSTR>(wide_path.c_str()),
