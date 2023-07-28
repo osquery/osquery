@@ -32,7 +32,6 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
   int oflag = 0;
   bool may_create = false;
-  bool check_existence = false;
 
   if ((mode & PF_READ) == PF_READ && (mode & PF_WRITE) == PF_WRITE) {
     oflag = O_RDWR;
@@ -52,7 +51,7 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     may_create = true;
     break;
   case PF_GET_OPTIONS(PF_OPEN_EXISTING):
-    check_existence = true;
+    // Nothing to do, open will fail with -1 if it doesn't exist
     break;
   case PF_GET_OPTIONS(PF_OPEN_ALWAYS):
     oflag |= O_CREAT;
@@ -81,13 +80,7 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     perms = 0666;
   }
 
-  boost::system::error_code ec;
-  if (check_existence &&
-      (!fs::exists(fname_, ec) || ec.value() != errc::success)) {
-    handle_ = kInvalidHandle;
-  } else {
-    handle_ = ::open(fname_.c_str(), oflag, perms);
-  }
+  handle_ = ::open(fname_.c_str(), oflag, perms);
 }
 
 PlatformFile::~PlatformFile() {
