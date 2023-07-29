@@ -12,6 +12,7 @@
 #include <os/availability.h>
 
 #include <osquery/core/flags.h>
+#include <osquery/events/darwin/es_utils.h>
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/events/events.h>
 #include <osquery/registry/registry_factory.h>
@@ -22,6 +23,8 @@ REGISTER(ESProcessFileEventSubscriber,
          "event_subscriber",
          "es_process_file_events");
 
+DECLARE_bool(es_fim_enable_open_events);
+
 Status ESProcessFileEventSubscriber::init() {
   if (__builtin_available(macos 10.15, *)) {
     auto sc = createSubscriptionContext();
@@ -30,6 +33,10 @@ Status ESProcessFileEventSubscriber::init() {
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_RENAME);
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_WRITE);
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
+
+    if (FLAGS_es_fim_enable_open_events) {
+      sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_OPEN);
+    }
 
     subscribe(&ESProcessFileEventSubscriber::Callback, sc);
 

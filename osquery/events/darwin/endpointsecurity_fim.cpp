@@ -12,6 +12,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <osquery/core/flags.h>
+#include <osquery/config/config.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/events/darwin/es_utils.h>
 #include <osquery/logger/logger.h>
@@ -104,6 +106,33 @@ void EndpointSecurityFileEventPublisher::configure() {
         VLOG(1) << "Unable to mute default path: " << p;
       }
     }
+
+    auto parser = Config::getParser("file_paths");
+    std::vector<std::string> paths_to_watch = {};
+    Config::get().files([this, &paths_to_watch](const std::string& category,
+                             const std::vector<std::string>& files) {
+      std::vector<std::string> resolved_paths = {};
+      for (auto file : files) {
+        VLOG(1) << "Processing path: " << file;
+        replaceGlobWildcards(file);
+        resolveFilePattern(file, paths_to_watch);
+      }
+    });
+
+    // Invert muting for target paths
+    es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
+
+    // select only paths we want
+    es_unmute_all_target_paths(es_file_client_);
+    for (auto p : paths_to_watch) {
+      if (isDirectory(p).ok()) {
+        es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_PREFIX);
+      } else {
+        es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+      }
+      VLOG(1) << "Monitoring path: " << p;
+    }
+
 
     // mute ourselves
     audit_token_t self;
@@ -201,6 +230,10 @@ void EndpointSecurityFileEventPublisher::handleMessage(
   case ES_EVENT_TYPE_NOTIFY_TRUNCATE: {
     ec->event_type = "truncate";
     ec->filename = getStringFromToken(&message->event.truncate.target->path);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_OPEN: {
+    ec->event_type = "open";
+    ec->filename = getStringFromToken(&message->event.open.file->path);
   } break;
   default:
     VLOG(1) << "endpointsecurity_fim: unexpected event " << message->event_type;
