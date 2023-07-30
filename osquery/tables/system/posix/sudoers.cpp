@@ -45,7 +45,7 @@ void genSudoersFile(const std::string& filename,
 
   bool is_long_line = false;
   std::string contents;
-  if (!forensicReadFile(filename, contents).ok()) {
+  if (!readFile(filename, contents).ok()) {
     TLOG << "couldn't read sudoers file: " << filename;
     return;
   }

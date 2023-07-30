@@ -63,15 +63,8 @@ Status readFile(const boost::filesystem::path& path,
                 std::string& content,
                 size_t size = 0,
                 bool dry_run = false,
-                bool preserve_time = false,
                 bool blocking = false,
                 bool log = true);
-
-/// Read a file and preserve the atime and mtime.
-Status forensicReadFile(const boost::filesystem::path& path,
-                        std::string& content,
-                        bool blocking = false,
-                        bool log = true);
 
 /**
  * @brief Return the status of an attempted file read.
@@ -89,7 +82,6 @@ Status readFile(const boost::filesystem::path& path,
                 size_t size,
                 size_t block_size,
                 bool dry_run,
-                bool preserve_time,
                 std::function<void(std::string& buffer, size_t size)> predicate,
                 bool blocking = false,
                 bool log = true);

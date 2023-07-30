@@ -66,7 +66,7 @@ QueryData genEtcHostsImpl(QueryContext& context, Logger& logger) {
   std::string content;
   QueryData qres = {};
 
-  auto s = readFile(kEtcHosts, content, 0, false, false, false, false);
+  auto s = readFile(kEtcHosts, content, 0, false, false, false);
   if (s.ok()) {
     qres = parseEtcHostsContent(content);
   } else {
@@ -93,5 +93,5 @@ QueryData genEtcHosts(QueryContext& context) {
     return genEtcHostsImpl(context, logger);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -37,7 +37,7 @@ void genSshConfig(const std::string& uid,
                   const fs::path& filepath,
                   QueryData& results) {
   std::string ssh_config_content;
-  if (!forensicReadFile(filepath, ssh_config_content).ok()) {
+  if (!readFile(filepath, ssh_config_content).ok()) {
     VLOG(1) << "Cannot read ssh_config file " << filepath;
     return;
   }

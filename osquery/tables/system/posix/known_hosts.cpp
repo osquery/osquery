@@ -35,7 +35,7 @@ void genSSHkeysForHosts(const std::string& uid,
     keys_file /= kfile;
 
     std::string keys_content;
-    if (!forensicReadFile(keys_file, keys_content).ok()) {
+    if (!readFile(keys_file, keys_content).ok()) {
       // Cannot read a specific keys file.
       continue;
     }
@@ -68,5 +68,5 @@ QueryData getKnownHostsKeys(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

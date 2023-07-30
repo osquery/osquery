@@ -38,7 +38,7 @@ std::vector<std::string> cronFromFile(const std::string& path, Logger& logger) {
     return cron_lines;
   }
 
-  auto s = forensicReadFile(path, content, false, false);
+  auto s = readFile(path, content, false, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
     return cron_lines;
@@ -131,5 +131,5 @@ QueryData genCronTab(QueryContext& context) {
     return genCronTabImpl(context, logger);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery

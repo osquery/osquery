@@ -1076,15 +1076,6 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
           FALSE);
 }
 
-bool PlatformFile::setFileTimes(const PlatformTime& times) {
-  if (!isValid()) {
-    return false;
-  }
-
-  return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) !=
-          FALSE);
-}
-
 ssize_t PlatformFile::getOverlappedResultForRead(void* buf,
                                                  size_t requested_size) {
   ssize_t nret = 0;

@@ -33,7 +33,7 @@ namespace tables {
 // Get the Carbon Black sensor ID
 void getSensorId(Row& r) {
   std::string file_contents;
-  if (!forensicReadFile(kCbSensorIdFile, file_contents).ok()) {
+  if (!readFile(kCbSensorIdFile, file_contents).ok()) {
     return;
   }
   // check to make sure we have sane data
@@ -133,5 +133,5 @@ QueryData genCarbonBlackInfo(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

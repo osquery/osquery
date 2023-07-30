@@ -184,14 +184,6 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   return true;
 }
 
-bool PlatformFile::setFileTimes(const PlatformTime& times) {
-  if (!isValid()) {
-    return false;
-  }
-
-  return (::futimes(handle_, times.times) == 0);
-}
-
 ssize_t PlatformFile::read(void* buf, size_t nbyte) {
   if (!isValid()) {
     return -1;

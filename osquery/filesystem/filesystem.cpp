@@ -48,9 +48,6 @@ FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
 /// See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
 
-/// Disable forensics (atime/mtime preserving) file reads.
-HIDDEN_FLAG(bool, disable_forensic, true, "Disable atime/mtime preservation");
-
 static const size_t kMaxRecursiveGlobs = 64;
 
 Status writeTextFile(const fs::path& path,
@@ -114,7 +111,6 @@ Status readFile(const fs::path& path,
                 size_t size,
                 size_t block_size,
                 bool dry_run,
-                bool preserve_time,
                 std::function<void(std::string& buffer, size_t size)> predicate,
                 bool blocking,
                 bool log) {
@@ -157,9 +153,6 @@ Status readFile(const fs::path& path,
     }
   }
 
-  PlatformTime times;
-  handle.fd->getFileTimes(times);
-
   off_t total_bytes = 0;
   if (handle.blocking_io || handle.fd->isSpecialFile()) {
     // Reset block size to a sane minimum.
@@ -193,10 +186,6 @@ Status readFile(const fs::path& path,
     predicate(content, file_size);
   }
 
-  // Attempt to restore the atime and mtime before the file read.
-  if (preserve_time && !FLAGS_disable_forensic) {
-    handle.fd->setFileTimes(times);
-  }
   return Status::success();
 } // namespace osquery
 
@@ -204,14 +193,12 @@ Status readFile(const fs::path& path,
                 std::string& content,
                 size_t size,
                 bool dry_run,
-                bool preserve_time,
                 bool blocking,
                 bool log) {
   return readFile(path,
                   size,
                   4096,
                   dry_run,
-                  preserve_time,
                   ([&content](std::string& buffer, size_t _size) {
                     if (buffer.size() == _size) {
                       content += std::move(buffer);
@@ -226,13 +213,6 @@ Status readFile(const fs::path& path,
 Status readFile(const fs::path& path, bool blocking) {
   std::string blank;
   return readFile(path, blank, 0, true, false, blocking);
-}
-
-Status forensicReadFile(const fs::path& path,
-                        std::string& content,
-                        bool blocking,
-                        bool log) {
-  return readFile(path, content, 0, false, true, blocking, log);
 }
 
 Status isWritable(const fs::path& path, bool effective) {

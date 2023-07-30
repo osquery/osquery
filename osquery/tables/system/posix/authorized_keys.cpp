@@ -101,7 +101,7 @@ void genSSHkeysForUser(const std::string& uid,
       continue;
     }
 
-    auto s = forensicReadFile(keys_file, keys_content, false, false);
+    auto s = readFile(keys_file, keys_content, false, false, false);
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_ERROR, s.getMessage());
@@ -180,5 +180,5 @@ QueryData getAuthorizedKeys(QueryContext& context) {
     return getAuthorizedKeysImpl(context, logger);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
