@@ -47,18 +47,18 @@ bool BPFProcessEventSubscriber::generateRow(
     return false;
   }
 
-  row["ntime"] = TEXT(event.bpf_header.timestamp);
+  row["ntime"] = SQL_TEXT(event.bpf_header.timestamp);
   row["tid"] = INTEGER(event.bpf_header.thread_id);
   row["pid"] = INTEGER(event.bpf_header.process_id);
   row["uid"] = INTEGER(event.bpf_header.user_id);
   row["gid"] = INTEGER(event.bpf_header.group_id);
   row["cid"] = INTEGER(event.bpf_header.cgroup_id);
-  row["exit_code"] = TEXT(std::to_string(event.bpf_header.exit_code));
+  row["exit_code"] = SQL_TEXT(std::to_string(event.bpf_header.exit_code));
   row["probe_error"] = INTEGER(event.bpf_header.probe_error);
-  row["syscall"] = TEXT("exec");
+  row["syscall"] = SQL_TEXT("exec");
   row["parent"] = INTEGER(event.parent_process_id);
-  row["path"] = TEXT(event.binary_path);
-  row["cwd"] = TEXT(event.cwd);
+  row["path"] = SQL_TEXT(event.binary_path);
+  row["cwd"] = SQL_TEXT(event.cwd);
   row["duration"] = INTEGER(event.bpf_header.duration);
 
   if (!std::holds_alternative<ISystemStateTracker::Event::ExecData>(

@@ -102,21 +102,21 @@ QueryData genConnectedDisplays(QueryContext& context) {
       }
 
       if ([obj valueForKey:@"_name"]) {
-        r["name"] = TEXT([[obj valueForKey:@"_name"] UTF8String]);
+        r["name"] = SQL_TEXT([[obj valueForKey:@"_name"] UTF8String]);
       }
 
       if ([obj valueForKey:@"_spdisplays_display-product-id"]) {
-        r["product_id"] = TEXT(
+        r["product_id"] = SQL_TEXT(
             [[obj valueForKey:@"_spdisplays_display-product-id"] UTF8String]);
       }
 
       if ([obj valueForKey:@"_spdisplays_display-serial-number"]) {
-        r["serial_number"] = TEXT([[obj
+        r["serial_number"] = SQL_TEXT([[obj
             valueForKey:@"_spdisplays_display-serial-number"] UTF8String]);
       }
 
       if ([obj valueForKey:@"_spdisplays_display-vendor-id"]) {
-        r["vendor_id"] = TEXT(
+        r["vendor_id"] = SQL_TEXT(
             [[obj valueForKey:@"_spdisplays_display-vendor-id"] UTF8String]);
       }
 
@@ -129,24 +129,24 @@ QueryData genConnectedDisplays(QueryContext& context) {
 
       if ([obj valueForKey:@"_spdisplays_display-year"]) {
         r["manufactured_year"] =
-            TEXT([[obj valueForKey:@"_spdisplays_display-year"] intValue]);
+            SQL_TEXT([[obj valueForKey:@"_spdisplays_display-year"] intValue]);
       } else {
         r["manufactured_year"] = INTEGER(-1);
       }
 
       if ([obj valueForKey:@"_spdisplays_displayID"]) {
         r["display_id"] =
-            TEXT([[obj valueForKey:@"_spdisplays_displayID"] UTF8String]);
+            SQL_TEXT([[obj valueForKey:@"_spdisplays_displayID"] UTF8String]);
       }
 
       if ([obj valueForKey:@"_spdisplays_pixels"]) {
         r["pixels"] =
-            TEXT([[obj valueForKey:@"_spdisplays_pixels"] UTF8String]);
+            SQL_TEXT([[obj valueForKey:@"_spdisplays_pixels"] UTF8String]);
       }
 
       if ([obj valueForKey:@"_spdisplays_resolution"]) {
         r["resolution"] =
-            TEXT([[obj valueForKey:@"_spdisplays_resolution"] UTF8String]);
+            SQL_TEXT([[obj valueForKey:@"_spdisplays_resolution"] UTF8String]);
       }
 
       if (NSString* ambient_brightness_enabled =
@@ -162,13 +162,13 @@ QueryData genConnectedDisplays(QueryContext& context) {
       }
 
       if ([obj valueForKey:@"spdisplays_connection_type"]) {
-        r["connection_type"] =
-            TEXT([[obj valueForKey:@"spdisplays_connection_type"] UTF8String]);
+        r["connection_type"] = SQL_TEXT(
+            [[obj valueForKey:@"spdisplays_connection_type"] UTF8String]);
       }
 
       if ([obj valueForKey:@"spdisplays_display_type"]) {
         r["display_type"] =
-            TEXT([[obj valueForKey:@"spdisplays_display_type"] UTF8String]);
+            SQL_TEXT([[obj valueForKey:@"spdisplays_display_type"] UTF8String]);
       }
 
       if (NSString* main = [obj valueForKey:@"spdisplays_main"]) {

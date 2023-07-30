@@ -31,7 +31,7 @@ void genShadowForAccount(const struct spwd* spwd, QueryData& results) {
   r["expire"] = BIGINT(spwd->sp_expire);
   r["flag"] = BIGINT(spwd->sp_flag);
 
-  r["username"] = spwd->sp_namp != nullptr ? TEXT(spwd->sp_namp) : "";
+  r["username"] = spwd->sp_namp != nullptr ? SQL_TEXT(spwd->sp_namp) : "";
 
   if (spwd->sp_pwdp != nullptr) {
     std::string password = std::string(spwd->sp_pwdp);
@@ -80,5 +80,5 @@ QueryData genShadow(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -70,7 +70,7 @@ static std::string getRpmAttribute(const Header& header,
   } else if (rpmTagGetClass(tag) == RPM_STRING_CLASS) {
     const char* attr = rpmtdGetString(td);
     if (attr != nullptr) {
-      result = TEXT(attr);
+      result = SQL_TEXT(attr);
     }
   }
 

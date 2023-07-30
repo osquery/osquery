@@ -43,7 +43,7 @@ std::string formatInvFlag(const iptcproxy_rule& rule, int flag) {
 
 void parseIptcpRule(const iptcproxy_rule& rule, Row& r) {
   if (rule.target != nullptr) {
-    r["target"] = TEXT(rule.target);
+    r["target"] = SQL_TEXT(rule.target);
   } else {
     r["target"] = "";
   }
@@ -68,14 +68,14 @@ void parseIptcpRule(const iptcproxy_rule& rule, Row& r) {
       formatInvFlag(rule, IPTC_INV_PROTO) + INTEGER(rule.ip_data.proto);
   if (strlen(rule.ip_data.iniface)) {
     r["iniface"] =
-        formatInvFlag(rule, IPTC_INV_VIA_IN) + TEXT(rule.ip_data.iniface);
+        formatInvFlag(rule, IPTC_INV_VIA_IN) + SQL_TEXT(rule.ip_data.iniface);
   } else {
     r["iniface"] = "all";
   }
 
   if (strlen(rule.ip_data.outiface)) {
     r["outiface"] =
-        formatInvFlag(rule, IPTC_INV_VIA_OUT) + TEXT(rule.ip_data.outiface);
+        formatInvFlag(rule, IPTC_INV_VIA_OUT) + SQL_TEXT(rule.ip_data.outiface);
   } else {
     r["outiface"] = "all";
   }
@@ -96,7 +96,7 @@ void parseIptcpRule(const iptcproxy_rule& rule, Row& r) {
     iniface_mask += aux_char[1];
   }
 
-  r["iniface_mask"] = TEXT(iniface_mask);
+  r["iniface_mask"] = SQL_TEXT(iniface_mask);
   std::string outiface_mask = "";
   for (int i = 0; i < IFNAMSIZ && rule.ip_data.outiface_mask[i] != 0x00; i++) {
     aux_char[0] = kHexMap[(int)rule.ip_data.outiface_mask[i] >> kMaskHighBits];
@@ -104,10 +104,10 @@ void parseIptcpRule(const iptcproxy_rule& rule, Row& r) {
     outiface_mask += aux_char[0];
     outiface_mask += aux_char[1];
   }
-  r["outiface_mask"] = TEXT(outiface_mask);
+  r["outiface_mask"] = SQL_TEXT(outiface_mask);
 }
 
-void genIPTablesRules(const std::string &filter, QueryData &results) {
+void genIPTablesRules(const std::string& filter, QueryData& results) {
   Row r;
   r["filter_name"] = filter;
 
@@ -118,13 +118,12 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
   }
 
   // Iterate through chains
-  for (auto chain = iptcproxy_first_chain(handle);
-      chain != nullptr;
-      chain = iptcproxy_next_chain(handle)) {
-    r["chain"] = TEXT(chain->chain);
+  for (auto chain = iptcproxy_first_chain(handle); chain != nullptr;
+       chain = iptcproxy_next_chain(handle)) {
+    r["chain"] = SQL_TEXT(chain->chain);
 
     if (chain->policy != nullptr) {
-      r["policy"] = TEXT(chain->policy);
+      r["policy"] = SQL_TEXT(chain->policy);
       r["packets"] = INTEGER(chain->policy_data.pcnt);
       r["bytes"] = INTEGER(chain->policy_data.bcnt);
     } else {
@@ -147,14 +146,14 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
   iptcproxy_free(handle);
 }
 
-QueryData genIptables(QueryContext &context) {
+QueryData genIptables(QueryContext& context) {
   QueryData results;
 
   // Read in table names
   std::string content;
   auto s = osquery::readFile(kLinuxIpTablesNames, content);
   if (s.ok()) {
-    for (auto &line : split(content, "\n")) {
+    for (auto& line : split(content, "\n")) {
       boost::trim(line);
       if (line.size() > 0) {
         genIPTablesRules(line, results);
@@ -167,5 +166,5 @@ QueryData genIptables(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

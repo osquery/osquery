@@ -31,10 +31,10 @@ QueryData genMounts(QueryContext& context) {
 
   for (i = 0; i < mnts; i++) {
     Row r;
-    r["path"] = TEXT(mnt[i].f_mntonname);
-    r["device"] = TEXT(mnt[i].f_mntfromname);
+    r["path"] = SQL_TEXT(mnt[i].f_mntonname);
+    r["device"] = SQL_TEXT(mnt[i].f_mntfromname);
     r["device_alias"] = canonicalize_file_name(mnt[i].f_mntfromname);
-    r["type"] = TEXT(mnt[i].f_fstypename);
+    r["type"] = SQL_TEXT(mnt[i].f_fstypename);
     r["flags"] = INTEGER(mnt[i].f_flags);
     r["blocks"] = BIGINT(mnt[i].f_blocks);
     r["blocks_free"] = BIGINT(mnt[i].f_bfree);

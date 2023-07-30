@@ -121,7 +121,7 @@ QueryData genGroups(QueryContext& context) {
         if (grp != nullptr) {
           genGroupRow(r, grp);
         } else {
-          r["groupname"] = TEXT(groupname.first);
+          r["groupname"] = SQL_TEXT(groupname.first);
         }
 
         results.push_back(r);
@@ -132,14 +132,14 @@ QueryData genGroups(QueryContext& context) {
 }
 
 void genUserRow(Row& r, const passwd* pwd) {
-  r["username"] = TEXT(pwd->pw_name);
+  r["username"] = SQL_TEXT(pwd->pw_name);
   r["uid"] = BIGINT(pwd->pw_uid);
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
-  r["description"] = TEXT(pwd->pw_gecos);
-  r["directory"] = TEXT(pwd->pw_dir);
-  r["shell"] = TEXT(pwd->pw_shell);
+  r["description"] = SQL_TEXT(pwd->pw_gecos);
+  r["directory"] = SQL_TEXT(pwd->pw_dir);
+  r["shell"] = SQL_TEXT(pwd->pw_shell);
 
   uuid_t uuid = {0};
   uuid_string_t uuid_string = {0};
@@ -150,7 +150,7 @@ void genUserRow(Row& r, const passwd* pwd) {
   mbr_uid_to_uuid(pwd->pw_uid, uuid);
 
   uuid_unparse(uuid, uuid_string);
-  r["uuid"] = TEXT(uuid_string);
+  r["uuid"] = SQL_TEXT(uuid_string);
 }
 
 QueryData genUsers(QueryContext& context) {
@@ -189,7 +189,7 @@ QueryData genUsers(QueryContext& context) {
         if (pwd != nullptr) {
           genUserRow(r, pwd);
         } else {
-          r["username"] = TEXT(username.first.c_str());
+          r["username"] = SQL_TEXT(username.first.c_str());
         }
 
         results.push_back(r);
