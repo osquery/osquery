@@ -13,6 +13,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
@@ -23,16 +24,6 @@ namespace osquery {
 namespace tables {
 
 namespace {
-
-/// A helper check to rename bool-type values as 1 or 0.
-inline void jsonBoolAsInt(std::string& s) {
-  auto expected = tryTo<bool>(s);
-  if (expected.isValue()) {
-    s = expected.get() ? "1" : "0";
-  }
-}
-
-} // namespace
 
 /// Each home directory will include custom extensions.
 #if defined(__APPLE__)
@@ -64,30 +55,99 @@ const std::map<std::string, std::string> kFirefoxAddonKeys = {
     {"path", "path"},
 };
 
+bool isMemberTrue(const char* member_name, const rapidjson::Value& from) {
+  auto member = from.FindMember(member_name);
+
+  return member != from.MemberEnd() ? JSON::valueToBool(member->value) : false;
+}
+
+rapidjson::Value::ConstMemberIterator findNestedMember(
+    const std::string& member_name, const rapidjson::Value& value) {
+  auto child_members = osquery::split(member_name, ".");
+
+  rapidjson::Value::ConstMemberIterator member_it;
+  const rapidjson::Value* current_value = &value;
+  for (const auto& child_member : child_members) {
+    member_it = current_value->FindMember(child_member);
+
+    if (member_it == current_value->MemberEnd()) {
+      return member_it;
+    }
+
+    current_value = &member_it->value;
+  }
+
+  return member_it;
+}
+} // namespace
+
 void genFirefoxAddonsFromExtensions(const std::string& uid,
                                     const std::string& path,
                                     QueryData& results) {
-  pt::ptree tree;
-  if (!osquery::parseJSON(path + kFirefoxExtensionsFile, tree).ok()) {
-    TLOG << "Could not parse JSON from: " << path + kFirefoxExtensionsFile;
+  JSON extensions;
+  Status status;
+  std::string extensions_path = path + kFirefoxExtensionsFile;
+  {
+    std::string content;
+
+    status = readFile(extensions_path, content);
+    if (!status.ok()) {
+      TLOG << "Failed to read the extensions file at: " << extensions_path
+           << ", error: " << status.getMessage();
+      return;
+    }
+
+    status = extensions.fromString(content);
+
+    if (!status.ok()) {
+      TLOG << "Failed to parse to JSON the extensions file at: "
+           << extensions_path << ", error: " << status.getMessage();
+      return;
+    }
+  }
+
+  const auto addons_it = extensions.doc().FindMember("addons");
+
+  if (addons_it == extensions.doc().MemberEnd()) {
+    TLOG << "Failed to parse the JSON extensions file at: " << extensions_path
+         << ", could not find the 'addons' JSON member";
     return;
   }
 
-  for (const auto& addon : tree.get_child("addons")) {
+  const auto& addons = addons_it->value;
+
+  if (!addons.IsArray()) {
+    TLOG << "Unrecognized format for the 'addons' member in the extensions "
+            "file at: "
+         << extensions_path << ", it's not an array";
+  }
+
+  for (const auto& addon : addons.GetArray()) {
     Row r;
     r["uid"] = uid;
     // Most of the keys are in the top-level JSON dictionary.
     for (const auto& it : kFirefoxAddonKeys) {
-      r[it.second] = addon.second.get(it.first, "");
+      const auto member_it = findNestedMember(it.first, addon);
 
-      // Convert bool-types to an integer.
-      jsonBoolAsInt(r[it.second]);
+      if (member_it == addon.MemberEnd()) {
+        continue;
+      }
+
+      const auto value = JSON::valueToString(member_it->value);
+      if (!value.has_value()) {
+        TLOG << "Failed to convert member '" << member_it->name.GetString()
+             << "' to a string, in JSON extensions file at: "
+             << extensions_path;
+        continue;
+      }
+
+      r[it.second] = SQL_TEXT(*value);
     }
 
     // There are several ways to disabled the addon, check each.
-    if (addon.second.get("softDisable", "false") == "true" ||
-        addon.second.get("appDisabled", "false") == "true" ||
-        addon.second.get("userDisabled", "false") == "true") {
+    if (isMemberTrue("softDisable", addon) ||
+        isMemberTrue("appDisabled", addon) ||
+        isMemberTrue("userDisabled", addon)) {
       r["disabled"] = INTEGER(1);
     } else {
       r["disabled"] = INTEGER(0);

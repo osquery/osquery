@@ -299,17 +299,6 @@ std::string lsperms(int mode);
 Status parseJSON(const boost::filesystem::path& path,
                  boost::property_tree::ptree& tree);
 
-/**
- * @brief Parse JSON content into a property tree.
- *
- * @param content JSON string data.
- * @param tree output property tree.
- *
- * @return an instance of Status, indicating success or failure if malformed.
- */
-Status parseJSONContent(const std::string& content,
-                        boost::property_tree::ptree& tree);
-
 #ifdef __linux__
 /**
  * @brief Iterate over `/proc` process, returns a list of pids.
@@ -376,7 +365,8 @@ Status readRawMem(size_t base, size_t length, void** buffer);
  * Given a set of paths we bundle these into a tar archive.
  */
 Status archive(const std::set<boost::filesystem::path>& path,
-               const boost::filesystem::path& out, std::size_t block_size = 8192);
+               const boost::filesystem::path& out,
+               std::size_t block_size = 8192);
 
 /*
  * @brief Given a path, compress it with zstd and save to out.

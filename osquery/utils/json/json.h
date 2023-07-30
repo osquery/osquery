@@ -11,6 +11,8 @@
 
 #include <cstddef>
 
+#include <boost/optional.hpp>
+
 #include <osquery/utils/only_movable.h>
 #include <osquery/utils/status/status.h>
 #include <osquery/utils/system/system.h>
@@ -373,6 +375,15 @@ class JSON : private only_movable {
 
   /// Get the value as a 'bool' or false.
   static bool valueToBool(const rapidjson::Value& value);
+
+  /// @brief Convert a single, non-object, non-array value to a string
+  /// Booleans are converted to "0" or "1",
+  /// null values are converted to the "null" string
+  /// @param value The value to convert
+  /// @return The value in string form or boost::none
+  /// if it's an unsupported value type
+  static boost::optional<std::string> valueToString(
+      const rapidjson::Value& value);
 
  private:
   rapidjson::Document doc_;
