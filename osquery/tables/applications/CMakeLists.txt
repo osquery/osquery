@@ -64,6 +64,12 @@ function(generateOsqueryTablesApplications)
     thirdparty_boost
   )
 
+  if(DEFINED PLATFORM_MACOS)
+    target_link_libraries(osquery_tables_applications PRIVATE
+      osquery_utils_plist
+    )
+  endif()
+
   set(public_header_files
     chrome/utils.h
   )
