@@ -252,7 +252,7 @@ inline void runDecorators(const std::string& source,
   for (const auto& query : queries) {
     SQL results(query);
     if (results.rows().size() > 0) {
-      // Notice the warning above about undefined behavior when:
+      // Notice the warning below about undefined behavior when:
       // 1: You include decorators that emit the same column name
       // 2: You include a query that returns more than 1 row.
       for (const auto& column : results.rows()[0]) {
