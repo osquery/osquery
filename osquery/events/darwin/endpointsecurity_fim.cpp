@@ -108,29 +108,35 @@ void EndpointSecurityFileEventPublisher::configure() {
     }
 
     auto parser = Config::getParser("file_paths");
-    std::vector<std::string> paths_to_watch = {};
-    Config::get().files([this, &paths_to_watch](const std::string& category,
-                             const std::vector<std::string>& files) {
-      std::vector<std::string> resolved_paths = {};
-      for (auto file : files) {
-        VLOG(1) << "Processing path: " << file;
-        replaceGlobWildcards(file);
-        resolveFilePattern(file, paths_to_watch);
-      }
-    });
+    if (parser != nullptr) {
+      std::vector<std::string> paths_to_watch = {};
+      Config::get().files([this, &paths_to_watch](const std::string& category,
+                                                  const std::vector<std::string>& files) {
+        std::vector<std::string> resolved_paths = {};
+        for (auto file : files) {
+          VLOG(1) << "Processing path: " << file;
+          replaceGlobWildcards(file);
+          resolveFilePattern(file, paths_to_watch);
+        }
+      });
 
-    // Invert muting for target paths
-    es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
+      if (!paths_to_watch.empty()) {
+        if (__builtin_available(macos 13.0, *)) {
+          // Invert muting for target paths
+          es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
 
-    // select only paths we want
-    es_unmute_all_target_paths(es_file_client_);
-    for (auto p : paths_to_watch) {
-      if (isDirectory(p).ok()) {
-        es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_PREFIX);
-      } else {
-        es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+          // select only paths we want
+          es_unmute_all_target_paths(es_file_client_);
+          for (auto p : paths_to_watch) {
+            if (isDirectory(p).ok()) {
+              es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_PREFIX);
+            } else {
+              es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+            }
+            VLOG(1) << "Monitoring path: " << p;
+          }
+        }
       }
-      VLOG(1) << "Monitoring path: " << p;
     }
 
 
