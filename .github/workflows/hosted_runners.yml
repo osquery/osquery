@@ -530,7 +530,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-11]
+        os: [macos-12]
 
         exclude:
           - build_type: Debug
@@ -654,16 +654,12 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_13.0.app/Contents/Developer"
+        xcode_path="/Applications/Xcode_14.1.app/Contents/Developer"
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
 
-        if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
-          echo "DEPLOYMENT_TARGET=10.14" >> $GITHUB_OUTPUT
-        else
-          echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
-        fi
+        echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
