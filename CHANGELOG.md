@@ -1,5 +1,63 @@
 # osquery Changelog
 
+<a name="5.9.1"></a>
+## [5.9.1](https://github.com/osquery/osquery/releases/tag/5.9.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.8.2...5.9.1)
+
+Big shoutout for the Windows Arm port!
+
+Representing commits from 14 contributors! Thank you all.
+
+### New Features
+
+- Add support for Windows on Arm ([#7918](https://github.com/osquery/osquery/pull/7918))
+- logger: Add new `string_batch` request type to compliment existing `string` type ([#8027](https://github.com/osquery/osquery/pull/8027))
+
+### Table Changes
+
+- Add `connected_displays` table on macOS ([#7946](https://github.com/osquery/osquery/pull/7946))
+- Add `windows_search` table ([#7990](https://github.com/osquery/osquery/pull/7990))
+- Restore functionality of `crashes` table on macOS 12 and newer ([#7819](https://github.com/osquery/osquery/pull/7819))
+- Update `keychain_items` to include data about key types ([#8002](https://github.com/osquery/osquery/pull/8002))
+- Update `os_version` to include Apple RSR fields using native API ([#8011](https://github.com/osquery/osquery/pull/8011))
+- Update `safari_extensions` to handle the current app extensions pattern ([#7991](https://github.com/osquery/osquery/pull/7991))
+- Update `system_info` to include the nnumber of sockets ([#8038](https://github.com/osquery/osquery/pull/8038))
+- Update `unified_log` table to add `predicate` column and optimize timestamp constraint ([#8019](https://github.com/osquery/osquery/pull/8019))
+
+### Under the Hood improvements
+
+- Improving `listDirectoriesInDirectory` by using `std::fs` ([#7974](https://github.com/osquery/osquery/pull/7974))
+- Do not consider a 404 as an error in ec2-instance-metadata ([#8025](https://github.com/osquery/osquery/pull/8025))
+- Release objects and free memory obtained from COM ([#7999](https://github.com/osquery/osquery/pull/7999))
+- Do not pass wstring::c_str() to wstringToString function ([#8000](https://github.com/osquery/osquery/pull/8000))
+- Do not copy process arguments into vector for CreateProcess call ([#7956](https://github.com/osquery/osquery/pull/7956))
+
+### Bug Fixes
+
+- Fix `version` column in `homebrew_packages` ([#8057](https://github.com/osquery/osquery/pull/8057))
+- Improve extended_attributes implementation for Linux and macOS ([#8046](https://github.com/osquery/osquery/pull/8046))
+- Update event tables to mark time column as "additional" ([#8020](https://github.com/osquery/osquery/pull/8020))
+
+### Documentation
+
+- Update expired Slack invite ([#8051](https://github.com/osquery/osquery/pull/8051))
+- Update `es_process_file_events.table` description ([#7978](https://github.com/osquery/osquery/pull/7978))
+- CHANGELOG 5.8.2 ([#7986](https://github.com/osquery/osquery/pull/7986))
+
+### Build
+
+- cve: Update to openssl 1.1.1u ([#8050](https://github.com/osquery/osquery/pull/8050))
+- cmake: Add an option to disable shallow git clone operations ([#8026](https://github.com/osquery/osquery/pull/8026))
+- Fix the aarch64 workflow ([#8036](https://github.com/osquery/osquery/pull/8036))
+- test: Fix a leak in ExtendedAttributesTableTests SetUp function ([#8045](https://github.com/osquery/osquery/pull/8045))
+- cve: Update libxml2 to v2.11.2 ([#8023](https://github.com/osquery/osquery/pull/8023))
+- libs: Bring out LZ4 from rdkafka and update it to v1.9.4 ([#7996](https://github.com/osquery/osquery/pull/7996))
+- ci: Update python version and docs build tools ([#7969](https://github.com/osquery/osquery/pull/7969))
+- ci: Update aarch64 runner to Ubuntu 20.04 and update badges ([#7984](https://github.com/osquery/osquery/pull/7984))
+- Add few unit tests for the hashing component ([#7993](https://github.com/osquery/osquery/pull/7993))
+
+
 <a name="5.8.2"></a>
 ## [5.8.2](https://github.com/osquery/osquery/releases/tag/5.8.2)
 
