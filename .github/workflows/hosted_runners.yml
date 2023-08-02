@@ -788,7 +788,8 @@ jobs:
       - name: Install tests dependencies
         run: |
           python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
-          ${python_root}/pip3 install setuptools \
+
+          ${python_root}/bin/pip3 install setuptools \
                        pexpect==3.3 \
                        psutil \
                        timeout_decorator \
