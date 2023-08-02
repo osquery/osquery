@@ -766,8 +766,6 @@ jobs:
   # This job takes the packaged tests (Release + Debug) from the Monterey
   # builder and runs them on a new Big Sur instance
   test_macos_bigsur:
-    # TODO: This is temporarily disabled until we update the main macOS build job to use Monterey
-    if: ${{ false }}
 
     needs: build_macos
 
@@ -827,11 +825,9 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    # TODO: This has to be changed back to the job test after we update to Monterey
-    needs: build_macos
-    # needs: test_macos_bigsur
+    needs: test_macos_bigsur
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - name: Clone the osquery repository
