@@ -17,7 +17,7 @@ namespace osquery {
 namespace tables {
 
 // rootless configuration flags
-// https://opensource.apple.com/source/xnu/xnu-3248.20.55/bsd/sys/csr.h
+// https://opensource.apple.com/source/xnu/xnu-7195.141.2/bsd/sys/csr.h
 const std::map<std::string, uint32_t> kRootlessConfigFlags = {
     // CSR_ALLOW_UNTRUSTED_KEXTS
     {"allow_untrusted_kexts", (1 << 0)},
@@ -35,6 +35,14 @@ const std::map<std::string, uint32_t> kRootlessConfigFlags = {
     {"allow_unrestricted_nvram", (1 << 6)},
     // CSR_ALLOW_DEVICE_CONFIGURATION
     {"allow_device_configuration", (1 << 7)},
+    // CSR_ALLOW_ANY_RECOVERY_OS
+    {"allow_any_recovery_os", (1 << 8)},
+    // CSR_ALLOW_UNAPPROVED_KEXTS
+    {"allow_unapproved_kexts", (1 << 9)},
+    // CSR_ALLOW_EXECUTABLE_POLICY_OVERRIDE
+    {"allow_executable_policy_override", (1 << 10)},
+    // CSR_ALLOW_UNAUTHENTICATED_ROOT
+    {"allow_unauthenticated_root", (1 << 11)},
 };
 
 #define kIODeviceTreeChosenPath_ "IODeviceTree:/options"
