@@ -530,7 +530,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-11]
+        os: [macos-12]
 
         exclude:
           - build_type: Debug
@@ -654,16 +654,12 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_13.0.app/Contents/Developer"
+        xcode_path="/Applications/Xcode_14.1.app/Contents/Developer"
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
 
-        if [[ "${{ matrix.architecture }}" == "x86_64" ]] ; then
-          echo "DEPLOYMENT_TARGET=10.14" >> $GITHUB_OUTPUT
-        else
-          echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
-        fi
+        echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -770,8 +766,6 @@ jobs:
   # This job takes the packaged tests (Release + Debug) from the Monterey
   # builder and runs them on a new Big Sur instance
   test_macos_bigsur:
-    # TODO: This is temporarily disabled until we update the main macOS build job to use Monterey
-    if: ${{ false }}
 
     needs: build_macos
 
@@ -794,7 +788,8 @@ jobs:
       - name: Install tests dependencies
         run: |
           python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
-          ${python_root}/pip3 install setuptools \
+
+          ${python_root}/bin/pip3 install setuptools \
                        pexpect==3.3 \
                        psutil \
                        timeout_decorator \
@@ -831,11 +826,9 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    # TODO: This has to be changed back to the job test after we update to Monterey
-    needs: build_macos
-    # needs: test_macos_bigsur
+    needs: test_macos_bigsur
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - name: Clone the osquery repository
