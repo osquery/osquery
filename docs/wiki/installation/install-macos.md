@@ -3,8 +3,8 @@
 Continuous Integration currently tests macOS builds of osquery against macOS 11 (see the `os: [macos-` line in
 the `build_macos` section of the [CI
 configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/build.yml). All core functionality of
-osquery should work on macOS 10.14 or newer, although some tables may read data present only on certain versions of
-macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.13 and older are no longer supported.
+osquery should work on macOS 10.15 or newer, although some tables may read data present only on certain versions of
+macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.14 and older are no longer supported.
 
 ## Package Installation
 
