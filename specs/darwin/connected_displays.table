@@ -3,9 +3,9 @@ description("Provides information about the connected displays of the machine.")
 schema([
     Column("name", TEXT, "The name of the display."),
     Column("product_id", TEXT, "The product ID of the display."),
-    Column("serial_number", TEXT, "The serial number of the display."), 
+    Column("serial_number", TEXT, "The serial number of the display. (may not be unique)"),
     Column("vendor_id", TEXT, "The vendor ID of the display."),
-    Column("manufactured_week", INTEGER, "The manufacture week of the display. This field is 0 if not supported"), 
+    Column("manufactured_week", INTEGER, "The manufacture week of the display. This field is 0 if not supported"),
     Column("manufactured_year", INTEGER, "The manufacture year of the display. This field is 0 if not supported"),
     Column("display_id", TEXT, "The display ID."),
     Column("pixels", TEXT, "The number of pixels of the display."),
