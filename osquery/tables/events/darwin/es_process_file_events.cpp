@@ -12,8 +12,8 @@
 #include <os/availability.h>
 
 #include <osquery/core/flags.h>
-#include <osquery/events/darwin/es_utils.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_utils.h>
 #include <osquery/events/events.h>
 #include <osquery/registry/registry_factory.h>
 

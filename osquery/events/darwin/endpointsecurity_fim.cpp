@@ -123,7 +123,7 @@ void EndpointSecurityFileEventPublisher::configure() {
         VLOG(1) << "Unable to mute default path: " << p;
       }
     }
-    
+
     if (__builtin_available(macos 13.0, *)) {
       auto parser = Config::getParser("file_paths");
       if (parser != nullptr) {

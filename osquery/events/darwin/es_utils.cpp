@@ -38,11 +38,7 @@ FLAG(string,
      "Comma delimited list of path prefixes to be muted for FIM");
 
 // document performance issues
-FLAG(bool,
-     es_fim_enable_open_events,
-     false,
-     "Enable open events");
-
+FLAG(bool, es_fim_enable_open_events, false, "Enable open events");
 
 std::string getEsNewClientErrorMessage(const es_new_client_result_t r) {
   switch (r) {
