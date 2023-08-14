@@ -11,11 +11,11 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <osquery/core/flags.h>
 #include <osquery/config/config.h>
-#include <osquery/filesystem/filesystem.h>
+#include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/events/darwin/es_utils.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
@@ -87,58 +87,92 @@ void EndpointSecurityFileEventPublisher::configure() {
     auto events = sc->es_file_event_subscriptions_;
 
     for (const auto& p : muted_path_literals_) {
-      auto result = es_mute_path_literal(es_file_client_, p.c_str());
-      if (result == ES_RETURN_ERROR) {
+      es_return_t rc;
+      if (__builtin_available(macos 13.0, *)) {
+        rc =
+            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
+      } else {
+        rc = es_mute_path_literal(es_file_client_, p.c_str());
+      }
+      if (rc == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path literal: " << p;
       }
     }
 
     for (const auto& p : muted_path_prefixes_) {
-      auto result = es_mute_path_prefix(es_file_client_, p.c_str());
-      if (result == ES_RETURN_ERROR) {
+      es_return_t rc;
+      if (__builtin_available(macos 13.0, *)) {
+        rc = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
+      } else {
+        rc = es_mute_path_prefix(es_file_client_, p.c_str());
+      }
+      if (rc == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path with prefix: " << p;
       }
     }
 
     for (const auto& p : default_muted_path_literals_) {
-      auto result = es_mute_path_literal(es_file_client_, p.c_str());
-      if (result == ES_RETURN_ERROR) {
+      es_return_t rc;
+      if (__builtin_available(macos 13.0, *)) {
+        rc =
+            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
+      } else {
+        rc = es_mute_path_literal(es_file_client_, p.c_str());
+      }
+      if (rc == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute default path: " << p;
       }
     }
-
-    auto parser = Config::getParser("file_paths");
-    if (parser != nullptr) {
-      std::vector<std::string> paths_to_watch = {};
-      Config::get().files([this, &paths_to_watch](const std::string& category,
-                                                  const std::vector<std::string>& files) {
-        std::vector<std::string> resolved_paths = {};
-        for (auto file : files) {
-          VLOG(1) << "Processing path: " << file;
-          replaceGlobWildcards(file);
-          resolveFilePattern(file, paths_to_watch);
-        }
-      });
-
-      if (!paths_to_watch.empty()) {
-        if (__builtin_available(macos 13.0, *)) {
-          // Invert muting for target paths
-          es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
-
-          // select only paths we want
-          es_unmute_all_target_paths(es_file_client_);
-          for (auto p : paths_to_watch) {
-            if (isDirectory(p).ok()) {
-              es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_PREFIX);
-            } else {
-              es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+    
+    if (__builtin_available(macos 13.0, *)) {
+      auto parser = Config::getParser("file_paths");
+      if (parser != nullptr) {
+        const auto& doc = parser->getData();
+        if (doc.doc().HasMember("exclude_paths")) {
+          for (const auto& cat : doc.doc()["exclude_paths"].GetObject()) {
+            for (const auto& ex_path : cat.value.GetArray()) {
+              std::string pattern = ex_path.GetString();
+              if (!pattern.empty()) {
+                resolveFilePattern(ex_path.GetString(), exclude_paths_);
+              }
             }
-            VLOG(1) << "Monitoring path: " << p;
+          }
+        }
+
+        Config::get().files([this](const std::string& category,
+                                   const std::vector<std::string>& files) {
+          for (auto file : files) {
+            replaceGlobWildcards(file);
+            resolveFilePattern(file, file_paths_);
+          }
+        });
+
+        // Invert muting for target paths, now any calls to mute path APIs will
+        // select instead of mute
+        es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
+        // select only the paths we want, recommended best practice to call
+        // unmute on target paths, before calling "inverted" mute APIs
+        es_unmute_all_target_paths(es_file_client_);
+        for (auto p : file_paths_) {
+          if (std::find(exclude_paths_.begin(), exclude_paths_.end(), p) ==
+              exclude_paths_.end()) {
+            // p is not one of the excluded_paths, we monitor
+            auto result = isDirectory(p).ok()
+                              ? es_mute_path(es_file_client_,
+                                             p.c_str(),
+                                             ES_MUTE_PATH_TYPE_TARGET_PREFIX)
+                              : es_mute_path(es_file_client_,
+                                             p.c_str(),
+                                             ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+            if (result == ES_RETURN_SUCCESS) {
+              VLOG(1) << "Monitoring path: " << p;
+            } else {
+              VLOG(1) << "Error while trying to monitor path: " << p;
+            }
           }
         }
       }
     }
-
 
     // mute ourselves
     audit_token_t self;
