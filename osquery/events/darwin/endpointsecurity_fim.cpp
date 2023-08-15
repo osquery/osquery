@@ -137,9 +137,11 @@ void EndpointSecurityFileEventPublisher::configure() {
             for (const auto& cat : doc["exclude_paths"].GetObject()) {
               if (cat.value.IsArray()) {
                 for (const auto& ex_path : cat.value.GetArray()) {
-                  std::string pattern = ex_path.GetString();
-                  if (!pattern.empty()) {
-                    resolveFilePattern(pattern, exclude_paths_);
+                  if (ex_path.IsString()) {
+                    std::string pattern = ex_path.GetString();
+                    if (!pattern.empty()) {
+                      resolveFilePattern(pattern, exclude_paths_);
+                    }
                   }
                 }
               }
