@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <cstring>
+#include <thread>
 
 #include <math.h>
 #include <signal.h>
@@ -18,7 +19,6 @@
 #endif
 
 #include <boost/filesystem.hpp>
-#include <boost/thread.hpp>
 
 #include <osquery/config/config.h>
 #include <osquery/core/shutdown.h>
@@ -68,7 +68,7 @@ using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 
 namespace {
 
-const auto kNumOfCPUs = boost::thread::physical_concurrency();
+const auto kNumOfCPUs = std::thread::hardware_concurrency();
 
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.

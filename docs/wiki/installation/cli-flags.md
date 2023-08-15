@@ -106,25 +106,21 @@ This value sets a maximum number of allowed CPU cycles counted as the `processes
 
 The CPU utilization limit is calculated the following way:
 ```text
-cpu_limit_ms = number_of_real_cores * check_interval_ms * (watchdog_utilization_limit / 100.0)
+cpu_limit_ms = number_of_cores * check_interval_ms * (watchdog_utilization_limit / 100.0)
 ```
 Where:
-- `number_of_real_cores` is the number of physical (not virtual) cores.
+- `number_of_cores` is the number of all cpu cores (physical + virtual).
 - `check_interval_ms` is 3 seconds. It is how often the watchdog checks worker and extension processes for CPU utilization.
 
-Example: On a 2020 MacBook with Quad-Core Intel Core i7, `number_of_real_cores` is 4 (virtual cores are 8), thus by default the CPU utilization limit is `1200ms` meaning that every three seconds the processes are expected to use less than `1200ms` of CPU time (10% of all the CPU time `4 * 3000ms`).
+Example: On a 2020 MacBook with Quad-Core Intel Core i7, the number of physical cores is 4 but `number_of_cores` is 8, thus by default the CPU utilization limit is `2400ms` meaning that every three seconds the processes are expected to use less than `2400ms` of CPU time (10% of all the CPU time `8 * 3000ms`).
 
-> NOTE: On the example above you can see that, on systems with virtual cores, osquery is actually setting the limit to half of the configured utilization (`1200ms` is actually 5% of the full `8 * 3000ms` CPU time).
+> NOTE: Before osquery 5.10.0, on systems with virtual cores, osquery is actually using the count of physical cores, which is normally half the amount, which results in setting the limit to half of the configured utilization (`1200ms` is actually 5% of the full `8 * 3000ms` CPU time).
 
 `--watchdog_latency_limit=0`
 
-If this value is >0 then the watchdog level (`--watchdog_level`) for time
-allowed to spend at maximum sustained CPU utilization is overridden. Use this
-if you would like to allow the `osqueryd` process to use more than the cpu
-utilization limit for longer than the defaults.
+If this value is >0 then the watchdog level (`--watchdog_level`) for time allowed to spend at maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than the cpu utilization limit for longer than the defaults.
 
-This value is a duration in seconds that the watchdog allows osquery to spend
-at maximum sustained CPU utilization.
+This value is a duration in seconds that the watchdog allows osquery to spend at maximum sustained CPU utilization.
 
 The default value is 12 seconds.
 
