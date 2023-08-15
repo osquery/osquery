@@ -124,21 +124,30 @@ void EndpointSecurityFileEventPublisher::configure() {
       }
     }
 
+    // since the newer mute and mute inversion APIs are only available on macOS
+    // 13 and higher gate it behind the availability check
     if (__builtin_available(macos 13.0, *)) {
       auto parser = Config::getParser("file_paths");
       if (parser != nullptr) {
-        const auto& doc = parser->getData();
-        if (doc.doc().HasMember("exclude_paths")) {
-          for (const auto& cat : doc.doc()["exclude_paths"].GetObject()) {
-            for (const auto& ex_path : cat.value.GetArray()) {
-              std::string pattern = ex_path.GetString();
-              if (!pattern.empty()) {
-                resolveFilePattern(ex_path.GetString(), exclude_paths_);
+        // resolve and collect all the exclude_paths first from the config
+        const auto& doc = parser->getData().doc();
+        auto it = doc.FindMember("exclude_paths");
+        if (it != doc.MemberEnd()) {
+          if (doc["exclude_paths"].IsObject()) {
+            for (const auto& cat : doc["exclude_paths"].GetObject()) {
+              if (cat.value.IsArray()) {
+                for (const auto& ex_path : cat.value.GetArray()) {
+                  std::string pattern = ex_path.GetString();
+                  if (!pattern.empty()) {
+                    resolveFilePattern(pattern, exclude_paths_);
+                  }
+                }
               }
             }
           }
         }
 
+        // grab all the file_paths from the config
         Config::get().files([this](const std::string& category,
                                    const std::vector<std::string>& files) {
           for (auto file : files) {

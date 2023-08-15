@@ -35,7 +35,12 @@ Status ESProcessFileEventSubscriber::init() {
     sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_TRUNCATE);
 
     if (FLAGS_es_fim_enable_open_events) {
-      sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_OPEN);
+      // we only want open events on macOS 13 and above
+      if (__builtin_available(macos 13.0, *)) {
+        sc->es_file_event_subscriptions_.push_back(ES_EVENT_TYPE_NOTIFY_OPEN);
+      } else {
+        VLOG(1) << "open events are only enabled for macOS 13 and above";
+      }
     }
 
     subscribe(&ESProcessFileEventSubscriber::Callback, sc);
