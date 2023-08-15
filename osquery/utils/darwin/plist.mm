@@ -190,11 +190,11 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
   @autoreleasepool {
     // Read file content into a data object, containing potential plist data.
     NSError* error = nil;
-    id plist_data =
-        [NSPropertyListSerialization propertyListWithData:plist_content_view
-                                                  options:0
-                                                   format:NULL
-                                                    error:&error];
+    id plist_data = [NSPropertyListSerialization
+        propertyListWithData:plist_content_view
+                     options:NSPropertyListImmutable
+                      format:NULL
+                       error:&error];
     if (plist_data == nil) {
       // The most common error is lack of read permissions.
       std::string error_message([[error localizedFailureReason] UTF8String]);
