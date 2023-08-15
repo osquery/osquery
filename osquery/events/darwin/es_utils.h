@@ -25,4 +25,5 @@ std::string getCwdPathFromPid(pid_t pid);
 std::string getCDHash(const es_process_t* p);
 void getProcessProperties(const es_process_t* p,
                           const EndpointSecurityEventContextRef& ec);
+void appendQuotedString(std::ostream& out, std::string s, char delim);
 } // namespace osquery

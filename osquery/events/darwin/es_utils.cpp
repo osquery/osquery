@@ -153,4 +153,12 @@ void getProcessProperties(const es_process_t* p,
   ec->cwd = getCwdPathFromPid(ec->pid);
 }
 
+void appendQuotedString(std::ostream& out, std::string s, char delim) {
+  if (s.find(delim) != std::string::npos || s.find('"') != std::string::npos) {
+    out << std::quoted(s) << delim;
+  } else {
+    out << s << delim;
+  }
+}
+
 } // namespace osquery
