@@ -10,14 +10,14 @@
 #include "plist.h"
 
 #import <Foundation/Foundation.h>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <sstream>
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
-
-#include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/base64.h>
+#include <osquery/utils/conversions/darwin/cfstring.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -57,8 +57,8 @@ static inline std::string getValue(id value) {
     NSString* dataString = [value base64EncodedStringWithOptions:0];
     return [dataString UTF8String];
   } else if ([value isKindOfClass:[NSDate class]]) {
-    NSNumber* seconds = [[NSNumber alloc]
-        initWithDouble:[value timeIntervalSince1970]];
+    NSNumber* seconds =
+        [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
     return [[seconds stringValue] UTF8String];
   } else if ([value isEqual:@(YES)]) {
     return "true";
@@ -175,27 +175,30 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
 Status parsePlist(const fs::path& path, pt::ptree& tree) {
   tree.clear();
 
-  auto status = Status();
+  std::string plist_content;
+  auto status = readFile(path.string(), plist_content);
+
+  if (!status.ok()) {
+    return Status::failure("Unable to read plist: " + path.string());
+  }
+
+  NSData* plist_content_view =
+      [NSData dataWithBytesNoCopy:plist_content.data()
+                           length:plist_content.length()
+                     freeWhenDone:false];
 
   @autoreleasepool {
-    id ns_path = [NSString stringWithUTF8String:path.string().c_str()];
-    id stream = [NSInputStream inputStreamWithFileAtPath:ns_path];
-    if (stream == nil) {
-      return Status(1, "Unable to read plist: " + path.string());
-    }
-
     // Read file content into a data object, containing potential plist data.
     NSError* error = nil;
-    [stream open];
-    id plist_data = [NSPropertyListSerialization propertyListWithStream:stream
-                                                                options:0
-                                                                 format:NULL
-                                                                  error:&error];
+    id plist_data = [NSPropertyListSerialization
+        propertyListWithData:plist_content_view
+                     options:NSPropertyListImmutable
+                      format:NULL
+                       error:&error];
     if (plist_data == nil) {
       // The most common error is lack of read permissions.
       std::string error_message([[error localizedFailureReason] UTF8String]);
       VLOG(1) << error_message;
-      [stream close];
       return Status(1, error_message);
     }
 
@@ -205,7 +208,6 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
     } @catch (NSException* exception) {
       status = Status(1, "Plist data is corrupted");
     }
-    [stream close];
   }
   return status;
 }
@@ -302,4 +304,4 @@ Status pathFromNestedPlistAliasData(const std::string& data,
 
   return pathFromPlistAliasData(nested_data, result);
 }
-}
+} // namespace osquery

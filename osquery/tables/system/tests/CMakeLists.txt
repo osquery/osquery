@@ -134,6 +134,7 @@ function(generateOsqueryTablesSystemDarwinTests)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
+    osquery_utils_plist
     tests_helper
     thirdparty_googletest
   )

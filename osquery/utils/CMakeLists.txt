@@ -36,6 +36,9 @@ function(osqueryUtilsMain)
   endif()
 
   generateOsqueryUtils()
+  if(DEFINED PLATFORM_MACOS)
+    generateOsqueryUtilsPlist()
+  endif()
 endfunction()
 
 function(generateOsqueryUtils)
@@ -45,12 +48,6 @@ function(generateOsqueryUtils)
     only_movable.cpp
     rot13.cpp
   )
-
-  if(DEFINED PLATFORM_MACOS)
-    list(APPEND source_files
-      darwin/plist.mm
-    )
-  endif()
 
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
@@ -94,7 +91,6 @@ function(generateOsqueryUtils)
 
   if(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
-      darwin/plist.h
       darwin/iokit_helpers.h
     )
 
@@ -118,6 +114,28 @@ function(generateOsqueryUtils)
   generateIncludeNamespace(osquery_utils_attribute "osquery/utils" "FILE_ONLY" ${attribute_public_header_files})
 
   add_test(NAME osquery_utils_utilstests-test COMMAND osquery_utils_utilstests-test)
+
+endfunction()
+
+function(generateOsqueryUtilsPlist)
+
+  list(APPEND source_files
+    darwin/plist.mm
+  )
+
+  add_osquery_library(osquery_utils_plist ${source_files})
+
+  target_link_libraries(osquery_utils_plist PRIVATE
+    osquery_cxx_settings
+    osquery_filesystem
+    thirdparty_boost
+  )
+
+  set(platform_public_header_files
+    darwin/plist.h
+  )
+
+  generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
 
 endfunction()
 
