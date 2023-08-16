@@ -414,13 +414,16 @@ TEST_F(BufferedLogForwarderTests, test_status_log_standard_decorations) {
   StatusLogLine log{
       severity, filename, 0, message, calendar_time, time, host_identifier};
 
+  // Log a status line
   auto status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Log a second status line
   log.line = 1;
   status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Cause the logs to be sent
   forwarder.check();
 
   ASSERT_TRUE(!forwarder.logs.empty());
@@ -501,12 +504,15 @@ TEST_F(BufferedLogForwarderTests, test_status_log_custom_decorations) {
 
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Log a status line
   status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Log a second status line
   status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Cause the logs to be sent
   forwarder.check();
 
   ASSERT_TRUE(!forwarder.logs.empty());
@@ -538,16 +544,19 @@ TEST_F(BufferedLogForwarderTests, test_status_log_custom_decorations) {
 
   forwarder.logs.clear();
 
-  // TODO: Implement test with top level decorator
+  // Test logging with the decorations moved to the root
   FLAGS_decorations_top_level = true;
 
+  // Log a status line
   status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Log a second status line
   log.line = 1;
   status = forwarder.logStatus({log});
   ASSERT_TRUE(status.ok()) << status.getMessage();
 
+  // Cause the logs to be sent
   forwarder.check();
 
   ASSERT_TRUE(!forwarder.logs.empty());
