@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
 #include <cstdint>
 
 #include <osquery/filesystem/filesystem.h>
