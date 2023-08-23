@@ -37,6 +37,7 @@ nav:
   - Syslog Consumption: deployment/syslog.md
   - Debugging: deployment/debugging.md
   - Dependency Security: deployment/dependency-security.md
+  - File Carving: deployment/file-carving.md
 - Development:
   - Building osquery: development/building.md
   - Creating New Tables: development/creating-tables.md
