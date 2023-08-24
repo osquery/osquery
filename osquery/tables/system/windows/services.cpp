@@ -45,9 +45,10 @@ const std::string kSvcStatus[] = {"UNKNOWN",
                                   "PAUSE_PENDING",
                                   "PAUSED"};
 
-// Possible values defined here (dwServiceType): 
-//  https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-query_service_configw
-//  https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_status
+/* Possible values defined here (dwServiceType): 
+* https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_status
+* https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-query_service_configw
+*/
 const std::map<int, std::string> kServiceType = {
     {0x00000001, "KERNEL_DRIVER"},
     {0x00000002, "FILE_SYSTEM_DRIVER"},
@@ -57,9 +58,9 @@ const std::map<int, std::string> kServiceType = {
     {0x00000060, "USER_SHARE_PROCESS"},
     {0x000000d0, "USER_OWN_PROCESS(Instance)"},
     {0x000000e0, "USER_SHARE_PROCESS(Instance)"},
-    {0x00000100, "INTERACTIVE_PROCESS"}, // according to msdn (see above link), this value alone shouldn't be possible
+    {0x00000100, "INTERACTIVE_PROCESS"},
     {0x00000110, "OWN_PROCESS(Interactive)"},
-    {0x00000120, "SHARE_PROCESS(Interactive)"}};
+    {0x00000120, "SHARE_PROCESS(Interactive)"} };
 
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
