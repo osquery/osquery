@@ -45,7 +45,7 @@ const std::string kSvcStatus[] = {"UNKNOWN",
                                   "PAUSE_PENDING",
                                   "PAUSED"};
 
-/* Possible values defined here (dwServiceType): 
+/* Possible values defined here (dwServiceType):
  * https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_status
  * https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-query_service_configw
  */
