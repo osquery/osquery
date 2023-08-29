@@ -22,7 +22,7 @@ FLAG(bool, disable_decorators, false, "Disable log result decoration");
 FLAG(bool,
      decorations_top_level,
      false,
-     "Add decorators as top level JSON objects");
+     "Add decorators as top level JSON object members");
 
 /// Statically define the parser name to avoid mistakes.
 const std::string kDecorationsName{"decorators"};
