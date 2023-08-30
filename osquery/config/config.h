@@ -391,6 +391,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   FRIEND_TEST(TLSConfigTests, test_retrieve_config);
   FRIEND_TEST(TLSConfigTests, test_runner_and_scheduler);
+  FRIEND_TEST(BufferedLogForwarderTests, test_status_log_custom_decorations);
 };
 
 /**

@@ -561,6 +561,11 @@ Log executing scheduled query names at the `INFO` level, and not the `VERBOSE` l
 
 Log executing distributed queries at the `INFO` level, and not the `VERBOSE` level
 
+`--decorations_top_level`
+
+Add decorators as top level JSON object members instead of being nested in a `decorations` member; this works for both result and status logs. For more details look at [Decorator queries](../deployment/configuration.md#decorator-queries) paragraph.  
+**NOTE**: Since osquery 5.10 the standard decorations like `unixTime`, `severity` and `line` are represented as true numbers in JSON, not as their string representations.
+
 ## Distributed query service flags
 
 `--distributed_plugin=tls`

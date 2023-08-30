@@ -462,7 +462,7 @@ Like EC2, there are two tables that provide Azure instance related information. 
 
 ### Decorator queries
 
-Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results and snapshot logs. There are three types of decorator queries based on when and how you want the decoration data.
+Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results, snapshot and status logs. There are three types of decorator queries based on when and how you want the decoration data.
 
 ```json
 {

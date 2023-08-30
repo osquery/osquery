@@ -16,17 +16,18 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_interface.h>
-
-#include "plugins/logger/buffered.h"
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
+#include <plugins/config/parsers/decorators.h>
+#include <plugins/logger/buffered.h>
 
 using namespace testing;
 namespace pt = boost::property_tree;
@@ -34,6 +35,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
+DECLARE_bool(decorations_top_level);
 
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
@@ -108,6 +110,34 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
 
  private:
   bool checked_{false};
+};
+
+class FakeLogForwarder : public BufferedLogForwarder {
+ public:
+  FakeLogForwarder(const std::string& name = "fake",
+                   const std::chrono::duration<long, std::ratio<1, 1000>>
+                       log_period = kLogPeriod,
+                   size_t max_log_lines = kMaxLogLines)
+      : BufferedLogForwarder(
+            "FakeLogForwarder", name, log_period, max_log_lines) {}
+
+  Status send(std::vector<std::string>& log_data, const std::string& log_type) {
+    for (const auto& log_line : log_data) {
+      logs.emplace_back(LogLine{log_type, log_line});
+    }
+
+    return Status::success();
+  }
+
+  struct LogLine {
+    std::string log_type;
+    std::string log_data;
+  };
+
+  std::vector<LogLine> logs;
+
+  FRIEND_TEST(BufferedLogForwarderTests, test_status_log_standard_decorations);
+  FRIEND_TEST(BufferedLogForwarderTests, test_status_log_custom_decorations);
 };
 
 TEST_F(BufferedLogForwarderTests, test_index) {
@@ -370,4 +400,233 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
 
   runner.check();
 }
+
+TEST_F(BufferedLogForwarderTests, test_status_log_standard_decorations) {
+  FakeLogForwarder forwarder;
+
+  std::string calendar_time = osquery::getAsciiTime();
+  std::uint64_t time = osquery::getUnixTime();
+  std::string host_identifier = "test_id";
+  std::string filename = "foo";
+  std::string message = "foo status";
+  StatusLogSeverity severity = O_INFO;
+
+  StatusLogLine log{
+      severity, filename, 0, message, calendar_time, time, host_identifier};
+
+  // Log a status line
+  auto status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Log a second status line
+  log.line = 1;
+  status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Cause the logs to be sent
+  forwarder.check();
+
+  ASSERT_TRUE(!forwarder.logs.empty());
+
+  std::uint64_t line = 0;
+  for (const auto& log : forwarder.logs) {
+    EXPECT_EQ(log.log_type, "status");
+
+    JSON doc;
+    status = doc.fromString(log.log_data);
+
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+
+    const auto& json_doc = doc.doc();
+    auto member_it = json_doc.FindMember("hostIdentifier");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), host_identifier);
+
+    member_it = json_doc.FindMember("calendarTime");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), calendar_time);
+
+    member_it = json_doc.FindMember("unixTime");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsUint64());
+    EXPECT_EQ(member_it->value.GetUint64(), time);
+
+    member_it = json_doc.FindMember("severity");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsInt());
+    EXPECT_EQ(member_it->value.GetInt(), severity);
+
+    member_it = json_doc.FindMember("filename");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), filename);
+
+    member_it = json_doc.FindMember("line");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsInt64());
+    EXPECT_EQ(member_it->value.GetInt64(), line);
+
+    member_it = json_doc.FindMember("message");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), message);
+
+    member_it = json_doc.FindMember("version");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), kVersion);
+
+    ++line;
+  }
 }
+
+TEST_F(BufferedLogForwarderTests, test_status_log_custom_decorations) {
+  FakeLogForwarder forwarder;
+
+  std::string calendar_time = osquery::getAsciiTime();
+  std::uint64_t time = osquery::getUnixTime();
+  std::string host_identifier = "test_id";
+  std::string filename = "foo";
+  std::string message = "foo status";
+  StatusLogSeverity severity = O_INFO;
+
+  StatusLogLine log{
+      severity, filename, 0, message, calendar_time, time, host_identifier};
+
+  Config::get().reset();
+  auto status =
+      Config::get().update({{"decorators",
+                             "{\"decorators\":{\"load\": [ \"SELECT "
+                             "'custom1' as custom_decorator1\", \"SELECT "
+                             "'custom2' as custom_decorator2\" ] } }"}});
+
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Log a status line
+  status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Log a second status line
+  status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Cause the logs to be sent
+  forwarder.check();
+
+  ASSERT_TRUE(!forwarder.logs.empty());
+
+  for (const auto& log : forwarder.logs) {
+    JSON json;
+    status = json.fromString(log.log_data);
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+
+    const auto& json_doc = json.doc();
+
+    auto member_it = json_doc.FindMember("decorations");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsObject());
+
+    const auto& decorations = member_it->value.GetObject();
+    ASSERT_TRUE(decorations.MemberCount() > 0);
+
+    member_it = decorations.FindMember("custom_decorator1");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), std::string{"custom1"});
+
+    member_it = decorations.FindMember("custom_decorator2");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), std::string{"custom2"});
+  }
+
+  forwarder.logs.clear();
+
+  // Test logging with the decorations moved to the root
+  FLAGS_decorations_top_level = true;
+
+  // Log a status line
+  status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Log a second status line
+  log.line = 1;
+  status = forwarder.logStatus({log});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  // Cause the logs to be sent
+  forwarder.check();
+
+  ASSERT_TRUE(!forwarder.logs.empty());
+
+  std::uint64_t line = 0;
+  for (const auto& log : forwarder.logs) {
+    JSON doc;
+    status = doc.fromString(log.log_data);
+
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+
+    const auto& json_doc = doc.doc();
+
+    // Double check that the usual decorations are still there
+    auto member_it = json_doc.FindMember("hostIdentifier");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), host_identifier);
+
+    member_it = json_doc.FindMember("calendarTime");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), calendar_time);
+
+    member_it = json_doc.FindMember("unixTime");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsUint64());
+    EXPECT_EQ(member_it->value.GetUint64(), time);
+
+    member_it = json_doc.FindMember("severity");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsInt());
+    EXPECT_EQ(member_it->value.GetInt(), severity);
+
+    member_it = json_doc.FindMember("filename");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), filename);
+
+    member_it = json_doc.FindMember("line");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsInt64());
+    EXPECT_EQ(member_it->value.GetInt64(), line);
+
+    member_it = json_doc.FindMember("message");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), message);
+
+    member_it = json_doc.FindMember("version");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), kVersion);
+
+    // Check that we have the top level decorations
+    member_it = json_doc.FindMember("custom_decorator1");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), std::string{"custom1"});
+
+    member_it = json_doc.FindMember("custom_decorator2");
+    ASSERT_NE(member_it, json_doc.MemberEnd());
+    ASSERT_TRUE(member_it->value.IsString());
+    EXPECT_EQ(member_it->value.GetString(), std::string{"custom2"});
+
+    // Also verify that we are not still creating the decorations key
+    member_it = json_doc.FindMember("decorations");
+    EXPECT_TRUE(member_it == json_doc.MemberEnd());
+
+    ++line;
+  }
+}
+} // namespace osquery
