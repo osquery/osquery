@@ -245,8 +245,8 @@
   "lzma": {
     "product": "xz",
     "vendor": "tukaani",
-    "version": "5.2.5",
-    "commit": "2327a461e1afce862c22269b80d3517801103c1b",
+    "version": "5.4.4",
+    "commit": "03c51c5c08fe3579d8bbc8eea8251a1128001330",
     "ignored-cves": []
   },
   "popt": {

@@ -18,7 +18,7 @@
 	url = https://github.com/arangodb/linenoise-ng
 [submodule "libraries/cmake/source/lzma/src"]
 	path = libraries/cmake/source/lzma/src
-	url = https://github.com/xz-mirror/xz
+	url = https://github.com/tukaani-project/xz.git
 [submodule "libraries/cmake/source/rapidjson/src"]
 	path = libraries/cmake/source/rapidjson/src
 	url = https://github.com/Tencent/rapidjson
