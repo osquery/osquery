@@ -149,7 +149,9 @@
     "vendor": "libcap_project",
     "version": "2.59",
     "commit": "9eb56596eef5e55a596aa97ecaf8466ea559d05c",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2023-2603"
+    ]
   },
   "libcryptsetup": {
     "product": "cryptsetup",
