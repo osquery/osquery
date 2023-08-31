@@ -647,7 +647,7 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
     }
 
     errno = 0;
-    if (audit_request_status(netlink_handle) < 0 && errno != ENOBUFS) {
+    if (audit_request_status(netlink_handle) <= 0 && errno != ENOBUFS) {
       VLOG(1) << "Failed to query the audit netlink status";
       return NetlinkStatus::Error;
     }
@@ -682,7 +682,7 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
     return NetlinkStatus::Error;
   }
 
-  if (audit_set_pid(audit_netlink_handle_, getpid(), WAIT_NO) < 0) {
+  if (audit_set_pid(audit_netlink_handle_, getpid(), WAIT_NO) <= 0) {
     VLOG(1) << "Failed to set the netlink owner";
 
     audit_close(audit_netlink_handle_);
@@ -695,7 +695,7 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
   if (FLAGS_audit_allow_config &&
       (netlink_status != NetlinkStatus::ActiveMutable &&
        netlink_status != NetlinkStatus::ActiveImmutable)) {
-    if (audit_set_enabled(audit_netlink_handle_, AUDIT_ENABLED) < 0) {
+    if (audit_set_enabled(audit_netlink_handle_, AUDIT_ENABLED) <= 0) {
       VLOG(1) << "Failed to enable the audit service";
 
       audit_close(audit_netlink_handle_);
