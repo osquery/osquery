@@ -40,6 +40,7 @@
 #include <osquery/utils/aws/aws_util.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
+#include <osquery/utils/expected/expected.h>
 
 namespace pt = boost::property_tree;
 
@@ -54,7 +55,7 @@ FLAG(string,
      aws_profile_name,
      "",
      "AWS profile for authentication and region configuration");
-FLAG(string, aws_region, "", "AWS region");
+FLAG(string, aws_region, "", "Default AWS region for all services");
 FLAG(string, aws_sts_arn_role, "", "AWS STS ARN role");
 FLAG(string, aws_sts_region, "", "AWS STS region");
 FLAG(string, aws_sts_session_name, "default", "AWS STS session name");
@@ -155,6 +156,9 @@ static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 // To protect the access to the AWS instance id and region that are being cached
 static std::mutex cached_values_mutex;
 
+DECLARE_string(aws_firehose_region);
+DECLARE_string(aws_kinesis_region);
+
 namespace {
 bool validateIMDSV2RequestAttempts(const char* flagname, std::uint32_t value) {
   if (value == 0) {
@@ -168,9 +172,132 @@ bool validateIMDSV2RequestAttempts(const char* flagname, std::uint32_t value) {
 
   return true;
 }
+
+std::string awsServiceTypeToString(const AWSServiceType service_type) {
+  switch (service_type) {
+  case AWSServiceType::Kinesis: {
+    return "kinesis";
+  }
+  case AWSServiceType::Firehose: {
+    return "firehose";
+  }
+  case AWSServiceType::STS: {
+    return "sts";
+  }
+  case AWSServiceType::EC2: {
+    return "ec2";
+  }
+  }
+
+  return "unsupported";
+}
+
+Status validateRegion(const std::string& region) {
+  if (!region.empty()) {
+    auto index = kAwsRegions.find(region);
+    if (index != kAwsRegions.end()) {
+      return Status::success();
+    } else {
+      return Status::failure("Invalid region " + region);
+    }
+  }
+
+  return Status::success();
+}
+
+Status getAWSRegionFromProfile(std::string& region) {
+  pt::ptree tree;
+  try {
+    auto profile_dir = Aws::Auth::ProfileConfigFileAWSCredentialsProvider::
+        GetProfileDirectory();
+    pt::ini_parser::read_ini(profile_dir + "/config", tree);
+  } catch (const pt::ini_parser::ini_parser_error& e) {
+    return Status(1, std::string("Error reading profile file: ") + e.what());
+  }
+
+  // Profile names are prefixed with "profile ", except for "default".
+  std::string profile_key = FLAGS_aws_profile_name;
+  if (!profile_key.empty() && profile_key != "default") {
+    profile_key = "profile " + profile_key;
+  } else {
+    profile_key = "default";
+  }
+
+  auto section_it = tree.find(profile_key);
+  if (section_it == tree.not_found()) {
+    return Status(1, "AWS profile not found: " + FLAGS_aws_profile_name);
+  }
+
+  auto key_it = section_it->second.find("region");
+  if (key_it == section_it->second.not_found()) {
+    return Status(
+        1, "AWS region not found for profile: " + FLAGS_aws_profile_name);
+  }
+
+  std::string region_string = key_it->second.data();
+  auto index = kAwsRegions.find(region_string);
+  if (index != kAwsRegions.end()) {
+    region = region_string;
+  } else {
+    return Status(1, "Invalid aws_region in profile: " + region_string);
+  }
+
+  return Status(0);
+}
+
+Status getAWSRegion(std::string& region, bool validate_region) {
+  if (region.empty()) {
+    region = FLAGS_aws_region;
+  }
+
+  if (!region.empty()) {
+    if (validate_region) {
+      auto status = validateRegion(region);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+
+    return Status::success();
+  }
+
+  // Try finding in profile.
+  auto s = getAWSRegionFromProfile(region);
+  if (s.ok() || !FLAGS_aws_profile_name.empty()) {
+    VLOG(1) << "Using AWS region from profile: " << region;
+    return s;
+  }
+
+  // Use the default region.
+  region = kDefaultAWSRegion;
+  VLOG(1) << "Using default AWS region: " << region;
+  return Status(0);
+}
 }; // namespace
 
 DEFINE_validator(aws_imdsv2_request_attempts, validateIMDSV2RequestAttempts);
+
+AWSRegion::AWSRegion(const std::string& region) : region_(region) {}
+
+Expected<AWSRegion, AWSRegionError> AWSRegion::make(
+    const std::string& suggested_region, bool validate_region) {
+  AWSRegion aws_region{suggested_region};
+
+  auto status = getAWSRegion(aws_region.region_, validate_region);
+  if (!status.ok()) {
+    return Expected<AWSRegion, AWSRegionError>::failure(status.getMessage());
+  }
+
+  if (FLAGS_aws_enforce_fips) {
+    if (kAwsFipsRegions.find(aws_region.region_) == kAwsFipsRegions.end()) {
+      return Expected<AWSRegion, AWSRegionError>::failure(
+          AWSRegionError::NotFIPSCompliant,
+          "Region " + aws_region.region_ + " is not FIPS compliant");
+    }
+  }
+
+  return aws_region;
+}
 
 std::shared_ptr<Aws::Http::HttpClient>
 OsqueryHttpClientFactory::CreateHttpClient(
@@ -352,7 +479,16 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       initAwsSdk();
     }
 
-    Status s = makeAWSClient<Aws::STS::STSClient>(client_, "", false);
+    auto aws_region_res = AWSRegion::make(FLAGS_aws_sts_region);
+
+    if (aws_region_res.isError()) {
+      LOG(WARNING) << "Failed to generate STS Credentials: "
+                   << aws_region_res.getError();
+      return Aws::Auth::AWSCredentials("", "");
+    }
+
+    Status s = makeAWSClient<Aws::STS::STSClient>(
+        client_, aws_region_res.get(), false);
     if (!s.ok()) {
       LOG(WARNING) << "Error creating AWS client: " << s.what();
       return Aws::Auth::AWSCredentials("", "");
@@ -420,46 +556,6 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
       std::make_shared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>());
   AddProvider(
       std::make_shared<Aws::Auth::InstanceProfileCredentialsProvider>());
-}
-
-Status getAWSRegionFromProfile(std::string& region) {
-  pt::ptree tree;
-  try {
-    auto profile_dir = Aws::Auth::ProfileConfigFileAWSCredentialsProvider::
-        GetProfileDirectory();
-    pt::ini_parser::read_ini(profile_dir + "/config", tree);
-  } catch (const pt::ini_parser::ini_parser_error& e) {
-    return Status(1, std::string("Error reading profile file: ") + e.what());
-  }
-
-  // Profile names are prefixed with "profile ", except for "default".
-  std::string profile_key = FLAGS_aws_profile_name;
-  if (!profile_key.empty() && profile_key != "default") {
-    profile_key = "profile " + profile_key;
-  } else {
-    profile_key = "default";
-  }
-
-  auto section_it = tree.find(profile_key);
-  if (section_it == tree.not_found()) {
-    return Status(1, "AWS profile not found: " + FLAGS_aws_profile_name);
-  }
-
-  auto key_it = section_it->second.find("region");
-  if (key_it == section_it->second.not_found()) {
-    return Status(
-        1, "AWS region not found for profile: " + FLAGS_aws_profile_name);
-  }
-
-  std::string region_string = key_it->second.data();
-  auto index = kAwsRegions.find(region_string);
-  if (index != kAwsRegions.end()) {
-    region = region_string;
-  } else {
-    return Status(1, "Invalid aws_region in profile: " + region_string);
-  }
-
-  return Status(0);
 }
 
 void initAwsSdk() {
@@ -577,79 +673,25 @@ boost::optional<std::string> getIMDSToken() {
   return token;
 }
 
-Status getAWSRegion(std::string& region, bool sts, bool validate_region) {
-  // First try using the explicit region flags (STS or otherwise).
-  if (sts && !FLAGS_aws_sts_region.empty()) {
-    auto index = kAwsRegions.find(FLAGS_aws_sts_region);
-    if (index != kAwsRegions.end() || !validate_region) {
-      VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
-      region = FLAGS_aws_sts_region;
-      return Status(0);
-    } else {
-      return Status(1, "Invalid aws_region specified: " + FLAGS_aws_sts_region);
-    }
-  }
-
-  if (!FLAGS_aws_region.empty()) {
-    auto index = kAwsRegions.find(FLAGS_aws_region);
-    if (index != kAwsRegions.end() || !validate_region) {
-      VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
-      region = FLAGS_aws_region;
-      return Status(0);
-    } else {
-      return Status(1, "Invalid aws_region specified: " + FLAGS_aws_region);
-    }
-  }
-
-  // Try finding in profile.
-  auto s = getAWSRegionFromProfile(region);
-  if (s.ok() || !FLAGS_aws_profile_name.empty()) {
-    VLOG(1) << "Using AWS region from profile: " << region;
-    return s;
-  }
-
-  // Use the default region.
-  region = kDefaultAWSRegion;
-  VLOG(1) << "Using default AWS region: " << region;
-  return Status(0);
-}
-
-Status setAwsClientConfig(const std::string& region,
-                          const std::string& service_type,
+Status setAwsClientConfig(const AWSRegion& region,
+                          const AWSServiceType service_type,
                           const std::string& endpoint_override,
-                          bool sts,
                           Aws::Client::ClientConfiguration& client_config) {
-  // Set up client
-  if (region.empty()) {
-    // If the endpoint_override is set, we are most likely running in non-AWS
-    // environment, skip region validation.
-    bool validate_region = endpoint_override.empty();
-    Status s = getAWSRegion(client_config.region, sts, validate_region);
-    if (!s.ok()) {
-      return s;
-    }
-  } else {
-    client_config.region = region;
-  }
+  client_config.region = region.getRegion();
 
   if (FLAGS_aws_enforce_fips) {
-    if (service_type.empty()) {
+    if (!endpoint_override.empty()) {
       return Status::failure(
-          "Attempted FIPS communication towards an unsupported service");
+          "Cannot override the endpoint when FIPS is enforced");
     }
 
-    if (kAwsFipsRegions.find(client_config.region) == kAwsFipsRegions.end()) {
-      return Status::failure(service_type +
-                             " client cannot communicate with region " +
-                             client_config.region + " when FIPS is enforced");
-    }
     enableFIPSInClientConfig(service_type, client_config);
 
-    VLOG(1) << "Enforcing FIPS for " << service_type << " client in region "
-            << client_config.region;
+    VLOG(1) << "Enforcing FIPS for " << awsServiceTypeToString(service_type)
+            << " client in region " << client_config.region;
   } else {
-    VLOG(1) << "Configuring " << service_type << " client in region "
-            << client_config.region;
+    VLOG(1) << "Configuring " << awsServiceTypeToString(service_type)
+            << " client in region " << client_config.region;
     client_config.endpointOverride = endpoint_override;
 
     // Setup any proxy options on the config if desired
@@ -707,15 +749,17 @@ void setAWSProxy(Aws::Client::ClientConfiguration& config) {
   }
 }
 
-void enableFIPSInClientConfig(const std::string& service,
+void enableFIPSInClientConfig(const AWSServiceType service_type,
                               Aws::Client::ClientConfiguration& config) {
   // Gov FIPS endpoints for Kinesis, EC2, STS are used as-is, do nothing
   if (config.region.rfind("us-gov", 0) == 0 &&
-      (service == "kinesis" || service == "ec2" || service == "sts")) {
+      (service_type == AWSServiceType::Kinesis ||
+       service_type == AWSServiceType::EC2 ||
+       service_type == AWSServiceType::STS)) {
     return;
   }
 
-  config.endpointOverride =
-      service + "-fips." + config.region + ".amazonaws.com";
+  config.endpointOverride = awsServiceTypeToString(service_type) + "-fips." +
+                            config.region + ".amazonaws.com";
 }
 } // namespace osquery

@@ -40,13 +40,15 @@ class AwsLogForwarder : public BufferedLogForwarder {
   AwsLogForwarder(const std::string& name,
                   size_t log_period,
                   size_t max_lines,
-                  const std::string& endpoint_override)
+                  const std::string& endpoint_override,
+                  const AWSRegion& region)
       : BufferedLogForwarder(std::string("AwsLogForwarder:") + name,
                              name,
                              std::chrono::seconds(log_period),
                              max_lines),
         name_(name),
-        endpoint_override_(endpoint_override) {}
+        endpoint_override_(endpoint_override),
+        region_(region) {}
 
   /// Common plugin initialization
   Status setUp() override {
@@ -55,7 +57,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
       return s;
     }
 
-    s = makeAWSClient<Client>(client_, "", true, endpoint_override_);
+    s = makeAWSClient<Client>(client_, region_, true, endpoint_override_);
     if (!s.ok()) {
       return s;
     }
@@ -355,5 +357,8 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
   /// Service endpoint override
   std::string endpoint_override_;
+
+  /// Service selected region
+  AWSRegion region_;
 };
 } // namespace osquery

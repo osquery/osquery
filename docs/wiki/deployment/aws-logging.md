@@ -27,7 +27,7 @@ Some configuration is shared between the two plugins:
 
 When working with AWS, osquery will look for credentials and region configuration in the following order:
 
-1. Configuration flags
+1. Configuration flags; for the region, the service specific flags first (sts, kinesis, firehose) and then `aws_region` as a fallback
 2. Profile from the [AWS config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) (only if `--aws_profile_name` is specified)
 3. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 4. `default` profile in the AWS config files
@@ -43,11 +43,15 @@ Setting `aws_kinesis_random_partition_key` to `true` will use random partition k
 
 Custom endpoint for non-AWS Kinesis implementations can be specified with `aws_kinesis_endpoint`.
 
+If the region to be used is different from the default one present in `aws_region`, or the one in the profile file, then `aws_kinesis_region` can be used.
+
 ### Kinesis Firehose
 
 Similarly for Kinesis Firehose delivery streams, the stream name must be specified with `aws_firehose_stream`, and the period can be configured with `aws_firehose_period`.
 
 Custom endpoint for non-AWS Firehose implementations can be specified with `aws_firehose_endpoint`.
+
+If the region to be used is different from the default one present in `aws_region`, or the one in the profile file, then `aws_firehose_region` can be used.
 
 ### Sample Config File
 
