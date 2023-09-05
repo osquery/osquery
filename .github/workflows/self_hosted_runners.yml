@@ -93,25 +93,42 @@ jobs:
 
 
 
-  # Starts self-hosted runners.
+  # NOTE: Here we manually create two different steps and outputs because there's no easy way
+  # to dynamically access variables per matrix job. Having outputs with different names
+  # lets us easily select the correct one later.
+
+  # Starts self-hosted runner.
   start_ec2_runners:
     needs: check_code_style
     runs-on: ubuntu-latest
 
     outputs:
-      label: ${{ steps.start_ec2_runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start_ec2_runner.outputs.ec2-instance-id }}
+      label-Release: ${{ steps.start_ec2_runner-Release.outputs.label }}
+      ec2-instance-id-Release: ${{ steps.start_ec2_runner-Release.outputs.ec2-instance-id }}
+      label-RelWithDebInfo: ${{ steps.start_ec2_runner-RelWithDebInfo.outputs.label }}
+      ec2-instance-id-RelWithDebInfo: ${{ steps.start_ec2_runner-RelWithDebInfo.outputs.ec2-instance-id }}
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.EC2_GITHUB_RUNNER_AWS_REGION }}
 
-      - name: Start aarch64 EC2 runner
-        id: start_ec2_runner
+      - name: Start aarch64 EC2 runner for a Release build
+        id: start_ec2_runner-Release
+        uses: osquery/ec2-github-runner@v2.3.3
+        with:
+          mode: start
+          github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
+          ec2-image-id: ami-063d99d9ce1bebbe8
+          ec2-instance-type: c6g.4xlarge
+          subnet-id: subnet-06390365e72579736
+          security-group-id: sg-0757a3162c999331b
+
+      - name: Start aarch64 EC2 runner for a RelWithDebInfo build
+        id: start_ec2_runner-RelWithDebInfo
         uses: osquery/ec2-github-runner@v2.3.3
         with:
           mode: start
@@ -136,19 +153,27 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.EC2_GITHUB_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.EC2_GITHUB_RUNNER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.EC2_GITHUB_RUNNER_AWS_REGION }}
 
-      - name: Stop aarch64 EC2 runner
+      - name: Stop aarch64 EC2 runner for Release mode build
         uses: osquery/ec2-github-runner@v2.3.3
         with:
           mode: stop
           github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
-          label: ${{ needs.start_ec2_runners.outputs.label }}
-          ec2-instance-id: ${{ needs.start_ec2_runners.outputs.ec2-instance-id }}
+          label: ${{ needs.start_ec2_runners.outputs.label-Release }}
+          ec2-instance-id: ${{ needs.start_ec2_runners.outputs.ec2-instance-id-Release }}
+
+      - name: Stop aarch64 EC2 runner for RelWithDebInfo mode build
+        uses: osquery/ec2-github-runner@v2.3.3
+        with:
+          mode: stop
+          github-token: ${{ secrets.EC2_GITHUB_RUNNER_GH_PERSONAL_ACCESS_TOKEN }}
+          label: ${{ needs.start_ec2_runners.outputs.label-RelWithDebInfo }}
+          ec2-instance-id: ${{ needs.start_ec2_runners.outputs.ec2-instance-id-RelWithDebInfo }}
 
 
 
@@ -167,7 +192,11 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ${{ needs.start_ec2_runners.outputs.label }}
+        - os: ${{ needs.start_ec2_runners.outputs.label-Release }}
+          build_type: Release
+          cache_key: ubuntu-20.04_aarch64
+
+        - os: ${{ needs.start_ec2_runners.outputs.label-RelWithDebInfo }}
           build_type: RelWithDebInfo
           cache_key: ubuntu-20.04_aarch64
 
@@ -181,6 +210,15 @@ jobs:
       run: |
         echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
 
+    - name: Select the build options for the tests
+      shell: bash
+      id: tests_build_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "RelWithDebInfo" ]] ; then
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
+        else
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
+        fi
 
     # try to gather some info about build space
     - name: Disk Space Information
@@ -188,8 +226,6 @@ jobs:
       id: disk_space_info
       run: |
         df -h
-        du -sh /usr/local/lib/android || true
-        du -sh /usr/share/dotnet || true
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -298,8 +334,8 @@ jobs:
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
-          -DOSQUERY_BUILD_TESTS=ON \
-          -DOSQUERY_BUILD_ROOT_TESTS=ON \
+          -DOSQUERY_BUILD_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
+          -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
     - name: Build the project
@@ -310,6 +346,13 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Disk Space Information
+      shell: bash
+      id: disk_space_info_post_build
+      run: |
+        df -h
+        du -sh ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Run the tests as normal user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
