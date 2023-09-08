@@ -246,7 +246,7 @@ jobs:
 
     container:
       image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host
 
     strategy:
       matrix:
@@ -254,6 +254,11 @@ jobs:
         os: [ubuntu-20.04]
 
     steps:
+    - name: Make space uninstalling packages
+      run: |
+        nsenter -t 1 -m -u -n -i apt purge clang-* llvm-* php* mono-* mongodb-* libmono-* temurin-* dotnet-* \
+        google-chrome-stable microsoft-edge-stable google-cloud-sdk firefox hhvm snapd
+
     - name: Clone the osquery repository
       uses: actions/checkout@v1
 
@@ -272,6 +277,12 @@ jobs:
         else
           echo "VALUE=ON" >> $GITHUB_OUTPUT
         fi
+
+   - name: Disk Space Information
+      shell: bash
+      id: disk_space_info
+      run: |
+        df -h
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -394,6 +405,13 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Disk Space Information
+      shell: bash
+      id: disk_space_info_post_build
+      run: |
+        df -h
+        du -sh ${{ steps.build_paths.outputs.BINARY }}
 
     # Only run the tests on Debug and Release configurations; skip RelWithDebInfo
     - name: Run the tests as normal user
