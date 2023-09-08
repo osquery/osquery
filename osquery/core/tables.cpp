@@ -561,14 +561,20 @@ Status QueryContext::expandConstraints(
     ConstraintOperator op,
     std::set<std::string>& output,
     std::function<Status(const std::string& constraint,
-                         std::set<std::string>& output)> predicate) {
-  for (const auto& constraint : constraints[column].getAll(op)) {
+                         std::set<std::string>& output)> predicate) const {
+  auto constraint_it = constraints.find(column);
+
+  if (constraint_it == constraints.end()) {
+    return Status::success();
+  }
+
+  for (const auto& constraint : constraint_it->second.getAll(op)) {
     auto status = predicate(constraint, output);
     if (!status) {
       return status;
     }
   }
-  return Status(0);
+  return Status::success();
 }
 
 Status deserializeQueryContextJSON(const JSON& json_helper,
