@@ -278,11 +278,11 @@ jobs:
           echo "VALUE=ON" >> $GITHUB_OUTPUT
         fi
 
-   - name: Disk Space Information
-      shell: bash
-      id: disk_space_info
-      run: |
-        df -h
+    - name: Disk Space Information
+       shell: bash
+       id: disk_space_info
+       run: |
+         df -h
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
