@@ -279,10 +279,10 @@ jobs:
         fi
 
     - name: Disk Space Information
-       shell: bash
-       id: disk_space_info
-       run: |
-         df -h
+      shell: bash
+      id: disk_space_info
+      run: |
+        df -h
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
