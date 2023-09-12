@@ -137,9 +137,15 @@ function(opensslMain)
     set(CMAKE_PREFIX_PATH "C:\\Strawberry\\perl\\bin")
     find_package(Perl REQUIRED)
 
+    if("${TARGET_PROCESSOR}" STREQUAL "aarch64")
+      set(OPENSSL_ARCH VC-WIN64-ARM)
+    else()
+      set(OPENSSL_ARCH VC-WIN64A)
+    endif()
+
     set(configure_command
       "${CMAKE_COMMAND}" -E env
-      "${PERL_EXECUTABLE}" Configure VC-WIN64A
+      "${PERL_EXECUTABLE}" Configure ${OPENSSL_ARCH}
       ${common_options}
     )
 
