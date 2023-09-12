@@ -45,6 +45,8 @@ endif()
 
 if("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
   set(TARGET_PROCESSOR "aarch64")
+elseif("x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+  set(TARGET_PROCESSOR "x86_64")
 endif()
 
 # TODO(alessandro): Add missing defines: PLATFORM_FREEBSD
