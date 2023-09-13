@@ -21,6 +21,9 @@
 /* Define to 1 if arm decoder is enabled. */
 #define HAVE_DECODER_ARM 1
 
+/* Define to 1 if arm64 decoder is enabled. */
+#define HAVE_DECODER_ARM64 1
+
 /* Define to 1 if armthumb decoder is enabled. */
 #define HAVE_DECODER_ARMTHUMB 1
 
@@ -51,6 +54,9 @@
 /* Define to 1 if arm encoder is enabled. */
 #define HAVE_ENCODER_ARM 1
 
+/* Define to 1 if arm64 encoder is enabled. */
+#define HAVE_ENCODER_ARM64 1
+
 /* Define to 1 if armthumb encoder is enabled. */
 #define HAVE_ENCODER_ARMTHUMB 1
 
@@ -80,6 +86,9 @@
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
+
+/* Define to 1 if .lz (lzip) decompression support is enabled. */
+#define HAVE_LZIP_DECODER 1
 
 /* Define to 1 to enable bt2 match finder. */
 #define HAVE_MF_BT2 1

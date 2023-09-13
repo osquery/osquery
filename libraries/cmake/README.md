@@ -21,6 +21,8 @@ These are the current targeted versions:
 
 ### x86-64
 
+NOTE: We are in a transition period, some libraries are still configured for CentOS 6, but this platform will not be supported in the future. CentOS 7 is the new minimum version supported.
+
 CentOS 6.10
 
 ```sh
@@ -46,6 +48,33 @@ Release: 1.212.el6_10.3
 ```sh
 uname -r
 2.6.32-754.18.2.el6.x86_64
+```
+
+CentOS 7
+
+```sh
+cat /etc/centos-release
+CentOS Linux release 7.9.2009 (Core)
+```
+
+```sh
+ldd --version
+ldd (GNU libc) 2.17
+[...]
+```
+
+```sh
+yum info glibc
+
+[...]
+Version     : 2.17
+Release     : 326.el7_9
+[...]
+```
+
+```sh
+uname -r
+3.10.0-1160.95.1.el7.x86_64
 ```
 
 ### AArch64

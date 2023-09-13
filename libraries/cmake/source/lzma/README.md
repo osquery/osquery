@@ -15,7 +15,7 @@ export CXXFLAGS="${CFLAGS}"
 export LDFLAGS="${CFLAGS}"
 export CC=clang
 
-./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls
+./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --enable-static --enable-encoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --disable-nls
 ```
 
 ### Linux AArch64
@@ -36,7 +36,7 @@ export LDFLAGS="${CFLAGS}"
 export CC=clang
 
 ./autogen.sh
-./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls
+./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --enable-static --enable-encoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --disable-nls
 ```
 
 ### Linux Common
@@ -62,16 +62,16 @@ Generated with the following commands:
 
 ```sh
 ./autogen.sh
-export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target arm64-apple-macos10.15"
-./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls --host=aarch64-apple-darwin
+export CFLAGS="-isysroot /Applications/Xcode_14.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -target arm64-apple-macos10.15"
+./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --disable-nls --host=aarch64-apple-darwin
 ```
 
 ### macOS x86_64
 
 ```sh
 ./autogen.sh
-CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -target x86_64-apple-macos10.14"
-./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,armthumb,delta --disable-nls
+CFLAGS="-isysroot /Applications/Xcode_14.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -target x86_64-apple-macos10.15"
+./configure --disable-xz --disable-xzdec --disable-lzmadec --disable-lzma-links --disable-scripts --disable-doc --disable-shared --enable-static --enable-encoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --enable-decoders=lzma1,lzma2,x86,arm,arm64,armthumb,delta --disable-nls
 ```
 
 ### macOS Common
