@@ -1112,7 +1112,9 @@ Status attachTableInternal(const std::string& name,
 
     rc =
         sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, nullptr);
-
+    if (rc != SQLITE_OK) {
+      LOG(ERROR) << "Error creating named virtual table: " << name << " (" << rc << ")";
+    }
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
   }
