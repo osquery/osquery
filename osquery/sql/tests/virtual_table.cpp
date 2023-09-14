@@ -215,7 +215,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
   // Virtual tables require the registry/plugin API to query tables.
   auto status =
-      attachTableInternal("failed_sample", "(foo INTEGER)", dbc, false);
+      attachTableInternal("failed_sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
@@ -228,7 +228,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
   // Use the table name, plugin-generated schema to attach.
   status = attachTableInternal(
-      "sample", columnDefinition(response, false, false), dbc, false);
+      "sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string const q =
@@ -318,9 +318,9 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   {
     // To simplify the attach, just access the column definition directly.
     auto p = std::make_shared<pTablePlugin>();
-    attachTableInternal("p", p->columnDefinition(false), dbc, false);
+    attachTableInternal("p", dbc, false);
     auto k = std::make_shared<kTablePlugin>();
-    attachTableInternal("k", k->columnDefinition(false), dbc, false);
+    attachTableInternal("k", dbc, false);
   }
 
   std::vector<std::pair<std::string, QueryData>> constraint_tests = {
@@ -403,7 +403,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
   tables->add("json", json);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("json", json->columnDefinition(false), dbc, false);
+  attachTableInternal("json", dbc, false);
 
   QueryData results;
   // Run a query with a join within.
@@ -483,7 +483,7 @@ TEST_F(VirtualTableTests, test_table_cache) {
   auto cache = std::make_shared<cacheTablePlugin>();
   tables->add("cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("cache", cache->columnDefinition(false), dbc, false);
+  attachTableInternal("cache", dbc, false);
 
   QueryData results;
   // Run a query with a join within.
@@ -539,7 +539,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   tables->add("table_cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "table_cache", cache->columnDefinition(false), dbc, false);
+      "table_cache", dbc, false);
 
   QueryData results;
   std::string statement = "SELECT * from table_cache;";
@@ -606,7 +606,7 @@ TEST_F(VirtualTableTests, test_table_results_cache_colcheck) {
   tables->add("table_cache_cols", cache);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "table_cache_cols", cache->columnDefinition(false), dbc, false);
+      "table_cache_cols", dbc, false);
 
   // Request that caching be used.
   dbc->useCache(true);
@@ -667,7 +667,7 @@ TEST_F(VirtualTableTests, test_yield_generator) {
   table_registry->add("yield", table);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("yield", table->columnDefinition(false), dbc, false);
+  attachTableInternal("yield", dbc, false);
 
   QueryData results;
   queryInternal("SELECT * from yield", results, dbc);
@@ -725,7 +725,7 @@ TEST_F(VirtualTableTests, test_like_constraints) {
   table_registry->add("like_table", table);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("like_table", table->columnDefinition(false), dbc, false);
+  attachTableInternal("like_table", dbc, false);
 
   // Base case, without constrains this table has no results.
   QueryData results;
@@ -883,16 +883,16 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
 
   auto i = std::make_shared<indexIOptimizedTablePlugin>();
   table_registry->add("index_i", i);
-  attachTableInternal("index_i", i->columnDefinition(false), dbc, false);
+  attachTableInternal("index_i", dbc, false);
 
   auto j = std::make_shared<indexJOptimizedTablePlugin>();
   table_registry->add("index_j", j);
-  attachTableInternal("index_j", j->columnDefinition(false), dbc, false);
+  attachTableInternal("index_j", dbc, false);
 
   auto default_scan = std::make_shared<defaultScanTablePlugin>();
   table_registry->add("default_scan", default_scan);
   attachTableInternal(
-      "default_scan", default_scan->columnDefinition(false), dbc, false);
+      "default_scan", dbc, false);
 
   QueryData results;
   queryInternal(
@@ -975,7 +975,7 @@ TEST_F(VirtualTableTests, test_used_columns) {
   tables->add("colsUsed1", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "colsUsed1", colsUsed->columnDefinition(false), dbc, false);
+      "colsUsed1", dbc, false);
 
   QueryData results;
   auto status = queryInternal("SELECT col1, col3 FROM colsUsed1", results, dbc);
@@ -994,7 +994,7 @@ TEST_F(VirtualTableTests, test_used_columns_with_alias) {
   tables->add("colsUsed2", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "colsUsed2", colsUsed->columnDefinition(false), dbc, false);
+      "colsUsed2", dbc, false);
 
   QueryData results;
   auto status =
@@ -1052,7 +1052,7 @@ TEST_F(VirtualTableTests, test_used_columns_bitset) {
   tables->add("colsUsedBitset1", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "colsUsedBitset1", colsUsed->columnDefinition(false), dbc, false);
+      "colsUsedBitset1", dbc, false);
 
   QueryData results;
   auto status =
@@ -1072,7 +1072,7 @@ TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
   tables->add("colsUsedBitset2", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "colsUsedBitset2", colsUsed->columnDefinition(false), dbc, false);
+      "colsUsedBitset2", dbc, false);
 
   QueryData results;
   auto status =
@@ -1118,7 +1118,7 @@ TEST_F(VirtualTableTests, test_used_columns_default) {
   tables->add("colsUsedDefault", colsUsedDefault);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "colsUsedDefault", colsUsedDefault->columnDefinition(false), dbc, false);
+      "colsUsedDefault", dbc, false);
 
   {
     QueryData results;
@@ -1178,7 +1178,7 @@ TEST_F(VirtualTableTests, test_noindex_constraints) {
 
   auto tablePlugin = std::make_shared<NoConstraintTestTablePlugin>();
   table_registry->add("noco", tablePlugin);
-  attachTableInternal("noco", tablePlugin->columnDefinition(false), dbc, false);
+  attachTableInternal("noco", dbc, false);
 
   QueryData results;
   queryInternal(
@@ -1217,7 +1217,7 @@ TEST_F(VirtualTableTests, test_table_exceptions) {
   tables->add("exceptional", exceptional);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
-      "exceptional", exceptional->columnDefinition(false), dbc, false);
+      "exceptional", dbc, false);
 
   auto backup_flag = FLAGS_ignore_table_exceptions;
   FLAGS_ignore_table_exceptions = true;
