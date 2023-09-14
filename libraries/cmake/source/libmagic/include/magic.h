@@ -47,6 +47,8 @@
 					   * extensions */
 #define MAGIC_COMPRESS_TRANSP	0x2000000 /* Check inside compressed files
 					   * but not report compression */
+#define MAGIC_NO_COMPRESS_FORK	0x4000000 /* Don't allow decompression that
+					   * needs to fork */
 #define MAGIC_NODESC		(MAGIC_EXTENSION|MAGIC_MIME|MAGIC_APPLE)
 
 #define	MAGIC_NO_CHECK_COMPRESS	0x0001000 /* Don't check for compressed files */
@@ -60,6 +62,7 @@
 #define	MAGIC_NO_CHECK_TOKENS	0x0100000 /* Don't check tokens */
 #define MAGIC_NO_CHECK_ENCODING 0x0200000 /* Don't check text encodings */
 #define MAGIC_NO_CHECK_JSON	0x0400000 /* Don't check for JSON files */
+#define MAGIC_NO_CHECK_SIMH	0x0800000 /* Don't check for SIMH tape files */
 
 /* No built-in tests; only consult the magic file */
 #define MAGIC_NO_CHECK_BUILTIN	( \
@@ -74,6 +77,7 @@
 	MAGIC_NO_CHECK_TOKENS	| \
 	MAGIC_NO_CHECK_ENCODING	| \
 	MAGIC_NO_CHECK_JSON	| \
+	MAGIC_NO_CHECK_SIMH	| \
 	0			  \
 )
 
@@ -97,11 +101,11 @@ b\17no_check_sapptype\0\
 b\20no_check_elf\0\
 b\21no_check_text\0\
 b\22no_check_cdf\0\
-b\23no_check_reserved0\0\
+b\23no_check_csv\0\
 b\24no_check_tokens\0\
 b\25no_check_encoding\0\
 b\26no_check_json\0\
-b\27no_check_reserved2\0\
+b\27no_check_simh\0\
 b\30extension\0\
 b\31transp_compression\0\
 "
@@ -113,7 +117,7 @@ b\31transp_compression\0\
 #define	MAGIC_NO_CHECK_FORTRAN	0x000000 /* Don't check ascii/fortran */
 #define	MAGIC_NO_CHECK_TROFF	0x000000 /* Don't check ascii/troff */
 
-#define MAGIC_VERSION		540	/* This implementation */
+#define MAGIC_VERSION		545	/* This implementation */
 
 
 #ifdef __cplusplus
@@ -150,6 +154,7 @@ int magic_errno(magic_t);
 #define MAGIC_PARAM_REGEX_MAX		5
 #define	MAGIC_PARAM_BYTES_MAX		6
 #define	MAGIC_PARAM_ENCODING_MAX	7
+#define	MAGIC_PARAM_ELF_SHSIZE_MAX		8
 
 int magic_setparam(magic_t, int, const void *);
 int magic_getparam(magic_t, int, void *);

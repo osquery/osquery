@@ -18,7 +18,7 @@ Note: If building for macOS ARM, substitute the target with `-target arm64-apple
 ```bash
 export CC=clang
 export OSQUERY_LZMA_HEADER="/Users/<user>/osquery/src/libraries/cmake/source/lzma/src/src/liblzma/api"
-export CFLAGS="-isysroot /Applications/Xcode_13.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk -I${OSQUERY_LZMA_HEADER} -target x86_64-apple-macos10.14"
+export CFLAGS="-isysroot /Applications/Xcode_14.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -I${OSQUERY_LZMA_HEADER} -target x86_64-apple-macos10.15"
 ```
 
 Configure and build the project:
