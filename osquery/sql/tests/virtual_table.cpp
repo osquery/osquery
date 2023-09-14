@@ -214,8 +214,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  auto status =
-      attachTableInternal("failed_sample", dbc, false);
+  auto status = attachTableInternal("failed_sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
@@ -227,8 +226,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   ASSERT_TRUE(status.ok());
 
   // Use the table name, plugin-generated schema to attach.
-  status = attachTableInternal(
-      "sample", dbc, false);
+  status = attachTableInternal("sample", dbc, false);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string const q =
@@ -538,8 +536,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   auto cache = std::make_shared<tableCacheTablePlugin>();
   tables->add("table_cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "table_cache", dbc, false);
+  attachTableInternal("table_cache", dbc, false);
 
   QueryData results;
   std::string statement = "SELECT * from table_cache;";
@@ -605,8 +602,7 @@ TEST_F(VirtualTableTests, test_table_results_cache_colcheck) {
   auto cache = std::make_shared<tableCacheTablePlugin>();
   tables->add("table_cache_cols", cache);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "table_cache_cols", dbc, false);
+  attachTableInternal("table_cache_cols", dbc, false);
 
   // Request that caching be used.
   dbc->useCache(true);
@@ -891,8 +887,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
 
   auto default_scan = std::make_shared<defaultScanTablePlugin>();
   table_registry->add("default_scan", default_scan);
-  attachTableInternal(
-      "default_scan", dbc, false);
+  attachTableInternal("default_scan", dbc, false);
 
   QueryData results;
   queryInternal(
@@ -974,8 +969,7 @@ TEST_F(VirtualTableTests, test_used_columns) {
   auto colsUsed = std::make_shared<colsUsedTablePlugin>();
   tables->add("colsUsed1", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "colsUsed1", dbc, false);
+  attachTableInternal("colsUsed1", dbc, false);
 
   QueryData results;
   auto status = queryInternal("SELECT col1, col3 FROM colsUsed1", results, dbc);
@@ -993,8 +987,7 @@ TEST_F(VirtualTableTests, test_used_columns_with_alias) {
   auto colsUsed = std::make_shared<colsUsedTablePlugin>();
   tables->add("colsUsed2", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "colsUsed2", dbc, false);
+  attachTableInternal("colsUsed2", dbc, false);
 
   QueryData results;
   auto status =
@@ -1051,8 +1044,7 @@ TEST_F(VirtualTableTests, test_used_columns_bitset) {
   auto colsUsed = std::make_shared<colsUsedBitsetTablePlugin>();
   tables->add("colsUsedBitset1", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "colsUsedBitset1", dbc, false);
+  attachTableInternal("colsUsedBitset1", dbc, false);
 
   QueryData results;
   auto status =
@@ -1071,8 +1063,7 @@ TEST_F(VirtualTableTests, test_used_columns_bitset_with_alias) {
   auto colsUsed = std::make_shared<colsUsedBitsetTablePlugin>();
   tables->add("colsUsedBitset2", colsUsed);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "colsUsedBitset2", dbc, false);
+  attachTableInternal("colsUsedBitset2", dbc, false);
 
   QueryData results;
   auto status =
@@ -1117,8 +1108,7 @@ TEST_F(VirtualTableTests, test_used_columns_default) {
   auto colsUsedDefault = std::make_shared<colsUsedDefaultTablePlugin>();
   tables->add("colsUsedDefault", colsUsedDefault);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "colsUsedDefault", dbc, false);
+  attachTableInternal("colsUsedDefault", dbc, false);
 
   {
     QueryData results;
@@ -1216,8 +1206,7 @@ TEST_F(VirtualTableTests, test_table_exceptions) {
   auto exceptional = std::make_shared<exceptionalTablePlugin>();
   tables->add("exceptional", exceptional);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "exceptional", dbc, false);
+  attachTableInternal("exceptional", dbc, false);
 
   auto backup_flag = FLAGS_ignore_table_exceptions;
   FLAGS_ignore_table_exceptions = true;

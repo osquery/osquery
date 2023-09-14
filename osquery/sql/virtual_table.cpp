@@ -1107,13 +1107,13 @@ Status attachTableInternal(const std::string& name,
       instance->db(), name.c_str(), module, (void*)&(*instance));
 
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
-    auto format =
-        "CREATE VIRTUAL TABLE temp." + name + " USING " + name;
+    auto format = "CREATE VIRTUAL TABLE temp." + name + " USING " + name;
 
     rc =
         sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, nullptr);
     if (rc != SQLITE_OK) {
-      LOG(ERROR) << "Error creating named virtual table: " << name << " (" << rc << ")";
+      LOG(ERROR) << "Error creating named virtual table: " << name << " (" << rc
+                 << ")";
     }
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
