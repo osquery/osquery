@@ -45,9 +45,19 @@ const std::string kSvcStatus[] = {"UNKNOWN",
                                   "PAUSE_PENDING",
                                   "PAUSED"};
 
+/* Possible values defined here (dwServiceType):
+ * https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_status
+ * https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-query_service_configw
+ */
 const std::map<int, std::string> kServiceType = {
+    {0x00000001, "KERNEL_DRIVER"},
+    {0x00000002, "FILE_SYSTEM_DRIVER"},
     {0x00000010, "OWN_PROCESS"},
     {0x00000020, "SHARE_PROCESS"},
+    {0x00000050, "USER_OWN_PROCESS"},
+    {0x00000060, "USER_SHARE_PROCESS"},
+    {0x000000d0, "USER_OWN_PROCESS(Instance)"},
+    {0x000000e0, "USER_SHARE_PROCESS(Instance)"},
     {0x00000100, "INTERACTIVE_PROCESS"},
     {0x00000110, "OWN_PROCESS(Interactive)"},
     {0x00000120, "SHARE_PROCESS(Interactive)"}};
@@ -162,7 +172,7 @@ static inline Status getServices(QueryData& results) {
   DWORD serviceCount;
   (void)EnumServicesStatusEx(scmHandle.get(),
                              SC_ENUM_PROCESS_INFO,
-                             SERVICE_WIN32,
+                             (SERVICE_WIN32 | SERVICE_DRIVER),
                              SERVICE_STATE_ALL,
                              nullptr,
                              0,
@@ -183,7 +193,7 @@ static inline Status getServices(QueryData& results) {
 
   auto ret = EnumServicesStatusEx(scmHandle.get(),
                                   SC_ENUM_PROCESS_INFO,
-                                  SERVICE_WIN32,
+                                  (SERVICE_WIN32 | SERVICE_DRIVER),
                                   SERVICE_STATE_ALL,
                                   (LPBYTE)lpSvcBuf.get(),
                                   bytesNeeded,
