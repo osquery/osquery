@@ -439,7 +439,7 @@
 #endif
 
 /* Enable xzlib compression support */
-/* #undef XZLIBSUPPORT */
+#define XZLIBSUPPORT 1
 
 /* Enable zlib compression support */
 #define ZLIBSUPPORT 1
