@@ -224,6 +224,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
                                  std::size_t events_expiry,
                                  std::size_t current_time);
 
+  struct GenerateRowsResult {
+    bool isEnd;
+    EventTime last_time;
+    EventID last_id;
+  };
+
   /**
    * @brief Return all events added by this EventSubscriber within start, stop.
    *
@@ -237,12 +243,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * @param last_eid (optional) The last visited event id.
    * @return The upper bound time or 0 if there were no events in the range.
    */
-  static EventIndex::iterator generateRows(Context& context,
-                                           IDatabaseInterface& db_interface,
-                                           std::function<void(Row)> callback,
-                                           EventTime start_time,
-                                           EventTime end_time,
-                                           EventID last_eid = 0);
+  static GenerateRowsResult generateRows(Context& context,
+                                         IDatabaseInterface& db_interface,
+                                         std::function<void(Row)> callback,
+                                         EventTime start_time,
+                                         EventTime end_time,
+                                         EventID last_eid = 0);
 
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
