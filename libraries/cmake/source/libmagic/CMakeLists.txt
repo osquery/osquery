@@ -18,6 +18,7 @@ function(libmagicMain)
     "${library_root}/src/compress.c"
     "${library_root}/src/is_csv.c"
     "${library_root}/src/is_json.c"
+    "${library_root}/src/is_simh.c"
     "${library_root}/src/is_tar.c"
     "${library_root}/src/readelf.c"
     "${library_root}/src/print.c"

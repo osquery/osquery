@@ -208,8 +208,8 @@
   "libmagic": {
     "product": "file",
     "vendor": "file_project",
-    "version": "5.40",
-    "commit": "f49fda6f52a9477d817dbd9c06afab02daf025f8",
+    "version": "5.45",
+    "commit": "4cbd5c8f0851201d203755b76cb66ba991ffd8be",
     "ignored-cves": []
   },
   "librdkafka": {
