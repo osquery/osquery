@@ -233,9 +233,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
       "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
   status = queryInternal(q, results, dbc);
-  EXPECT_EQ(
-      "CREATE VIRTUAL TABLE sample USING sample",
-      results[0]["sql"]);
+  EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample", results[0]["sql"]);
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
