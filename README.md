@@ -114,6 +114,7 @@ community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-h29zm0gk-
 ## Osquery fleet managers
 
 There are many osquery fleet managers out there. The osquery project does not endorse, recommend, or test these. They are provided as a starting point
+
 | Project                                                 | License     |
 | ------------------------------------------------------- | ----------- |
 | [Fleet](https://github.com/fleetdm/fleet)               | Open Core   |
