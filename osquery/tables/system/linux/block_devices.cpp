@@ -150,23 +150,46 @@ QueryData genBlockDevs(QueryContext &context) {
     return {};
   }
 
-  struct udev_enumerate *enumerate = udev_enumerate_new(udev);
-  udev_enumerate_add_match_subsystem(enumerate, "block");
-  udev_enumerate_scan_devices(enumerate);
+  bool runSelectAll(true);
 
-  std::map<std::string, std::string> lvm_lv2pv;
-  struct udev_list_entry *devices, *dev_list_entry;
-  devices = udev_enumerate_get_list_entry(enumerate);
-  udev_list_entry_foreach(dev_list_entry, devices) {
-    const char *path = udev_list_entry_get_name(dev_list_entry);
-    struct udev_device *dev = udev_device_new_from_syspath(udev, path);
-    if (path != nullptr && dev != nullptr) {
-      getBlockDevice(dev, results, lvm_lv2pv);
+  auto constraint_it = context.constraints.find("name");
+  if (constraint_it != context.constraints.end()) {
+    std::map<std::string, std::string> lvm_lv2pv;
+    const auto& constraints = constraint_it->second;
+    for (const auto& name : constraints.getAll(EQUALS)) {
+      runSelectAll = false;
+
+      struct stat sb;
+      if (stat(name.c_str(), &sb) == 0 && (sb.st_mode & S_IFMT) == S_IFBLK) {
+        if (struct udev_device* dev =
+                udev_device_new_from_devnum(udev, 'b', sb.st_rdev)) {
+          getBlockDevice(dev, results, lvm_lv2pv);
+          udev_device_unref(dev);
+        }
+      }
     }
-    udev_device_unref(dev);
   }
 
-  udev_enumerate_unref(enumerate);
+  if (runSelectAll) {
+    struct udev_enumerate* enumerate = udev_enumerate_new(udev);
+    udev_enumerate_add_match_subsystem(enumerate, "block");
+    udev_enumerate_scan_devices(enumerate);
+
+    std::map<std::string, std::string> lvm_lv2pv;
+    struct udev_list_entry *devices, *dev_list_entry;
+    devices = udev_enumerate_get_list_entry(enumerate);
+    udev_list_entry_foreach(dev_list_entry, devices) {
+      const char* path = udev_list_entry_get_name(dev_list_entry);
+      struct udev_device* dev = udev_device_new_from_syspath(udev, path);
+      if (path != nullptr && dev != nullptr) {
+        getBlockDevice(dev, results, lvm_lv2pv);
+      }
+      udev_device_unref(dev);
+    }
+
+    udev_enumerate_unref(enumerate);
+  }
+
   udev_unref(udev);
 
   return results;
