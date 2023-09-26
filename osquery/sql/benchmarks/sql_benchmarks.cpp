@@ -80,8 +80,7 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "benchmark", columnDefinition(res, false, false), dbc, false);
+  attachTableInternal("benchmark", dbc, false);
 
   while (state.KeepRunning()) {
     QueryData results;
@@ -101,8 +100,7 @@ static void SQL_virtual_table_internal_yield(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "benchmark_yield", columnDefinition(res, false, false), dbc, false);
+  attachTableInternal("benchmark_yield", dbc, false);
 
   while (state.KeepRunning()) {
     QueryData results;
@@ -123,8 +121,7 @@ static void SQL_virtual_table_internal_global(benchmark::State& state) {
   while (state.KeepRunning()) {
     // Get a connection to the persistent database.
     auto dbc = SQLiteDBManager::get();
-    attachTableInternal(
-        "benchmark", columnDefinition(res, false, false), dbc, false);
+    attachTableInternal("benchmark", dbc, false);
 
     QueryData results;
     queryInternal("select * from benchmark", results, dbc);
@@ -144,8 +141,7 @@ static void SQL_virtual_table_internal_unique(benchmark::State& state) {
   while (state.KeepRunning()) {
     // Get a new database connection (to a unique database).
     auto dbc = SQLiteDBManager::getUnique();
-    attachTableInternal(
-        "benchmark", columnDefinition(res, false, false), dbc, false);
+    attachTableInternal("benchmark", dbc, false);
 
     QueryData results;
     queryInternal("select * from benchmark", results, dbc);
@@ -183,8 +179,7 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "long_benchmark", columnDefinition(res, false, false), dbc, false);
+  attachTableInternal("long_benchmark", dbc, false);
 
   while (state.KeepRunning()) {
     QueryData results;
@@ -247,8 +242,7 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "wide_benchmark", columnDefinition(res, false, false), dbc, false);
+  attachTableInternal("wide_benchmark", dbc, false);
 
   kWideCount = state.range(1);
   while (state.KeepRunning()) {
@@ -274,8 +268,7 @@ static void SQL_virtual_table_internal_wide_yield(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal(
-      "wide_benchmark_yield", columnDefinition(res, false, false), dbc, false);
+  attachTableInternal("wide_benchmark_yield", dbc, false);
 
   kWideCount = state.range(1);
   while (state.KeepRunning()) {

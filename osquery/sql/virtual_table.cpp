@@ -1084,7 +1084,6 @@ struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
 } // namespace tables
 
 Status attachTableInternal(const std::string& name,
-                           const std::string& statement,
                            const SQLiteDBInstanceRef& instance,
                            bool is_extension) {
   if (SQLiteDBManager::isDisabled(name)) {
@@ -1108,12 +1107,14 @@ Status attachTableInternal(const std::string& name,
       instance->db(), name.c_str(), module, (void*)&(*instance));
 
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
-    auto format =
-        "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;
+    auto format = "CREATE VIRTUAL TABLE temp." + name + " USING " + name;
 
     rc =
         sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, nullptr);
-
+    if (rc != SQLITE_OK) {
+      LOG(ERROR) << "Error creating named virtual table: " << name << " (" << rc
+                 << ")";
+    }
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
   }
@@ -1165,12 +1166,10 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   bool is_extension = false;
 
   for (const auto& name : RegistryFactory::get().names("table")) {
-    // Column information is nice for virtual table create call.
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);
     if (status.ok()) {
-      auto statement = columnDefinition(response, true, is_extension);
-      attachTableInternal(name, statement, instance, is_extension);
+      attachTableInternal(name, instance, is_extension);
     }
   }
 }
