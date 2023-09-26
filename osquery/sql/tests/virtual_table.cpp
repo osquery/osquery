@@ -234,7 +234,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   QueryData results;
   status = queryInternal(q, results, dbc);
   EXPECT_EQ(
-      "CREATE VIRTUAL TABLE sample USING sample(`foo` INTEGER, `bar` TEXT)",
+      "CREATE VIRTUAL TABLE sample USING sample",
       results[0]["sql"]);
 }
 
