@@ -111,6 +111,18 @@ guide](https://osquery.readthedocs.io/en/latest/development/building/). Also
 check out our [contributing guide](CONTRIBUTING.md) and join the
 community on [Slack](https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ).
 
+## Osquery fleet managers
+
+There are many osquery fleet managers out there. The osquery project does not endorse, recommend, or test these. They are provided as a starting point
+
+| Project                                                 | License     |
+| ------------------------------------------------------- | ----------- |
+| [Fleet](https://github.com/fleetdm/fleet)               | Open Core   |
+| [Kolide](https://www.kolide.com)                        | Commercial    |
+| [OSCTRL](https://github.com/jmpsec/osctrl)              | Open Source |
+| [Zentral](https://github.com/zentralopensource/zentral) | Open Source |
+| [Zercurity](https://github.com/zercurity/zercurity)     | Freemium    |
+
 ## License
 
 By contributing to osquery you agree that your contributions will be
