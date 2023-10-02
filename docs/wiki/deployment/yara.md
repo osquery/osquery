@@ -171,7 +171,7 @@ you must use `LIKE` if you want to use a wildcard pattern.
 
 Once the `where` is out of the way, you must specify the "what" part. This is done through either the
 `sigfile` or `sig_group` constraints. The `sigfile` constraint must be an absolute path to a signature
-file on the filesystem, not a elative path. The signature file will be compiled only for the execution
+file on the filesystem, not a relative path. The signature file will be compiled only for the execution
 of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature
 grouping from your configuration file.
 
