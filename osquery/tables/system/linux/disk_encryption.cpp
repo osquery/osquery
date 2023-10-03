@@ -106,31 +106,36 @@ void genFDEStatusForBlockDevice(const bool& runSelectAll,
   }
   // If there's no good crypt status, use the parent device's crypt status.
   default:
-    // Step through each parent once until we either reach
-    // the root device, or a device with valid encryption.
+    // If there is no parent, we are likely at the root of the block device.
+    // Since no good crypt status has been found, we set the empty status and
+    // exit. All children of this block device will inherit this status.
     if (!parent_name.empty()) {
-      if (!encrypted_rows.count(parent_name)) {
-        if (!block_devices.count(parent_name)) {
-          queryBlockDevice(runSelectAll, parent_name, block_devices);
-        }
-
-        genFDEStatusForBlockDevice(runSelectAll,
-                                   block_devices[parent_name],
-                                   block_devices,
-                                   encrypted_rows);
-      }
-
-      // The recursive calls return back, and each child
-      // device takes the encryption values of their parent.
-      auto parent_row = encrypted_rows[parent_name];
-      r["encryption_status"] = parent_row["encryption_status"];
-      r["encrypted"] = parent_row["encrypted"];
-      r["type"] = parent_row["type"];
-    } else {
       r["encryption_status"] = kEncryptionStatusNotEncrypted;
       r["encrypted"] = "0";
       r["type"] = "";
+      break;
     }
+
+    // If there is a parent, let's generate and use its crypt status for this
+    // device.
+    if (!encrypted_rows.count(parent_name)) {
+      // If we don't have the parent queried yet, do that.
+      if (!block_devices.count(parent_name)) {
+        queryBlockDevice(runSelectAll, parent_name, block_devices);
+      }
+
+      genFDEStatusForBlockDevice(runSelectAll,
+                                 block_devices[parent_name],
+                                 block_devices,
+                                 encrypted_rows);
+    }
+
+    // The recursive calls return back, and each child device takes the
+    // encryption values of their parent.
+    auto parent_row = encrypted_rows[parent_name];
+    r["encryption_status"] = parent_row["encryption_status"];
+    r["encrypted"] = parent_row["encrypted"];
+    r["type"] = parent_row["type"];
   }
 
   encrypted_rows[name] = r;
@@ -149,9 +154,25 @@ QueryData genFDEStatus(QueryContext& context) {
   }
 
   bool runSelectAll(true);
-  std::vector<std::string> queried_devices;
+
+  // When a block device doesn't have sufficient crypt status, it needs to be
+  // able to inherit the crypt status of its parent. However, this can make
+  // things muddy:
+  // 1. Input data can come in as an array containing nodes from multiple n-ary
+  // tress, except only the child node is aware of the relationship.
+  // 2. We need to be able to evaluate the crypt status of all nodes in a tree.
+  //
+  // To do this, we utilize `block_devices` and `encrypted_rows` to cache block
+  // devices at two different points. The first is when it's queried, and the
+  // second is after setting crypt status. This helps us avoid O(N^2) issues. We
+  // can also skip sorting nodes by using recursion.
   std::map<std::string, Row> block_devices;
   std::map<std::string, Row> encrypted_rows;
+
+  // `queried_devices` tracks the devices in the query context, so that if a
+  // parent device is queried, that data is not returned. sqlite would also
+  // filter this out, but it feels a bit cleaner here.
+  std::vector<std::string> queried_devices;
 
   if (auto constraint_it = context.constraints.find("name");
       constraint_it != context.constraints.end()) {
@@ -177,7 +198,9 @@ QueryData genFDEStatus(QueryContext& context) {
           runSelectAll, pair.second, block_devices, encrypted_rows);
     }
 
-    if (queried_devices.empty() ||
+    // Copy encrypted rows back to results. Omit rows that aren't in the query
+    // context.
+    if (runSelectAll ||
         std::count(
             queried_devices.begin(), queried_devices.end(), pair.first)) {
       results.push_back(encrypted_rows[pair.first]);
