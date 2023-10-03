@@ -109,7 +109,7 @@ void genFDEStatusForBlockDevice(const bool& runSelectAll,
     // If there is no parent, we are likely at the root of the block device.
     // Since no good crypt status has been found, we set the empty status and
     // exit. All children of this block device will inherit this status.
-    if (!parent_name.empty()) {
+    if (parent_name.empty()) {
       r["encryption_status"] = kEncryptionStatusNotEncrypted;
       r["encrypted"] = "0";
       r["type"] = "";
@@ -201,8 +201,8 @@ QueryData genFDEStatus(QueryContext& context) {
     // Copy encrypted rows back to results. Omit rows that aren't in the query
     // context.
     if (runSelectAll ||
-        std::count(
-            queried_devices.begin(), queried_devices.end(), pair.first)) {
+        std::find(queried_devices.begin(), queried_devices.end(), pair.first) !=
+            queried_devices.end()) {
       results.push_back(encrypted_rows[pair.first]);
     }
   }
