@@ -150,7 +150,7 @@ QueryData genBlockDevs(QueryContext &context) {
     return {};
   }
 
-  struct udev_enumerate *enumerate = udev_enumerate_new(udev);
+  struct udev_enumerate* enumerate = udev_enumerate_new(udev);
   udev_enumerate_add_match_subsystem(enumerate, "block");
   udev_enumerate_scan_devices(enumerate);
 
@@ -158,8 +158,8 @@ QueryData genBlockDevs(QueryContext &context) {
   struct udev_list_entry *devices, *dev_list_entry;
   devices = udev_enumerate_get_list_entry(enumerate);
   udev_list_entry_foreach(dev_list_entry, devices) {
-    const char *path = udev_list_entry_get_name(dev_list_entry);
-    struct udev_device *dev = udev_device_new_from_syspath(udev, path);
+    const char* path = udev_list_entry_get_name(dev_list_entry);
+    struct udev_device* dev = udev_device_new_from_syspath(udev, path);
     if (path != nullptr && dev != nullptr) {
       getBlockDevice(dev, results, lvm_lv2pv);
     }
