@@ -126,8 +126,6 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
-  bool contextEmpty(true);
-
   // When a block device doesn't have sufficient crypt status, it needs to be
   // able to inherit the crypt status of its parent.
   // To do this, we utilize `block_devices` and `encrypted_rows` to cache block
@@ -136,21 +134,6 @@ QueryData genFDEStatus(QueryContext& context) {
   // We can also skip sorting nodes by using recursion.
   std::map<std::string, Row> block_devices;
   std::map<std::string, Row> encrypted_rows;
-
-  // `queried_devices` tracks the devices in the query context. Crypt status is
-  // only generated and returned for the context. sqlite would also filter out
-  // the results, but it feels a bit cleaner here.
-  std::vector<std::string> queried_devices;
-
-  // Add query context to `queried_devices`
-  if (auto constraint_it = context.constraints.find("name");
-      constraint_it != context.constraints.end()) {
-    const auto& constraints = constraint_it->second;
-    for (const auto& device : constraints.getAll(EQUALS)) {
-      contextEmpty = false;
-      queried_devices.push_back(device);
-    }
-  }
 
   // Ultimately we want to have proper query context here. There are underlying
   // issues with udev child->parent relationship on LVM volumes. See #8152.
@@ -163,16 +146,12 @@ QueryData genFDEStatus(QueryContext& context) {
 
   // Generate and add an encryption row result for each queried block device.
   for (const auto& pair : block_devices) {
-    if (contextEmpty ||
-        std::find(queried_devices.begin(), queried_devices.end(), pair.first) !=
-            queried_devices.end()) {
-      if (!encrypted_rows.count(pair.first)) {
-        genFDEStatusForBlockDevice(pair.second, block_devices, encrypted_rows);
-      }
-
-      // Copy encrypted rows back to results.
-      results.push_back(encrypted_rows[pair.first]);
+    if (!encrypted_rows.count(pair.first)) {
+      genFDEStatusForBlockDevice(pair.second, block_devices, encrypted_rows);
     }
+
+    // Copy encrypted rows back to results.
+    results.push_back(encrypted_rows[pair.first]);
   }
 
   return results;
