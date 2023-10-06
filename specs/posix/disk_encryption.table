@@ -1,7 +1,7 @@
 table_name("disk_encryption")
 description("Disk encryption status and information.")
 schema([
-    Column("name", TEXT, "Disk name", index=True),
+    Column("name", TEXT, "Disk name"),
     Column("uuid", TEXT, "Disk Universally Unique Identifier"),
     Column("encrypted", INTEGER, "1 If encrypted: true (disk is encrypted), else 0"),
     Column("type", TEXT, "Description of cipher type and mode if available"),
