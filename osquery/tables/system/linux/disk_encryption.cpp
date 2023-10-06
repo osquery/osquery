@@ -29,34 +29,13 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
-// Calls to block_devices is done here to allow genFDEStatusForBlockDevice
-// to query parent block devices for crypt status after initial queries.
-void queryBlockDevice(const bool& runSelectAll,
-                      const std::string& device,
-                      std::map<std::string, Row>& block_devices) {
-  // There's protection around calls, but this ensures no duplicates.
-  if ((runSelectAll && block_devices.size() > 0) ||
-      (!runSelectAll && block_devices.count(device) > 0)) {
-    return;
-  }
-
-  auto data = runSelectAll
-                  ? SQL::selectAllFrom("block_devices")
-                  : SQL::selectAllFrom("block_devices", "name", EQUALS, device);
-  for (const auto& row : data) {
-    if (row.count("name") > 0) {
-      block_devices[row.at("name")] = row;
-    }
-  }
-}
-
-void genFDEStatusForBlockDevice(const bool& runSelectAll,
-                                const Row& block_device,
+void genFDEStatusForBlockDevice(const Row& block_device,
                                 std::map<std::string, Row>& block_devices,
                                 std::map<std::string, Row>& encrypted_rows) {
   const auto name = block_device.at("name");
   const auto parent_name =
       (block_device.count("parent") > 0 ? block_device.at("parent") : "");
+
   Row r;
   r["name"] = name;
   r["uuid"] = (block_device.count("uuid") > 0) ? block_device.at("uuid") : "";
@@ -106,9 +85,10 @@ void genFDEStatusForBlockDevice(const bool& runSelectAll,
   }
   // If there's no good crypt status, use the parent device's crypt status.
   default:
-    // If there is no parent, we are likely at the root of the block device.
-    // Since no good crypt status has been found, we set the empty status and
-    // exit. All children of this block device will inherit this status.
+    // If there is no parent, we are likely at the root of the block device
+    // tree. Since no good crypt status has been found, we set the empty status
+    // and exit. All children of this block device will inherit this status if
+    // they aren't encrypted.
     if (parent_name.empty()) {
       r["encryption_status"] = kEncryptionStatusNotEncrypted;
       r["encrypted"] = "0";
@@ -119,15 +99,8 @@ void genFDEStatusForBlockDevice(const bool& runSelectAll,
     // If there is a parent, let's generate and use its crypt status for this
     // device.
     if (!encrypted_rows.count(parent_name)) {
-      // If we don't have the parent queried yet, do that.
-      if (!block_devices.count(parent_name)) {
-        queryBlockDevice(runSelectAll, parent_name, block_devices);
-      }
-
-      genFDEStatusForBlockDevice(runSelectAll,
-                                 block_devices[parent_name],
-                                 block_devices,
-                                 encrypted_rows);
+      genFDEStatusForBlockDevice(
+          block_devices[parent_name], block_devices, encrypted_rows);
     }
 
     // The recursive calls return back, and each child device takes the
@@ -153,56 +126,51 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
-  bool runSelectAll(true);
+  bool contextEmpty(true);
 
   // When a block device doesn't have sufficient crypt status, it needs to be
-  // able to inherit the crypt status of its parent. However, this can make
-  // things muddy:
-  // 1. Input data can come in as an array containing nodes from multiple n-ary
-  // tress, except only the child node is aware of the relationship.
-  // 2. We need to be able to evaluate the crypt status of all nodes in a tree.
-  //
+  // able to inherit the crypt status of its parent.
   // To do this, we utilize `block_devices` and `encrypted_rows` to cache block
   // devices at two different points. The first is when it's queried, and the
-  // second is after setting crypt status. This helps us avoid O(N^2) issues. We
-  // can also skip sorting nodes by using recursion.
+  // second is after setting crypt status. This helps us avoid O(N^2) issues.
+  // We can also skip sorting nodes by using recursion.
   std::map<std::string, Row> block_devices;
   std::map<std::string, Row> encrypted_rows;
 
-  // `queried_devices` tracks the devices in the query context, so that if a
-  // parent device is queried, that data is not returned. sqlite would also
-  // filter this out, but it feels a bit cleaner here.
+  // `queried_devices` tracks the devices in the query context. Crypt status is
+  // only generated and returned for the context. sqlite would also filter out
+  // the results, but it feels a bit cleaner here.
   std::vector<std::string> queried_devices;
 
+  // Add query context to `queried_devices`
   if (auto constraint_it = context.constraints.find("name");
       constraint_it != context.constraints.end()) {
     const auto& constraints = constraint_it->second;
     for (const auto& device : constraints.getAll(EQUALS)) {
-      runSelectAll = false;
-
-      if (!block_devices.count(device)) {
-        queryBlockDevice(runSelectAll, device, block_devices);
-        queried_devices.push_back(device);
-      }
+      contextEmpty = false;
+      queried_devices.push_back(device);
     }
   }
 
-  if (runSelectAll) {
-    queryBlockDevice(runSelectAll, "", block_devices);
+  // Ultimately we want to have proper query context here. There are underlying
+  // issues with udev child->parent relationship on LVM volumes. See #8152.
+  auto data = SQL::selectAllFrom("block_devices");
+  for (const auto& row : data) {
+    if (row.count("name") > 0) {
+      block_devices[row.at("name")] = row;
+    }
   }
 
   // Generate and add an encryption row result for each queried block device.
   for (const auto& pair : block_devices) {
-    if (!encrypted_rows.count(pair.first)) {
-      genFDEStatusForBlockDevice(
-          runSelectAll, pair.second, block_devices, encrypted_rows);
-    }
-
-    // Copy encrypted rows back to results. Omit rows that aren't in the query
-    // context.
-    if (runSelectAll ||
+    if (contextEmpty ||
         std::find(queried_devices.begin(), queried_devices.end(), pair.first) !=
             queried_devices.end()) {
+      if (!encrypted_rows.count(pair.first)) {
+        genFDEStatusForBlockDevice(pair.second, block_devices, encrypted_rows);
+      }
+
+      // Copy encrypted rows back to results.
       results.push_back(encrypted_rows[pair.first]);
     }
   }
