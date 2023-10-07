@@ -281,7 +281,7 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
 {
   "queries": {
     "q1": "SELECT * FROM osquery_info;",
-    "q2": "SELECT * FROM osquery_info WHERE version > '5.3.0';"
+    "q2": "SELECT * FROM osquery_info WHERE CAST(split(version, '.', 0) as integer) >= 5"
   }
 }
 )json";
