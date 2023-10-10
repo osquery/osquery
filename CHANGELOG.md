@@ -5,12 +5,18 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/5.9.1...5.10.1)
 
+This release has several updates and bugfixes. Several improvements to various tables, and their handling.
+
+One potential breaking change, is in how [the watchdog calculates CPU utilization](https://github.com/osquery/osquery/pull/8104).
+Previously, this calculation was based on physical CPUs, now it is based on virtual cores. We believe this makes more sense with modern CPUs.
+
 Representing commits from 18 contributors! Thank you all.
 
 ### New Features
 
 - Add `--enable_watchdog_logging` flag and improve error messages ([#8070](https://github.com/osquery/osquery/pull/8070))
 - Add `--aws_enforce_fips` to enforce AWS FIPS endpoints ([#8075](https://github.com/osquery/osquery/pull/8075))
+- Add new AWS valid regions ([#8110](https://github.com/osquery/osquery/pull/8110))
 - Implement `decorations_top_level` flag for status logs ([#8102](https://github.com/osquery/osquery/pull/8102))
 
 ### Table Changes
@@ -20,8 +26,10 @@ Representing commits from 18 contributors! Thank you all.
 - Allow querying of kernel and filesystem drivers ([#8119](https://github.com/osquery/osquery/pull/8119))
 - Update `es_process_file_events` adding support for open events, and for only triggering on `file_paths` ([#8114](https://github.com/osquery/osquery/pull/8114))
 - Update `firefox_addons` to use rapidjson to parse and don't block on read ([#8089](https://github.com/osquery/osquery/pull/8089))
-- Add some indexing to `block_devices` ([#8037](https://github.com/osquery/osquery/pull/8037))
-- Revert "Add some indexing to `block_devices`" ([#8151](https://github.com/osquery/osquery/pull/8151))
+- Update macOS `es_process_events` table: quote spaces in command line and environment variables ([#8054](https://github.com/osquery/osquery/pull/8054))
+- Update linux `disk_encryption` to recursively query parent crypt status ([#8052](https://github.com/osquery/osquery/pull/8052))
+- Add, and revert, indexing on `block_devices` ([#8037](https://github.com/osquery/osquery/pull/8037), [#8151](https://github.com/osquery/osquery/pull/8151))
+
 
 ### Under the Hood improvements
 
@@ -37,12 +45,9 @@ Representing commits from 18 contributors! Thank you all.
 
 ### Bug Fixes
 
-- Add new AWS valid regions ([#8110](https://github.com/osquery/osquery/pull/8110))
 - Always lock event_index_mutex when accessing event_index map ([#8077](https://github.com/osquery/osquery/pull/8077))
 - Check audit return values with <= ([#8125](https://github.com/osquery/osquery/pull/8125))
 - Fix `wifi_survey` table not to crash if the ssid cannot be retrieved ([#8153](https://github.com/osquery/osquery/pull/8153))
-- Update `es_process_events` table: quote spaces in command line and environment variables ([#8054](https://github.com/osquery/osquery/pull/8054))
-- Update linux `disk_encryption` to recursively query parent crypt status ([#8052](https://github.com/osquery/osquery/pull/8052))
 
 ### Documentation
 
