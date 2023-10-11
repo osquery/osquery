@@ -1,5 +1,8 @@
 /* expat_config.h.cmake.  Based upon generated expat_config.h.in.  */
 
+#ifndef EXPAT_CONFIG_H
+#define EXPAT_CONFIG_H 1
+
 /* 1234 = LIL_ENDIAN, 4321 = BIGENDIAN */
 #define BYTEORDER 1234
 
@@ -67,7 +70,7 @@
 #define PACKAGE_NAME "expat"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "expat 2.4.7"
+#define PACKAGE_STRING "expat 2.5.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "expat"
@@ -76,10 +79,12 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.4.7"
+#define PACKAGE_VERSION "2.5.0"
 
 /* Define to 1 if you have the ANSI C header files. */
+#ifndef STDC_HEADERS
 #define STDC_HEADERS
+#endif
 
 /* whether byteorder is bigendian */
 /* #undef WORDS_BIGENDIAN */
@@ -89,7 +94,7 @@
 /* #undef XML_ATTR_INFO */
 
 /* Define to specify how much context to retain around the current parse
-   point. */
+   point, 0 to disable. */
 #define XML_CONTEXT_BYTES 1024
 
 #if ! defined(_WIN32)
@@ -113,3 +118,5 @@
 
 /* Define to `unsigned' if <sys/types.h> does not define. */
 /* #undef size_t */
+
+#endif // ndef EXPAT_CONFIG_H
