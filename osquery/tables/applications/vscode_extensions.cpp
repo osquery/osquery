@@ -23,6 +23,30 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+namespace {
+std::string getStringValuefromRjObject(const rapidjson::Value& obj,
+                                       const std::string& key) {
+  rapidjson::Value::ConstMemberIterator itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    const rapidjson::Value& value = itr->value;
+
+    if (value.IsString()) {
+      return value.GetString();
+    }
+
+    if (value.IsInt64()) {
+      return std::to_string(value.GetInt64());
+    }
+
+    if (value.IsBool()) {
+      return value.GetBool() ? "1" : "0";
+    }
+  }
+
+  return "";
+}
+} // namespace
+
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
                                     QueryData& results) {
@@ -43,31 +67,31 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
   rapidjson::Value::ConstValueIterator itr;
   for (itr = doc.doc().Begin(); itr != doc.doc().End(); ++itr) {
     const rapidjson::Value& extension = *itr;
+
+    if (!(extension.IsObject() && extension.HasMember("identifier") &&
+          extension.HasMember("metadata") && extension.HasMember("location"))) {
+      continue;
+    }
+
     const rapidjson::Value& identifier = extension["identifier"];
     const rapidjson::Value& metadata = extension["metadata"];
     const rapidjson::Value& location = extension["location"];
 
-    if (identifier.IsObject() && metadata.IsObject()) {
-      const rapidjson::Value& id = identifier["id"];
-      const rapidjson::Value& version = extension["version"];
-      const rapidjson::Value& extensionPath = location["path"];
-      const rapidjson::Value& publisherDisplayName =
-          metadata["publisherDisplayName"];
-      const rapidjson::Value& installedTimestamp =
-          metadata["installedTimestamp"];
-      const rapidjson::Value& isPreReleaseVersion =
-          metadata["isPreReleaseVersion"];
+    if (identifier.IsObject() && metadata.IsObject() && location.IsObject()) {
+      std::string id = getStringValuefromRjObject(identifier, "id");
 
-      if (id.IsString() && version.IsString() && extensionPath.IsString() &&
-          publisherDisplayName.IsString() && installedTimestamp.IsInt64() &&
-          isPreReleaseVersion.IsBool()) {
+      if (id != "") {
         Row r;
-        r["id"] = id.GetString();
-        r["version"] = version.GetString();
-        r["path"] = extensionPath.GetString();
-        r["publisher"] = publisherDisplayName.GetString();
-        r["installed_at"] = std::to_string(installedTimestamp.GetInt64());
-        r["prerelease"] = isPreReleaseVersion.GetBool() ? "1" : "0";
+
+        r["id"] = id;
+        r["version"] = getStringValuefromRjObject(extension, "version");
+        r["path"] = getStringValuefromRjObject(location, "path");
+        r["publisher"] =
+            getStringValuefromRjObject(metadata, "publisherDisplayName");
+        r["installed_at"] =
+            getStringValuefromRjObject(metadata, "installedTimestamp");
+        r["prerelease"] =
+            getStringValuefromRjObject(metadata, "isPreReleaseVersion");
         r["uid"] = uid;
         results.push_back(r);
       }

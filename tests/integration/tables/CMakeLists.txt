@@ -340,7 +340,6 @@ function(generateTestsIntegrationTablesTestsTest)
       yara.cpp
       tpm_info.cpp
       security_profile_info.cpp
-      vscode_extensions.cpp
     )
 
     if(OSQUERY_BUILD_ETW)
