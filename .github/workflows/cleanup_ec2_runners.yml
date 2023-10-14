@@ -28,7 +28,7 @@ jobs:
 
             - name: Find Instances
               run: |
-                cutoff=$(gdate -u --date="-2 hours" "+%Y-%m-%dT%H:%M")
+                cutoff=$(date -u --date="-2 hours" "+%Y-%m-%dT%H:%M")
 
                 aws ec2 describe-instances \
                     --filters Name=instance-state-name,Values=running Name=instance.group-id,Values=sg-0757a3162c999331b \
