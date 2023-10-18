@@ -133,8 +133,8 @@ void EndpointSecurityFileEventPublisher::configure() {
         const auto& doc = parser->getData().doc();
         auto it = doc.FindMember("exclude_paths");
         if (it != doc.MemberEnd()) {
-          if (it->value.IsObject()) {
-            for (const auto& cat : it->value.GetObject()) {
+          if (doc["exclude_paths"].IsObject()) {
+            for (const auto& cat : doc["exclude_paths"].GetObject()) {
               if (cat.value.IsArray()) {
                 for (const auto& ex_path : cat.value.GetArray()) {
                   if (ex_path.IsString()) {
