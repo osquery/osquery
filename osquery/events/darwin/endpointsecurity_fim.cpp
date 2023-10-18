@@ -11,11 +11,9 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
 #include <osquery/events/darwin/es_utils.h>
-#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 
@@ -87,101 +85,23 @@ void EndpointSecurityFileEventPublisher::configure() {
     auto events = sc->es_file_event_subscriptions_;
 
     for (const auto& p : muted_path_literals_) {
-      es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
-        rc =
-            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
-      } else {
-        rc = es_mute_path_literal(es_file_client_, p.c_str());
-      }
-      if (rc == ES_RETURN_ERROR) {
+      auto result = es_mute_path_literal(es_file_client_, p.c_str());
+      if (result == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path literal: " << p;
       }
     }
 
     for (const auto& p : muted_path_prefixes_) {
-      es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
-        rc = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
-      } else {
-        rc = es_mute_path_prefix(es_file_client_, p.c_str());
-      }
-      if (rc == ES_RETURN_ERROR) {
+      auto result = es_mute_path_prefix(es_file_client_, p.c_str());
+      if (result == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute path with prefix: " << p;
       }
     }
 
     for (const auto& p : default_muted_path_literals_) {
-      es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
-        rc =
-            es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
-      } else {
-        rc = es_mute_path_literal(es_file_client_, p.c_str());
-      }
-      if (rc == ES_RETURN_ERROR) {
+      auto result = es_mute_path_literal(es_file_client_, p.c_str());
+      if (result == ES_RETURN_ERROR) {
         VLOG(1) << "Unable to mute default path: " << p;
-      }
-    }
-
-    // since the newer mute and mute inversion APIs are only available on macOS
-    // 13 and higher gate it behind the availability check
-    if (__builtin_available(macos 13.0, *)) {
-      auto parser = Config::getParser("file_paths");
-      if (parser != nullptr) {
-        // resolve and collect all the exclude_paths first from the config
-        const auto& doc = parser->getData().doc();
-        auto it = doc.FindMember("exclude_paths");
-        if (it != doc.MemberEnd()) {
-          if (doc["exclude_paths"].IsObject()) {
-            for (const auto& cat : doc["exclude_paths"].GetObject()) {
-              if (cat.value.IsArray()) {
-                for (const auto& ex_path : cat.value.GetArray()) {
-                  if (ex_path.IsString()) {
-                    std::string pattern = ex_path.GetString();
-                    if (!pattern.empty()) {
-                      resolveFilePattern(pattern, exclude_paths_);
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // grab all the file_paths from the config
-        Config::get().files([this](const std::string& category,
-                                   const std::vector<std::string>& files) {
-          for (auto file : files) {
-            replaceGlobWildcards(file);
-            resolveFilePattern(file, file_paths_);
-          }
-        });
-
-        // Invert muting for target paths, now any calls to mute path APIs will
-        // select instead of mute
-        es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
-        // select only the paths we want, recommended best practice to call
-        // unmute on target paths, before calling "inverted" mute APIs
-        es_unmute_all_target_paths(es_file_client_);
-        for (auto p : file_paths_) {
-          if (std::find(exclude_paths_.begin(), exclude_paths_.end(), p) ==
-              exclude_paths_.end()) {
-            // p is not one of the excluded_paths, we monitor
-            auto result = isDirectory(p).ok()
-                              ? es_mute_path(es_file_client_,
-                                             p.c_str(),
-                                             ES_MUTE_PATH_TYPE_TARGET_PREFIX)
-                              : es_mute_path(es_file_client_,
-                                             p.c_str(),
-                                             ES_MUTE_PATH_TYPE_TARGET_LITERAL);
-            if (result == ES_RETURN_SUCCESS) {
-              VLOG(1) << "Monitoring path: " << p;
-            } else {
-              VLOG(1) << "Error while trying to monitor path: " << p;
-            }
-          }
-        }
       }
     }
 
@@ -281,10 +201,6 @@ void EndpointSecurityFileEventPublisher::handleMessage(
   case ES_EVENT_TYPE_NOTIFY_TRUNCATE: {
     ec->event_type = "truncate";
     ec->filename = getStringFromToken(&message->event.truncate.target->path);
-  } break;
-  case ES_EVENT_TYPE_NOTIFY_OPEN: {
-    ec->event_type = "open";
-    ec->filename = getStringFromToken(&message->event.open.file->path);
   } break;
   default:
     VLOG(1) << "endpointsecurity_fim: unexpected event " << message->event_type;

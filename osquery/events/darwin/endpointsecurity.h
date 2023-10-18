@@ -181,8 +181,6 @@ class EndpointSecurityFileEventPublisher
   bool es_file_client_success_{false};
   std::vector<std::string> muted_path_literals_;
   std::vector<std::string> muted_path_prefixes_;
-  std::vector<std::string> file_paths_;
-  std::vector<std::string> exclude_paths_;
   // clang-format off
   std::vector<std::string> default_muted_path_literals_ = {
       "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
@@ -197,7 +195,7 @@ class EndpointSecurityFileEventPublisher
       "/usr/libexec/amfid",
       "/usr/libexec/watchdogd",
   };
-  // clang-format on
+  // clang-format on 
 };
 
 class ESProcessEventSubscriber
