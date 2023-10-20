@@ -18,6 +18,7 @@ function(generateOsquerySql)
   set(source_files
     dynamic_table_row.cpp
     sql.cpp
+    sqlite_collation.cpp
     sqlite_encoding.cpp
     sqlite_filesystem.cpp
     sqlite_hashing.cpp

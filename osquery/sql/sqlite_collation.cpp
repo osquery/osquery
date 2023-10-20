@@ -7,11 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <assert.h>
-
 #include <regex>
-#include <string>
-#include <vector>
+
+#include <osquery/core/flags.h>
 
 #include <sqlite3.h>
 
