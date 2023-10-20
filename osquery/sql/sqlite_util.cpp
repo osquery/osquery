@@ -341,6 +341,9 @@ static inline void openOptimized(sqlite3*& db) {
   }
   sqlite3_exec(db, settings.c_str(), nullptr, nullptr, nullptr);
 
+  // Register collations.
+  registerCollations(db);
+
   // Register function extensions.
   registerMathExtensions(db);
 #if !defined(FREEBSD)
