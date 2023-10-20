@@ -66,16 +66,19 @@ static int versionCollate(
   for (auto i = 0; i < min_segments; i++) {
     auto min_pieces = std::min(lver_vs[i].size(), rver_vs[i].size());
     for (auto j = 0; j < min_pieces; j++) {
-      if (isdigit(lver_vs[i][j][0]) && isdigit(rver_vs[i][j][0])) {
+      auto l_is_d = isdigit(lver_vs[i][j][0]);
+      auto r_is_d = isdigit(rver_vs[i][j][0]);
+
+      if (l_is_d && r_is_d) {
         // If both pieces of the segment are digits, then numeric compare.
         auto diff = std::stoi(lver_vs[i][j]) - std::stoi(rver_vs[i][j]);
         if (diff != 0) {
           return diff;
         }
-      } else if (isdigit(lver_vs[i][j][0]) && !isdigit(rver_vs[i][j][0])) {
+      } else if (l_is_d && !r_is_d) {
         // If left piece is a digit, but not the right, then return less than.
         return -1;
-      } else if (!isdigit(lver_vs[i][j][0]) && isdigit(rver_vs[i][j][0])) {
+      } else if (!l_is_d && r_is_d) {
         // If left piece is not a digit, but the right is, then return greater
         // than.
         return 1;
