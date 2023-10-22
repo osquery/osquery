@@ -158,27 +158,33 @@ void EndpointSecurityFileEventPublisher::configure() {
           }
         });
 
-        // Invert muting for target paths, now any calls to mute path APIs will
-        // select instead of mute
-        es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
-        // select only the paths we want, recommended best practice to call
-        // unmute on target paths, before calling "inverted" mute APIs
-        es_unmute_all_target_paths(es_file_client_);
-        for (auto p : file_paths_) {
-          if (std::find(exclude_paths_.begin(), exclude_paths_.end(), p) ==
-              exclude_paths_.end()) {
-            // p is not one of the excluded_paths, we monitor
-            auto result = isDirectory(p).ok()
-                              ? es_mute_path(es_file_client_,
-                                             p.c_str(),
-                                             ES_MUTE_PATH_TYPE_TARGET_PREFIX)
-                              : es_mute_path(es_file_client_,
-                                             p.c_str(),
-                                             ES_MUTE_PATH_TYPE_TARGET_LITERAL);
-            if (result == ES_RETURN_SUCCESS) {
-              VLOG(1) << "Monitoring path: " << p;
-            } else {
-              VLOG(1) << "Error while trying to monitor path: " << p;
+        // first check the mute inversion status for target paths
+        // only call the mute inversion APIs if we are not already "inverted"
+        if (es_muting_inverted(es_file_client_,
+                               ES_MUTE_INVERSION_TYPE_TARGET_PATH) ==
+            ES_MUTE_NOT_INVERTED) {
+          // Invert muting for target paths, now any calls to mute path APIs
+          // will select instead of mute
+          es_invert_muting(es_file_client_, ES_MUTE_INVERSION_TYPE_TARGET_PATH);
+          // select only the paths we want, recommended best practice to call
+          // unmute on target paths, before calling "inverted" mute APIs
+          es_unmute_all_target_paths(es_file_client_);
+          for (auto p : file_paths_) {
+            if (std::find(exclude_paths_.begin(), exclude_paths_.end(), p) ==
+                exclude_paths_.end()) {
+              // p is not one of the excluded_paths, we monitor
+              auto rc = isDirectory(p).ok()
+                            ? es_mute_path(es_file_client_,
+                                           p.c_str(),
+                                           ES_MUTE_PATH_TYPE_TARGET_PREFIX)
+                            : es_mute_path(es_file_client_,
+                                           p.c_str(),
+                                           ES_MUTE_PATH_TYPE_TARGET_LITERAL);
+              if (rc == ES_RETURN_SUCCESS) {
+                VLOG(1) << "Monitoring path: " << p;
+              } else {
+                VLOG(1) << "Error while trying to monitor path: " << p;
+              }
             }
           }
         }
