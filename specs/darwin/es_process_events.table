@@ -19,7 +19,7 @@ schema([
     Column("egid", BIGINT, "Effective Group ID of the process"),
     Column("username", TEXT, "Username"),
     Column("signing_id", TEXT, "Signature identifier of the process"),
-    Column("team_id", TEXT, "Team identifier of thd process"),
+    Column("team_id", TEXT, "Team identifier of the process"),
     Column("cdhash", TEXT, "Codesigning hash of the process"),
     Column("platform_binary", INTEGER, "Indicates if the binary is Apple signed binary (1) or not (0)"),
     Column("exit_code", INTEGER, "Exit code of a process in case of an exit event"),
