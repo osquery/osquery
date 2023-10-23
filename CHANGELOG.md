@@ -1,9 +1,9 @@
 # osquery Changelog
 
-<a name="5.10.1"></a>
-## [5.10.1](https://github.com/osquery/osquery/releases/tag/5.10.1)
+<a name="5.10.2"></a>
+## [5.10.2](https://github.com/osquery/osquery/releases/tag/5.10.2)
 
-[Git Commits](https://github.com/osquery/osquery/compare/5.9.1...5.10.1)
+[Git Commits](https://github.com/osquery/osquery/compare/5.9.1...5.10.2)
 
 This release has several updates and bugfixes. Several improvements to various tables, and their handling.
 
@@ -48,20 +48,26 @@ Representing commits from 18 contributors! Thank you all.
 - Always lock event_index_mutex when accessing event_index map ([#8077](https://github.com/osquery/osquery/pull/8077))
 - Check audit return values with <= ([#8125](https://github.com/osquery/osquery/pull/8125))
 - Fix `wifi_survey` table not to crash if the ssid cannot be retrieved ([#8153](https://github.com/osquery/osquery/pull/8153))
+- Fix macOS EndpointSecurity FIM mute inversion for file paths ([#8166](https://github.com/osquery/osquery/pull/8166))
+
 
 ### Documentation
 
 - Add a list of Osquery fleet managers ([#7781](https://github.com/osquery/osquery/pull/7781))
 - Add basic file carving documentation ([#8118](https://github.com/osquery/osquery/pull/8118))
 - Changelog for 5.9.1 ([#8088](https://github.com/osquery/osquery/pull/8088))
+- Changelog 5.10.1 ([#8155](https://github.com/osquery/osquery/pull/8155))
 - Fixed small doc error ([#8147](https://github.com/osquery/osquery/pull/8147))
 - Update Automatic Table Construction example ([#8094](https://github.com/osquery/osquery/pull/8094))
 - Update XCode version mentions to the proper one ([#8128](https://github.com/osquery/osquery/pull/8128))
 - Update the description of `serial_number` in `connected_displays` ([#8113](https://github.com/osquery/osquery/pull/8113))
 
+
 ### Build
 
 - Fix openssl build arch for Windows ARM64 ([#8134](https://github.com/osquery/osquery/pull/8134))
+- Fix python test http server use `SSLContext.wrap_socket()` instead of deprecated `ssl.wrap_socket()` ([#8169](https://github.com/osquery/osquery/pull/8169))
+- GitHub Action to cleanup at stale ec2 runners ([#8156](https://github.com/osquery/osquery/pull/8156))
 - Ignore CVE-2023-30571 ([#8065](https://github.com/osquery/osquery/pull/8065))
 - Missing pragma/header guard for boottime.h ([#8117](https://github.com/osquery/osquery/pull/8117))
 - Permit cross compiling for x86_64 on Apple Silicon ([#8136](https://github.com/osquery/osquery/pull/8136))
@@ -70,8 +76,10 @@ Representing commits from 18 contributors! Thank you all.
 - ci: Increase aarch64 available space by splitting the build ([#8131](https://github.com/osquery/osquery/pull/8131))
 - ci: Increase disk space on the Linux x86_64 runner ([#8133](https://github.com/osquery/osquery/pull/8133))
 - ci: Remove flakyness when removing unused packages on Linux ([#8144](https://github.com/osquery/osquery/pull/8144))
+- cve: Fix the expat product name in the libraries manifest ([#8158](https://github.com/osquery/osquery/pull/8158))
 - cve: Ignore dbus CVE-2023-34969 ([#8126](https://github.com/osquery/osquery/pull/8126))
 - cve: Ignore libcap CVE-2023-2603 ([#8127](https://github.com/osquery/osquery/pull/8127))
+- cve: Update expat to version 2.5.0 ([#8159](https://github.com/osquery/osquery/pull/8159))
 - cve: Update libmagic to 5.45 ([#8142](https://github.com/osquery/osquery/pull/8142))
 - cve: Update lzma to 5.4.4 ([#8135](https://github.com/osquery/osquery/pull/8135))
 - cve: Update openssl to 3.1.3 ([#8141](https://github.com/osquery/osquery/pull/8141))
@@ -79,6 +87,8 @@ Representing commits from 18 contributors! Thank you all.
 - libs: Update openssl to 3.1.1 ([#8081](https://github.com/osquery/osquery/pull/8081))
 - libs: Update openssl to 3.1.2 ([#8124](https://github.com/osquery/osquery/pull/8124))
 - test: Fix leaks in inotify and rocksdb tests ([#8080](https://github.com/osquery/osquery/pull/8080))
+
+
 
 
 <a name="5.9.1"></a>
