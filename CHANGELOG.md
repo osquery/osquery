@@ -30,7 +30,6 @@ Representing commits from 18 contributors! Thank you all.
 - Update linux `disk_encryption` to recursively query parent crypt status ([#8052](https://github.com/osquery/osquery/pull/8052))
 - Add, and revert, indexing on `block_devices` ([#8037](https://github.com/osquery/osquery/pull/8037), [#8151](https://github.com/osquery/osquery/pull/8151))
 
-
 ### Under the Hood improvements
 
 - Add warnings when an enrollment secret cannot be found ([#8082](https://github.com/osquery/osquery/pull/8082))
@@ -50,7 +49,6 @@ Representing commits from 18 contributors! Thank you all.
 - Fix `wifi_survey` table not to crash if the ssid cannot be retrieved ([#8153](https://github.com/osquery/osquery/pull/8153))
 - Fix macOS EndpointSecurity FIM mute inversion for file paths ([#8166](https://github.com/osquery/osquery/pull/8166))
 
-
 ### Documentation
 
 - Add a list of Osquery fleet managers ([#7781](https://github.com/osquery/osquery/pull/7781))
@@ -61,7 +59,6 @@ Representing commits from 18 contributors! Thank you all.
 - Update Automatic Table Construction example ([#8094](https://github.com/osquery/osquery/pull/8094))
 - Update XCode version mentions to the proper one ([#8128](https://github.com/osquery/osquery/pull/8128))
 - Update the description of `serial_number` in `connected_displays` ([#8113](https://github.com/osquery/osquery/pull/8113))
-
 
 ### Build
 
@@ -87,8 +84,6 @@ Representing commits from 18 contributors! Thank you all.
 - libs: Update openssl to 3.1.1 ([#8081](https://github.com/osquery/osquery/pull/8081))
 - libs: Update openssl to 3.1.2 ([#8124](https://github.com/osquery/osquery/pull/8124))
 - test: Fix leaks in inotify and rocksdb tests ([#8080](https://github.com/osquery/osquery/pull/8080))
-
-
 
 
 <a name="5.9.1"></a>
