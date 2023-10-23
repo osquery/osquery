@@ -29,6 +29,9 @@ namespace tables {
 /// One of the possible Chrome-based browser names
 enum class ChromeBrowserType {
   GoogleChrome,
+  GoogleChromeBeta,
+  GoogleChromeDev,
+  GoogleChromeCanary,
   Brave,
   Chromium,
   Yandex,

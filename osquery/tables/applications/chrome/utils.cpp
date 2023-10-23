@@ -52,6 +52,9 @@ using ChromePathSuffixMap =
 // clang-format off
 const ChromePathSuffixMap kWindowsPathList = {
     {ChromeBrowserType::GoogleChrome, "AppData\\Local\\Google\\Chrome\\User Data"},
+    {ChromeBrowserType::GoogleChromeBeta, "AppData\\Local\\Google\\Chrome Beta\\User Data"},
+    {ChromeBrowserType::GoogleChromeDev, "AppData\\Local\\Google\\Chrome Dev\\User Data"},
+    {ChromeBrowserType::GoogleChromeCanary, "AppData\\Local\\Google\\Chrome SxS\\User Data"},
     {ChromeBrowserType::Brave, "AppData\\Roaming\\brave"},
     {ChromeBrowserType::Chromium, "AppData\\Local\\Chromium"},
     {ChromeBrowserType::Yandex, "AppData\\Local\\Yandex\\YandexBrowser\\User Data"},
@@ -63,6 +66,9 @@ const ChromePathSuffixMap kWindowsPathList = {
 // clang-format off
 const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::GoogleChrome, "Library/Application Support/Google/Chrome"},
+    {ChromeBrowserType::GoogleChromeBeta, "Library/Application Support/Google/Chrome Beta"},
+    {ChromeBrowserType::GoogleChromeDev, "Library/Application Support/Google/Chrome Dev"},
+    {ChromeBrowserType::GoogleChromeCanary, "Library/Application Support/Google/Chrome Canary"},
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
@@ -73,6 +79,8 @@ const ChromePathSuffixMap kMacOsPathList = {
 
 const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::GoogleChrome, ".config/google-chrome"},
+    {ChromeBrowserType::GoogleChromeBeta, ".config/google-chrome-beta"},
+    {ChromeBrowserType::GoogleChromeDev, ".config/google-chrome-unstable"},
     {ChromeBrowserType::Brave, ".config/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, ".config/chromium"},
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
@@ -84,6 +92,9 @@ const ChromePathSuffixMap kLinuxPathList = {
 const std::unordered_map<ChromeBrowserType, std::string>
     kChromeBrowserTypeToString = {
         {ChromeBrowserType::GoogleChrome, "chrome"},
+        {ChromeBrowserType::GoogleChromeBeta, "chrome_beta"},
+        {ChromeBrowserType::GoogleChromeDev, "chrome_dev"},
+        {ChromeBrowserType::GoogleChromeCanary, "chrome_canary"},
         {ChromeBrowserType::Brave, "brave"},
         {ChromeBrowserType::Chromium, "chromium"},
         {ChromeBrowserType::Yandex, "yandex"},
