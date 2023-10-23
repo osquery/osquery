@@ -60,7 +60,8 @@ const ChromePathSuffixMap kWindowsPathList = {
     {ChromeBrowserType::Yandex, "AppData\\Local\\Yandex\\YandexBrowser\\User Data"},
     {ChromeBrowserType::Edge, "AppData\\Local\\Microsoft\\Edge\\User Data"},
     {ChromeBrowserType::EdgeBeta, "AppData\\Local\\Microsoft\\Edge Beta\\User Data"},
-    {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"}};
+    {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"},
+    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"}};
 // clang-format on
 
 // clang-format off
@@ -74,7 +75,8 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
     {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
     {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
-    {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"}};
+    {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"},
+    {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"}};
 // clang-format on
 
 const ChromePathSuffixMap kLinuxPathList = {
@@ -86,6 +88,7 @@ const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
     {ChromeBrowserType::Yandex, ".config/yandex-browser-beta"},
     {ChromeBrowserType::Opera, ".config/opera"},
+    {ChromeBrowserType::Vivaldi, ".config/vivaldi"},
 };
 
 /// Maps ChromeBrowserType values to readable strings
@@ -101,6 +104,7 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::Opera, "opera"},
         {ChromeBrowserType::Edge, "edge"},
         {ChromeBrowserType::Edge, "edge_beta"},
+        {ChromeBrowserType::Vivaldi, "vivaldi"},
 };
 
 /// Base paths for built-in extensions; used to silence warnings for
