@@ -14,7 +14,7 @@ Representing commits from 18 contributors! Thank you all.
 
 ### New Features
 
-- Add `--enable_watchdog_logging` flag and improve error messages ([#8070](https://github.com/osquery/osquery/pull/8070))
+- Add `--enable_watchdog_debug` flag and improve watchdog error messages ([#8070](https://github.com/osquery/osquery/pull/8070))
 - Add `--aws_enforce_fips` to enforce AWS FIPS endpoints ([#8075](https://github.com/osquery/osquery/pull/8075))
 - Add new AWS valid regions ([#8110](https://github.com/osquery/osquery/pull/8110))
 - Implement `decorations_top_level` flag for status logs ([#8102](https://github.com/osquery/osquery/pull/8102))
