@@ -10,6 +10,8 @@ This release has several updates and bugfixes. Several improvements to various t
 One potential breaking change, is in how [the watchdog calculates CPU utilization](https://github.com/osquery/osquery/pull/8104).
 Previously, this calculation was based on physical CPUs, now it is based on virtual cores. We believe this makes more sense with modern CPUs.
 
+A second potential breaking change, is in PR [#8102](https://github.com/osquery/osquery/pull/8102). In addition to allowing decorations to the top level of the status logs, this PR normalizes the decorations format to the results log. In practice, this means that the `unixTime`, `severity` and `line` JSON fields are now numbers instead of strings.
+
 Representing commits from 18 contributors! Thank you all.
 
 ### New Features
