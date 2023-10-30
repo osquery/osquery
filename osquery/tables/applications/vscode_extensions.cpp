@@ -52,8 +52,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     QueryData& results) {
   std::string json;
   if (!readFile(path, json).ok()) {
-    LOG(WARNING) << "Could not read vscode extensions.json from '" << path
-                 << "'";
+    LOG(INFO) << "Could not read vscode extensions.json from '" << path << "'";
     return;
   }
 
