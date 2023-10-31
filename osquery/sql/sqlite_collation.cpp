@@ -9,102 +9,135 @@
 
 #include <regex>
 
-#include <osquery/core/flags.h>
-
 #include <sqlite3.h>
 
 namespace osquery {
 /**
- * @brief Split version string into numeric and alphabetic character segments.
+ * @brief Splits a version into segments based on the input pattern sub-matches.
  */
-static std::vector<std::vector<std::string>> versionSplit(
-    const std::string& version) {
-  std::vector<std::vector<std::string>> result;
-  std::regex ver_pattern("(\\d+|[a-zA-Z]+)");
-  std::sregex_token_iterator iter_end;
-  std::istringstream iss(version);
-  std::string segment;
+static std::vector<std::string> versionSplit(std::string_view version,
+                                             std::regex pattern) {
+  std::vector<std::string> result;
+  std::cregex_token_iterator iter_begin(
+      version.begin(), version.end(), pattern);
+  std::cregex_token_iterator iter_end;
 
-  // Split version into segments on periods.
-  while (getline(iss, segment, '.')) {
-    std::vector<std::string> seg_pieces;
-    std::sregex_token_iterator iter_begin(
-        segment.begin(), segment.end(), ver_pattern);
-
-    // Split segment into pieces of consecutive alphabetic and numeric
-    // characters.
-    while (iter_begin != iter_end) {
-      seg_pieces.push_back(*iter_begin++);
-    }
-
-    result.push_back(seg_pieces);
+  while (iter_begin != iter_end) {
+    result.push_back(*iter_begin++);
   }
 
   return result;
 }
 
 /**
- * @brief Collate version strings. (Only compares alphanumeric characters.)
+ * @brief Compares ASCII character values of left and right version sequences.
+ * Returns 0 if they are equal, negative int if left is less than right, or
+ * positive int is left is greater than right.
  */
-static int versionCollate(
-    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  const std::string lver(static_cast<const char*>(pKey1), nKey1);
-  const std::string rver(static_cast<const char*>(pKey2), nKey2);
-  (void)notUsed;
-
-  // Early return if versions are equal.
-  if (lver == rver) {
+static int versionCompare(int lLen,
+                          const char* lVer,
+                          int rLen,
+                          const char* rVer) {
+  if (lVer == rVer) {
+    // Early return if version sequences are equal.
     return 0;
   }
 
-  // Get version segments with their nested pieces.
-  auto lver_vs = versionSplit(lver);
-  auto rver_vs = versionSplit(rver);
+  auto len_diff = lLen - rLen;
+  if (len_diff != 0) {
+    // Early return if version sequences are not equal size.
+    return len_diff;
+  }
 
-  // For each version segment, compare characters between nested pieces.
-  auto min_segments = std::min(lver_vs.size(), rver_vs.size());
-  for (auto i = 0; i < min_segments; i++) {
-    auto min_pieces = std::min(lver_vs[i].size(), rver_vs[i].size());
-    for (auto j = 0; j < min_pieces; j++) {
-      auto l_is_d = isdigit(lver_vs[i][j][0]);
-      auto r_is_d = isdigit(rver_vs[i][j][0]);
+  for (auto i = 0; i < lLen; i++) {
+    // Compare ASCII character value of each positional character.
+    auto l_pos_val = int(lVer[i]);
+    auto r_pos_val = int(rVer[i]);
 
-      if (l_is_d && r_is_d) {
-        // If both pieces of the segment are digits, then numeric compare.
-        auto diff = std::stoi(lver_vs[i][j]) - std::stoi(rver_vs[i][j]);
-        if (diff != 0) {
-          return diff;
-        }
-      } else if (l_is_d && !r_is_d) {
-        // If left piece is a digit, but not the right, then return less than.
-        return -1;
-      } else if (!l_is_d && r_is_d) {
-        // If left piece is not a digit, but the right is, then return greater
-        // than.
-        return 1;
-      } else {
-        // If both pieces of the segment are alphabetic, then string compare.
-        auto comp = strcmp(lver_vs[i][j].c_str(), rver_vs[i][j].c_str());
-        if (comp != 0) {
-          return comp;
-        }
-      }
-    }
-
-    // Since all segment pieces up to min(l, r) are equal, check if any more
-    // pieces exist, and return if so.
-    auto seg_diff = lver_vs[i].size() - rver_vs[i].size();
-    if (seg_diff != 0) {
-      return seg_diff;
+    auto val_diff = l_pos_val - r_pos_val;
+    if (val_diff != 0) {
+      return val_diff;
     }
   }
 
-  // Since all version segments up to min(l, r) are equal, check if any more
-  // segments exist, and return final result.
-  return lver_vs.size() - rver_vs.size();
+  return 0;
+}
+
+/**
+ * @brief Creates and compares version segments. Version segments are split
+ * based on input regex pattern sub-matches.
+ */
+static int versionSegment(std::string_view lVer,
+                          std::string_view rVer,
+                          std::regex pattern) {
+  auto lSegments = versionSplit(lVer, pattern);
+  auto rSegments = versionSplit(rVer, pattern);
+  auto lSegCount = lSegments.size();
+  auto rSegCount = rSegments.size();
+
+  auto minSegments = std::min(lSegCount, rSegCount);
+  for (auto i = 0; i < minSegments; i++) {
+    // Compare each version segment.
+    auto lSeg = lSegments[i].c_str();
+    auto rSeg = rSegments[i].c_str();
+
+    auto rc = versionCompare(strlen(lSeg), lSeg, strlen(rSeg), rSeg);
+    if (rc != 0) {
+      return rc;
+    }
+  }
+
+  // Return the difference of version segment counts if all positional character
+  // values are equal to their respective segment.
+  return lSegCount - rSegCount;
+}
+
+/**
+ * @brief Collate version strings. This is a simple left to right ASCII value
+ * comparison. This is not recommended to call if a delimiter is required.
+ */
+static int versionCollate(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  (void)notUsed;
+  return versionCompare(nKey1,
+                        static_cast<const char*>(pKey1),
+                        nKey2,
+                        static_cast<const char*>(pKey2));
+}
+
+/**
+ * @brief Collate version strings. Compares alphanumeric characters by version
+ * segments. This is recommended to call if any special characters should split
+ * off a version into a segment to compare.
+ */
+static int versionCollateAlphaNum(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
+  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
+  (void)notUsed;
+  std::regex re("[\\da-zA-Z]+");
+  return versionSegment(lVer, rVer, re);
+}
+
+/**
+ * @brief Collate version strings. Compares alphanumeric characters by version
+ * segments. This is recommended to call if periods should split off a version
+ * into a segment to compare.
+ */
+static int versionCollatePeriod(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
+  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
+  (void)notUsed;
+  std::regex re("[^\\.]+");
+  return versionSegment(lVer, rVer, re);
 }
 
 void registerCollations(sqlite3* db) {
   sqlite3_create_collation(db, "version", SQLITE_UTF8, nullptr, versionCollate);
+  sqlite3_create_collation(
+      db, "version_alnum", SQLITE_UTF8, nullptr, versionCollateAlphaNum);
+  sqlite3_create_collation(
+      db, "version_period", SQLITE_UTF8, nullptr, versionCollatePeriod);
 }
 } // namespace osquery
