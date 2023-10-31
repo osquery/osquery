@@ -133,11 +133,56 @@ static int versionCollatePeriod(
   return versionSegment(lVer, rVer, re);
 }
 
+/**
+ * @brief Collate version strings. Compares alphanumeric characters by version
+ * segments. This is recommended to call if comparing dpkg package versions.
+ */
+static int versionCollateDpkg(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
+  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
+  (void)notUsed;
+  std::regex re("[^\\.:-]+");
+  return versionSegment(lVer, rVer, re);
+}
+
+/**
+ * @brief Collate version strings. Compares alphanumeric characters by version
+ * segments. This is recommended to call if comparing dnf package versions.
+ */
+static int versionCollateDnf(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
+  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
+  (void)notUsed;
+  std::regex re("[^\\.:_~^]+");
+  return versionSegment(lVer, rVer, re);
+}
+
+/**
+ * @brief Collate version strings. Compares alphanumeric characters by version
+ * segments. This is recommended to call if comparing arch package versions.
+ */
+static int versionCollateArch(
+    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
+  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
+  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
+  (void)notUsed;
+  std::regex re("[^\\.:-]+");
+  return versionSegment(lVer, rVer, re);
+}
+
 void registerCollations(sqlite3* db) {
   sqlite3_create_collation(db, "version", SQLITE_UTF8, nullptr, versionCollate);
   sqlite3_create_collation(
       db, "version_alnum", SQLITE_UTF8, nullptr, versionCollateAlphaNum);
   sqlite3_create_collation(
       db, "version_period", SQLITE_UTF8, nullptr, versionCollatePeriod);
+  sqlite3_create_collation(
+      db, "version_dpkg", SQLITE_UTF8, nullptr, versionCollateDpkg);
+  sqlite3_create_collation(
+      db, "version_dnf", SQLITE_UTF8, nullptr, versionCollateDnf);
+  sqlite3_create_collation(
+      db, "version_arch", SQLITE_UTF8, nullptr, versionCollateArch);
 }
 } // namespace osquery
