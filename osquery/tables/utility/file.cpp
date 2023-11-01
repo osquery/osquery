@@ -108,7 +108,7 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
   }
 
   constexpr auto max_chars = INFOTIPSIZE > MAX_PATH ? INFOTIPSIZE : MAX_PATH;
-  WCHAR buffer[max_chars]{};
+  WCHAR buffer[max_chars + 1]{};
 
   WIN32_FIND_DATA target_data{};
   hres = shell_link->GetPath(&buffer[0], max_chars, &target_data, 0);
@@ -130,9 +130,12 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
 
   LnkData link_data;
 
-  link_data.target_path = wstringToString(buffer, max_chars);
+  link_data.target_path = wstringToString(buffer);
+
+  auto type_name_length =
+      wcsnlen(file_info.szTypeName, ARRAYSIZE(file_info.szTypeName));
   link_data.target_type =
-      wstringToString(file_info.szTypeName, ARRAYSIZE(file_info.szTypeName));
+      wstringToString(std::wstring(file_info.szTypeName, type_name_length));
 
   fs::path target_path = link_data.target_path;
   link_data.target_location = target_path.parent_path().filename().string();
@@ -144,7 +147,7 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
     return boost::none;
   }
 
-  link_data.start_in = wstringToString(buffer, max_chars);
+  link_data.start_in = wstringToString(buffer);
 
   std::memset(buffer, 0, sizeof(buffer));
   hres = shell_link->GetDescription(buffer, max_chars);
@@ -153,7 +156,7 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
     return boost::none;
   }
 
-  link_data.comment = wstringToString(buffer, max_chars);
+  link_data.comment = wstringToString(buffer);
 
   int show_cmd = 0;
   hres = shell_link->GetShowCmd(&show_cmd);
