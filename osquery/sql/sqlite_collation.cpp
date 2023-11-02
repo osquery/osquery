@@ -7,182 +7,226 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <regex>
+#include <string>
 
 #include <sqlite3.h>
 
 namespace osquery {
 /**
- * @brief Splits a version into segments based on the input pattern sub-matches.
+ * @brief Compares the position of epoch delimiter between two versions.
+ * Return difference of epoch segment length if both versions have epoch.
+ * Return 1 if left version has epoch but not the right.
+ * Return -1 if right version has epoch but not the left.
+ * Return 0 if epoch doesn't exist in either version.
  */
-static std::vector<std::string> versionSplit(std::string_view version,
-                                             std::regex pattern) {
-  std::vector<std::string> result;
-  std::cregex_token_iterator iter_begin(
-      version.begin(), version.end(), pattern);
-  std::cregex_token_iterator iter_end;
+static int compareEpoch(int lLen,
+                        const char* lVer,
+                        int rLen,
+                        const char* rVer) {
+  auto lEpoch = strcspn(lVer, ":");
+  auto rEpoch = strcspn(rVer, ":");
 
-  while (iter_begin != iter_end) {
-    result.push_back(*iter_begin++);
-  }
-
-  return result;
-}
-
-/**
- * @brief Compares ASCII character values of left and right version sequences.
- * Returns 0 if they are equal, negative int if left is less than right, or
- * positive int is left is greater than right.
- */
-static int versionCompare(int lLen,
-                          const char* lVer,
-                          int rLen,
-                          const char* rVer) {
-  if (lVer == rVer) {
-    // Early return if version sequences are equal.
-    return 0;
-  }
-
-  auto len_diff = lLen - rLen;
-  if (len_diff != 0) {
-    // Early return if version sequences are not equal size.
-    return len_diff;
-  }
-
-  for (auto i = 0; i < lLen; i++) {
-    // Compare ASCII character value of each positional character.
-    auto l_pos_val = int(lVer[i]);
-    auto r_pos_val = int(rVer[i]);
-
-    auto val_diff = l_pos_val - r_pos_val;
-    if (val_diff != 0) {
-      return val_diff;
-    }
+  if (lEpoch != lLen && rEpoch != rLen) {
+    return lEpoch - rEpoch;
+  } else if (lEpoch != lLen && rEpoch == rLen) {
+    return 1;
+  } else if (lEpoch == lLen && rEpoch != rLen) {
+    return -1;
   }
 
   return 0;
 }
 
 /**
- * @brief Creates and compares version segments. Version segments are split
- * based on input regex pattern sub-matches.
+ * @brief Check if character is defined as a delimiter: `~-^.:`
  */
-static int versionSegment(std::string_view lVer,
-                          std::string_view rVer,
-                          std::regex pattern) {
-  auto lSegments = versionSplit(lVer, pattern);
-  auto rSegments = versionSplit(rVer, pattern);
-  auto lSegCount = lSegments.size();
-  auto rSegCount = rSegments.size();
-
-  auto minSegments = std::min(lSegCount, rSegCount);
-  for (auto i = 0; i < minSegments; i++) {
-    // Compare each version segment.
-    auto lSeg = lSegments[i].c_str();
-    auto rSeg = rSegments[i].c_str();
-
-    auto rc = versionCompare(strlen(lSeg), lSeg, strlen(rSeg), rSeg);
-    if (rc != 0) {
-      return rc;
-    }
+static bool isDelimiter(int c) {
+  switch (c) {
+  case 126:
+  case 45:
+  case 94:
+  case 46:
+  case 58:
+    return true;
+  default:
+    return false;
   }
-
-  // Return the difference of version segment counts if all positional character
-  // values are equal to their respective segment.
-  return lSegCount - rSegCount;
 }
 
 /**
- * @brief Collate version strings. This is a simple left to right ASCII value
- * comparison. This is not recommended to call if a delimiter is required.
+ * @brief Set the delimiter precedence if they should compare against each
+ * other. Delimiters: `~-^.:`
+ */
+static int delimiterPrecedence(int d) {
+  switch (d) {
+  case 126:
+    return 1;
+  case 45:
+    return 2;
+  case 94:
+    return 3;
+  case 46:
+    return 4;
+  case 58:
+    return 5;
+  default:
+    return 0;
+  }
+}
+
+/**
+ * @brief Return remainder sort order, or return the version length difference.
+ */
+static int compareRemainder(int lLen,
+                            const char* lVer,
+                            int rLen,
+                            const char* rVer,
+                            int pos,
+                            const bool remaining) {
+  // This supports linux package versioning where on some distributions, a tilde
+  // should be less than, a caret should be greater than, and a hyphen should be
+  // equal.
+  if (remaining) {
+    if (lLen == pos) {
+      switch (int(rVer[pos])) {
+      case 126:
+        return 1;
+      case 45:
+        return 0;
+      case 94:
+        return -1;
+      }
+    }
+
+    if (rLen == pos) {
+      switch (int(lVer[pos])) {
+      case 126:
+        return -1;
+      case 45:
+        return 0;
+      case 94:
+        return 1;
+      }
+    }
+  }
+
+  return lLen - rLen;
+}
+
+/**
+ * @brief Compares two versions strings against each other.
+ * Return 0 if the versions should evaluate as equal.
+ * Return negative int if the left string is less than the right.
+ * Return positive int if the left string is greater than the right.
+ */
+static int versionCompare(int lLen,
+                          const void* lVersion,
+                          int rLen,
+                          const void* rVersion,
+                          const bool epoch = false,
+                          const bool delim_precedence = false,
+                          const bool remaining = false) {
+  const char* lVer = static_cast<const char*>(lVersion);
+  const char* rVer = static_cast<const char*>(rVersion);
+
+  // Early return if versions are equal.
+  if (lVer == rVer) {
+    return 0;
+  }
+
+  // Check for and return difference in epoch position.
+  if (epoch) {
+    auto epoch_diff = compareEpoch(lLen, lVer, rLen, rVer);
+    if (epoch_diff != 0) {
+      return epoch_diff;
+    }
+  }
+
+  int first_diff = 0;
+  auto min = std::min(lLen, rLen);
+  for (auto i = 0; i < min; i++) {
+    auto lVal = int(lVer[i]);
+    auto rVal = int(rVer[i]);
+    auto lDelim = isDelimiter(lVal);
+    auto rDelim = isDelimiter(rVal);
+
+    // Until we hit a delimiter, we will compare the ASCII values of each
+    // character, and store the first difference of this segment.
+    if (!lDelim && !rDelim) {
+      first_diff = first_diff == 0 ? lVal - rVal : first_diff;
+      continue;
+    } else if (lDelim && !rDelim) {
+      return -1;
+    } else if (!lDelim && rDelim) {
+      return 1;
+    }
+
+    // If we've hit delimiters in both versions, then return the first value
+    // difference in this segment.
+    if (first_diff != 0) {
+      return first_diff;
+    }
+
+    // Check for and return difference in delimiter precedence.
+    if (delim_precedence) {
+      auto delim_diff = delimiterPrecedence(lVal) - delimiterPrecedence(rVal);
+      if (delim_diff != 0) {
+        return delim_diff;
+      }
+    }
+  }
+
+  // Return final version segment difference if any.
+  if (first_diff != 0) {
+    return first_diff;
+  }
+
+  return compareRemainder(lLen, lVer, rLen, rVer, min, remaining);
+}
+
+/**
+ * @brief Collate generic version strings.
  */
 static int versionCollate(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
   (void)notUsed;
-  return versionCompare(nKey1,
-                        static_cast<const char*>(pKey1),
-                        nKey2,
-                        static_cast<const char*>(pKey2));
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, false, false, false);
 }
 
 /**
- * @brief Collate version strings. Compares alphanumeric characters by version
- * segments. This is recommended to call if any special characters should split
- * off a version into a segment to compare.
+ * @brief Collate arch package version strings.
  */
-static int versionCollateAlphaNum(
+static int versionCollateARCH(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
-  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
   (void)notUsed;
-  std::regex re("[\\da-zA-Z]+");
-  return versionSegment(lVer, rVer, re);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, false, true);
 }
 
 /**
- * @brief Collate version strings. Compares alphanumeric characters by version
- * segments. This is recommended to call if periods should split off a version
- * into a segment to compare.
+ * @brief Collate deb package version strings.
  */
-static int versionCollatePeriod(
+static int versionCollateDPKG(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
-  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
   (void)notUsed;
-  std::regex re("[^\\.]+");
-  return versionSegment(lVer, rVer, re);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, false, false);
 }
 
 /**
- * @brief Collate version strings. Compares alphanumeric characters by version
- * segments. This is recommended to call if comparing dpkg package versions.
+ * @brief Collate rhel package version strings.
  */
-static int versionCollateDpkg(
+static int versionCollateRHEL(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
-  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
   (void)notUsed;
-  std::regex re("[^\\.:-]+");
-  return versionSegment(lVer, rVer, re);
-}
-
-/**
- * @brief Collate version strings. Compares alphanumeric characters by version
- * segments. This is recommended to call if comparing dnf package versions.
- */
-static int versionCollateDnf(
-    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
-  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
-  (void)notUsed;
-  std::regex re("[^\\.:_~^]+");
-  return versionSegment(lVer, rVer, re);
-}
-
-/**
- * @brief Collate version strings. Compares alphanumeric characters by version
- * segments. This is recommended to call if comparing arch package versions.
- */
-static int versionCollateArch(
-    void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
-  std::string_view lVer(static_cast<const char*>(pKey1), nKey1);
-  std::string_view rVer(static_cast<const char*>(pKey2), nKey2);
-  (void)notUsed;
-  std::regex re("[^\\.:-]+");
-  return versionSegment(lVer, rVer, re);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, true, true);
 }
 
 void registerCollations(sqlite3* db) {
   sqlite3_create_collation(db, "version", SQLITE_UTF8, nullptr, versionCollate);
   sqlite3_create_collation(
-      db, "version_alnum", SQLITE_UTF8, nullptr, versionCollateAlphaNum);
+      db, "version_arch", SQLITE_UTF8, nullptr, versionCollateARCH);
   sqlite3_create_collation(
-      db, "version_period", SQLITE_UTF8, nullptr, versionCollatePeriod);
+      db, "version_dpkg", SQLITE_UTF8, nullptr, versionCollateDPKG);
   sqlite3_create_collation(
-      db, "version_dpkg", SQLITE_UTF8, nullptr, versionCollateDpkg);
-  sqlite3_create_collation(
-      db, "version_dnf", SQLITE_UTF8, nullptr, versionCollateDnf);
-  sqlite3_create_collation(
-      db, "version_arch", SQLITE_UTF8, nullptr, versionCollateArch);
+      db, "version_rhel", SQLITE_UTF8, nullptr, versionCollateRHEL);
 }
 } // namespace osquery
