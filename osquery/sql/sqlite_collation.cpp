@@ -100,12 +100,8 @@ static int compareRemainder(int lLen,
       case 94:
         return -1;
       default:
-        if (diff != 0) {
-          if (!remainder_precedence) {
-            return diff;
-          } else if (!isdigit(lVer[pos - 1])) {
-            return diff;
-          }
+        if (diff != 0 && (!remainder_precedence || !isdigit(lVer[pos - 1]))) {
+          return diff;
         }
       }
     }
@@ -119,12 +115,8 @@ static int compareRemainder(int lLen,
       case 94:
         return 1;
       default:
-        if (diff != 0) {
-          if (!remainder_precedence) {
-            return diff;
-          } else if (!isdigit(rVer[pos - 1])) {
-            return diff;
-          }
+        if (diff != 0 && (!remainder_precedence || !isdigit(rVer[pos - 1]))) {
+          return diff;
         }
       }
     }
