@@ -85,11 +85,15 @@ static int compareRemainder(int lLen,
                             int diff,
                             const bool comp_remaining,
                             const bool remainder_precedence) {
-  // This supports linux package versioning where on some distributions, a tilde
-  // should be less than, a caret should be greater than, and a hyphen should be
-  // equal. Also on arch if the remaining bit is numeric, then it should be
-  // length based, but if it is alpha then it should be value based. rhel like
-  // packages are always value based.
+  // This supports linux package versioning sort order when a tilde should be
+  // less than, a caret should be greater than, and a hyphen should be equal.
+  //
+  // When remainder_precedence = true, this will return the segment value diff
+  // if the last compared character was numeric, otherwise it falls through to
+  // return length diff.
+  //
+  // When remainder_precedence = false, this will return the segment value diff
+  // if there is any before falling through to return length diff.
   if (comp_remaining) {
     if (lLen == pos) {
       switch (int(rVer[pos])) {
