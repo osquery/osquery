@@ -568,6 +568,8 @@ Taking the `tcc_system_entries` ATC table as an example, which controls which pe
 
 `$ sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db`
 
+Note that if you receive an error on the above, TCC.db is a protected file and requires Full Disk Access.  You may be required to add this to `Terminal` (or `iTerm`, or any other terminal emulator) in order to allow `sqlite3` and `osqueryi` to open this file.
+
 The SQLite shell might feel familiar if you're used to `osqueryi`. That's because osquery uses syntax derived from SQLite for queries.
 
 Let's see what tables exist in our local SQLite database.
@@ -617,6 +619,8 @@ Open a text editor and create a file named `atc_tables.json` using the columns, 
 ```
 
 You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
+
+
 
 ### Events
 
