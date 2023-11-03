@@ -82,11 +82,15 @@ static int compareRemainder(int lLen,
                             int rLen,
                             const char* rVer,
                             int pos,
-                            const bool remaining) {
+                            int diff,
+                            const bool comp_remaining,
+                            const bool remainder_precedence) {
   // This supports linux package versioning where on some distributions, a tilde
   // should be less than, a caret should be greater than, and a hyphen should be
-  // equal.
-  if (remaining) {
+  // equal. Also on arch if the remaining bit is numeric, then it should be
+  // length based, but if it is alpha then it should be value based. rhel like
+  // packages are always value based.
+  if (comp_remaining) {
     if (lLen == pos) {
       switch (int(rVer[pos])) {
       case 126:
@@ -95,6 +99,14 @@ static int compareRemainder(int lLen,
         return 0;
       case 94:
         return -1;
+      default:
+        if (diff != 0) {
+          if (!remainder_precedence) {
+            return diff;
+          } else if (!isdigit(lVer[pos - 1])) {
+            return diff;
+          }
+        }
       }
     }
 
@@ -106,6 +118,14 @@ static int compareRemainder(int lLen,
         return 0;
       case 94:
         return 1;
+      default:
+        if (diff != 0) {
+          if (!remainder_precedence) {
+            return diff;
+          } else if (!isdigit(rVer[pos - 1])) {
+            return diff;
+          }
+        }
       }
     }
   }
@@ -125,7 +145,8 @@ static int versionCompare(int lLen,
                           const void* rVersion,
                           const bool epoch = false,
                           const bool delim_precedence = false,
-                          const bool remaining = false) {
+                          const bool comp_remaining = false,
+                          const bool remainder_precedence = false) {
   const char* lVer = static_cast<const char*>(lVersion);
   const char* rVer = static_cast<const char*>(rVersion);
 
@@ -176,12 +197,20 @@ static int versionCompare(int lLen,
     }
   }
 
-  // Return final version segment difference if any.
-  if (first_diff != 0) {
+  // If the versions are the same length, then return the first difference in
+  // the final segment.
+  if (lLen == rLen) {
     return first_diff;
   }
 
-  return compareRemainder(lLen, lVer, rLen, rVer, min, remaining);
+  return compareRemainder(lLen,
+                          lVer,
+                          rLen,
+                          rVer,
+                          min,
+                          first_diff,
+                          comp_remaining,
+                          remainder_precedence);
 }
 
 /**
@@ -190,7 +219,7 @@ static int versionCompare(int lLen,
 static int versionCollate(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
   (void)notUsed;
-  return versionCompare(nKey1, pKey1, nKey2, pKey2, false, false, false);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, false, false, false, false);
 }
 
 /**
@@ -199,7 +228,7 @@ static int versionCollate(
 static int versionCollateARCH(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
   (void)notUsed;
-  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, false, true);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, false, true, true);
 }
 
 /**
@@ -208,7 +237,7 @@ static int versionCollateARCH(
 static int versionCollateDPKG(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
   (void)notUsed;
-  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, false, false);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, true, false, false);
 }
 
 /**
@@ -217,7 +246,7 @@ static int versionCollateDPKG(
 static int versionCollateRHEL(
     void* notUsed, int nKey1, const void* pKey1, int nKey2, const void* pKey2) {
   (void)notUsed;
-  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, true, true);
+  return versionCompare(nKey1, pKey1, nKey2, pKey2, true, true, true, false);
 }
 
 void registerCollations(sqlite3* db) {
