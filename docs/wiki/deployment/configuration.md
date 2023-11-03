@@ -620,7 +620,7 @@ Open a text editor and create a file named `atc_tables.json` using the columns, 
 
 You can test this locally before deploying to your fleet and add more columns as necessary: `/usr/local/bin/osqueryi --verbose --config_path atc_tables.json`
 
-
+Per the note above, if this isn't working after deployment ensure that Full Disk Access is provided to your `osqueryd` process.
 
 ### Events
 
