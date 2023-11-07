@@ -52,44 +52,59 @@ using ChromePathSuffixMap =
 // clang-format off
 const ChromePathSuffixMap kWindowsPathList = {
     {ChromeBrowserType::GoogleChrome, "AppData\\Local\\Google\\Chrome\\User Data"},
+    {ChromeBrowserType::GoogleChromeBeta, "AppData\\Local\\Google\\Chrome Beta\\User Data"},
+    {ChromeBrowserType::GoogleChromeDev, "AppData\\Local\\Google\\Chrome Dev\\User Data"},
+    {ChromeBrowserType::GoogleChromeCanary, "AppData\\Local\\Google\\Chrome SxS\\User Data"},
     {ChromeBrowserType::Brave, "AppData\\Roaming\\brave"},
     {ChromeBrowserType::Chromium, "AppData\\Local\\Chromium"},
     {ChromeBrowserType::Yandex, "AppData\\Local\\Yandex\\YandexBrowser\\User Data"},
     {ChromeBrowserType::Edge, "AppData\\Local\\Microsoft\\Edge\\User Data"},
     {ChromeBrowserType::EdgeBeta, "AppData\\Local\\Microsoft\\Edge Beta\\User Data"},
-    {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"}};
+    {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"},
+    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"}};
 // clang-format on
 
 // clang-format off
 const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::GoogleChrome, "Library/Application Support/Google/Chrome"},
+    {ChromeBrowserType::GoogleChromeBeta, "Library/Application Support/Google/Chrome Beta"},
+    {ChromeBrowserType::GoogleChromeDev, "Library/Application Support/Google/Chrome Dev"},
+    {ChromeBrowserType::GoogleChromeCanary, "Library/Application Support/Google/Chrome Canary"},
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
     {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
     {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
-    {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"}};
+    {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"},
+    {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"}};
 // clang-format on
 
 const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::GoogleChrome, ".config/google-chrome"},
+    {ChromeBrowserType::GoogleChromeBeta, ".config/google-chrome-beta"},
+    {ChromeBrowserType::GoogleChromeDev, ".config/google-chrome-unstable"},
     {ChromeBrowserType::Brave, ".config/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, ".config/chromium"},
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
     {ChromeBrowserType::Yandex, ".config/yandex-browser-beta"},
     {ChromeBrowserType::Opera, ".config/opera"},
+    {ChromeBrowserType::Vivaldi, ".config/vivaldi"},
 };
 
 /// Maps ChromeBrowserType values to readable strings
 const std::unordered_map<ChromeBrowserType, std::string>
     kChromeBrowserTypeToString = {
         {ChromeBrowserType::GoogleChrome, "chrome"},
+        {ChromeBrowserType::GoogleChromeBeta, "chrome_beta"},
+        {ChromeBrowserType::GoogleChromeDev, "chrome_dev"},
+        {ChromeBrowserType::GoogleChromeCanary, "chrome_canary"},
         {ChromeBrowserType::Brave, "brave"},
         {ChromeBrowserType::Chromium, "chromium"},
         {ChromeBrowserType::Yandex, "yandex"},
         {ChromeBrowserType::Opera, "opera"},
         {ChromeBrowserType::Edge, "edge"},
         {ChromeBrowserType::Edge, "edge_beta"},
+        {ChromeBrowserType::Vivaldi, "vivaldi"},
 };
 
 /// Base paths for built-in extensions; used to silence warnings for
