@@ -77,20 +77,23 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
     const rapidjson::Value& location = extension["location"];
 
     if (identifier.IsObject() && metadata.IsObject() && location.IsObject()) {
-      std::string id = getStringValuefromRjObject(identifier, "id");
+      std::string name = getStringValuefromRjObject(identifier, "id");
 
-      if (id != "") {
+      if (name != "") {
         Row r;
 
-        r["id"] = id;
+        r["name"] = name;
+        r["uuid"] = getStringValuefromRjObject(identifier, "uuid");
         r["version"] = getStringValuefromRjObject(extension, "version");
         r["path"] = getStringValuefromRjObject(location, "path");
         r["publisher"] =
             getStringValuefromRjObject(metadata, "publisherDisplayName");
+        r["publisher_id"] = getStringValuefromRjObject(metadata, "publisherId");
         r["installed_at"] =
             getStringValuefromRjObject(metadata, "installedTimestamp");
-        r["prerelease"] =
+        std::string is_pre_release =
             getStringValuefromRjObject(metadata, "isPreReleaseVersion");
+        r["prerelease"] = (is_pre_release != "") ? is_pre_release : "0";
         r["uid"] = uid;
         results.push_back(r);
       }
