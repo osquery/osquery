@@ -1,17 +1,17 @@
 table_name("disk_encryption")
 description("Disk encryption status and information.")
 schema([
-    Column("name", TEXT, "Disk name"),
-    Column("uuid", TEXT, "Disk Universally Unique Identifier"),
+    Column("name", TEXT, "Disk name", index=True),
     Column("encrypted", INTEGER, "1 If encrypted: true (disk is encrypted), else 0"),
     Column("type", TEXT, "Description of cipher type and mode if available"),
     Column("encryption_status", TEXT, "Disk encryption status with one of following values: encrypted | not encrypted | undefined"),
-    ForeignKey(column="name", table="block_devices"),
-    ForeignKey(column="uuid", table="block_devices"),
 ])
 extended_schema(DARWIN, [
+    Column("uuid", TEXT, "Disk Universally Unique Identifier"),
     Column("uid", TEXT, "Currently authenticated user if available"),
     Column("user_uuid", TEXT, "UUID of authenticated user if available"),
     Column("filevault_status", TEXT, "FileVault status with one of following values: on | off | unknown"),
+    ForeignKey(column="name", table="block_devices"),
+    ForeignKey(column="uuid", table="block_devices"),
 ])
 implementation("disk_encryption@genFDEStatus")
