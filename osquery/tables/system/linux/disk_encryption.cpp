@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 
+#include <filesystem>
 #include <vector>
 
 #include <osquery/core/core.h>
@@ -29,16 +30,37 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
-void genFDEStatusForBlockDevice(const Row& block_device,
-                                std::map<std::string, Row>& block_devices,
-                                std::map<std::string, Row>& encrypted_rows) {
-  const auto name = block_device.at("name");
-  const auto parent_name =
-      (block_device.count("parent") > 0 ? block_device.at("parent") : "");
+std::vector<std::string> enumerateParentsForBlockDevice(
+    std::filesystem::path block_device_path) {
+  std::vector<std::string> parents;
 
+  if (std::filesystem::is_symlink(block_device_path)) {
+    auto symlink = std::filesystem::read_symlink(block_device_path);
+    auto device_path = std::filesystem::canonical(symlink);
+    auto parent = device_path.parent_path().filename().string();
+    device_path /= "slaves";
+
+    if (std::filesystem::exists(device_path)) {
+      for (const auto& slave_device :
+           std::filesystem::directory_iterator(device_path)) {
+        parents.push_back(slave_device.path().filename().string());
+      }
+    }
+
+    if (parents.size() == 0 && parent != "block") {
+      parents.push_back(parent);
+    }
+  }
+
+  return parents;
+}
+
+void genFDEStatusForBlockDevice(
+    const std::string& name,
+    std::map<std::string, std::filesystem::path>& block_devices,
+    std::map<std::string, Row>& encryption_status) {
   Row r;
   r["name"] = name;
-  r["uuid"] = (block_device.count("uuid") > 0) ? block_device.at("uuid") : "";
 
   struct crypt_device* cd = nullptr;
   auto ci = crypt_status(cd, name.c_str());
@@ -83,39 +105,35 @@ void genFDEStatusForBlockDevice(const Row& block_device,
     r["type"] = osquery::join(items, "-");
     break;
   }
-  // If there's no good crypt status, use the parent device's crypt status.
   default:
-    // If there is no parent, we are likely at the root of the block device
-    // tree. Since no good crypt status has been found, we set the empty status
-    // and exit. All children of this block device will inherit this status if
-    // they aren't encrypted.
-    if (parent_name.empty()) {
-      r["encryption_status"] = kEncryptionStatusNotEncrypted;
-      r["encrypted"] = "0";
-      r["type"] = "";
-      break;
-    }
+    r["encryption_status"] = kEncryptionStatusNotEncrypted;
+    r["encrypted"] = "0";
+    r["type"] = "";
 
-    // If there is a parent, let's generate and use its crypt status for this
-    // device.
-    if (!encrypted_rows.count(parent_name)) {
-      genFDEStatusForBlockDevice(
-          block_devices[parent_name], block_devices, encrypted_rows);
-    }
+    auto parents = enumerateParentsForBlockDevice(block_devices[name]);
+    for (const auto& parent : parents) {
+      const auto parent_name = "/dev/" + parent;
 
-    // The recursive calls return back, and each child device takes the
-    // encryption values of their parent.
-    auto parent_row = encrypted_rows[parent_name];
-    r["encryption_status"] = parent_row["encryption_status"];
-    r["encrypted"] = parent_row["encrypted"];
-    r["type"] = parent_row["type"];
+      if (!encryption_status.count(parent_name)) {
+        genFDEStatusForBlockDevice(
+            parent_name, block_devices, encryption_status);
+      }
+
+      auto parent_row = encryption_status[parent_name];
+      if (parent_row["encrypted"] == "1") {
+        r["encryption_status"] = parent_row["encryption_status"];
+        r["encrypted"] = parent_row["encrypted"];
+        r["type"] = parent_row["type"];
+        break;
+      }
+    }
   }
-
-  encrypted_rows[name] = r;
 
   if (cd != nullptr) {
     crypt_free(cd);
   }
+
+  encryption_status[name] = r;
 }
 
 QueryData genFDEStatus(QueryContext& context) {
@@ -126,32 +144,32 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
-  // When a block device doesn't have sufficient crypt status, it needs to be
-  // able to inherit the crypt status of its parent.
-  // To do this, we utilize `block_devices` and `encrypted_rows` to cache block
-  // devices at two different points. The first is when it's queried, and the
-  // second is after setting crypt status. This helps us avoid O(N^2) issues.
-  // We can also skip sorting nodes by using recursion.
-  std::map<std::string, Row> block_devices;
-  std::map<std::string, Row> encrypted_rows;
+  std::map<std::string, std::filesystem::path> block_devices;
+  std::map<std::string, Row> encryption_status;
+  std::filesystem::path block_device_dir = "/sys/class/block";
+  std::filesystem::current_path(block_device_dir);
 
-  // Ultimately we want to have proper query context here. There are underlying
-  // issues with udev child->parent relationship on LVM volumes. See #8152.
-  auto data = SQL::selectAllFrom("block_devices");
-  for (const auto& row : data) {
-    if (row.count("name") > 0) {
-      block_devices[row.at("name")] = row;
-    }
+  for (const auto& block_device :
+       std::filesystem::directory_iterator(block_device_dir)) {
+    auto path = block_device.path();
+    auto name = "/dev/" + path.filename().string();
+    block_devices[name] = path;
   }
 
-  // Generate and add an encryption row result for each queried block device.
+  auto query_context = context.constraints.find("name")->second.getAll(EQUALS);
+
   for (const auto& pair : block_devices) {
-    if (!encrypted_rows.count(pair.first)) {
-      genFDEStatusForBlockDevice(pair.second, block_devices, encrypted_rows);
+    if (!query_context.empty() &&
+        std::find(query_context.begin(), query_context.end(), pair.first) ==
+            query_context.end()) {
+      continue;
     }
 
-    // Copy encrypted rows back to results.
-    results.push_back(encrypted_rows[pair.first]);
+    if (!encryption_status.count(pair.first)) {
+      genFDEStatusForBlockDevice(pair.first, block_devices, encryption_status);
+    }
+
+    results.push_back(encryption_status[pair.first]);
   }
 
   return results;
