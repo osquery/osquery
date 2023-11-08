@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <blkid/blkid.h>
 #include <unistd.h>
 
 #include <filesystem>
@@ -66,6 +67,24 @@ void genFDEStatusForBlockDevice(
     std::map<std::string, Row>& encryption_status) {
   Row r;
   r["name"] = name;
+  r["uuid"] = "";
+
+  // Set block device UUID.
+  blkid_probe pr = blkid_new_probe_from_filename(name);
+  if (pr != nullptr) {
+    blkid_probe_enable_superblocks(pr, 1);
+    blkid_probe_set_superblocks_flags(pr, BLKID_SUBLKS_UUID);
+
+    if (!blkid_do_safeprobe(pr)) {
+      const char* blk_value = nullptr;
+
+      if (!blkid_probe_lookup_value(pr, "UUID", &blk_value, nullptr)) {
+        r["uuid"] = blk_value;
+      }
+    }
+
+    blkid_free_probe(pr);
+  }
 
   struct crypt_device* cd = nullptr;
   auto ci = crypt_status(cd, name.c_str());
