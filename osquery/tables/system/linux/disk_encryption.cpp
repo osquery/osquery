@@ -30,16 +30,19 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
+// Follow a block device sysfs symlink and enumerate over the possible parents.
 std::vector<std::string> enumerateParentsForBlockDevice(
     std::filesystem::path block_device_path) {
   std::vector<std::string> parents;
 
+  // Follow the block device symlink to the device.
   if (std::filesystem::is_symlink(block_device_path)) {
     auto symlink = std::filesystem::read_symlink(block_device_path);
     auto device_path = std::filesystem::canonical(symlink);
     auto parent = device_path.parent_path().filename().string();
     device_path /= "slaves";
 
+    // Check if slaves directory exists and enumerate the parents if it does.
     if (std::filesystem::exists(device_path)) {
       for (const auto& slave_device :
            std::filesystem::directory_iterator(device_path)) {
@@ -47,6 +50,8 @@ std::vector<std::string> enumerateParentsForBlockDevice(
       }
     }
 
+    // If no slave directory exists, or no entries are in the directory, then
+    // set the parent from the parent directory.
     if (parents.size() == 0 && parent != "block") {
       parents.push_back(parent);
     }
@@ -110,15 +115,19 @@ void genFDEStatusForBlockDevice(
     r["encrypted"] = "0";
     r["type"] = "";
 
+    // If there's no good crypt status, then walk up the device tree until we
+    // either reach the root, or we find good crypt status to inherit.
     auto parents = enumerateParentsForBlockDevice(block_devices[name]);
     for (const auto& parent : parents) {
       const auto parent_name = "/dev/" + parent;
 
+      // Generate the parent status if it doesn't exist yet.
       if (!encryption_status.count(parent_name)) {
         genFDEStatusForBlockDevice(
             parent_name, block_devices, encryption_status);
       }
 
+      // Set valid crypt status from parent block device.
       auto parent_row = encryption_status[parent_name];
       if (parent_row["encrypted"] == "1") {
         r["encryption_status"] = parent_row["encryption_status"];
@@ -144,11 +153,21 @@ QueryData genFDEStatus(QueryContext& context) {
     return results;
   }
 
+  // We want to cache the block devices and the encryption status, so that we
+  // can recursively establish the device tree encryption status and inherit
+  // from parents.
   std::map<std::string, std::filesystem::path> block_devices;
   std::map<std::string, Row> encryption_status;
+
+  // For Linux block device encryption status, we can simply walk sysfs.
+  // [See](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=edfaa7c36574f1bf09c65ad602412db9da5f96bf)
   std::filesystem::path block_device_dir = "/sys/class/block";
   std::filesystem::current_path(block_device_dir);
 
+  // Cache the list of block devices and their sysfs class path. This is
+  // lightweight, and there needs to be a way to access the parent device when
+  // setting encryption status, so enumerate all block devices without checking
+  // query context.
   for (const auto& block_device :
        std::filesystem::directory_iterator(block_device_dir)) {
     auto path = block_device.path();
@@ -159,12 +178,14 @@ QueryData genFDEStatus(QueryContext& context) {
   auto query_context = context.constraints.find("name")->second.getAll(EQUALS);
 
   for (const auto& pair : block_devices) {
+    // Only generate encryption status for devices in the query context.
     if (!query_context.empty() &&
         std::find(query_context.begin(), query_context.end(), pair.first) ==
             query_context.end()) {
       continue;
     }
 
+    // Since `genFDEStatusForBlockDevice` is recursive, ensure no duplicates.
     if (!encryption_status.count(pair.first)) {
       genFDEStatusForBlockDevice(pair.first, block_devices, encryption_status);
     }
