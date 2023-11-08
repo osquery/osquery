@@ -70,7 +70,7 @@ void genFDEStatusForBlockDevice(
   r["uuid"] = "";
 
   // Set block device UUID.
-  blkid_probe pr = blkid_new_probe_from_filename(name);
+  blkid_probe pr = blkid_new_probe_from_filename(name.c_str());
   if (pr != nullptr) {
     blkid_probe_enable_superblocks(pr, 1);
     blkid_probe_set_superblocks_flags(pr, BLKID_SUBLKS_UUID);
