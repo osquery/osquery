@@ -8,6 +8,7 @@
  */
 
 #include <string>
+#include <vector>
 #include <unordered_set>
 
 #include <sqlite3.h>
