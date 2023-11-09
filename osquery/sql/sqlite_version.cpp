@@ -115,6 +115,23 @@ static int compareRemainder(const std::string_view& l_ver,
  * Return 0 if the versions should evaluate as equal.
  * Return negative int if the left string is less than the right.
  * Return positive int if the left string is greater than the right.
+ *
+ * This accepts options `epoch`, `delim_precedence`, `comp_remaining`, and
+ * `remainder_precedence` mostly for linux package versioning support.
+ *
+ * epoch: If true, versions with an epoch value always sort greater than
+ * something without an epoch.
+ *
+ * delim_precedence: If true, version delimiters will compare to each other to
+ * determine sort order.
+ *
+ * comp_remaining: If true, and there is remaining length to one of the
+ * versions, then instead of only returning the length difference, this signals
+ * to compute sort order in the remaining content.
+ *
+ * remainder_precedence: If true, and the remaining content isn't clear on sort
+ * order, then only return value difference if the last compared character isn't
+ * numeric, if it is then always return length difference.
  */
 static int versionCompare(int l_len,
                           const void* l_version,

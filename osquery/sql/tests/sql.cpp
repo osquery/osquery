@@ -463,6 +463,39 @@ TEST_F(SQLTests, test_concat_ws_fail) {
 }
 
 /*
+ * version_compare
+ */
+TEST_F(SQLTests, test_version_compare) {
+  QueryData d;
+  auto status = query(
+      "select version_compare('1.0', '=', '1.0') as t0, \
+              version_compare('1:2.0-10', '=', '1:2.0-10', true, true) as t1, \
+              version_compare('4:1.1.0', '=', '4:1.1.0-3', true, false, true, true) as t2, \
+              version_compare('50.4.1b', '<', '50.4.1c') as t3, \
+              version_compare('1.0.8-4', '<', '1.0.8-6', true, NULL, true, true) as t4, \
+              version_compare('1.0.0~rc2^2021', '<', '1.0.0', true, true, true) as t5, \
+              version_compare('1.1.0~BETA2^1', '<=', '1.1.0~CR1', true, true, true, false) as t6, \
+              version_compare('1.0.1.1', '>', '1.0.1^2021', true, true, true, NULL) as t7, \
+              version_compare('1.9.9-1ubuntu2.4', '>', '1.9.9-1ubuntu2.3', true, true, false, false) as t8, \
+              version_compare('1:1.2.13-2', '>', '4.2.1', true, false, true, true) as t9, \
+              version_compare('106.32.1', '>=', '106:32.1') as t10",
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+  EXPECT_EQ(d[0]["t6"], "1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "1");
+}
+
+/*
  * collate version
  */
 TEST_F(SQLTests, test_collate_version_eq) {
@@ -647,7 +680,7 @@ TEST_F(SQLTests, test_collate_version_rhel_eq) {
   QueryData d;
   auto status = query(
       "select '1.0' = '1.0' collate version_rhel as t0, \
-              '0.5.0~rc1^202' = '0.5.0~rc1^202' collate version as t1, \
+              '0.5.0~rc1^202' = '0.5.0~rc1^202' collate version_rhel as t1, \
               '1:1.0.0~rc2' = '1:1.0.0~rc2' collate version_rhel as t2",
       d);
   ASSERT_EQ(d.size(), 1U);

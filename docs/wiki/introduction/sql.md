@@ -369,6 +369,35 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
     </p>
     </details>
 
+- `version_compare(VERSION_STRING, COMPARE_OPERATOR, VERSION_STRING, EPOCH, DELIMITER_PRECEDENCE, COMPARE_REMAINING, REMAINING_PRECEDENCE)`: return `1` if comparison is truthy or `0` for falsy. compare_operator must be one of the following: (`<`, `<=`, `=`, `>=`, `>`). epoch, delimiter_precedence, compare_remaining, and remaining_precedence are all optional booleans that change the behavior of the comparison, which are mostly used for linux package versioning.
+
+    <details>
+    <summary>Version Compare function example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select version_compare('1.0', '=', '1.0');
+      version_compare('1.0', '=', '1.0') = 1
+
+      osquery> select version_compare('4:1.1.0', '=', '4:1.1.0-3', true, false, true, true);
+      version_compare('4:1.1.0', '=', '4:1.1.0-3', true, false, true, true) = 1
+
+      osquery> select version_compare('50.4.1b', '<', '50.4.1c');
+      version_compare('50.4.1b', '<', '50.4.1c') = 1
+
+      osquery> select version_compare('1.0.0~rc2^2021', '<', '1.0.0', true, true, true);
+      version_compare('1.0.0~rc2^2021', '<', '1.0.0', true, true, true) = 1
+
+      osquery> select version_compare('1:1.2.13-2', '>', '4.2.1', true, false, true, true);
+      version_compare('1:1.2.13-2', '>', '4.2.1', true, false, true, true) = 1
+
+      osquery> select version_compare('106.32.1', '>=', '106.32.1');
+      version_compare('106.32.1', '>=', '106:32.1') = 1
+
+    </p>
+    </details>
+
 #### Hashing functions
 
 We have added `sha1`, `sha256`, and `md5` functions that take a single argument and return the hashed value.
@@ -495,6 +524,87 @@ There are also encoding functions available, to process query results.
 
       osquery> SELECT in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
       in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
+
+    </p>
+    </details>
+
+#### Collations
+
+- `version`:
+
+    <details>
+    <summary>Version collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select '1.0' = '1.0' collate version;
+      '1.0' = '1.0' collate version = 1
+
+      osquery> select '50.4.1b' < '50.4.1c' collate version;
+      '50.4.1b' < '50.4.1c' collate version = 1
+
+      osquery> select '20.10a' > '20.102' collate version;
+      '20.10a' > '20.102' collate version = 1
+    </p>
+    </details>
+
+- `version_arch`:
+
+    <details>
+    <summary>Version ARCH collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select '4:2' = '4:2-1' collate version_arch;
+      '4:2' = '4:2-1' collate version_arch = 1
+
+      osquery> select '2-2pre' < '2-2rc' collate version_arch;
+      '2-2pre' < '2-2rc' collate version_arch = 1
+
+      osquery> select '42.2-1' > '42.1-2' collate version_arch;
+      '42.2-1' > '42.1-2' collate version_arch = 1
+
+    </p>
+    </details>
+
+- `version_dpkg`:
+
+    <details>
+    <summary>Version DPKG collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select '1:2.0-10' = '1:2.0-10' collate version_dpkg;
+      '1:2.0-10' = '1:2.0-10' collate version_dpkg = 1
+
+      osquery> select '22.07.5-2ubuntu1.3' < '22.07.5-2ubuntu1.4' collate version_dpkg;
+      '22.07.5-2ubuntu1.3' < '22.07.5-2ubuntu1.4' collate version_dpkg = 1
+
+      osquery> select '2:8.2.3995-1ubuntu2.9' > '2:8.2.3995-1ubuntu2.3' collate version_dpkg;
+      '2:8.2.3995-1ubuntu2.9' > '2:8.2.3995-1ubuntu2.3' collate version_dpkg = 1
+
+    </p>
+    </details>
+
+- `version_rhel`:
+
+    <details>
+    <summary>Version RHEL collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select '0.5.0~rc1^202' = '0.5.0~rc1^202' collate version_rhel;
+      '0.5.0~rc1^202' = '0.5.0~rc1^202' collate version_rhel = 1
+
+      osquery> select '1.1.0~BETA2' < '1.1.0~CR1' collate version_rhel;
+      '1.1.0~BETA2' < '1.1.0~CR1' collate version_rhel = 1
+
+      osquery> select '1.0.0' > '1.0.0~rc2' collate version_rhel;
+      '1.0.0' > '1.0.0~rc2' collate version_rhel = 1
 
     </p>
     </details>
