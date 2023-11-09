@@ -1041,7 +1041,7 @@ Commits from 21 contributors! Thank you all!
 ### Documentation
 
 - Add 4.6.0 CHANGELOG ([#6809](https://github.com/osquery/osquery/pull/6809))
-- Add 4.7.0 CHANGELOG ([#6985](#https://github.com/osquery/osquery/pull/6985))
+- Add 4.7.0 CHANGELOG ([#6985](https://github.com/osquery/osquery/pull/6985))
 - Add docs for TLS enroll max attempts ([#6888](https://github.com/osquery/osquery/pull/6888))
 - Change reference about Azure Pipelines to GitHub Actions ([#6988](https://github.com/osquery/osquery/pull/6988))
 - Clarify FIM exclude category documentation ([#6966](https://github.com/osquery/osquery/pull/6966))
