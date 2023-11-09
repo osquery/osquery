@@ -500,6 +500,8 @@ TEST_F(SQLTests, test_version_compare) {
  */
 TEST_F(SQLTests, test_collate_version_eq) {
   QueryData d;
+  // 1:0.0 = 1.0.0 - This is to showcase that if delimiter_precedence = false,
+  // delimiters will be equal.
   auto status = query(
       "select '1.0' = '1.0' collate version as t0, \
               '1:0.0' = '1.0.0' collate version as t1, \
