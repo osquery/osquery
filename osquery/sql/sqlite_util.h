@@ -485,9 +485,9 @@ std::string getStringForSQLiteReturnCode(int code);
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]);
 
 /**
- * @brief Register collations.
+ * @brief Register versioning collations and function.
  */
-void registerCollations(sqlite3* db);
+void registerVersionExtensions(sqlite3* db);
 
 /**
  * @brief Register math-related 'custom' functions.
