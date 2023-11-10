@@ -31,7 +31,7 @@ const std::vector<std::string> kUserKeychainPaths = {
     "/Library/Keychains",
 };
 
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains) {
+void genKeychains(const std::string& path, CFMutableArrayRef& keychains, KeychainMap& keychain_map) {
   std::vector<std::string> paths;
 
   // Support both a directory and explicit path search.
@@ -46,10 +46,24 @@ void genKeychains(const std::string& path, CFMutableArrayRef& keychains) {
   }
 
   for (const auto& keychain_path : paths) {
-    SecKeychainRef keychain = nullptr;
-    auto status = SecKeychainOpen(keychain_path.c_str(), &keychain);
-    if (status == 0 && keychain != nullptr) {
-      CFArrayAppendValue(keychains, keychain);
+    boost::filesystem::path source(keychain_path);
+    if (is_regular_file(source)) {
+      boost::filesystem::path dest;
+      if (keychain_map.actual_to_temp.count(source) == 0) {
+        auto temp_dir = keychain_map.temp_base / boost::filesystem::unique_path();
+        boost::filesystem::create_directories(temp_dir);
+        dest = temp_dir / source.filename();
+        boost::filesystem::copy_file(source, dest);
+        keychain_map.Insert(source, dest);
+      } else {
+        dest = keychain_map.actual_to_temp.find(source)->second;
+      }
+
+      SecKeychainRef keychain = nullptr;
+      auto status = SecKeychainOpen(dest.c_str(), &keychain);
+      if (status == 0 && keychain != nullptr) {
+        CFArrayAppendValue(keychains, keychain);
+      }
     }
   }
 }
@@ -75,10 +89,11 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
 }
 
 CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
-                               const CFTypeRef& item_type) {
+                               const CFTypeRef& item_type,
+                               KeychainMap& keychain_map) {
   auto keychains = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
   for (const auto& path : paths) {
-    genKeychains(path, keychains);
+    genKeychains(path, keychains, keychain_map);
   }
 
   CFMutableDictionaryRef query;

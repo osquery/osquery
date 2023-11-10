@@ -46,7 +46,7 @@ const std::map<SecItemClass, std::string> kKeychainItemClasses = {
     {kSecPrivateKeyItemClass, "private key"},
     {kSecSymmetricKeyItemClass, "symmetric key"}};
 
-void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
+void genKeychainItem(const SecKeychainItemRef& item, const KeychainMap& keychain_map, QueryData& results) {
   Row r;
 
   // Create an info structure with 1 tag, then iterate over setting the tag
@@ -108,7 +108,12 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
     r["type"] = kKeychainItemClasses.at(item_class);
   }
 
-  r["path"] = getKeychainPath(item);
+  auto temp_path = boost::filesystem::path(getKeychainPath(item));
+  auto it = keychain_map.temp_to_actual.find(temp_path);
+  if (it != keychain_map.temp_to_actual.end()) {
+    r["path"] = it->second.string();
+  }
+  // TODO: Log error if needed.
   results.push_back(r);
 }
 
@@ -123,19 +128,28 @@ QueryData genKeychainItems(QueryContext& context) {
     keychain_paths = getKeychainPaths();
   }
 
+  // All files will be copied to a temp directory before being processed.
+  // This attempts to fix the keychain corruption seen in https://github.com/osquery/osquery/issues/7780
+  KeychainMap keychain_map;
+  // Base temp directory that we will need to delete.
+  keychain_map.temp_base = boost::filesystem::canonical(boost::filesystem::temp_directory_path()) / boost::filesystem::unique_path();
+
   for (const auto& item_type : kKeychainItemTypes) {
-    CFArrayRef items = CreateKeychainItems(keychain_paths, item_type);
+    CFArrayRef items = CreateKeychainItems(keychain_paths, item_type, keychain_map);
     if (items == nullptr) {
       continue;
     }
     auto count = CFArrayGetCount(items);
     for (CFIndex i = 0; i < count; i++) {
-      genKeychainItem((SecKeychainItemRef)CFArrayGetValueAtIndex(items, i),
+      genKeychainItem((SecKeychainItemRef)CFArrayGetValueAtIndex(items, i), keychain_map,
                       results);
     }
 
     CFRelease(items);
   }
+
+  // Clean up temp directory
+  remove_all(keychain_map.temp_base);
 
   return results;
 }

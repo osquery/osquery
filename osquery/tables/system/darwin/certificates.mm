@@ -86,7 +86,8 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
 }
 
 void genKeychainCertificate(const SecCertificateRef& SecCert,
-                            QueryData& results) {
+                            QueryData& results,
+                            const KeychainMap& keychain_map) {
   auto der_encoded_data = SecCertificateCopyData(SecCert);
   if (der_encoded_data == nullptr) {
     return;
@@ -98,7 +99,10 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 
   if (cert != nullptr) {
     auto path = getKeychainPath((SecKeychainItemRef)SecCert);
-    genCertificate(cert, path, results);
+    auto dest = boost::filesystem::path(path);
+    auto it = keychain_map.temp_to_actual.find(dest);
+    // TODO: Add error handling/logging here.
+    genCertificate(cert, it->second.string(), results);
     X509_free(cert);
   }
 
@@ -158,50 +162,63 @@ QueryData genCerts(QueryContext& context) {
         return status;
       }));
 
+  // All files will be copied to a temp directory before being processed.
+  // This attempts to fix the keychain corruption seen in https://github.com/osquery/osquery/issues/7780
+  KeychainMap keychain_map;
+  // Base temp directory that we will need to delete.
+  keychain_map.temp_base = boost::filesystem::canonical(boost::filesystem::temp_directory_path()) / boost::filesystem::unique_path();
+
   @autoreleasepool {
     if (!paths.empty()) {
       for (const auto& path : paths) {
-        SecKeychainRef keychain = nullptr;
-        SecKeychainStatus keychain_status;
-        auto status = SecKeychainOpen(path.c_str(), &keychain);
-        if (status != errSecSuccess || keychain == nullptr ||
-            SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
-          if (keychain != nullptr) {
+        boost::filesystem::path source(path);
+        if (is_regular_file(source) && keychain_map.actual_to_temp.count(source) == 0) {
+          // Make a copy. Using a unique subdirectory to prevent filename conflicts.
+          auto temp_dir = keychain_map.temp_base / boost::filesystem::unique_path();
+          boost::filesystem::create_directories(temp_dir);
+          boost::filesystem::path dest = temp_dir / source.filename();
+          boost::filesystem::copy_file(source, dest);
+          keychain_map.Insert(source, dest);
+
+          SecKeychainRef keychain = nullptr;
+          SecKeychainStatus keychain_status;
+          auto status = SecKeychainOpen(dest.c_str(), &keychain);
+          if (status != errSecSuccess || keychain == nullptr ||
+              SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
+            if (keychain != nullptr) {
+              CFRelease(keychain);
+            }
+            // Using the actual path here instead of temp path.
+            genFileCertificate(source.string(), results);
+          } else {
+            keychain_paths.insert(path);
             CFRelease(keychain);
           }
-          genFileCertificate(path, results);
-        } else {
-          keychain_paths.insert(path);
-          CFRelease(keychain);
         }
       }
     } else {
-      for (const auto& path : kSystemKeychainPaths) {
-        keychain_paths.insert(path);
-      }
-      auto homes = osquery::getHomeDirectories();
-      for (const auto& dir : homes) {
-        for (const auto& keychains_dir : kUserKeychainPaths) {
-          keychain_paths.insert((dir / keychains_dir).string());
-        }
-      }
+      keychain_paths = getKeychainPaths();
     }
 
     // Keychains/certificate stores belonging to the OS.
     CFArrayRef certs =
-        CreateKeychainItems(keychain_paths, kSecClassCertificate);
+        CreateKeychainItems(keychain_paths, kSecClassCertificate, keychain_map);
     // Must have returned an array of matching certificates.
     if (certs != nullptr) {
       if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
         auto certificate_count = CFArrayGetCount(certs);
         for (CFIndex i = 0; i < certificate_count; i++) {
           auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-          genKeychainCertificate(cert, results);
+          genKeychainCertificate(cert, results, keychain_map);
         }
       }
       CFRelease(certs);
     }
   }
+
+  // Clean up temp directory
+  remove_all(keychain_map.temp_base);
+
   return results;
 }
 }
