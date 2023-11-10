@@ -17,7 +17,7 @@ function(expatMain)
   )
 
   target_include_directories(thirdparty_expat PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/config/linux"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGET_PROCESSOR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/expat/lib"
   )
 
@@ -27,10 +27,6 @@ function(expatMain)
 
   target_include_directories(thirdparty_expat SYSTEM INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/expat/lib"
-  )
-
-  target_compile_definitions(thirdparty_expat PRIVATE
-    HAVE_EXPAT_CONFIG_H
   )
 endfunction()
 

@@ -157,7 +157,6 @@ function(generateTestsIntegrationTablesTestsTest)
     set(platform_source_files
       apt_sources.cpp
       arp_cache.cpp
-      atom_packages.cpp
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
@@ -215,7 +214,6 @@ function(generateTestsIntegrationTablesTestsTest)
       apps.cpp
       arp_cache.cpp
       asl.cpp
-      atom_packages.cpp
       authorization_mechanisms.cpp
       authorizations.cpp
       battery.cpp
@@ -383,6 +381,7 @@ function(generateTestsIntegrationTablesTestsTest)
     )
 
     set(gtest_filter "")
+
     foreach(root_test_name ${root_test_name_list})
       if(NOT gtest_filter STREQUAL "")
         set(gtest_filter "${gtest_filter}:")
@@ -416,14 +415,14 @@ function(generateTestsIntegrationTablesTestsTest)
     endif()
 
   else()
-      add_test(NAME tests_integration_tables-test
-        COMMAND tests_integration_tables-test
-      )
+    add_test(NAME tests_integration_tables-test
+      COMMAND tests_integration_tables-test
+    )
 
-      set_tests_properties(
-        tests_integration_tables-test
-        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-      )
+    set_tests_properties(
+      tests_integration_tables-test
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
   endif()
 endfunction()
 

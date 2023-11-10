@@ -1,7 +1,7 @@
 table_name("block_devices")
 description("Block (buffered access) device file nodes: disks, ramdisks, and DMG containers.")
 schema([
-    Column("name", TEXT, "Block device name", additional=True),
+    Column("name", TEXT, "Block device name"),
     Column("parent", TEXT, "Block device parent name"),
     Column("vendor", TEXT, "Block device vendor string"),
     Column("model", TEXT, "Block device model string identifier"),

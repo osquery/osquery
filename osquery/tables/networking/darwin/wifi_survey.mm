@@ -27,18 +27,23 @@ QueryData genWifiScan(QueryContext& context) {
       return results;
     }
     for (CWInterface* interface in interfaces) {
-      NSSet<CWNetwork*>* networks =
-          [interface scanForNetworksWithName:nil error:nil];
+      NSSet<CWNetwork*>* networks = [interface scanForNetworksWithName:nil
+                                                                 error:nil];
 
       for (CWNetwork* network in networks) {
         Row r;
         r["interface"] = [[interface interfaceName] UTF8String];
         r["ssid"] = extractSsid((__bridge CFDataRef)[network ssidData]);
-        auto bssid = [network bssid];
+        auto* bssid = [network bssid];
         if (bssid != nullptr) {
           r["bssid"] = [bssid UTF8String];
         }
-        r["network_name"] = [[network ssid] UTF8String];
+
+        auto* ssid = [network ssid];
+        if (ssid != nullptr) {
+          r["network_name"] = [ssid UTF8String];
+        }
+
         NSString* country_code = [network countryCode];
         if (country_code != nil) {
           r["country_code"] = [country_code UTF8String];
@@ -57,5 +62,5 @@ QueryData genWifiScan(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -385,13 +385,10 @@ def run_http_server(bind_port=80, **kwargs):
 
     httpd = HTTPServer(('localhost', bind_port), RealSimpleHandler)
     if ARGS['tls']:
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            ca_certs=ARGS['ca'],
-            ssl_version=ssl.PROTOCOL_SSLv23,
-            certfile=ARGS['cert'],
-            keyfile=ARGS['key'],
-            server_side=True)
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context.load_cert_chain(certfile=ARGS['cert'], keyfile=ARGS['key'])
+        context.load_verify_locations(ARGS['ca'])
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
         debug("Starting TLS/HTTPS server on TCP port: %d" % bind_port)
     else:
         debug("Starting HTTP server on TCP port: %d" % bind_port)
