@@ -24,7 +24,8 @@ extern const std::vector<std::string> kSystemKeychainPaths;
 extern const std::vector<std::string> kUserKeychainPaths;
 
 // KeychainMap tracks the temporary copies of keychain files.
-// We make a copy of every keychain file before interacting with it via Apple APIs.
+// We make a copy of every keychain file before interacting with it via Apple
+// APIs.
 class KeychainMap {
  public:
   boost::filesystem::path temp_base;

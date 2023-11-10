@@ -163,18 +163,24 @@ QueryData genCerts(QueryContext& context) {
       }));
 
   // All files will be copied to a temp directory before being processed.
-  // This attempts to fix the keychain corruption seen in https://github.com/osquery/osquery/issues/7780
+  // This attempts to fix the keychain corruption seen in
+  // https://github.com/osquery/osquery/issues/7780
   KeychainMap keychain_map;
   // Base temp directory that we will need to delete.
-  keychain_map.temp_base = boost::filesystem::canonical(boost::filesystem::temp_directory_path()) / boost::filesystem::unique_path();
+  keychain_map.temp_base =
+      boost::filesystem::canonical(boost::filesystem::temp_directory_path()) /
+      boost::filesystem::unique_path();
 
   @autoreleasepool {
     if (!paths.empty()) {
       for (const auto& path : paths) {
         boost::filesystem::path source(path);
-        if (is_regular_file(source) && keychain_map.actual_to_temp.count(source) == 0) {
-          // Make a copy. Using a unique subdirectory to prevent filename conflicts.
-          auto temp_dir = keychain_map.temp_base / boost::filesystem::unique_path();
+        if (is_regular_file(source) &&
+            keychain_map.actual_to_temp.count(source) == 0) {
+          // Make a copy. Using a unique subdirectory to prevent filename
+          // conflicts.
+          auto temp_dir =
+              keychain_map.temp_base / boost::filesystem::unique_path();
           boost::filesystem::create_directories(temp_dir);
           boost::filesystem::path dest = temp_dir / source.filename();
           boost::filesystem::copy_file(source, dest);
@@ -184,7 +190,8 @@ QueryData genCerts(QueryContext& context) {
           SecKeychainStatus keychain_status;
           auto status = SecKeychainOpen(dest.c_str(), &keychain);
           if (status != errSecSuccess || keychain == nullptr ||
-              SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
+              SecKeychainGetStatus(keychain, &keychain_status) !=
+                  errSecSuccess) {
             if (keychain != nullptr) {
               CFRelease(keychain);
             }

@@ -31,7 +31,9 @@ const std::vector<std::string> kUserKeychainPaths = {
     "/Library/Keychains",
 };
 
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains, KeychainMap& keychain_map) {
+void genKeychains(const std::string& path,
+                  CFMutableArrayRef& keychains,
+                  KeychainMap& keychain_map) {
   std::vector<std::string> paths;
 
   // Support both a directory and explicit path search.
@@ -50,7 +52,8 @@ void genKeychains(const std::string& path, CFMutableArrayRef& keychains, Keychai
     if (is_regular_file(source)) {
       boost::filesystem::path dest;
       if (keychain_map.actual_to_temp.count(source) == 0) {
-        auto temp_dir = keychain_map.temp_base / boost::filesystem::unique_path();
+        auto temp_dir =
+            keychain_map.temp_base / boost::filesystem::unique_path();
         boost::filesystem::create_directories(temp_dir);
         dest = temp_dir / source.filename();
         boost::filesystem::copy_file(source, dest);
