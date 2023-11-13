@@ -23,7 +23,6 @@ class ads : public testing::Test {
 };
 
 TEST_F(ads, test_sanity) {
-
   auto const data = execute_query("select * from ads where path = ''");
 
   ValidationMap row_map =
