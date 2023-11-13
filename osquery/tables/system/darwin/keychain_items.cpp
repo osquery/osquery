@@ -65,8 +65,10 @@ void genKeychainItem(const SecKeychainItemRef& item,
   // Any tag that does not exist for the item will prevent the entire result.
   for (const auto& attr_tag : kKeychainItemAttrs) {
     tags[0] = attr_tag.first;
-    auto os_status = SecKeychainItemCopyAttributesAndData(
-        item, &info, &item_class, &attr_list, 0, nullptr);
+    OSStatus os_status = 0;
+    OSQUERY_USE_DEPRECATED(
+        os_status = SecKeychainItemCopyAttributesAndData(
+            item, &info, &item_class, &attr_list, nullptr, nullptr));
 
     if (os_status == errSecNoSuchAttr) {
       // This attr does not exist, skip it.
@@ -100,7 +102,8 @@ void genKeychainItem(const SecKeychainItemRef& item,
           r[attr_tag.second] = encoded;
         }
       }
-      SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+      OSQUERY_USE_DEPRECATED(
+          SecKeychainItemFreeAttributesAndData(attr_list, nullptr));
       attr_list = nullptr;
     }
   }
@@ -110,12 +113,21 @@ void genKeychainItem(const SecKeychainItemRef& item,
     r["type"] = kKeychainItemClasses.at(item_class);
   }
 
-  auto temp_path = boost::filesystem::path(getKeychainPath(item));
-  auto it = keychain_map.temp_to_actual.find(temp_path);
-  if (it != keychain_map.temp_to_actual.end()) {
-    r["path"] = it->second.string();
+  auto keychain_path = getKeychainPath(item);
+  if (!keychain_path.empty()) {
+    auto temp_path = boost::filesystem::path(keychain_path);
+    auto it = keychain_map.temp_to_actual.find(temp_path);
+    if (it != keychain_map.temp_to_actual.end()) {
+      r["path"] = it->second.string();
+    } else {
+      r["path"] = "";
+      TLOG << "Original path not found corresponding to temp path: "
+           << temp_path.string();
+    }
+  } else {
+    r["path"] = "";
+    TLOG << "Did not find Keychain Path for Keychain item";
   }
-  // TODO: Log error if needed.
   results.push_back(r);
 }
 

@@ -16,6 +16,7 @@
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/darwin/keychain.h>
 #include <osquery/utils/conversions/join.h>
 
@@ -49,21 +50,38 @@ void genKeychains(const std::string& path,
 
   for (const auto& keychain_path : paths) {
     boost::filesystem::path source(keychain_path);
-    if (is_regular_file(source)) {
+    boost::system::error_code ec;
+    if (is_regular_file(source, ec)) {
+      if (ec.failed()) {
+        TLOG << "Could not access " << source.string()
+             << " Error: " << ec.message();
+        continue;
+      }
       boost::filesystem::path dest;
       if (keychain_map.actual_to_temp.count(source) == 0) {
         auto temp_dir =
             keychain_map.temp_base / boost::filesystem::unique_path();
-        boost::filesystem::create_directories(temp_dir);
+        boost::filesystem::create_directories(temp_dir, ec);
+        if (ec.failed()) {
+          TLOG << "Could not create directories " << temp_dir.string()
+               << " Error: " << ec.message();
+          continue;
+        }
         dest = temp_dir / source.filename();
-        boost::filesystem::copy_file(source, dest);
+        boost::filesystem::copy_file(source, dest, ec);
+        if (ec.failed()) {
+          TLOG << "Could not copy " << source.string()
+               << " Error: " << ec.message();
+          continue;
+        }
         keychain_map.Insert(source, dest);
       } else {
         dest = keychain_map.actual_to_temp.find(source)->second;
       }
 
       SecKeychainRef keychain = nullptr;
-      auto status = SecKeychainOpen(dest.c_str(), &keychain);
+      OSStatus status;
+      OSQUERY_USE_DEPRECATED(status = SecKeychainOpen(dest.c_str(), &keychain));
       if (status == 0 && keychain != nullptr) {
         CFArrayAppendValue(keychains, keychain);
       }
@@ -74,7 +92,8 @@ void genKeychains(const std::string& path,
 std::string getKeychainPath(const SecKeychainItemRef& item) {
   SecKeychainRef keychain = nullptr;
   std::string path;
-  auto status = SecKeychainItemCopyKeychain(item, &keychain);
+  OSStatus status;
+  OSQUERY_USE_DEPRECATED(status = SecKeychainItemCopyKeychain(item, &keychain));
   if (keychain == nullptr || status != errSecSuccess) {
     // Unhandled error, cannot get the keychain reference from certificate.
     return path;
@@ -82,7 +101,8 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
 
   UInt32 path_size = 1024;
   char keychain_path[1024] = {0};
-  status = SecKeychainGetPath(keychain, &path_size, keychain_path);
+  OSQUERY_USE_DEPRECATED(
+      status = SecKeychainGetPath(keychain, &path_size, keychain_path));
   if (status != errSecSuccess || (path_size > 0 && keychain_path[0] != 0)) {
     path = std::string(keychain_path);
   }

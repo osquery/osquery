@@ -99,11 +99,19 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 
   if (cert != nullptr) {
     auto path = getKeychainPath((SecKeychainItemRef)SecCert);
-    auto dest = boost::filesystem::path(path);
-    auto it = keychain_map.temp_to_actual.find(dest);
-    // TODO: Add error handling/logging here.
-    genCertificate(cert, it->second.string(), results);
-    X509_free(cert);
+    if (!path.empty()) {
+      auto dest = boost::filesystem::path(path);
+      auto it = keychain_map.temp_to_actual.find(dest);
+      if (it != keychain_map.temp_to_actual.end()) {
+        genCertificate(cert, it->second.string(), results);
+        X509_free(cert);
+      } else {
+        TLOG << "Original path not found corresponding to temp path: "
+             << dest.string();
+      }
+    } else {
+      TLOG << "Did not find Keychain Path for Keychain item";
+    }
   }
 
   CFRelease(der_encoded_data);
@@ -175,23 +183,49 @@ QueryData genCerts(QueryContext& context) {
     if (!paths.empty()) {
       for (const auto& path : paths) {
         boost::filesystem::path source(path);
-        if (is_regular_file(source) &&
+        boost::system::error_code ec;
+        if (is_regular_file(source, ec) &&
             keychain_map.actual_to_temp.count(source) == 0) {
+          if (ec.failed()) {
+            TLOG << "Could not access " << source.string()
+                 << " Error: " << ec.message();
+            continue;
+          }
           // Make a copy. Using a unique subdirectory to prevent filename
           // conflicts.
           auto temp_dir =
               keychain_map.temp_base / boost::filesystem::unique_path();
-          boost::filesystem::create_directories(temp_dir);
+          boost::filesystem::create_directories(temp_dir, ec);
+          if (ec.failed()) {
+            TLOG << "Could not create directories " << temp_dir.string()
+                 << " Error: " << ec.message();
+            continue;
+          }
           boost::filesystem::path dest = temp_dir / source.filename();
-          boost::filesystem::copy_file(source, dest);
+          boost::filesystem::copy_file(source, dest, ec);
+          if (ec.failed()) {
+            TLOG << "Could not copy " << source.string()
+                 << " Error: " << ec.message();
+            continue;
+          }
           keychain_map.Insert(source, dest);
 
           SecKeychainRef keychain = nullptr;
           SecKeychainStatus keychain_status;
-          auto status = SecKeychainOpen(dest.c_str(), &keychain);
-          if (status != errSecSuccess || keychain == nullptr ||
-              SecKeychainGetStatus(keychain, &keychain_status) !=
-                  errSecSuccess) {
+          OSStatus status;
+          OSQUERY_USE_DEPRECATED(status =
+                                     SecKeychainOpen(dest.c_str(), &keychain));
+          bool genFileCert = false;
+          if (status != errSecSuccess || keychain == nullptr) {
+            genFileCert = true;
+          } else {
+            OSQUERY_USE_DEPRECATED(
+                status = SecKeychainGetStatus(keychain, &keychain_status));
+            if (status != errSecSuccess) {
+              genFileCert = true;
+            }
+          }
+          if (genFileCert) {
             if (keychain != nullptr) {
               CFRelease(keychain);
             }
