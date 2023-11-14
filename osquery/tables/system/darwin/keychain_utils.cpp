@@ -123,6 +123,39 @@ CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
   return keychain_certs;
 }
 
+CFArrayRef CreateKeychainItems(SecKeychainRef keychain,
+                               const CFTypeRef& item_type) {
+  auto keychains = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
+
+  CFArrayAppendValue(keychains, keychain);
+
+  CFMutableDictionaryRef query;
+  query = CFDictionaryCreateMutable(nullptr,
+                                    0,
+                                    &kCFTypeDictionaryKeyCallBacks,
+                                    &kCFTypeDictionaryValueCallBacks);
+  CFDictionaryAddValue(query, kSecClass, item_type);
+  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
+  // This can be added to restrict results to x509v3
+  // CFDictionaryAddValue(query, kSecAttrCertificateType, 0x03);
+  CFDictionaryAddValue(query, kSecMatchSearchList, keychains);
+  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
+  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
+
+  CFArrayRef keychain_certs;
+  auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_certs);
+  CFRelease(query);
+
+  // Release each keychain search path.
+  CFRelease(keychains);
+
+  if (status != errSecSuccess) {
+    return nullptr;
+  }
+
+  return keychain_certs;
+}
+
 std::set<std::string> getKeychainPaths() {
   std::set<std::string> keychain_paths;
 

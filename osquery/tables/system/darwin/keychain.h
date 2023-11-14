@@ -29,7 +29,7 @@ DECLARE_bool(keychain_access_cache); // enable flag
 DECLARE_uint32(keychain_access_interval); // throttling flag
 
 // The tables supported by Keychain Cache
-enum class KeychainTable { KEYCHAIN_ACLS };
+enum class KeychainTable { CERTIFICATES, KEYCHAIN_ACLS };
 
 // The KeychainCache caches results associated with keychain files,
 // and throttles access to these files.
@@ -68,6 +68,10 @@ std::string getKeychainPath(const SecKeychainItemRef& item);
 
 /// Generate a list of keychain items for a given item type.
 CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
+                               const CFTypeRef& item_type);
+
+/// Generate a list of keychain items for a given item type.
+CFArrayRef CreateKeychainItems(SecKeychainRef keychain,
                                const CFTypeRef& item_type);
 
 std::set<std::string> getKeychainPaths();

@@ -25,6 +25,9 @@
 namespace osquery {
 namespace tables {
 
+// The table key for Keychain cache access.
+static const KeychainTable KEYCHAIN_TABLE = KeychainTable::KEYCHAIN_ACLS;
+
 typedef struct {
   std::string keychain_path;
   std::string label;
@@ -284,8 +287,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
   // Check cache
   bool err;
   std::string hash;
-  bool hit = keychainCache.Read(
-      source, KeychainTable::KEYCHAIN_ACLS, hash, results, err);
+  bool hit = keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
   if (err) {
     return {2, "Could not open the file at " + path};
   }
@@ -304,7 +306,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
       CFRelease(keychain);
     }
     // Cache an empty result to prevent the above API call in the future.
-    keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, {});
+    keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
     return Status(os_status, "Could not open the keychain at " + path);
   }
 
@@ -318,7 +320,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
     }
     CFRelease(keychain);
     // Cache an empty result to prevent the above API call in the future.
-    keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, {});
+    keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
     return Status(os_status,
                   "Could not pull keychain items from the search API");
   }
@@ -341,7 +343,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
   CFRelease(keychain);
   CFRelease(search);
   // Write new results to the cache.
-  keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, new_results);
+  keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
   results.insert(results.end(), new_results.begin(), new_results.end());
   return Status::success();
 }

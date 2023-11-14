@@ -22,6 +22,9 @@
 namespace osquery {
 namespace tables {
 
+// The table key for Keychain cache access.
+static const KeychainTable KEYCHAIN_TABLE = KeychainTable::CERTIFICATES;
+
 void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   Row r;
 
@@ -159,47 +162,157 @@ QueryData genCerts(QueryContext& context) {
       }));
 
   @autoreleasepool {
+    // Map of path to hash and keychain reference. This ensures we don't open
+    // the same keychain multiple times when the table's path constraint is
+    // used.
+    std::map<std::string,
+             std::tuple<boost::filesystem::path, std::string, SecKeychainRef>>
+        opened_keychains;
     if (!paths.empty()) {
       for (const auto& path : paths) {
+        // Check whether path is valid
+        boost::system::error_code ec;
+        auto source =
+            boost::filesystem::canonical(boost::filesystem::path(path), ec);
+        if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
+          TLOG << "Could not access file " << path << " " << ec.message();
+          continue;
+        }
+
+        // Check cache
+        bool err;
+        std::string hash;
+        bool hit =
+            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
+        if (err) {
+          TLOG << "Could not read the file at " << path << "" << ec.message();
+          continue;
+        }
+        if (hit) {
+          continue;
+        }
+
         SecKeychainRef keychain = nullptr;
         SecKeychainStatus keychain_status;
-        auto status = SecKeychainOpen(path.c_str(), &keychain);
-        if (status != errSecSuccess || keychain == nullptr ||
-            SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
+        OSStatus status;
+        OSQUERY_USE_DEPRECATED(status =
+                                   SecKeychainOpen(path.c_str(), &keychain));
+        bool genFileCert = false;
+        if (status != errSecSuccess || keychain == nullptr) {
+          genFileCert = true;
+        } else {
+          OSQUERY_USE_DEPRECATED(
+              status = SecKeychainGetStatus(keychain, &keychain_status));
+          if (status != errSecSuccess) {
+            genFileCert = true;
+          }
+        }
+        if (genFileCert) {
           if (keychain != nullptr) {
             CFRelease(keychain);
           }
-          genFileCertificate(path, results);
+          QueryData new_results;
+          genFileCertificate(path, new_results);
+          // Write new results to the cache.
+          keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
+          results.insert(results.end(), new_results.begin(), new_results.end());
         } else {
+          // This path will be re-accessed later.
           keychain_paths.insert(path);
-          CFRelease(keychain);
+          opened_keychains.insert(
+              {path, std::make_tuple(source, hash, keychain)});
         }
       }
     } else {
-      for (const auto& path : kSystemKeychainPaths) {
-        keychain_paths.insert(path);
-      }
-      auto homes = osquery::getHomeDirectories();
-      for (const auto& dir : homes) {
-        for (const auto& keychains_dir : kUserKeychainPaths) {
-          keychain_paths.insert((dir / keychains_dir).string());
+      keychain_paths = getKeychainPaths();
+    }
+
+    // Expand paths to individual files
+    std::set<std::string> expanded_paths;
+    for (const auto& path : keychain_paths) {
+      // Support both a directory and explicit path search.
+      if (isDirectory(path).ok()) {
+        // Try to list every file in the given keychain search path.
+        std::vector<std::string> directory_paths;
+        if (!listFilesInDirectory(boost::filesystem::path(path),
+                                  directory_paths)
+                 .ok()) {
+          continue;
         }
+        expanded_paths.insert(directory_paths.cbegin(), directory_paths.cend());
+      } else {
+        // The explicit path search comes from a query predicate.
+        expanded_paths.insert(path);
       }
     }
 
-    // Keychains/certificate stores belonging to the OS.
-    CFArrayRef certs =
-        CreateKeychainItems(keychain_paths, kSecClassCertificate);
-    // Must have returned an array of matching certificates.
-    if (certs != nullptr) {
-      if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
-        auto certificate_count = CFArrayGetCount(certs);
-        for (CFIndex i = 0; i < certificate_count; i++) {
-          auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-          genKeychainCertificate(cert, results);
+    // Since we are used a cache for each keychain file, we must process
+    // certificates one keychain file at a time.
+    for (const auto& path : expanded_paths) {
+      SecKeychainRef keychain = nullptr;
+      std::string hash;
+      boost::filesystem::path source;
+      auto it = opened_keychains.find(path);
+      if (it != opened_keychains.end()) {
+        source = std::get<0>(it->second);
+        hash = std::get<1>(it->second);
+        keychain = std::get<2>(it->second);
+      } else {
+        // Check whether path is valid
+        boost::system::error_code ec;
+        source =
+            boost::filesystem::canonical(boost::filesystem::path(path), ec);
+        if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
+          // File does not exist or user does not have access.
+          continue;
+        }
+
+        // Check cache
+        bool err;
+        bool hit =
+            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
+        if (err) {
+          TLOG << "Could not read the file at " << source.string() << ""
+               << ec.message();
+          continue;
+        }
+        if (hit) {
+          continue;
+        }
+
+        // Cache miss. We need to generate new results.
+        OSStatus status;
+        OSQUERY_USE_DEPRECATED(status =
+                                   SecKeychainOpen(source.c_str(), &keychain));
+        if (status != errSecSuccess || keychain == nullptr) {
+          if (keychain != nullptr) {
+            CFRelease(keychain);
+          }
+          // Cache an empty result to prevent the above API call in the future.
+          keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
+          continue;
         }
       }
-      CFRelease(certs);
+
+      QueryData new_results;
+      // Keychains/certificate stores belonging to the OS.
+      CFArrayRef certs = CreateKeychainItems(keychain, kSecClassCertificate);
+      // Must have returned an array of matching certificates.
+      if (certs != nullptr) {
+        if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
+          auto certificate_count = CFArrayGetCount(certs);
+          for (CFIndex i = 0; i < certificate_count; i++) {
+            auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+            genKeychainCertificate(cert, new_results);
+          }
+        }
+        CFRelease(certs);
+        keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
+        results.insert(results.end(), new_results.begin(), new_results.end());
+      } else {
+        // Cache an empty result to prevent the above API call in the future.
+        keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
+      }
     }
   }
   return results;
