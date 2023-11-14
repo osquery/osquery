@@ -21,8 +21,7 @@ namespace osquery {
  * Return -1 if right version has epoch but not the left.
  * Return 0 if epoch doesn't exist in either version.
  */
-static int compareEpoch(const std::string_view& l_ver,
-                        const std::string_view& r_ver) {
+static int compareEpoch(std::string_view l_ver, std::string_view r_ver) {
   auto l_epoch = l_ver.find(":");
   auto r_epoch = r_ver.find(":");
 
@@ -61,12 +60,12 @@ static int delimiterPrecedence(char c) {
 /**
  * @brief Return remainder sort order, or return the version length difference.
  */
-static int compareRemainder(const std::string_view& l_ver,
-                            const std::string_view& r_ver,
-                            size_t& pos,
-                            int& diff,
-                            const bool& comp_remaining,
-                            const bool& remainder_precedence) {
+static int compareRemainder(std::string_view l_ver,
+                            std::string_view r_ver,
+                            size_t pos,
+                            int diff,
+                            const bool comp_remaining,
+                            const bool remainder_precedence) {
   // This supports linux package versioning sort order when a tilde should be
   // less than, a caret should be greater than, and a hyphen should be equal.
   //
