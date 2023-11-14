@@ -15,6 +15,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
+#include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
 
 namespace osquery {
@@ -22,6 +23,45 @@ namespace tables {
 
 extern const std::vector<std::string> kSystemKeychainPaths;
 extern const std::vector<std::string> kUserKeychainPaths;
+
+// Declare keychain flags. They are defined in keychain_utils.cpp.
+DECLARE_bool(keychain_access_cache); // enable flag
+DECLARE_uint32(keychain_access_interval); // throttling flag
+
+// The tables supported by Keychain Cache
+enum class KeychainTable { KEYCHAIN_ACLS };
+
+// The KeychainCache caches results associated with keychain files,
+// and throttles access to these files.
+class KeychainCache {
+ private:
+  // KeychainCacheEntry contains cache metadata and cached results
+  // for a single keychain file.
+  class KeychainCacheEntry {
+   public:
+    std::time_t timestamp; // time of last access
+    std::string hash; // sha256 keychain file hash
+    QueryData results; // the cached results
+  };
+  std::map<std::pair<boost::filesystem::path, KeychainTable>,
+           KeychainCacheEntry>
+      cache;
+
+ public:
+  // Read checks the hash and returns 1 for a cache hit or 0 for a cache miss.
+  // If hit, results are populated. hash is the file hash
+  bool Read(const boost::filesystem::path& path,
+            const KeychainTable table,
+            std::string& hash,
+            QueryData& results,
+            bool& err);
+  // Write a cache entry.
+  void Write(const boost::filesystem::path& path,
+             const KeychainTable table,
+             const std::string& hash,
+             const QueryData& results);
+};
+extern KeychainCache keychainCache;
 
 void genKeychains(const std::string& path, CFMutableArrayRef& keychains);
 std::string getKeychainPath(const SecKeychainItemRef& item);

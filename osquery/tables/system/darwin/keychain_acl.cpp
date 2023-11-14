@@ -102,7 +102,8 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
           (SecTrustedApplicationRef)CFArrayGetValueAtIndex(application_list,
                                                            app_index);
       CFDataRef data = nullptr;
-      os_status = SecTrustedApplicationCopyData(app, &data);
+      OSQUERY_USE_DEPRECATED(os_status =
+                                 SecTrustedApplicationCopyData(app, &data));
       if (os_status != noErr || data == nullptr) {
         CFRelease(application_list);
         if (data != nullptr) {
@@ -129,7 +130,7 @@ Status parseKeychainItemACL(SecAccessRef access,
                             std::vector<KeychainItemACL>& acls) {
   OSStatus os_status;
   CFArrayRef acl_list = nullptr;
-  os_status = SecAccessCopyACLList(access, &acl_list);
+  OSQUERY_USE_DEPRECATED(os_status = SecAccessCopyACLList(access, &acl_list));
   if (os_status != noErr || acl_list == nullptr) {
     if (acl_list != nullptr) {
       CFRelease(acl_list);
@@ -173,13 +174,13 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   item_metadata.keychain_path = path;
 
   SecItemClass item_class;
-  SecKeychainItemCopyAttributesAndData(
-      item, nullptr, &item_class, nullptr, nullptr, nullptr);
+  OSQUERY_USE_DEPRECATED(SecKeychainItemCopyAttributesAndData(
+      item, nullptr, &item_class, nullptr, nullptr, nullptr));
 
   SecAccessRef access = nullptr;
   OSStatus os_status;
   Status s;
-  os_status = SecKeychainItemCopyAccess(item, &access);
+  OSQUERY_USE_DEPRECATED(os_status = SecKeychainItemCopyAccess(item, &access));
   if (os_status == errSecNoAccessForItem || access == nullptr) {
     if (access != nullptr) {
       CFRelease(access);
@@ -212,17 +213,20 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   }
 
   SecKeychainAttributeInfo* info = nullptr;
-  SecKeychainAttributeInfoForItemID(keychain, item_id, &info);
+  OSQUERY_USE_DEPRECATED(
+      SecKeychainAttributeInfoForItemID(keychain, item_id, &info));
 
   SecKeychainAttributeList* attr_list = nullptr;
-  os_status = SecKeychainItemCopyAttributesAndData(
-      item, info, &item_class, &attr_list, nullptr, nullptr);
+  OSQUERY_USE_DEPRECATED(
+      os_status = SecKeychainItemCopyAttributesAndData(
+          item, info, &item_class, &attr_list, nullptr, nullptr));
   if (os_status != noErr || attr_list == nullptr || info == nullptr) {
     if (attr_list != nullptr) {
-      SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+      OSQUERY_USE_DEPRECATED(
+          SecKeychainItemFreeAttributesAndData(attr_list, nullptr));
     }
     if (info != nullptr) {
-      SecKeychainFreeAttributeInfo(info);
+      OSQUERY_USE_DEPRECATED(SecKeychainFreeAttributeInfo(info));
     }
     return Status(os_status,
                   "Could not copy attributes and data from the keychain");
@@ -230,8 +234,9 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
 
   // Bail if the number of elements from the info/Attr list do not match.
   if (info->count != attr_list->count) {
-    SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
-    SecKeychainFreeAttributeInfo(info);
+    OSQUERY_USE_DEPRECATED(
+        SecKeychainItemFreeAttributesAndData(attr_list, nullptr));
+    OSQUERY_USE_DEPRECATED(SecKeychainFreeAttributeInfo(info));
     return Status(1, "Info and attributes do not match");
   }
 
@@ -249,8 +254,9 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   }
 
   // Finally, release/free the info/Attr lists.
-  SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
-  SecKeychainFreeAttributeInfo(info);
+  OSQUERY_USE_DEPRECATED(
+      SecKeychainItemFreeAttributesAndData(attr_list, nullptr));
+  OSQUERY_USE_DEPRECATED(SecKeychainFreeAttributeInfo(info));
 
   for (const auto& acl_data : acl) {
     for (const auto& app_path : acl_data.applications) {
@@ -268,13 +274,37 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
 }
 
 Status genKeychainACLApps(const std::string& path, QueryData& results) {
+  // Check whether path is valid
+  boost::system::error_code ec;
+  auto source = boost::filesystem::canonical(boost::filesystem::path(path), ec);
+  if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
+    return {1, "Could not access " + path + " " + ec.message()};
+  }
+
+  // Check cache
+  bool err;
+  std::string hash;
+  bool hit = keychainCache.Read(
+      source, KeychainTable::KEYCHAIN_ACLS, hash, results, err);
+  if (err) {
+    return {2, "Could not open the file at " + path};
+  }
+  if (hit) {
+    return Status::success();
+  }
+
+  // Cache miss. We need to generate new results.
+  QueryData new_results;
+
   SecKeychainRef keychain = nullptr;
   OSStatus os_status = 0;
-  os_status = SecKeychainOpen(path.c_str(), &keychain);
+  OSQUERY_USE_DEPRECATED(os_status = SecKeychainOpen(path.c_str(), &keychain));
   if (os_status != noErr || keychain == nullptr) {
     if (keychain != nullptr) {
       CFRelease(keychain);
     }
+    // Cache an empty result to prevent the above API call in the future.
+    keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, {});
     return Status(os_status, "Could not open the keychain at " + path);
   }
 
@@ -287,6 +317,8 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
       CFRelease(search);
     }
     CFRelease(keychain);
+    // Cache an empty result to prevent the above API call in the future.
+    keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, {});
     return Status(os_status,
                   "Could not pull keychain items from the search API");
   }
@@ -299,7 +331,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
       break;
     }
 
-    auto s = genKeychainACLAppsForEntry(keychain, item, path, results);
+    auto s = genKeychainACLAppsForEntry(keychain, item, path, new_results);
     CFRelease(item);
     if (!s.ok()) {
       TLOG << "Error parsing keychain at " << path << ": " << s.toString();
@@ -308,13 +340,16 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
 
   CFRelease(keychain);
   CFRelease(search);
+  // Write new results to the cache.
+  keychainCache.Write(source, KeychainTable::KEYCHAIN_ACLS, hash, new_results);
+  results.insert(results.end(), new_results.begin(), new_results.end());
   return Status::success();
 }
 
 QueryData genKeychainACLApps(QueryContext& context) {
   QueryData results;
 
-  SecKeychainSetUserInteractionAllowed(false);
+  OSQUERY_USE_DEPRECATED(SecKeychainSetUserInteractionAllowed(false));
   for (const auto& path : getKeychainPaths()) {
     std::vector<std::string> ls_results;
     auto list_status = listFilesInDirectory(path, ls_results, false);
@@ -323,7 +358,7 @@ QueryData genKeychainACLApps(QueryContext& context) {
            << list_status.toString();
     }
     for (const auto& keychain : ls_results) {
-      TLOG << "Checking directory: " << keychain;
+      TLOG << "Checking file: " << keychain;
       auto gen_status = genKeychainACLApps(keychain, results);
       if (!gen_status.ok()) {
         TLOG << "Could not list items from " << keychain << ": "
@@ -331,7 +366,7 @@ QueryData genKeychainACLApps(QueryContext& context) {
       }
     }
   }
-  SecKeychainSetUserInteractionAllowed(true);
+  OSQUERY_USE_DEPRECATED(SecKeychainSetUserInteractionAllowed(true));
 
   return results;
 }
