@@ -379,7 +379,7 @@ function(generateOsqueryTablesSystemSystemtable)
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
   elseif(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_keychain_tests-test COMMAND osquery_keychain_tests-test)
+    add_test(NAME osquery_tables_system_darwin_keychain_tests-test COMMAND osquery_tables_system_darwin_keychain_tests-test)
     add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
 
     set_tests_properties(
