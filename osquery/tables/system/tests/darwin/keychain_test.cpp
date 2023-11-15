@@ -100,7 +100,6 @@ TEST_F(KeychainTest, keychain_cache) {
     EXPECT_FALSE(err);
     EXPECT_EQ(new_results.size(), 0);
   }
-
 }
 
 TEST_F(KeychainTest, keychain_cache_bad_path) {
@@ -114,4 +113,4 @@ TEST_F(KeychainTest, keychain_cache_bad_path) {
   EXPECT_EQ(results.size(), 0);
 }
 
-}
+} // namespace osquery::tables
