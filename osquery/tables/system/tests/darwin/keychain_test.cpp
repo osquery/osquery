@@ -38,8 +38,11 @@ TEST_F(KeychainTest, keychain_cache) {
   QueryData results;
 
   // Create a file and check cache.
+  std::string file_contents = "contents";
   boost::filesystem::path path = test_working_dir_ / "cache.keychain";
-  boost::filesystem::save_string_file(path, "contents");
+  std::ofstream test_file(path.string());
+  test_file.write(file_contents.c_str(), (long)file_contents.length());
+  test_file.close();
   bool err;
   EXPECT_FALSE(keychainCache.Read(path, table, hash, results, err));
   EXPECT_FALSE(err);
@@ -80,7 +83,10 @@ TEST_F(KeychainTest, keychain_cache) {
   }
 
   // Read access throttled. Cached result returned.
-  boost::filesystem::save_string_file(path, "contents_modified");
+  file_contents = "contents_modified";
+  test_file = std::ofstream(path.string());
+  test_file.write(file_contents.c_str(), (long)file_contents.length());
+  test_file.close();
   FLAGS_keychain_access_interval = 1;
   {
     QueryData new_results;
