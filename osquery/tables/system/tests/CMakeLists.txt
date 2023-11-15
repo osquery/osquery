@@ -177,7 +177,10 @@ function(generateOsqueryTablesSystemDarwinKeychainTests)
   target_link_libraries(osquery_keychain_tests-test PRIVATE
           osquery_cxx_settings
           osquery_extensions_implthrift
+          osquery_filesystem
           osquery_tables_system_systemtable
+          osquery_utils
+          osquery_utils_info
           tests_helper
           thirdparty_googletest
   )
