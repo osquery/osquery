@@ -299,7 +299,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
   QueryData new_results;
 
   SecKeychainRef keychain = nullptr;
-  OSStatus os_status = 0;
+  OSStatus os_status;
   OSQUERY_USE_DEPRECATED(os_status = SecKeychainOpen(path.c_str(), &keychain));
   if (os_status != noErr || keychain == nullptr) {
     if (keychain != nullptr) {
@@ -369,6 +369,10 @@ QueryData genKeychainACLApps(QueryContext& context) {
     }
   }
   OSQUERY_USE_DEPRECATED(SecKeychainSetUserInteractionAllowed(true));
+
+  if (FLAGS_keychain_access_cache) {
+    TLOG << "Total Keychain Cache entries: " << keychainCache.Size();
+  }
 
   return results;
 }

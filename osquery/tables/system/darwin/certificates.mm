@@ -227,27 +227,9 @@ QueryData genCerts(QueryContext& context) {
       keychain_paths = getKeychainPaths();
     }
 
-    // Expand paths to individual files
-    std::set<std::string> expanded_paths;
-    for (const auto& path : keychain_paths) {
-      // Support both a directory and explicit path search.
-      if (isDirectory(path).ok()) {
-        // Try to list every file in the given keychain search path.
-        std::vector<std::string> directory_paths;
-        if (!listFilesInDirectory(boost::filesystem::path(path),
-                                  directory_paths)
-                 .ok()) {
-          continue;
-        }
-        expanded_paths.insert(directory_paths.cbegin(), directory_paths.cend());
-      } else {
-        // The explicit path search comes from a query predicate.
-        expanded_paths.insert(path);
-      }
-    }
-
     // Since we are used a cache for each keychain file, we must process
     // certificates one keychain file at a time.
+    std::set<std::string> expanded_paths = expandPaths(keychain_paths);
     for (const auto& path : expanded_paths) {
       SecKeychainRef keychain = nullptr;
       std::string hash;
@@ -263,7 +245,8 @@ QueryData genCerts(QueryContext& context) {
         source =
             boost::filesystem::canonical(boost::filesystem::path(path), ec);
         if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
-          // File does not exist or user does not have access.
+          // File does not exist or user does not have access. Don't log here to
+          // reduce noise.
           continue;
         }
 
@@ -294,9 +277,12 @@ QueryData genCerts(QueryContext& context) {
         }
       }
 
+      auto keychains = CFArrayCreateMutable(nullptr, 1, &kCFTypeArrayCallBacks);
+      CFArrayAppendValue(keychains, keychain);
       QueryData new_results;
       // Keychains/certificate stores belonging to the OS.
-      CFArrayRef certs = CreateKeychainItems(keychain, kSecClassCertificate);
+      CFArrayRef certs = CreateKeychainItems(keychains, kSecClassCertificate);
+      CFRelease(keychains);
       // Must have returned an array of matching certificates.
       if (certs != nullptr) {
         if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
@@ -315,6 +301,11 @@ QueryData genCerts(QueryContext& context) {
       }
     }
   }
+
+  if (FLAGS_keychain_access_cache) {
+    TLOG << "Total Keychain Cache entries: " << keychainCache.Size();
+  }
+
   return results;
 }
 }

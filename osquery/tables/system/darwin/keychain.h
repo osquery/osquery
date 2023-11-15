@@ -29,7 +29,7 @@ DECLARE_bool(keychain_access_cache); // enable flag
 DECLARE_uint32(keychain_access_interval); // throttling flag
 
 // The tables supported by Keychain Cache
-enum class KeychainTable { CERTIFICATES, KEYCHAIN_ACLS };
+enum class KeychainTable { CERTIFICATES, KEYCHAIN_ACLS, KEYCHAIN_ITEMS };
 
 // The KeychainCache caches results associated with keychain files,
 // and throttles access to these files.
@@ -51,27 +51,28 @@ class KeychainCache {
   // Read checks the hash and returns 1 for a cache hit or 0 for a cache miss.
   // If hit, results are populated. hash is the file hash
   bool Read(const boost::filesystem::path& path,
-            const KeychainTable table,
+            KeychainTable table,
             std::string& hash,
             QueryData& results,
             bool& err);
   // Write a cache entry.
   void Write(const boost::filesystem::path& path,
-             const KeychainTable table,
+             KeychainTable table,
              const std::string& hash,
              const QueryData& results);
+  size_t Size() {
+    return cache.size();
+  }
 };
 extern KeychainCache keychainCache;
 
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains);
+// Expand paths to individual files
+std::set<std::string> expandPaths(const std::set<std::string>& paths);
+
 std::string getKeychainPath(const SecKeychainItemRef& item);
 
 /// Generate a list of keychain items for a given item type.
-CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
-                               const CFTypeRef& item_type);
-
-/// Generate a list of keychain items for a given item type.
-CFArrayRef CreateKeychainItems(SecKeychainRef keychain,
+CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
                                const CFTypeRef& item_type);
 
 std::set<std::string> getKeychainPaths();

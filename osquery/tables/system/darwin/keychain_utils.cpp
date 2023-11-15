@@ -46,33 +46,30 @@ const std::vector<std::string> kUserKeychainPaths = {
     "/Library/Keychains",
 };
 
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains) {
-  std::vector<std::string> paths;
-
-  // Support both a directory and explicit path search.
-  if (isDirectory(path).ok()) {
-    // Try to list every file in the given keychain search path.
-    if (!listFilesInDirectory(path, paths).ok()) {
-      return;
-    }
-  } else {
-    // The explicit path search comes from a query predicate.
-    paths.push_back(path);
-  }
-
-  for (const auto& keychain_path : paths) {
-    SecKeychainRef keychain = nullptr;
-    auto status = SecKeychainOpen(keychain_path.c_str(), &keychain);
-    if (status == 0 && keychain != nullptr) {
-      CFArrayAppendValue(keychains, keychain);
+std::set<std::string> expandPaths(const std::set<std::string>& paths) {
+  std::set<std::string> expanded_paths;
+  for (const auto& path : paths) {
+    // Support both a directory and explicit path search.
+    if (isDirectory(path).ok()) {
+      // Try to list every file in the given keychain search path.
+      std::vector<std::string> directory_paths;
+      if (!listFilesInDirectory(path, directory_paths).ok()) {
+        continue;
+      }
+      expanded_paths.insert(directory_paths.cbegin(), directory_paths.cend());
+    } else {
+      // The explicit path search comes from a query predicate.
+      expanded_paths.insert(path);
     }
   }
+  return expanded_paths;
 }
 
 std::string getKeychainPath(const SecKeychainItemRef& item) {
   SecKeychainRef keychain = nullptr;
   std::string path;
-  auto status = SecKeychainItemCopyKeychain(item, &keychain);
+  OSStatus status;
+  OSQUERY_USE_DEPRECATED(status = SecKeychainItemCopyKeychain(item, &keychain));
   if (keychain == nullptr || status != errSecSuccess) {
     // Unhandled error, cannot get the keychain reference from certificate.
     return path;
@@ -80,7 +77,8 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
 
   UInt32 path_size = 1024;
   char keychain_path[1024] = {0};
-  status = SecKeychainGetPath(keychain, &path_size, keychain_path);
+  OSQUERY_USE_DEPRECATED(
+      status = SecKeychainGetPath(keychain, &path_size, keychain_path));
   if (status != errSecSuccess || (path_size > 0 && keychain_path[0] != 0)) {
     path = std::string(keychain_path);
   }
@@ -89,13 +87,8 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
   return path;
 }
 
-CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
+CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
                                const CFTypeRef& item_type) {
-  auto keychains = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
-  for (const auto& path : paths) {
-    genKeychains(path, keychains);
-  }
-
   CFMutableDictionaryRef query;
   query = CFDictionaryCreateMutable(nullptr,
                                     0,
@@ -109,51 +102,15 @@ CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
   CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
   CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
 
-  CFArrayRef keychain_certs;
-  auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_certs);
+  CFArrayRef keychain_items;
+  auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_items);
   CFRelease(query);
-
-  // Release each keychain search path.
-  CFRelease(keychains);
 
   if (status != errSecSuccess) {
     return nullptr;
   }
 
-  return keychain_certs;
-}
-
-CFArrayRef CreateKeychainItems(SecKeychainRef keychain,
-                               const CFTypeRef& item_type) {
-  auto keychains = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
-
-  CFArrayAppendValue(keychains, keychain);
-
-  CFMutableDictionaryRef query;
-  query = CFDictionaryCreateMutable(nullptr,
-                                    0,
-                                    &kCFTypeDictionaryKeyCallBacks,
-                                    &kCFTypeDictionaryValueCallBacks);
-  CFDictionaryAddValue(query, kSecClass, item_type);
-  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
-  // This can be added to restrict results to x509v3
-  // CFDictionaryAddValue(query, kSecAttrCertificateType, 0x03);
-  CFDictionaryAddValue(query, kSecMatchSearchList, keychains);
-  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
-  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
-
-  CFArrayRef keychain_certs;
-  auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_certs);
-  CFRelease(query);
-
-  // Release each keychain search path.
-  CFRelease(keychains);
-
-  if (status != errSecSuccess) {
-    return nullptr;
-  }
-
-  return keychain_certs;
+  return keychain_items;
 }
 
 std::set<std::string> getKeychainPaths() {
