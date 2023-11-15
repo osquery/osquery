@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/filesystem.hpp>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/darwin/keychain.h>
@@ -43,6 +45,14 @@ TEST_F(KeychainTest, keychain_cache) {
   std::ofstream test_file(path.string());
   test_file.write(file_contents.c_str(), (long)file_contents.length());
   test_file.close();
+
+  // Sanity check to make sure the test file was actually created.
+  boost::system::error_code ec;
+  if (!is_regular_file(path, ec) || ec.failed()) {
+    GTEST_FAIL() << "Could not create a temporary file needed for the test: "
+                 << path.string();
+  }
+
   bool err;
   EXPECT_FALSE(keychainCache.Read(path, table, hash, results, err));
   EXPECT_FALSE(err);
@@ -62,6 +72,7 @@ TEST_F(KeychainTest, keychain_cache) {
   {
     QueryData new_results;
     hash = "";
+    err = false;
     EXPECT_TRUE(keychainCache.Read(path, table, hash, new_results, err));
     EXPECT_FALSE(err);
     EXPECT_EQ(new_results.size(), 1);
@@ -91,6 +102,7 @@ TEST_F(KeychainTest, keychain_cache) {
   {
     QueryData new_results;
     hash = "";
+    err = false;
     EXPECT_TRUE(keychainCache.Read(path, table, hash, new_results, err));
     EXPECT_FALSE(err);
     EXPECT_EQ(new_results.size(), 1);
@@ -102,6 +114,7 @@ TEST_F(KeychainTest, keychain_cache) {
   {
     QueryData new_results;
     hash = "";
+    err = false;
     EXPECT_FALSE(keychainCache.Read(path, table, hash, new_results, err));
     EXPECT_FALSE(err);
     EXPECT_EQ(new_results.size(), 0);

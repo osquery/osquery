@@ -172,15 +172,15 @@ function(generateOsqueryTablesSystemDarwinKeychainTests)
           darwin/keychain_test.cpp
   )
 
-  add_osquery_executable(osquery_keychain_tests-test ${source_files})
+  add_osquery_executable(osquery_tables_system_darwin_keychain_tests-test ${source_files})
 
-  target_link_libraries(osquery_keychain_tests-test PRIVATE
+  target_link_libraries(osquery_tables_system_darwin_keychain_tests-test PRIVATE
           osquery_cxx_settings
-          osquery_extensions_implthrift
           osquery_filesystem
+          osquery_hashing
           osquery_tables_system_systemtable
-          osquery_utils
-          osquery_utils_info
+          osquery_extensions
+          osquery_extensions_implthrift
           tests_helper
           thirdparty_googletest
   )
