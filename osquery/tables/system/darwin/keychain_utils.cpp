@@ -163,7 +163,7 @@ bool KeychainCache::Read(const boost::filesystem::path& path,
 
   // Check the read interval -- are we allowed to update the cache. If not, we
   // return the cached results.
-  if (std::time(nullptr) >
+  if (std::time(nullptr) >=
       entry.timestamp + (60 * FLAGS_keychain_access_interval)) {
     return false;
   }

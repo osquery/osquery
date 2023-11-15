@@ -20,6 +20,7 @@ function(osqueryTablesSystemTestsMain)
 
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryTablesSystemDarwinTests()
+    generateOsqueryTablesSystemDarwinKeychainTests()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -163,6 +164,22 @@ function(generateOsqueryTablesSystemDarwinTests)
   # Make sure that the data is built before the test
   add_dependencies(osquery_tables_system_darwin_tests-test
     unsigned_test_builder
+  )
+endfunction()
+
+function(generateOsqueryTablesSystemDarwinKeychainTests)
+  set(source_files
+          darwin/keychain_test.cpp
+  )
+
+  add_osquery_executable(osquery_keychain_tests-test ${source_files})
+
+  target_link_libraries(osquery_keychain_tests-test PRIVATE
+          osquery_cxx_settings
+          osquery_extensions_implthrift
+          osquery_tables_system_systemtable
+          tests_helper
+          thirdparty_googletest
   )
 endfunction()
 
