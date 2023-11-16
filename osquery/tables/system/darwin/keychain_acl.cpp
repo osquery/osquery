@@ -285,7 +285,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
   }
 
   // Check cache
-  bool err;
+  bool err = false;
   std::string hash;
   bool hit = keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
   if (err) {

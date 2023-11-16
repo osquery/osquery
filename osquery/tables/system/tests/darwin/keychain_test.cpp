@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/filesystem.hpp>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <osquery/filesystem/filesystem.h>
@@ -53,7 +52,7 @@ TEST_F(KeychainTest, keychain_cache) {
                  << path.string();
   }
 
-  bool err;
+  bool err = false;
   EXPECT_FALSE(keychainCache.Read(path, table, hash, results, err));
   EXPECT_FALSE(err);
   EXPECT_EQ(keychainCache.Size(), 0);
@@ -126,7 +125,7 @@ TEST_F(KeychainTest, keychain_cache_bad_path) {
   KeychainTable table = KeychainTable::KEYCHAIN_ITEMS;
   std::string hash;
   QueryData results;
-  bool err;
+  bool err = false;
   EXPECT_FALSE(keychainCache.Read(path, table, hash, results, err));
   EXPECT_TRUE(err);
   EXPECT_EQ(results.size(), 0);

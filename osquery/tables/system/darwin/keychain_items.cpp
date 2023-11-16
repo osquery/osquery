@@ -145,7 +145,7 @@ QueryData genKeychainItems(QueryContext& context) {
     }
 
     // Check cache
-    bool err;
+    bool err = false;
     std::string hash;
     bool hit = keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
     if (err) {
