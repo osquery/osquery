@@ -254,6 +254,11 @@ function(setupBuildFlags)
         "-weak_framework OSLog"
       )
 
+      # This is a workaround for XCode 15 and boost
+      set(macos_cxx_defines
+        _LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION
+      )
+
       set(osquery_macos_common_defines
         APPLE=1
         DARWIN=1
@@ -271,6 +276,9 @@ function(setupBuildFlags)
       )
       target_link_libraries(cxx_settings INTERFACE
         ${macos_cxx_link_libraries}
+      )
+      target_compile_definitions(cxx_settings INTERFACE
+        ${macos_cxx_defines}
       )
 
       list(APPEND osquery_defines ${osquery_macos_common_defines})
