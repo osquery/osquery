@@ -32,7 +32,7 @@ namespace {
 
 const std::vector<std::string> kFileNameList{
     // In order to test MBCS support, here's a japanese word
-    // that *should* mean "dictionary"
+    // that means "dictionary"
     "辞書.txt",
 
     "file-table-test.txt",
