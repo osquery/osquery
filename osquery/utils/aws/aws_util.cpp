@@ -38,9 +38,9 @@
 #include <osquery/logger/data_logger.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/aws/aws_util.h>
+#include <osquery/utils/expected/expected.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
-#include <osquery/utils/expected/expected.h>
 
 namespace pt = boost::property_tree;
 

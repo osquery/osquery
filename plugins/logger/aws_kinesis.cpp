@@ -60,7 +60,8 @@ FLAG(string,
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
 
-  auto aws_region_res = AWSRegion::make(FLAGS_aws_kinesis_region);
+  auto aws_region_res = AWSRegion::make(FLAGS_aws_kinesis_region,
+                                        FLAGS_aws_kinesis_endpoint.empty());
 
   if (aws_region_res.isError()) {
     return Status::failure(aws_region_res.getError().getMessage());

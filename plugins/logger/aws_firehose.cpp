@@ -43,7 +43,8 @@ FLAG(string,
 Status FirehoseLoggerPlugin::setUp() {
   initAwsSdk();
 
-  auto aws_region_res = AWSRegion::make(FLAGS_aws_firehose_region);
+  auto aws_region_res = AWSRegion::make(FLAGS_aws_firehose_region,
+                                        FLAGS_aws_firehose_endpoint.empty());
 
   if (aws_region_res.isError()) {
     return Status::failure(aws_region_res.getError().getMessage());
