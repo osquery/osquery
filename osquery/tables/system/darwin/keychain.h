@@ -39,7 +39,7 @@ class KeychainCache {
   // for a single keychain file.
   class KeychainCacheEntry {
    public:
-    std::time_t timestamp; // time of last access
+    std::chrono::system_clock::time_point timestamp; // time of last access
     std::string hash; // sha256 keychain file hash
     QueryData results; // the cached results
   };

@@ -163,8 +163,8 @@ bool KeychainCache::Read(const boost::filesystem::path& path,
 
   // Check the read interval -- are we allowed to update the cache. If not, we
   // return the cached results.
-  if (std::time(nullptr) >=
-      entry.timestamp + (60 * FLAGS_keychain_access_interval)) {
+  if (std::chrono::system_clock::now() >=
+      entry.timestamp + std::chrono::minutes(FLAGS_keychain_access_interval)) {
     return false;
   }
   TLOG << "Access to keychain file throttled. Returning previous results for: "
@@ -184,7 +184,7 @@ void KeychainCache::Write(const boost::filesystem::path& path,
 
   // Make entry to insert.
   KeychainCacheEntry entry;
-  entry.timestamp = std::time(nullptr);
+  entry.timestamp = std::chrono::system_clock::now();
   entry.hash = hash;
   entry.results = results;
 

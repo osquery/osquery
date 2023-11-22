@@ -130,7 +130,7 @@ QueryData genKeychainItems(QueryContext& context) {
     keychain_paths = getKeychainPaths();
   }
 
-  // Since we are used a cache for each keychain file, we must process
+  // Since we are using a cache for each keychain file, we must process
   // certificates one keychain file at a time.
   std::set<std::string> expanded_paths = expandPaths(keychain_paths);
   for (const auto& path : expanded_paths) {
