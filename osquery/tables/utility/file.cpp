@@ -23,6 +23,7 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -74,6 +75,9 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
     return boost::none;
   }
 
+  auto shell_link_release =
+      scope_guard::create([shell_link]() { shell_link->Release(); });
+
   IPersistFile* file;
   hres = shell_link->QueryInterface(IID_IPersistFile,
                                     reinterpret_cast<LPVOID*>(&file));
@@ -83,6 +87,8 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
          << shell_link;
     return boost::none;
   }
+
+  auto file_link_release = scope_guard::create([file]() { file->Release(); });
 
   hres = file->Load(link.c_str(), STGM_READ);
 
