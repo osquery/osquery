@@ -36,6 +36,13 @@ namespace tables {
 namespace {
 #ifdef WIN32
 
+/* These are the number of bytes to read from the ShellLinkHeader structure
+   at the start of a ShellLink file for the "HeaderSize" field */
+constexpr std::uint32_t kShellLinkHeaderSizeFieldSize = 4;
+
+// This is the expected value of the "HeaderSize" field
+constexpr std::uint32_t kShellLinkHeaderSizeExpectedValue = 0x4C;
+
 struct LnkData {
   std::string target_path;
   std::string target_type;
@@ -100,16 +107,21 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
   /* Empty files are still able to be loaded via the ShellLink COM interface,
      but they are not ShellLink files, so verify that the file
      contains a header of a certain size */
-  std::string header_size;
-  auto status = readFile(link, header_size, 4);
+  std::string header_size_field_bytes;
+  auto status =
+      readFile(link, header_size_field_bytes, kShellLinkHeaderSizeFieldSize);
 
-  if (!status.ok() || header_size.size() != 4) {
+  if (!status.ok() ||
+      header_size_field_bytes.size() != kShellLinkHeaderSizeFieldSize) {
     return boost::none;
   }
 
-  std::uint32_t expected_size = 0x4C;
-  if (std::memcmp(header_size.data(), &expected_size, sizeof(expected_size)) !=
-      0) {
+  std::uint32_t header_size_field_value;
+  std::memcpy(&header_size_field_value,
+              header_size_field_bytes.data(),
+              kShellLinkHeaderSizeFieldSize);
+
+  if (header_size_field_value != kShellLinkHeaderSizeExpectedValue) {
     return boost::none;
   }
 
