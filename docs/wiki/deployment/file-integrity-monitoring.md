@@ -6,7 +6,10 @@ File integrity monitoring (FIM) is available for Linux (in `file_events`, using 
 
 Collecting file events in osquery requires that you first specify a list of files/directories to monitor from the osquery configuration. The events that relate to those selected files will then populate the corresponding tables on each platform.
 
-FIM is also disabled by default in osquery. To enable it, first ensure that events are enabled in osquery (`--disable_events=false`), then ensure that the desired FIM table is enabled with the corresponding CLI flag (`--enable_file_events=true` for `file_events`, `--disable_audit=false` for `process_file_events`, `--enable_ntfs_event_publisher=true` for `ntfs_journal_events`).
+FIM is also disabled by default in osquery. To enable it, first ensure that events are enabled in osquery (`--disable_events=false`), then ensure that the desired FIM table is enabled with the corresponding CLI flag:
+- `--enable_file_events=true` for `file_events`
+- `--disable_audit=false` and `--audit_allow_fim_events=true` for `process_file_events`
+- `--enable_ntfs_event_publisher=true` for `ntfs_journal_events`
 
 To specify which files and directories you wish to monitor, you must use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards `*`/`**` or SQL-style wildcards `*%*`, as shown below.
 
@@ -186,3 +189,4 @@ Implementing FIM across all platforms and using multiple sources means that ther
 - With inotify, you'll get a "modify" event on every occurrence of an open-file-with-write-permission action. [Issue 3920](https://github.com/osquery/osquery/issues/3920)
 - If you have a directory with an extremely large number of subdirectories, setting a watch on it using inotify will exhaust the available inotify handles and result in receiving no events. Setting an `exclude_path` on the subdirectories will not help here; the workaround is to be more specific with the `file_paths`. Unfortunately, this means not being able to watch for new files/directories getting created in a directory that already has many subdirectories. [Issue 4296](https://github.com/osquery/osquery/issues/4296)
 - inotify may not track events done via hard links [Issue 5704](https://github.com/osquery/osquery/issues/5704)
+- The `process_file_events` table only supports the `file_paths` and `file_paths_query` FIM configurations (`exclude_path` and `file_accesses` are currently not supported).

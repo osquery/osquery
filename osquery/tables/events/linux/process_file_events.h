@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 
+#include <regex>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -155,14 +156,25 @@ using StringList = std::vector<std::string>;
 
 /// The fim context contains configuration and process state
 struct AuditdFimContext final {
-  /// The paths included in the audit fim events
-  StringList included_path_list;
+  /// Used to protect access to file_paths_regexs.
+  Mutex file_paths_regexs_mutex;
+
+  /// The regexs for the paths included in the audit fim events.
+  std::vector<std::regex> file_paths_regexs;
 
   /// The process map, containing an fd map for each process
   AuditdFimProcessMap process_map;
 
   /// The global inode map
   AuditdFimInodeMap inode_map;
+
+  /// Checks whether the given path matches the file_paths_regexs.
+  bool isPathIncluded(const std::string& path);
+
+  /// Updates the paths on file_paths_regexs.
+  /// It converts the paths to regular expressions used for
+  /// matching when processing events.
+  void updatePathsIncluded(const StringList& paths);
 };
 
 /// Used to aggregate each AUDIT_PATH record

@@ -16,7 +16,7 @@
 namespace osquery {
 
 /**
- * @brief A simple ConfigParserPlugin for an "file_paths" dictionary key.
+ * @brief A simple ConfigParserPlugin for a "file_paths" dictionary key.
  */
 class FilePathsConfigParserPlugin : public ConfigParserPlugin {
  public:

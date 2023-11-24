@@ -12,7 +12,10 @@
 
 #include <cstdint>
 #include <iostream>
+#include <regex>
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/config/config.h>
@@ -28,7 +31,6 @@ namespace boostfs = boost::filesystem;
 
 namespace osquery {
 
-// Recommended configuration is just --audit_allow_fim_events=true
 DECLARE_bool(audit_allow_fim_events);
 
 HIDDEN_FLAG(bool,
@@ -126,7 +128,8 @@ std::ostream& operator<<(std::ostream& stream,
                          const AuditdFimSyscallContext& syscall_context) {
   stream << "Type: " << syscall_context.type
          << " ProcessID: " << syscall_context.process_id
-         << " ImagePath: " << syscall_context.executable_path << " Data: ";
+         << " ImagePath: " << syscall_context.executable_path
+         << " Partial: " << syscall_context.partial << " Data: ";
 
   switch (syscall_context.type) {
   case AuditdFimSyscallContext::Type::Link: {
@@ -140,9 +143,12 @@ std::ostream& operator<<(std::ostream& stream,
   }
 
   case AuditdFimSyscallContext::Type::Rename: {
-    const auto& data =
-        boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
-    stream << data.source << " -> " << data.destination;
+    try {
+      const auto& data =
+          boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
+      stream << data.source << " -> " << data.destination;
+    } catch (boost::bad_get /* e */) { /* empty body */
+    }
     break;
   }
 
@@ -151,23 +157,26 @@ std::ostream& operator<<(std::ostream& stream,
   case AuditdFimSyscallContext::Type::Write:
   case AuditdFimSyscallContext::Type::Open:
   case AuditdFimSyscallContext::Type::Close: {
-    const auto& data =
-        boost::get<AuditdFimIOData>(syscall_context.syscall_data);
-    if (data.type == AuditdFimIOData::Type::Open) {
-      stream << "Open ";
-    } else if (data.type == AuditdFimIOData::Type::Read) {
-      stream << "Read ";
-    } else if (data.type == AuditdFimIOData::Type::Write) {
-      stream << "Write ";
-    } else if (data.type == AuditdFimIOData::Type::Unlink) {
-      stream << "Unlink ";
-    } else {
-      stream << "Close ";
-    }
+    try {
+      const auto& data =
+          boost::get<AuditdFimIOData>(syscall_context.syscall_data);
+      if (data.type == AuditdFimIOData::Type::Open) {
+        stream << "Open ";
+      } else if (data.type == AuditdFimIOData::Type::Read) {
+        stream << "Read ";
+      } else if (data.type == AuditdFimIOData::Type::Write) {
+        stream << "Write ";
+      } else if (data.type == AuditdFimIOData::Type::Unlink) {
+        stream << "Unlink ";
+      } else {
+        stream << "Close ";
+      }
 
-    stream << data.target
-           << " StateChange: " << (data.state_changed ? "True" : "False")
-           << " ";
+      stream << data.target
+             << " StateChange: " << (data.state_changed ? "True" : "False")
+             << " ";
+    } catch (boost::bad_get /* e */) { /* empty body */
+    }
     break;
   }
 
@@ -236,18 +245,15 @@ std::string NormalizePath(const std::string& cwd,
 
 bool EmitRowFromSyscallContext(
     Row& row,
-    const AuditdFimContext& fim_context,
+    AuditdFimContext& fim_context,
     const AuditdFimSyscallContext& syscall_context) noexcept {
-  auto L_IsPathIncluded = [&fim_context](const std::string& path) -> bool {
-    return (std::find(fim_context.included_path_list.begin(),
-                      fim_context.included_path_list.end(),
-                      path) != fim_context.included_path_list.end());
-  };
-
   row.clear();
   bool is_write_operation = false;
 
   if (!FLAGS_audit_show_partial_fim_events && syscall_context.partial) {
+    if (FLAGS_audit_fim_debug) {
+      VLOG(1) << "Ignoring event " << syscall_context << " (partial)";
+    }
     return false;
   }
 
@@ -285,6 +291,10 @@ bool EmitRowFromSyscallContext(
         boost::get<AuditdFimIOData>(syscall_context.syscall_data);
 
     if (!data.state_changed) {
+      if (FLAGS_audit_fim_debug) {
+        VLOG(1) << "Ignoring event " << syscall_context
+                << " (state not changed)";
+      }
       return false;
     }
 
@@ -317,21 +327,31 @@ bool EmitRowFromSyscallContext(
   case AuditdFimSyscallContext::Type::Dup:
   case AuditdFimSyscallContext::Type::NameToHandleAt:
   case AuditdFimSyscallContext::Type::CloneOrFork: {
+    if (FLAGS_audit_fim_debug) {
+      VLOG(1) << "Ignoring event " << syscall_context.type << " (type)";
+    }
     return false;
   }
   }
 
   // Filter the events
-  bool include_event = L_IsPathIncluded(row["path"]);
+  bool include_event = fim_context.isPathIncluded(row["path"]);
   if (!include_event && row.find("dest_path") != row.end()) {
-    include_event = L_IsPathIncluded(row["dest_path"]);
+    include_event = fim_context.isPathIncluded(row["dest_path"]);
   }
 
   if (!include_event) {
+    if (FLAGS_audit_fim_debug) {
+      VLOG(1) << "Ignoring event " << syscall_context
+              << " (not in \"file_paths\")";
+    }
     return false;
   }
 
   if (!FLAGS_audit_fim_show_accesses && !is_write_operation) {
+    if (FLAGS_audit_fim_debug) {
+      VLOG(1) << "Ignoring event " << syscall_context << " (non-write)";
+    }
     return false;
   }
 
@@ -1179,23 +1199,15 @@ Status ProcessFileEventSubscriber::init() {
 }
 
 void ProcessFileEventSubscriber::configure() {
-  auto parser = Config::getParser("file_paths");
-  Config::get().files([this](const std::string& category,
-                             const std::vector<std::string>& files) {
-    for (auto file : files) {
-      replaceGlobWildcards(file);
-
-      StringList solved_path_list = {};
-      resolveFilePattern(file, solved_path_list);
-
-      context_.included_path_list.reserve(context_.included_path_list.size() +
-                                          solved_path_list.size());
-
-      context_.included_path_list.insert(context_.included_path_list.end(),
-                                         solved_path_list.begin(),
-                                         solved_path_list.end());
-    }
-  });
+  StringList included_path_list;
+  Config::get().files(
+      [&included_path_list](const std::string& category,
+                            const std::vector<std::string>& files) {
+        for (auto file : files) {
+          included_path_list.push_back(file);
+        }
+      });
+  context_.updatePathsIncluded(included_path_list);
 }
 
 Status ProcessFileEventSubscriber::Callback(const ECRef& event_context,
@@ -1319,7 +1331,7 @@ Status ProcessFileEventSubscriber::ProcessEvents(
     }
 
     if (FLAGS_audit_fim_debug) {
-      std::cout << syscall_context << std::endl;
+      VLOG(1) << syscall_context;
     }
 
     if (!skip_row_emission) {
@@ -1581,4 +1593,54 @@ void AuditdFimProcessMap::printUntrackedPidWarning(pid_t pid) {
     VLOG(1) << "Untracked process with pid " << pid;
   }
 }
+
+bool AuditdFimContext::isPathIncluded(const std::string& path) {
+  ReadLock rlock(file_paths_regexs_mutex);
+
+  for (const auto& file_paths_regex : file_paths_regexs) {
+    if (std::regex_match(path, file_paths_regex)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Escapes characters in a string that are meta characters
+/// for regular expressions.
+std::string escapeForRegex(const std::string& s) {
+  static const char metacharacters[] = R"(\.^$-+()[]{}|?*)";
+  std::string out;
+  out.reserve(s.size());
+  for (auto ch : s) {
+    if (std::strchr(metacharacters, ch)) {
+      out.push_back('\\');
+    }
+    out.push_back(ch);
+  }
+  return out;
+}
+
+void AuditdFimContext::updatePathsIncluded(const StringList& paths) {
+  WriteLock wlock(file_paths_regexs_mutex);
+
+  file_paths_regexs.clear();
+
+  for (const auto& path : paths) {
+    std::string path_regex = escapeForRegex(path);
+    // A path ending with "/" should behave the same as a path ending with the
+    // pattern "/*".
+    if (path_regex.back() == '/') {
+      path_regex.append("\\*");
+    }
+    // Replace last "/**" with a regex to match any character.
+    if (boost::algorithm::ends_with(path_regex, R"(/\*\*)")) {
+      boost::replace_last(path_regex, R"(/\*\*)", R"(/.*)");
+    }
+    // Replace all '*' with a regex to match any character except "/".
+    boost::replace_all(path_regex, R"(\*)", R"([^/]*)");
+
+    file_paths_regexs.push_back(std::regex(path_regex));
+  }
+}
+
 } // namespace osquery

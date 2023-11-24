@@ -93,7 +93,7 @@ TEST_F(AuditdFimTests, row_emission) {
 
   // Configure what we want to log and what we want to ignore
   AuditdFimContext fim_context;
-  fim_context.included_path_list = included_file_paths;
+  fim_context.updatePathsIncluded(included_file_paths);
 
   // Emit the rows, showing only writes
   std::vector<Row> emitted_row_list;
@@ -101,8 +101,7 @@ TEST_F(AuditdFimTests, row_emission) {
       emitted_row_list, fim_context, event_context->audit_events);
 
   EXPECT_EQ(status.ok(), true);
-  // @TODO fix failing test
-  // EXPECT_EQ(emitted_row_list.size(), 15U);
+  EXPECT_EQ(emitted_row_list.size(), 14U);
 }
 
 // clang-format off
@@ -370,4 +369,104 @@ std::vector<std::pair<int, std::string>> complete_event_list = {
   {1320, "audit(1502573858.179:46828): "}
 };
 // clang-format on
+
+TEST_F(AuditdFimTests, file_paths_regexs) {
+  AuditdFimContext fim_context;
+  StringList included_file_paths_regexs = {
+      "/exact/match.txt", // 1. exact match
+      "/home/*/foo.txt", // 2. test with single level
+      "/home/foo/**", // 3. test with recursive
+      "/home/*/test/**", // 4. test with single level and recursive
+      "/home/*/test with space/**", // 5. test with single level, recursive and
+                                    // spaces in paths
+      "/home/zoo/*", // 6. single level at the end
+      "/home/moo/", // 7. single level at the end (same as above)
+      "/home/yoo", // 8. just matches changes in the folder
+      "/home/*/doo", // 9. same as above, just matches changes in the folder
+      "/home/*/doo/something\\.^$-+()[]{}|?*.txt", // 10. test path with meta
+                                                   // characters
+      "/home/doo/something\\.^$-+()[]{}|?*/**", // 11. test recursive path with
+                                                // meta characters
+      "/home/too/*/*foo.txt", // 12. test with files ending in foo.txt
+      "/home/boo/**/foo.txt", // 13. test with invalid double '**' not in the
+                              // end, should not match anything.
+      "/test/*/*/bar.txt", // 14. test with multiple '*' directories.
+      "/test2/woo/*/foo*", // 15. test with files starting with foo.txt
+  };
+  fim_context.updatePathsIncluded(included_file_paths_regexs);
+
+  // (1)
+  ASSERT_TRUE(fim_context.isPathIncluded("/exact/match.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/exact/match2.txt"));
+
+  // (2)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/sweet/foo.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/sweet/not/foo.txt"));
+
+  // (3)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/foo/home.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/foo/subdir/home.txt"));
+
+  // (4)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/foo/home.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/foo/subdir/home.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/foo/subdir/subdir2/home.txt"));
+
+  // (5)
+  ASSERT_TRUE(fim_context.isPathIncluded(
+      "/home/foo with spaces/test with space/file.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/test with space/file.txt"));
+
+  // (6)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/zoo/single file.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/zoo/subdir/file.txt"));
+
+  // (7)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/moo/single file.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/moo/subdir/file.txt"));
+
+  // (8)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/yoo"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/yoo/single file.txt"));
+
+  // (9)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/what/doo"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/doo"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/what/doo/single file.txt"));
+
+  // (10)
+  ASSERT_TRUE(fim_context.isPathIncluded(
+      "/home/path/doo/something\\.^$-+()[]{}|?*.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded(
+      "/home/path/doo/something\\.^$-+()[]{}|?.txt"));
+  ASSERT_FALSE(
+      fim_context.isPathIncluded("/home/path/doo/something\\.^$-+()[]{}|.txt"));
+
+  // (11)
+  ASSERT_TRUE(fim_context.isPathIncluded(
+      "/home/doo/something\\.^$-+()[]{}|?*/path/single file.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded(
+      "/home/doo/something\\.^$-+()[]{}|?/path/single file.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded(
+      "/home/doo/something\\.^$-+()[]{}|/path/single file.txt"));
+
+  // (12)
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/too/zoo/foo.txt"));
+  ASSERT_TRUE(fim_context.isPathIncluded("/home/too/zoo/barfoo.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/too/zoo/bar/foo.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/too/zoo/zoo.txt"));
+
+  // (13)
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/boo/bar.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/home/boo/foo/bar.txt"));
+
+  // (14)
+  ASSERT_TRUE(fim_context.isPathIncluded("/test/foo/bar/bar.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/test/foo/bar.txt"));
+
+  // (15)
+  ASSERT_TRUE(fim_context.isPathIncluded("/test2/woo/bar/foo_bar.txt"));
+  ASSERT_FALSE(fim_context.isPathIncluded("/test2/woo/bar/foo/bar.txt"));
+}
+
 } // namespace osquery
