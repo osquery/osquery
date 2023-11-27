@@ -46,6 +46,7 @@ class KeychainCache {
   std::map<std::pair<boost::filesystem::path, KeychainTable>,
            KeychainCacheEntry>
       cache;
+  std::mutex mutex;
 
  public:
   // Read checks the hash and returns 1 for a cache hit or 0 for a cache miss.
