@@ -9,6 +9,7 @@ schema([
     Column("block_size", INTEGER, "Block size in bytes"),
     Column("uuid", TEXT, "Block device Universally Unique Identifier"),
     Column("type", TEXT, "Block device type string"),
+    Column("serial", TEXT, "Disk serial number"),
     Column("label", TEXT, "Block device label string"),
 ])
 implementation("block_devices@genBlockDevs")

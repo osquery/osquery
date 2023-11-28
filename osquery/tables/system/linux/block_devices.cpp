@@ -88,23 +88,27 @@ static void getBlockDevice(struct udev_device* dev,
     r["size"] = size;
   }
 
-  const char* block_size =
-      udev_device_get_sysattr_value(dev, "queue/logical_block_size");
+  const char* block_size = udev_device_get_sysattr_value(dev, "queue/logical_block_size");
   if (block_size != nullptr) {
     r["block_size"] = block_size;
   }
 
-  subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
-  if (subdev != nullptr) {
-    const char *model = udev_device_get_sysattr_value(subdev, "model");
-    std::string model_string = std::string(model);
-    boost::algorithm::trim(model_string);
-    r["model"] = model_string;
+  const char* serial = udev_device_get_sysattr_value(dev, "device/wwid");
+  if (serial != nullptr) {
+    r["serial"] = serial;
+  }
 
-    model = udev_device_get_sysattr_value(subdev, "vendor");
-    model_string = std::string(model);
-    boost::algorithm::trim(model_string);
-    r["vendor"] = model_string;
+  const char* model = udev_device_get_property_value(dev, "ID_MODEL_FROM_DATABASE");
+  if (!model) {
+	  model = udev_device_get_property_value(dev, "ID_MODEL");
+  }
+  if (model != nullptr) {
+  	r["model"] = model;
+  }
+
+  const char* vendor = udev_device_get_sysattr_value(dev, "device/vendor");
+  if (vendor != nullptr) {
+  	r["vendor"] = vendor;
   }
 
   blkid_probe pr = blkid_new_probe_from_filename(name);
@@ -150,7 +154,7 @@ QueryData genBlockDevs(QueryContext &context) {
     return {};
   }
 
-  struct udev_enumerate* enumerate = udev_enumerate_new(udev);
+  struct udev_enumerate *enumerate = udev_enumerate_new(udev);
   udev_enumerate_add_match_subsystem(enumerate, "block");
   udev_enumerate_scan_devices(enumerate);
 
@@ -158,8 +162,8 @@ QueryData genBlockDevs(QueryContext &context) {
   struct udev_list_entry *devices, *dev_list_entry;
   devices = udev_enumerate_get_list_entry(enumerate);
   udev_list_entry_foreach(dev_list_entry, devices) {
-    const char* path = udev_list_entry_get_name(dev_list_entry);
-    struct udev_device* dev = udev_device_new_from_syspath(udev, path);
+    const char *path = udev_list_entry_get_name(dev_list_entry);
+    struct udev_device *dev = udev_device_new_from_syspath(udev, path);
     if (path != nullptr && dev != nullptr) {
       getBlockDevice(dev, results, lvm_lv2pv);
     }
