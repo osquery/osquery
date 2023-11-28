@@ -26,6 +26,12 @@ extended_schema(WINDOWS, [
     Column("file_version", TEXT, "File version"),
     Column("product_version", TEXT, "File product version"),
     Column("original_filename", TEXT, "(Executable files only) Original filename"),
+    Column("shortcut_target_path", TEXT, "Full path to the file the shortcut points to"),
+    Column("shortcut_target_type", TEXT, "Display name for the target type"),
+    Column("shortcut_target_location", TEXT, "Folder name where the shortcut target resides"),
+    Column("shortcut_start_in", TEXT, "Full path to the working directory to use when executing the shortcut target"),
+    Column("shortcut_run", TEXT, "Window mode the target of the shortcut should be run in"),
+    Column("shortcut_comment", TEXT, "Comment on the shortcut"),
 ])
 extended_schema(DARWIN, [
     Column("bsd_flags", TEXT, "The BSD file flags (chflags). Possible values: NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, SF_IMMUTABLE, SF_APPEND")

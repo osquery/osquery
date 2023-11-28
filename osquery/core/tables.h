@@ -567,7 +567,7 @@ struct QueryContext {
       ConstraintOperator op,
       std::set<std::string>& output,
       std::function<Status(const std::string& constraint,
-                           std::set<std::string>& output)> predicate);
+                           std::set<std::string>& output)> predicate) const;
 
   /// Check if the given column is used by the query
   bool isColumnUsed(const std::string& colName) const;
