@@ -669,3 +669,21 @@ Whether to disable support for IMDSv1 and fail if an IMDSv2 token could not be r
 Enforces that only FIPS endpoints can be used for the logger plugins (Kinesis, Firehose), the STS authentication and the EC2 tables.  
 Using a non compliant region for the logger plugins will cause osquery to fail to start; for other non compliant cases the specific service will fail to work.  
 In all non compliant cases, an error or warning message will be printed. In verbose mode an additional message will show if a certain service has FIPS enforced.
+
+## macOS keychain flags
+
+By default, Osquery limits frequent access to keychain files on macOS. This limit applies to `certificates`, `keychain_acls`, and `keychain_items` tables.
+
+`--keychain_access_cache=true`
+
+Whether to use a cache for keychain access (default true). The cache resides in-memory, and independent entries are used for each table and keychain file.
+If the keychain file has NOT been modified, osquery will return the cached result. The cache does not expire. It is cleared when osquery is restarted.
+
+`--keychain_access_interval=5`
+
+Minimum minutes required between keychain accesses (default is 5). Keychain cache must be enabled.
+The access interval is the minimum time that must elapse before osquery will open and read a keychain file.
+Starting from the first access and until time + `--keychain_access_interval`, osquery will return cached results for a given keychain file.
+The interval is applied independently for each table. Therefore, multiple tables can read the same keychain file, but they can only do so once within the interval.
+Since keychain files are generally not updated frequently, we expect that most keychain accesses will not be impacted by this interval.
+To disable the keychain access interval: `--keychain_access_interval=0`
