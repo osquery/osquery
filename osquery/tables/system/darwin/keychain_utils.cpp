@@ -36,6 +36,7 @@ FLAG(uint32,
      "be enabled to use")
 
 KeychainCache keychainCache = KeychainCache();
+std::mutex keychainMutex;
 
 const std::vector<std::string> kSystemKeychainPaths = {
     "/System/Library/Keychains",
@@ -147,9 +148,6 @@ bool KeychainCache::Read(const boost::filesystem::path& path,
     return false;
   }
 
-  // Lock cache access to this thread to make it thread-safe
-  std::unique_lock<decltype(mutex)> lock(mutex);
-
   // Check the cache.
   auto it = this->cache.find(std::make_pair(path, table));
   if (it == this->cache.end()) {
@@ -184,9 +182,6 @@ void KeychainCache::Write(const boost::filesystem::path& path,
     // Don't use the cache.
     return;
   }
-
-  // Lock cache access to this thread to make it thread-safe
-  std::unique_lock<decltype(mutex)> lock(mutex);
 
   // Make entry to insert.
   KeychainCacheEntry entry;

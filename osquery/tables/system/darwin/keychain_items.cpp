@@ -122,6 +122,9 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
 QueryData genKeychainItems(QueryContext& context) {
   QueryData results;
 
+  // Lock keychain access to 1 table/thread at a time.
+  std::unique_lock<decltype(keychainMutex)> lock(keychainMutex);
+
   // Allow the caller to set an explicit certificate (keychain) search path.
   std::set<std::string> keychain_paths;
   if (context.constraints["path"].exists(EQUALS)) {

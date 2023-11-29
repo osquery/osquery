@@ -139,6 +139,9 @@ void genFileCertificate(const std::string& path, QueryData& results) {
 QueryData genCerts(QueryContext& context) {
   QueryData results;
 
+  // Lock keychain access to 1 table/thread at a time.
+  std::unique_lock<decltype(keychainMutex)> lock(keychainMutex);
+
   // Allow the caller to set both an explicit keychain search path
   // and certificate files on disk.
   std::set<std::string> keychain_paths;

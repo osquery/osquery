@@ -351,6 +351,9 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
 QueryData genKeychainACLApps(QueryContext& context) {
   QueryData results;
 
+  // Lock keychain access to 1 table/thread at a time.
+  std::unique_lock<decltype(keychainMutex)> lock(keychainMutex);
+
   OSQUERY_USE_DEPRECATED(SecKeychainSetUserInteractionAllowed(false));
   for (const auto& path : getKeychainPaths()) {
     std::vector<std::string> ls_results;
