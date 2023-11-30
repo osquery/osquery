@@ -1,7 +1,7 @@
 table_name("ads")
-description("Returns the stream names and values for files (similar to posix extended attributes).")
+description("Returns the stream names and values for files using NTFS Alternate Data Streams (ADS).")
 schema([
-    Column("path", TEXT, "Absolute file path", required=True),
+    Column("path", TEXT, "Absolute file path", required=True, index=True),
     Column("directory", TEXT, "Directory of file(s)", required=True),
     Column("key", TEXT, "Name of the value generated from the stream"),
     Column("value", TEXT, "The parsed information from the attribute"),

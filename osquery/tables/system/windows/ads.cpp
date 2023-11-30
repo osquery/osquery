@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <string>
@@ -36,9 +37,13 @@ void setRow(QueryData& results,
   r["path"] = path;
   r["directory"] = boost::filesystem::path(path).parent_path().string();
   r["key"] = key;
-  auto value_printable = isPrintable(value);
-  r["value"] = value_printable ? value : base64::encode(value);
-  r["base64"] = value_printable ? INTEGER(0) : INTEGER(1);
+  if (isPrintable(value)) {
+    r["value"] = value;
+    r["base64"] = INTEGER(0);
+  } else {
+    r["value"] = base64::encode(value);
+    r["base64"] = INTEGER(1);
+  }
   results.push_back(r);
 }
 
@@ -69,29 +74,38 @@ void enumerateStreams(QueryData& results, const std::string& path) {
 
   auto fd_guard = scope_guard::create([&] { FindClose(hFind); });
 
-  bool isFirstStream = true;
-
   if (hFind != INVALID_HANDLE_VALUE) {
     do {
-      // Skip first stream
-      if (isFirstStream) {
-        isFirstStream = false;
-        continue;
-      }
       std::string stream(wstringToString(findStreamData.cStreamName));
 
       // Split the stream string into a name and a type, format is
       // ":streamname:$streamtype"
-      size_t splitPos = stream.find(':', 1);
-      std::string streamName = stream.substr(1, splitPos - 1);
+      auto streamFullName = split(stream, ":");
 
+      if (streamFullName.size() != 2) {
+        LOG(WARNING) << "Invalid stream name found: '" << stream
+                     << "'. Skipping this entry";
+        continue;
+      }
+      std::string streamName = streamFullName[0];
+
+      // Skip unnamed stream since it represents the file content
+      if (streamName == "") {
+        continue;
+      }
+
+      std::string path_copy = path;
+      // Remove any potential trailing / from path string
+      if (boost::algorithm::ends_with(path_copy, "\\")) {
+        path_copy.pop_back();
+      }
       std::stringstream streamPath;
-      streamPath << path << ":" << streamName;
+      streamPath << path_copy << ":" << streamName;
       std::string streamData;
 
       if (!readFile(streamPath.str(), streamData).ok()) {
         LOG(INFO) << "Couldn't read stream data: " << streamPath.str();
-        return;
+        continue;
       }
 
       if (streamName == kZoneIdentifierKey) {
