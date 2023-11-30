@@ -88,6 +88,9 @@ void setBlockDeviceMetadata(BlockDevice& block_device, std::unordered_map<std::s
             continue;
         }
 
+        // Remove newlines from data.
+        data.erase(std::remove(data.begin(), data.end(), '\n'), data.cend());
+
         // Set metadata to respective block device member.
         if (name == "device/model") {
             block_device.model = data;
