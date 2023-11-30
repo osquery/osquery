@@ -10,6 +10,7 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/linux/block_device_enumeration.h>
 
 namespace osquery {
 namespace tables {
