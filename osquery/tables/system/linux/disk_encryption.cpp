@@ -25,7 +25,9 @@ const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {
-void genFDEStatusForBlockDevice(const BlockDevice& block_device, std::set<BlockDevice>& block_devices, std::map<std::string, Row>& encryption_status) {
+void genFDEStatusForBlockDevice(const BlockDevice& block_device,
+                                std::set<BlockDevice>& block_devices,
+                                std::map<std::string, Row>& encryption_status) {
   Row r;
   r["name"] = block_device.name;
   r["uuid"] = block_device.uuid;
@@ -40,7 +42,8 @@ void genFDEStatusForBlockDevice(const BlockDevice& block_device, std::set<BlockD
     r["encryption_status"] = kEncryptionStatusEncrypted;
     r["type"] = "";
 
-    auto crypt_init = crypt_init_by_name_and_header(&cd, r["name"].c_str(), nullptr);
+    auto crypt_init =
+        crypt_init_by_name_and_header(&cd, r["name"].c_str(), nullptr);
     if (crypt_init < 0) {
       VLOG(1) << "Unable to initialize crypt device for " << r["name"];
       break;
@@ -82,7 +85,8 @@ void genFDEStatusForBlockDevice(const BlockDevice& block_device, std::set<BlockD
     if (!block_device.parent.empty()) {
       // Since `genFDEStatusForBlockDevice` is recursive, ensure no duplicates.
       if (!encryption_status.count(block_device.parent)) {
-        if (auto parent = block_devices.find(block_device.parent); parent != block_devices.end()) {
+        if (auto parent = block_devices.find(block_device.parent);
+            parent != block_devices.end()) {
           genFDEStatusForBlockDevice(*parent, block_devices, encryption_status);
         }
       }
@@ -116,7 +120,8 @@ QueryData genFDEStatus(QueryContext& context) {
   for (const auto& block_device : block_devices) {
     // Since `genFDEStatusForBlockDevice` is recursive, ensure no duplicates.
     if (!encryption_status.count(block_device.name)) {
-      genFDEStatusForBlockDevice(block_device, block_devices, encryption_status);
+      genFDEStatusForBlockDevice(
+          block_device, block_devices, encryption_status);
     }
 
     results.push_back(encryption_status[block_device.name]);
