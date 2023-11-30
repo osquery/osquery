@@ -14,14 +14,12 @@
 
 namespace osquery {
 namespace tables {
-QueryData genBlockDevs(QueryContext &context) {
-  QueryData results;
-
+QueryData genBlockDevs(QueryContext& context) {
   if (getuid() || geteuid()) {
     VLOG(1) << "Not running as root, LVM and other column data not available";
-    return results;
   }
 
+  QueryData results;
   auto query_context = context.constraints.find("name")->second.getAll(EQUALS);
   auto block_devices = enumerateBlockDevices(query_context, false);
 

@@ -16,28 +16,29 @@
 
 namespace osquery {
 struct BlockDevice {
-    std::filesystem::path path;
-    std::string name;
-    std::string parent;
-    std::string model;
-    std::string serial;
-    std::string vendor;
-    std::string size;
-    std::string block_size;
-    std::string uuid;
-    std::string type;
-    std::string label;
+  std::filesystem::path path;
+  std::string name;
+  std::string parent;
+  std::string model;
+  std::string serial;
+  std::string vendor;
+  std::string size;
+  std::string block_size;
+  std::string uuid;
+  std::string type;
+  std::string label;
 
-    BlockDevice(const std::string& str_name = "") : name(str_name) {}
+  BlockDevice(const std::string& str_name = "") : name(str_name) {}
 
-    bool operator<(const BlockDevice& rhs) const {
-        return name < rhs.name;
-    }
+  bool operator<(const BlockDevice& rhs) const {
+    return name < rhs.name;
+  }
 
-    bool operator==(const BlockDevice& rhs) const {
-        return name == rhs.name;
-    }
+  bool operator==(const BlockDevice& rhs) const {
+    return name == rhs.name;
+  }
 };
 
-std::set<BlockDevice> enumerateBlockDevices(std::set<std::string>& context, const bool include_parents);
+std::set<BlockDevice> enumerateBlockDevices(std::set<std::string>& context,
+                                            const bool include_parents);
 } // namespace osquery
