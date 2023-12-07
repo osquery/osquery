@@ -392,7 +392,7 @@ def run_http_server(bind_port=80, **kwargs):
 
     httpd = HTTPServer(("localhost", bind_port), RealSimpleHandler)
     if ARGS["tls"]:
-        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(certfile=ARGS["cert"], keyfile=ARGS["key"])
         context.load_verify_locations(ARGS["ca"])
         httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
