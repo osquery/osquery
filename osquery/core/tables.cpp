@@ -269,8 +269,12 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
     if (options & ColumnOptions::HIDDEN) {
       statement += " HIDDEN";
     }
-    if (options & ColumnOptions::COLLATENOCASE) {
+    if (options & ColumnOptions::COLLATEBINARY) {
+      statement += " COLLATE BINARY";
+    } else if (options & ColumnOptions::COLLATENOCASE) {
       statement += " COLLATE NOCASE";
+    } else if (options & ColumnOptions::COLLATERTRIM) {
+      statement += " COLLATE RTRIM";
     }
     if (i < columns.size() - 1) {
       statement += ", ";
