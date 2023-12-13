@@ -152,7 +152,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/running_apps.mm
       darwin/sandboxes.cpp
       darwin/screenlock.mm
-      darwin/secureboot.cpp
+      darwin/secureboot.mm
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
