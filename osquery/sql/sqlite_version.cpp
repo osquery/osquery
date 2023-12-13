@@ -217,14 +217,18 @@ static void versionCompareFunc(sqlite3_context* context,
   int flavor = 0;
 
   if (argc < 2) {
-    sqlite3_result_error(context, "Must provide two version strings to compare.", -1);
+    sqlite3_result_error(
+        context, "Must provide two version strings to compare.", -1);
     return;
-  } else if (sqlite3_value_type(argv[0]) != SQLITE_TEXT || sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
-    sqlite3_result_error(context, "Must provide two version strings to compare.", -1);
+  } else if (sqlite3_value_type(argv[0]) != SQLITE_TEXT ||
+             sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
+    sqlite3_result_error(
+        context, "Must provide two version strings to compare.", -1);
     return;
   } else if (argc > 2) {
     if (sqlite3_value_type(argv[2]) != SQLITE_INTEGER) {
-      sqlite3_result_error(context, "The optional third parameter is not of type integer.", -1);
+      sqlite3_result_error(
+          context, "The optional third parameter is not of type integer.", -1);
       return;
     } else {
       flavor = sqlite3_value_int(argv[2]);
@@ -234,23 +238,30 @@ static void versionCompareFunc(sqlite3_context* context,
   std::vector<bool> ops(4, false);
 
   switch (flavor) {
-    // ARCH flavor
-    case 1:
-      ops[0] = ops[2] = ops[3] = true;
-      break;
-    // DPKG flavor
-    case 2:
-      ops[0] = ops[1] = true;
-      break;
-    // RHEL flavor
-    case 3:
-      ops[0] = ops[1] = ops[2] = true;
-      break;
+  // ARCH flavor
+  case 1:
+    ops[0] = ops[2] = ops[3] = true;
+    break;
+  // DPKG flavor
+  case 2:
+    ops[0] = ops[1] = true;
+    break;
+  // RHEL flavor
+  case 3:
+    ops[0] = ops[1] = ops[2] = true;
+    break;
   }
 
   const char* l(reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
   const char* r(reinterpret_cast<const char*>(sqlite3_value_text(argv[1])));
-  int rc = versionCompare(strlen(l), (const void*)l, strlen(r), (const void*)r, ops[0], ops[1], ops[2], ops[3]);
+  int rc = versionCompare(strlen(l),
+                          (const void*)l,
+                          strlen(r),
+                          (const void*)r,
+                          ops[0],
+                          ops[1],
+                          ops[2],
+                          ops[3]);
 
   // Limit result value to one of (-1, 0, 1)
   if (rc < -1) {

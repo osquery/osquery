@@ -369,7 +369,7 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
     </p>
     </details>
 
-- `version_compare(VERSION_STRING, VERSION_STRING, COMPARE_FLAVOR)`: return `-1` if the left string is less than the right, `0` if they are equal, or `1` if the left string is greater than the right. `COMPARE_FLAVOR` is optional, but can be of value (`1`, `2`, or `3`), which equates to linux (`ARCH`, `DPKG`, or `RHEL`) package version comparison. The default `COMPARE_FLAVOR` is `0` as semantic version comparison.
+- `version_compare(VERSION_STRING, VERSION_STRING, COMPARE_FLAVOR)`: return `-1` if the left version is less than the right, `0` if they are equal, or `1` if the left version is greater than the right. `COMPARE_FLAVOR` is optional, but can be of value (`1`, `2`, or `3`), which equates to linux (`ARCH`, `DPKG`, or `RHEL`) package version comparison. The default `COMPARE_FLAVOR` is `0` as semantic version comparison.
 
     <details>
     <summary>Version Compare function example:</summary>
