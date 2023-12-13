@@ -2,7 +2,7 @@
   "openssl": {
     "product": "openssl",
     "vendor": "openssl",
-    "version": "3.1.3",
+    "version": "3.2.0",
     "ignored-cves": []
   },
   "augeas": {
