@@ -43,7 +43,8 @@ class TLSServerRunner : private boost::noncopyable {
    *
    * A failure status is returned on error.
    */
-  static bool start(const std::string& server_cert = {});
+  static bool start(const std::string& server_cert = {},
+                    bool verify_client_cert = false);
 
   /// Stop the service when the process exits.
   static void stop();
@@ -63,7 +64,8 @@ class TLSServerRunner : private boost::noncopyable {
    * This does not check that the port was bound.
    */
   Status startAndSetScript(const std::string& port,
-                           const std::string& server_cert);
+                           const std::string& server_cert,
+                           bool verify_client_cert);
 
  private:
   /// Current server handle.
@@ -78,4 +80,4 @@ class TLSServerRunner : private boost::noncopyable {
   std::string tls_server_certs_;
   std::string enroll_secret_path_;
 };
-}
+} // namespace osquery
