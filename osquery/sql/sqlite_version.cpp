@@ -214,72 +214,52 @@ static int versionCompare(int l_len,
 static void versionCompareFunc(sqlite3_context* context,
                                int argc,
                                sqlite3_value** argv) {
-  if (argc < 3) {
-    sqlite3_result_error(
-        context,
-        "Must provide two version strings and an operator to compare.",
-        -1);
+  int flavor = 0;
+
+  if (argc < 2) {
+    sqlite3_result_error(context, "Must provide two version strings to compare.", -1);
     return;
-  }
-
-  if (sqlite3_value_type(argv[0]) != SQLITE_TEXT ||
-      sqlite3_value_type(argv[1]) != SQLITE_TEXT ||
-      sqlite3_value_type(argv[2]) != SQLITE_TEXT) {
-    sqlite3_result_error(
-        context,
-        "Must provide two version strings and an operator to compare.",
-        -1);
+  } else if (sqlite3_value_type(argv[0]) != SQLITE_TEXT || sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
+    sqlite3_result_error(context, "Must provide two version strings to compare.", -1);
     return;
-  }
-
-  std::unordered_set<std::string> ops = {"<", "<=", "=", ">=", ">"};
-  const char* op(reinterpret_cast<const char*>(sqlite3_value_text(argv[1])));
-
-  if (ops.find(op) == ops.end()) {
-    sqlite3_result_error(context,
-                         "Unknown compare operator. Must provide one of the "
-                         "following: (<, <=, =, >=, >)",
-                         -1);
-    return;
-  }
-
-  std::vector<bool> options(4);
-
-  for (auto i = 3; i < argc && i < 7; i++) {
-    if (sqlite3_value_type(argv[i]) != SQLITE_INTEGER &&
-        sqlite3_value_type(argv[i]) != SQLITE_NULL) {
-      sqlite3_result_error(
-          context,
-          "Options for epoch, delim_precedence, comp_remaining, and "
-          "remainder_precedence must be true, false, or null.",
-          -1);
+  } else if (argc > 2) {
+    if (sqlite3_value_type(argv[2]) != SQLITE_INTEGER) {
+      sqlite3_result_error(context, "The optional third parameter is not of type integer.", -1);
       return;
     } else {
-      options[i - 3] = sqlite3_value_int(argv[i]);
+      flavor = sqlite3_value_int(argv[2]);
     }
   }
 
-  bool result;
-  const char* l(reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
-  const char* r(reinterpret_cast<const char*>(sqlite3_value_text(argv[2])));
-  auto rc = versionCompare(strlen(l),
-                           (const void*)l,
-                           strlen(r),
-                           (const void*)r,
-                           options[0],
-                           options[1],
-                           options[2],
-                           options[3]);
+  std::vector<bool> ops(4, false);
 
-  if (rc < 0) {
-    result = op[0] == '<';
-  } else if (rc > 0) {
-    result = op[0] == '>';
-  } else {
-    result = (op[0] == '=' || strlen(op) == 2);
+  switch (flavor) {
+    // ARCH flavor
+    case 1:
+      ops[0] = ops[2] = ops[3] = true;
+      break;
+    // DPKG flavor
+    case 2:
+      ops[0] = ops[1] = true;
+      break;
+    // RHEL flavor
+    case 3:
+      ops[0] = ops[1] = ops[2] = true;
+      break;
   }
 
-  sqlite3_result_int(context, result);
+  const char* l(reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));
+  const char* r(reinterpret_cast<const char*>(sqlite3_value_text(argv[1])));
+  int rc = versionCompare(strlen(l), (const void*)l, strlen(r), (const void*)r, ops[0], ops[1], ops[2], ops[3]);
+
+  // Limit result value to one of (-1, 0, 1)
+  if (rc < -1) {
+    rc = -1;
+  } else if (rc > 1) {
+    rc = 1;
+  }
+
+  sqlite3_result_int(context, rc);
 }
 
 /**
