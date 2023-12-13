@@ -228,9 +228,10 @@ class TableState(Singleton):
                         if collation in COLLATIONS:
                             column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option] + collation)
                         else:
-                            print(yellow(
+                            print(lightred(
                                 "Table %s column %s contains an unknown collation sequence: %s" % (
                                 self.table_name, column.name, column.options["collate"])))
+                            exit(1)
                     else:
                         column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option])
                     all_options.append(COLUMN_OPTIONS[option])
