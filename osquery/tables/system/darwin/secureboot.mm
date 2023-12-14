@@ -206,12 +206,14 @@ Status getAarch64SecureBootSetting(Row& r) {
       return Status::failure("Error opening SPSupport bundle");
     }
 
-    CFBundleLoadExecutable(bundle);
-
     auto cleanup_bundle = scope_guard::create([&]() {
       CFBundleUnloadExecutable(bundle);
       CFRelease(bundle);
     });
+
+    if (!CFBundleLoadExecutable(bundle)) {
+      return Status::failure("SPSupport load executable failed")
+    }
 
 #pragma clang diagnostic push
 // We are silencing here because we don't know the selector beforehand
@@ -245,9 +247,9 @@ Status getAarch64SecureBootSetting(Row& r) {
           SQL_TEXT([[report valueForKey:@"ibridge_secure_boot"] UTF8String]);
       if (r["description"] == "Full Security" ||
           r["description"] == "Reduced Security") {
-        r["secure_boot"] = "1";
+        r["secure_boot"] = INTEGER(1);
       } else if (r["description"] == "Permissive Security") {
-        r["secure_boot"] = "0";
+        r["secure_boot"] = INTEGER(0);
       }
     }
 
@@ -255,9 +257,9 @@ Status getAarch64SecureBootSetting(Row& r) {
       auto value = std::string(
           [[report valueForKey:@"ibridge_sb_other_kext"] UTF8String]);
       if (value == "Yes") {
-        r["allow_kernel_extensions"] = "1";
+        r["kernel_extensions"] = INTEGER(1);
       } else if (value == "No") {
-        r["allow_kernel_extensions"] = "0";
+        r["kernel_extensions"] = INTEGER(0);
       }
     }
 
@@ -265,13 +267,13 @@ Status getAarch64SecureBootSetting(Row& r) {
     // *either* DEP or Manual enrollment)
     if ([report valueForKey:@"ibridge_sb_manual_mdm"] ||
         [report valueForKey:@"ibridge_sb_device_mdm"]) {
-      r["allow_mdm_operations"] = "0";
+      r["mdm_operations"] = INTEGER(0);
 
       if ([report valueForKey:@"ibridge_sb_manual_mdm"]) {
         auto value = std::string(
             [[report valueForKey:@"ibridge_sb_manual_mdm"] UTF8String]);
         if (value == "Yes") {
-          r["allow_mdm_operations"] = "1";
+          r["mdm_operations"] = INTEGER(1);
         }
       }
 
@@ -279,7 +281,7 @@ Status getAarch64SecureBootSetting(Row& r) {
         auto value = std::string(
             [[report valueForKey:@"ibridge_sb_device_mdm"] UTF8String]);
         if (value == "Yes") {
-          r["allow_mdm_operations"] = "1";
+          r["mdm_operations"] = INTEGER(1);
         }
       }
     }
