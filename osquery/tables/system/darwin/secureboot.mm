@@ -212,7 +212,7 @@ Status getAarch64SecureBootSetting(Row& r) {
     });
 
     if (!CFBundleLoadExecutable(bundle)) {
-      return Status::failure("SPSupport load executable failed")
+      return Status::failure("SPSupport load executable failed");
     }
 
 #pragma clang diagnostic push
