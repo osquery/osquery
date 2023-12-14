@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -214,7 +216,7 @@ static int versionCompare(int l_len,
 static void versionCompareFunc(sqlite3_context* context,
                                int argc,
                                sqlite3_value** argv) {
-  int flavor = 0;
+  std::vector<bool> ops(4, false);
 
   if (argc < 2) {
     sqlite3_result_error(
@@ -226,30 +228,26 @@ static void versionCompareFunc(sqlite3_context* context,
         context, "Must provide two version strings to compare.", -1);
     return;
   } else if (argc > 2) {
-    if (sqlite3_value_type(argv[2]) != SQLITE_INTEGER) {
+    if (sqlite3_value_type(argv[2]) != SQLITE_TEXT) {
       sqlite3_result_error(
-          context, "The optional third parameter is not of type integer.", -1);
+          context, "The optional third parameter is not a string.", -1);
       return;
     } else {
-      flavor = sqlite3_value_int(argv[2]);
+      std::string flavor((char*)sqlite3_value_text(argv[2]));
+      if (boost::iequals(flavor, "ARCH")) {
+        ops[0] = ops[2] = ops[3] = true;
+      } else if (boost::iequals(flavor, "DPKG")) {
+        ops[0] = ops[1] = true;
+      } else if (boost::iequals(flavor, "RHEL")) {
+        ops[0] = ops[1] = ops[2] = true;
+      } else {
+        sqlite3_result_error(context,
+                             "The optional third parameter does not match one "
+                             "of: (ARCH, DPKG, RHEL).",
+                             -1);
+        return;
+      }
     }
-  }
-
-  std::vector<bool> ops(4, false);
-
-  switch (flavor) {
-  // ARCH flavor
-  case 1:
-    ops[0] = ops[2] = ops[3] = true;
-    break;
-  // DPKG flavor
-  case 2:
-    ops[0] = ops[1] = true;
-    break;
-  // RHEL flavor
-  case 3:
-    ops[0] = ops[1] = ops[2] = true;
-    break;
   }
 
   const char* l(reinterpret_cast<const char*>(sqlite3_value_text(argv[0])));

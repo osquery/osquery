@@ -369,7 +369,7 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
     </p>
     </details>
 
-- `version_compare(VERSION_STRING, VERSION_STRING, COMPARE_FLAVOR)`: return `-1` if the left version is less than the right, `0` if they are equal, or `1` if the left version is greater than the right. `COMPARE_FLAVOR` is optional, but can be of value (`1`, `2`, or `3`), which equates to linux (`ARCH`, `DPKG`, or `RHEL`) package version comparison. The default `COMPARE_FLAVOR` is `0` as semantic version comparison.
+- `version_compare(LEFT_VERSION, RIGHT_VERSION, COMPARE_FLAVOR)`: return `-1` if the left version is less than the right, `0` if they are equal, or `1` if the left version is greater than the right. `COMPARE_FLAVOR` is optional, and can be of value (`ARCH`, `DPKG`, or `RHEL`), which equates to the respective linux distribution package versioning. The default `COMPARE_FLAVOR` is semantic versioning.
 
     <details>
     <summary>Version Compare function example:</summary>
@@ -380,16 +380,16 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
       osquery> select version_compare('1.0', '1.0');
       version_compare('1.0', '1.0') = 0
 
-      osquery> select version_compare('4:1.1.0', '4:1.1.0-3', 1);
+      osquery> select version_compare('4:1.1.0', '4:1.1.0-3', 'ARCH');
       version_compare('4:1.1.0', '4:1.1.0-3', 1) = 0
 
       osquery> select version_compare('50.4.1b', '50.4.1c');
       version_compare('50.4.1b', '50.4.1c') = -1
 
-      osquery> select version_compare('1.0.0~rc2^2021', '1.0.0', 3);
+      osquery> select version_compare('1.0.0~rc2^2021', '1.0.0', 'RHEL');
       version_compare('1.0.0~rc2^2021', '1.0.0', 3) = -1
 
-      osquery> select version_compare('1:1.2.13-2', '4.2.1', 1);
+      osquery> select version_compare('1:1.2.13-2', '4.2.1', 'ARCH');
       version_compare('1:1.2.13-2', '4.2.1', 1) = 1
 
     </p>

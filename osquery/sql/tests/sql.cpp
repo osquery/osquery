@@ -469,15 +469,15 @@ TEST_F(SQLTests, test_version_compare) {
   QueryData d;
   auto status = query(
       "select version_compare('1.0', '1.0') as t0, \
-              version_compare('1:2.0-10', '1:2.0-10', 2) as t1, \
-              version_compare('4:1.1.0', '4:1.1.0-3', 1) as t2, \
+              version_compare('1:2.0-10', '1:2.0-10', 'DPKG') as t1, \
+              version_compare('4:1.1.0', '4:1.1.0-3', 'arCH') as t2, \
               version_compare('50.4.1b', '50.4.1c') as t3, \
-              version_compare('1.0.8-4', '1.0.8-6', 1) as t4, \
-              version_compare('1.0.0~rc2^2021', '1.0.0', 3) as t5, \
-              version_compare('1.1.0~BETA2^1', '1.1.0~CR1', 3) as t6, \
-              version_compare('1.0.1.1', '1.0.1^2021', 3) as t7, \
-              version_compare('1.9.9-1ubuntu2.4', '1.9.9-1ubuntu2.3', 2) as t8, \
-              version_compare('1:1.2.13-2', '4.2.1', 1) as t9, \
+              version_compare('1.0.8-4', '1.0.8-6', 'arch') as t4, \
+              version_compare('1.0.0~rc2^2021', '1.0.0', 'RHEL') as t5, \
+              version_compare('1.1.0~BETA2^1', '1.1.0~CR1', 'RhEl') as t6, \
+              version_compare('1.0.1.1', '1.0.1^2021', 'rhel') as t7, \
+              version_compare('1.9.9-1ubuntu2.4', '1.9.9-1ubuntu2.3', 'dpkg') as t8, \
+              version_compare('1:1.2.13-2', '4.2.1', 'ARCH') as t9, \
               version_compare('106.32.1', '106:32.1') as t10",
       d);
   ASSERT_TRUE(status.ok());
