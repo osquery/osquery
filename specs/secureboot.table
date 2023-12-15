@@ -5,7 +5,10 @@ schema([
 ])
 
 extended_schema(DARWIN, [
-    Column("secure_mode", INTEGER, "Secure mode for Intel-based macOS: 0 disabled, 1 full security, 2 medium security"),
+    Column("secure_mode", INTEGER, "(Intel) Secure mode: 0 disabled, 1 full security, 2 medium security"),
+    Column("description", TEXT, "(Apple Silicon) Human-readable description: 'Full Security', 'Reduced Security', or 'Permissive Security'"),
+    Column("kernel_extensions", INTEGER, "(Apple Silicon) Allow user management of kernel extensions from identified developers (1 if allowed)"),
+    Column("mdm_operations", INTEGER, "(Apple Silicon) Allow remote (MDM) management of kernel extensions and automatic software updates (1 if allowed)"),
 ])
 
 extended_schema(LINUX + WINDOWS, [

@@ -12,11 +12,19 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/scope_guard.h>
 
+#import <AppKit/NSDocument.h>
 #include <CoreFoundation/CoreFoundation.h>
+#import <Foundation/Foundation.h>
 #include <IOKit/IOKitKeys.h>
 #include <IOKit/IOKitLib.h>
 #include <mach/mach_error.h>
+
+@interface SPDocument : NSDocument {
+}
+- (id)reportForDataType:(id)arg1;
+@end
 
 namespace osquery::tables {
 
@@ -137,7 +145,7 @@ Status getSecureBootModeFromValue(UniqueCFTypeRef& value,
   return Status::success();
 }
 
-Status getSecureBootSetting(Row& row) {
+Status getIntelSecureBootSetting(Row& row) {
   SecureBootMode mode{SecureBootMode::NoSecurity};
 
   UniqueIoRegistryEntry options_entry;
@@ -176,17 +184,122 @@ Status getSecureBootSetting(Row& row) {
   return Status::success();
 }
 
+Status getAarch64SecureBootSetting(Row& r) {
+  @autoreleasepool {
+    // BEWARE: Because of the dynamic nature of the calls in this function, we
+    // must be careful to properly clean up the memory. Any future modifications
+    // to this function should attempt to ensure there are no leaks (and test
+    // with ./tools/analysis/profile.py --leaks).
+    CFURLRef bundle_url = CFURLCreateWithFileSystemPath(
+        kCFAllocatorDefault,
+        CFSTR("/System/Library/PrivateFrameworks/SPSupport.framework"),
+        kCFURLPOSIXPathStyle,
+        true);
+
+    if (bundle_url == nullptr) {
+      return Status::failure("Error parsing SPSupport bundle URL");
+    }
+
+    CFBundleRef bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
+    CFRelease(bundle_url);
+    if (bundle == nullptr) {
+      return Status::failure("Error opening SPSupport bundle");
+    }
+
+    auto cleanup_bundle = scope_guard::create([&]() {
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+    });
+
+    if (!CFBundleLoadExecutable(bundle)) {
+      return Status::failure("SPSupport load executable failed");
+    }
+
+#pragma clang diagnostic push
+// We are silencing here because we don't know the selector beforehand
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+
+    id cls = NSClassFromString(@"SPDocument");
+    if (cls == nullptr) {
+      return Status::failure("Could not load SPDocument class");
+    }
+
+    SEL sel = @selector(new);
+    if (![cls respondsToSelector:sel]) {
+      return Status::failure("SPDocument does not respond to new selector");
+    }
+
+    id document = [cls performSelector:sel];
+    if (document == nullptr) {
+      return Status::failure("[SPDocument new] returned null");
+    }
+
+    auto cleanup_document =
+        scope_guard::create([&]() { CFRelease((__bridge CFTypeRef)document); });
+
+#pragma clang diagnostic pop
+
+    NSDictionary* report = [[[document reportForDataType:@"SPiBridgeDataType"]
+        objectForKey:@"_items"] lastObject];
+
+    if ([report valueForKey:@"ibridge_secure_boot"]) {
+      r["description"] =
+          SQL_TEXT([[report valueForKey:@"ibridge_secure_boot"] UTF8String]);
+      if (r["description"] == "Full Security" ||
+          r["description"] == "Reduced Security") {
+        r["secure_boot"] = INTEGER(1);
+      } else if (r["description"] == "Permissive Security") {
+        r["secure_boot"] = INTEGER(0);
+      }
+    }
+
+    if ([report valueForKey:@"ibridge_sb_other_kext"]) {
+      auto value = std::string(
+          [[report valueForKey:@"ibridge_sb_other_kext"] UTF8String]);
+      if (value == "Yes") {
+        r["kernel_extensions"] = INTEGER(1);
+      } else if (value == "No") {
+        r["kernel_extensions"] = INTEGER(0);
+      }
+    }
+
+    // Combine both MDM values into a single column (since devices should be in
+    // *either* DEP or Manual enrollment)
+    if ([report valueForKey:@"ibridge_sb_manual_mdm"] ||
+        [report valueForKey:@"ibridge_sb_device_mdm"]) {
+      r["mdm_operations"] = INTEGER(0);
+
+      if ([report valueForKey:@"ibridge_sb_manual_mdm"]) {
+        auto value = std::string(
+            [[report valueForKey:@"ibridge_sb_manual_mdm"] UTF8String]);
+        if (value == "Yes") {
+          r["mdm_operations"] = INTEGER(1);
+        }
+      }
+
+      if ([report valueForKey:@"ibridge_sb_device_mdm"]) {
+        auto value = std::string(
+            [[report valueForKey:@"ibridge_sb_device_mdm"] UTF8String]);
+        if (value == "Yes") {
+          r["mdm_operations"] = INTEGER(1);
+        }
+      }
+    }
+  }
+
+  return Status::success();
+}
+
 } // namespace
 
 QueryData genSecureBoot(QueryContext& context) {
   Row row;
 
 #ifdef __aarch64__
-  LOG(INFO) << "secure_boot unsupported on ARM macOS";
-  return {};
+  auto status = getAarch64SecureBootSetting(row);
+#else
+  auto status = getIntelSecureBootSetting(row);
 #endif
-
-  auto status = getSecureBootSetting(row);
   if (!status.ok()) {
     LOG(ERROR) << "secureboot error: " << status.toString();
     return {};
