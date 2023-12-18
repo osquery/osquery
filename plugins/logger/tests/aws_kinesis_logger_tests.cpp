@@ -58,7 +58,8 @@ using IDummyLogForwarder =
 class DummyLogForwarder final : public IDummyLogForwarder {
  public:
   DummyLogForwarder()
-      : IDummyLogForwarder("dummy", 10, 50, "http://example.com") {}
+      : IDummyLogForwarder(
+            "dummy", 10, 50, "http://example.com", AWSRegion{""}) {}
 
  protected:
   Status internalSetup() override {
@@ -186,4 +187,4 @@ TEST_F(AwsLoggerTests, test_send) {
             "test\":\"2\",\"log_type\":\"result\"}\n");
   EXPECT_EQ(third_batch[1], "{\"batch3\":\"3\",\"log_type\":\"result\"}\n");
 }
-}
+} // namespace osquery
