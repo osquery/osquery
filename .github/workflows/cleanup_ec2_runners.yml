@@ -18,6 +18,8 @@ on:
 jobs:
     cleanup:
         runs-on: ubuntu-latest
+        timeout-minutes: 5
+
         steps:
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v3

@@ -12,9 +12,9 @@
 #include "aws_log_forwarder.h"
 
 #include <chrono>
+#include <gflags/gflags.h>
 #include <memory>
 #include <vector>
-#include <gflags/gflags.h>
 
 #include <aws/kinesis/KinesisClient.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
@@ -37,8 +37,10 @@ class KinesisLogForwarder final : public IKinesisLogForwarder {
   KinesisLogForwarder(const std::string& name,
                       uint64_t log_period,
                       uint64_t max_lines,
-                      const std::string& endpoint_override)
-      : IKinesisLogForwarder(name, log_period, max_lines, endpoint_override) {}
+                      const std::string& endpoint_override,
+                      const AWSRegion& region)
+      : IKinesisLogForwarder(
+            name, log_period, max_lines, endpoint_override, region) {}
 
  protected:
   Status internalSetup() override;
@@ -83,4 +85,4 @@ class KinesisLoggerPlugin : public LoggerPlugin {
  private:
   std::shared_ptr<KinesisLogForwarder> forwarder_{nullptr};
 };
-}
+} // namespace osquery

@@ -36,7 +36,8 @@ DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_caching);
 
 Status TLSServerRunner::startAndSetScript(const std::string& port,
-                                          const std::string& server_cert) {
+                                          const std::string& server_cert,
+                                          bool verify_client_cert) {
   auto script = (getTestHelperScriptsDirectory() / "test_http_server.py");
   auto config_dir = getTestConfigDirectory();
   std::vector<std::string> args = {
@@ -50,6 +51,10 @@ Status TLSServerRunner::startAndSetScript(const std::string& port,
   if (!server_cert.empty()) {
     args.push_back("--cert");
     args.push_back(server_cert);
+  }
+
+  if (verify_client_cert) {
+    args.push_back("--verify-client-cert");
   }
 
   args.push_back(port);
@@ -82,7 +87,8 @@ Status TLSServerRunner::getListeningPortPid(const std::string& port,
   return Status::success();
 }
 
-bool TLSServerRunner::start(const std::string& server_cert) {
+bool TLSServerRunner::start(const std::string& server_cert,
+                            bool verify_client_cert) {
   auto& self = instance();
   if (self.server_ != nullptr) {
     return true;
@@ -107,7 +113,8 @@ bool TLSServerRunner::start(const std::string& server_cert) {
       }
     }
 
-    auto status = self.startAndSetScript(self.port_, server_cert);
+    auto status =
+        self.startAndSetScript(self.port_, server_cert, verify_client_cert);
     if (!status.ok()) {
       // This is an unexpected problem, retry without waiting.
       LOG(WARNING) << status.getMessage();
@@ -171,6 +178,14 @@ void TLSServerRunner::setClientConfig() {
                     (getTestConfigDirectory() / "test_enroll_secret.txt")
                         .make_preferred()
                         .string());
+
+  Flag::updateValue(
+      "tls_client_cert",
+      (getTestConfigDirectory() / "test_client.pem").make_preferred().string());
+
+  Flag::updateValue(
+      "tls_client_key",
+      (getTestConfigDirectory() / "test_client.key").make_preferred().string());
 }
 
 void TLSServerRunner::unsetClientConfig() {

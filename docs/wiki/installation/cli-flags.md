@@ -670,6 +670,27 @@ Enforces that only FIPS endpoints can be used for the logger plugins (Kinesis, F
 Using a non compliant region for the logger plugins will cause osquery to fail to start; for other non compliant cases the specific service will fail to work.  
 In all non compliant cases, an error or warning message will be printed. In verbose mode an additional message will show if a certain service has FIPS enforced.
 
+`--aws_region`
+
+Configure the default region to use for the AWS services and tables. If not specified and a more specific region flag is not provided,
+a fallback mechanism will be used, which will try to read the local profile configuration and take the region from there.  
+If that fails too, the default region of `us-east-1` will be chosen.
+
+`--aws_sts_region`
+
+Configure the region to use when acquiring STS credentials. If not specified, the `--aws_region` flag value will be used if set,
+otherwise its fallback mechanism will be used.
+
+`--aws_firehose_region`
+
+Configure the region to use for the AWS Firehose logger plugin. If not specified, the `--aws_region` flag value will be used if set,
+otherwise its fallback mechanism will be used.
+
+`--aws_kinesis_region`
+
+Configure the region to use for the AWS Kinesis logger plugin. If not specified, the `--aws_region` flag value will be used if set,
+otherwise its fallback mechanism will be used.
+
 ## macOS keychain flags
 
 By default, Osquery limits frequent access to keychain files on macOS. This limit applies to `certificates`, `keychain_acls`, and `keychain_items` tables.

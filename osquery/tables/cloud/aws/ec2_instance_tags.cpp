@@ -40,8 +40,16 @@ QueryData genEc2InstanceTags(QueryContext& context) {
     return results;
   }
 
+  auto aws_region_res = AWSRegion::make(region, false);
+
+  if (aws_region_res.isError()) {
+    LOG(WARNING) << "Invalid region used to get EC2 instance tag: "
+                 << aws_region_res.getError();
+    return results;
+  }
+
   std::shared_ptr<ec2::EC2Client> client;
-  Status s = makeAWSClient<ec2::EC2Client>(client, region, false);
+  Status s = makeAWSClient<ec2::EC2Client>(client, aws_region_res.get(), false);
   if (!s.ok()) {
     LOG(WARNING) << "Failed to create EC2 client: " << s.what();
     return results;

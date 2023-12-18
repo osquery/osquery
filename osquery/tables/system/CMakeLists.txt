@@ -152,7 +152,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/running_apps.mm
       darwin/sandboxes.cpp
       darwin/screenlock.mm
-      darwin/secureboot.cpp
+      darwin/secureboot.mm
       darwin/shared_folders.mm
       darwin/sharing_preferences.cpp
       darwin/signature.mm
@@ -379,6 +379,7 @@ function(generateOsqueryTablesSystemSystemtable)
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
   elseif(DEFINED PLATFORM_MACOS)
+    add_test(NAME osquery_tables_system_darwin_keychain_tests-test COMMAND osquery_tables_system_darwin_keychain_tests-test)
     add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
 
     set_tests_properties(
