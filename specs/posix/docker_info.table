@@ -21,7 +21,7 @@ schema([
     Column("oom_kill_disable", INTEGER, "1 if Out-of-memory kill is disabled. 0 otherwise"),
     Column("logging_driver", TEXT, "Logging driver"),
     Column("cgroup_driver", TEXT, "Control groups driver"),
-    Column("kernel_version", TEXT, "Kernel version"),
+    Column("kernel_version", TEXT, "Kernel version", collate="version"),
     Column("os", TEXT, "Operating system"),
     Column("os_type", TEXT, "Operating system type"),
     Column("architecture", TEXT, "Hardware architecture"),
@@ -31,7 +31,7 @@ schema([
     Column("https_proxy", TEXT, "HTTPS proxy"),
     Column("no_proxy", TEXT, "Comma-separated list of domain extensions proxy should not be used for"),
     Column("name", TEXT, "Name of the docker host"),
-    Column("server_version", TEXT, "Server version"),
+    Column("server_version", TEXT, "Server version", collate="version"),
     Column("root_dir", TEXT, "Docker root directory")
 ])
 attributes(cacheable=True)

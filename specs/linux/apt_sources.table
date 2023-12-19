@@ -5,7 +5,7 @@ schema([
     Column("source", TEXT, "Source file"),
     Column("base_uri", TEXT, "Repository base URI"),
     Column("release", TEXT, "Release name"),
-    Column("version", TEXT, "Repository source version"),
+    Column("version", TEXT, "Repository source version", collate="version_dpkg"),
     Column("maintainer", TEXT, "Repository maintainer"),
     Column("components", TEXT, "Repository components"),
     Column("architectures", TEXT, "Repository architectures"),

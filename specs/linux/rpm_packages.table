@@ -2,7 +2,7 @@ table_name("rpm_packages")
 description("RPM packages that are currently installed on the host system.")
 schema([
     Column("name", TEXT, "RPM package name", index=True),
-    Column("version", TEXT, "Package version" ,index=True),
+    Column("version", TEXT, "Package version" ,index=True, collate="version_rhel"),
     Column("release", TEXT, "Package release", index=True),
     Column("source", TEXT, "Source RPM package name (optional)"),
     Column("size", BIGINT, "Package size in bytes"),

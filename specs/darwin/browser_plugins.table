@@ -5,7 +5,7 @@ schema([
       index=True),
     Column("name", TEXT, "Plugin display name"),
     Column("identifier", TEXT, "Plugin identifier"),
-    Column("version", TEXT, "Plugin short version"),
+    Column("version", TEXT, "Plugin short version", collate="version"),
     Column("sdk", TEXT, "Build SDK used to compile plugin"),
     Column("description", TEXT, "Plugin description text"),
     Column("development_region", TEXT, "Plugin language-localization"),

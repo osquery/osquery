@@ -1,7 +1,7 @@
 table_name("kernel_info")
 description("Basic active kernel information.")
 schema([
-  Column("version", TEXT, "Kernel version"),
+  Column("version", TEXT, "Kernel version", collate="version"),
   Column("arguments", TEXT, "Kernel arguments"),
   Column("path", TEXT, "Kernel path"),
   Column("device", TEXT, "Kernel device identifier"),

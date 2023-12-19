@@ -5,7 +5,7 @@ schema([
     Column("refs", INTEGER, "Reference count"),
     Column("size", BIGINT, "Bytes of wired memory used by extension"),
     Column("name", TEXT, "Extension label"),
-    Column("version", TEXT, "Extension version"),
+    Column("version", TEXT, "Extension version", collate="version"),
     Column("linked_against", TEXT,
       "Indexes of extensions this extension is linked against"),
     Column("path", TEXT, "Optional path to extension bundle"),
