@@ -21,7 +21,6 @@
 #include <aws/core/http/HttpClientFactory.h>
 #include <aws/core/http/standard/StandardHttpResponse.h>
 #include <aws/core/utils/StringUtils.h>
-
 #include <aws/ec2/EC2Client.h>
 #include <aws/firehose/FirehoseClient.h>
 #include <aws/kinesis/KinesisClient.h>
@@ -61,6 +60,43 @@ extern const std::string kImdsTokenTtlHeader;
 
 /// Default TTL value for IMDSv2 API token
 extern const std::string kImdsTokenTtlDefaultValue;
+
+enum class AWSServiceType { EC2, Firehose, Kinesis, STS };
+
+enum class AWSRegionError { Generic, NotFIPSCompliant };
+
+/**
+ * @brief Class that represents a valid AWS Region
+ */
+class AWSRegion {
+ public:
+  AWSRegion() = delete;
+
+  /**
+   * @brief Constructs a valid AWS Region from a suggested region
+   *
+   * @param region Which region to use
+   * @param validate_region If the function should validate the region name
+   * found against a list of known values.
+   *
+   * @return Either a valid AWSRegion or an error
+   */
+  static Expected<AWSRegion, AWSRegionError> make(const std::string& region,
+                                                  bool validate_region = true);
+
+  const std::string& getRegion() const {
+    return region_;
+  }
+
+ private:
+  friend class DummyLogForwarder;
+
+  AWSRegion(const std::string& region);
+  std::string region_;
+};
+
+template <typename T>
+struct always_false : std::false_type {};
 
 /**
  * @brief Client factory for the Osquery HTTP client
@@ -197,24 +233,6 @@ boost::optional<std::string> getIMDSToken();
 boost::optional<std::pair<std::string, std::string>> getInstanceIDAndRegion();
 
 /**
- * @brief Retrieve the configured Aws::Region
- *
- * The region can come from the aws_region flag, the aws_sts_region flag
- * if the sts parameter is true, or the local AWS profile,
- * if no flag was specified.
- *
- * @param region The output string containing the region name
- * @param sts If to retrieve the STS region in the aws_sts_region flag or not
- * @param validate_region If the function should validate the region name found
- * against a list of known values.
- *
- * @return 0 if successful, 1 if the region was not recognized.
- */
-Status getAWSRegion(std::string& region,
-                    bool sts = false,
-                    bool validate_region = true);
-
-/**
  * @brief Set HTTP/HTTPS proxy information on the AWS ClientConfiguration
  * using relevant flags for scheme, host, port, username, and password
  *
@@ -225,12 +243,18 @@ Status getAWSRegion(std::string& region,
  */
 void setAWSProxy(Aws::Client::ClientConfiguration& config);
 
-Status setAwsClientConfig(const std::string& region,
-                          const std::string& service_type,
+/**
+ * @brief Prepare an AWS client configuration for the provided service.
+ * @param region AWS region to connect to. If not specified, will try to figure
+ * out based on the configuration flags and AWS profile.
+ * @param service_type The service the client should communicate with.
+ * @param endpoint_override Custom AWS service endpoint.
+ * @param config Configuration prepared for the client.
+ */
+Status setAwsClientConfig(const AWSRegion& region,
+                          const AWSServiceType service_type,
                           const std::string& endpoint_override,
-                          bool sts,
                           Aws::Client::ClientConfiguration& config);
-
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs,
  *
@@ -242,38 +266,44 @@ Status setAwsClientConfig(const std::string& region,
  * @param client Pointer to the client object to instantiate.
  * @param region AWS region to connect to. If not specified, will try to figure
  * out based on the configuration flags and AWS profile.
+ * @param use_sts_credentials If we have to authenticate with STS credentials
+ * to the service this client will communicate with.
  * @param endpoint_override Custom AWS service endpoint.
  *
  * @return 0 if successful, 1 if there was a problem reading configs.
  */
 template <class Client>
 Status makeAWSClient(std::shared_ptr<Client>& client,
-                     const std::string& region = "",
-                     bool sts = true,
+                     const AWSRegion& region,
+                     bool use_sts_credentials = true,
                      const std::string& endpoint_override = "") {
-  std::string service_type;
+  constexpr AWSServiceType service_type = []() {
+    if constexpr (std::is_same_v<Client, Aws::Kinesis::KinesisClient>) {
+      return AWSServiceType::Kinesis;
+    } else if constexpr (std::is_same_v<Client,
+                                        Aws::Firehose::FirehoseClient>) {
+      return AWSServiceType::Firehose;
+    } else if constexpr (std::is_same_v<Client, Aws::STS::STSClient>) {
+      return AWSServiceType::STS;
+    } else if constexpr (std::is_same_v<Client, Aws::EC2::EC2Client>) {
+      return AWSServiceType::EC2;
+    } else {
+      static_assert(always_false<Client>::value, "Unsupported AWS Client type");
+    }
+  }();
 
   Aws::Client::ClientConfiguration client_config;
 
-  if constexpr (std::is_same_v<Client, Aws::Kinesis::KinesisClient>) {
-    service_type = "kinesis";
-  } else if constexpr (std::is_same_v<Client, Aws::Firehose::FirehoseClient>) {
-    service_type = "firehose";
-  } else if constexpr (std::is_same_v<Client, Aws::STS::STSClient>) {
-    service_type = "sts";
-  } else if constexpr (std::is_same_v<Client, Aws::EC2::EC2Client>) {
-    service_type = "ec2";
-  }
-
   Status s = setAwsClientConfig(
-      region, service_type, endpoint_override, sts, client_config);
+      region, service_type, endpoint_override, client_config);
 
   if (!s.ok()) {
     return s;
   }
 
   client = std::make_shared<Client>(
-      std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
+      std::make_shared<OsqueryAWSCredentialsProviderChain>(use_sts_credentials),
+      client_config);
   return Status::success();
 }
 
@@ -292,8 +322,9 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log);
 /**
  * @brief Enable the FIPS endpoint for the specified region
  *
+ * @param service_type Service for which we are trying to enable FIPS
  * @param config AWS client configuration to be modified to enable FIPS
  */
-void enableFIPSInClientConfig(const std::string& service,
+void enableFIPSInClientConfig(const AWSServiceType service_type,
                               Aws::Client::ClientConfiguration& config);
 } // namespace osquery

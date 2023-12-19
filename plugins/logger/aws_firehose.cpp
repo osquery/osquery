@@ -34,14 +34,28 @@ FLAG(string, aws_firehose_stream, "", "Name of Firehose stream for logging")
 
 FLAG(string, aws_firehose_endpoint, "", "Custom Firehose endpoint");
 
+FLAG(string,
+     aws_firehose_region,
+     "",
+     "Region to use for Firehose instead of the default. This takes precedence "
+     "over the aws_region flag")
+
 Status FirehoseLoggerPlugin::setUp() {
   initAwsSdk();
+
+  auto aws_region_res = AWSRegion::make(FLAGS_aws_firehose_region,
+                                        FLAGS_aws_firehose_endpoint.empty());
+
+  if (aws_region_res.isError()) {
+    return Status::failure(aws_region_res.getError().getMessage());
+  }
 
   forwarder_ =
       std::make_shared<FirehoseLogForwarder>("aws_firehose",
                                              FLAGS_aws_firehose_period,
                                              500,
-                                             FLAGS_aws_firehose_endpoint);
+                                             FLAGS_aws_firehose_endpoint,
+                                             aws_region_res.get());
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing Firehose logger: " << s.getMessage();
@@ -122,4 +136,4 @@ FirehoseLogForwarder::Result FirehoseLogForwarder::getResult(
     Outcome& outcome) const {
   return outcome.GetResult().GetRequestResponses();
 }
-}
+} // namespace osquery

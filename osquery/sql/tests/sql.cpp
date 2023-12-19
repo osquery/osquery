@@ -462,4 +462,291 @@ TEST_F(SQLTests, test_concat_ws_fail) {
   ASSERT_TRUE(!status.ok());
 }
 
+/*
+ * version_compare
+ */
+TEST_F(SQLTests, test_version_compare) {
+  QueryData d;
+  auto status = query(
+      "select version_compare('1.0', '1.0') as t0, \
+              version_compare('1:2.0-10', '1:2.0-10', 'DPKG') as t1, \
+              version_compare('4:1.1.0', '4:1.1.0-3', 'arCH') as t2, \
+              version_compare('50.4.1b', '50.4.1c') as t3, \
+              version_compare('1.0.8-4', '1.0.8-6', 'arch') as t4, \
+              version_compare('1.0.0~rc2^2021', '1.0.0', 'RHEL') as t5, \
+              version_compare('1.1.0~BETA2^1', '1.1.0~CR1', 'RhEl') as t6, \
+              version_compare('1.0.1.1', '1.0.1^2021', 'rhel') as t7, \
+              version_compare('1.9.9-1ubuntu2.4', '1.9.9-1ubuntu2.3', 'dpkg') as t8, \
+              version_compare('1:1.2.13-2', '4.2.1', 'ARCH') as t9, \
+              version_compare('106.32.1', '106:32.1') as t10",
+      d);
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "0");
+  EXPECT_EQ(d[0]["t1"], "0");
+  EXPECT_EQ(d[0]["t2"], "0");
+  EXPECT_EQ(d[0]["t3"], "-1");
+  EXPECT_EQ(d[0]["t4"], "-1");
+  EXPECT_EQ(d[0]["t5"], "-1");
+  EXPECT_EQ(d[0]["t6"], "-1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "0");
+}
+
+/*
+ * collate version
+ */
+TEST_F(SQLTests, test_collate_version_eq) {
+  QueryData d;
+  // 1:0.0 = 1.0.0 - This is to showcase that if delimiter_precedence = false,
+  // delimiters will be equal.
+  auto status = query(
+      "select '1.0' = '1.0' collate version as t0, \
+              '1:0.0' = '1.0.0' collate version as t1, \
+              '2.50^1a' = '2.50~1a' collate version as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_lt) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' < '1.1' collate version as t0, \
+              '1.1' < '1.a' collate version as t1, \
+              '50.4.1b' < '50.4.1c' collate version as t2, \
+              '1.0.0' < '1.0.0-2' collate version as t3, \
+              '1.0.0-2' < '1:0.0.3' collate version as t4",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_gt) {
+  QueryData d;
+  auto status = query(
+      "select '1.1' > '1.0' collate version as t0, \
+              '190.10a' > '20.10a' collate version as t1, \
+              '20.10a' > '20.102' collate version as t2, \
+              '57:4' > '6.87.5' collate version as t3, \
+              '98.100.21-1b' > '98.100.21-1a' collate version as t4",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+}
+
+/*
+ * collate version arch
+ */
+TEST_F(SQLTests, test_collate_version_arch_eq) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' = '1.0' collate version_arch as t0, \
+              '1.0' = '1.0-4' collate version_arch as t1, \
+              '4:2' = '4:2-1' collate version_arch as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_arch_lt) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' < '1.1' collate version_arch as t0, \
+              '1.6.1-9' < '1.6.1-10' collate version_arch as t1, \
+              '20220713-1' < '20221123-1' collate version_arch as t2, \
+              '2-2pre' < '2-2rc' collate version_arch as t3, \
+              '2.38-6' < '2.39-4' collate version_arch as t4, \
+              '1.0.8-4' < '1.0.8-5' collate version_arch as t5, \
+              '20210603-1' < '20220905-1' collate version_arch as t6, \
+              '41.1-2' < '43alpha+r8+g1de47dbc-1' collate version_arch as t7, \
+              '9.1-1' < '9.1-3' collate version_arch as t8, \
+              '1:42.3.1-1' < '1:43.2-1' collate version_arch as t9, \
+              '42.3-1' < '43.2-1' collate version_arch as t10",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+  EXPECT_EQ(d[0]["t6"], "1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_arch_gt) {
+  QueryData d;
+  auto status = query(
+      "select '1.1' > '1.0' collate version_arch as t0, \
+              '3.46.7-1' > '3.44.1-1' collate version_arch as t1, \
+              '6.0.12.arch1-1' > '5.18.14.arch1-1' collate version_arch as t2, \
+              '5.6.0-2' > '5.3.0-2' collate version_arch as t3, \
+              '6.0.2-5' > '6.0.1-5' collate version_arch as t4, \
+              '3:0.164.r3095.baee400-4' > '3:0.164.r3081.19856cc-2' collate version_arch as t5, \
+              '2022.2-1' > '2022.1-1' collate version_arch as t6, \
+              '5.2.9-1' > '5.2.5-3' collate version_arch as t7, \
+              '42.2-1' > '42.1-2' collate version_arch as t8, \
+              '0.23.90-1' > '0.23.1-9' collate version_arch as t9, \
+              '1:1.2.13-2' > '4.2.1' collate version_arch as t10",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+  EXPECT_EQ(d[0]["t6"], "1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "1");
+}
+
+/*
+ * collate version dpkg
+ */
+TEST_F(SQLTests, test_collate_version_dpkg_eq) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' = '1.0' collate version_dpkg as t0, \
+              '1.0-0' = '1.0-0' collate version_dpkg as t1, \
+              '1:2.0-10' = '1:2.0-10' collate version_dpkg as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_dpkg_lt) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' < '1.1' collate version_dpkg as t0, \
+              '22.07.5-2ubuntu1.3' < '22.07.5-2ubuntu1.4' collate version_dpkg as t1, \
+              '12ubuntu4.2' < '12ubuntu4.3' collate version_dpkg as t2, \
+              '2.38-4ubuntu2.1' < '2.38-4ubuntu2.2' collate version_dpkg as t3, \
+              '1.19.2-2ubuntu0.1' < '1.19.2-2ubuntu0.2' collate version_dpkg as t4, \
+              '2.5.13+dfsg-0ubuntu0.22.04.1' < '2.5.14+dfsg-0ubuntu0.22.04.2' collate version_dpkg as t5",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_dpkg_gt) {
+  QueryData d;
+  auto status = query(
+      "select '1.1' > '1.0' collate version_dpkg as t0, \
+              '1.21.1ubuntu2.2' > '1.21.1ubuntu2.1' collate version_dpkg as t1, \
+              '3.0.2-0ubuntu1.10' > '3.0.2-0ubuntu1.8' collate version_dpkg as t2, \
+              '5.34.0-3ubuntu1.2' > '5.34.0-3ubuntu1.1' collate version_dpkg as t3, \
+              '1.9.9-1ubuntu2.4' > '1.9.9-1ubuntu2.3' collate version_dpkg as t4, \
+              '2:8.2.3995-1ubuntu2.9' > '2:8.2.3995-1ubuntu2.3' collate version_dpkg as t5",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+}
+
+/*
+ * collate version rhel
+ */
+TEST_F(SQLTests, test_collate_version_rhel_eq) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' = '1.0' collate version_rhel as t0, \
+              '0.5.0~rc1^202' = '0.5.0~rc1^202' collate version_rhel as t1, \
+              '1:1.0.0~rc2' = '1:1.0.0~rc2' collate version_rhel as t2",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_rhel_lt) {
+  QueryData d;
+  auto status = query(
+      "select '1.0' < '1.1' collate version_rhel as t0, \
+              '1.0.0~rc2^2021' < '1.0.0' collate version_rhel as t1, \
+              '1.0.0' < '1.0.1' collate version_rhel as t2, \
+              '1.0.1' < '1.0.1^2021' collate version_rhel as t3, \
+              '1.0.1^2021' < '1.0.1.security1' collate version_rhel as t4, \
+              '1.0.1' < 'pkg-1.0.1.security1' collate version_rhel as t5, \
+              '1.1.0~BETA2' < '1.1.0~CR1' collate version_rhel as t6, \
+              '1.1.0.2021.SP1' < '1.1.0.2021.SP1_CP1' collate version_rhel as t7, \
+              '9.11.4-26.P2.el7_9.10' < '32:9.11.4-26.P2.el7_9.13' collate version_rhel as t8, \
+              '1:1.8.0.352.b08-2.el7_9' < '1:1.8.0.372.b07-1.el7_9' collate version_rhel as t9, \
+              '5.6.0-1.linux' < '5.9.1-1.linux' collate version_rhel as t10",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+  EXPECT_EQ(d[0]["t6"], "1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "1");
+}
+
+TEST_F(SQLTests, test_collate_version_rhel_gt) {
+  QueryData d;
+  auto status = query(
+      "select '1.1' > '1.0' collate version_rhel as t0, \
+              '1.0.0~rc2' > '1.0.0~rc1' collate version_rhel as t1, \
+              '1.0.0' > '1.0.0~rc2' collate version_rhel as t2, \
+              '1.0.1.security1' > '1.0.0~rc2' collate version_rhel as t3, \
+              '1.1.0~BETA' > '1.0.1.security1' collate version_rhel as t4, \
+              '1.1.0~CR1' > '1.1.0~BETA' collate version_rhel as t5, \
+              '1.1.0.20201001.GA1' > '1.1.0~CR1' collate version_rhel as t6, \
+              '1.0.0~rc2^20210101gf00fabd' > '1.0.0~rc2' collate version_rhel as t7, \
+              '1.0.0' > '1.0.0~rc2^20210101gf00fabd' collate version_rhel as t8, \
+              '1.0.1^20210203gbbbccc0' > '1.0.1' collate version_rhel as t9, \
+              '1.0.1.security1' > '1.0.1^20210203gbbbccc0' collate version_rhel as t10",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["t0"], "1");
+  EXPECT_EQ(d[0]["t1"], "1");
+  EXPECT_EQ(d[0]["t2"], "1");
+  EXPECT_EQ(d[0]["t3"], "1");
+  EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
+  EXPECT_EQ(d[0]["t6"], "1");
+  EXPECT_EQ(d[0]["t7"], "1");
+  EXPECT_EQ(d[0]["t8"], "1");
+  EXPECT_EQ(d[0]["t9"], "1");
+  EXPECT_EQ(d[0]["t10"], "1");
+}
+
 } // namespace osquery

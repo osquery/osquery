@@ -17,16 +17,16 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/logger/logger.h>
 #include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/info/platform_type.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 
-#include "osquery/remote/tests/test_utils.h"
 #include "osquery/config/tests/test_utils.h"
+#include "osquery/remote/tests/test_utils.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -57,10 +57,11 @@ class TLSTransportsTests : public testing::Test {
     initDatabasePluginForTesting();
   }
 
-  void startServer(const std::string& server_cert = {}) {
+  void startServer(const std::string& server_cert = {},
+                   bool verify_client_cert = false) {
     certs_ = FLAGS_tls_server_certs;
     FLAGS_tls_server_certs = "";
-    ASSERT_TRUE(TLSServerRunner::start(server_cert));
+    ASSERT_TRUE(TLSServerRunner::start(server_cert, verify_client_cert));
     port_ = TLSServerRunner::port();
   }
 
@@ -178,7 +179,7 @@ TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {
 }
 
 TEST_F(TLSTransportsTests, test_call_client_auth) {
-  startServer();
+  startServer({}, true);
 
   auto t = std::make_shared<TLSTransport>();
   t->setPeerCertificate(
@@ -197,7 +198,8 @@ TEST_F(TLSTransportsTests, test_call_client_auth) {
 
 TEST_F(TLSTransportsTests, test_wrong_hostname) {
   startServer(
-      (getTestConfigDirectory() / "test_server_wrong_hostname.pem").string());
+      (getTestConfigDirectory() / "test_server_wrong_hostname.pem").string(),
+      true);
 
   auto t = std::make_shared<TLSTransport>();
   t->setPeerCertificate(

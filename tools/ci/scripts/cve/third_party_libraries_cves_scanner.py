@@ -10,6 +10,7 @@
 import json
 import argparse
 import os
+from typing import Optional
 import nvdlib
 from osquery.github_api import GithubAPI
 from osquery.manifest_api import validateManifestFormat
@@ -37,9 +38,14 @@ def print_err(message: str):
 
 
 def getCVES(
-    vendor: str, product: str, api_key, interval: int, library_name: str, version=None, date=None
+    vendor: str,
+    product: str,
+    api_key,
+    interval: int,
+    library_name: str,
+    version: Optional[str] = None,
+    date_string: Optional[str] = None,
 ):
-
     attempt = 0
     max_attempts = 3
     nist_cves = []
@@ -50,9 +56,10 @@ def getCVES(
         try:
             if version is not None:
                 nist_cves = nvdlib.searchCVE(
-                    cpeMatchString="cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*" % (vendor, product, version),
-                    sortPublished=True,
+                    cpeName="cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*"
+                    % (vendor, product, version),
                     key=api_key,
+                    isVulnerable=True,
                 )
                 break
             else:
@@ -62,15 +69,17 @@ def getCVES(
                 # 120 days at a time, since the NVD API is limited
 
                 if attempt == 0:
-                    start_date = datetime.strptime(date, "%Y-%m-%d")
+                    start_date = datetime.strptime(date_string, "%Y-%m-%d")
                     end_date = start_date
 
                 while end_date < now:
                     end_date = start_date + timedelta(days=120)
 
+                    # We use virtualMatchString since it permits to not specify the version,
+                    # which we can't specify because we are searching via published date
                     cves = nvdlib.searchCVE(
-                        cpeMatchString="cpe:2.3:a:%s:%s:*:*:*:*:*:*:*:*" % (vendor, product),
-                        sortPublished=True,
+                        virtualMatchString="cpe:2.3:a:%s:%s:*:*:*:*:*:*:*:*"
+                        % (vendor, product),
                         pubStartDate=start_date,
                         pubEndDate=end_date,
                         key=api_key,
@@ -101,7 +110,7 @@ class CVE:
     def __init__(self, name, severity, description, url) -> None:
         self.name = name
         self.severity = severity
-        self.description = description
+        self.description = "No description" if description is None else description
         self.url = url
 
 
@@ -135,7 +144,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--create_issues",
+    "--create-issues",
     help="When enabled the script will also create a Github issue for each new CVE found",
     required=False,
     action="store_true",
@@ -157,7 +166,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--debug", action="store_true", default=False, required=False, help="Enable debug prints"
+    "--debug",
+    action="store_true",
+    default=False,
+    required=False,
+    help="Enable debug prints",
 )
 
 parser.add_argument(
@@ -209,7 +222,6 @@ if args.libraries:
 
 # Loop through all the libraries in the manifest
 for library_name, library_metadata in libraries.items():
-
     # Some libraries do not have CPEs so we cannot query them
     if library_name in libraries_without_cpe:
         continue
@@ -224,10 +236,10 @@ for library_name, library_metadata in libraries.items():
     if "version" in library_metadata:
         version = library_metadata["version"]
         print(f"Verifying CVEs for library: {library_name} {version}")
-        date = None
+        date_string = None
     else:
-        date = library_metadata["date"]
-        print(f"Verifying CVEs for library: {library_name} {date}")
+        date_string = library_metadata["date"]
+        print(f"Verifying CVEs for library: {library_name} {date_string}")
         version = None
 
     vendor = library_metadata["vendor"]
@@ -251,7 +263,12 @@ for library_name, library_metadata in libraries.items():
         )
     else:
         nist_cves, had_errors = getCVES(
-            vendor, product, api_key, nvd_interval, library_name, date=date
+            vendor,
+            product,
+            api_key,
+            nvd_interval,
+            library_name,
+            date_string=date_string,
         )
 
     # We assume errors are due to rate limiting and double the time we wait for each CVE query
@@ -270,14 +287,22 @@ for library_name, library_metadata in libraries.items():
     nist_cves.sort(key=lambda cve: cve.id, reverse=True)
 
     for cve in nist_cves:
-        if hasattr(cve, "v3severity"):
-            severity = cve.v3severity
+        if hasattr(cve, "v31severity"):
+            severity = cve.v31severity
+        elif hasattr(cve, "v30severity"):
+            severity = cve.v30severity
         elif hasattr(cve, "v2severity"):
             severity = cve.v2severity
         else:
             severity = "UNKNOWN"
 
-        cves.append(CVE(cve.id, severity, cve.cve.description.description_data[0].value, cve.url))
+        # Find the english description
+        description_text = None
+        for description in cve.descriptions:
+            if description.lang == "en":
+                description_text = description.value
+
+        cves.append(CVE(cve.id, severity, description_text, cve.url))
 
     cves_per_library.append({"name": library_name, "cves": cves})
 
@@ -301,7 +326,9 @@ for library in cves_per_library:
         if cve.name not in all_ignored_cves:
             cves_messages.append(f"\t Name: {cve.name}\tSeverity: {cve.severity}")
         else:
-            ignored_cves_messages.append(f"\t Name: {cve.name}\tSeverity: {cve.severity}")
+            ignored_cves_messages.append(
+                f"\t Name: {cve.name}\tSeverity: {cve.severity}"
+            )
 
     if len(cves_messages) > 0:
         libraries_with_cves.append((library["name"], cves_messages))
@@ -324,7 +351,6 @@ for library in libraries_with_ignored_cves:
     print()
 
 if args.create_issues:
-
     github_token = None
     if not args.github_token:
         github_token = os.environ.get("GITHUB_TOKEN")
@@ -338,7 +364,9 @@ if args.create_issues:
     github_api = GithubAPI(args.source_repo, args.dest_repo, github_token, DEBUG)
 
     print("Retrieving already opened issues")
-    issues_batches = github_api.getRecentOpenIssues(labels=["cve", "security", "libraries"])
+    issues_batches = github_api.getRecentOpenIssues(
+        labels=["cve", "security", "libraries"]
+    )
 
     # Process all opened issues and extract a list of CVEs that have been already reported
     opened_cve_issues = set()
@@ -374,7 +402,12 @@ if args.create_issues:
                 github_api.createIssue(
                     f"Library {library_name} has vulnerability {cve.name}",
                     issue_description,
-                    [f"severity-{cve.severity.lower()}", "cve", "libraries", "security"],
+                    [
+                        f"severity-{cve.severity.lower()}",
+                        "cve",
+                        "libraries",
+                        "security",
+                    ],
                 )
             except Exception as e:
                 print(f"Failed to create issue for library {library_name}: {e}")

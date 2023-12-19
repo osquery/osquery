@@ -125,7 +125,7 @@ jobs:
 
   # This job runs source code analysis tools (currently, just cppcheck)
   check_source_code:
-    needs: [check_libraries_manifest, check_libraries_manifest]
+    needs: [check_code_style, check_libraries_manifest]
 
     runs-on: ${{ matrix.os }}
 
@@ -240,7 +240,7 @@ jobs:
   # The Linux build will only start once we know that the code
   # has been properly formatted
   build_linux:
-    needs: check_code_style
+    needs: [check_code_style, check_libraries_manifest]
 
     runs-on: ${{ matrix.os }}
 
@@ -259,7 +259,7 @@ jobs:
       run: |
         run_on_host="nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
-        \|^libmono-.*\|^temurin-.*\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
+        \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
 
     - name: Clone the osquery repository
@@ -543,7 +543,7 @@ jobs:
   # The macOS build will only start once we know that the code
   # has been properly formatted
   build_macos:
-    needs: check_code_style
+    needs: [check_code_style, check_libraries_manifest]
 
     runs-on: ${{ matrix.os }}
 
@@ -938,7 +938,7 @@ jobs:
   # The Windows build will only start once we know that the code
   # has been properly formatted
   build_windows:
-    needs: check_code_style
+    needs: [check_code_style, check_libraries_manifest]
 
     runs-on: ${{ matrix.os }}
 

@@ -1,7 +1,7 @@
 project(thirdparty_openssl)
 
-set(OPENSSL_VERSION "3.1.3")
-set(OPENSSL_ARCHIVE_SHA256 "f0316a2ebd89e7f2352976445458689f80302093788c466692fb2a188b2eacf6")
+set(OPENSSL_VERSION "3.2.0")
+set(OPENSSL_ARCHIVE_SHA256 "14c826f07c7e433706fb5c69fa9e25dab95684844b4c962a2cf1bf183eb4690e")
 
 set(OSQUERY_OPENSSL_ARCHIVE_PATH "" CACHE FILEPATH "Optional path to an openssl archive to use instead of downloading it")
 

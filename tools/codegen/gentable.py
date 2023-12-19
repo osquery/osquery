@@ -73,8 +73,16 @@ COLUMN_OPTIONS = {
     "required": "REQUIRED",
     "optimized": "OPTIMIZED",
     "hidden": "HIDDEN",
-    "collate_nocase": "COLLATENOCASE",
+    "collate": "COLLATE",
 }
+
+# Available collation sequences to set on column definitions.
+# This should mimic the collation sequences in ColumnOptions.
+COLLATIONS = [
+    "BINARY",
+    "NOCASE",
+    "RTRIM",
+]
 
 # Column options that render tables uncacheable.
 NON_CACHEABLE = [
@@ -215,7 +223,17 @@ class TableState(Singleton):
             for option in column.options:
                 # Only allow explicitly-defined options.
                 if option in COLUMN_OPTIONS:
-                    column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option])
+                    if option == "collate":
+                        collation = str(column.options["collate"]).upper()
+                        if collation in COLLATIONS:
+                            column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option] + collation)
+                        else:
+                            print(lightred(
+                                "Table %s column %s contains an unknown collation sequence: %s" % (
+                                self.table_name, column.name, column.options["collate"])))
+                            exit(1)
+                    else:
+                        column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option])
                     all_options.append(COLUMN_OPTIONS[option])
                 else:
                     print(yellow(

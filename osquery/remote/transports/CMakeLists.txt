@@ -7,7 +7,7 @@
 
 function(osqueryRemoteTransportsMain)
 
-  if(OSQUERY_BUILD_TESTS AND DEFINED PLATFORM_POSIX)
+  if(OSQUERY_BUILD_TESTS)
     generateOsqueryRemoteTransportsRemotetransportstlstestsTest()
   endif()
 
@@ -34,20 +34,18 @@ function(generateOsqueryRemoteTransportsTransportstls)
 
   generateIncludeNamespace(osquery_remote_transports_transportstls "osquery/remote/transports" "FILE_ONLY" ${public_header_files})
 
-  if(DEFINED PLATFORM_POSIX)
-    add_test(NAME osquery_remote_transports_remotetransportstlstests-test COMMAND osquery_remote_transports_remotetransportstlstests-test)
+  add_test(NAME osquery_remote_transports_remotetransportstlstests-test COMMAND osquery_remote_transports_remotetransportstlstests-test)
 
-    set(remotetransportstlstests-test_env
-      "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-      "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
-      "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
-    )
+  set(remotetransportstlstests-test_env
+    "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
+    "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
 
-    set_tests_properties(
-      osquery_remote_transports_remotetransportstlstests-test
-      PROPERTIES ENVIRONMENT "${remotetransportstlstests-test_env}"
-    )
-  endif()
+  set_tests_properties(
+    osquery_remote_transports_remotetransportstlstests-test
+    PROPERTIES ENVIRONMENT "${remotetransportstlstests-test_env}"
+  )
 endfunction()
 
 

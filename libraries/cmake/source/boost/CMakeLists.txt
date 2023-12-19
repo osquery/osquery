@@ -142,6 +142,10 @@ function(importBoostInterfaceLibraries)
     importBoostInterfaceLibrary("${library_name}" ${library_dependency_list})
   endforeach()
 
+  target_compile_definitions(thirdparty_boost_container_hash INTERFACE
+    BOOST_NO_CXX98_FUNCTION_BASE
+  )
+
   # Additional settings for the libraries we just imported
   if(PLATFORM_LINUX)
     target_compile_definitions(thirdparty_boost_uuid INTERFACE
