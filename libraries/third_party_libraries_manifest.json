@@ -233,8 +233,8 @@
   "libxml2": {
     "product": "libxml2",
     "vendor": "xmlsoft",
-    "version": "2.11.2",
-    "commit": "838bf42d54f94c8ff99b6e5022899a32875ed5d7",
+    "version": "2.12.3",
+    "commit": "30d22bec03893ad646907050959bdfe9e8000146",
     "ignored-cves": []
   },
   "linenoise-ng": {
