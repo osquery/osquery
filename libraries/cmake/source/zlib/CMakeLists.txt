@@ -38,6 +38,14 @@ function(zlibMain)
     )
   endif()
 
+  if(DEFINED PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_zlib PRIVATE
+      NO_FSEEKO
+      _CRT_NONSTDC_NO_DEPRECATE
+      _CRT_SECURE_NO_DEPRECATE
+    )
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     target_compile_definitions(thirdparty_zlib PRIVATE
       _LARGEFILE64_SOURCE=1
