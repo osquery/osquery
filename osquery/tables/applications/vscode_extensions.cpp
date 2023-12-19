@@ -23,81 +23,80 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-namespace {
-std::string getStringValuefromRjObject(const rapidjson::Value& obj,
-                                       const std::string& key) {
-  rapidjson::Value::ConstMemberIterator itr = obj.FindMember(key);
-  if (itr != obj.MemberEnd()) {
-    const rapidjson::Value& value = itr->value;
-
-    if (value.IsString()) {
-      return value.GetString();
-    }
-
-    if (value.IsInt64()) {
-      return std::to_string(value.GetInt64());
-    }
-
-    if (value.IsBool()) {
-      return value.GetBool() ? "1" : "0";
-    }
-  }
-
-  return "";
-}
-} // namespace
-
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
                                     QueryData& results) {
   std::string json;
   if (!readFile(path, json).ok()) {
-    LOG(INFO) << "Could not read vscode extensions.json from '" << path << "'";
+    LOG(INFO) << "Could not read vscode extensions.json from " << path;
     return;
   }
 
   auto doc = JSON::newArray();
   if (!doc.fromString(json) || !doc.doc().IsArray()) {
-    LOG(WARNING) << "Could not parse vscode extensions.json from " << path
-                 << "'";
+    LOG(WARNING) << "Could not parse vscode extensions.json from " << path;
     return;
   }
 
-  rapidjson::Value::ConstValueIterator itr;
-  for (itr = doc.doc().Begin(); itr != doc.doc().End(); ++itr) {
-    const rapidjson::Value& extension = *itr;
-
+  for (const rapidjson::Value& extension : doc.doc().GetArray()) {
     if (!(extension.IsObject() && extension.HasMember("identifier") &&
           extension.HasMember("metadata") && extension.HasMember("location"))) {
+      LOG(WARNING) << "Extension entry missing expected subkeys in " << path;
       continue;
     }
-
     const rapidjson::Value& identifier = extension["identifier"];
     const rapidjson::Value& metadata = extension["metadata"];
     const rapidjson::Value& location = extension["location"];
-
-    if (identifier.IsObject() && metadata.IsObject() && location.IsObject()) {
-      std::string name = getStringValuefromRjObject(identifier, "id");
-
-      if (name != "") {
-        Row r;
-
-        r["name"] = name;
-        r["uuid"] = getStringValuefromRjObject(identifier, "uuid");
-        r["version"] = getStringValuefromRjObject(extension, "version");
-        r["path"] = getStringValuefromRjObject(location, "path");
-        r["publisher"] =
-            getStringValuefromRjObject(metadata, "publisherDisplayName");
-        r["publisher_id"] = getStringValuefromRjObject(metadata, "publisherId");
-        r["installed_at"] =
-            getStringValuefromRjObject(metadata, "installedTimestamp");
-        std::string is_pre_release =
-            getStringValuefromRjObject(metadata, "isPreReleaseVersion");
-        r["prerelease"] = (is_pre_release != "") ? is_pre_release : "0";
-        r["uid"] = uid;
-        results.push_back(r);
-      }
+    if (!(identifier.IsObject() && metadata.IsObject() &&
+          location.IsObject())) {
+      LOG(WARNING) << "Extension subkeys are not objects in " << path;
+      continue;
     }
+
+    Row r;
+    r["uid"] = uid;
+
+    rapidjson::Value::ConstMemberIterator it = identifier.FindMember("id");
+    if (it != identifier.MemberEnd() && it->value.IsString()) {
+      r["name"] = it->value.GetString();
+    }
+
+    it = identifier.FindMember("uuid");
+    if (it != identifier.MemberEnd() && it->value.IsString()) {
+      r["uuid"] = it->value.GetString();
+    }
+
+    it = extension.FindMember("version");
+    if (it != extension.MemberEnd() && it->value.IsString()) {
+      r["version"] = it->value.GetString();
+    }
+
+    it = location.FindMember("path");
+    if (it != location.MemberEnd() && it->value.IsString()) {
+      r["path"] = it->value.GetString();
+    }
+
+    it = metadata.FindMember("publisherDisplayName");
+    if (it != metadata.MemberEnd() && it->value.IsString()) {
+      r["publisher"] = it->value.GetString();
+    }
+
+    it = metadata.FindMember("publisherId");
+    if (it != metadata.MemberEnd() && it->value.IsString()) {
+      r["publisher_id"] = it->value.GetString();
+    }
+
+    it = metadata.FindMember("installedTimestamp");
+    if (it != metadata.MemberEnd() && it->value.IsInt64()) {
+      r["installed_at"] = INTEGER(it->value.GetInt64());
+    }
+
+    it = metadata.FindMember("isPreReleaseVersion");
+    if (it != metadata.MemberEnd() && it->value.IsBool()) {
+      r["prerelease"] = INTEGER(it->value.GetBool() ? "1" : "0");
+    }
+
+    results.push_back(r);
   }
 }
 
