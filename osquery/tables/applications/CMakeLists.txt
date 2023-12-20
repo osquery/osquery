@@ -20,6 +20,7 @@ function(generateOsqueryTablesApplications)
     chrome/chrome_extension_content_scripts.cpp
     chrome/utils.cpp
     browser_firefox.cpp
+    vscode_extensions.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
