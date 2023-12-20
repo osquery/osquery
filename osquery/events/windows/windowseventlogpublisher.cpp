@@ -208,7 +208,7 @@ double WindowsEventLogPublisher::cosineSimilarity(
   std::vector<double> buffer_freqs(kCharFreqVectorLen, 0.0);
 
   auto buffer_size = buffer.size();
-  for (auto chr : buffer) {
+  for (unsigned char chr : buffer) {
     if (chr < kCharFreqVectorLen) {
       buffer_freqs[chr] += 1.0 / buffer_size;
     }
