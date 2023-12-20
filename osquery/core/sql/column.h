@@ -80,7 +80,7 @@ enum class ColumnOptions {
   COLLATEVERSION = 256,
   COLLATEVERSION_ARCH = 512,
   COLLATEVERSION_DPKG = 1024,
-  COLLATEVERSION_RHEL = 2056,
+  COLLATEVERSION_RHEL = 2048,
 };
 
 /// Treat column options as a set of flags.
