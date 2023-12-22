@@ -17,7 +17,6 @@
 #include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -61,17 +60,23 @@ bool isMemberTrue(const char* member_name, const rapidjson::Value& from) {
   return member != from.MemberEnd() ? JSON::valueToBool(member->value) : false;
 }
 
-rapidjson::Value::ConstMemberIterator findNestedMember(
+std::optional<rapidjson::Value::ConstMemberIterator> findNestedMember(
     const std::string& member_name, const rapidjson::Value& value) {
   auto child_members = osquery::split(member_name, ".");
 
   rapidjson::Value::ConstMemberIterator member_it;
   const rapidjson::Value* current_value = &value;
   for (const auto& child_member : child_members) {
+    /* Verify that we are accessing an object at every nested level,
+       except the last */
+    if (!current_value->IsObject()) {
+      return std::nullopt;
+    }
+
     member_it = current_value->FindMember(child_member);
 
     if (member_it == current_value->MemberEnd()) {
-      return member_it;
+      return std::nullopt;
     }
 
     current_value = &member_it->value;
@@ -120,28 +125,35 @@ void genFirefoxAddonsFromExtensions(const std::string& uid,
     TLOG << "Unrecognized format for the 'addons' member in the extensions "
             "file at: "
          << extensions_path << ", it's not an array";
+    return;
   }
 
   for (const auto& addon : addons.GetArray()) {
+    if (!addon.IsObject()) {
+      continue;
+    }
+
     Row r;
     r["uid"] = uid;
     // Most of the keys are in the top-level JSON dictionary.
     for (const auto& it : kFirefoxAddonKeys) {
-      const auto member_it = findNestedMember(it.first, addon);
+      const auto opt_member_it = findNestedMember(it.first, addon);
 
-      if (member_it == addon.MemberEnd()) {
+      if (!opt_member_it.has_value()) {
         continue;
       }
 
-      const auto value = JSON::valueToString(member_it->value);
-      if (!value.has_value()) {
+      const auto& member_it = *opt_member_it;
+
+      const auto opt_value = JSON::valueToString(member_it->value);
+      if (!opt_value.has_value()) {
         TLOG << "Failed to convert member '" << member_it->name.GetString()
              << "' to a string, in JSON extensions file at: "
              << extensions_path;
         continue;
       }
 
-      r[it.second] = SQL_TEXT(*value);
+      r[it.second] = SQL_TEXT(*opt_value);
     }
 
     // There are several ways to disabled the addon, check each.
