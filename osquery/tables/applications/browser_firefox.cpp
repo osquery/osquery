@@ -113,6 +113,12 @@ void genFirefoxAddonsFromExtensions(const std::string& uid,
     }
   }
 
+  if (!extensions.doc().IsObject()) {
+    TLOG << "Failed to parse the JSON extensions file at: " << extensions_path
+         << ", the document root is not an object";
+    return;
+  }
+
   const auto addons_it = extensions.doc().FindMember("addons");
 
   if (addons_it == extensions.doc().MemberEnd()) {
