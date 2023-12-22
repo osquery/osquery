@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <optional>
+
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core/tables.h>
