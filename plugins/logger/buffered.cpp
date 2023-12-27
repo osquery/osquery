@@ -213,6 +213,7 @@ void BufferedLogForwarder::start() {
       // Apply any updates to configuration options, such as disabling of
       // backoff.
       applyNewConfiguration();
+      // Update backoff timers.
       backoffTick();
     } while (!interrupted() &&
              results_backoff_period_ > std::chrono::seconds::zero() &&

@@ -231,6 +231,5 @@ class BufferedLogForwarder : public InternalRunnable {
 
   /// Protects the count of buffered logs
   RecursiveMutex count_mutex_;
-
 };
 }

@@ -643,9 +643,7 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   // Fail to send.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(1, "fail")));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1)), "status"))
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(1)));
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 1);
@@ -677,9 +675,7 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
   // Only send statuses.
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1)), "status"))
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(1)));
   runner.check(false, true);
   ASSERT_EQ(runner.results_backoff_, 2);
@@ -690,9 +686,7 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   // Fail to send again, hitting the max backoff.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(1, "fail")));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1)), "status"))
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(1)));
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 2);
@@ -703,9 +697,7 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   // Allow send() to succeed.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(0, "OK")));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1)), "status"))
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(0)));
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 0);
@@ -725,12 +717,11 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   ASSERT_EQ(runner.statuses_backoff_, 0);
   ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
-  // Test letting backoff duration period attempt to go negative, which should be impossible based on std::chrono library implementation.
+  // Test letting backoff duration period attempt to go negative,
+  // which should be impossible based on std::chrono library implementation.
   runner.results_backoff_period_ = std::chrono::seconds(1);
   runner.log_period_ = std::chrono::seconds(2);
   runner.backoffTick();
   ASSERT_TRUE(runner.results_backoff_period_ <= std::chrono::seconds::zero());
-
 }
-
 } // namespace osquery
