@@ -155,6 +155,9 @@ class BufferedLogForwarder : public InternalRunnable {
   /// Apply any new configuration changes.
   virtual void applyNewConfiguration() {}
 
+  /// Reduce backoff time, if needed.
+  void backoffTick();
+
  protected:
   /// Return whether the string is a result index
   bool isResultIndex(const std::string& index);
@@ -213,6 +216,12 @@ class BufferedLogForwarder : public InternalRunnable {
    */
   std::string index_name_;
 
+  /// Control the exponential backoff for sending results and statuses.
+  uint64_t results_backoff_ = 0;
+  uint64_t statuses_backoff_ = 0;
+  std::chrono::seconds results_backoff_period_ = std::chrono::seconds::zero();
+  std::chrono::seconds statuses_backoff_period_ = std::chrono::seconds::zero();
+
  private:
   /// Hold an incrementing index for buffering logs
   std::atomic<size_t> log_index_{0};
@@ -223,10 +232,5 @@ class BufferedLogForwarder : public InternalRunnable {
   /// Protects the count of buffered logs
   RecursiveMutex count_mutex_;
 
-  /// Control the exponential backoff for sending results and statuses.
-  uint64_t results_backoff_;
-  uint64_t statuses_backoff_;
-  std::chrono::seconds results_backoff_period_;
-  std::chrono::seconds statuses_backoff_period_;
 };
 }

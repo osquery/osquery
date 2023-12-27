@@ -77,7 +77,7 @@ void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
       if (max_backoff_period_ > std::chrono::seconds::zero()) {
         results_backoff_++;
         // Apply exponential backoff time.
-        results_backoff_period_ +=
+        results_backoff_period_ =
             log_period_ * results_backoff_ * results_backoff_;
         if (results_backoff_period_ > max_backoff_period_) {
           results_backoff_period_ = max_backoff_period_;
@@ -110,7 +110,7 @@ void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
       if (max_backoff_period_ > std::chrono::seconds::zero()) {
         statuses_backoff_++;
         // Apply exponential backoff time.
-        statuses_backoff_period_ +=
+        statuses_backoff_period_ =
             log_period_ * statuses_backoff_ * statuses_backoff_;
         if (statuses_backoff_period_ > max_backoff_period_) {
           statuses_backoff_period_ = max_backoff_period_;
@@ -213,23 +213,28 @@ void BufferedLogForwarder::start() {
       // Apply any updates to configuration options, such as disabling of
       // backoff.
       applyNewConfiguration();
-      // Check if backoff was cancelled.
-      if (max_backoff_period_ <= log_period_) {
-        results_backoff_period_ = std::chrono::seconds::zero();
-        statuses_backoff_period_ = std::chrono::seconds::zero();
-        results_backoff_ = 0;
-        statuses_backoff_ = 0;
-      } else {
-        // Otherwise keep backing off, but reduce the amount of time left.
-        if (results_backoff_period_ > std::chrono::seconds::zero()) {
-          results_backoff_period_ -= log_period_;
-        }
-        if (statuses_backoff_period_ > std::chrono::seconds::zero()) {
-          statuses_backoff_period_ -= log_period_;
-        }
-      }
-    } while (results_backoff_period_ > std::chrono::seconds::zero() &&
+      backoffTick();
+    } while (!interrupted() &&
+             results_backoff_period_ > std::chrono::seconds::zero() &&
              statuses_backoff_period_ > std::chrono::seconds::zero());
+  }
+}
+
+void BufferedLogForwarder::backoffTick() {
+  // Check if backoff was cancelled.
+  if (max_backoff_period_ <= log_period_) {
+    results_backoff_period_ = std::chrono::seconds::zero();
+    statuses_backoff_period_ = std::chrono::seconds::zero();
+    results_backoff_ = 0;
+    statuses_backoff_ = 0;
+  } else {
+    // Otherwise keep backing off, but reduce the amount of time left.
+    if (results_backoff_period_ > std::chrono::seconds::zero()) {
+      results_backoff_period_ -= log_period_;
+    }
+    if (statuses_backoff_period_ > std::chrono::seconds::zero()) {
+      statuses_backoff_period_ -= log_period_;
+    }
   }
 }
 

@@ -107,6 +107,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
+  FRIEND_TEST(BufferedLogForwarderTests, test_backoff);
 
  private:
   bool checked_{false};
@@ -282,8 +283,8 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   runner->logString("foo");
 
   Dispatcher::addService(runner);
-  // Yield to allow runner to do its work.
-  std::this_thread::yield();
+  // Yield to allow runner to do its work before interrupt.
+  std::this_thread::sleep_for(std::chrono::microseconds(10));
   runner->interrupt();
   Dispatcher::joinServices();
 }
@@ -631,4 +632,105 @@ TEST_F(BufferedLogForwarderTests, test_status_log_custom_decorations) {
     ++line;
   }
 }
+
+TEST_F(BufferedLogForwarderTests, test_backoff) {
+  StrictMock<MockBufferedLogForwarder> runner;
+  runner.max_backoff_period_ = runner.log_period_ * 5;
+  runner.logString("foo");
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  runner.logStatus({log1});
+
+  // Fail to send.
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(1)));
+  runner.check();
+  ASSERT_EQ(runner.results_backoff_, 1);
+  ASSERT_EQ(runner.statuses_backoff_, 1);
+  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
+  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+
+  // Don't send anything.
+  runner.check(false, false);
+  ASSERT_EQ(runner.results_backoff_, 1);
+  ASSERT_EQ(runner.statuses_backoff_, 1);
+  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
+  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+
+  // Allow time to tick one period.
+  runner.backoffTick();
+  ASSERT_EQ(runner.results_backoff_, 1);
+  ASSERT_EQ(runner.statuses_backoff_, 1);
+  ASSERT_EQ(runner.results_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+
+  // Only send results.
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check(true, false);
+  ASSERT_EQ(runner.results_backoff_, 2);
+  ASSERT_EQ(runner.statuses_backoff_, 1);
+  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
+  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+
+  // Only send statuses.
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(1)));
+  runner.check(false, true);
+  ASSERT_EQ(runner.results_backoff_, 2);
+  ASSERT_EQ(runner.statuses_backoff_, 2);
+  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
+  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_ * 4);
+
+  // Fail to send again, hitting the max backoff.
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(1)));
+  runner.check();
+  ASSERT_EQ(runner.results_backoff_, 2);
+  ASSERT_EQ(runner.results_backoff_period_, runner.max_backoff_period_);
+  ASSERT_EQ(runner.statuses_backoff_, 2);
+  ASSERT_EQ(runner.statuses_backoff_period_, runner.max_backoff_period_);
+
+  // Allow send() to succeed.
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(0, "OK")));
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+  ASSERT_EQ(runner.results_backoff_, 0);
+  ASSERT_EQ(runner.results_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_EQ(runner.statuses_backoff_, 0);
+  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+
+  // Test clearing backoff via config.
+  runner.results_backoff_ = 1;
+  runner.statuses_backoff_ = 1;
+  runner.results_backoff_period_ = std::chrono::seconds(1);
+  runner.statuses_backoff_period_ = std::chrono::seconds(1);
+  runner.max_backoff_period_ = std::chrono::seconds::zero();
+  runner.backoffTick();
+  ASSERT_EQ(runner.results_backoff_, 0);
+  ASSERT_EQ(runner.results_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_EQ(runner.statuses_backoff_, 0);
+  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+
+  // Test letting backoff duration period attempt to go negative, which should be impossible based on std::chrono library implementation.
+  runner.results_backoff_period_ = std::chrono::seconds(1);
+  runner.log_period_ = std::chrono::seconds(2);
+  runner.backoffTick();
+  ASSERT_TRUE(runner.results_backoff_period_ <= std::chrono::seconds::zero());
+
+}
+
 } // namespace osquery
