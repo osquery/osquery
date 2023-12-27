@@ -78,10 +78,14 @@ class BufferedLogForwarder : public InternalRunnable {
       const std::string& service_name,
       const std::string& name,
       const std::chrono::duration<Rep, Period>& log_period,
-      uint64_t max_log_lines)
+      uint64_t max_log_lines,
+      const std::chrono::duration<Rep, Period>& max_backoff_period =
+          std::chrono::seconds::zero())
       : InternalRunnable(service_name),
         log_period_(
             std::chrono::duration_cast<std::chrono::seconds>(log_period)),
+        max_backoff_period_(std::chrono::duration_cast<std::chrono::seconds>(
+            max_backoff_period)),
         max_log_lines_(max_log_lines),
         index_name_(name) {}
 
@@ -137,7 +141,7 @@ class BufferedLogForwarder : public InternalRunnable {
    * Sort those lines into status and request types then forward (send) each
    * set. On success, clear the data and indexes. Calls purge upon completion.
    */
-  void check();
+  void check(bool send_results = true, bool send_statuses = true);
 
   /**
    * @brief Purge the oldest logs, if the max is exceeded
@@ -147,6 +151,9 @@ class BufferedLogForwarder : public InternalRunnable {
    * purged. Order of purging for logs with the same timestamp is undefined.
    */
   void purge();
+
+  /// Apply any new configuration changes.
+  virtual void applyNewConfiguration() {}
 
  protected:
   /// Return whether the string is a result index
@@ -190,6 +197,10 @@ class BufferedLogForwarder : public InternalRunnable {
   /// Seconds between flushing logs
   std::chrono::seconds log_period_;
 
+  /// The maximum time, in seconds, that logger will wait before flushing logs.
+  /// Backoff kicks in when flushing logs fails. 0 disables backoff.
+  std::chrono::seconds max_backoff_period_;
+
   /// Max number of logs to flush per check
   uint64_t max_log_lines_;
 
@@ -211,5 +222,11 @@ class BufferedLogForwarder : public InternalRunnable {
 
   /// Protects the count of buffered logs
   RecursiveMutex count_mutex_;
+
+  /// Control the exponential backoff for sending results and statuses.
+  uint64_t results_backoff_;
+  uint64_t statuses_backoff_;
+  std::chrono::seconds results_backoff_period_;
+  std::chrono::seconds statuses_backoff_period_;
 };
 }
