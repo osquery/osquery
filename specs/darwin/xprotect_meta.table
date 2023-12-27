@@ -4,7 +4,7 @@ schema([
     Column("identifier", TEXT, "Browser plugin or extension identifier"),
     Column("type", TEXT, "Either plugin or extension"),
     Column("developer_id", TEXT, "Developer identity (SHA1) of extension"),
-    Column("min_version", TEXT, "The minimum allowed plugin version."),
+    Column("min_version", TEXT, "The minimum allowed plugin version.", collate="version"),
 ])
 attributes(cacheable=True)
 implementation("xprotect@genXProtectMeta")

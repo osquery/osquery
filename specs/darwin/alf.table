@@ -7,7 +7,7 @@ schema([
     Column("logging_enabled", INTEGER, "1 If logging mode is enabled else 0"),
     Column("logging_option", INTEGER, "Firewall logging option"),
     Column("stealth_enabled", INTEGER, "1 If stealth mode is enabled else 0"),
-    Column("version", TEXT, "Application Layer Firewall version"),
+    Column("version", TEXT, "Application Layer Firewall version", collate="version"),
 ])
 implementation("firewall@genALF")
 fuzz_paths([

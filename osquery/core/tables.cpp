@@ -275,6 +275,14 @@ std::string columnDefinition(const TableColumns& columns, bool is_extension) {
       statement += " COLLATE NOCASE";
     } else if (options & ColumnOptions::COLLATERTRIM) {
       statement += " COLLATE RTRIM";
+    } else if (options & ColumnOptions::COLLATEVERSION) {
+      statement += " COLLATE VERSION";
+    } else if (options & ColumnOptions::COLLATEVERSION_ARCH) {
+      statement += " COLLATE VERSION_ARCH";
+    } else if (options & ColumnOptions::COLLATEVERSION_DPKG) {
+      statement += " COLLATE VERSION_DPKG";
+    } else if (options & ColumnOptions::COLLATEVERSION_RHEL) {
+      statement += " COLLATE VERSION_RHEL";
     }
     if (i < columns.size() - 1) {
       statement += ", ";

@@ -6,7 +6,7 @@ schema([
     Column("path", TEXT, "Path to the crashed process"),
     Column("crash_path", TEXT, "Location of log file", index=True),
     Column("identifier", TEXT, "Identifier of the crashed process"),
-    Column("version", TEXT, "Version info of the crashed process"),
+    Column("version", TEXT, "Version info of the crashed process", collate="version"),
     Column("parent", BIGINT, "Parent PID of the crashed process"),
     Column("responsible", TEXT, "Process responsible for the crashed process"),
     Column("uid", INTEGER, "User ID of the crashed process", index=True),

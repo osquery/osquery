@@ -2,7 +2,7 @@ table_name("npm_packages")
 description("Node packages installed in a system.")
 schema([
     Column("name", TEXT, "Package display name"),
-    Column("version", TEXT, "Package-supplied version"),
+    Column("version", TEXT, "Package-supplied version", collate="version"),
     Column("description", TEXT, "Package-supplied description"),
     Column("author", TEXT, "Package-supplied author"),
     Column("license", TEXT, "License under which package is launched"),

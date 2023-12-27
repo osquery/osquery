@@ -3,7 +3,7 @@ description("Internet Explorer browser extensions.")
 schema([
     Column("name", TEXT, "Extension display name"),
     Column("registry_path", TEXT, "Extension identifier"),
-    Column("version", TEXT, "Version of the executable"),
+    Column("version", TEXT, "Version of the executable", collate="version"),
     Column("path", TEXT, "Path to executable"),
 ])
 implementation("system/windows/ie_extensions@genIEExtensions")

@@ -7,7 +7,7 @@ schema([
     Column("identifier", TEXT, "Addon identifier", index=True),
     Column("creator", TEXT, "Addon-supported creator string"),
     Column("type", TEXT, "Extension, addon, webapp"),
-    Column("version", TEXT, "Addon-supplied version string"),
+    Column("version", TEXT, "Addon-supplied version string", collate="version"),
     Column("description", TEXT, "Addon-supplied description string"),
     Column("source_url", TEXT, "URL that installed the addon"),
     Column("visible", INTEGER, "1 If the addon is shown in browser else 0"),

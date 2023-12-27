@@ -1,14 +1,14 @@
 table_name("docker_version")
 description("Docker version information.")
 schema([
-    Column("version", TEXT, "Docker version"),
-    Column("api_version", TEXT, "API version"),
-    Column("min_api_version", TEXT, "Minimum API version supported"),
+    Column("version", TEXT, "Docker version", collate="version"),
+    Column("api_version", TEXT, "API version", collate="version"),
+    Column("min_api_version", TEXT, "Minimum API version supported", collate="version"),
     Column("git_commit", TEXT, "Docker build git commit"),
-    Column("go_version", TEXT, "Go version"),
+    Column("go_version", TEXT, "Go version", collate="version"),
     Column("os", TEXT, "Operating system"),
     Column("arch", TEXT, "Hardware architecture"),
-    Column("kernel_version", TEXT, "Kernel version"),
+    Column("kernel_version", TEXT, "Kernel version", collate="version"),
     Column("build_time", TEXT, "Build time")
 ])
 attributes(cacheable=True)

@@ -82,6 +82,10 @@ COLLATIONS = [
     "BINARY",
     "NOCASE",
     "RTRIM",
+    "VERSION",
+    "VERSION_ARCH",
+    "VERSION_DPKG",
+    "VERSION_RHEL",
 ]
 
 # Column options that render tables uncacheable.

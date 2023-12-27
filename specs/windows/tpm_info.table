@@ -9,7 +9,7 @@ schema([
   Column("manufacturer_name", TEXT, "TPM manufacturers name"),
   Column("product_name", TEXT, "Product name of the TPM"),
   Column("physical_presence_version", TEXT, "Version of the Physical Presence Interface"),
-  Column("spec_version", TEXT, "Trusted Computing Group specification that the TPM supports"),
+  Column("spec_version", TEXT, "Trusted Computing Group specification that the TPM supports", collate="version"),
 ])
 implementation("tpm_info@genTpmInfo")
 examples([
