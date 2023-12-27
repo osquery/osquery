@@ -282,6 +282,8 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   runner->logString("foo");
 
   Dispatcher::addService(runner);
+  // Yield to allow runner to do its work.
+  std::this_thread::yield();
   runner->interrupt();
   Dispatcher::joinServices();
 }
