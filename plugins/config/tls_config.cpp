@@ -14,14 +14,14 @@
 // clang-format on
 
 #include <osquery/config/config.h>
-#include <osquery/dispatcher/dispatcher.h>
-#include <osquery/remote/enroll/enroll.h>
 #include <osquery/core/flags.h>
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/registry/registry.h>
+#include <osquery/remote/enroll/enroll.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
-#include <osquery/utils/json/json.h>
 #include <osquery/utils/chars.h>
+#include <osquery/utils/json/json.h>
 #include <plugins/config/tls_config.h>
 
 #include <sstream>
@@ -78,6 +78,12 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
       Status parse_status = tree.fromString(json);
       if (!parse_status.ok()) {
         VLOG(1) << "Could not parse JSON from TLS config node API";
+        return Status::failure("Could not parse JSON from TLS config node API");
+      }
+
+      if (!tree.doc().IsObject()) {
+        return Status::failure(
+            "Root of the JSON from TLS config node API is not an object");
       }
 
       // Re-encode the config key into JSON.

@@ -94,6 +94,10 @@ class TableIPCBase {
       return status;
     }
 
+    if (!json_message.doc().IsObject()) {
+      return Status::failure("JSON root is not an object");
+    }
+
     if (!json_message.doc().HasMember("Type")) {
       return Status::failure("No Type member");
     }
