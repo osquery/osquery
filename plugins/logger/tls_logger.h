@@ -27,6 +27,8 @@ class TLSLogForwarder : public BufferedLogForwarder {
  public:
   explicit TLSLogForwarder();
 
+  /// Mutex for ensuring only one thread is reading/writing configuration.
+  std::mutex configuration_mutex;
   /// Flag indicating whether configuration was updated.
   bool configuration_updated = false;
   /// Updated configs to be applied on the next applyNewConfiguration() call:

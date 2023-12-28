@@ -105,14 +105,18 @@ void TLSLoggerPlugin::init(const std::string& name,
 }
 
 void TLSLoggerPlugin::configure() {
-  forwarder_->configuration_updated = true;
-  forwarder_->updated_uri =
-      TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
-  forwarder_->updated_log_period =
-      std::chrono::seconds(FLAGS_logger_tls_period);
-  forwarder_->updated_max_log_lines = FLAGS_logger_tls_max_lines;
-  forwarder_->updated_max_backoff_period =
-      std::chrono::seconds(FLAGS_logger_tls_backoff_max);
+  if (forwarder_ != nullptr) {
+    std::unique_lock<decltype(forwarder_->configuration_mutex)> lock(
+        forwarder_->configuration_mutex);
+    forwarder_->configuration_updated = true;
+    forwarder_->updated_uri =
+        TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
+    forwarder_->updated_log_period =
+        std::chrono::seconds(FLAGS_logger_tls_period);
+    forwarder_->updated_max_log_lines = FLAGS_logger_tls_max_lines;
+    forwarder_->updated_max_backoff_period =
+        std::chrono::seconds(FLAGS_logger_tls_backoff_max);
+  }
 }
 
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
@@ -160,6 +164,7 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
 }
 
 void TLSLogForwarder::applyNewConfiguration() {
+  std::unique_lock<decltype(configuration_mutex)> lock(configuration_mutex);
   if (configuration_updated) {
     uri_ = updated_uri;
     log_period_ = updated_log_period;
