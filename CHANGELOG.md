@@ -43,7 +43,7 @@ Representing commits from 11 contributors! Thank you all.
 
 ### Build
 
-- cve: Update libxml2 to v2.13.2 ([#8223](https://github.com/osquery/osquery/pull/8223))
+- cve: Update libxml2 to v2.12.3 ([#8223](https://github.com/osquery/osquery/pull/8223))
 - cve: Update zlib to 1.3 and ignore a CVE ([#8218](https://github.com/osquery/osquery/pull/8218))
 - cve: Update openssl to 3.2.0 ([#8212](https://github.com/osquery/osquery/pull/8212))
 - ci: Update nvdlib to use the latest NVD APIs ([#8207](https://github.com/osquery/osquery/pull/8207))
