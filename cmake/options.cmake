@@ -47,7 +47,7 @@ function(detectOsqueryVersion)
   list(LENGTH osquery_version_components osquery_version_components_len)
 
   if(NOT osquery_version_components_len GREATER_EQUAL 3)
-    message(FATAL_ERROR "Version should have at least 3 components (semvar).")
+    message(FATAL_ERROR "Version should have at least 3 components (semver).")
   endif()
 
   set(OSQUERY_VERSION_INTERNAL "${osquery_version}" PARENT_SCOPE)
