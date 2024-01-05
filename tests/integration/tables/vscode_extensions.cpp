@@ -48,12 +48,14 @@ TEST_F(vscodeExtensions, test_sanity) {
   }
 
   ValidationMap row_map = {
-      {"id", NormalType},
+      {"name", NormalType},
+      {"uuid", NormalType},
       {"version", NormalType},
       {"path", NormalType},
       {"publisher", NormalType},
+      {"publisher_id", NormalType},
       {"installed_at", NonNegativeInt},
-      {"prerelease", Bool},
+      {"prerelease", Bool | EmptyOk},
       {"uid", NonNegativeInt},
   };
   validate_rows(data, row_map);
