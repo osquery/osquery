@@ -182,6 +182,11 @@ class Schedule : private boost::noncopyable {
 
   PackRef& last();
 
+  /// Get all SQL queries for a given source. Returns a map of pack name to
+  /// query name to query SQL.
+  std::map<std::string, std::map<std::string, std::string>>
+  getSqlQueriesForSource(const std::string& source);
+
  private:
   /// Underlying storage for the packs
   container packs_;
@@ -232,6 +237,27 @@ void Schedule::remove(const std::string& pack, const std::string& source) {
         return false;
       });
   packs_.erase(new_end, packs_.end());
+}
+
+std::map<std::string, std::map<std::string, std::string>>
+Schedule::getSqlQueriesForSource(const std::string& source) {
+  std::map<std::string, std::map<std::string, std::string>> queries;
+  auto it = packs_.begin();
+  while (true) {
+    it = std::find_if(it, packs_.end(), [source](const PackRef& p) {
+      return p->getSource() == source;
+    });
+    if (it != packs_.end()) {
+      auto& schedule = (*it)->getSchedule();
+      for (auto& s : schedule) {
+        queries[(*it)->getName()][s.first] = s.second.query;
+      }
+      it++;
+    } else {
+      break;
+    }
+  }
+  return queries;
 }
 
 void Schedule::removeAll(const std::string& source) {
@@ -430,6 +456,15 @@ static inline bool denylistExpired(uint64_t blt, const ScheduledQuery& query) {
   return false;
 }
 
+std::string getQueryName(const std::string& packName, const std::string& name) {
+  // The query name may be synthetic.
+  if (packName != "main") {
+    return "pack" + FLAGS_pack_delimiter + packName + FLAGS_pack_delimiter +
+           name;
+  }
+  return name;
+}
+
 void Config::scheduledQueries(
     std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
@@ -437,13 +472,7 @@ void Config::scheduledQueries(
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
-      std::string name = it.first;
-      // The query name may be synthetic.
-      if (pack->getName() != "main") {
-        name = "pack" + FLAGS_pack_delimiter + pack->getName() +
-               FLAGS_pack_delimiter + it.first;
-      }
-
+      std::string name = getQueryName(pack->getName(), it.first);
       // They query may have failed and been added to the schedule's denylist.
       auto denylisted_query = schedule_->denylist_.find(name);
       if (denylisted_query != schedule_->denylist_.end()) {
@@ -680,6 +709,8 @@ Status Config::updateSource(const std::string& source,
     return Status(2);
   }
 
+  // Get the queries so that we can check which ones updated the SQL.
+  auto queries = schedule_->getSqlQueriesForSource(source);
   {
     RecursiveLock lock(config_schedule_mutex_);
     // Remove all packs from this source.
@@ -743,6 +774,38 @@ Status Config::updateSource(const std::string& source,
   }
 
   applyParsers(source, doc.doc(), false);
+
+  // Get the updated queries so that we can compare them to old queries.
+  auto newQueries = schedule_->getSqlQueriesForSource(source);
+  // Clear the performance stats on updated queries.
+  for (const auto& oldPack : queries) {
+    if (newQueries.find(oldPack.first) == newQueries.end()) {
+      // This pack was removed. Also remove performance stats.
+      for (const auto& oldQuery : oldPack.second) {
+        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+      }
+      continue;
+    }
+    for (const auto& oldQuery : oldPack.second) {
+      if (newQueries[oldPack.first].find(oldQuery.first) ==
+          newQueries[oldPack.first].end()) {
+        // This query was removed. Also remove performance stats.
+        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+        continue;
+      }
+      if (queries[oldPack.first][oldQuery.first] !=
+          newQueries[oldPack.first][oldQuery.first]) {
+        // This query was updated. Clear the performance stats.
+        auto fullName = getQueryName(oldPack.first, oldQuery.first);
+        RecursiveLock lock(config_performance_mutex_);
+        if (performance_.count(fullName) != 0) {
+          LOG(INFO) << "Clearing performance stats for query: " << fullName;
+          performance_[fullName] = QueryPerformance();
+        }
+      }
+    }
+  }
+
   return Status::success();
 }
 
