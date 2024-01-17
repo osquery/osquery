@@ -38,7 +38,8 @@ enum class ChromeBrowserType {
   Opera,
   Edge,
   EdgeBeta,
-  Vivaldi
+  Vivaldi,
+  Island
 };
 
 /// Converts the browser type to a printable string
