@@ -29,6 +29,7 @@ function(googleTestMain)
   endforeach()
 
   set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(Python_EXECUTABLE "${OSQUERY_PYTHON_EXECUTABLE}")
   add_subdirectory("${library_root}" "${CMAKE_CURRENT_BINARY_DIR}/submodule" EXCLUDE_FROM_ALL)
 
   set(target_list
