@@ -1,5 +1,59 @@
 # osquery Changelog
 
+<a name="5.11.0"></a>
+## [5.11.0](https://github.com/osquery/osquery/releases/tag/5.11.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.10.2...5.11.0)
+
+Representing commits from 11 contributors! Thank you all.
+
+### Table Changes
+
+- Add new table `vscode_extensions` ([#8150](https://github.com/osquery/osquery/pull/8150))
+- Add support for additional Apple Silicon columns in `secureboot` table ([#8215](https://github.com/osquery/osquery/pull/8215))
+- Add Shortcut metadata parsing on Windows in the `file` table ([#8143](https://github.com/osquery/osquery/pull/8143))
+- Remove `atom_packages` table ([#8181](https://github.com/osquery/osquery/pull/8181))
+- Add additional chrome extensions paths ([#8170](https://github.com/osquery/osquery/pull/8170)) to pick up extensions for Chrome Beta, Chrome Dev, and Vivaldi.
+
+### Under the Hood improvements
+
+- Add version collations to column definitions ([#8222](https://github.com/osquery/osquery/pull/8222))
+- Add support for additional collations in column definitions ([#8214](https://github.com/osquery/osquery/pull/8214))
+- Add version collate functions ([#8168](https://github.com/osquery/osquery/pull/8168))
+- Added cache and throttling for `certificates`, `keychain_acls`, and `keychain_items` tables ([#8192](https://github.com/osquery/osquery/pull/8192)). This is intended to reduce the occurrence of keychain corruption due to broken macOS APIs.
+- process_open_sockets: Mark pid column as additional instead of index ([#8191](https://github.com/osquery/osquery/pull/8191))
+
+### Bug Fixes
+
+- Add stricter checks to JSON parsing ([#8229](https://github.com/osquery/osquery/pull/8229))
+- Fix signed/unsigned mismatch in powershell_events ([#8225](https://github.com/osquery/osquery/pull/8225))
+- Fix a crash in firefox_addons ([#8227](https://github.com/osquery/osquery/pull/8227))
+- Correct the aws_sts_region behavior ([#8184](https://github.com/osquery/osquery/pull/8184))
+
+### Documentation
+
+- Update building.md prereqs for Windows ([#8216](https://github.com/osquery/osquery/pull/8216))
+- Correct link to a PR in the 4.7.0 changelog ([#8186](https://github.com/osquery/osquery/pull/8186))
+- Call out in the CHANGELOG the format changes of the status logs decorations ([#8174](https://github.com/osquery/osquery/pull/8174))
+- Remove some duplicated lines from 5.8.1 changelog ([#8172](https://github.com/osquery/osquery/pull/8172))
+- Fix typo in table specs ([#8163](https://github.com/osquery/osquery/pull/8163))
+- Keychain cache and throttling documentation. ([#8205](https://github.com/osquery/osquery/pull/8205))
+- Changelog 5.10.2 ([#8171](https://github.com/osquery/osquery/pull/8171))
+
+
+### Build / Dependencies
+
+- Update libxml2 to v2.12.3 ([#8223](https://github.com/osquery/osquery/pull/8223))
+- Update zlib to 1.3 and ignore a CVE ([#8218](https://github.com/osquery/osquery/pull/8218))
+- Update openssl to 3.2.0 ([#8212](https://github.com/osquery/osquery/pull/8212))
+- Update nvdlib to use the latest NVD APIs ([#8207](https://github.com/osquery/osquery/pull/8207))
+- Fix Linux build ([#8208](https://github.com/osquery/osquery/pull/8208))
+- Correct job order ([#8185](https://github.com/osquery/osquery/pull/8185))
+- Re-enable tools_tests_testrelease ([#8221](https://github.com/osquery/osquery/pull/8221))
+- Enable client certificate verification in the TLS tests ([#8211](https://github.com/osquery/osquery/pull/8211))
+- Temporary workaround to build with XCode 15 ([#8197](https://github.com/osquery/osquery/pull/8197))
+
+
 <a name="5.10.2"></a>
 ## [5.10.2](https://github.com/osquery/osquery/releases/tag/5.10.2)
 
