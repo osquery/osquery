@@ -782,7 +782,8 @@ Status Config::updateSource(const std::string& source,
     if (newQueries.find(oldPack.first) == newQueries.end()) {
       // This pack was removed. Also remove performance stats.
       for (const auto& oldQuery : oldPack.second) {
-        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance, getQueryName(oldPack.first,
+                                                            oldQuery.first));
       }
       continue;
     }
@@ -790,7 +791,7 @@ Status Config::updateSource(const std::string& source,
       if (newQueries[oldPack.first].find(oldQuery.first) ==
           newQueries[oldPack.first].end()) {
         // This query was removed. Also remove performance stats.
-        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance, getQueryName(oldPack.first, oldQuery.first));
         continue;
       }
       if (queries[oldPack.first][oldQuery.first] !=
@@ -798,10 +799,8 @@ Status Config::updateSource(const std::string& source,
         // This query was updated. Clear the performance stats.
         auto fullName = getQueryName(oldPack.first, oldQuery.first);
         RecursiveLock lock(config_performance_mutex_);
-        if (performance_.count(fullName) != 0) {
-          LOG(INFO) << "Clearing performance stats for query: " << fullName;
-          performance_[fullName] = QueryPerformance();
-        }
+        LOG(INFO) << "Clearing performance stats for query: " << fullName;
+        setDatabaseValue(kQueryPerformance, fullName, QueryPerformance().toCSV());
       }
     }
   }
@@ -1043,7 +1042,6 @@ void Config::reset() {
   setStartTime(getUnixTime());
 
   schedule_ = std::make_unique<Schedule>();
-  std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
@@ -1087,12 +1085,13 @@ void Config::recordQueryPerformance(const std::string& name,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);
-  if (performance_.count(name) == 0) {
-    performance_[name] = QueryPerformance();
+  std::string csv;
+  QueryPerformance query;
+  auto status = getDatabaseValue(kQueryPerformance, name, csv);
+  if (status.ok()) {
+    query = QueryPerformance(csv);
   }
 
-  // Grab access to the non-const schedule item.
-  auto& query = performance_.at(name);
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
     auto ut1 = tryTo<long long>(r1.at("user_time"));
     auto ut0 = tryTo<long long>(r0.at("user_time"));
@@ -1132,6 +1131,11 @@ void Config::recordQueryPerformance(const std::string& name,
   query.executions += 1;
   query.last_executed = getUnixTime();
 
+  status = setDatabaseValue(kQueryPerformance, name, query.toCSV());
+  if (!status.ok()) {
+    LOG(WARNING) << "Could not write performance stats for query " << name << " to the database: " << status.getMessage();
+  }
+
   /* Clear the executing query only if a resource limit has not been hit.
      This is used by the next worker execution to denylist a query
      that triggered a watchdog resource limit. */
@@ -1153,10 +1157,11 @@ void Config::recordQueryStart(const std::string& name) {
 
 void Config::getPerformanceStats(
     const std::string& name,
-    std::function<void(const QueryPerformance& query)> predicate) const {
-  if (performance_.count(name) > 0) {
-    RecursiveLock lock(config_performance_mutex_);
-    predicate(performance_.at(name));
+    std::function<void(const QueryPerformance& query)> predicate) {
+  std::string csv;
+  auto status = getDatabaseValue(kQueryPerformance, name, csv);
+  if (status.ok()) {
+    predicate(QueryPerformance(csv));
   }
 }
 

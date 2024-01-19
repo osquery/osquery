@@ -58,6 +58,9 @@ extern const std::string kDistributedQueries;
 /// The "domain" where currently running distributed queries are stored.
 extern const std::string kDistributedRunningQueries;
 
+/// The "domain" where query performance stats are stored.
+extern const std::string kQueryPerformance;
+
 /// The running version of our database schema
 const int kDbCurrentVersion = 2;
 

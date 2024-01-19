@@ -215,16 +215,16 @@ class Config : private boost::noncopyable {
    * QueryPerformance struct, if it exists.
    *
    * @code{.cpp}
-   *   Config::get().getPerformanceStats(
+   *   Config::getPerformanceStats(
    *     "my_awesome_query",
    *     [](const QueryPerformance& query) {
    *       // use "query" here
    *     });
    * @endcode
    */
-  void getPerformanceStats(
+  static void getPerformanceStats(
       const std::string& name,
-      std::function<void(const QueryPerformance& query)> predicate) const;
+      std::function<void(const QueryPerformance& query)> predicate);
 
   /**
    * @brief Helper to access config parsers via the registry
@@ -330,9 +330,6 @@ class Config : private boost::noncopyable {
  private:
   /// Schedule of packs and their queries.
   std::unique_ptr<Schedule> schedule_;
-
-  /// A set of performance stats for each query in the schedule.
-  std::map<std::string, QueryPerformance> performance_;
 
   /// A set of named categories filled with filesystem globbing paths.
   using FileCategories = std::map<std::string, std::vector<std::string>>;

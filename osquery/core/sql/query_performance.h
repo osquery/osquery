@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 namespace osquery {
 
@@ -55,6 +56,17 @@ struct QueryPerformance {
 
   /// Total bytes for the query
   std::uint64_t output_size{0};
+
+  // Default constructor
+  QueryPerformance() = default;
+
+  // Constructor from a CSV string
+  explicit QueryPerformance(const std::string& csv);
+
+  // Convert this struct to a CSV string
+  [[nodiscard]] std::string toCSV() const;
+
+  friend bool operator==(const QueryPerformance& l, const QueryPerformance& r);
 };
 
 } // namespace osquery
