@@ -90,11 +90,11 @@ class Config : private boost::noncopyable {
    * @param r0 the process row before the query
    * @param r1 the process row after the query
    */
-  void recordQueryPerformance(const std::string& name,
-                              uint64_t delay_ms,
-                              uint64_t size,
-                              const Row& r0,
-                              const Row& r1);
+  static void recordQueryPerformance(const std::string& name,
+                                     uint64_t delay_ms,
+                                     uint64_t size,
+                                     const Row& r0,
+                                     const Row& r1);
 
   /**
    * @brief Record a query 'initialization', meaning the query will run.

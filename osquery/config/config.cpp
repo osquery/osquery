@@ -782,8 +782,8 @@ Status Config::updateSource(const std::string& source,
     if (newQueries.find(oldPack.first) == newQueries.end()) {
       // This pack was removed. Also remove performance stats.
       for (const auto& oldQuery : oldPack.second) {
-        deleteDatabaseValue(kQueryPerformance, getQueryName(oldPack.first,
-                                                            oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance,
+                            getQueryName(oldPack.first, oldQuery.first));
       }
       continue;
     }
@@ -791,7 +791,8 @@ Status Config::updateSource(const std::string& source,
       if (newQueries[oldPack.first].find(oldQuery.first) ==
           newQueries[oldPack.first].end()) {
         // This query was removed. Also remove performance stats.
-        deleteDatabaseValue(kQueryPerformance, getQueryName(oldPack.first, oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance,
+                            getQueryName(oldPack.first, oldQuery.first));
         continue;
       }
       if (queries[oldPack.first][oldQuery.first] !=
@@ -800,7 +801,8 @@ Status Config::updateSource(const std::string& source,
         auto fullName = getQueryName(oldPack.first, oldQuery.first);
         RecursiveLock lock(config_performance_mutex_);
         LOG(INFO) << "Clearing performance stats for query: " << fullName;
-        setDatabaseValue(kQueryPerformance, fullName, QueryPerformance().toCSV());
+        setDatabaseValue(
+            kQueryPerformance, fullName, QueryPerformance().toCSV());
       }
     }
   }
@@ -1133,7 +1135,8 @@ void Config::recordQueryPerformance(const std::string& name,
 
   status = setDatabaseValue(kQueryPerformance, name, query.toCSV());
   if (!status.ok()) {
-    LOG(WARNING) << "Could not write performance stats for query " << name << " to the database: " << status.getMessage();
+    LOG(WARNING) << "Could not write performance stats for query " << name
+                 << " to the database: " << status.getMessage();
   }
 
   /* Clear the executing query only if a resource limit has not been hit.
