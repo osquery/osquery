@@ -12,11 +12,7 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
-
-@interface SPDocument : NSDocument {
-}
-- (id)reportForDataType:(id)arg1;
-@end
+#include <osquery/utils/darwin/system_profiler.h>
 
 namespace osquery {
 namespace tables {
@@ -26,72 +22,14 @@ QueryData genConnectedDisplays(QueryContext& context) {
   @autoreleasepool {
     Row r;
 
-    // BEWARE: Because of the dynamic nature of the calls in this function, we
-    // must be careful to properly clean up the memory. Any future modifications
-    // to this function should attempt to ensure there are no leaks.
-    CFURLRef bundle_url = CFURLCreateWithFileSystemPath(
-        kCFAllocatorDefault,
-        CFSTR("/System/Library/PrivateFrameworks/SPSupport.framework"),
-        kCFURLPOSIXPathStyle,
-        true);
-
-    if (bundle_url == nullptr) {
-      LOG(INFO) << "Error parsing SPSupport bundle URL";
+    NSDictionary* __autoreleasing result;
+    Status status = getSystemProfilerReport("SPDisplaysDataType", result);
+    if (!status.ok()) {
+      LOG(ERROR) << "Failed to get connected displays: " << status.getMessage();
       return results;
     }
 
-    CFBundleRef bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
-    CFRelease(bundle_url);
-    if (bundle == nullptr) {
-      LOG(INFO) << "Error opening SPSupport bundle";
-      return results;
-    }
-
-    CFBundleLoadExecutable(bundle);
-
-    std::function<void()> cleanup = [&]() {
-      CFBundleUnloadExecutable(bundle);
-      CFRelease(bundle);
-    };
-
-#pragma clang diagnostic push
-// We are silencing here because we don't know the selector beforehand
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-
-    id cls = NSClassFromString(@"SPDocument");
-    if (cls == nullptr) {
-      LOG(INFO) << "Could not load SPDocument class";
-      cleanup();
-
-      return results;
-    }
-
-    SEL sel = @selector(new);
-    if (![cls respondsToSelector:sel]) {
-      LOG(INFO) << "SPDocument does not respond to new selector";
-      cleanup();
-
-      return results;
-    }
-
-    id document = [cls performSelector:sel];
-    if (document == nullptr) {
-      LOG(INFO) << "[SPDocument new] returned null";
-      cleanup();
-
-      return results;
-    }
-
-#pragma clang diagnostic pop
-
-    cleanup = [&]() {
-      CFRelease((__bridge CFTypeRef)document);
-      CFBundleUnloadExecutable(bundle);
-      CFRelease(bundle);
-    };
-
-    NSDictionary* report = [[[document reportForDataType:@"SPDisplaysDataType"]
-        objectForKey:@"_items"] lastObject];
+    NSDictionary* report = [[result objectForKey:@"_items"] lastObject];
     NSArray* data = [report valueForKeyPath:@"spdisplays_ndrvs"];
 
     for (NSString* obj in data) {
@@ -207,8 +145,6 @@ QueryData genConnectedDisplays(QueryContext& context) {
 
       results.push_back(r);
     }
-
-    cleanup();
   }
   return results;
 } // context

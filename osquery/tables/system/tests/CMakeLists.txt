@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryTablesSystemTestsMain)
-
   if(DEFINED PLATFORM_LINUX)
     generateOsqueryTablesSystemLinuxTests()
   endif()
@@ -136,6 +135,7 @@ function(generateOsqueryTablesSystemDarwinTests)
     osquery_utils
     osquery_utils_conversions
     osquery_utils_plist
+    osquery_utils_system_profiler
     tests_helper
     thirdparty_googletest
   )
@@ -169,20 +169,20 @@ endfunction()
 
 function(generateOsqueryTablesSystemDarwinKeychainTests)
   set(source_files
-          darwin/keychain_test.cpp
+    darwin/keychain_test.cpp
   )
 
   add_osquery_executable(osquery_tables_system_darwin_keychain_tests-test ${source_files})
 
   target_link_libraries(osquery_tables_system_darwin_keychain_tests-test PRIVATE
-          osquery_cxx_settings
-          osquery_filesystem
-          osquery_hashing
-          osquery_tables_system_systemtable
-          osquery_extensions
-          osquery_extensions_implthrift
-          tests_helper
-          thirdparty_googletest
+    osquery_cxx_settings
+    osquery_filesystem
+    osquery_hashing
+    osquery_tables_system_systemtable
+    osquery_extensions
+    osquery_extensions_implthrift
+    tests_helper
+    thirdparty_googletest
   )
 endfunction()
 
