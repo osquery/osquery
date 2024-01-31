@@ -922,6 +922,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     auto& constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
+        // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
         auto constraint_lambda = [&pCur, &context, &constraint](auto value) {
           auto expr = (const char*)sqlite3_value_text(value);
@@ -937,7 +938,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                  std::to_string(pCur->id) + "): " + constraint.first + " " +
                  opString(constraint.second.op) + " " + constraint.second.expr);
           }
-
+          // Add the constraint to the column-sorted query request map.
           context.constraints[constraint.first].add(constraint.second);
         };
 
