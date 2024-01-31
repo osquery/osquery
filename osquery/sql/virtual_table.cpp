@@ -789,6 +789,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 
       pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
+      // Set IN constraints to process all-at-once.
+      if (sqlite3_vtab_in(pIdxInfo, i, -1)) {
+        sqlite3_vtab_in(pIdxInfo, i, 1);
+      }
+
       if (FLAGS_planner) {
         plan("xBestIndex Adding index constraint for table: " +
              pVtab->content->name + " [column=" + name +
@@ -917,21 +922,43 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     auto& constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
-        auto expr = (const char*)sqlite3_value_text(argv[i]);
-        if (expr == nullptr || expr[0] == 0) {
-          // SQLite did not expose the expression value.
-          continue;
-        }
-        // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
-        constraint.second.expr = std::string(expr);
-        if (FLAGS_planner) {
-          plan("xFilter Adding constraint to cursor (" +
-               std::to_string(pCur->id) + "): " + constraint.first + " " +
-               opString(constraint.second.op) + " " + constraint.second.expr);
+        auto constraint_lambda = [&pCur, &context, &constraint](auto value) {
+          auto expr = (const char*)sqlite3_value_text(value);
+          if (expr == nullptr || expr[0] == 0) {
+            // SQLite did not expose the expression value.
+            return;
+          }
+
+          constraint.second.expr = std::string(expr);
+
+          if (FLAGS_planner) {
+            plan("xFilter Adding constraint to cursor (" +
+                 std::to_string(pCur->id) + "): " + constraint.first + " " +
+                 opString(constraint.second.op) + " " + constraint.second.expr);
+          }
+
+          context.constraints[constraint.first].add(constraint.second);
+        };
+
+        // argv[i] appears to be NULL, but this could be an IN constraint.
+        if (sqlite3_value_type(argv[i]) == SQLITE_NULL) {
+          auto rc = SQLITE_EMPTY;
+          sqlite3_value* in_value = nullptr;
+
+          for (rc = sqlite3_vtab_in_first(argv[i], &in_value);
+               rc == SQLITE_OK && in_value;
+               rc = sqlite3_vtab_in_next(argv[i], &in_value)) {
+            constraint_lambda(in_value);
+          }
+
+          if (rc != SQLITE_DONE && rc != SQLITE_EMPTY) {
+            LOG(ERROR) << "Error processing an IN constraint: "
+                       << constraint.first << " (" << rc << ")";
+          }
+        } else {
+          constraint_lambda(argv[i]);
         }
-        // Add the constraint to the column-sorted query request map.
-        context.constraints[constraint.first].add(constraint.second);
       }
     } else if (constraints.size() > 0) {
       // Constraints failed.
