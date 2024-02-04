@@ -15,6 +15,7 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
+#include "osquery/tables/system/windows/registry.h"
 namespace osquery {
 namespace tables {
 
@@ -48,12 +49,25 @@ QueryData genOSVersion(QueryContext& context) {
   wmiResults[0].GetString("InstallDate", cimInstallDate);
   r["install_date"] = BIGINT(cimDatetimeToUnixtime(cimInstallDate));
 
+  QueryData regResults;
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      regResults);
+
+  std::string updateBuildRevision{""};
+  for (const auto& aKey : regResults) {
+    if (aKey.at("name") == "UBR") {
+      updateBuildRevision = "." + aKey.at("data");
+      break;
+    }
+  }
+
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
 
   switch (version.size()) {
   case 3:
-    r["build"] = SQL_TEXT(version[2]);
+    r["build"] = SQL_TEXT(version[2] + updateBuildRevision);
   case 2:
     r["minor"] = INTEGER(version[1]);
   case 1:
