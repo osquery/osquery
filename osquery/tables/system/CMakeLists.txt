@@ -293,6 +293,7 @@ function(generateOsqueryTablesSystemSystemtable)
   elseif(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_system_systemtable PUBLIC
       osquery_utils_plist
+      osquery_utils_system_profiler
       thirdparty_openssl
     )
 

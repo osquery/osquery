@@ -35,8 +35,10 @@ function(osqueryUtilsMain)
   endif()
 
   generateOsqueryUtils()
+
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryUtilsPlist()
+    generateOsqueryUtilsSystemProfiler()
   endif()
 endfunction()
 
@@ -111,11 +113,9 @@ function(generateOsqueryUtils)
   generateIncludeNamespace(osquery_utils_attribute "osquery/utils" "FILE_ONLY" ${attribute_public_header_files})
 
   add_test(NAME osquery_utils_utilstests-test COMMAND osquery_utils_utilstests-test)
-
 endfunction()
 
 function(generateOsqueryUtilsPlist)
-
   list(APPEND source_files
     darwin/plist.mm
   )
@@ -133,7 +133,26 @@ function(generateOsqueryUtilsPlist)
   )
 
   generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
+endfunction()
 
+function(generateOsqueryUtilsSystemProfiler)
+  list(APPEND source_files
+    darwin/system_profiler.mm
+  )
+
+  add_osquery_library(osquery_utils_system_profiler ${source_files})
+
+  target_link_libraries(osquery_utils_system_profiler PRIVATE
+    osquery_cxx_settings
+    osquery_filesystem
+    thirdparty_boost
+  )
+
+  set(platform_public_header_files
+    darwin/system_profiler.h
+  )
+
+  generateIncludeNamespace(osquery_utils "osquery/utils" "FULL_PATH" ${platform_public_header_files})
 endfunction()
 
 function(generateOsqueryUtilsUtilstestsTest)
@@ -150,6 +169,12 @@ function(generateOsqueryUtilsUtilstestsTest)
       tests/windows/env.cpp
       tests/windows/filetime.cpp
       tests/windows/shellitems.cpp
+    )
+  endif()
+
+  if(DEFINED PLATFORM_DARWIN)
+    list(APPEND source_files
+      tests/darwin/system_profiler.mm
     )
   endif()
 
