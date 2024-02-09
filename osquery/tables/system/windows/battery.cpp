@@ -19,19 +19,11 @@
 #include <devioctl.h>
 // clang-format on
 
-#include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-#include <osquery/tables/system/windows/registry.h>
-#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
-#include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/errno.h>
-
-#include <boost/algorithm/string/case_conv.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 
 namespace osquery {
 namespace tables {
