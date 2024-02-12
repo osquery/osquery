@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
-
+#include <sstream>
 #include <sys/stat.h>
 
 #include <rocksdb/db.h>
@@ -341,6 +341,15 @@ inline bool skipWal(const std::string& domain) {
   return (kEvents == domain);
 }
 
+static std::string rocksDBStatusString(const rocksdb::Status &status) {
+    // We want to know the code, sub-code and severity of errors.
+    // See https://github.com/rockset/rocksdb-cloud/blob/40f265a20e0f2773c6cc3db0b75666969292fa96/include/rocksdb/status.h
+    // for a list of code, sub-codes and severities.
+    std::ostringstream builder;
+    builder << "code(" << status.code() << "), sub-code(" << status.subcode() << "), sev(" << status.severity() << ") - " << status.ToString();
+    return builder.str();
+}
+
 Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
                                        const DatabaseStringValueList& data) {
   auto cfh = getHandleForColumnFamily(domain);
@@ -365,17 +374,22 @@ Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
   }
 
   auto s = getDB()->Write(options, &batch);
+  // Return early on success.
+  if (s.ok()) {
+    Status(s.code(), s.ToString());
+  }
+
+  // we generate a status string with more information upon error. This will include the RocksDB code, sub-code and severity.
+  auto error_string = rocksDBStatusString(s);
   if (s.code() != 0 && s.IsIOError()) {
-    // An error occurred, check if it is an IO error and remove the offending
-    // specific filename or log name.
-    std::string error_string = s.ToString();
+    // Check if it is an IO error and remove the offending specific filename or log name.
     size_t error_pos = error_string.find_last_of(":");
     if (error_pos != std::string::npos) {
       return Status(s.code(), "IOError: " + error_string.substr(error_pos + 2));
     }
   }
 
-  return Status(s.code(), s.ToString());
+  return Status(s.code(), error_string);
 }
 
 Status RocksDBDatabasePlugin::put(const std::string& domain,
