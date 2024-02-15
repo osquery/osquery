@@ -48,26 +48,13 @@ QueryData genOSVersion(QueryContext& context) {
   std::string cimInstallDate{""};
   wmiResults[0].GetString("InstallDate", cimInstallDate);
   r["install_date"] = BIGINT(cimDatetimeToUnixtime(cimInstallDate));
-
-  QueryData regResults;
-  queryKey(
-      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
-      regResults);
-
-  std::string updateBuildRevision{""};
-  for (const auto& aKey : regResults) {
-    if (aKey.at("name") == "UBR") {
-      updateBuildRevision = "." + aKey.at("data");
-      break;
-    }
-  }
-
+ 
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
 
   switch (version.size()) {
   case 3:
-    r["build"] = SQL_TEXT(version[2] + updateBuildRevision);
+    r["build"] = SQL_TEXT(version[2]);
   case 2:
     r["minor"] = INTEGER(version[1]);
   case 1:
@@ -82,6 +69,21 @@ QueryData genOSVersion(QueryContext& context) {
   r["platform"] = "windows";
   r["platform_like"] = "windows";
   r["version"] = r["major"] + "." + r["minor"] + "." + r["build"];
+  
+  QueryData regResults;
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      regResults);
+
+  std::string updateBuildRevision{""};
+  for (const auto& aKey : regResults) {
+    if (aKey.at("name") == "UBR") {
+      updateBuildRevision = aKey.at("data");
+      break;
+    }
+  }
+  
+  r["revision"] = INTEGER(updateBuildRevision);
 
   return {r};
 }
