@@ -1,9 +1,9 @@
 table_name("windows_security_products")
 description("Enumeration of registered Windows security products. Note: Not compatible with Windows Server.")
 schema([
-    Column("type", TEXT, "Type of security product"),
+    Column("type", TEXT, "Type of security product", collate="nocase"),
     Column("name", TEXT, "Name of product"),
-    Column("state", TEXT, "State of protection"),
+    Column("state", TEXT, "State of protection", collate="nocase"),
     Column("state_timestamp", TEXT, "Timestamp for the product state"),
     Column("remediation_path", TEXT, "Remediation path"),
     Column("signatures_up_to_date", INTEGER, "1 if product signatures are up to date, else 0"),

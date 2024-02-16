@@ -1,11 +1,11 @@
-/* config.h.  Generated from config.h.in by configure.  */
-/* config.h.in.  Generated from configure.ac by autoheader.  */
-
-/* Define if __attribute__((destructor)) is accepted */
+/* A form that will not confuse apibuild.py */
 #define ATTRIBUTE_DESTRUCTOR __attribute__((destructor))
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
+
+/* Define if __attribute__((destructor)) is accepted */
+#define HAVE_ATTRIBUTE_DESTRUCTOR 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
@@ -57,14 +57,8 @@
 /* Define to 1 if you have the <poll.h> header file. */
 #define HAVE_POLL_H 1
 
-/* Define if <pthread.h> is there */
+/* Define to 1 if you have the <pthread.h> header file. */
 #define HAVE_PTHREAD_H 1
-
-/* Define to 1 if you have the `putenv' function. */
-#define HAVE_PUTENV 1
-
-/* Define to 1 if you have the `rand_r' function. */
-#define HAVE_RAND_R 1
 
 /* Have shl_load based dso */
 /* #undef HAVE_SHLLOAD */
@@ -105,30 +99,6 @@
 /* Whether __va_copy() is available */
 #define HAVE___VA_COPY 1
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
-#define LT_OBJDIR ".libs/"
-
-/* Name of package */
-#define PACKAGE "libxml2"
-
-/* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "xml@gnome.org"
-
-/* Define to the full name of this package. */
-#define PACKAGE_NAME "libxml2"
-
-/* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libxml2 2.11.2"
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "libxml2"
-
-/* Define to the home page for this package. */
-#define PACKAGE_URL "https://gitlab.gnome.org/GNOME/libxml2"
-
-/* Define to the version of this package. */
-#define PACKAGE_VERSION "2.11.2"
-
 /* Support for IPv6 */
 /* #undef SUPPORT_IP6 */
 
@@ -136,10 +106,13 @@
 /* #undef VA_LIST_IS_ARRAY */
 
 /* Version number of package */
-#define VERSION "2.11.2"
+#define VERSION "2.12.3"
 
 /* Determine what socket length (socklen_t) data type is */
 #define XML_SOCKLEN_T socklen_t
+
+/* TLS specifier */
+/* #undef XML_THREAD_LOCAL */
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the

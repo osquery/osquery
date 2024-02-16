@@ -1,0 +1,19 @@
+table_name("vscode_extensions")
+description("Lists all vscode extensions.")
+schema([
+    Column("name", TEXT, "Extension Name"),
+    Column("uuid", TEXT, "Extension UUID"),
+    Column("version", TEXT, "Extension version"),
+    Column("path", TEXT, "Extension path"),
+    Column("publisher", TEXT, "Publisher Name"),
+    Column("publisher_id", TEXT, "Publisher ID"),
+    Column("installed_at", BIGINT, "Installed Timestamp"),
+    Column("prerelease", INTEGER, "Pre release version"),
+    Column("uid", BIGINT, "The local user that owns the plugin",
+      additional=True),
+])
+attributes(user_data=True)
+implementation("applications/vscode_extensions@genVSCodeExtensions")
+examples([
+  "select * from vscode_extensions",
+])

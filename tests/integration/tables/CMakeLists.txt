@@ -75,6 +75,7 @@ function(generateTestsIntegrationTablesTestsTest)
     device_hash.cpp
     device_partitions.cpp
     ycloud_instance_metadata.cpp
+    vscode_extensions.cpp
   )
 
   if(NOT PLATFORM_LINUX OR OSQUERY_BUILD_ROOT_TESTS)

@@ -2,7 +2,7 @@ table_name("deb_packages")
 description("The installed DEB package database.")
 schema([
     Column("name", TEXT, "Package name"),
-    Column("version", TEXT, "Package version"),
+    Column("version", TEXT, "Package version", collate="version_dpkg"),
     Column("source", TEXT, "Package source"),
     Column("size", BIGINT, "Package size in bytes"),
     Column("arch", TEXT, "Package architecture"),

@@ -25,6 +25,7 @@ function(generateOsquerySql)
     sqlite_network.cpp
     sqlite_operations.cpp
     sqlite_util.cpp
+    sqlite_version.cpp
     virtual_sqlite_table.cpp
     virtual_table.cpp
   )

@@ -259,7 +259,7 @@ jobs:
       run: |
         run_on_host="nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
-        \|^libmono-.*\|^temurin-.*\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
+        \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
 
     - name: Clone the osquery repository
@@ -281,11 +281,13 @@ jobs:
           echo "VALUE=ON" >> $GITHUB_OUTPUT
         fi
 
-    - name: Disk Space Information
+    - name: Get runner hardware info
       shell: bash
-      id: disk_space_info
+      id: runner_stats
       run: |
         df -h
+        echo "Cores: $(nproc)"
+        free -m
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -409,7 +411,7 @@ jobs:
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
-    - name: Disk Space Information
+    - name: Disk space information
       shell: bash
       id: disk_space_info_post_build
       run: |
@@ -601,6 +603,14 @@ jobs:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
 
+    - name: Get runner hardware info
+      shell: bash
+      id: runner_stats
+      run: |
+        df -h
+        echo "Cores: $(sysctl -n hw.logicalcpu)"
+        vm_stat
+
     - name: Update the cache (ccache)
       uses: actions/cache@v3
       with:
@@ -722,6 +732,13 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Disk space information
+      shell: bash
+      id: disk_space_info_post_build
+      run: |
+        df -h
+        du -sh ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Run the tests
       if: matrix.architecture == 'x86_64'
@@ -949,6 +966,13 @@ jobs:
         os: [windows-2019]
 
     steps:
+    - name: Select the build job count
+      shell: powershell
+      id: build_job_count
+      run: |
+        $cores=(Get-CIMInstance Win32_ComputerSystem).NumberOfLogicalProcessors + 1
+        echo "VALUE=$cores" >> $env:GITHUB_OUTPUT
+
     - name: Setup the build paths
       shell: powershell
       id: build_paths
@@ -1003,6 +1027,14 @@ jobs:
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Get runner hardware info
+      id: runner_stats
+      shell: powershell
+      run: |
+        Get-CIMInstance Win32_LogicalDisk
+        Get-CIMInstance Win32_ComputerSystem | Select-Object -Property NumberOfLogicalProcessors
+        Get-CIMInstance Win32_ComputerSystem | Select-Object -Property TotalPhysicalMemory
 
     - name: Detect the osquery version
       shell: powershell
@@ -1222,10 +1254,18 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
-        cmake --build . -j 3
+        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --stop-server
+
+    - name: Disk space information
+      id: disk_space_info_post_build
+      shell: powershell
+      run: |
+        Get-CIMInstance Win32_LogicalDisk
+        $bindir_size = (Get-ChildItem -Path ${{ steps.build_paths.outputs.BINARY }} -Recurse | Measure-Object -Property Length -Sum).sum / 1MB
+        echo "Binary dir size: $bindir_size MBs"
 
     - name: Run the tests
       # arm64 tests can't be run on x64 machine

@@ -83,6 +83,7 @@ function(generateNativeTables)
 
   set(platform_dependent_spec_files
     "arp_cache.table:linux,macos,windows"
+    "vscode_extensions.table:linux,macos,windows"
     "cpu_info.table:linux,macos,windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"

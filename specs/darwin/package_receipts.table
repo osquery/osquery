@@ -4,7 +4,7 @@ schema([
     Column("package_id", TEXT, "Package domain identifier"),
     Column("package_filename", TEXT, "Filename of original .pkg file",
         index=True, hidden=True),
-    Column("version", TEXT, "Installed package version"),
+    Column("version", TEXT, "Installed package version", collate="version"),
     Column("location", TEXT, "Optional relative install path on volume"),
     Column("install_time", DOUBLE, "Timestamp of install time"),
     Column("installer_name", TEXT, "Name of installer process"),

@@ -31,6 +31,7 @@ DECLARE_string(aws_proxy_host);
 DECLARE_uint32(aws_proxy_port);
 DECLARE_string(aws_proxy_username);
 DECLARE_string(aws_proxy_password);
+DECLARE_bool(aws_enforce_fips);
 
 static const char* kAwsProfileFileEnvVar = "AWS_SHARED_CREDENTIALS_FILE";
 static const char* kAwsAccessKeyEnvVar = "AWS_ACCESS_KEY_ID";
@@ -127,41 +128,52 @@ TEST_F(AwsUtilTests, test_get_region) {
 
   // Test valid region flag.
   FLAGS_aws_region = "us-west-1";
-  ASSERT_EQ(Status(0), getAWSRegion(region));
-  ASSERT_EQ(std::string(Aws::Region::US_WEST_1), region);
+  auto aws_region_res = AWSRegion::make(region);
+
+  ASSERT_TRUE(aws_region_res.isValue());
+  ASSERT_EQ(std::string(Aws::Region::US_WEST_1),
+            aws_region_res.get().getRegion());
+
+  // Test a generally valid region, but invalid for FIPS
+  FLAGS_aws_enforce_fips = true;
+  aws_region_res = AWSRegion::make("eu-south-1");
+
+  ASSERT_TRUE(aws_region_res.isError());
+  ASSERT_EQ(aws_region_res.getErrorCode(), AWSRegionError::NotFIPSCompliant);
+
+  // Test a valid region for FIPS
+  aws_region_res = AWSRegion::make("us-east-1");
+  ASSERT_TRUE(aws_region_res.isValue());
+
+  FLAGS_aws_enforce_fips = false;
 
   // Test invalid region flag.
   FLAGS_aws_region = "foo";
-  ASSERT_EQ(Status(1, "Invalid aws_region specified: foo"),
-            getAWSRegion(region));
+  aws_region_res = AWSRegion::make(region);
+
+  ASSERT_TRUE(aws_region_res.isError());
 
   // Test disabled region validation.
   FLAGS_aws_region = "foo";
-  ASSERT_EQ(Status(0), getAWSRegion(region, false, false));
-  ASSERT_EQ("foo", region);
+  aws_region_res = AWSRegion::make(region, false);
+
+  ASSERT_TRUE(aws_region_res.isValue());
+  ASSERT_EQ("foo", aws_region_res.get().getRegion());
 
   // Reset aws_region flag.
   FLAGS_aws_region = "";
 
-  // Test valid STS region flag.
-  FLAGS_aws_sts_region = "us-east-1";
-  ASSERT_EQ(Status(0), getAWSRegion(region, true));
-  ASSERT_EQ(std::string(Aws::Region::US_EAST_1), region);
-
-  // Test invalid STS region flag.
-  FLAGS_aws_sts_region = "bar";
-  ASSERT_EQ(Status(1, "Invalid aws_region specified: bar"),
-            getAWSRegion(region, true));
-
-  // Reset STS and profile flags.
-  FLAGS_aws_sts_region = "";
+  // Reset profile flags.
   FLAGS_aws_profile_name = "";
 
   // Test no credential file, should default to us-east-1
   auto profile_path = getTestConfigDirectory() / "credentials";
   setEnvVar(kAwsProfileFileEnvVar, profile_path.string());
-  ASSERT_EQ(Status(0), getAWSRegion(region));
-  ASSERT_EQ(std::string(Aws::Region::US_EAST_1), region);
+
+  aws_region_res = AWSRegion::make(region);
+  ASSERT_TRUE(aws_region_res.isValue());
+  ASSERT_EQ(std::string(Aws::Region::US_EAST_1),
+            aws_region_res.get().getRegion());
 
   // Profiles are not working on Windows; see the constructor of
   // OsqueryAWSCredentialsProviderChain for more information
@@ -171,23 +183,34 @@ TEST_F(AwsUtilTests, test_get_region) {
     profile_path = getTestConfigDirectory() / "credentials";
     setEnvVar(kAwsProfileFileEnvVar, profile_path.string());
     FLAGS_aws_profile_name = "test";
-    ASSERT_FALSE(getAWSRegion(region).ok());
+    aws_region_res = AWSRegion::make(region);
+
+    ASSERT_TRUE(aws_region_res.isError());
 
     // Set a valid path for the credentials file with profile name.
     profile_path = getTestConfigDirectory() / "aws/credentials";
     setEnvVar(kAwsProfileFileEnvVar, profile_path.string());
     FLAGS_aws_profile_name = "test";
-    ASSERT_EQ(Status(0), getAWSRegion(region));
-    ASSERT_EQ(std::string(Aws::Region::EU_CENTRAL_1), region);
+    aws_region_res = AWSRegion::make(region);
+
+    ASSERT_TRUE(aws_region_res.isValue());
+    ASSERT_EQ(std::string(Aws::Region::EU_CENTRAL_1),
+              aws_region_res.get().getRegion());
 
     FLAGS_aws_profile_name = "default";
-    ASSERT_EQ(Status(0), getAWSRegion(region));
-    ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
+    aws_region_res = AWSRegion::make(region);
+
+    ASSERT_TRUE(aws_region_res.isValue());
+    ASSERT_EQ(std::string(Aws::Region::US_WEST_2),
+              aws_region_res.get().getRegion());
 
     // Should default to "default" and give same result as just above
     FLAGS_aws_profile_name = "";
-    ASSERT_EQ(Status(0), getAWSRegion(region));
-    ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
+    aws_region_res = AWSRegion::make(region);
+
+    ASSERT_TRUE(aws_region_res.isValue());
+    ASSERT_EQ(std::string(Aws::Region::US_WEST_2),
+              aws_region_res.get().getRegion());
   }
 }
 
@@ -267,4 +290,4 @@ TEST_F(AwsUtilTests, test_set_proxy_invalid) {
   ASSERT_EQ(username, client_config.proxyUserName);
   ASSERT_EQ(password, client_config.proxyPassword);
 }
-}
+} // namespace osquery

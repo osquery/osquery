@@ -20,6 +20,7 @@ function(generateOsqueryTablesApplications)
     chrome/chrome_extension_content_scripts.cpp
     chrome/utils.cpp
     browser_firefox.cpp
+    vscode_extensions.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
@@ -66,6 +67,7 @@ function(generateOsqueryTablesApplications)
   if(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_applications PRIVATE
       osquery_utils_plist
+      osquery_utils_system_profiler
     )
   endif()
 

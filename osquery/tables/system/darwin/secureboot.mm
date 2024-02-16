@@ -12,6 +12,7 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/darwin/system_profiler.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitKeys.h>
@@ -137,7 +138,7 @@ Status getSecureBootModeFromValue(UniqueCFTypeRef& value,
   return Status::success();
 }
 
-Status getSecureBootSetting(Row& row) {
+Status getIntelSecureBootSetting(Row& row) {
   SecureBootMode mode{SecureBootMode::NoSecurity};
 
   UniqueIoRegistryEntry options_entry;
@@ -176,17 +177,75 @@ Status getSecureBootSetting(Row& row) {
   return Status::success();
 }
 
+Status getAarch64SecureBootSetting(Row& r) {
+  @autoreleasepool {
+    NSDictionary* __autoreleasing result;
+    Status status = getSystemProfilerReport("SPiBridgeDataType", result);
+    if (!status.ok()) {
+      return Status::failure("failed to get secureboot config: " +
+                             status.getMessage());
+    }
+
+    NSDictionary* report = [[result objectForKey:@"_items"] lastObject];
+
+    if ([report valueForKey:@"ibridge_secure_boot"]) {
+      r["description"] =
+          SQL_TEXT([[report valueForKey:@"ibridge_secure_boot"] UTF8String]);
+      if (r["description"] == "Full Security" ||
+          r["description"] == "Reduced Security") {
+        r["secure_boot"] = INTEGER(1);
+      } else if (r["description"] == "Permissive Security") {
+        r["secure_boot"] = INTEGER(0);
+      }
+    }
+
+    if ([report valueForKey:@"ibridge_sb_other_kext"]) {
+      auto value = std::string(
+          [[report valueForKey:@"ibridge_sb_other_kext"] UTF8String]);
+      if (value == "Yes") {
+        r["kernel_extensions"] = INTEGER(1);
+      } else if (value == "No") {
+        r["kernel_extensions"] = INTEGER(0);
+      }
+    }
+
+    // Combine both MDM values into a single column (since devices should be in
+    // *either* DEP or Manual enrollment)
+    if ([report valueForKey:@"ibridge_sb_manual_mdm"] ||
+        [report valueForKey:@"ibridge_sb_device_mdm"]) {
+      r["mdm_operations"] = INTEGER(0);
+
+      if ([report valueForKey:@"ibridge_sb_manual_mdm"]) {
+        auto value = std::string(
+            [[report valueForKey:@"ibridge_sb_manual_mdm"] UTF8String]);
+        if (value == "Yes") {
+          r["mdm_operations"] = INTEGER(1);
+        }
+      }
+
+      if ([report valueForKey:@"ibridge_sb_device_mdm"]) {
+        auto value = std::string(
+            [[report valueForKey:@"ibridge_sb_device_mdm"] UTF8String]);
+        if (value == "Yes") {
+          r["mdm_operations"] = INTEGER(1);
+        }
+      }
+    }
+  }
+
+  return Status::success();
+}
+
 } // namespace
 
 QueryData genSecureBoot(QueryContext& context) {
   Row row;
 
 #ifdef __aarch64__
-  LOG(INFO) << "secure_boot unsupported on ARM macOS";
-  return {};
+  auto status = getAarch64SecureBootSetting(row);
+#else
+  auto status = getIntelSecureBootSetting(row);
 #endif
-
-  auto status = getSecureBootSetting(row);
   if (!status.ok()) {
     LOG(ERROR) << "secureboot error: " << status.toString();
     return {};

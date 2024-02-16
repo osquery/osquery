@@ -369,6 +369,32 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
     </p>
     </details>
 
+- `version_compare(LEFT_VERSION, RIGHT_VERSION, COMPARE_FLAVOR)`: return `-1` if the left version is less than the right, `0` if they are equal, or `1` if the left version is greater than the right. `COMPARE_FLAVOR` is optional, and can be of value (`ARCH`, `DPKG`, or `RHEL`), which equates to the respective linux distribution package versioning. The default `COMPARE_FLAVOR` is semantic versioning.
+
+    <details>
+    <summary>Version Compare function example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> select version_compare('1.0', '1.0');
+      version_compare('1.0', '1.0') = 0
+
+      osquery> select version_compare('4:1.1.0', '4:1.1.0-3', 'ARCH');
+      version_compare('4:1.1.0', '4:1.1.0-3', 1) = 0
+
+      osquery> select version_compare('50.4.1b', '50.4.1c');
+      version_compare('50.4.1b', '50.4.1c') = -1
+
+      osquery> select version_compare('1.0.0~rc2^2021', '1.0.0', 'RHEL');
+      version_compare('1.0.0~rc2^2021', '1.0.0', 3) = -1
+
+      osquery> select version_compare('1:1.2.13-2', '4.2.1', 'ARCH');
+      version_compare('1:1.2.13-2', '4.2.1', 1) = 1
+
+    </p>
+    </details>
+
 #### Hashing functions
 
 We have added `sha1`, `sha256`, and `md5` functions that take a single argument and return the hashed value.
@@ -495,6 +521,87 @@ There are also encoding functions available, to process query results.
 
       osquery> SELECT in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff');
       in_cidr_block('2001:db8::/48', '2001:db8:0:ffff:ffff:ffff:ffff:ffff') = 1
+
+    </p>
+    </details>
+
+#### Collations
+
+- `version`:
+
+    <details>
+    <summary>Version collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT '1.0' = '1.0' COLLATE VERSION;
+      '1.0' = '1.0' COLLATE VERSION = 1
+
+      osquery> SELECT '50.4.1b' < '50.4.1c' COLLATE VERSION;
+      '50.4.1b' < '50.4.1c' COLLATE VERSION = 1
+
+      osquery> SELECT '20.10a' > '20.102' COLLATE VERSION;
+      '20.10a' > '20.102' COLLATE VERSION = 1
+    </p>
+    </details>
+
+- `version_arch`:
+
+    <details>
+    <summary>Version ARCH collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT '4:2' = '4:2-1' COLLATE VERSION_ARCH;
+      '4:2' = '4:2-1' COLLATE VERSION_ARCH = 1
+
+      osquery> SELECT '2-2pre' < '2-2rc' COLLATE VERSION_ARCH;
+      '2-2pre' < '2-2rc' COLLATE VERSION_ARCH = 1
+
+      osquery> SELECT '42.2-1' > '42.1-2' COLLATE VERSION_ARCH;
+      '42.2-1' > '42.1-2' COLLATE VERSION_ARCH = 1
+
+    </p>
+    </details>
+
+- `version_dpkg`:
+
+    <details>
+    <summary>Version DPKG collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT '1:2.0-10' = '1:2.0-10' COLLATE VERSION_DPKG;
+      '1:2.0-10' = '1:2.0-10' COLLATE VERSION_DPKG = 1
+
+      osquery> SELECT '22.07.5-2ubuntu1.3' < '22.07.5-2ubuntu1.4' COLLATE VERSION_DPKG;
+      '22.07.5-2ubuntu1.3' < '22.07.5-2ubuntu1.4' COLLATE VERSION_DPKG = 1
+
+      osquery> SELECT '2:8.2.3995-1ubuntu2.9' > '2:8.2.3995-1ubuntu2.3' COLLATE VERSION_DPKG;
+      '2:8.2.3995-1ubuntu2.9' > '2:8.2.3995-1ubuntu2.3' COLLATE VERSION_DPKG = 1
+
+    </p>
+    </details>
+
+- `version_rhel`:
+
+    <details>
+    <summary>Version RHEL collation example:</summary>
+    <p>
+
+      osquery> .mode line
+
+      osquery> SELECT '0.5.0~rc1^202' = '0.5.0~rc1^202' COLLATE VERSION_RHEL;
+      '0.5.0~rc1^202' = '0.5.0~rc1^202' COLLATE VERSION_RHEL = 1
+
+      osquery> SELECT '1.1.0~BETA2' < '1.1.0~CR1' COLLATE VERSION_RHEL;
+      '1.1.0~BETA2' < '1.1.0~CR1' COLLATE VERSION_RHEL = 1
+
+      osquery> SELECT '1.0.0' > '1.0.0~rc2' COLLATE VERSION_RHEL;
+      '1.0.0' > '1.0.0~rc2' COLLATE VERSION_RHEL = 1
 
     </p>
     </details>

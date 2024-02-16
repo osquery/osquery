@@ -1,5 +1,5 @@
 table_name("keychain_acls")
-description("Applications that have ACL entries in the keychain.")
+description("Applications that have ACL entries in the keychain. NOTE: osquery limits frequent access to keychain files. This limit is controlled by keychain_access_interval flag.")
 schema([
     Column("keychain_path", TEXT, "The path of the keychain"),
     Column("authorizations", TEXT, "A space delimited set of authorization attributes"),
