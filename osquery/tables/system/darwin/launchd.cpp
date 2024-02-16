@@ -103,7 +103,7 @@ QueryData genLaunchd(QueryContext& context) {
     auto paths = context.constraints["path"].getAll(EQUALS);
     std::copy(paths.begin(), paths.end(), std::back_inserter(launchers));
   } else {
-      for (const auto& search_path : kLaunchdSearchPaths) {
+    for (const auto& search_path : kLaunchdSearchPaths) {
       osquery::listFilesInDirectory(search_path, launchers);
     }
 
@@ -174,5 +174,5 @@ QueryData genLaunchdOverrides(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
