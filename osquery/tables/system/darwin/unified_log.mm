@@ -363,7 +363,8 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
         // Escape if the rows number reached the limit
         if (++rows_counter > max_rows)
-          // Free OSLogEnumerator by enumerating all remaining objects before escaping
+          // Free OSLogEnumerator by enumerating all remaining objects before
+          // escaping
           continue;
 
         if (isSequential) {
