@@ -48,7 +48,7 @@ QueryData genOSVersion(QueryContext& context) {
   std::string cimInstallDate{""};
   wmiResults[0].GetString("InstallDate", cimInstallDate);
   r["install_date"] = BIGINT(cimDatetimeToUnixtime(cimInstallDate));
- 
+
   wmiResults[0].GetString("Version", version_string);
   auto version = osquery::split(version_string, ".");
 
@@ -69,7 +69,7 @@ QueryData genOSVersion(QueryContext& context) {
   r["platform"] = "windows";
   r["platform_like"] = "windows";
   r["version"] = r["major"] + "." + r["minor"] + "." + r["build"];
-  
+
   QueryData regResults;
   queryKey(
       "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
@@ -82,7 +82,7 @@ QueryData genOSVersion(QueryContext& context) {
       break;
     }
   }
-  
+
   r["revision"] = INTEGER(updateBuildRevision);
 
   return {r};
