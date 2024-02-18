@@ -16,6 +16,7 @@ schema([
 ])
 extended_schema(WINDOWS, [
     Column("availability", TEXT, "The availability and status of the CPU.")
+    Column("load_percentage", INTEGER, "The current percentage of utilization of the CPU."),
 ])
 extended_schema(DARWIN, [
     Column("number_of_efficiency_cores", INTEGER, "The number of efficiency cores of the CPU. Only available on Apple Silicon"),
