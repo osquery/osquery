@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <tuple>
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
@@ -48,8 +49,11 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
   std::vector<std::string> app_versions;
   auto status = osquery::listDirectoriesInDirectory(path, app_versions);
   if (status.ok()) {
-    for (const auto& version : app_versions) {
-      results.push_back(fs::path(version).filename().string());
+    for (const auto& versionDir : app_versions) {
+      std::string version = fs::path(versionDir).filename().string();
+      if (version != ".metadata") {
+        results.push_back(version);
+      }
     }
   } else {
     TLOG << "Error listing " << path << ": " << status.toString();
@@ -77,29 +81,35 @@ void packagesFromPrefix(QueryData& results,
     return;
   }
 
-  auto cellarPath = fs::path(prefix) / "Cellar";
+  std::tuple<std::string, fs::path> typesList[2] = {
+      std::make_tuple("formulae", fs::path(prefix) / "Cellar"),
+      std::make_tuple("cask", fs::path(prefix) / "Caskroom")};
 
-  if (!pathExists(cellarPath).ok()) {
-    if (userRequested) {
-      LOG(WARNING) << "Error reading homebrew cellar path "
-                   << cellarPath.native();
+  for (const auto& typeTuple : typesList) {
+    auto [type, typePath] = typeTuple;
+    if (!pathExists(typePath).ok()) {
+      if (userRequested) {
+        LOG(WARNING) << "Error reading homebrew " << type << " path "
+                     << typePath.native();
+      }
+      return;
     }
-    return;
-  }
 
-  for (const auto& path :
-       getHomebrewAppInfoPlistPaths(fs::canonical(cellarPath).string())) {
-    auto versions = getHomebrewVersionsFromInfoPlistPath(path);
-    auto name = getHomebrewNameFromInfoPlistPath(path);
-    for (const auto& version : versions) {
-      // Support a many to one version to package name.
-      Row r;
-      r["name"] = name;
-      r["path"] = path;
-      r["version"] = version;
-      r["prefix"] = prefix;
+    for (const auto& path :
+         getHomebrewAppInfoPlistPaths(fs::canonical(typePath).string())) {
+      auto versions = getHomebrewVersionsFromInfoPlistPath(path);
+      auto name = getHomebrewNameFromInfoPlistPath(path);
+      for (const auto& version : versions) {
+        // Support a many to one version to package name.
+        Row r;
+        r["name"] = name;
+        r["path"] = path;
+        r["version"] = version;
+        r["type"] = type;
+        r["prefix"] = prefix;
 
-      results.push_back(r);
+        results.push_back(r);
+      }
     }
   }
 }
@@ -122,5 +132,5 @@ QueryData genHomebrewPackages(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
