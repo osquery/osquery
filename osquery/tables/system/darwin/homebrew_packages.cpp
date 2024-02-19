@@ -92,7 +92,7 @@ void packagesFromPrefix(QueryData& results,
         LOG(WARNING) << "Error reading homebrew " << type << " path "
                      << typePath.native();
       }
-      return;
+      continue;
     }
 
     for (const auto& path :
