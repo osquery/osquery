@@ -1,7 +1,7 @@
 table_name("apparmor_profiles")
 description("Track active AppArmor profiles.")
 schema([
-    Column("path", TEXT, "Unique, aa-status compatible, policy identifier.", index=True),
+    Column("path", TEXT, "Unique, aa-status compatible, policy identifier."),
     Column("name", TEXT, "Policy name."),
     Column("attach", TEXT, "Which executable(s) a profile will attach to."),
     Column("mode", TEXT, "How the policy is applied."),
