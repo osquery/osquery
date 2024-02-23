@@ -147,7 +147,7 @@ size_t KinesisLogForwarder::getMaxBytesPerBatch() const {
 }
 
 size_t KinesisLogForwarder::getMaxRetryCount() const {
-  return 100U;
+  return 10U;
 }
 
 size_t KinesisLogForwarder::getInitialRetryDelay() const {

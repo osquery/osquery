@@ -201,6 +201,8 @@ class AwsLogForwarder : public BufferedLogForwarder {
       size_t retry_delay =
           (retry == 0 ? 0 : base_retry_delay) + (retry * 1000U);
       if (retry_delay != 0) {
+        // We set an upper bound on the delay. We're happy for occasional failures in order to ensure timely delivery.
+        retry_delay = std::min(15000, retry);
         pause(std::chrono::milliseconds(retry_delay));
 
         /* Stop retrying, osquery should shutdown; we fail the send
@@ -256,10 +258,20 @@ class AwsLogForwarder : public BufferedLogForwarder {
         continue;
       }
 
-      const auto& result_record_list = getResult(outcome);
+      // It's possible to have a successful AWS request but all records within it fail.
+      // We don't expect errors to happen often and it'd be nice to know when they do.
+      LOG(ERROR) << name_ << ": record failure count: "
+                  << failed_record_count << "\\" << batch.size();
 
+      const auto& result_record_list = getResult(outcome);
       for (size_t i = batch.size(); i-- > 0;) {
         if (!result_record_list[i].GetErrorCode().empty()) {
+          // Log every 50th error.
+          if (i % 50 == 0) {
+            LOG(ERROR) << name_ << ": record failure: "
+                     << result_record_list[i].GetErrorCode()
+                     << " " <<  result_record_list[i].GetErrorMessage();
+          }
           continue;
         }
 
