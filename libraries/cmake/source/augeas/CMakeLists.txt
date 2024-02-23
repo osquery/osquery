@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(augeasMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_augeas_ROOT_DIR}")
 
   if(PLATFORM_LINUX)
     set(generated_include_headers_path
