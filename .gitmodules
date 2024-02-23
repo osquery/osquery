@@ -10,9 +10,6 @@
 [submodule "libraries/cmake/source/libudev/src"]
 	path = libraries/cmake/source/libudev/src
 	url = https://github.com/systemd/systemd
-[submodule "libraries/cmake/source/libxml2/src"]
-	path = libraries/cmake/source/libxml2/src
-	url = https://github.com/GNOME/libxml2
 [submodule "libraries/cmake/source/linenoise-ng/src"]
 	path = libraries/cmake/source/linenoise-ng/src
 	url = https://github.com/arangodb/linenoise-ng

@@ -230,13 +230,6 @@
     "commit": "b3eccdce81d18ec36c6ea95ac161002fc33d1810",
     "ignored-cves": []
   },
-  "libxml2": {
-    "product": "libxml2",
-    "vendor": "xmlsoft",
-    "version": "2.12.3",
-    "commit": "30d22bec03893ad646907050959bdfe9e8000146",
-    "ignored-cves": []
-  },
   "linenoise-ng": {
     "product": "linenoise-ng",
     "vendor": "arangodb",
