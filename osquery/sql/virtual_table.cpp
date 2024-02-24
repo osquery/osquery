@@ -761,15 +761,22 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
 
-      // Check if this constraint is on an index or required column.
+      // Any constraint added to the sqlite cursor should process IN clauses all-at-once,
+      // unless that constraint would cause data to be lost during the table generate.
+      bool inConstraintAllAtOnce = true;
+
+      // Check if constraint is set on a column which modifies how the
+      // table generates data and apply appropiate parameters for each.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
       if (options & ColumnOptions::REQUIRED) {
+        cost = 1;
         hasRequiredConstraints = true;
-        cost = 1;
-      } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
-        cost = 1;
+      } else if (options & ColumnOptions::INDEX) {
+        cost = 2;
+      } else if (options & ColumnOptions::ADDITIONAL) {
+        cost = 3;
+        inConstraintAllAtOnce = false;
       } else {
-        // not indexed, let sqlite filter it
         continue;
       }
 
@@ -779,18 +786,10 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       constraints.push_back(
           std::make_pair(name, Constraint(constraint_info.op)));
 
-      // important: if we specify an index, it means xFilter will be called
-      // once for every row.  So if you have an IN() list with 50 items,
-      // xFilter will get called 50 times, once for each item.  If you have
-      // a JOIN with 500 rows, xFilter is called 500 times.  Therefore,
-      // when a spec file specifies a column to be required or index, the
-      // table implementation must be able to quickly find and return a
-      // single row. See issue 5379.
-
       pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
-      // Set IN constraints to process all-at-once for indexed columns.
-      if (sqlite3_vtab_in(pIdxInfo, i, -1) && options & ColumnOptions::INDEX) {
+      // Set safe index constraints to process all-at-once.
+      if (inConstraintAllAtOnce && sqlite3_vtab_in(pIdxInfo, i, -1)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
       }
 
