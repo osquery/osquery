@@ -761,8 +761,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
 
-      // Any constraint added to the sqlite cursor should process IN clauses all-at-once,
-      // unless that constraint would cause data to be lost during the table generate.
+      // Any constraint added to the sqlite cursor should process IN clauses
+      // all-at-once, unless that constraint would cause data to be lost during
+      // the table generate.
       bool inConstraintAllAtOnce = true;
 
       // Check if constraint is set on a column which modifies how the
