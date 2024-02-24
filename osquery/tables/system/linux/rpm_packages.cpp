@@ -151,7 +151,9 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   auto constraint_end = constraints.end();
   int c = constraint == constraint_end ? 0 : 1;
   do {
-    matches = c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0) : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
+    matches =
+        c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0)
+               : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
     Header header;
     while ((header = rpmdbNextIterator(matches)) != nullptr) {
       Row r;
@@ -165,13 +167,14 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
       r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td, logger);
       r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td, logger);
       r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td, logger));
-      r["install_time"] = INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
+      r["install_time"] =
+          INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
       r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td, logger);
       r["package_group"] = getRpmAttribute(header, RPMTAG_GROUP, td, logger);
       r["pid_with_namespace"] = "0";
 
       rpmtdFree(td);
-      results.push_back(r);      
+      results.push_back(r);
     }
 
     rpmdbFreeIterator(matches);
@@ -180,8 +183,7 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
       ++constraint;
 
     c++;
-  }
-  while (c == 0 || constraint != constraint_end);
+  } while (c == 0 || constraint != constraint_end);
 
   rpmtsFree(ts);
   rpmFreeCrypto();
@@ -223,12 +225,15 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   auto constraint_end = constraints.end();
   int c = constraint == constraint_end ? 0 : 1;
   do {
-    matches = c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0) : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
+    matches =
+        c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0)
+               : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
     Header header;
     while ((header = rpmdbNextIterator(matches)) != nullptr) {
       rpmtd td = rpmtdNew();
       rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
-      std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td, logger);
+      std::string package_name =
+          getRpmAttribute(header, RPMTAG_NAME, td, logger);
 
       auto file_count = rpmfiFC(fi);
       if (file_count <= 0) {
@@ -237,7 +242,9 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
         rpmtdFree(td);
         continue;
       } else if (file_count > MAX_RPM_FILES) {
-        logger.vlog(1, "RPM package " + package_name + " contains over " + std::to_string(MAX_RPM_FILES) + " files");
+        logger.vlog(1,
+                    "RPM package " + package_name + " contains over " +
+                        std::to_string(MAX_RPM_FILES) + " files");
         rpmfiFree(fi);
         rpmtdFree(td);
         continue;
@@ -278,8 +285,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
       ++constraint;
 
     c++;
-  }
-  while (c == 0 || constraint != constraint_end);
+  } while (c == 0 || constraint != constraint_end);
 
   rpmtsFree(ts);
   rpmFreeRpmrc();
