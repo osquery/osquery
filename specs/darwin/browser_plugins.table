@@ -10,7 +10,7 @@ schema([
     Column("description", TEXT, "Plugin description text"),
     Column("development_region", TEXT, "Plugin language-localization"),
     Column("native", INTEGER, "Plugin requires native execution"),
-    Column("path", TEXT, "Path to plugin bundle", index=True),
+    Column("path", TEXT, "Path to plugin bundle"),
     Column("disabled", INTEGER, "Is the plugin disabled. 1 = Disabled"),
     ForeignKey(column="uid", table="users")
 ])

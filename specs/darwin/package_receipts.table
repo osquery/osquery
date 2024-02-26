@@ -8,7 +8,7 @@ schema([
     Column("location", TEXT, "Optional relative install path on volume"),
     Column("install_time", DOUBLE, "Timestamp of install time"),
     Column("installer_name", TEXT, "Name of installer process"),
-    Column("path", TEXT, "Path of receipt plist", additional=True),
+    Column("path", TEXT, "Path of receipt plist", index=True),
 ])
 implementation("packages@genPackageReceipts")
 examples([

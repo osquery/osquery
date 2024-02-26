@@ -4,7 +4,7 @@ schema([
     Column("node", TEXT, "The node path of the configuration item", index=True),
     Column("value", TEXT, "The value of the configuration item"),
     Column("label", TEXT, "The label of the configuration item"),
-    Column("path", TEXT, "The path to the configuration file", additional=True)
+    Column("path", TEXT, "The path to the configuration file", index=True)
 ])
 implementation("other/augeas@genAugeas")
 examples([

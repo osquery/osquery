@@ -9,8 +9,7 @@ schema([
     Column("publisher_id", TEXT, "Publisher ID"),
     Column("installed_at", BIGINT, "Installed Timestamp"),
     Column("prerelease", INTEGER, "Pre release version"),
-    Column("uid", BIGINT, "The local user that owns the plugin",
-      additional=True),
+    Column("uid", BIGINT, "The local user that owns the plugin", index=True),
 ])
 attributes(user_data=True)
 implementation("applications/vscode_extensions@genVSCodeExtensions")
