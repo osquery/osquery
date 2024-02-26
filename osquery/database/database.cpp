@@ -47,6 +47,7 @@ const std::string kCarves = "carves";
 const std::string kLogs = "logs";
 const std::string kDistributedQueries = "distributed";
 const std::string kDistributedRunningQueries = "distributed_running";
+const std::string kQueryPerformance = "query_performance";
 
 const std::string kDbEpochSuffix = "epoch";
 const std::string kDbCounterSuffix = "counter";
@@ -59,7 +60,8 @@ const std::vector<std::string> kDomains = {kPersistentSettings,
                                            kLogs,
                                            kCarves,
                                            kDistributedQueries,
-                                           kDistributedRunningQueries};
+                                           kDistributedRunningQueries,
+                                           kQueryPerformance};
 
 std::atomic<bool> kDBAllowOpen(false);
 std::atomic<bool> kDBInitialized(false);

@@ -23,6 +23,7 @@ endfunction()
 function(generateOsqueryCoreTestsMergedtestsTest)
   set(source_files
     flags_tests.cpp
+    query_performance_tests.cpp
     system_test.cpp
     tables_tests.cpp
     watcher_tests.cpp
