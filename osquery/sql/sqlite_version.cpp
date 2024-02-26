@@ -95,7 +95,7 @@ static int compareRemainder(std::string_view l_ver,
           return diff;
         }
       }
-    } else if (delimiterPrecedence(r_ver[pos]) > 0) {
+    } else if (diff != 0 && delimiterPrecedence(r_ver[pos]) > 0) {
       return diff;
     }
   }
@@ -114,7 +114,7 @@ static int compareRemainder(std::string_view l_ver,
           return diff;
         }
       }
-    } else if (delimiterPrecedence(l_ver[pos]) > 0) {
+    } else if (diff != 0 && delimiterPrecedence(l_ver[pos]) > 0) {
       return diff;
     }
   }
