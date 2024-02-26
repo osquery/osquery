@@ -78,9 +78,9 @@ static int compareRemainder(std::string_view l_ver,
   // When remainder_precedence = false, this will return the segment value diff
   // if there is any, before falling through to return length diff.
   //
-  // When the next character of a semver comparison of the longer version is a
-  // delimiter, this will return the segment value diff, otherwise it falls
-  // through to return length diff.
+  // When comp_remaining = false and the next character of the version with the
+  // remainder is a delimiter, this will return the segment value diff if there
+  // is any, otherwise it falls through to return length diff.
   if (l_ver.size() == pos) {
     if (comp_remaining) {
       switch (r_ver[pos]) {
