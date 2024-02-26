@@ -77,8 +77,12 @@ static int compareRemainder(std::string_view l_ver,
   //
   // When remainder_precedence = false, this will return the segment value diff
   // if there is any, before falling through to return length diff.
-  if (comp_remaining) {
-    if (l_ver.size() == pos) {
+  //
+  // When the next character of a semver comparison of the longer version is a
+  // delimiter, this will return the segment value diff, otherwise it falls
+  // through to return length diff.
+  if (l_ver.size() == pos) {
+    if (comp_remaining) {
       switch (r_ver[pos]) {
       case '~':
         return 1;
@@ -91,9 +95,13 @@ static int compareRemainder(std::string_view l_ver,
           return diff;
         }
       }
+    } else if (delimiterPrecedence(r_ver[pos]) > 0) {
+      return diff;
     }
+  }
 
-    if (r_ver.size() == pos) {
+  if (r_ver.size() == pos) {
+    if (comp_remaining) {
       switch (l_ver[pos]) {
       case '~':
         return -1;
@@ -106,6 +114,8 @@ static int compareRemainder(std::string_view l_ver,
           return diff;
         }
       }
+    } else if (delimiterPrecedence(l_ver[pos]) > 0) {
+      return diff;
     }
   }
 
