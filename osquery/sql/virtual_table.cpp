@@ -761,11 +761,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
 
-      // Any constraint added to the sqlite cursor should process IN clauses
-      // all-at-once, unless that constraint would cause data to be lost during
-      // the table generate.
-      bool inConstraintAllAtOnce = true;
-
       // Check if constraint is set on a column which modifies how the
       // table generates data and apply appropiate parameters for each.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
@@ -776,7 +771,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         cost = 2;
       } else if (options & ColumnOptions::ADDITIONAL) {
         cost = 3;
-        inConstraintAllAtOnce = false;
       } else {
         continue;
       }
@@ -789,8 +783,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 
       pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
-      // Set safe index constraints to process all-at-once.
-      if (inConstraintAllAtOnce && sqlite3_vtab_in(pIdxInfo, i, -1)) {
+      // Set index constraints to process IN(n) all-at-once.
+      if (sqlite3_vtab_in(pIdxInfo, i, -1) && (options & ColumnOptions::INDEX)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
       }
 
