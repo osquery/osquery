@@ -772,6 +772,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       } else if (options & ColumnOptions::ADDITIONAL) {
         cost = 3;
       } else {
+        // not indexed, let sqlite filter it
         continue;
       }
 
