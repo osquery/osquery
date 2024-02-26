@@ -97,25 +97,25 @@ QueryData genSystemControls(QueryContext& context) {
   }
 
   // Iterate through the sysctl-defined macro of control types.
-  if (context.constraints["name"].exists(EQUALS)) {
-    // Request MIB information by the description (name).
-    auto names = context.constraints["name"].getAll(EQUALS);
-    for (const auto& name : names) {
-      genControlInfoFromName(name, results, config);
-    }
-  } else if (context.constraints["oid"].exists(EQUALS)) {
-    // Request MIB by OID as a string, parse into set of INTs.
-    auto oids = context.constraints["oid"].getAll(EQUALS);
-    for (const auto& oid_string : oids) {
-      genControlInfoFromOIDString(oid_string, results, config);
-    }
-  } else if (context.constraints["subsystem"].exists(EQUALS)) {
-    // Limit the MIB search to a subsystem name (first find the INT).
-    auto subsystems = context.constraints["subsystem"].getAll(EQUALS);
-    for (const auto& subsystem : subsystems) {
-      genAllControls(results, config, subsystem);
-    }
-  } else {
+  // Request MIB information by the description (name).
+  auto names = context.constraints["name"].getAll(EQUALS);
+  for (const auto& name : names) {
+    genControlInfoFromName(name, results, config);
+  }
+
+  // Request MIB by OID as a string, parse into set of INTs.
+  auto oids = context.constraints["oid"].getAll(EQUALS);
+  for (const auto& oid_string : oids) {
+    genControlInfoFromOIDString(oid_string, results, config);
+  }
+
+  // Limit the MIB search to a subsystem name (first find the INT).
+  auto subsystems = context.constraints["subsystem"].getAll(EQUALS);
+  for (const auto& subsystem : subsystems) {
+    genAllControls(results, config, subsystem);
+  }
+
+  if (results.empty()) {
     genAllControls(results, config, "");
   }
 
