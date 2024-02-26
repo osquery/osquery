@@ -36,52 +36,38 @@ Row genGroup(const Group& group) {
 }
 
 QueryData genGroups(QueryContext& context) {
-  auto gid_it = context.constraints.find("gid");
-  auto sid_it = context.constraints.find("group_sid");
-  std::set<std::string> selected_sids;
-  std::set<std::string> selected_gids;
-
-  if (sid_it != context.constraints.end()) {
-    selected_sids = sid_it->second.getAll(EQUALS);
-  }
-
-  if (selected_sids.empty() && gid_it != context.constraints.end()) {
-    selected_gids = gid_it->second.getAll(EQUALS);
-  }
-
   QueryData results;
   const auto& groups_cache = GlobalUsersGroupsCache::getGroupsCache();
+  auto selected_gids = context.constraints["gid"].getAll(EQUALS);
+  auto selected_sids = context.constraints["group_sid"].getAll(EQUALS);
 
-  if (!selected_sids.empty()) {
-    for (const auto& selected_sid : selected_sids) {
-      auto opt_group = groups_cache.getGroupBySid(selected_sid);
+  for (const auto& selected_sid : selected_sids) {
+    auto opt_group = groups_cache.getGroupBySid(selected_sid);
 
-      if (!opt_group.has_value()) {
-        continue;
-      }
+    if (!opt_group.has_value()) {
+      continue;
+    }
 
-      auto group_row = genGroup(std::move(*opt_group));
+    auto group_row = genGroup(std::move(*opt_group));
+    results.emplace_back(std::move(group_row));
+  }
+
+  for (const auto& selected_gid_str : selected_gids) {
+    auto selected_gid_res = tryTo<std::uint32_t>(selected_gid_str);
+
+    if (selected_gid_res.isError()) {
+      continue;
+    }
+
+    auto groups = groups_cache.getGroupsByGid(selected_gid_res.take());
+
+    for (auto& group : groups) {
+      auto group_row = genGroup(std::move(group));
       results.emplace_back(std::move(group_row));
     }
+  }
 
-  } else if (!selected_gids.empty()) {
-    auto selected_gids = gid_it->second.getAll(EQUALS);
-
-    for (const auto& selected_gid_str : selected_gids) {
-      auto selected_gid_res = tryTo<std::uint32_t>(selected_gid_str);
-
-      if (selected_gid_res.isError()) {
-        continue;
-      }
-
-      auto groups = groups_cache.getGroupsByGid(selected_gid_res.take());
-
-      for (auto& group : groups) {
-        auto group_row = genGroup(std::move(group));
-        results.emplace_back(std::move(group_row));
-      }
-    }
-  } else {
+  if (results.empty()) {
     auto groups = groups_cache.getAllGroups();
 
     for (const auto& group : groups) {

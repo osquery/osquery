@@ -434,25 +434,20 @@ static inline void genPackagesFromPlists(QueryData& results) {
 
 QueryData genPackageReceipts(QueryContext& context) {
   QueryData results;
-  if (context.constraints["path"].exists(EQUALS)) {
-    // If an explicit path was given, generate and return.
-    auto paths = context.constraints["path"].getAll(EQUALS);
-    for (const auto& path : paths) {
-      genPackageReceipt(path, results);
+  auto paths = context.constraints["path"].getAll(EQUALS);
+  for (const auto& path : paths) {
+    genPackageReceipt(path, results);
+  }
+
+  auto files = context.constraints["package_filename"].getAll(EQUALS);
+  for (const auto& file : files) {
+    // Assume the filename can be within any of the system or user paths.
+    for (const auto& search_path : kPkgReceiptPaths) {
+      genPackageReceipt((fs::path(search_path) / file).string(), results);
     }
-    return results;
-  } else if (context.constraints["package_filename"].exists(EQUALS)) {
-    auto files = context.constraints["package_filename"].getAll(EQUALS);
-    for (const auto& file : files) {
-      // Assume the filename can be within any of the system or user paths.
-      for (const auto& search_path : kPkgReceiptPaths) {
-        genPackageReceipt((fs::path(search_path) / file).string(), results);
-      }
-      for (const auto& search_path : kPkgReceiptUserPaths) {
-        genPackageReceipt((fs::path(search_path) / file).string(), results);
-      }
+    for (const auto& search_path : kPkgReceiptUserPaths) {
+      genPackageReceipt((fs::path(search_path) / file).string(), results);
     }
-    return results;
   }
 
   if (!genPackagesFromPackageKit(results)) {
