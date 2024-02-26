@@ -1,7 +1,7 @@
 table_name("windows_eventlog")
 description("Table for querying all recorded Windows event logs.")
 schema([
-    Column("channel", TEXT, "Source or channel of the event", required=True),
+    Column("channel", TEXT, "Source or channel of the event", index=True, required=True),
     Column("datetime", TEXT, "System time at which the event occurred"),
     Column("task", INTEGER, "Task value associated with the event"),
     Column("level", INTEGER, "Severity level associated with the event"),

@@ -4,7 +4,7 @@ schema([
     Column("name", TEXT, "Package name"),
     Column("path", TEXT, "Package install path"),
     Column("version", TEXT, "Current 'linked' version", collate="version"),
-    Column("prefix", TEXT, "Homebrew install prefix", hidden=True, additional=True),
+    Column("prefix", TEXT, "Homebrew install prefix", hidden=True, index=True),
 ])
 attributes(cacheable=True)
 implementation("system/homebrew_packages@genHomebrewPackages")
