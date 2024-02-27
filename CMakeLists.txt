@@ -106,7 +106,6 @@ function(importLibraries)
     "Linux,Darwin,Windows:librdkafka"
     "Linux:librpm"
     "Linux:libudev"
-    "Linux,Darwin,Windows:libxml2"
     "Linux,Darwin,Windows:linenoise-ng"
     "Linux,Darwin,Windows:lzma"
     "Linux:popt"
