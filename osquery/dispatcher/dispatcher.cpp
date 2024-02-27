@@ -14,8 +14,8 @@
 
 namespace osquery {
 
-/// The worker_threads define the default thread pool size.
-FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
+/// deprecated in https://github.com/osquery/osquery/pull/1924
+HIDDEN_FLAG(int32, worker_threads, 4, "Deprecate");
 
 void InterruptibleRunnable::interrupt() {
   // Set the service as interrupted.
