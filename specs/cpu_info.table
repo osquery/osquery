@@ -15,7 +15,7 @@ schema([
   Column("socket_designation", TEXT, "The assigned socket on the board for the given CPU."),
 ])
 extended_schema(WINDOWS, [
-    Column("availability", TEXT, "The availability and status of the CPU.")
+    Column("availability", TEXT, "The availability and status of the CPU."),
     Column("load_percentage", INTEGER, "The current percentage of utilization of the CPU."),
 ])
 extended_schema(DARWIN, [
