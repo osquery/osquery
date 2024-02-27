@@ -288,6 +288,10 @@ Use this only in emergency situations as size violations are dropped. It is extr
 
 This configures the max number of log lines to send every period (meaning every `logger_tls_period`).
 
+`--logger_tls_backoff_max=3600`
+
+Maximum seconds to wait before flushing logs over TLS/HTTPS. The exponential backoff kicks in when regular flush of buffered logs fails. Should be a multiple of `logger_tls_period`. 0 disables backoff. The max backoff time can be updated dynamically via `config_tls_endpoint`.
+
 `--distributed_tls_read_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
