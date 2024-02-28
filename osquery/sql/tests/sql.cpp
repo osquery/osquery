@@ -520,7 +520,8 @@ TEST_F(SQLTests, test_collate_version_lt) {
               '1.1' < '1.a' collate version as t1, \
               '50.4.1b' < '50.4.1c' collate version as t2, \
               '1.0.0' < '1.0.0-2' collate version as t3, \
-              '1.0.0-2' < '1:0.0.3' collate version as t4",
+              '1.0.0-2' < '1:0.0.3' collate version as t4, \
+              '1.12.1' < '1.13' collate version as t5",
       d);
   ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["t0"], "1");
@@ -528,6 +529,7 @@ TEST_F(SQLTests, test_collate_version_lt) {
   EXPECT_EQ(d[0]["t2"], "1");
   EXPECT_EQ(d[0]["t3"], "1");
   EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
 }
 
 TEST_F(SQLTests, test_collate_version_gt) {
@@ -537,7 +539,8 @@ TEST_F(SQLTests, test_collate_version_gt) {
               '190.10a' > '20.10a' collate version as t1, \
               '20.10a' > '20.102' collate version as t2, \
               '57:4' > '6.87.5' collate version as t3, \
-              '98.100.21-1b' > '98.100.21-1a' collate version as t4",
+              '98.100.21-1b' > '98.100.21-1a' collate version as t4, \
+              '8.11' > '8.10.24' collate version as t5",
       d);
   ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["t0"], "1");
@@ -545,6 +548,7 @@ TEST_F(SQLTests, test_collate_version_gt) {
   EXPECT_EQ(d[0]["t2"], "1");
   EXPECT_EQ(d[0]["t3"], "1");
   EXPECT_EQ(d[0]["t4"], "1");
+  EXPECT_EQ(d[0]["t5"], "1");
 }
 
 /*
