@@ -53,6 +53,7 @@ TEST_F(cpuInfo, test_sanity) {
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     row_map.emplace("availability", NonNegativeOrErrorInt);
+    row_map.emplace("load_percentage", NonNegativeOrErrorInt);
   }
 
   validate_rows(data, row_map);
