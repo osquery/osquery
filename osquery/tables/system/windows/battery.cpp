@@ -64,7 +64,6 @@ std::string batteryQueryInformationString(
 
 QueryData genBatteryInfo(QueryContext& context) {
   QueryData results;
-  Row row;
 
   // Adapted from Microsoft example:
   // https://learn.microsoft.com/en-us/windows/win32/power/enumerating-battery-devices
@@ -76,6 +75,8 @@ QueryData genBatteryInfo(QueryContext& context) {
                << GetLastError();
     return results;
   }
+  auto const hdevGuard =
+      scope_guard::create([&]() { SetupDiDestroyDeviceInfoList(hdev); });
 
   // Limit search to 100 batteries max
   for (int idev = 0; idev < 100; idev++) {
@@ -84,12 +85,13 @@ QueryData genBatteryInfo(QueryContext& context) {
 
     if (!SetupDiEnumDeviceInterfaces(
             hdev, 0, &GUID_DEVCLASS_BATTERY, idev, &did)) {
-      LOG(ERROR) << "Failed to set up enumeration for batteries: "
-                 << GetLastError();
-      continue;
+      if (GetLastError() != ERROR_NO_MORE_ITEMS) {
+        // Only log if it's an unexpected error
+        LOG(ERROR) << "Failed to set up enumeration for batteries: "
+                   << GetLastError();
+      }
+      break;
     }
-    auto const hdevGuard =
-        scope_guard::create([&]() { SetupDiDestroyDeviceInfoList(hdev); });
 
     DWORD cbRequired = 0;
     SetupDiGetDeviceInterfaceDetail(hdev, &did, 0, 0, &cbRequired, 0);
@@ -173,6 +175,8 @@ QueryData genBatteryInfo(QueryContext& context) {
                         "Values may not be in mAh, mA, and mV.";
       }
 
+      Row row;
+
       // Some possible values for chemistry, though we already have
       // seen LiP which is not listed
       // https://learn.microsoft.com/en-us/windows/win32/power/battery-information-str
@@ -247,14 +251,13 @@ QueryData genBatteryInfo(QueryContext& context) {
       row["model"] = batteryQueryInformationString(
           hBattery, bqi.BatteryTag, BatteryDeviceName);
 
-      // Once we find one battery, no need to do anything
-      // else
       results.push_back(row);
-      return results;
     }
   }
 
-  VLOG(1) << "Battery table did not find a system battery";
+  if (results.empty()) {
+    VLOG(1) << "Battery table did not find a system battery";
+  }
   return results;
 }
 } // namespace tables
