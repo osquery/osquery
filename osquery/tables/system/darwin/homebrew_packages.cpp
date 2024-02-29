@@ -82,7 +82,7 @@ void packagesFromPrefix(QueryData& results,
   }
 
   std::tuple<std::string, fs::path> typesList[2] = {
-      std::make_tuple("formulae", fs::path(prefix) / "Cellar"),
+      std::make_tuple("formula", fs::path(prefix) / "Cellar"),
       std::make_tuple("cask", fs::path(prefix) / "Caskroom")};
 
   for (const auto& typeTuple : typesList) {
