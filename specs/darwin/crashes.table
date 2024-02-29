@@ -4,7 +4,7 @@ schema([
     Column("type", TEXT, "Type of crash log"),
     Column("pid", BIGINT, "Process (or thread) ID of the crashed process"),
     Column("path", TEXT, "Path to the crashed process"),
-    Column("crash_path", TEXT, "Location of log file", index=True),
+    Column("crash_path", TEXT, "Location of log file"),
     Column("identifier", TEXT, "Identifier of the crashed process"),
     Column("version", TEXT, "Version info of the crashed process", collate="version"),
     Column("parent", BIGINT, "Parent PID of the crashed process"),
