@@ -177,6 +177,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/authenticode.cpp
       windows/autoexec.cpp
       windows/background_activities_moderator.cpp
+      windows/battery.cpp
       windows/bitlocker_info.cpp
       windows/certificates.cpp
       windows/chassis_info.cpp
