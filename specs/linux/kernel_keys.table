@@ -6,7 +6,7 @@ schema([
     Column("usage", BIGINT, "the number of threads and open file references that"
                      " refer to this key."),
     Column("timeout", TEXT, "The amount of time until the key will expire,"
-                     "expressed in human-readable form. The string perm here"
+                     " expressed in human-readable form. The string perm here"
                      " means that the key is permanent (no timeout).  The"
                      " string expd means that the key has already expired."),
     Column("permissions", TEXT, "The key permissions, expressed as four hexadecimal"
