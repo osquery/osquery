@@ -121,7 +121,6 @@ There are many osquery fleet managers out there. The osquery project does not en
 | [Kolide](https://www.kolide.com)                        | Commercial    |
 | [OSCTRL](https://github.com/jmpsec/osctrl)              | Open Source |
 | [Zentral](https://github.com/zentralopensource/zentral) | Open Source |
-| [Zercurity](https://github.com/zercurity/zercurity)     | Freemium    |
 
 ## License
 
