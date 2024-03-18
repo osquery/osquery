@@ -197,7 +197,7 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
     if (!result) {
       return Status(GetLastError(), "Could not find sid");
     } else {
-      rUsername = std::move(wstringToString(accntName));
+      rUsername = wstringToString(accntName, ARRAYSIZE(accntName));
     }
   }
   return Status::success();
@@ -279,11 +279,13 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         return Status(retCode, "Failed to enumerate registry key");
       }
 
+      std::string keyName = wstringToString(achKey.get(), maxKeyLength);
+
       Row r;
       r["key"] = keyPath;
       r["type"] = "subkey";
-      r["name"] = wstringToString(achKey.get());
-      r["path"] = keyPath + kRegSep + wstringToString(achKey.get());
+      r["name"] = keyName;
+      r["path"] = keyPath + kRegSep + keyName;
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       r["data"] = "";
       results.push_back(r);
@@ -335,11 +337,12 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       bpDataBuff[lpData - 1] = 0x00;
     }
 
+    std::string keyValue = wstringToString(achValue.get(), maxValueName);
+
     Row r;
     r["key"] = keyPath;
-    r["name"] = ((achValue[0] == L'\0') ? "(Default)"
-                                        : wstringToString(achValue.get()));
-    r["path"] = keyPath + kRegSep + wstringToString(achValue.get());
+    r["name"] = (achValue[0] == L'\0') ? "(Default)" : keyValue;
+    r["path"] = keyPath + kRegSep + keyValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -349,17 +352,11 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
     r["data"] = "";
 
     if (bpDataBuff != nullptr) {
-      /// REG_LINK is a Unicode string, which in Windows is wchar_t
-      std::string regLinkStr;
-      if (lpType == REG_LINK) {
-        regLinkStr =
-            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
-      }
-
       std::vector<char> regBinary;
       std::string data;
-      std::vector<std::string> multiSzStrs;
-      auto p = reinterpret_cast<wchar_t*>(bpDataBuff.get());
+      auto wchar_buffer =
+          std::wstring_view(reinterpret_cast<wchar_t*>(bpDataBuff.get()),
+                            cbMaxValueData / sizeof(WCHAR));
 
       switch (lpType) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
@@ -378,21 +375,27 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       case REG_DWORD_BIG_ENDIAN:
         r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
         break;
-      case REG_EXPAND_SZ:
-        r["data"] =
-            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
-        break;
+      /// REG_LINK is a Unicode string, which in Windows is wchar_t
       case REG_LINK:
-        r["data"] = regLinkStr;
+      case REG_EXPAND_SZ:
+        r["data"] = wstringToString(wchar_buffer.data(), wchar_buffer.size());
         break;
-      case REG_MULTI_SZ:
-        while (*p != 0x00) {
-          std::string s = wstringToString(p);
-          p += wcslen(p) + 1;
+      case REG_MULTI_SZ: {
+        std::vector<std::string> multiSzStrs;
+        std::size_t processed_chars = 0;
+        while (processed_chars < wchar_buffer.size() &&
+               wchar_buffer[processed_chars] != L'\0') {
+          auto chars_left = wchar_buffer.size() - processed_chars;
+          std::string s =
+              wstringToString(&wchar_buffer[processed_chars], chars_left);
           multiSzStrs.push_back(s);
+
+          processed_chars +=
+              wcsnlen(&wchar_buffer[processed_chars], chars_left) + 1;
         }
         r["data"] = boost::algorithm::join(multiSzStrs, ",");
         break;
+      }
       case REG_NONE:
         r["data"] = "(zero-length binary value)";
         break;
@@ -400,8 +403,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
         break;
       case REG_SZ:
-        r["data"] =
-            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
+        r["data"] = wstringToString(wchar_buffer.data(), wchar_buffer.size());
         break;
       default:
         break;

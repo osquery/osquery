@@ -129,8 +129,10 @@ typedef struct _DIRECTORY_STRING {
 
 PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
-  if (header->FileName[ARRAYSIZE(header->FileName) - 1] == L'\0') {
-    result.filename = wstringToString(header->FileName);
+  const auto filename_array_size = ARRAYSIZE(header->FileName);
+
+  if (header->FileName[filename_array_size - 1] == L'\0') {
+    result.filename = wstringToString(header->FileName, filename_array_size);
   }
   if (result.filename.empty()) {
     LOG(INFO) << "Did not find null-terminated filename for prefetch file";
@@ -192,13 +194,15 @@ PrefetchFileInfo parseFileInfo(
   std::vector<std::string> filenames;
   auto next = (PWCHAR)(&data[0] + offset);
   while (*next != L'\0') {
-    auto length = wcsnlen_s(next, (size - total_length) / sizeof(WCHAR));
-    if (length == 0 || length == (size - total_length) / sizeof(WCHAR)) {
+    const auto max_chars = (size - total_length) / sizeof(WCHAR);
+
+    auto length = wcsnlen_s(next, max_chars);
+    if (length == 0 || length == max_chars) {
       // A null wide character was not found.
       break;
     }
 
-    auto filename = wstringToString(next);
+    auto filename = wstringToString(next, max_chars);
     filenames.emplace_back(std::move(filename));
     total_length += (length + 1) * sizeof(WCHAR);
     if (total_length >= size) {
@@ -267,14 +271,15 @@ PrefetchVolumeInfo parseVolumeInfo(
           (PDIRECTORY_STRING)(&data[0] + volume_offset + dir_offset);
       dir_offset += sizeof(DIRECTORY_STRING);
 
-      auto length = wcsnlen_s(prefetch_directory->Directory,
-                              (volume_size - dir_offset) / sizeof(WCHAR));
-      if (length == 0 || length == (volume_size - dir_offset) / sizeof(WCHAR)) {
+      const auto max_chars = (volume_size - dir_offset) / sizeof(WCHAR);
+
+      auto length = wcsnlen_s(prefetch_directory->Directory, max_chars);
+      if (length == 0 || length == max_chars) {
         // A null wide character was not found.
         break;
       }
 
-      auto filename = wstringToString(prefetch_directory->Directory);
+      auto filename = wstringToString(prefetch_directory->Directory, max_chars);
       directories.emplace_back(std::move(filename));
       dir_offset += (length + 1) * sizeof(WCHAR);
     }

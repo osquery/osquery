@@ -228,7 +228,7 @@ std::string getUsernameFromSid(const std::string& sidString) {
     return "";
   }
 
-  return wstringToString(uname.data());
+  return wstringToString(uname.data(), uname.size());
 }
 
 bool isValidSid(const std::string& maybeSid) {
@@ -414,44 +414,44 @@ void addCertRow(PCCERT_CONTEXT certContext,
   r["username"] = username;
   r["store_id"] = storeId;
   r["sha1"] = fingerprint;
-  std::vector<WCHAR> certBuff;
-  certBuff.resize(256, 0);
-  std::fill(certBuff.begin(), certBuff.end(), 0);
+  std::vector<wchar_t> certBuff(256);
   CertGetNameString(certContext,
                     CERT_NAME_SIMPLE_DISPLAY_TYPE,
                     0,
                     nullptr,
                     certBuff.data(),
-                    static_cast<unsigned long>(certBuff.size()));
-  r["common_name"] = wstringToString(certBuff.data());
+                    certBuff.size());
+  r["common_name"] = wstringToString(certBuff.data(), certBuff.size());
 
   auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
                                 &(certContext->pCertInfo->Subject),
                                 CERT_SIMPLE_NAME_STR,
                                 nullptr,
                                 0);
-  certBuff.resize(subjSize, 0);
+  certBuff.resize(subjSize);
   std::fill(certBuff.begin(), certBuff.end(), 0);
   subjSize = CertNameToStr(certContext->dwCertEncodingType,
                            &(certContext->pCertInfo->Subject),
                            CERT_SIMPLE_NAME_STR,
                            certBuff.data(),
                            subjSize);
-  r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
+  r["subject"] =
+      subjSize == 0 ? "" : wstringToString(certBuff.data(), certBuff.size());
 
   auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
                                   &(certContext->pCertInfo->Issuer),
                                   CERT_SIMPLE_NAME_STR,
                                   nullptr,
                                   0);
-  certBuff.resize(issuerSize, 0);
+  certBuff.resize(issuerSize);
   std::fill(certBuff.begin(), certBuff.end(), 0);
   issuerSize = CertNameToStr(certContext->dwCertEncodingType,
                              &(certContext->pCertInfo->Issuer),
                              CERT_SIMPLE_NAME_STR,
                              certBuff.data(),
                              issuerSize);
-  r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
+  r["issuer"] =
+      issuerSize == 0 ? "" : wstringToString(certBuff.data(), certBuff.size());
 
   // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
   r["ca"] = INTEGER(-1);
@@ -513,7 +513,7 @@ void addCertRow(PCCERT_CONTEXT certContext,
                           nullptr,
                           &decodedBuffSize);
 
-      certBuff.resize(decodedBuffSize, 0);
+      certBuff.resize(decodedBuffSize);
       std::fill(certBuff.begin(), certBuff.end(), 0);
       auto decodeRet = CryptDecodeObjectEx(CERT_ENCODING,
                                            X509_AUTHORITY_KEY_ID2,
@@ -543,21 +543,21 @@ void addCertRow(PCCERT_CONTEXT certContext,
 
 Status expandEnvironmentVariables(const std::string& src, std::string& dest) {
   auto srcWstring = stringToWstring(src);
-  auto srcW = srcWstring.c_str();
-  auto expandedSize = ExpandEnvironmentStringsW(srcW, nullptr, 0);
+  auto expandedSize = ExpandEnvironmentStringsW(srcWstring.c_str(), nullptr, 0);
   if (expandedSize == 0) {
     return Status::failure("Unable to get expanded size");
   }
 
   std::vector<wchar_t> buf(expandedSize);
-  auto ret = ExpandEnvironmentStringsW(srcW, buf.data(), expandedSize);
+  auto ret =
+      ExpandEnvironmentStringsW(srcWstring.c_str(), buf.data(), expandedSize);
   if (ret == 0) {
     return Status::failure("Environment variable expansion failed");
   } else if (ret != expandedSize) {
     return Status::failure("Partial data written");
   }
 
-  dest = wstringToString(buf.data());
+  dest = wstringToString(buf.data(), buf.size());
   return Status::success();
 }
 
