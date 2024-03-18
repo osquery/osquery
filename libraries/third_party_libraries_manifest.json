@@ -275,9 +275,11 @@
   "sqlite": {
     "product": "sqlite",
     "vendor": "sqlite",
-    "version": "3.45.0",
-    "commit": "b172c2880dbee89a62379ab35a10d0c89626c885",
-    "ignored-cves": []
+    "version": "3.42.0",
+    "commit": "3341b40a45585b7854b20a8acff944c7668cf7e8",
+    "ignored-cves": [
+      "CVE-2023-7104"
+    ]
   },
   "thrift": {
     "product": "thrift",
