@@ -2,8 +2,10 @@ table_name("yum_sources")
 description("Current list of Yum repositories or software channels.")
 schema([
     Column("name", TEXT, "Repository name"),
+    Column("source", TEXT, "Source file"),
     Column("baseurl", TEXT, "Repository base URL"),
     Column("mirrorlist", TEXT, "Mirrorlist URL"),
+    Column("metalink", TEXT, "Metalink URL"),
     Column("enabled", TEXT, "Whether the repository is used"),
     Column("gpgcheck", TEXT, "Whether packages are GPG checked"),
     Column("gpgkey", TEXT, "URL to GPG key"),
