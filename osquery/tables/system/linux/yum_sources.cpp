@@ -25,7 +25,8 @@ const std::string kYumConf{"/etc/yum.conf"};
 const std::string kYumReposDir{"/etc/yum.repos.d"};
 const std::string kYumConfigFileExtension{".repo"};
 
-void parseYumConf(std::istream& source,
+void parseYumConf(const std::string& source_filename,
+                  std::istream& source,
                   QueryData& results,
                   std::string& repos_dir) {
   boost::property_tree::ptree tree;
@@ -39,11 +40,13 @@ void parseYumConf(std::istream& source,
     }
 
     Row r;
+    r["source"] = source_filename;
     for (auto it2 : it1.second) {
       // Option
       if ("baseurl" == it2.first || "enabled" == it2.first ||
           "gpgcheck" == it2.first || "name" == it2.first ||
-          "gpgkey" == it2.first || "mirrorlist" == it2.first) {
+          "gpgkey" == it2.first || "mirrorlist" == it2.first ||
+          "metalink" == it2.first) {
         r[it2.first] = it2.second.data();
       }
     }
@@ -64,7 +67,7 @@ void parseYumConf(const std::string& source,
   }
 
   try {
-    parseYumConf(stream, results, repos_dir);
+    parseYumConf(source, stream, results, repos_dir);
   } catch (boost::property_tree::ini_parser::ini_parser_error& e) {
     logger.vlog(
         1,
