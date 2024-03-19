@@ -434,20 +434,25 @@ static inline void genPackagesFromPlists(QueryData& results) {
 
 QueryData genPackageReceipts(QueryContext& context) {
   QueryData results;
-  auto paths = context.constraints["path"].getAll(EQUALS);
-  for (const auto& path : paths) {
-    genPackageReceipt(path, results);
-  }
 
-  auto files = context.constraints["package_filename"].getAll(EQUALS);
-  for (const auto& file : files) {
-    // Assume the filename can be within any of the system or user paths.
-    for (const auto& search_path : kPkgReceiptPaths) {
-      genPackageReceipt((fs::path(search_path) / file).string(), results);
+  if (context.constraints["path"].exists(EQUALS) || context.constraints["package_filename"].exists(EQUALS)) {
+    auto paths = context.constraints["path"].getAll(EQUALS);
+    for (const auto& path : paths) {
+      genPackageReceipt(path, results);
     }
-    for (const auto& search_path : kPkgReceiptUserPaths) {
-      genPackageReceipt((fs::path(search_path) / file).string(), results);
+
+    auto files = context.constraints["package_filename"].getAll(EQUALS);
+    for (const auto& file : files) {
+      // Assume the filename can be within any of the system or user paths.
+      for (const auto& search_path : kPkgReceiptPaths) {
+        genPackageReceipt((fs::path(search_path) / file).string(), results);
+      }
+      for (const auto& search_path : kPkgReceiptUserPaths) {
+        genPackageReceipt((fs::path(search_path) / file).string(), results);
+      }
     }
+
+    return results;
   }
 
   if (!genPackagesFromPackageKit(results)) {
