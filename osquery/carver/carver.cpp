@@ -204,7 +204,7 @@ Status Carver::carve() {
   }
 
   PlatformFile uploadFile(uploadPath, PF_OPEN_EXISTING | PF_READ);
-  updateCarveValue(carveGuid_, "size", std::to_string(uploadFile.size()));
+  updateCarveValue(carveGuid_, "size", uploadFile.size());
 
   std::string uploadHash =
       (uploadFile.size() > FLAGS_read_max)

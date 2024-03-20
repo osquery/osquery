@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <osquery/database/database.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/status/status.h>
 
 #include <atomic>
@@ -46,9 +48,37 @@ const std::string kCarverStatusScheduled = "SCHEDULED";
 extern std::atomic<bool> kCarverPendingCarves;
 
 /// Update an attribute for a given carve GUID.
+template <typename T>
 void updateCarveValue(const std::string& guid,
                       const std::string& key,
-                      const std::string& value);
+                      const T& value) {
+  std::string carve;
+  auto s = getDatabaseValue(kCarves, kCarverDBPrefix + guid, carve);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to update status of carve in database " << guid;
+    return;
+  }
+
+  JSON tree;
+  s = tree.fromString(carve);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to parse carve entries: " << s.what();
+    return;
+  }
+
+  tree.add(key, value);
+
+  std::string out;
+  s = tree.toString(out);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to serialize carve entries: " << s.what();
+  }
+
+  s = setDatabaseValue(kCarves, kCarverDBPrefix + guid, out);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to update status of carve in database " << guid;
+  }
+}
 
 /// Returns a UUID.
 std::string createCarveGuid();
