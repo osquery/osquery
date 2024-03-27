@@ -33,7 +33,7 @@
 	url = https://github.com/apache/thrift
 [submodule "libraries/cmake/source/util-linux/src"]
 	path = libraries/cmake/source/util-linux/src
-	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux
+	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git
 [submodule "libraries/cmake/source/yara/src"]
 	path = libraries/cmake/source/yara/src
 	url = https://github.com/VirusTotal/yara
