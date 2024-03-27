@@ -9,7 +9,9 @@
 
 #pragma once
 
-#include <boost/lexical_cast.hpp>
+#include <boost/variant/apply_visitor.hpp>
+#include <boost/variant/static_visitor.hpp>
+#include <boost/variant/variant.hpp>
 #include <iomanip>
 #include <sstream>
 #include <string>
