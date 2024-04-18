@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <iostream>
 #include <vector>
 
 #include <osquery/core/system.h>
@@ -185,7 +186,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     ::execve(arguments[0], argv, ::environ);
 
     // Code should never reach this point
-    LOG(ERROR) << "Could not start extension process: " << exec_path;
+    std::cerr << "Could not start extension process: " << exec_path
+              << ", error: " << errno << std::endl;
     ::exit(EXIT_FAILURE);
     return std::shared_ptr<PlatformProcess>();
   }
@@ -227,7 +229,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   if (process_pid == 0) {
     // Start a Python script
     ::execvp(osquery_python_path.c_str(), argv);
-    ::exit(0);
+
+    std::string args = boost::algorithm::join(args_array, " ");
+
+    // Should not reach this if everything executes correctly
+    std::cerr << "Could not start process at " << osquery_python_path
+              << ", args: " << args << ", error: " << errno << std::endl;
+    ::exit(EXIT_FAILURE);
   } else if (process_pid > 0) {
     process.reset(new PlatformProcess(process_pid));
   }
