@@ -123,7 +123,7 @@ jobs:
 
 
   # Test generating the website json
-  check_source_code:
+  check_genwebsitejson:
     needs: [check_code_style, check_libraries_manifest]
     runs-on: ubuntu-20.04
 
