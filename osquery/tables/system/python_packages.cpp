@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 #include <stdlib.h>
@@ -99,10 +100,10 @@ void genSiteDirectories(const std::string& site,
     }
 
     Row r;
-    if (directory.find(".dist-info") != std::string::npos) {
+    if (boost::algorithm::ends_with(directory, ".dist-info")) {
       auto path = directory + "/METADATA";
       genPackage(path, r, logger);
-    } else if (directory.find(".egg-info") != std::string::npos) {
+    } else if (boost::algorithm::ends_with(directory, ".egg-info")) {
       auto path = directory + "/PKG-INFO";
       genPackage(path, r, logger);
     } else {
