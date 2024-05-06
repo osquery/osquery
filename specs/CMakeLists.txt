@@ -146,6 +146,7 @@ function(generateNativeTables)
     "darwin/time_machine_backups.table:macos"
     "darwin/time_machine_destinations.table:macos"
     "darwin/unified_log.table:macos"
+    "darwin/dns_configuration.table:macos"
     "darwin/user_interaction_events.table:macos"
     "darwin/virtual_memory_info.table:macos"
     "darwin/wifi_networks.table:macos"

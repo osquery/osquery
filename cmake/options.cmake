@@ -15,39 +15,15 @@ function(detectOsqueryVersion)
   set(OSQUERY_VERSION "" CACHE STRING "Overrides osquery version with this value")
   set(OSQUERY_VERSION_SUFFIX "" CACHE STRING "String to append when the version is automatically detected")
   set(OSQUERY_VERSION_AUTODETECTED "" CACHE STRING "osquery version autodetected through git. Do not manually set." FORCE)
-  set(osquery_version 0.0.0)
+  set(osquery_version 5.3.1)
 
-  if(NOT OSQUERY_VERSION)
-    find_package(Git REQUIRED)
-
-    execute_process(
-      COMMAND "${GIT_EXECUTABLE}" describe --tags --always --dirty
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-      OUTPUT_VARIABLE branch_version
-      RESULT_VARIABLE exit_code
-    )
-
-    if(NOT ${exit_code} EQUAL 0)
-      message(WARNING "Failed to detect osquery version. Set it manually through OSQUERY_VERSION or 0.0.0 will be used")
-    else()
-      string(REGEX REPLACE "\n$" "" branch_version "${branch_version}")
-      set(osquery_version ${branch_version})
-      overwrite_cache_variable("OSQUERY_VERSION_AUTODETECTED" "STRING" ${osquery_version})
-
-      if(OSQUERY_VERSION_SUFFIX)
-        string(APPEND osquery_version "${OSQUERY_VERSION_SUFFIX}")
-      endif()
-    endif()
-  else()
-    set(osquery_version "${OSQUERY_VERSION}")
-  endif()
 
   string(REPLACE "." ";" osquery_version_components "${osquery_version}")
 
   list(LENGTH osquery_version_components osquery_version_components_len)
 
   if(NOT osquery_version_components_len GREATER_EQUAL 3)
-    message(FATAL_ERROR "Version should have at least 3 components (semver).")
+    message(FATAL_ERROR "Version should have at least 3 components (semver). ${osquery_version} ${osquery_version_components}")
   endif()
 
   set(OSQUERY_VERSION_INTERNAL "${osquery_version}" PARENT_SCOPE)

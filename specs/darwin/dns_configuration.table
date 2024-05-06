@@ -1,0 +1,13 @@
+table_name("dns_configuration")
+description("Dns configuration used by this host.")
+schema([
+    Column("resolver_index", INTEGER, "Resolver index"),
+    Column("interface_index", INTEGER, "Interface index"),
+    Column("flags", TEXT, "Resolver flags"),
+    Column("reach", TEXT, "Resolver reach"),
+    Column("order", INTEGER, "Resolver order"),
+    Column("timeout", INTEGER, "Resolver timeout"),
+    Column("nameservers", TEXT, "Resolver nameservers"),
+    Column("search_domains", TEXT, "Resolver searchDomains"),
+])
+implementation("dns_configuration@genDNSConfiguration")

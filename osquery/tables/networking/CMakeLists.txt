@@ -46,6 +46,7 @@ function(generateOsqueryTablesNetworking)
     list(APPEND source_files
       darwin/interface_ip.cpp
       darwin/routes.cpp
+      darwin/dns_configuration.cpp
       darwin/wifi.mm
       darwin/wifi_status.mm
       darwin/wifi_survey.mm
