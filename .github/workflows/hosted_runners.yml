@@ -22,6 +22,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'main'
 
     tags:
       - '*'
@@ -121,6 +122,21 @@ jobs:
         --repository .
 
 
+  # Test generating the website json
+  check_genwebsitejson:
+    needs: [check_code_style, check_libraries_manifest]
+    runs-on: ubuntu-20.04
+
+    container:
+      image: osquery/builder18.04:c7a9d706d
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: genwebsitejson.py
+      run: python3 tools/codegen/genwebsitejson.py --specs=specs/
 
 
   # This job runs source code analysis tools (currently, just cppcheck)
