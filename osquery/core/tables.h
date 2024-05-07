@@ -192,6 +192,9 @@ enum class TableAttributes {
 
   /// (Deprecated) This table's data requires an osquery kernel module.
   KERNEL_REQUIRED = 16,
+
+  /// This table is in a pending state and is not ready to be queried.
+  PENDING = 32,
 };
 
 /// Treat table attributes as a set of flags.
