@@ -227,11 +227,6 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
-    PluginResponse resp;
-    Registry::call(
-        "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
-    LOG(INFO) << "ATC table: " << table_name << " Registered";
-
     s = tables->add(
         table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
     if (!s.ok()) {
@@ -239,6 +234,11 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);
       continue;
     }
+
+    PluginResponse resp;
+    Registry::call(
+        "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
+    LOG(INFO) << "ATC table: " << table_name << " Registered";
   }
 
   if (registered.size() > 0) {
