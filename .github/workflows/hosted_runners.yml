@@ -22,6 +22,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'main'
 
     tags:
       - '*'
@@ -121,6 +122,21 @@ jobs:
         --repository .
 
 
+  # Test generating the website json
+  check_genwebsitejson:
+    needs: [check_code_style, check_libraries_manifest]
+    runs-on: ubuntu-20.04
+
+    container:
+      image: osquery/builder18.04:c7a9d706d
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v1
+
+    - name: genwebsitejson.py
+      run: python3 tools/codegen/genwebsitejson.py --specs=specs/
 
 
   # This job runs source code analysis tools (currently, just cppcheck)
@@ -658,20 +674,22 @@ jobs:
           coreutils \
           gnu-sed
 
+    - name: Setup python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.2'
+        architecture: 'x64'
+
     - name: Install tests dependencies
       id: install_test_deps
       run: |
-        python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
-
-        ${python_root}/bin/pip3 install setuptools \
-                     pexpect==3.3 \
-                     psutil \
-                     timeout_decorator \
-                     six \
-                     thrift==0.11.0 \
-                     osquery
-
-        echo "PYTHON_ROOT=${python_root}" >> $GITHUB_OUTPUT
+        pip3 install setuptools \
+                      pexpect==3.3 \
+                      psutil \
+                      timeout_decorator \
+                      six \
+                      thrift==0.11.0 \
+                      osquery
 
     - name: Install CMake
       shell: bash
@@ -721,7 +739,6 @@ jobs:
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
-          -DPython3_ROOT_DIR=${{ steps.install_test_deps.outputs.PYTHON_ROOT }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
     - name: Build the project
@@ -823,17 +840,22 @@ jobs:
         with:
           name: macos_tests_Debug
 
-      - name: Install tests dependencies
-        run: |
-          python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.2'
+          architecture: 'x64'
 
-          ${python_root}/bin/pip3 install setuptools \
-                       pexpect==3.3 \
-                       psutil \
-                       timeout_decorator \
-                       six \
-                       thrift==0.11.0 \
-                       osquery
+      - name: Install tests dependencies
+        id: install_test_deps
+        run: |
+          pip3 install setuptools \
+                        pexpect==3.3 \
+                        psutil \
+                        timeout_decorator \
+                        six \
+                        thrift==0.11.0 \
+                        osquery
 
       - name: Install CMake
         shell: bash
