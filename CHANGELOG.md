@@ -41,8 +41,8 @@ Representing commits from 11 contributors! Thank you all.
 
 ### Table Changes
 
-- Implement `battery` table for Windows ([#8267](https://github.com/osquery/osquery/pull/8267))
-- Extend `homebrew_packages` table to include Casks ([#8276](https://github.com/osquery/osquery/pull/8276))
+- Port the `battery` table to Windows ([#8267](https://github.com/osquery/osquery/pull/8267))
+- Update `homebrew_packages` table to include Casks ([#8276](https://github.com/osquery/osquery/pull/8276))
 - Update `cpu_info` to include `load_percentage` on windows ([#8275](https://github.com/osquery/osquery/pull/8275))
 
 ### Under the Hood improvements
