@@ -44,6 +44,10 @@ Representing commits from 11 contributors! Thank you all.
 - Port the `battery` table to Windows ([#8267](https://github.com/osquery/osquery/pull/8267))
 - Update `homebrew_packages` table to include Casks ([#8276](https://github.com/osquery/osquery/pull/8276))
 - Update `cpu_info` to include `load_percentage` on windows ([#8275](https://github.com/osquery/osquery/pull/8275))
+- Check path exists first in `vscode_extensions` ([#8292](https://github.com/osquery/osquery/pull/8292))
+- `deb_packages` to ignore non existent admindirs ([#8288](https://github.com/osquery/osquery/pull/8288))
+- Add missing path separator in Safari Extensions table generator ([#8273](https://github.com/osquery/osquery/pull/8273))
+- Add windows UBR to `os_version` table ([#8265](https://github.com/osquery/osquery/pull/8265))
 
 ### Under the Hood improvements
 
@@ -55,10 +59,6 @@ Representing commits from 11 contributors! Thank you all.
 
 ### Bug Fixes
 
-- Check path exists first in `vscode_extensions` ([#8292](https://github.com/osquery/osquery/pull/8292))
-- `deb_packages` to ignore non existent admindirs ([#8288](https://github.com/osquery/osquery/pull/8288))
-- Add missing path separator in Safari Extensions table generator ([#8273](https://github.com/osquery/osquery/pull/8273))
-- Add windows UBR to `os_version` table ([#8265](https://github.com/osquery/osquery/pull/8265))
 - Fix version collate returning incorrect value when last character is a delimiter ([#8283](https://github.com/osquery/osquery/pull/8283))
 - Fix a memory leak in `unified_log` ([#8274](https://github.com/osquery/osquery/pull/8274))
 - Don't add ATC table name to registry until after sqlite DB initialization ([#8233](https://github.com/osquery/osquery/pull/8233))
