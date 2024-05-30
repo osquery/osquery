@@ -5,6 +5,8 @@
 
 [Git Commits](https://github.com/osquery/osquery/compare/5.12.1...5.12.2)
 
+This release is a hot fix. It reverts #8233, which had inadvertently broken ATC tables under some conditions.
+
 Representing commits from 8 contributors! Thank you all.
 
 ### Under the Hood improvements
