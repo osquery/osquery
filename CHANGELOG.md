@@ -9,9 +9,9 @@ This release is a hot fix. It reverts #8233, which had inadvertently broken ATC 
 
 Representing commits from 8 contributors! Thank you all.
 
-### Under the Hood improvements
+### Table Changes
 
-- Add missing SSH key types that support FIDO2 authentication ([#8319](https://github.com/osquery/osquery/pull/8319))
+- Update `authorized_keys` to support additional FIDO2 SSH key types ([#8319](https://github.com/osquery/osquery/pull/8319))
 
 ### Bug Fixes
 
