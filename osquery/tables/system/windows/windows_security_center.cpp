@@ -90,7 +90,7 @@ bool windowsUpdateServicesEnabled() {
 }
 
 // In our testing, the autoupdate health check shows "Good", even if essential
-// services are disabled. If the the standard API call is "Good". we verify
+// services are disabled. If the standard API call is "Good". we verify
 // these services are NOT disabled before we let the table return the "Good"
 // result
 std::string genWindowsUpdateHealth() {

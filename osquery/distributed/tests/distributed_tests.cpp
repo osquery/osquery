@@ -237,7 +237,7 @@ TEST_F(DistributedTests, test_check_and_set_as_running) {
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(ts1, ts2);
 
-  // Change timestamp of the the denylisted query so that it's now expired.
+  // Change timestamp of the denylisted query so that it's now expired.
   status =
       setDatabaseValue(kDistributedRunningQueries,
                        denylistedQueryKey,
@@ -315,7 +315,7 @@ TEST_F(DistributedTests, test_run_queries_with_denylisted_query) {
   ASSERT_TRUE(status.ok()) << status.getMessage();
   ASSERT_FALSE(ts.empty());
 
-  // Change timestamp of the the denylisted query so that it's now expired.
+  // Change timestamp of the denylisted query so that it's now expired.
   status =
       setDatabaseValue(kDistributedRunningQueries,
                        denylistedQueryKey,
