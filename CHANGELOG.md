@@ -20,7 +20,7 @@ Representing commits from 8 contributors! Thank you all.
 
 ### Documentation
 
-- Updated Time Machine table documentation to require FDA. ([#8325](https://github.com/osquery/osquery/pull/8325))
+- Updated Time Machine table documentation to require Full Disk Access. ([#8325](https://github.com/osquery/osquery/pull/8325))
 
 ### Build
 
