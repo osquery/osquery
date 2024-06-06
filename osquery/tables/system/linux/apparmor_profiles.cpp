@@ -22,7 +22,7 @@ struct AppArmorProfile final {
   std::string name;
   std::string attach;
   std::string mode;
-  std::string sha1;
+  std::string sha256;
 };
 
 using AppArmorProfileList = std::vector<AppArmorProfile>;
@@ -58,12 +58,12 @@ Status generateProfile(AppArmorProfile& profile,
 
   boost::trim(profile.name);
 
-  status = readFile(profile_path + "/sha1", profile.sha1);
+  status = readFile(profile_path + "/sha256", profile.sha256);
   if (!status.ok()) {
     return status;
   }
 
-  boost::trim(profile.sha1);
+  boost::trim(profile.sha256);
 
   profile.path = parent_name;
   if (!profile.path.empty()) {
@@ -171,7 +171,7 @@ QueryData genAppArmorProfiles(QueryContext& context) {
     row["name"] = profile.name;
     row["mode"] = profile.mode;
     row["attach"] = profile.attach;
-    row["sha1"] = profile.sha1;
+    row["sha256"] = profile.sha256;
     row["path"] = profile.path;
 
     row_list.push_back(std::move(row));
