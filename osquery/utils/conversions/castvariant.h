@@ -9,7 +9,11 @@
 
 #pragma once
 
-#include <boost/lexical_cast.hpp>
+#include <boost/variant/apply_visitor.hpp>
+#include <boost/variant/static_visitor.hpp>
+#include <boost/variant/variant.hpp>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 namespace osquery {
@@ -23,7 +27,9 @@ class CastVisitor : public boost::static_visitor<std::string> {
   }
 
   std::string operator()(const double& d) const {
-    std::string s{boost::lexical_cast<std::string>(d)};
+    std::ostringstream ss;
+    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << d;
+    std::string s = ss.str();
     if (s.find('.') == std::string::npos) {
       s += ".0";
     }
