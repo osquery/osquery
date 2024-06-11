@@ -7,26 +7,15 @@
 
 This release is a hot fix. It reverts #8233, which had inadvertently broken ATC tables under some conditions.
 
-Representing commits from 8 contributors! Thank you all.
-
-### Table Changes
-
-- Update `authorized_keys` to support additional FIDO2 SSH key types ([#8319](https://github.com/osquery/osquery/pull/8319))
+Representing commits from 3 contributors! Thank you all.
 
 ### Bug Fixes
 
 - Revert Don't add ATC table name to registry until after sqlite DB initialization #8233 ([#8334](https://github.com/osquery/osquery/pull/8334))
-- Fix crash when carve size is stored as string ([#8297](https://github.com/osquery/osquery/pull/8297))
-
-### Documentation
-
-- Updated Time Machine table documentation to require Full Disk Access. ([#8325](https://github.com/osquery/osquery/pull/8325))
 
 ### Build
 
-- Correct spec file name to `macwin` ([#8311](https://github.com/osquery/osquery/pull/8311))
 - CI: Fix macOS python dependencies install step ([#8308](https://github.com/osquery/osquery/pull/8308))
-- Fix xz submodule url: the GitHub mirror was banned due to CVE-2024-3094 ([#8304](https://github.com/osquery/osquery/pull/8304))
 
 <a name="5.12.1"></a>
 ## [5.12.1](https://github.com/osquery/osquery/releases/tag/5.12.1)
