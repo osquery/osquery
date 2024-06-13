@@ -26,6 +26,10 @@ namespace tables {
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
                                     QueryData& results) {
+  if (!pathExists(path).ok()) {
+    return;
+  }
+
   std::string json;
   if (!readFile(path, json).ok()) {
     LOG(INFO) << "Could not read vscode extensions.json from " << path;

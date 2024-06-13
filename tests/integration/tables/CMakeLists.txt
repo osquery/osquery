@@ -288,6 +288,7 @@ function(generateTestsIntegrationTablesTestsTest)
       authenticode.cpp
       autoexec.cpp
       background_activities_moderator.cpp
+      battery.cpp
       bitlocker_info.cpp
       connectivity.cpp
       windows_firewall_rules.cpp

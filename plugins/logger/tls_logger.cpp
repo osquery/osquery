@@ -42,6 +42,13 @@ FLAG(uint64,
      "Seconds between flushing logs over TLS/HTTPS");
 
 FLAG(uint64,
+     logger_tls_backoff_max,
+     60 * 60,
+     "Maximum seconds to wait before flushing logs over TLS/HTTPS. Backoff "
+     "kicks in when regular flush fails. Should be a multiple of "
+     "logger_tls_period. 0 disables backoff");
+
+FLAG(uint64,
      logger_tls_max_linesize,
      1 * 1024 * 1024,
      "Max size in bytes allowed per log line");
@@ -59,7 +66,8 @@ TLSLogForwarder::TLSLogForwarder()
     : BufferedLogForwarder("TLSLogForwarder",
                            "tls",
                            std::chrono::seconds(FLAGS_logger_tls_period),
-                           FLAGS_logger_tls_max_lines) {
+                           FLAGS_logger_tls_max_lines,
+                           std::chrono::seconds(FLAGS_logger_tls_backoff_max)) {
   uri_ = TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
 }
 
@@ -94,6 +102,21 @@ Status TLSLoggerPlugin::setUp() {
 void TLSLoggerPlugin::init(const std::string& name,
                            const std::vector<StatusLogLine>& log) {
   logStatus(log);
+}
+
+void TLSLoggerPlugin::configure() {
+  if (forwarder_ != nullptr) {
+    std::unique_lock<decltype(forwarder_->configuration_mutex)> lock(
+        forwarder_->configuration_mutex);
+    forwarder_->configuration_updated = true;
+    forwarder_->updated_uri =
+        TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
+    forwarder_->updated_log_period =
+        std::chrono::seconds(FLAGS_logger_tls_period);
+    forwarder_->updated_max_log_lines = FLAGS_logger_tls_max_lines;
+    forwarder_->updated_max_backoff_period =
+        std::chrono::seconds(FLAGS_logger_tls_backoff_max);
+  }
 }
 
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
@@ -139,4 +162,16 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
   }
   return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }
+
+void TLSLogForwarder::applyNewConfiguration() {
+  std::unique_lock<decltype(configuration_mutex)> lock(configuration_mutex);
+  if (configuration_updated) {
+    uri_ = updated_uri;
+    log_period_ = updated_log_period;
+    max_log_lines_ = updated_max_log_lines;
+    max_backoff_period_ = updated_max_backoff_period;
+  }
+  configuration_updated = false;
+}
+
 } // namespace osquery

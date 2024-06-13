@@ -2,7 +2,7 @@
   "openssl": {
     "product": "openssl",
     "vendor": "openssl",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "ignored-cves": []
   },
   "augeas": {
@@ -105,8 +105,8 @@
   "expat": {
     "product": "libexpat",
     "vendor": "libexpat_project",
-    "version": "2.5.0",
-    "commit": "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0",
+    "version": "2.6.0",
+    "commit": "849da3e3fe727fccef5e96ef35482d66447f06a2",
     "ignored-cves": []
   },
   "gflags": {
@@ -230,13 +230,6 @@
     "commit": "b3eccdce81d18ec36c6ea95ac161002fc33d1810",
     "ignored-cves": []
   },
-  "libxml2": {
-    "product": "libxml2",
-    "vendor": "xmlsoft",
-    "version": "2.12.3",
-    "commit": "30d22bec03893ad646907050959bdfe9e8000146",
-    "ignored-cves": []
-  },
   "linenoise-ng": {
     "product": "linenoise-ng",
     "vendor": "arangodb",
@@ -282,10 +275,10 @@
   "sqlite": {
     "product": "sqlite",
     "vendor": "sqlite",
-    "version": "3.39.2",
-    "commit": "cea3fbb89fb5dbf9a613964a3786867df17a0204",
+    "version": "3.42.0",
+    "commit": "3341b40a45585b7854b20a8acff944c7668cf7e8",
     "ignored-cves": [
-      "CVE-2022-46908"
+      "CVE-2023-7104"
     ]
   },
   "thrift": {

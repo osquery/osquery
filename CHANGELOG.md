@@ -1,5 +1,91 @@
 # osquery Changelog
 
+<a name="5.12.2"></a>
+## [5.12.2](https://github.com/osquery/osquery/releases/tag/5.12.2)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.12.1...5.12.2)
+
+This release is a hot fix. It reverts #8233, which had inadvertently broken ATC tables under some conditions.
+
+Representing commits from 8 contributors! Thank you all.
+
+### Table Changes
+
+- Update `authorized_keys` to support additional FIDO2 SSH key types ([#8319](https://github.com/osquery/osquery/pull/8319))
+
+### Bug Fixes
+
+- Revert Don't add ATC table name to registry until after sqlite DB initialization #8233 ([#8334](https://github.com/osquery/osquery/pull/8334))
+- Fix crash when carve size is stored as string ([#8297](https://github.com/osquery/osquery/pull/8297))
+
+### Documentation
+
+- Updated Time Machine table documentation to require Full Disk Access. ([#8325](https://github.com/osquery/osquery/pull/8325))
+
+### Build
+
+- Correct spec file name to `macwin` ([#8311](https://github.com/osquery/osquery/pull/8311))
+- CI: Fix macOS python dependencies install step ([#8308](https://github.com/osquery/osquery/pull/8308))
+- Fix xz submodule url: the GitHub mirror was banned due to CVE-2024-3094 ([#8304](https://github.com/osquery/osquery/pull/8304))
+
+<a name="5.12.1"></a>
+## [5.12.1](https://github.com/osquery/osquery/releases/tag/5.12.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.11.0...5.12.1)
+
+Representing commits from 11 contributors! Thank you all.
+
+### New Features
+
+- New flag `logger_tls_backoff_max` to configure the retry backoff for TLS logger plugin ([#8230](https://github.com/osquery/osquery/pull/8230))
+
+### Table Changes
+
+- Port the `battery` table to Windows ([#8267](https://github.com/osquery/osquery/pull/8267))
+- Update `homebrew_packages` table to include Casks ([#8276](https://github.com/osquery/osquery/pull/8276))
+- Update `cpu_info` to include `load_percentage` on windows ([#8275](https://github.com/osquery/osquery/pull/8275))
+- Check path exists first in `vscode_extensions` ([#8292](https://github.com/osquery/osquery/pull/8292))
+- `deb_packages` to ignore non existent admindirs ([#8288](https://github.com/osquery/osquery/pull/8288))
+- Add missing path separator in Safari Extensions table generator ([#8273](https://github.com/osquery/osquery/pull/8273))
+- Add windows UBR to `os_version` table ([#8265](https://github.com/osquery/osquery/pull/8265))
+
+### Under the Hood improvements
+
+- Persist query performance stats ([#8250](https://github.com/osquery/osquery/pull/8250))
+- Deprecate `worker_threads` flag ([#8278](https://github.com/osquery/osquery/pull/8278))
+- Change message from warning to error when extension could not be loaded ([#8260](https://github.com/osquery/osquery/pull/8260))
+- Refactor macOS system profile report retrieval ([#8251](https://github.com/osquery/osquery/pull/8251))
+- Clear performance stats when modifying scheduled/pack query ([#8239](https://github.com/osquery/osquery/pull/8239))
+
+### Bug Fixes
+
+- Fix version collate returning incorrect value when last character is a delimiter ([#8283](https://github.com/osquery/osquery/pull/8283))
+- Fix a memory leak in `unified_log` ([#8274](https://github.com/osquery/osquery/pull/8274))
+- Don't add ATC table name to registry until after sqlite DB initialization ([#8233](https://github.com/osquery/osquery/pull/8233))
+
+### Documentation
+
+- Update Jinja dependency for docs ([#8285](https://github.com/osquery/osquery/pull/8285))
+- Remove Zercurity from fleet managers list ([#8293](https://github.com/osquery/osquery/pull/8293))
+- Fix missing spaces in `kernel_keys` column descriptions ([#8289](https://github.com/osquery/osquery/pull/8289))
+- Update description for amperage in battery table. ([#8253](https://github.com/osquery/osquery/pull/8253))
+
+### Packs
+
+- Fix packs to check for platform before including queries ([#7461](https://github.com/osquery/osquery/pull/7461))
+
+### Build
+
+- Downgrade sqlite to 3.42 to prevent a regression with required columns ([#8295](https://github.com/osquery/osquery/pull/8295))
+- cve: Remove libxml2 dependency ([#8282](https://github.com/osquery/osquery/pull/8282))
+- cve: Update libexpat to 2.6.0 ([#8281](https://github.com/osquery/osquery/pull/8281))
+- cve: Update sqlite to 3.45.0 ([#8259](https://github.com/osquery/osquery/pull/8259))
+- cve: Update openssl to 3.2.1 ([#8262](https://github.com/osquery/osquery/pull/8262))
+- ci: Use all available cores and print more stats ([#8248](https://github.com/osquery/osquery/pull/8248))
+- cmake: Pass the osquery python path to googletest ([#8237](https://github.com/osquery/osquery/pull/8237))
+- test: Fix vscodeExtensions.test_sanity test ([#8236](https://github.com/osquery/osquery/pull/8236))
+- cmake: Correct typo, semvar -> semver ([#8234](https://github.com/osquery/osquery/pull/8234))
+
 <a name="5.11.0"></a>
 ## [5.11.0](https://github.com/osquery/osquery/releases/tag/5.11.0)
 

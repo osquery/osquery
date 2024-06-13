@@ -9,6 +9,7 @@
 
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/linux/idpkgquery.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
@@ -64,6 +65,9 @@ QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
   for (const auto& admindir : admindir_list) {
+    if (!pathExists(admindir).ok()) {
+      continue;
+    }
     auto dpkg_query_exp = IDpkgQuery::create(admindir);
     if (dpkg_query_exp.isError()) {
       logError(logger,

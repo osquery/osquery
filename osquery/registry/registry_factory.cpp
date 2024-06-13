@@ -89,7 +89,9 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
           VLOG(1) << "Extension " << uuid
                   << " has duplicate plugin name: " << item.first
                   << " in registry: " << registry.first;
-          return Status(1, "Duplicate registry item: " + item.first);
+          return Status(1,
+                        "Registry item " + item.first +
+                            " conflicts with another item of the same name.");
         }
       }
     }

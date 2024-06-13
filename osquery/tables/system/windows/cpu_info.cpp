@@ -12,8 +12,8 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -57,6 +57,9 @@ QueryData genCpuInfo(QueryContext& context) {
     (data.GetLong("MaxClockSpeed", number))
         ? r["max_clock_speed"] = INTEGER(number)
         : r["max_clock_speed"] = "-1";
+    (data.GetLong("LoadPercentage", number))
+        ? r["load_percentage"] = INTEGER(number)
+        : r["load_percentage"] = "-1";
     results.push_back(r);
   }
 

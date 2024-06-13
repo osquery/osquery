@@ -147,7 +147,7 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // Path is in unicode, extra 00
   boost::erase_all(shell_name, "00");
 
-  // verify the the hex string length is even. This fixes issues with 10 base
+  // verify the hex string length is even. This fixes issues with 10 base
   // hex values Example 70006900700000... (pip)
   if (shell_name.length() % 2 != 0) {
     shell_name += "0";

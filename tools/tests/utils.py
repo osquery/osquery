@@ -69,6 +69,7 @@ def platform():
 
 
 def queries_from_config(config_path):
+    spec_platform = platform()
     config = {}
     rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\s+\/\/.*|^\/\/.*|\x5c\x5c\x0a')
     try:
@@ -100,6 +101,8 @@ def queries_from_config(config_path):
                     packcontent = rmcomment.sub('', packfile)
                     packqueries = json.loads(packcontent)
                     for queryname, query in packqueries["queries"].items():
+                        if "platform" in query and query['platform'] != spec_platform:
+                            continue
                         queries["pack_" + queryname] = query["query"]
 
     return queries

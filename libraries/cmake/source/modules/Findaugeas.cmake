@@ -19,4 +19,6 @@ importSourceSubmodule(
   NO_RECURSIVE
 
   SHALLOW_SUBMODULES "src"
+
+  PATCH "src"
 )

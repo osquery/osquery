@@ -59,7 +59,7 @@ inline void jsonBoolAsInt(std::string& s) {
 
 /// Safari App Extensions Plist path
 #define kSafariAppExtensionsPlistPath                                          \
-  "Contents/PlugIns/%.appex/Contents/Info.plist"
+  "/Contents/PlugIns/%.appex/Contents/Info.plist"
 
 /// User Safari extension path
 #define kUserSafariExtensionsPath                                              \
