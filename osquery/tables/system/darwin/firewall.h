@@ -34,8 +34,8 @@ osquery::QueryData parseALFExplicitAuthsTree(const pt::ptree& tree);
 // parseALFTree parses out the top level string and int keys
 osquery::QueryData parseALFTree(const pt::ptree& tree);
 
-// kALFPlistPath is the path of the com.apple.alf.plist path
-extern const std::string kALFPlistPath;
+// kALFPlistPaths are the possible paths of the com.apple.alf.plist path
+extern const std::vector<std::string> kALFPlistPaths;
 
 // kTopLevelIntKeys is a map of keys and columns which are used while parsing
 // in the function parseALFTree
@@ -44,5 +44,5 @@ extern const std::map<std::string, std::string> kTopLevelIntKeys;
 // kTopLevelStringKeys is a map of keys and columns which are used while
 // parsing in the function parseALFTree
 extern const std::map<std::string, std::string> kTopLevelStringKeys;
-}
-}
+} // namespace tables
+} // namespace osquery
