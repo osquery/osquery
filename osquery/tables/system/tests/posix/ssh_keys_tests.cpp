@@ -175,6 +175,9 @@ TEST_F(SshKeysTests, rsa_key_unencrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "0");
   EXPECT_EQ(row.at("key_type"), "rsa");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "1024");
+  EXPECT_EQ(row.at("key_security_bits"), "80");
 }
 
 TEST_F(SshKeysTests, rsa_key_encrypted) {
@@ -197,6 +200,9 @@ TEST_F(SshKeysTests, rsa_key_encrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "1");
   EXPECT_EQ(row.at("key_type"), "");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "-1");
+  EXPECT_EQ(row.at("key_security_bits"), "-1");
 }
 
 TEST_F(SshKeysTests, dsa_unencrypted) {
@@ -219,6 +225,9 @@ TEST_F(SshKeysTests, dsa_unencrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "0");
   EXPECT_EQ(row.at("key_type"), "dsa");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "1024");
+  EXPECT_EQ(row.at("key_security_bits"), "80");
 }
 
 TEST_F(SshKeysTests, dsa_encrypted) {
@@ -241,6 +250,9 @@ TEST_F(SshKeysTests, dsa_encrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "1");
   EXPECT_EQ(row.at("key_type"), "");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "-1");
+  EXPECT_EQ(row.at("key_security_bits"), "-1");
 }
 
 TEST_F(SshKeysTests, ed25519_unencrypted) {
@@ -263,6 +275,9 @@ TEST_F(SshKeysTests, ed25519_unencrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "0");
   EXPECT_EQ(row.at("key_type"), "");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "-1");
+  EXPECT_EQ(row.at("key_security_bits"), "-1");
 }
 
 TEST_F(SshKeysTests, ed25519_encrypted) {
@@ -285,6 +300,9 @@ TEST_F(SshKeysTests, ed25519_encrypted) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
   EXPECT_EQ(row.at("encrypted"), "1");
   EXPECT_EQ(row.at("key_type"), "");
+  EXPECT_EQ(row.at("key_group_name"), "");
+  EXPECT_EQ(row.at("key_length"), "-1");
+  EXPECT_EQ(row.at("key_security_bits"), "-1");
 }
 
 } // namespace tables
