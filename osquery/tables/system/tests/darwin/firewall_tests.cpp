@@ -114,7 +114,15 @@ TEST_F(FirewallTests, test_errors) {
 
 TEST_F(FirewallTests, test_on_disk_format) {
   pt::ptree tree;
-  auto s = osquery::parsePlist(kALFPlistPath, tree);
+  Status s;
+
+  for (const auto& path : kALFPlistPaths) {
+    s = osquery::parsePlist(path, tree);
+    if (s.ok()) {
+      break;
+    }
+  }
+
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   for (const auto& it : kTopLevelIntKeys) {
