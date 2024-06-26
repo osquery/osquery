@@ -97,6 +97,7 @@ TEST_F(UsersTest, test_sanity) {
   ASSERT_GE(rows_username.size(), 1ul);
   validate_rows(rows_username, row_map);
 
+#ifdef OSQUERY_LINUX
   // select with include_remote flag set
   auto const rows_include_remote =
       execute_query(std::string("select * from users where include_remote=1"));
@@ -116,6 +117,7 @@ TEST_F(UsersTest, test_sanity) {
       test_username + "'");
   ASSERT_GE(rows_username_include_remote.size(), 1ul);
   validate_rows(rows_username_include_remote, row_map);
+#endif
 }
 
 } // namespace table_tests
