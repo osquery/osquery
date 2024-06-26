@@ -70,15 +70,51 @@ TEST_F(UsersTest, test_sanity) {
     row_map.emplace("uuid", NormalType);
   }
 
+  //
+  // The returned user might be "root" or a test user created as
+  // part of the Github CI action (see .github/workflows/hosted_runners.yml
+  // and .github/workflows/self_hosted_runners.yml).
+  //
+
   // select * case
   auto const rows = execute_query("select * from users");
   ASSERT_GE(rows.size(), 1ul);
   validate_rows(rows, row_map);
 
-  // select with a specified uid
   auto test_uid = rows.front().at("uid");
+  auto test_username = rows.front().at("username");
+
+  // select with a specified uid
   auto const rows_one =
       execute_query(std::string("select * from users where uid=") + test_uid);
+  ASSERT_GE(rows_one.size(), 1ul);
+  validate_rows(rows_one, row_map);
+
+  // select with a specified username
+  auto const rows_one =
+      execute_query(std::string("select * from users where username='") +
+                    test_username + "'");
+  ASSERT_GE(rows_one.size(), 1ul);
+  validate_rows(rows_one, row_map);
+
+  // select with include_remote flag set
+  auto const rows_one =
+      execute_query(std::string("select * from users where include_remote=1"));
+  ASSERT_GE(rows.size(), 1ul);
+  validate_rows(rows, row_map);
+
+  // select with a specified uid and include_remote flag set
+  auto test_uid = rows.front().at("uid");
+  auto const rows_one = execute_query(
+      std::string("select * from users where include_remote=1 and uid=") +
+      test_uid);
+  ASSERT_GE(rows_one.size(), 1ul);
+  validate_rows(rows_one, row_map);
+
+  // select with a specified username and include_remote flag set
+  auto const rows_one = execute_query(
+      std::string("select * from users where include_remote=1 and username='") +
+      test_username + "'");
   ASSERT_GE(rows_one.size(), 1ul);
   validate_rows(rows_one, row_map);
 }
