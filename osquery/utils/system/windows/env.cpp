@@ -55,7 +55,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
     return boost::none;
   }
 
-  // It is always possible that between the first GetEnvironmentVariableA call
+  // It is always possible that between the first GetEnvironmentVariableW call
   // and this one, a change was made to our target environment variable that
   // altered the size. Currently, we ignore this scenario and fail if the
   // returned size is greater than what we expect.
@@ -72,12 +72,11 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
     return boost::none;
   }
 
-  return wstringToString(buf.data());
+  return wstringToString(buf.data(), buf.size());
 }
 
 boost::optional<std::string> expandEnvString(const std::string& input) {
-  std::vector<WCHAR> buf;
-  buf.assign(kInitialBufferSize, L'\0');
+  std::vector<WCHAR> buf(kInitialBufferSize);
 
   if (input.size() > kEnvironmentExpansionMax) {
     VLOG(1) << "Not expanding environment string larger than "

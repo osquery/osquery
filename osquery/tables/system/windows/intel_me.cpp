@@ -28,8 +28,8 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include <osquery/tables/system/intel_me.hpp>
+#include <osquery/utils/conversions/tryto.h>
 
 // The AMT documentation can be found at the following address:
 // https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/default.htm
@@ -333,14 +333,17 @@ osquery::Status getDeviceInterfacePath(
         std::to_string(err));
   }
 
-  std::wstring path;
-  path.assign(device_details->DevicePath, buffer.size() - sizeof(DWORD));
+  const auto device_path_size =
+      wcsnlen(device_details->DevicePath,
+              (buffer.size() - sizeof(DWORD)) / sizeof(WCHAR));
 
-  if (std::wcslen(path.c_str()) == 0U) {
+  if (device_path_size == 0U) {
     return osquery::Status::failure(
         "Invalid path returned for the given device interface; the string is "
         "empty");
   }
+
+  std::wstring path(device_details->DevicePath, device_path_size);
 
   dev_interface_path = wstringToString(path);
   return osquery::Status::success();

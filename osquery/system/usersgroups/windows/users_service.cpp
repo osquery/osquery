@@ -105,20 +105,18 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
     return {};
   }
 
-  std::wstring key_name;
-  key_name.resize(max_key_length);
+  WCHAR key_name[max_key_length]{};
 
   std::vector<std::string> subkeys_names;
 
   // Process registry subkeys
   for (DWORD i = 0; i < subkeys_count; i++) {
-    ret_code =
-        RegEnumKeyW(registry_handle.get(), i, key_name.data(), max_key_length);
+    ret_code = RegEnumKeyW(registry_handle.get(), i, key_name, max_key_length);
     if (ret_code != ERROR_SUCCESS) {
       return std::nullopt;
     }
 
-    subkeys_names.emplace_back(wstringToString(key_name));
+    subkeys_names.emplace_back(wstringToString(key_name, max_key_length));
   }
 
   return subkeys_names;
@@ -312,7 +310,8 @@ void UsersService::processRoamingProfiles(
       LocalFree(sid);
 
       if (ret != FALSE) {
-        new_user.username = wstringToString(account_name);
+        new_user.username =
+            wstringToString(account_name, ARRAYSIZE(account_name));
         /* NOTE: This still keeps the old behavior where if getting the gid
         from the first local group or the primary group id fails,
         then we use the uid of the user. */

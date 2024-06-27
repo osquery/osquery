@@ -19,7 +19,7 @@ std::string getHostname() {
   if (0 == GetComputerNameW(nullptr, &size)) {
     std::vector<WCHAR> computer_name(size, 0);
     GetComputerNameW(computer_name.data(), &size);
-    return wstringToString(computer_name.data());
+    return wstringToString(computer_name.data(), computer_name.size());
   }
 
   return {};
@@ -30,7 +30,7 @@ std::string getFqdn() {
   if (0 == GetComputerNameExW(ComputerNameDnsFullyQualified, nullptr, &size)) {
     std::vector<WCHAR> fqdn(size, 0);
     GetComputerNameExW(ComputerNameDnsFullyQualified, fqdn.data(), &size);
-    return wstringToString(fqdn.data());
+    return wstringToString(fqdn.data(), fqdn.size());
   }
 
   return {};
