@@ -95,7 +95,6 @@ class ServiceArgumentParser {
           // On error, bail out and clean up the vector
           if (arg == nullptr) {
             cleanArgs();
-            ::LocalFree(wargv);
             break;
           }
           args_.push_back(arg);
