@@ -20,6 +20,9 @@ extended_schema(DARWIN, [
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
 ])
+extended_schema(LINUX, [
+    Column("include_remote", INTEGER, "1 to include remote (LDAP/AD) accounts (default 0). Warning: without any uid/username filtering it may list whole LDAP directories", additional=True, hidden=True),
+])
 implementation("users@genUsers")
 examples([
   "select * from users where uid = 1000",
