@@ -972,9 +972,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                  << " table returns data based on the current user by default, "
                     "consider JOINing against the users table";
   } else if (!required_satisfied) {
-    LOG(WARNING)
-        << "Table " << pVtab->content->name
+    std::ostringstream out;
+    out << "Table " << pVtab->content->name
         << " was queried without a required column in the WHERE clause";
+    LOG(WARNING) << out.str();
+    setTableErrorMessage(&pVtab->base, out.str());
   } else if (!events_satisfied) {
     LOG(WARNING) << "Table " << pVtab->content->name
                  << " is event-based but events are disabled";
