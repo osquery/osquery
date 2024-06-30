@@ -569,11 +569,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-12]
-
-        exclude:
-          - build_type: Debug
-            architecture: arm64
+        os: [macos-14]
 
     steps:
     - name: Select the build job count
@@ -703,7 +699,7 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_14.1.app/Contents/Developer"
+        xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
@@ -758,7 +754,7 @@ jobs:
         du -sh ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Run the tests
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         ctest --build-nocmake -V
@@ -797,12 +793,14 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for the x86_64 macOS-11 worker
+    - name: Package the tests for the x86_64 macOS-12 worker
       if: matrix.architecture == 'x86_64'
+      working-directory: ${{ github.workspace }}/workspace
       run: |
-        ( cd workspace && ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} )
+        mkdir macos_tests_${{ matrix.build_type }}
+        ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }}
 
-    - name: Store the packaged tests for the x86_64 macOS-11 worker
+    - name: Store the packaged tests for the x86_64 macOS-12 worker
       if: matrix.architecture == 'x86_64'
       uses: actions/upload-artifact@v1
       with:
@@ -818,13 +816,13 @@ jobs:
 
 
 
-  # This job takes the packaged tests (Release + Debug) from the Monterey
-  # builder and runs them on a new Big Sur instance
-  test_macos_bigsur:
+  # This job takes the packaged tests (Release + Debug) from the Sonoma
+  # builder and runs them on a new Monterey instance
+  test_macos_monterey:
 
     needs: build_macos
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - name: Clone the osquery repository
@@ -886,9 +884,9 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_macos_bigsur
+    needs: test_macos_monterey
 
-    runs-on: macos-12
+    runs-on: macos-14
 
     steps:
       - name: Clone the osquery repository
