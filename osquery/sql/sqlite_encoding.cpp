@@ -46,6 +46,7 @@ static void b64SqliteValue(sqlite3_context* ctx,
       result = input;
       break;
     }
+    [[fallthrough]];
   case B64Type::B64_ENCODE:
     result = base64::encode(input);
     break;
