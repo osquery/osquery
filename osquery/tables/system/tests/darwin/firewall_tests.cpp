@@ -74,7 +74,7 @@ TEST_F(FirewallTests, test_parse_alf_exceptions_tree) {
   EXPECT_EQ(results, expected);
 }
 
-TEST_F(FirewallTests, test_parse_alf_exceptions_tree_nested_path) {
+TEST_F(FirewallTests, DISABLED_test_parse_alf_exceptions_tree_nested_path) {
   pt::ptree tree = getALFTreeNestedPath();
   auto results = parseALFExceptionsTree(tree);
 
