@@ -132,9 +132,9 @@ We can expand upon this later using subqueries and more tables.
 
 ### Tables with arguments
 
-Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`: you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged by a *dropper icon* in the [schema documentation](https://osquery.io/schema/) as requiring a column or as using a column to generate additional information.
+Several tables, `file` for example, require arguments to be queried. Consider `SELECT * FROM file`: you would not want this to trigger a complete walk of the mounted file systems. The query must be constrained with some sort of argument or input parameter. Tables like this are indicated by a *pushpin icon* in the [schema documentation](https://osquery.io/schema/) next to the columns that act as arguments to constrain a query.
 
-Let's exercise the `file` table:
+As an example of this concept, let's exercise the `file` table:
 
 ```
 osquery> .mode line
