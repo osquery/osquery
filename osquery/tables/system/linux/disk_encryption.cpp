@@ -33,7 +33,7 @@ void genFDEStatusForBlockDevice(const BlockDevice& block_device,
   r["uuid"] = block_device.uuid;
 
   struct crypt_device* cd = nullptr;
-  auto ci = crypt_status(cd, r["name"].c_str());
+  auto ci = crypt_status(cd, block_device.name.c_str());
 
   switch (ci) {
   case CRYPT_ACTIVE:
@@ -43,15 +43,15 @@ void genFDEStatusForBlockDevice(const BlockDevice& block_device,
     r["type"] = "";
 
     auto crypt_init =
-        crypt_init_by_name_and_header(&cd, r["name"].c_str(), nullptr);
+        crypt_init_by_name_and_header(&cd, block_device.name.c_str(), nullptr);
     if (crypt_init < 0) {
-      VLOG(1) << "Unable to initialize crypt device for " << r["name"];
+      VLOG(1) << "Unable to initialize crypt device for " << block_device.name;
       break;
     }
 
     struct crypt_active_device cad;
-    if (crypt_get_active_device(cd, r["name"].c_str(), &cad) < 0) {
-      VLOG(1) << "Unable to get active device for " << r["name"];
+    if (crypt_get_active_device(cd, block_device.name.c_str(), &cad) < 0) {
+      VLOG(1) << "Unable to get active device for " << block_device.name;
       break;
     }
 
@@ -114,7 +114,7 @@ QueryData genFDEStatus(QueryContext& context) {
   }
 
   std::map<std::string, Row> encryption_status;
-  auto query_context = context.constraints.find("name")->second.getAll(EQUALS);
+  auto query_context = context.constraints["name"].getAll(EQUALS);
   auto block_devices = enumerateBlockDevices(query_context, true);
 
   for (const auto& block_device : block_devices) {
