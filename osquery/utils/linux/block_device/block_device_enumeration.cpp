@@ -14,6 +14,9 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/range/as_array.hpp>
+
 #include <osquery/core/core.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/linux/block_device_enumeration.h>
@@ -76,6 +79,7 @@ void setBlockDeviceParent(BlockDevice& block_device) {
 void setBlockDeviceMetadata(
     BlockDevice& block_device,
     std::unordered_map<std::string, BlockDevice>& block_devices) {
+  auto start_path = block_device.path;
   // Set model, serial, and vendor, for root devices. Child block devices
   // inherit these values later. Set block device size and sector size for all
   // block devices.
@@ -83,15 +87,12 @@ void setBlockDeviceMetadata(
                            "device/wwid",
                            "device/vendor",
                            "size",
-                           "queue/hw_sector_size",
                            "queue/logical_block_size"}) {
     block_device.path /= name;
     std::ifstream file(block_device.path);
 
     // Restore device path.
-    block_device.path = name == "size"
-                            ? block_device.path.parent_path()
-                            : block_device.path.parent_path().parent_path();
+    block_device.path = start_path;
 
     if (!file.is_open()) {
       continue;
@@ -106,8 +107,8 @@ void setBlockDeviceMetadata(
       continue;
     }
 
-    // Remove newlines from data.
-    data.erase(std::remove(data.begin(), data.end(), '\n'), data.cend());
+    // Remove leading and trailing newlines, tabs, and spaces from data.
+    boost::trim_if(data, boost::is_any_of(boost::as_array("\n\t ")));
 
     // Set metadata to respective block device member.
     if (name == "device/model") {
@@ -118,18 +119,19 @@ void setBlockDeviceMetadata(
       block_device.vendor = data;
     } else if (name == "size") {
       block_device.size = data;
-    } else if ((name == "queue/hw_sector_size" ||
-                name == "queue/logical_block_size") &&
-               block_device.block_size.empty()) {
+    } else if (name == "queue/logical_block_size") {
       block_device.block_size = data;
     }
   }
 
   // Inherit root device model, serial, and vendor.
   if (!block_device.parent.empty()) {
-    block_device.model = block_devices[block_device.parent].model;
-    block_device.serial = block_devices[block_device.parent].serial;
-    block_device.vendor = block_devices[block_device.parent].vendor;
+    if (auto parent = block_devices.find(block_device.parent);
+        parent != block_devices.end()) {
+      block_device.model = parent->second.model;
+      block_device.serial = parent->second.serial;
+      block_device.vendor = parent->second.vendor;
+    }
   }
 
   // Set block device label, type, and uuid with libblkid.
@@ -174,10 +176,11 @@ void genBlockDeviceResult(
   // even when we are not going to return the parents, so that we can inherit
   // model, serial, and vendor for non root block devices.
   if (!block_device.parent.empty()) {
-    genBlockDeviceResult(block_devices[block_device.parent],
-                         block_devices,
-                         results,
-                         include_parents);
+    if (auto parent = block_devices.find(block_device.parent);
+        parent != block_devices.end()) {
+      genBlockDeviceResult(
+          parent->second, block_devices, results, include_parents);
+    }
   }
 
   setBlockDeviceMetadata(block_device, block_devices);

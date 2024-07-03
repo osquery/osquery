@@ -20,7 +20,7 @@ QueryData genBlockDevs(QueryContext& context) {
   }
 
   QueryData results;
-  auto query_context = context.constraints.find("name")->second.getAll(EQUALS);
+  auto query_context = context.constraints["name"].getAll(EQUALS);
   auto block_devices = enumerateBlockDevices(query_context, false);
 
   for (const auto& block_device : block_devices) {
