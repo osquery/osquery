@@ -66,7 +66,7 @@ QueryData genDNSResolversImpl(QueryContext& context, Logger& logger) {
       Row r;
       r["id"] = INTEGER(i);
       r["type"] = "search";
-      r["address"] = std::string(_res.dnsrch[0]);
+      r["address"] = std::string(_res.dnsrch[i]);
       r["options"] = BIGINT(_res.options);
       r["pid_with_namespace"] = "0";
       results.push_back(r);
