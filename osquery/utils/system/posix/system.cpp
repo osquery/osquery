@@ -16,6 +16,7 @@
 #include <osquery/utils/system/system.h>
 
 #include <boost/algorithm/string.hpp>
+#include <vector>
 
 namespace osquery {
 std::string getHostname() {

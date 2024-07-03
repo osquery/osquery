@@ -13,6 +13,7 @@
 
 #include "osquery/worker/ipc/posix/pipe_channel.h"
 #include "osquery/worker/ipc/table_channel_factory_base.h"
+#include <array>
 
 namespace osquery {
 
