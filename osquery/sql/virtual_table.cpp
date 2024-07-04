@@ -1170,8 +1170,26 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   for (const auto& name : RegistryFactory::get().names("table")) {
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);
-    if (status.ok()) {
+    if (!status.ok()) {
+      continue;
+    }
+    // skip tables in a "pending" state as these will be attached separately
+    // using SQL plugin "attach" request.
+    bool isPending = false;
+    for (const auto& item : response) {
+      if (item.at("id") == "attributes") {
+        auto itemAttributes =
+            static_cast<TableAttributes>(std::stoi(item.at("attributes")));
+        if ((itemAttributes & TableAttributes::PENDING) > 0) {
+          isPending = true;
+          break;
+        }
+      }
+    }
+    if (!isPending) {
       attachTableInternal(name, instance, is_extension);
+    } else {
+      VLOG(1) << "Not attaching pending table: " << name;
     }
   }
 }

@@ -25,6 +25,14 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
+TableAttributes ATCPlugin::attributes() const {
+  return table_attributes_;
+}
+
+void ATCPlugin::setActive() {
+  table_attributes_ = TableAttributes::NONE;
+}
+
 TableRows ATCPlugin::generate(QueryContext& context) {
   TableRows result;
   std::vector<std::string> paths;
@@ -227,8 +235,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
-    s = tables->add(
-        table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
+    auto plugin = std::make_shared<ATCPlugin>(path, columns, query);
+    s = tables->add(table_name, plugin, true);
     if (!s.ok()) {
       LOG(WARNING) << "ATC Table: " << table_name << ": " << s.getMessage();
       deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);
@@ -236,8 +244,14 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     }
 
     PluginResponse resp;
-    Registry::call(
+    s = Registry::call(
         "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
+    if (!s.ok()) {
+      LOG(WARNING) << "ATC Table: " << table_name << ": " << s.getMessage();
+      deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);
+    }
+    plugin->setActive();
+
     LOG(INFO) << "ATC table: " << table_name << " Registered";
   }
 
