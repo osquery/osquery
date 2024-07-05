@@ -4,12 +4,8 @@ schema([
     Column("name", TEXT, "Package name"),
     Column("path", TEXT, "Package install path"),
     Column("version", TEXT, "Current 'linked' version", collate="version"),
-<<<<<<< HEAD
     Column("type", TEXT, "Package type ('formula' or 'cask')"),
-    Column("prefix", TEXT, "Homebrew install prefix", hidden=True, additional=True),
-=======
     Column("prefix", TEXT, "Homebrew install prefix", hidden=True, index=True),
->>>>>>> 861772ce3 (Update table specs to properly handle when a constraint should be indexed)
 ])
 attributes(cacheable=True)
 implementation("system/homebrew_packages@genHomebrewPackages")
