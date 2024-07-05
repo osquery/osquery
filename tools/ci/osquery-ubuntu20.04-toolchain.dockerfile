@@ -1,7 +1,7 @@
-FROM ubuntu:18.04 AS ubuntubase
+FROM ubuntu:20.04 AS ubuntubase
 RUN apt update -q -y
-RUN apt upgrade -q -y
-RUN apt install -q -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt upgrade -q -y
+RUN DEBIAN_FRONTEND=noninteractive apt install -q -y --no-install-recommends \
 	git \
 	make \
 	ccache \
@@ -64,6 +64,10 @@ RUN rm -rf /var/lib/apt/lists/*
 
 FROM base3 AS base4
 COPY --from=cppcheck /root/cppcheck/install/usr/local/ /usr/local/
+# Add user for the Github Actions CI
+RUN groupadd --gid 127 docker
+RUN useradd runner --uid 1001 -G docker -s /bin/bash
+RUN echo 'runner ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Squash all layers down using a giant COPY. It's kinda gross, but it
 # works. Though the layers are only adding about 50 megs on a 1gb

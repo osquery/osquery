@@ -40,8 +40,8 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: 4caa2c54f0d893c1efa47932571046bbce156c52
-  SUBMODULE_CACHE_VERSION: 2
+  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
+  SUBMODULE_CACHE_VERSION: 3
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -54,24 +54,10 @@ jobs:
     runs-on: ubuntu-20.04
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+      image: osquery/builder20.04:7e9ee0339
+      options: --user 1001
 
     steps:
-
-    # We are using checkout@v1 because the checkout@v2 action downloads
-    # the source code without cloning if the installed git is < v2.18.
-    # Once we update the image we will also be able to select the clone
-    # destination; right now we are moving the .git folder manually.
-    - name: Clone the osquery repository
-      uses: actions/checkout@v1
-
-    # This script makes sure that the copyright headers have been correctly
-    # placed on all the source code files
-    - name: Check the copyright headers
-      run: |
-        ./tools/ci/scripts/check_copyright_headers.py
-
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -80,10 +66,23 @@ jobs:
         rel_source_path="workspace/src"
 
         mkdir -p "${rel_build_path}"
-        ln -sf "$(pwd)" "${rel_source_path}"
+        mkdir -p "${rel_source_path}"
 
         echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
         echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
+
+    # This script makes sure that the copyright headers have been correctly
+    # placed on all the source code files
+    - name: Check the copyright headers
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        ./tools/ci/scripts/check_copyright_headers.py
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -110,7 +109,7 @@ jobs:
 
     steps:
     - name: Clone the osquery repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install python pre-requisites
       run: |
@@ -127,13 +126,9 @@ jobs:
     needs: [check_code_style, check_libraries_manifest]
     runs-on: ubuntu-20.04
 
-    container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
-
     steps:
     - name: Clone the osquery repository
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
 
     - name: genwebsitejson.py
       run: python3 tools/codegen/genwebsitejson.py --specs=specs/
@@ -146,17 +141,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+      image: osquery/builder20.04:7e9ee0339
+      options: --user 1001
 
     strategy:
       matrix:
         os: [ubuntu-20.04]
 
     steps:
-    - name: Clone the osquery repository
-      uses: actions/checkout@v1
-
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -169,12 +161,15 @@ jobs:
                  ${rel_source_path} \
                  ${rel_install_path}
 
-        mv .git "${rel_source_path}"
-        ( cd "${rel_source_path}" && git reset --hard )
-
         echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
         echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
         echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v3
@@ -261,8 +256,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host
+      image: osquery/builder20.04:7e9ee0339
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host --user 1001
 
     strategy:
       matrix:
@@ -273,13 +268,45 @@ jobs:
     - name: Make space uninstalling packages
       shell: bash
       run: |
-        run_on_host="nsenter -t 1 -m -u -n -i"
+        run_on_host="sudo nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
 
+    # Due to how the RPM packaging tools work, we have to adhere to some
+    # character count requirements in the build path vs source path.
+    #
+    # Failing to do so, will break the debuginfo RPM package.
+    - name: Setup the build paths
+      id: build_paths
+      run: |
+        rel_build_path="workspace/usr/src/debug/osquery/build"
+        rel_src_path="workspace/padding-required-by-rpm-packages/src"
+        rel_ccache_path="workspace/ccache"
+        rel_package_data_path="workspace/package_data"
+        rel_packaging_path="workspace/osquery-packaging"
+        rel_package_build_path="workspace/package-build"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_src_path} \
+                 ${rel_ccache_path} \
+                 ${rel_src_path} \
+                 ${rel_package_data_path} \
+                 ${rel_package_build_path}
+
+        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
+
     - name: Clone the osquery repository
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
 
     - name: Select the build job count
       shell: bash
@@ -318,63 +345,12 @@ jobs:
           echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
-    # When we spawn in the container, we are root; create an unprivileged
-    # user now so that we can later use it to launch the normal user tests
-    - name: Create a non-root user
-      if: matrix.build_type != 'RelWithDebInfo'
-      id: unprivileged_user
-      run: |
-        useradd -m -s /bin/bash unprivileged_user
-        echo "NAME=unprivileged_user" >> $GITHUB_OUTPUT
-
-    # Due to how the RPM packaging tools work, we have to adhere to some
-    # character count requirements in the build path vs source path.
-    #
-    # Failing to do so, will break the debuginfo RPM package.
-    - name: Setup the build paths
-      id: build_paths
-      run: |
-        rel_build_path="workspace/usr/src/debug/osquery/build"
-        rel_src_path="workspace/padding-required-by-rpm-packages/src"
-        rel_ccache_path="workspace/ccache"
-        rel_package_data_path="workspace/package_data"
-        rel_packaging_path="workspace/osquery-packaging"
-        rel_package_build_path="workspace/package-build"
-
-        mkdir -p ${rel_build_path} \
-                 ${rel_src_path} \
-                 ${rel_ccache_path} \
-                 ${rel_src_path} \
-                 ${rel_package_data_path} \
-                 ${rel_package_build_path}
-
-        chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
-
-        mv .git "${rel_src_path}"
-        ( cd "${rel_src_path}" && git reset --hard )
-
-        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
-        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
-        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
-        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
-        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
-        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
-        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
-
     - name: Clone the osquery-packaging repository
       run: |
         git clone ${{ env.PACKAGING_REPO }} \
           ${{ steps.build_paths.outputs.PACKAGING }}
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
-
-    # One of the tests in the test suit will spawn a Docker container
-    # using this socket. Allow the unprivileged user we created
-    # to access it.
-    - name: Update the Docker socket permissions
-      if: matrix.build_type != 'RelWithDebInfo'
-      run: |
-        chmod 666 /var/run/docker.sock
 
     - name: Update the cache (ccache)
       uses: actions/cache@v3
@@ -439,7 +415,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
       run: |
-        sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
+        ctest --build-nocmake -LE "root-required" -V
 
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -460,14 +436,6 @@ jobs:
           --build . \
           --target install \
           -j ${{ steps.build_job_count.outputs.VALUE }}
-
-    # Since we need to run CMake to create the packages with osquery-packaging, the
-    # configuration will fail unless the C and C++ compilers are found
-    - name: Install packaging dependencies
-      if: matrix.build_type == 'RelWithDebInfo'
-      run: |
-        sudo apt update
-        sudo apt install build-essential gcc g++ -y
 
     - name: Create the packages
       if: matrix.build_type == 'RelWithDebInfo'
