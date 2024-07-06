@@ -89,6 +89,7 @@ class ServiceArgumentParser {
       LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);
 
       if (wargv != nullptr) {
+        owns_argv_ptrs_ = true;
         for (int i = 0; i < wargc; i++) {
           LPSTR arg = toMBString(wargv[i]);
 
@@ -99,7 +100,6 @@ class ServiceArgumentParser {
           }
           args_.push_back(arg);
         }
-        owns_argv_ptrs_ = true;
         ::LocalFree(wargv);
       }
     }
