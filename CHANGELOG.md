@@ -1,5 +1,56 @@
 # osquery Changelog
 
+<a name="5.13.0"></a>
+## [5.13.0](https://github.com/osquery/osquery/releases/tag/5.13.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.12.2...5.13.0)
+
+Representing commits from 20 contributors! Thank you all.
+
+### Table Changes
+
+- The Python manifest directories, `.egg-info` and `.dist-info`, contain flat file hierarchies ([#8318](https://github.com/osquery/osquery/pull/8318))
+- Add new file path for `alf` plist (macOS 15) ([#8352](https://github.com/osquery/osquery/pull/8352))
+- Table `users` on linux by default to return only users in `/etc/passwd` ([#8342](https://github.com/osquery/osquery/pull/8342))
+- Add `sha256` hash to `apparmor_profiles` table ([#8345](https://github.com/osquery/osquery/pull/8345))
+- Add support for metalink and store repo config file name in `yum_sources` table ([#8307](https://github.com/osquery/osquery/pull/8307))
+- Update `user_ssh_keys` with additional details for OpenSSL-style keys ([#8314](https://github.com/osquery/osquery/pull/8314))
+- Fix table `dns_resolvers` dns-search bug with multiple search domains ([#8329](https://github.com/osquery/osquery/pull/8329))
+- Fix `process_open_sockets` to correctly displays `family` and `protocol` on macOS ([#8315](https://github.com/osquery/osquery/pull/8315))
+- Add missing SSH key types to `authorized_keys` that support FIDO2 authentication ([#8319](https://github.com/osquery/osquery/pull/8319))
+
+### Under the Hood improvements
+
+- Improve error message when required constraint missing ([#8358](https://github.com/osquery/osquery/pull/8358))
+- Add verbose logging when distributed requests fail and retry ([#8321](https://github.com/osquery/osquery/pull/8321))
+
+### Bug Fixes
+
+- Fix for Potential memory leak in class `ServiceArgumentParser`'s Constructor ([#8368](https://github.com/osquery/osquery/pull/8368))
+- Fix for Crash in `ServiceArgumentParser` via `ServiceMain` ([#8353](https://github.com/osquery/osquery/pull/8353))
+- Fixing real precision by limiting precision to 15 digits ([#8355](https://github.com/osquery/osquery/pull/8355) and [#8302](https://github.com/osquery/osquery/pull/8302))
+- Make fallthrough explicit in `sqlite_encoding.cpp` ([#8361](https://github.com/osquery/osquery/pull/8361))
+- Fix invalid memory access in `curl_certificates` table ([#8339](https://github.com/osquery/osquery/pull/8339))
+- Add pending state to ATC tables to avoid duplicate sql attaches ([#8324](https://github.com/osquery/osquery/pull/8324))
+- Fix crash when carve size is stored as string ([#8297](https://github.com/osquery/osquery/pull/8297))
+
+### Documentation
+
+- Updated Time Machine table documentation to require FDA ([#8325](https://github.com/osquery/osquery/pull/8325))
+- Update `processes` table spec and docs, to remove outdated column alias ([#8363](https://github.com/osquery/osquery/pull/8363))
+- Fill in missing column descriptions to spec for `device_partitions` ([#8364](https://github.com/osquery/osquery/pull/8364))
+- Docs: improve explanation of required columns ([#8365](https://github.com/osquery/osquery/pull/8365))
+- Update `package_receipts` table example ([#8326](https://github.com/osquery/osquery/pull/8326))
+- Remove duplicated words ([#8336](https://github.com/osquery/osquery/pull/8336))
+
+### Build
+
+- Correct spec file name to `macwin` ([#8311](https://github.com/osquery/osquery/pull/8311))
+- Fix xz submodule url: the GitHub mirror was banned due to CVE-2024-3094 ([#8304](https://github.com/osquery/osquery/pull/8304))
+- ci: Update Linux Docker image to Ubuntu 20.04 ([#8369](https://github.com/osquery/osquery/pull/8369))
+- Fix util-linux submodule url ([#8303](https://github.com/osquery/osquery/pull/8303))
+- CI: Update macos builder to 14 and tester to 12 ([#8359](https://github.com/osquery/osquery/pull/8359))
+
 <a name="5.12.2"></a>
 ## [5.12.2](https://github.com/osquery/osquery/releases/tag/5.12.2)
 
