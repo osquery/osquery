@@ -1,7 +1,7 @@
 table_name("process_open_files")
 description("File descriptors for each process.")
 schema([
-    Column("pid", BIGINT, "Process (or thread) ID", index=True),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True, optimized=True),
     Column("fd", BIGINT, "Process-specific file descriptor number"),
     Column("path", TEXT, "Filesystem path of descriptor"),
 ])

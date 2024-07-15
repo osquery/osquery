@@ -10,7 +10,7 @@ schema([
     Column("os_type", TEXT, "Linux or Windows"),
     Column("platform_update_domain", TEXT, "Update domain the VM is running in"),
     Column("platform_fault_domain", TEXT, "Fault domain the VM is running in"),
-    Column("vm_id", TEXT, "Unique identifier for the VM"),
+    Column("vm_id", TEXT, "Unique identifier for the VM", index=True),
     Column("vm_size", TEXT, "VM size"),
     Column("subscription_id", TEXT, "Azure subscription for the VM"),
     Column("resource_group_name", TEXT, "Resource group for the VM"),

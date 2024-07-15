@@ -1,7 +1,7 @@
 table_name("device_partitions")
 description("Use TSK to enumerate details about partitions on a disk device.")
 schema([
-    Column("device", TEXT, "Absolute file path to device node", index=True, required=True),
+    Column("device", TEXT, "Absolute file path to device node", required=True, optimized=True),
     Column("partition", INTEGER, "A partition number or description"),
     Column("label", TEXT, "The partition name as stored in the partition table"),
     Column("type", TEXT, "Filesystem type if recognized, otherwise, 'meta', 'normal', or 'unallocated'"),
