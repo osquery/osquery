@@ -767,9 +767,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       if (options & ColumnOptions::REQUIRED) {
         cost = 1;
         hasRequiredConstraints = true;
-      } else if (options & ColumnOptions::INDEX) {
+      } else if (options & ColumnOptions::OPTIMIZED) {
         cost = 2;
-      } else if (options & ColumnOptions::ADDITIONAL) {
+      } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
         cost = 3;
       } else {
         // not indexed, let sqlite filter it
@@ -784,9 +784,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 
       pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
-      // Set index constraints to process IN(n) all-at-once.
-      if (sqlite3_vtab_in(pIdxInfo, i, -1) &&
-          (options & ColumnOptions::INDEX)) {
+      // Set optimized constraints to process IN(n) all-at-once.
+      if (sqlite3_vtab_in(pIdxInfo, i, -1) && (options & ColumnOptions::OPTIMIZED)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
       }
 

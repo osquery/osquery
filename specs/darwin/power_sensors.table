@@ -1,7 +1,7 @@
 table_name("power_sensors")
 description("Machine power (currents, voltages, wattages, etc) sensors.")
 schema([
-    Column("key", TEXT, "The SMC key on macOS", index=True),
+    Column("key", TEXT, "The SMC key on macOS", index=True, optimized=True),
     Column("category", TEXT, "The sensor category: currents, voltage, wattage"),
     Column("name", TEXT, "Name of power source"),
     Column("value", TEXT, "Power in Watts"),

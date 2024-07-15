@@ -1,9 +1,9 @@
 table_name("firefox_addons")
 description("Firefox browser extensions, webapps, and addons.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the addon", index=True),
+    Column("uid", BIGINT, "The local user that owns the addon", additional=True, optimized=True),
     Column("name", TEXT, "Addon display name"),
-    Column("identifier", TEXT, "Addon identifier"),
+    Column("identifier", TEXT, "Addon identifier", index=True),
     Column("creator", TEXT, "Addon-supported creator string"),
     Column("type", TEXT, "Extension, addon, webapp"),
     Column("version", TEXT, "Addon-supplied version string", collate="version"),

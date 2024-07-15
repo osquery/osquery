@@ -1,7 +1,7 @@
 table_name("docker_image_history")
 description("Docker image history information.")
 schema([
-    Column("id", TEXT, "Image ID", index=True),
+    Column("id", TEXT, "Image ID", index=True, optimized=True),
     Column("created", BIGINT, "Time of creation as UNIX time"),
     Column("size", BIGINT, "Size of instruction in bytes"),
     Column("created_by", TEXT, "Created by instruction"),
