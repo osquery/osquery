@@ -435,7 +435,8 @@ static inline void genPackagesFromPlists(QueryData& results) {
 QueryData genPackageReceipts(QueryContext& context) {
   QueryData results;
 
-  if (context.constraints["path"].exists(EQUALS) || context.constraints["package_filename"].exists(EQUALS)) {
+  if (context.constraints["path"].exists(EQUALS) ||
+      context.constraints["package_filename"].exists(EQUALS)) {
     auto paths = context.constraints["path"].getAll(EQUALS);
     for (const auto& path : paths) {
       genPackageReceipt(path, results);

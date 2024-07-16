@@ -785,7 +785,8 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
       // Set optimized constraints to process IN(n) all-at-once.
-      if (sqlite3_vtab_in(pIdxInfo, i, -1) && (options & ColumnOptions::OPTIMIZED)) {
+      if (sqlite3_vtab_in(pIdxInfo, i, -1) &&
+          (options & ColumnOptions::OPTIMIZED)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
       }
 
