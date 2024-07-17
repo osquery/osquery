@@ -146,45 +146,36 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
 
   rpmts ts = rpmtsCreate();
   rpmdbMatchIterator matches;
-  auto constraints = context.constraints["name"].getAll(EQUALS);
-  auto constraint = constraints.begin();
-  auto constraint_end = constraints.end();
-  int c = constraint == constraint_end ? 0 : 1;
-  do {
-    matches =
-        c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0)
-               : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
-    Header header;
-    while ((header = rpmdbNextIterator(matches)) != nullptr) {
-      Row r;
-      rpmtd td = rpmtdNew();
+  if (context.constraints["name"].exists(EQUALS)) {
+    auto name = (*context.constraints["name"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  }
 
-      r["name"] = getRpmAttribute(header, RPMTAG_NAME, td, logger);
-      r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td, logger);
-      r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td, logger);
-      r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td, logger);
-      r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td, logger);
-      r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td, logger);
-      r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td, logger);
-      r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td, logger));
-      r["install_time"] =
-          INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
-      r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td, logger);
-      r["package_group"] = getRpmAttribute(header, RPMTAG_GROUP, td, logger);
-      r["pid_with_namespace"] = "0";
+  Header header;
+  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+    Row r;
+    rpmtd td = rpmtdNew();
+    r["name"] = getRpmAttribute(header, RPMTAG_NAME, td, logger);
+    r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td, logger);
+    r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td, logger);
+    r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td, logger);
+    r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td, logger);
+    r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td, logger);
+    r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td, logger);
+    r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td, logger));
+    r["install_time"] =
+        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
+    r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td, logger);
+    r["package_group"] = getRpmAttribute(header, RPMTAG_GROUP, td, logger);
+    r["pid_with_namespace"] = "0";
 
-      rpmtdFree(td);
-      results.push_back(r);
-    }
+    rpmtdFree(td);
+    results.push_back(r);
+  }
 
-    rpmdbFreeIterator(matches);
-
-    if (c != 0)
-      ++constraint;
-
-    c++;
-  } while (c == 0 || constraint != constraint_end);
-
+  rpmdbFreeIterator(matches);
   rpmtsFree(ts);
   rpmFreeCrypto();
   rpmFreeRpmrc();
@@ -220,73 +211,64 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
   rpmts ts = rpmtsCreate();
   rpmdbMatchIterator matches;
-  auto constraints = context.constraints["package"].getAll(EQUALS);
-  auto constraint = constraints.begin();
-  auto constraint_end = constraints.end();
-  int c = constraint == constraint_end ? 0 : 1;
-  do {
-    matches =
-        c == 0 ? rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0)
-               : rpmtsInitIterator(ts, RPMTAG_NAME, (*constraint).c_str(), 0);
-    Header header;
-    while ((header = rpmdbNextIterator(matches)) != nullptr) {
-      rpmtd td = rpmtdNew();
-      rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
-      std::string package_name =
-          getRpmAttribute(header, RPMTAG_NAME, td, logger);
+  if (context.constraints["package"].exists(EQUALS)) {
+    auto name = (*context.constraints["package"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  }
 
-      auto file_count = rpmfiFC(fi);
-      if (file_count <= 0) {
-        logger.vlog(1, "RPM package " + package_name + " contains 0 files");
-        rpmfiFree(fi);
-        rpmtdFree(td);
-        continue;
-      } else if (file_count > MAX_RPM_FILES) {
-        logger.vlog(1,
-                    "RPM package " + package_name + " contains over " +
-                        std::to_string(MAX_RPM_FILES) + " files");
-        rpmfiFree(fi);
-        rpmtdFree(td);
-        continue;
-      }
+  Header header;
+  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+    rpmtd td = rpmtdNew();
+    rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
+    std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td, logger);
 
-      // Iterate over every file in this package.
-      for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
-        auto r = make_table_row();
-        auto path = rpmfiFN(fi);
-        r["package"] = package_name;
-        r["path"] = (path != nullptr) ? path : "";
-        auto username = rpmfiFUser(fi);
-        r["username"] = (username != nullptr) ? username : "";
-        auto groupname = rpmfiFGroup(fi);
-        r["groupname"] = (groupname != nullptr) ? groupname : "";
-        r["mode"] = lsperms(rpmfiFMode(fi));
-        r["size"] = BIGINT(rpmfiFSize(fi));
-
-        int digest_algo;
-        auto digest = rpmfiFDigestHex(fi, &digest_algo);
-        if (digest_algo == PGPHASHALGO_SHA256) {
-          r["sha256"] = (digest != nullptr) ? digest : "";
-        }
-        if (digest != nullptr) {
-          free(digest);
-        }
-
-        yield(std::move(r));
-      }
-
+    auto file_count = rpmfiFC(fi);
+    if (file_count <= 0) {
+      logger.vlog(1, "RPM package " + package_name + " contains 0 files");
       rpmfiFree(fi);
       rpmtdFree(td);
+      continue;
+    } else if (file_count > MAX_RPM_FILES) {
+      logger.vlog(1,
+                  "RPM package " + package_name + " contains over " +
+                      std::to_string(MAX_RPM_FILES) + " files");
+      rpmfiFree(fi);
+      rpmtdFree(td);
+      continue;
     }
 
-    rpmdbFreeIterator(matches);
+    // Iterate over every file in this package.
+    for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
+      auto r = make_table_row();
+      auto path = rpmfiFN(fi);
+      r["package"] = package_name;
+      r["path"] = (path != nullptr) ? path : "";
+      auto username = rpmfiFUser(fi);
+      r["username"] = (username != nullptr) ? username : "";
+      auto groupname = rpmfiFGroup(fi);
+      r["groupname"] = (groupname != nullptr) ? groupname : "";
+      r["mode"] = lsperms(rpmfiFMode(fi));
+      r["size"] = BIGINT(rpmfiFSize(fi));
 
-    if (c != 0)
-      ++constraint;
+      int digest_algo;
+      auto digest = rpmfiFDigestHex(fi, &digest_algo);
+      if (digest_algo == PGPHASHALGO_SHA256) {
+        r["sha256"] = (digest != nullptr) ? digest : "";
+      }
+      if (digest != nullptr) {
+        free(digest);
+      }
 
-    c++;
-  } while (c == 0 || constraint != constraint_end);
+      yield(std::move(r));
+    }
 
+    rpmfiFree(fi);
+    rpmtdFree(td);
+  }
+
+  rpmdbFreeIterator(matches);
   rpmtsFree(ts);
   rpmFreeRpmrc();
 }
