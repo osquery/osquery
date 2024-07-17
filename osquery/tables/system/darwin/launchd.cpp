@@ -96,23 +96,17 @@ void genLaunchdItem(const pt::ptree& tree,
 
 QueryData genLaunchd(QueryContext& context) {
   QueryData results;
+
   std::vector<std::string> launchers;
+  for (const auto& search_path : kLaunchdSearchPaths) {
+    osquery::listFilesInDirectory(search_path, launchers);
+  }
 
-  // Optimize by not searching when a path is a constraint.
-  if (context.constraints["path"].exists(EQUALS)) {
-    auto paths = context.constraints["path"].getAll(EQUALS);
-    std::copy(paths.begin(), paths.end(), std::back_inserter(launchers));
-  } else {
-    for (const auto& search_path : kLaunchdSearchPaths) {
-      osquery::listFilesInDirectory(search_path, launchers);
-    }
-
-    // List all users on the system, and walk common search paths with homes.
-    auto homes = osquery::getHomeDirectories();
-    for (const auto& home : homes) {
-      for (const auto& path : kUserLaunchdSearchPaths) {
-        osquery::listFilesInDirectory(home / path, launchers);
-      }
+  // List all users on the system, and walk common search paths with homes.
+  auto homes = osquery::getHomeDirectories();
+  for (const auto& home : homes) {
+    for (const auto& path : kUserLaunchdSearchPaths) {
+      osquery::listFilesInDirectory(home / path, launchers);
     }
   }
 
@@ -123,6 +117,11 @@ QueryData genLaunchd(QueryContext& context) {
 
   // For each found launcher (plist in known paths) parse the plist.
   for (const auto& path : launchers) {
+    if (!context.constraints["path"].matches(path)) {
+      // Optimize by not searching when a path is a constraint.
+      continue;
+    }
+
     if (!osquery::pathExists(path)) {
       continue;
     }
@@ -174,5 +173,5 @@ QueryData genLaunchdOverrides(QueryContext& context) {
 
   return results;
 }
-} // namespace tables
-} // namespace osquery
+}
+}

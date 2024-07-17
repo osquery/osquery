@@ -1,12 +1,12 @@
 table_name("groups")
 description("Local system groups.")
 schema([
-    Column("gid", BIGINT, "Unsigned int64 group ID", index=True, optimized=True),
+    Column("gid", BIGINT, "Unsigned int64 group ID", index=True),
     Column("gid_signed", BIGINT, "A signed int64 version of gid"),
     Column("groupname", TEXT, "Canonical local group name"),
 ])
 extended_schema(WINDOWS, [
-    Column("group_sid", TEXT, "Unique group ID", index=True, optimized=True),
+    Column("group_sid", TEXT, "Unique group ID", index=True),
     Column("comment", TEXT, "Remarks or comments associated with the group"),
 ])
 

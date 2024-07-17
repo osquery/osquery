@@ -59,26 +59,26 @@ QueryData genUsersImplIncludeRemote(QueryContext& context, Logger& logger) {
   }
   auto buf = std::make_unique<char[]>(bufsize);
 
-  auto uids = context.constraints["uid"].getAll(EQUALS);
-  for (const auto& uid : uids) {
-    auto const auid_exp = tryTo<long>(uid, 10);
-    if (auid_exp.isValue()) {
-      getpwuid_r(auid_exp.get(), &pwd, buf.get(), bufsize, &pwd_results);
+  if (context.constraints["uid"].exists(EQUALS)) {
+    auto uids = context.constraints["uid"].getAll(EQUALS);
+    for (const auto& uid : uids) {
+      auto const auid_exp = tryTo<long>(uid, 10);
+      if (auid_exp.isValue()) {
+        getpwuid_r(auid_exp.get(), &pwd, buf.get(), bufsize, &pwd_results);
+        if (pwd_results != nullptr) {
+          genUser(pwd_results, results, "1");
+        }
+      }
+    }
+  } else if (context.constraints["username"].exists(EQUALS)) {
+    auto usernames = context.constraints["username"].getAll(EQUALS);
+    for (const auto& username : usernames) {
+      getpwnam_r(username.c_str(), &pwd, buf.get(), bufsize, &pwd_results);
       if (pwd_results != nullptr) {
         genUser(pwd_results, results, "1");
       }
     }
-  }
-
-  auto usernames = context.constraints["username"].getAll(EQUALS);
-  for (const auto& username : usernames) {
-    getpwnam_r(username.c_str(), &pwd, buf.get(), bufsize, &pwd_results);
-    if (pwd_results != nullptr) {
-      genUser(pwd_results, results, "1");
-    }
-  }
-
-  if (results.empty()) {
+  } else {
     setpwent();
     while (1) {
       getpwent_r(&pwd, buf.get(), bufsize, &pwd_results);

@@ -54,38 +54,52 @@ Row genUser(const User& user) {
 }
 
 QueryData genUsers(QueryContext& context) {
+  auto uid_it = context.constraints.find("uid");
+  auto sid_it = context.constraints.find("uuid");
+  std::set<std::string> selected_sids;
+  std::set<std::string> selected_uids;
+
+  if (sid_it != context.constraints.end()) {
+    selected_sids = sid_it->second.getAll(EQUALS);
+  }
+
+  if (selected_sids.empty() && uid_it != context.constraints.end()) {
+    selected_uids = uid_it->second.getAll(EQUALS);
+  }
+
   QueryData results;
   auto& users_cache = GlobalUsersGroupsCache::getUsersCache();
-  auto selected_uids = context.constraints["uid"].getAll(EQUALS);
-  auto selected_sids = context.constraints["uuid"].getAll(EQUALS);
 
-  for (const auto& selected_sid : selected_sids) {
-    auto opt_user = users_cache.getUserBySid(selected_sid);
+  if (!selected_sids.empty()) {
+    for (const auto& selected_sid : selected_sids) {
+      auto opt_user = users_cache.getUserBySid(selected_sid);
 
-    if (!opt_user.has_value()) {
-      continue;
-    }
+      if (!opt_user.has_value()) {
+        continue;
+      }
 
-    auto user_row = genUser(*opt_user);
-    results.emplace_back(std::move(user_row));
-  }
-
-  for (const auto& selected_uid_str : selected_uids) {
-    auto selected_uid_res = tryTo<std::uint32_t>(selected_uid_str);
-
-    if (selected_uid_res.isError()) {
-      continue;
-    }
-
-    auto users = users_cache.getUsersByUid(selected_uid_res.take());
-
-    for (const auto& user : users) {
-      auto user_row = genUser(user);
+      auto user_row = genUser(*opt_user);
       results.emplace_back(std::move(user_row));
     }
-  }
 
-  if (results.empty()) {
+  } else if (!selected_uids.empty()) {
+    auto selected_uids = uid_it->second.getAll(EQUALS);
+
+    for (const auto& selected_uid_str : selected_uids) {
+      auto selected_uid_res = tryTo<std::uint32_t>(selected_uid_str);
+
+      if (selected_uid_res.isError()) {
+        continue;
+      }
+
+      auto users = users_cache.getUsersByUid(selected_uid_res.take());
+
+      for (const auto& user : users) {
+        auto user_row = genUser(user);
+        results.emplace_back(std::move(user_row));
+      }
+    }
+  } else {
     auto users = users_cache.getAllUsers();
 
     for (const auto& user : users) {
