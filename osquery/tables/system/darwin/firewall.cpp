@@ -25,9 +25,7 @@ namespace tables {
  * This plist contains all of the details about the ALF.
  * It is used to populate all of the tables here.
  */
-const std::vector<std::string> kALFPlistPaths{
-    "/Library/Preferences/com.apple.alf.plist",
-    "/usr/libexec/ApplicationFirewall/com.apple.alf.plist"};
+const std::string kALFPlistPath{"/Library/Preferences/com.apple.alf.plist"};
 
 /// Well known keys within the plist containing settings.
 const std::map<std::string, std::string> kTopLevelIntKeys{
@@ -46,17 +44,10 @@ const std::map<std::string, std::string> kTopLevelStringKeys{
 };
 
 Status genALFTreeFromFilesystem(pt::ptree& tree) {
-  Status s;
-
-  for (const auto& path : kALFPlistPaths) {
-    s = osquery::parsePlist(path, tree);
-    if (s.ok()) {
-      break;
-    }
-
-    TLOG << "Error parsing " << path << ": " << s.toString();
+  Status s = osquery::parsePlist(kALFPlistPath, tree);
+  if (!s.ok()) {
+    TLOG << "Error parsing " << kALFPlistPath << ": " << s.toString();
   }
-
   return s;
 }
 
