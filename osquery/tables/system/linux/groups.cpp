@@ -39,7 +39,10 @@ QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
   if (context.constraints["gid"].exists(EQUALS)) {
     auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
     for (const auto& gid : gids) {
-      getgrgid_r(gid, &grp, buf.get(), bufsize, &grp_result);
+      while (getgrgid_r(gid, &grp, buf.get(), bufsize, &grp_result) == ERANGE) {
+        bufsize *= 2;
+        buf = std::make_unique<char[]>(bufsize);
+      }
       if (grp_result == nullptr) {
         continue;
       }
@@ -52,7 +55,10 @@ QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
     std::set<long> groups_in;
     setgrent();
     while (1) {
-      getgrent_r(&grp, buf.get(), bufsize, &grp_result);
+      while (getgrent_r(&grp, buf.get(), bufsize, &grp_result) == ERANGE) {
+        bufsize *= 2;
+        buf = std::make_unique<char[]>(bufsize);
+      }
       if (grp_result == nullptr) {
         break;
       }
