@@ -132,18 +132,9 @@ index d9e4f45b5..167d4e2a2 100644
  	@WITH_MAGIC_LIB@
  
 diff --git a/configure.ac b/configure.ac
-index fbbfead89..f0a95841b 100644
+index 340cff070..7fbcb874d 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -545,7 +545,7 @@ fi
- AM_CONDITIONAL([SQLITE], [test "x$have_sqlite" = "xyes"])
- AC_SUBST(DB_BACKEND)
- 
--AM_GNU_GETTEXT_VERSION([0.19.8])
-+AM_GNU_GETTEXT_VERSION([0.17])
- AM_GNU_GETTEXT([external])
- AM_ICONV
- 
 @@ -782,13 +782,6 @@ AS_IF([test "$with_acl" = yes],[
  AC_SUBST(WITH_ACL_LIB)
  AM_CONDITIONAL(ACL,[test "$with_acl" = yes])
