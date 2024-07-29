@@ -48,7 +48,7 @@ QueryData genDeviceGuardStatus(QueryContext& context) {
     data.GetLong("CodeIntegrityPolicyEnforcementStatus", code_policy_status);
     r["code_integrity_policy_enforcement_status"] =
         enforcement_methods.size() > code_policy_status
-            ? enforcement_methods[vbs_status]
+            ? enforcement_methods[code_policy_status]
             : "UNKNOWN";
 
     long umci_status;
