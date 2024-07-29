@@ -7,23 +7,23 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-// Integration test for hvci_status
-// Spec file: specs/windows/hvci_status.table
+// Integration test for deviceguard_status
+// Spec file: specs/windows/deviceguard_status.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 namespace table_tests {
 
-class HVCIStatus : public testing::Test {
+class DeviceGuardStatus : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
 };
 
-TEST_F(HVCIStatus, test_sanity) {
-  QueryData data = execute_query("select * from hvci_status");
+TEST_F(DeviceGuardStatus, test_sanity) {
+  QueryData data = execute_query("select * from deviceguard_status");
 
   ASSERT_GE(data.size(), 1ul);
 

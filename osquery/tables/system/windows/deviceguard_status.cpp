@@ -16,7 +16,7 @@
 namespace osquery {
 namespace tables {
 
-QueryData genHVCIStatus(QueryContext& context) {
+QueryData genDeviceGuardStatus(QueryContext& context) {
   QueryData results;
 
   std::vector<std::string> vbs_methods = {"VBS_NOT_ENABLED",
@@ -42,18 +42,18 @@ QueryData genHVCIStatus(QueryContext& context) {
     long vbs_status;
     data.GetLong("VirtualizationBasedSecurityStatus", vbs_status);
     r["vbs_status"] =
-        vbs_methods.size() < vbs_status ? vbs_methods[vbs_status] : "UNKNOWN";
+        vbs_methods.size() > vbs_status ? vbs_methods[vbs_status] : "UNKNOWN";
 
     long code_policy_status;
     data.GetLong("CodeIntegrityPolicyEnforcementStatus", code_policy_status);
     r["code_integrity_policy_enforcement_status"] =
-        enforcement_methods.size() < code_policy_status
+        enforcement_methods.size() > code_policy_status
             ? enforcement_methods[vbs_status]
             : "UNKNOWN";
 
     long umci_status;
     data.GetLong("UsermodeCodeIntegrityPolicyEnforcementStatus", umci_status);
-    r["umci_policy_status"] = enforcement_methods.size() < umci_status
+    r["umci_policy_status"] = enforcement_methods.size() > umci_status
                                   ? enforcement_methods[umci_status]
                                   : "UNKNOWN";
 
