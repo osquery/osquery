@@ -187,12 +187,9 @@ function(opensslMain)
   list(APPEND openssl_c_flags ${OSQUERY_FORMULA_CFLAGS})
   string(REPLACE ";" " " openssl_c_flags "${openssl_c_flags}")
 
-  string(REGEX MATCH "[0-9]\.[0-9]\.[0-9]" OPENSSL_VERSION_NO_PATCH "${OPENSSL_VERSION}")
-
   if("${OSQUERY_OPENSSL_ARCHIVE_PATH}" STREQUAL "")
     set(openssl_urls
-      "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
-      "https://www.openssl.org/source/old/${OPENSSL_VERSION_NO_PATCH}/openssl-${OPENSSL_VERSION}.tar.gz"
+      "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
     )
   else()
     if(NOT EXISTS "${OSQUERY_OPENSSL_ARCHIVE_PATH}" OR IS_DIRECTORY "${OSQUERY_OPENSSL_ARCHIVE_PATH}")
