@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <codecvt>
+#include <iostream>
 #include <string>
 
 #include <osquery/logger/logger.h>
@@ -20,16 +20,44 @@
 
 namespace osquery {
 
+namespace {
+
+/* Maximum factor between UTF16 code units and UTF8 code units.
+   Surrogate pairs require 2 code units in UTF16,
+   and 4 code units (bytes) in UTF8, so the factor is 2.
+   Code points between U0800 to UFFFF require 1 code unit in UTF16,
+   but 3 code units (bytes) in UTF8, so the factor is 3. */
+static constexpr std::size_t Utf16Utf8Factor = 3;
+
+/* NOTE: There's no factor for UTF8 -> UTF16 because the worst case
+   is for ASCII, where 1 code unit in UTF8 (1 byte) becomes
+   1 code unit in UTF16 (2 bytes).
+   In all other cases UTF16 is actually smaller. */
+
+/* The MultiByteToWideChar and WideCharToMultiByte functions only support
+   int32_t count of characters, but C++ strings and wcslen/wcsnlen
+   can potentially overflow the count. So these are the actual safe maximum
+   number of characters that can be present in the input string,
+   to prevent overflowing. */
+static constexpr std::size_t kMaxUtf8Chars =
+    std::numeric_limits<std::int32_t>::max();
+static constexpr std::size_t kMaxUtf16Chars =
+    std::numeric_limits<std::int32_t>::max() / Utf16Utf8Factor;
+
 // Helper object used by Wide/Narrow converter functions
 
 struct utf_converter {
   std::wstring from_bytes(const std::string& str) {
     std::wstring result;
-    if (str.length() > 0) {
-      result.resize(str.length() * 2);
+
+    if (!str.empty() && str.length() <= kMaxUtf8Chars) {
+      std::int32_t utf16_chars = static_cast<std::int32_t>(str.length());
+      std::int32_t utf8_chars = static_cast<std::int32_t>(str.length());
+
+      result.resize(utf16_chars);
       auto count = MultiByteToWideChar(
-          CP_UTF8, 0, str.c_str(), -1, &result[0], str.length() * 2);
-      result.resize(count - 1);
+          CP_UTF8, 0, str.c_str(), utf8_chars, &result[0], utf16_chars);
+      result.resize(count);
     }
 
     return result;
@@ -37,18 +65,36 @@ struct utf_converter {
 
   std::string to_bytes(const std::wstring& str) {
     std::string result;
-    if (str.length() > 0) {
-      result.resize(str.length() * 4);
+
+    if (str.length() > 0 && str.length() <= kMaxUtf16Chars) {
+      std::int32_t utf8_chars =
+          static_cast<std::int32_t>(str.length() * Utf16Utf8Factor);
+
+      std::int32_t utf16_chars = static_cast<std::int32_t>(str.length());
+
+      result.resize(utf8_chars);
       auto count = WideCharToMultiByte(CP_UTF8,
                                        0,
                                        str.c_str(),
-                                       -1,
+                                       utf16_chars,
                                        &result[0],
-                                       str.length() * 4,
-                                       NULL,
-                                       NULL);
-      result.resize(count - 1);
+                                       utf8_chars,
+                                       nullptr,
+                                       nullptr);
+      result.resize(count);
     }
+
+    return result;
+  }
+
+  std::string to_bytes(const wchar_t* str, std::int32_t size) {
+    std::string result;
+    std::int32_t utf8_chars = size * Utf16Utf8Factor;
+
+    result.resize(utf8_chars);
+    auto count = WideCharToMultiByte(
+        CP_UTF8, 0, str, size, &result[0], utf8_chars, nullptr, nullptr);
+    result.resize(count);
 
     return result;
   }
@@ -56,29 +102,59 @@ struct utf_converter {
 
 static utf_converter converter;
 
+} // namespace
+
+std::wstring stringToWstring(const char* src) {
+  std::wstring utf16le_str;
+
+  std::size_t size = strlen(src);
+
+  if (size == 0 || size > kMaxUtf8Chars) {
+    return {};
+  }
+
+  utf16le_str = converter.from_bytes(src);
+
+  return utf16le_str;
+}
+
 std::wstring stringToWstring(const std::string& src) {
   std::wstring utf16le_str;
-  try {
-    utf16le_str = converter.from_bytes(src);
-  } catch (std::exception /* e */) {
-    LOG(WARNING) << "Failed to convert string to wstring " << src;
-  }
+  utf16le_str = converter.from_bytes(src);
 
   return utf16le_str;
 }
 
 std::string wstringToString(const std::wstring& src) {
-  std::string utf8_str = converter.to_bytes(src);
-  return utf8_str;
+  return converter.to_bytes(src);
+}
+
+std::string wstringToString(const wchar_t* src, std::size_t max_chars) {
+  if (src == nullptr || max_chars == 0) {
+    return {};
+  }
+
+  std::size_t size = wcsnlen(src, max_chars);
+
+  if (size == 0 || size > kMaxUtf16Chars) {
+    return {};
+  }
+
+  return converter.to_bytes(src, static_cast<std::int32_t>(size));
 }
 
 std::string wstringToString(const wchar_t* src) {
   if (src == nullptr) {
-    return std::string("");
+    return {};
   }
 
-  std::string utf8_str = converter.to_bytes(src);
-  return utf8_str;
+  std::size_t size = wcslen(src);
+
+  if (size == 0 || size > kMaxUtf16Chars) {
+    return {};
+  }
+
+  return converter.to_bytes(src, static_cast<std::int32_t>(size));
 }
 
 std::string bstrToString(const BSTR src) {
@@ -103,7 +179,7 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   });
 
   // Then load up our CIM Datetime string into said class
-  auto bSrcStr = SysAllocString(stringToWstring(src.c_str()).c_str());
+  auto bSrcStr = SysAllocString(stringToWstring(src).c_str());
   auto const bSrcStrManager =
       scope_guard::create([&bSrcStr]() { SysFreeString(bSrcStr); });
   hres = pCimDateTime->put_Value(bSrcStr);

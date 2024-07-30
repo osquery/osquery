@@ -49,8 +49,10 @@ std::string getCurrentPID() noexcept {
 
 Expected<Pidfile::FileHandle, Pidfile::Error> Pidfile::createFile(
     const std::string& path) noexcept {
+  auto path_wstr = stringToWstring(path);
+
   auto file_handle =
-      CreateFileW(stringToWstring(path).c_str(),
+      CreateFileW(path_wstr.c_str(),
                   GENERIC_READ,
                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                   nullptr,
@@ -60,7 +62,7 @@ Expected<Pidfile::FileHandle, Pidfile::Error> Pidfile::createFile(
 
   if (file_handle == INVALID_HANDLE_VALUE) {
     file_handle =
-        CreateFileW(stringToWstring(path).c_str(),
+        CreateFileW(path_wstr.c_str(),
                     GENERIC_READ,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                     nullptr,

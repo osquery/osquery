@@ -22,10 +22,10 @@
 #include <iomanip>
 // clang-format on
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -342,7 +342,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
       return false;
     }
 
-    value = wstringToString(buffer);
+    value = wstringToString(buffer.data(), buffer.size());
     return true;
   };
 
@@ -536,5 +536,5 @@ QueryData genAuthenticode(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

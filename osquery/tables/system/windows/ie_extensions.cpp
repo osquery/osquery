@@ -18,10 +18,10 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 
-#include <osquery/utils/conversions/tryto.h>
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {

@@ -139,7 +139,7 @@ std::string pSidToStrUserName(PSID psid) {
     VLOG(1) << "LookupAccountSid Error " << GetLastError();
     return "";
   } else {
-    return wstringToString(uname.data());
+    return wstringToString(uname.data(), uname.size());
   }
 }
 
