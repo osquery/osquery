@@ -26,13 +26,13 @@ namespace tables {
 
 namespace {
 
-/// Each home directory will include custom extensions.
+/// Each home directory will include custom extensions. Comma separated list of paths.
 #if defined(__APPLE__)
-#define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
+#define kFirefoxPaths "/Library/Application Support/Firefox/Profiles/"
 #elif defined(__linux__)
-#define kFirefoxPath "/.mozilla/firefox/"
+#define kFirefoxPaths "/.mozilla/firefox/,/snap/firefox/common/.mozilla/firefox/"
 #elif defined(WIN32)
-#define kFirefoxPath "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"
+#define kFirefoxPaths "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"
@@ -183,11 +183,15 @@ QueryData genFirefoxAddons(QueryContext& context) {
   QueryData users = usersFromContext(context);
   for (const auto& row : users) {
     if (row.count("uid") > 0 && row.count("directory") > 0) {
-      // For each user, enumerate all of their Firefox profiles.
+      // For each user, enumerate all of their Firefox profiles in each path.
+      std::istringstream paths_stream(kFirefoxPaths);
+      std::string path;
       std::vector<std::string> profiles;
-      auto directory = fs::path(row.at("directory")) / kFirefoxPath;
-      if (!listDirectoriesInDirectory(directory, profiles).ok()) {
-        continue;
+      while (std::getline(paths_stream, path, ',')) {
+        auto directory = fs::path(row.at("directory")) / path;
+        if (!listDirectoriesInDirectory(directory, profiles).ok()) {
+          continue;
+        }
       }
 
       // Generate an addons list from their extensions JSON.
