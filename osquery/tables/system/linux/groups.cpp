@@ -31,15 +31,15 @@ QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
   struct group* grp_result{nullptr};
   struct group grp;
 
-  size_t bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-  if (bufsize > 16384) { /* Value was indeterminate */
-    bufsize = 16384; /* Should be more than enough */
-  }
+  size_t bufsize = 16384;
   auto buf = std::make_unique<char[]>(bufsize);
   if (context.constraints["gid"].exists(EQUALS)) {
     auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
     for (const auto& gid : gids) {
-      getgrgid_r(gid, &grp, buf.get(), bufsize, &grp_result);
+      while (getgrgid_r(gid, &grp, buf.get(), bufsize, &grp_result) == ERANGE) {
+        bufsize *= 2;
+        buf = std::make_unique<char[]>(bufsize);
+      }
       if (grp_result == nullptr) {
         continue;
       }
@@ -52,7 +52,10 @@ QueryData genGroupsImpl(QueryContext& context, Logger& logger) {
     std::set<long> groups_in;
     setgrent();
     while (1) {
-      getgrent_r(&grp, buf.get(), bufsize, &grp_result);
+      while (getgrent_r(&grp, buf.get(), bufsize, &grp_result) == ERANGE) {
+        bufsize *= 2;
+        buf = std::make_unique<char[]>(bufsize);
+      }
       if (grp_result == nullptr) {
         break;
       }
