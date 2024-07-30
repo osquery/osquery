@@ -219,8 +219,8 @@
   "librpm": {
     "product": "rpm",
     "vendor": "rpm",
-    "version": "4.18.0",
-    "commit": "ea0d77c52e176e2876fdb1d07ad41e9e2635a93e",
+    "version": "4.18.2",
+    "commit": "9fc611e38004b1ddaa6668297408649ed556c157",
     "ignored-cves": []
   },
   "libudev": {

@@ -4,13 +4,13 @@
 
 You will need to build the following osquery targets first: thirdparty_popt, thirdparty_libmagic, thirdparty_lzma, thirdparty_sqlite, thirdparty_zlib, thirdparty_zstd, openssl.
 
-Then create the following symlinks for each library, excluded openssl (run from the build folder):
+Then create the following symlinks for each library, excluded openssl, from the root of the build folder:
 
 ```
 ln -s libthirdparty_popt.a libs/src/popt/libpopt.a
 ln -s libthirdparty_libmagic.a libs/src/libmagic/libmagic.a
 ln -s libthirdparty_lzma.a libs/src/lzma/liblzma.a
-ln -s libthirdparty_sqlite.a libs/src/sqlite/src/libsqlite.a
+ln -s libthirdparty_sqlite.a libs/src/sqlite/libsqlite.a
 ln -s libthirdparty_zlib.a libs/src/zlib/libz.a
 ln -s libthirdparty_zstd.a libs/src/zstd/libzstd.a
 ```
@@ -39,7 +39,7 @@ export ZLIB_INCLUDE="${LIBS_SRC}/libraries/cmake/source/zlib/src"
 export ZLIB_LINK="${LIBS_BUILD}/libs/src/zlib"
 export LZMA_INCLUDE="${LIBS_SRC}/libraries/cmake/source/lzma/src/src/liblzma/api"
 export LZMA_LINK="${LIBS_BUILD}/libs/src/lzma"
-export SQLITE_LIBS="-L${LIBS_BUILD}/libs/src/sqlite/src -lsqlite"
+export SQLITE_LIBS="-L${LIBS_BUILD}/libs/src/sqlite -lsqlite"
 export SQLITE_CFLAGS="-I${LIBS_SRC}/libraries/cmake/source/sqlite/src/src"
 export ZSTD_LIBS="-L${LIBS_BUILD}/libs/src/zstd -lzstd"
 export ZSTD_CFLAGS="-I${LIBS_SRC}/libraries/cmake/source/zstd/src/lib"
@@ -60,7 +60,15 @@ autoreconf -i
   --enable-ndb \
   --disable-plugins \
   --disable-openmp \
-  --disable-libelf
+  --disable-libelf \
+  --without-acl \
+  --without-imaevm \
+  --without-selinux \
+  --without-fsverity \
+  --without-fapolicyd \
+  --without-audit \
+  --without-cap \
+  --without-readline
 ```
 
 Then copy these files to the osquery source

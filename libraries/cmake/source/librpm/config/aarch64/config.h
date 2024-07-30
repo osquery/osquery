@@ -35,11 +35,11 @@
 /* Have cap_compare function? */
 /* #undef HAVE_CAP_COMPARE */
 
-/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
 /* #undef HAVE_CFLOCALECOPYCURRENT */
 
-/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
@@ -351,7 +351,7 @@
 #define PACKAGE_NAME "rpm"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rpm 4.18.0"
+#define PACKAGE_STRING "rpm 4.18.2"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rpm"
@@ -360,7 +360,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.18.0"
+#define PACKAGE_VERSION "4.18.2"
 
 /* canonical vendor */
 #define RPMCANONVENDOR "unknown"
@@ -397,7 +397,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.18.0"
+#define VERSION "4.18.2"
 
 /* Build with acl support? */
 /* #undef WITH_ACL */

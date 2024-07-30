@@ -1,5 +1,5 @@
 diff --git a/build/parsePreamble.c b/build/parsePreamble.c
-index bd3da196d..01baf9e02 100644
+index f3e415aa2..7e09bb141 100644
 --- a/build/parsePreamble.c
 +++ b/build/parsePreamble.c
 @@ -323,8 +323,6 @@ int addSource(rpmSpec spec, int specline, const char *srcname, rpmTagVal tag)
@@ -12,10 +12,10 @@ index bd3da196d..01baf9e02 100644
  	return RPMRC_FAIL;
      
 diff --git a/build/parseSpec.c b/build/parseSpec.c
-index 18c480d6e..9b46f7b33 100644
+index 043a50e6b..9d80b9fa4 100644
 --- a/build/parseSpec.c
 +++ b/build/parseSpec.c
-@@ -983,7 +983,6 @@ static rpmSpec parseSpec(const char *specFile, rpmSpecFlags flags,
+@@ -982,7 +982,6 @@ static rpmSpec parseSpec(const char *specFile, rpmSpecFlags flags,
  	case PART_TRANSFILETRIGGERIN:
  	case PART_TRANSFILETRIGGERUN:
  	case PART_TRANSFILETRIGGERPOSTUN:
@@ -24,10 +24,10 @@ index 18c480d6e..9b46f7b33 100644
  
  	case PART_FILES:
 diff --git a/build/spec.c b/build/spec.c
-index 1a59266ac..619750906 100644
+index c43124c49..8544fef39 100644
 --- a/build/spec.c
 +++ b/build/spec.c
-@@ -249,7 +249,6 @@ rpmSpec newSpec(void)
+@@ -250,7 +250,6 @@ rpmSpec newSpec(void)
      spec->macros = rpmGlobalMacroContext;
      spec->pool = rpmstrPoolCreate();
      
@@ -35,19 +35,23 @@ index 1a59266ac..619750906 100644
      return spec;
  }
  
-@@ -298,7 +297,6 @@ rpmSpec rpmSpecFree(rpmSpec spec)
- 
-     // only destroy lua tables if there are no BASpecs left
-     if (spec->recursing || spec->BACount == 0) {
--	specLuaFini(spec);
+@@ -297,11 +296,6 @@ rpmSpec rpmSpecFree(rpmSpec spec)
      }
+     spec->BANames = _free(spec->BANames);
  
+-    // only destroy lua tables if there are no BASpecs left
+-    if (spec->recursing || spec->BACount == 0) {
+-	specLuaFini(spec);
+-    }
+-
      spec->sources = freeSources(spec->sources);
+     spec->packages = freePackages(spec->packages);
+     spec->pool = rpmstrPoolFree(spec->pool);
 diff --git a/lib/psm.c b/lib/psm.c
-index e7cc6514c..a2718e5e6 100644
+index e7cc6514c..2cdddb334 100644
 --- a/lib/psm.c
 +++ b/lib/psm.c
-@@ -245,19 +245,6 @@ exit:
+@@ -245,18 +245,6 @@ exit:
  static rpmRC runInstScript(rpmpsm psm, rpmTagVal scriptTag)
  {
      rpmRC rc = RPMRC_OK;
@@ -63,11 +67,10 @@ index e7cc6514c..a2718e5e6 100644
 -
 -    rpmScriptFree(script);
 -    headerFree(h);
--
+ 
      return rc;
  }
- 
-@@ -277,59 +264,7 @@ static rpmRC handleOneTrigger(rpmts ts, rpmte te, rpmsenseFlags sense,
+@@ -277,59 +265,7 @@ static rpmRC handleOneTrigger(rpmts ts, rpmte te, rpmsenseFlags sense,
  			Header sourceH, Header trigH, int countCorrection,
  			int arg2, unsigned char * triggersAlreadyRun)
  {
@@ -158,10 +161,10 @@ index 15832289f..35a811115 100644
      rpmrcCtxRelease(ctx);
      return;
 diff --git a/lib/rpmtriggers.c b/lib/rpmtriggers.c
-index 3f8fa22d0..71e7fbffe 100644
+index 3f8fa22d0..59cb797ec 100644
 --- a/lib/rpmtriggers.c
 +++ b/lib/rpmtriggers.c
-@@ -160,38 +160,7 @@ void rpmtriggersPrepPostUnTransFileTrigs(rpmts ts, rpmte te)
+@@ -160,38 +160,8 @@ void rpmtriggersPrepPostUnTransFileTrigs(rpmts ts, rpmte te)
  
  int runPostUnTransFileTrigs(rpmts ts)
  {
@@ -171,7 +174,7 @@ index 3f8fa22d0..71e7fbffe 100644
 -    rpmScript script;
 -    rpmtriggers trigs = ts->trigs2run;
      int nerrors = 0;
--
+ 
 -    rpmtriggersSortAndUniq(trigs);
 -    /* Iterate over stored triggers */
 -    for (i = 0; i < trigs->count; i++) {
@@ -200,7 +203,7 @@ index 3f8fa22d0..71e7fbffe 100644
      return nerrors;
  }
  
-@@ -382,68 +351,6 @@ static int runHandleTriggersInPkg(rpmts ts, rpmte te, Header h,
+@@ -382,67 +352,6 @@ static int runHandleTriggersInPkg(rpmts ts, rpmte te, Header h,
  				int searchMode, int ti)
  {
      int nerrors = 0;
@@ -265,11 +268,10 @@ index 3f8fa22d0..71e7fbffe 100644
 -    }
 -    rpmdsFree(rpmdsTrigger);
 -    rpmdsFree(rpmdsTriggers);
--
+ 
      return nerrors;
  }
- 
-@@ -487,94 +394,7 @@ static int matchFilesInTran(rpmts ts, rpmte te, const char *pfx,
+@@ -487,94 +396,7 @@ static int matchFilesInTran(rpmts ts, rpmte te, const char *pfx,
  rpmRC runFileTriggers(rpmts ts, rpmte te, rpmsenseFlags sense,
  			rpmscriptTriggerModes tm, int priorityClass)
  {
@@ -366,10 +368,10 @@ index 3f8fa22d0..71e7fbffe 100644
  
  rpmRC runImmedFileTriggers(rpmts ts, rpmte te, rpmsenseFlags sense,
 diff --git a/lib/transaction.c b/lib/transaction.c
-index 456c0c6de..7742bc953 100644
+index 456c0c6de..5687e87e9 100644
 --- a/lib/transaction.c
 +++ b/lib/transaction.c
-@@ -1697,50 +1697,7 @@ rpmRC rpmtsSetupTransactionPlugins(rpmts ts)
+@@ -1697,52 +1697,7 @@ rpmRC rpmtsSetupTransactionPlugins(rpmts ts)
  rpmRC runScript(rpmts ts, rpmte te, Header h, ARGV_const_t prefixes,
  		       rpmScript script, int arg1, int arg2)
  {
@@ -417,12 +419,14 @@ index 456c0c6de..7742bc953 100644
 -
 -    if (te != xte)
 -	rpmteFree(te);
-+    rpmRC rc = RPMRC_OK;
- 
-     return rc;
+-
+-    return rc;
++    return RPMRC_OK;
  }
+ 
+ static void rpmtsSync(rpmts ts)
 diff --git a/rpmio/expression.c b/rpmio/expression.c
-index 98a44bbdb..389c7d95a 100644
+index 98a44bbdb..3a09b99cd 100644
 --- a/rpmio/expression.c
 +++ b/rpmio/expression.c
 @@ -21,7 +21,6 @@
@@ -480,7 +484,7 @@ index 98a44bbdb..389c7d95a 100644
  static Value doFunction(ParseState state)
  {
    Value vname = state->tokenValue;
-@@ -589,11 +548,7 @@ static Value doFunction(ParseState state)
+@@ -589,11 +548,8 @@ static Value doFunction(ParseState state)
    if (rdToken(state))
      goto exit;
  
@@ -489,12 +493,13 @@ index 98a44bbdb..389c7d95a 100644
 -    v = doLuaFunction(state, vname->data.s + 4, narg, varg);
 -  else
 -    exprErr(state, _("unsupported funcion"), state->p);
++
 +  exprErr(state, _("unsupported funcion"), state->p);
  
  exit:
    for (i = 0; i < narg; i++)
 diff --git a/rpmio/macro.c b/rpmio/macro.c
-index 6b0201a4c..9b0d6b13f 100644
+index b795fd230..da206d1a0 100644
 --- a/rpmio/macro.c
 +++ b/rpmio/macro.c
 @@ -25,7 +25,6 @@
@@ -505,7 +510,7 @@ index 6b0201a4c..9b0d6b13f 100644
  #include "rpmio/rpmmacro_internal.h"
  #include "debug.h"
  
-@@ -1064,36 +1063,6 @@ static void doOutput(MacroBuf mb,  rpmMacroEntry me, ARGV_t argv, size_t *parsed
+@@ -1073,36 +1072,6 @@ static void doOutput(MacroBuf mb,  rpmMacroEntry me, ARGV_t argv, size_t *parsed
  
  static void doLua(MacroBuf mb,  rpmMacroEntry me, ARGV_t argv, size_t *parsed)
  {
