@@ -7,6 +7,10 @@
 
 Representing commits from 20 contributors! Thank you all.
 
+### Windows codesigning note
+
+The Windows binaries and MSI package have been signed with the [Fleet Device Management](https://fleetdm.com) codesigning certificate as the osquery project is currently working on identity verification to get a new signing certificate.
+
 ### Table Changes
 
 - The Python manifest directories, `.egg-info` and `.dist-info`, contain flat file hierarchies ([#8318](https://github.com/osquery/osquery/pull/8318))
