@@ -334,7 +334,7 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_event_filters.cpp
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
-      hvci_status.cpp
+      deviceguard_status.cpp
       yara.cpp
       tpm_info.cpp
       security_profile_info.cpp
