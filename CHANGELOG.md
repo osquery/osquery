@@ -39,17 +39,17 @@ Representing commits from 20 contributors! Thank you all.
 - Updated Time Machine table documentation to require FDA ([#8325](https://github.com/osquery/osquery/pull/8325))
 - Update `processes` table spec and docs, to remove outdated column alias ([#8363](https://github.com/osquery/osquery/pull/8363))
 - Fill in missing column descriptions to spec for `device_partitions` ([#8364](https://github.com/osquery/osquery/pull/8364))
-- Docs: improve explanation of required columns ([#8365](https://github.com/osquery/osquery/pull/8365))
+- Improve explanation of required columns ([#8365](https://github.com/osquery/osquery/pull/8365))
 - Update `package_receipts` table example ([#8326](https://github.com/osquery/osquery/pull/8326))
-- Remove duplicated words ([#8336](https://github.com/osquery/osquery/pull/8336))
+- Remove some duplicated words from code comments and strings ([#8336](https://github.com/osquery/osquery/pull/8336))
 
 ### Build
 
 - Correct spec file name to `macwin` ([#8311](https://github.com/osquery/osquery/pull/8311))
 - Fix xz submodule url: the GitHub mirror was banned due to CVE-2024-3094 ([#8304](https://github.com/osquery/osquery/pull/8304))
-- ci: Update Linux Docker image to Ubuntu 20.04 ([#8369](https://github.com/osquery/osquery/pull/8369))
+- Update Linux Docker image to Ubuntu 20.04 ([#8369](https://github.com/osquery/osquery/pull/8369))
 - Fix util-linux submodule url ([#8303](https://github.com/osquery/osquery/pull/8303))
-- CI: Update macos builder to 14 and tester to 12 ([#8359](https://github.com/osquery/osquery/pull/8359))
+- Update macos builder to 14 and tester to 12 ([#8359](https://github.com/osquery/osquery/pull/8359))
 
 <a name="5.12.2"></a>
 ## [5.12.2](https://github.com/osquery/osquery/releases/tag/5.12.2)
