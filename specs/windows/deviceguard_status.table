@@ -1,4 +1,4 @@
-table_name("deviceguard_status")
+table_name("deviceguard_status", aliases=["hvci_status"])
 description("Retrieve DeviceGuard info of the machine.")
 schema([
   Column("version", TEXT, "The version number of the Device Guard build.", collate="version"),
