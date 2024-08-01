@@ -29,9 +29,8 @@ Representing commits from 20 contributors! Thank you all.
 - Fix for Potential memory leak in class `ServiceArgumentParser`'s Constructor ([#8368](https://github.com/osquery/osquery/pull/8368))
 - Fix for Crash in `ServiceArgumentParser` via `ServiceMain` ([#8353](https://github.com/osquery/osquery/pull/8353))
 - Fixing real precision by limiting precision to 15 digits ([#8355](https://github.com/osquery/osquery/pull/8355) and [#8302](https://github.com/osquery/osquery/pull/8302))
-- Make fallthrough explicit in `sqlite_encoding.cpp` ([#8361](https://github.com/osquery/osquery/pull/8361))
 - Fix invalid memory access in `curl_certificates` table ([#8339](https://github.com/osquery/osquery/pull/8339))
-- Add pending state to ATC tables to avoid duplicate sql attaches ([#8324](https://github.com/osquery/osquery/pull/8324))
+- Add pending state to ATC tables to avoid duplicate sql attaches ([#8324](https://github.com/osquery/osquery/pull/8324)) & revert ATC changes from ([#8233](https://github.com/osquery/osquery/pull/8233)) that caused a race condition and ATC table failure
 - Fix crash when carve size is stored as string ([#8297](https://github.com/osquery/osquery/pull/8297))
 
 ### Documentation
@@ -50,6 +49,8 @@ Representing commits from 20 contributors! Thank you all.
 - Update Linux Docker image to Ubuntu 20.04 ([#8369](https://github.com/osquery/osquery/pull/8369))
 - Fix util-linux submodule url ([#8303](https://github.com/osquery/osquery/pull/8303))
 - Update macos builder to 14 and tester to 12 ([#8359](https://github.com/osquery/osquery/pull/8359))
+- Make fallthrough explicit in `sqlite_encoding.cpp` ([#8361](https://github.com/osquery/osquery/pull/8361))
+- Fix macOS python dependencies install step ([#8308](https://github.com/osquery/osquery/pull/8308))
 
 <a name="5.12.2"></a>
 ## [5.12.2](https://github.com/osquery/osquery/releases/tag/5.12.2)
