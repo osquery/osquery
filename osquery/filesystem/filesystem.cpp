@@ -437,11 +437,17 @@ Status listDirectoriesInDirectory(const fs::path& path,
 
   if (recursive) {
     for (const auto& entry : fs::recursive_directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
-        results.push_back(entry.path().string());
+      try {
+        if (fs::is_symlink(entry)) {
+          results.push_back(entry.path().string());
+        } else if (fs::is_directory(entry)) {
+          results.push_back(entry.path().string());
+        }
       }
+    }
+    catch (fs::filesystem_error& e) {
+      LOG(WARNING) << "Failed to iterate through directory in "
+                   << entry.path().string() << " Error: " << e.what();
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
