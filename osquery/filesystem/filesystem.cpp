@@ -443,12 +443,11 @@ Status listDirectoriesInDirectory(const fs::path& path,
         } else if (fs::is_directory(entry)) {
           results.push_back(entry.path().string());
         }
+      } catch (fs::filesystem_error& e) {
+        LOG(WARNING) << "Failed to examine file " << entry.path().string()
+                     << " during recursive directory iteration. Error: "
+                     << e.what();
       }
-    }
-    catch (fs::filesystem_error& e) {
-      LOG(WARNING) << "Failed to examine file " << entry.path().string()
-                   << " during recursive directory iteration. Error: "
-                   << e.what();
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
