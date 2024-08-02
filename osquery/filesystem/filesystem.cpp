@@ -446,15 +446,21 @@ Status listDirectoriesInDirectory(const fs::path& path,
       }
     }
     catch (fs::filesystem_error& e) {
-      LOG(WARNING) << "Failed to iterate through directory in "
-                   << entry.path().string() << " Error: " << e.what();
+      LOG(WARNING) << "Failed to examine file " << entry.path().string()
+                   << " during recursive directory iteration. Error: "
+                   << e.what();
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
-        results.push_back(entry.path().string());
+      try {
+        if (fs::is_symlink(entry)) {
+          results.push_back(entry.path().string());
+        } else if (fs::is_directory(entry)) {
+          results.push_back(entry.path().string());
+        }
+      } catch (fs::filesystem_error& e) {
+        LOG(WARNING) << "Failed to examine path " << entry.path().string()
+                     << " Error: " << e.what();
       }
     }
   }
@@ -532,8 +538,8 @@ bool safePermissions(const fs::path& dir,
 
   Status result = platformIsTmpDir(dir);
   if (!result.ok() && result.getCode() < 0) {
-    // An error has occurred in stat() on dir, most likely because the file path
-    // does not exist
+    // An error has occurred in stat() on dir, most likely because the file
+    // path does not exist
     return false;
   } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.
