@@ -8,6 +8,7 @@
  */
 
 #include <codecvt>
+#include <filesystem>
 #include <sstream>
 
 #include <fcntl.h>
@@ -431,35 +432,36 @@ Status listFilesInDirectory(const fs::path& path,
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  if (path.empty() || !pathExists(path)) {
+  if (path.empty() || !pathExists(path) || !fs::is_directory(path)) {
     return Status(1, "Target directory is invalid");
   }
 
+  // We don't really need the error, but by passing it into
+  // recursive_directory_iterator we invoked the non-throw version.
+  boost::system::error_code ec;
+
   if (recursive) {
-    for (const auto& entry : fs::recursive_directory_iterator(path)) {
-      try {
-        if (fs::is_symlink(entry)) {
-          results.push_back(entry.path().string());
-        } else if (fs::is_directory(entry)) {
-          results.push_back(entry.path().string());
-        }
-      } catch (fs::filesystem_error& e) {
-        LOG(WARNING) << "Failed to examine file " << entry.path().string()
-                     << " during recursive directory iteration. Error: "
-                     << e.what();
+    for (fs::recursive_directory_iterator
+             entry(path, fs::directory_options::skip_permission_denied, ec),
+         end;
+         entry != end;
+         entry.increment(ec)) {
+      if (fs::is_symlink(entry->path())) {
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path())) {
+        results.push_back(entry->path().string());
       }
     }
   } else {
-    for (const auto& entry : fs::directory_iterator(path)) {
-      try {
-        if (fs::is_symlink(entry)) {
-          results.push_back(entry.path().string());
-        } else if (fs::is_directory(entry)) {
-          results.push_back(entry.path().string());
-        }
-      } catch (fs::filesystem_error& e) {
-        LOG(WARNING) << "Failed to examine path " << entry.path().string()
-                     << " Error: " << e.what();
+    for (fs::directory_iterator
+             entry(path, fs::directory_options::skip_permission_denied, ec),
+         end;
+         entry != end;
+         entry.increment(ec)) {
+      if (fs::is_symlink(entry->path())) {
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path())) {
+        results.push_back(entry->path().string());
       }
     }
   }
@@ -474,8 +476,8 @@ Status isDirectory(const fs::path& path) {
   }
 
   // The success error code is returned for as a failure (undefined error)
-  // We need to flip that into an error, a success would have falling through
-  // in the above conditional.
+  // We need to flip that into an error, a success would have falling
+  // through in the above conditional.
   if (ec.value() == errc::success) {
     return Status(1, "Path is not a directory: " + path.string());
   }
