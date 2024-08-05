@@ -756,45 +756,50 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       }
       const auto& name = std::get<0>(columns[constraint_info.iColumn]);
       const auto& type = std::get<1>(columns[constraint_info.iColumn]);
-      if (!sensibleComparison(type, constraint_info.op)) {
+      auto constraint_op = constraint_info.op;
+      if (!sensibleComparison(type, constraint_op)) {
         cost += 10;
         continue;
       }
 
-      // Check if constraint is set on a column which modifies how the
-      // table generates data and apply appropiate parameters for each.
+      // Check if this constraint is on an index or required column.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
       if (options & ColumnOptions::REQUIRED) {
-        cost = 1;
         hasRequiredConstraints = true;
-      } else if (options & ColumnOptions::OPTIMIZED) {
-        cost = 2;
+        cost = 1;
       } else if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
-        cost = 3;
+        cost = 1;
       } else {
         // not indexed, let sqlite filter it
         continue;
       }
 
-      // Save a pair of the name and the constraint operator.
-      // Use this constraint during xFilter by performing a scan and column
-      // name lookup through out all cursor constraint lists.
-      constraints.push_back(
-          std::make_pair(name, Constraint(constraint_info.op)));
-
-      pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
-
       // Set optimized constraints to process IN(n) all-at-once.
+      // We manually overwrite the constraint op until xFilter can validate
+      // if this constraint was supposed to process IN all-at-once or not.
       if (sqlite3_vtab_in(pIdxInfo, i, -1) &&
           (options & ColumnOptions::OPTIMIZED)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
+        constraint_op = 3;
       }
+
+      // Save a pair of the name and the constraint operator.
+      // Use this constraint during xFilter by performing a scan and column
+      // name lookup through out all cursor constraint lists.
+      constraints.push_back(std::make_pair(name, Constraint(constraint_op)));
+
+      // If we specify an index for a JOIN, it means xFilter is called 500
+      // times. Therefore, when a spec file specifies a column to be required or
+      // index, the table implementation must be able to quickly find and return
+      // a single row. See issue 5379.
+
+      pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 
       if (FLAGS_planner) {
         plan("xBestIndex Adding index constraint for table: " +
              pVtab->content->name + " [column=" + name +
              " arg_index=" + std::to_string(expr_index) +
-             " op=" + std::to_string(constraint_info.op) + "]");
+             " op=" + std::to_string(constraint_op) + "]");
       }
     }
   }
@@ -938,8 +943,12 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
           context.constraints[constraint.first].add(constraint.second);
         };
 
-        // argv[i] appears to be NULL, but this could be an IN constraint.
-        if (sqlite3_value_type(argv[i]) == SQLITE_NULL) {
+        // If the constraint op is set to `3`, then we know this was manually
+        // overwritten to validate when to process an IN constraint all-at-once.
+        // We switch the constraint op back to `EQUALS` for sqlite to understand
+        // it.
+        if (constraint.second.op == 3) {
+          constraint.second.op = EQUALS;
           auto rc = SQLITE_EMPTY;
           sqlite3_value* in_value = nullptr;
 
