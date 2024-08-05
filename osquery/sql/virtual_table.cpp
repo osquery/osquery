@@ -780,7 +780,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       if (sqlite3_vtab_in(pIdxInfo, i, -1) &&
           (options & ColumnOptions::OPTIMIZED)) {
         sqlite3_vtab_in(pIdxInfo, i, 1);
-        constraint_op = 3;
+        constraint_op = IN;
       }
 
       // Save a pair of the name and the constraint operator.
@@ -947,7 +947,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         // overwritten to validate when to process an IN constraint all-at-once.
         // We switch the constraint op back to `EQUALS` for sqlite to understand
         // it.
-        if (constraint.second.op == 3) {
+        if (constraint.second.op == IN) {
           constraint.second.op = EQUALS;
           auto rc = SQLITE_EMPTY;
           sqlite3_value* in_value = nullptr;
