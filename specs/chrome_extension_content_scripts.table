@@ -2,7 +2,7 @@ table_name("chrome_extension_content_scripts")
 description("Chrome browser extension content scripts.")
 schema([
     Column("browser_type", TEXT, "The browser type (Valid values: chrome, chromium, opera, yandex, brave)"),
-    Column("uid", BIGINT, "The local user that owns the extension", index=True),
+    Column("uid", BIGINT, "The local user that owns the extension", index=True, optimized=True),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension-supplied version"),
     Column("script", TEXT, "The content script used by the extension"),

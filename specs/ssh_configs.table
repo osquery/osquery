@@ -1,8 +1,7 @@
 table_name("ssh_configs")
 description("A table of parsed ssh_configs.")
 schema([
-    Column("uid", BIGINT, "The local owner of the ssh_config file",
-      additional=True),
+    Column("uid", BIGINT, "The local owner of the ssh_config file", additional=True, optimized=True),
     Column("block",TEXT,"The host or match block"),
     Column("option", TEXT, "The option and value"),
     Column("ssh_config_file", TEXT, "Path to the ssh_config file"),

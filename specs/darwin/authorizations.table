@@ -1,8 +1,7 @@
 table_name("authorizations")
 description("macOS Authorization rights database.")
 schema([
-    Column("label", TEXT, "Item name, usually in reverse domain format",
-      index=True),
+    Column("label", TEXT, "Item name, usually in reverse domain format", index=True, optimized=True),
     Column("modified", TEXT, "Label top-level key"),
     Column("allow_root", TEXT, "Label top-level key"),
     Column("timeout", TEXT, "Label top-level key"),

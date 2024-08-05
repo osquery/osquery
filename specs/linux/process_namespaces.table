@@ -1,7 +1,7 @@
 table_name("process_namespaces")
 description("Linux namespaces for processes running on the host system.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID", index=True),
+    Column("pid", INTEGER, "Process (or thread) ID", index=True, optimized=True),
     Column("cgroup_namespace", TEXT, "cgroup namespace inode"),
     Column("ipc_namespace", TEXT, "ipc namespace inode"),
     Column("mnt_namespace", TEXT, "mnt namespace inode"),

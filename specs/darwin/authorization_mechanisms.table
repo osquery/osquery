@@ -1,7 +1,7 @@
 table_name("authorization_mechanisms")
 description("macOS Authorization mechanisms database.")
 schema([
-    Column("label", TEXT, "Label of the authorization right", index=True),
+    Column("label", TEXT, "Label of the authorization right", index=True, optimized=True),
     Column("plugin", TEXT, "Authorization plugin name"),
     Column("mechanism", TEXT, "Name of the mechanism that will be called"),
     Column("privileged", TEXT, "If privileged it will run as root, else as an anonymous user"),
