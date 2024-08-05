@@ -943,7 +943,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
           context.constraints[constraint.first].add(constraint.second);
         };
 
-        // If the constraint op is set to `3`, then we know this was manually
+        // If the constraint op is set to `IN`, then we know this was manually
         // overwritten to validate when to process an IN constraint all-at-once.
         // We switch the constraint op back to `EQUALS` for sqlite to understand
         // it.
