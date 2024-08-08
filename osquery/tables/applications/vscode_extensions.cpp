@@ -25,6 +25,7 @@ namespace tables {
 
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
+                                    const std::string& version_type,
                                     QueryData& results) {
   if (!pathExists(path).ok()) {
     return;
@@ -59,6 +60,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
 
     Row r;
     r["uid"] = uid;
+    r["version_type"] = version_type;
 
     rapidjson::Value::ConstMemberIterator it = identifier.FindMember("id");
     if (it != identifier.MemberEnd() && it->value.IsString()) {
@@ -116,14 +118,27 @@ QueryData genVSCodeExtensions(QueryContext& context) {
     if (directory == row.end() || uid == row.end()) {
       continue;
     }
+
+    // Add paths for both VSCode and VSCode Insiders
     confDirs.insert(
         {uid->second, fs::path(directory->second) / ".vscode-server"});
     confDirs.insert({uid->second, fs::path(directory->second) / ".vscode"});
+    confDirs.insert(
+        {uid->second, fs::path(directory->second) / ".vscode-server-insiders"});
+    confDirs.insert(
+        {uid->second, fs::path(directory->second) / ".vscode-insiders"});
   }
 
   for (const auto& confDir : confDirs) {
+    // Determine the version type
+    std::string version_type =
+        (confDir.second.string().find("insiders") != std::string::npos)
+            ? "vscode_insiders"
+            : "vscode";
+
     auto path = confDir.second / "extensions" / "extensions.json";
-    genReadJSONAndAddExtensionRows(confDir.first, path.string(), results);
+    genReadJSONAndAddExtensionRows(
+        confDir.first, path.string(), version_type, results);
   }
 
   return results;
