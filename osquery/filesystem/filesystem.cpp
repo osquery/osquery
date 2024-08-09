@@ -446,9 +446,9 @@ Status listDirectoriesInDirectory(const fs::path& path,
          end;
          entry != end;
          entry.increment(ec)) {
-      if (fs::is_symlink(entry->path())) {
+      if (fs::is_symlink(entry->path(), ec)) {
         results.push_back(entry->path().string());
-      } else if (fs::is_directory(entry->path())) {
+      } else if (fs::is_directory(entry->path(), ec)) {
         results.push_back(entry->path().string());
       }
     }
@@ -458,9 +458,9 @@ Status listDirectoriesInDirectory(const fs::path& path,
          end;
          entry != end;
          entry.increment(ec)) {
-      if (fs::is_symlink(entry->path())) {
+      if (fs::is_symlink(entry->path(), ec)) {
         results.push_back(entry->path().string());
-      } else if (fs::is_directory(entry->path())) {
+      } else if (fs::is_directory(entry->path(), ec)) {
         results.push_back(entry->path().string());
       }
     }
