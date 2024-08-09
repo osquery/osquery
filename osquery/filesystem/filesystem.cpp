@@ -435,9 +435,11 @@ Status listDirectoriesInDirectory(const fs::path& path,
     return Status(1, "Target directory is invalid");
   }
 
+  boost::system::error_code ec;
   if (recursive) {
     for (const auto& entry : fs::recursive_directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
+      // Exclude symlinks that do not point at directories
+      if (fs::is_symlink(entry) && fs::is_directory(fs::canonical(entry, ec))) {
         results.push_back(entry.path().string());
       } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
@@ -445,7 +447,7 @@ Status listDirectoriesInDirectory(const fs::path& path,
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
+      if (fs::is_symlink(entry) && fs::is_directory(fs::canonical(entry, ec))) {
         results.push_back(entry.path().string());
       } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
