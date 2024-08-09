@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <pwd.h>
 #include <grp.h>
+#include <pwd.h>
 #include <sys/stat.h>
 
 #include <sstream>
@@ -27,8 +27,13 @@ namespace osquery {
 namespace tables {
 
 std::vector<std::string> kBinarySearchPaths = {
-    "/bin",           "/sbin",           "/usr/bin", "/usr/sbin",
-    "/usr/local/bin", "/usr/local/sbin", "/tmp",
+    "/bin",
+    "/sbin",
+    "/usr/bin",
+    "/usr/sbin",
+    "/usr/local/bin",
+    "/usr/local/sbin",
+    "/tmp",
 };
 
 Status genBin(const fs::path& path, int perms, QueryData& results) {
@@ -84,29 +89,24 @@ void genSuidBinsFromPath(const std::string& path,
 
   boost::filesystem::path dir_entry_path;
 
-  try {
-    auto dir_entry_it = fs::recursive_directory_iterator(fs::path(path));
+  // We don't really need the error, but by passing it into
+  // recursive_directory_iterator we invoked the non-throw version.
+  boost::system::error_code ec;
 
-    for (const auto& dir_entry : dir_entry_it) {
-      dir_entry_path = dir_entry.path();
+  auto dir_entry_it = fs::recursive_directory_iterator(
+      fs::path(path), fs::directory_options::skip_permission_denied, ec);
 
-      boost::system::error_code error_code{};
-      if (!fs::is_regular_file(dir_entry_path, error_code)) {
-        continue;
-      }
+  for (const auto& dir_entry : dir_entry_it) {
+    dir_entry_path = dir_entry.path();
 
-      auto perms = dir_entry.status().permissions();
-      if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
-        genBin(dir_entry_path, perms, results);
-      }
+    if (!fs::is_regular_file(dir_entry_path, ec)) {
+      continue;
     }
 
-  } catch (fs::filesystem_error& e) {
-    std::stringstream buffer;
-    buffer << "Failed to iterate through the setuid/setgid binaries in "
-           << buffer.str() << " Error: " << e.what();
-
-    logger.vlog(1, buffer.str());
+    auto perms = dir_entry.status().permissions();
+    if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
+      genBin(dir_entry_path, perms, results);
+    }
   }
 }
 
@@ -129,5 +129,5 @@ QueryData genSuidBin(QueryContext& context) {
     return genSuidBinImpl(context, logger);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
