@@ -985,7 +985,8 @@ TEST_F(FilesystemTests, test_directory_listing_with_bad_symlinks) {
 
   // Create symlink that points to non-existent file.
   try {
-    fs::create_symlink(test_root_dir / "not_exists.txt", test_root_dir / "link2");
+    fs::create_symlink(test_root_dir / "not_exists.txt",
+                       test_root_dir / "link2");
   } catch (const fs::filesystem_error& e) {
     FAIL() << "Error creating symlink: " << e.what();
   }
