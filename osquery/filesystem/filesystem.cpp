@@ -435,11 +435,21 @@ Status listDirectoriesInDirectory(const fs::path& path,
     return Status(1, "Target directory is invalid");
   }
 
-  boost::system::error_code ec;
   if (recursive) {
     for (const auto& entry : fs::recursive_directory_iterator(path)) {
       // Exclude symlinks that do not point at directories
-      if (fs::is_symlink(entry) && fs::is_directory(fs::canonical(entry, ec))) {
+      if (fs::is_symlink(entry)) {
+        boost::system::error_code ec;
+        auto canonical = fs::canonical(entry, ec);
+        if (ec.value() != errc::success) {
+          // The symlink is broken or points to a non-existent file.
+          continue;
+        }
+        auto is_dir = fs::is_directory(canonical, ec);
+        if (ec.value() != errc::success || !is_dir) {
+          // The symlink is not a directory.
+          continue;
+        }
         results.push_back(entry.path().string());
       } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
@@ -447,7 +457,18 @@ Status listDirectoriesInDirectory(const fs::path& path,
     }
   } else {
     for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_symlink(entry) && fs::is_directory(fs::canonical(entry, ec))) {
+      if (fs::is_symlink(entry)) {
+        boost::system::error_code ec;
+        auto canonical = fs::canonical(entry, ec);
+        if (ec.value() != errc::success) {
+          // The symlink is broken or points to a non-existent file.
+          continue;
+        }
+        auto is_dir = fs::is_directory(canonical, ec);
+        if (ec.value() != errc::success || !is_dir) {
+          // The symlink is not a directory.
+          continue;
+        }
         results.push_back(entry.path().string());
       } else if (fs::is_directory(entry)) {
         results.push_back(entry.path().string());
