@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include <osquery/utils/macros/macros.h>

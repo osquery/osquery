@@ -16,6 +16,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <fstream>
 #include <unistd.h>
 
 namespace osquery {

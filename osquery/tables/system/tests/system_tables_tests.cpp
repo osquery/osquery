@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <fstream>
 #include <future>
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>

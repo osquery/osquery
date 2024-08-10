@@ -11,6 +11,7 @@
 #include <osquery/logger/data_logger.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <string>
 
