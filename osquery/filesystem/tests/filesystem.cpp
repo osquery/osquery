@@ -965,7 +965,11 @@ TEST_F(FilesystemTests, test_directory_listing_with_file_symlink) {
   std::vector<std::string> found_directories;
   ASSERT_TRUE(
       listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
 
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
   ASSERT_TRUE(found_directories.empty());
 
   deleteDirectoryContent(test_root_dir);
@@ -994,7 +998,11 @@ TEST_F(FilesystemTests, test_directory_listing_with_bad_symlinks) {
   std::vector<std::string> found_directories;
   ASSERT_TRUE(
       listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
 
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
   ASSERT_TRUE(found_directories.empty());
 
   deleteDirectoryContent(test_root_dir);
