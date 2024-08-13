@@ -445,11 +445,11 @@ Status listDirectoriesInDirectory(const fs::path& path,
              path, fs::directory_options::skip_permission_denied, ignored_ec),
          end;
          entry != end;
-         entry.increment(ec)) {
+         entry.increment(ignored_ec)) {
       // Exclude symlinks that do not point at directories
-      if (fs::is_symlink(entry, ignored_ec)) {
+      if (fs::is_symlink(entry->path(), ignored_ec)) {
         boost::system::error_code ec;
-        auto canonical = fs::canonical(entry, ec);
+        auto canonical = fs::canonical(entry->path(), ec);
         if (ec.value() != errc::success) {
           // The symlink is broken or points to a non-existent file.
           continue;
@@ -459,9 +459,9 @@ Status listDirectoriesInDirectory(const fs::path& path,
           // The symlink is not a directory.
           continue;
         }
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry, ignored_ec)) {
-        results.push_back(entry.path().string());
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path(), ignored_ec)) {
+        results.push_back(entry->path().string());
       }
     }
   } else {
@@ -469,10 +469,10 @@ Status listDirectoriesInDirectory(const fs::path& path,
              path, fs::directory_options::skip_permission_denied, ignored_ec),
          end;
          entry != end;
-         entry.increment(ec)) {
-      if (fs::is_symlink(entry, ignored_ec)) {
+         entry.increment(ignored_ec)) {
+      if (fs::is_symlink(entry->path(), ignored_ec)) {
         boost::system::error_code ec;
-        auto canonical = fs::canonical(entry, ec);
+        auto canonical = fs::canonical(entry->path(), ec);
         if (ec.value() != errc::success) {
           // The symlink is broken or points to a non-existent file.
           continue;
@@ -482,9 +482,9 @@ Status listDirectoriesInDirectory(const fs::path& path,
           // The symlink is not a directory.
           continue;
         }
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry, ignored_ec)) {
-        results.push_back(entry.path().string());
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path(), ignored_ec)) {
+        results.push_back(entry->path().string());
       }
     }
   }
