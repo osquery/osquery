@@ -431,14 +431,23 @@ Status listFilesInDirectory(const fs::path& path,
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  if (path.empty() || !pathExists(path)) {
+  // We don't really need the error, but by passing it into
+  // recursive_directory_iterator we invoked the non-throw version.
+  boost::system::error_code ignored_ec;
+
+  if (path.empty() || !pathExists(path) ||
+      !fs::is_directory(path, ignored_ec)) {
     return Status(1, "Target directory is invalid");
   }
 
   if (recursive) {
-    for (const auto& entry : fs::recursive_directory_iterator(path)) {
+    for (fs::recursive_directory_iterator entry(
+             path, fs::directory_options::skip_permission_denied, ignored_ec),
+         end;
+         entry != end;
+         entry.increment(ec)) {
       // Exclude symlinks that do not point at directories
-      if (fs::is_symlink(entry)) {
+      if (fs::is_symlink(entry, ignored_ec)) {
         boost::system::error_code ec;
         auto canonical = fs::canonical(entry, ec);
         if (ec.value() != errc::success) {
@@ -451,13 +460,17 @@ Status listDirectoriesInDirectory(const fs::path& path,
           continue;
         }
         results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
+      } else if (fs::is_directory(entry, ignored_ec)) {
         results.push_back(entry.path().string());
       }
     }
   } else {
-    for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
+    for (fs::directory_iterator entry(
+             path, fs::directory_options::skip_permission_denied, ignored_ec),
+         end;
+         entry != end;
+         entry.increment(ec)) {
+      if (fs::is_symlink(entry, ignored_ec)) {
         boost::system::error_code ec;
         auto canonical = fs::canonical(entry, ec);
         if (ec.value() != errc::success) {
@@ -470,7 +483,7 @@ Status listDirectoriesInDirectory(const fs::path& path,
           continue;
         }
         results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
+      } else if (fs::is_directory(entry, ignored_ec)) {
         results.push_back(entry.path().string());
       }
     }
@@ -486,8 +499,8 @@ Status isDirectory(const fs::path& path) {
   }
 
   // The success error code is returned for as a failure (undefined error)
-  // We need to flip that into an error, a success would have falling through
-  // in the above conditional.
+  // We need to flip that into an error, a success would have falling
+  // through in the above conditional.
   if (ec.value() == errc::success) {
     return Status(1, "Path is not a directory: " + path.string());
   }
@@ -549,8 +562,8 @@ bool safePermissions(const fs::path& dir,
 
   Status result = platformIsTmpDir(dir);
   if (!result.ok() && result.getCode() < 0) {
-    // An error has occurred in stat() on dir, most likely because the file path
-    // does not exist
+    // An error has occurred in stat() on dir, most likely because the file
+    // path does not exist
     return false;
   } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.
