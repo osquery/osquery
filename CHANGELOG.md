@@ -1,11 +1,11 @@
 # osquery Changelog
 
-<a name="5.13.0"></a>
-## [5.13.0](https://github.com/osquery/osquery/releases/tag/5.13.0)
+<a name="5.13.1"></a>
+## [5.13.1](https://github.com/osquery/osquery/releases/tag/5.13.1)
 
-[Git Commits](https://github.com/osquery/osquery/compare/5.12.2...5.13.0)
+[Git Commits](https://github.com/osquery/osquery/compare/5.12.2...5.13.1)
 
-Representing commits from 20 contributors! Thank you all.
+Representing commits from 21 contributors! Thank you all.
 
 ### Windows codesigning note
 
@@ -14,7 +14,6 @@ The Windows binaries and MSI package have been signed with the [Fleet Device Man
 ### Table Changes
 
 - The Python manifest directories, `.egg-info` and `.dist-info`, contain flat file hierarchies ([#8318](https://github.com/osquery/osquery/pull/8318))
-- Add new file path for `alf` plist (macOS 15) ([#8352](https://github.com/osquery/osquery/pull/8352))
 - Table `users` on linux by default to return only users in `/etc/passwd` ([#8342](https://github.com/osquery/osquery/pull/8342))
 - Add `sha256` hash to `apparmor_profiles` table ([#8345](https://github.com/osquery/osquery/pull/8345))
 - Add support for metalink and store repo config file name in `yum_sources` table ([#8307](https://github.com/osquery/osquery/pull/8307))
@@ -30,6 +29,9 @@ The Windows binaries and MSI package have been signed with the [Fleet Device Man
 
 ### Bug Fixes
 
+- Fix crash in `rpm_packages` table by upgrading librpm from 4.18.0 to 4.18.2 [#8388](https://github.com/osquery/osquery/pull/8388)
+- Fix crash in linux file monitoring (related to NFS mounted directories) [#8392](https://github.com/osquery/osquery/pull/8392)
+- Fix listDirectoriesInDirectory to check if symlinks point to directories (fixes `inotify` warnings flooded in logs) [#8399](https://github.com/osquery/osquery/pull/8399)
 - Fix for Potential memory leak in class `ServiceArgumentParser`'s Constructor ([#8368](https://github.com/osquery/osquery/pull/8368))
 - Fix for Crash in `ServiceArgumentParser` via `ServiceMain` ([#8353](https://github.com/osquery/osquery/pull/8353))
 - Fixing real precision by limiting precision to 15 digits ([#8355](https://github.com/osquery/osquery/pull/8355) and [#8302](https://github.com/osquery/osquery/pull/8302))
@@ -45,16 +47,18 @@ The Windows binaries and MSI package have been signed with the [Fleet Device Man
 - Improve explanation of required columns ([#8365](https://github.com/osquery/osquery/pull/8365))
 - Update `package_receipts` table example ([#8326](https://github.com/osquery/osquery/pull/8326))
 - Remove some duplicated words from code comments and strings ([#8336](https://github.com/osquery/osquery/pull/8336))
+- Update description for `alf_explicit_auths` [#8371](https://github.com/osquery/osquery/pull/8371)
 
 ### Build
 
 - Correct spec file name to `macwin` ([#8311](https://github.com/osquery/osquery/pull/8311))
-- Fix xz submodule url: the GitHub mirror was banned due to CVE-2024-3094 ([#8304](https://github.com/osquery/osquery/pull/8304))
+- Correct xz submodule url and openssl download url [#8383](https://github.com/osquery/osquery/pull/8383)
 - Update Linux Docker image to Ubuntu 20.04 ([#8369](https://github.com/osquery/osquery/pull/8369))
 - Fix util-linux submodule url ([#8303](https://github.com/osquery/osquery/pull/8303))
 - Update macos builder to 14 and tester to 12 ([#8359](https://github.com/osquery/osquery/pull/8359))
 - Make fallthrough explicit in `sqlite_encoding.cpp` ([#8361](https://github.com/osquery/osquery/pull/8361))
 - Fix macOS python dependencies install step ([#8308](https://github.com/osquery/osquery/pull/8308))
+- Bump `jinja2` from `3.1.3` to `3.1.4`. ([#8330](https://github.com/osquery/osquery/pull/8330))
 
 <a name="5.12.2"></a>
 ## [5.12.2](https://github.com/osquery/osquery/releases/tag/5.12.2)
