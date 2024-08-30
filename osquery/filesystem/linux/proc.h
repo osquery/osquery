@@ -197,7 +197,7 @@ Status procEnumerateProcesses(UserData& user_data,
       }
 
       // See #792: std::regex is incomplete until GCC 4.9
-      const auto pid = it->path().leaf().string();
+      const auto pid = it->path().filename().string();
       if (std::atoll(pid.data()) <= 0) {
         continue;
       }
@@ -248,7 +248,7 @@ Status procEnumerateProcessDescriptors(const std::string& pid,
     boost::filesystem::directory_iterator it(descriptors_path), end;
 
     for (; it != end; ++it) {
-      auto fd = it->path().leaf().string();
+      auto fd = it->path().filename().string();
 
       std::string link;
       Status status = procReadDescriptor(pid, fd, link);
