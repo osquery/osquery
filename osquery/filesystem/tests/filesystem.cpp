@@ -952,7 +952,7 @@ TEST_F(FilesystemTests, test_directory_listing_with_file_symlink) {
   const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
   ASSERT_TRUE(fs::create_directory(test_root_dir));
 
-  fs::ofstream test_file(test_root_dir / "test_file.txt");
+  std::ofstream test_file((test_root_dir / "test_file.txt").string());
   test_file.close();
 
   // Create symlink
