@@ -15,6 +15,7 @@
 #endif
 
 #include <boost/format.hpp>
+#include <fstream>
 
 #include <gtest/gtest.h>
 

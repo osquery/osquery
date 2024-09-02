@@ -9,6 +9,7 @@
 
 #include <osquery/utils/system/time.h>
 
+#include <cstdint>
 #include <string.h>
 
 namespace osquery {
