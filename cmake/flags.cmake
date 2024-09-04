@@ -84,11 +84,9 @@ function(setupBuildFlags)
       -Woverloaded-virtual
       -Wnon-virtual-dtor
       -Weffc++
-      -stdlib=libc++
     )
 
     set(posix_cxx_link_options
-      -stdlib=libc++
       -ldl
     )
 
@@ -179,7 +177,6 @@ function(setupBuildFlags)
       )
 
       set(linux_cxx_link_libraries
-        c++abi.a
         rt
         dl
       )
