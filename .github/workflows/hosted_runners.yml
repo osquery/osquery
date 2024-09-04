@@ -798,11 +798,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_tests_Release
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_tests_Debug
 
@@ -873,12 +873,12 @@ jobs:
             "workspace/install" \
             "3.21.4"
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_unsigned_release_package_data_x86_64
           path: macos_unsigned_release_package_data_x86_64
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_unsigned_release_package_data_arm64
           path: macos_unsigned_release_package_data_arm64
