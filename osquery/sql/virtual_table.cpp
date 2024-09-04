@@ -927,7 +927,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         auto& constraint = constraints[i];
         auto constraint_lambda = [&pCur, &context, &constraint](auto value) {
           auto expr = (const char*)sqlite3_value_text(value);
-          if (expr == nullptr) {
+          if (expr == nullptr || expr[0] == 0) {
             // SQLite did not expose the expression value.
             return;
           }
