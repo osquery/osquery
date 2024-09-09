@@ -242,7 +242,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
   DWORD cSubKeys;
   DWORD cValues;
   DWORD cchMaxValueName;
-  DWORD cbMaxValueData;
   DWORD retCode;
   FILETIME ftLastWriteTime;
   retCode = RegQueryInfoKeyW(hRegistryHandle.get(),
@@ -254,7 +253,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                              nullptr,
                              &cValues,
                              &cchMaxValueName,
-                             &cbMaxValueData,
+                             nullptr,
                              nullptr,
                              &ftLastWriteTime);
   if (retCode != ERROR_SUCCESS) {
@@ -296,7 +295,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
   DWORD cchValue = maxKeyLength;
   auto achValue = std::make_unique<WCHAR[]>(maxValueName);
-  auto bpDataBuff = std::make_unique<BYTE[]>(cbMaxValueData);
 
   // Process registry values
   for (size_t i = 0; i < cValues; i++) {
@@ -315,24 +313,35 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       return Status(retCode, "Failed to enumerate registry values");
     }
 
-    DWORD lpData = cbMaxValueData;
+    DWORD lpData = 0;
     DWORD lpType;
 
-    retCode = RegQueryValueExW(hRegistryHandle.get(),
-                               achValue.get(),
-                               nullptr,
-                               &lpType,
-                               bpDataBuff.get(),
-                               &lpData);
-    if (retCode != ERROR_SUCCESS) {
-      return Status(retCode, "Failed to query registry value");
+    // Get the required size
+    retCode = RegGetValueW(hRegistryHandle.get(),
+                           nullptr,
+                           achValue.get(),
+                           RRF_RT_ANY,
+                           &lpType,
+                           nullptr,
+                           &lpData);
+
+    if ((retCode != ERROR_SUCCESS) || (lpData == 0)) {
+      return Status(retCode, "Failed to query registry value size");
     }
 
-    // It's possible for registry entries to have been inserted incorrectly
-    // resulting in non-null-terminated strings
-    if (bpDataBuff != nullptr && lpData != 0 &&
-        kRegistryStringTypes.find(lpType) != kRegistryStringTypes.end()) {
-      bpDataBuff[lpData - 1] = 0x00;
+    std::unique_ptr<BYTE[]> bpDataBuff = std::make_unique<BYTE[]>(lpData);
+
+    // Read the registry value data ensuring correct handling of non-terminated strings
+    retCode = RegGetValueW(hRegistryHandle.get(),
+                           nullptr,
+                           achValue.get(),
+                           RRF_RT_ANY,
+                           &lpType,
+                           bpDataBuff.get(),
+                           &lpData);
+
+    if (retCode != ERROR_SUCCESS) {
+      return Status(retCode, "Failed to query registry value");
     }
 
     Row r;
@@ -365,7 +374,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
       case REG_RESOURCE_LIST:
       case REG_BINARY:
-        for (size_t j = 0; j < cbMaxValueData; j++) {
+        for (size_t j = 0; j < lpData; j++) {
           regBinary.push_back((char)bpDataBuff[j]);
         }
         boost::algorithm::hex(
@@ -406,7 +415,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       default:
         break;
       }
-      ZeroMemory(bpDataBuff.get(), cbMaxValueData);
     }
     results.push_back(r);
   }
