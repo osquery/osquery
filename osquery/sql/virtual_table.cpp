@@ -925,10 +925,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
         // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
-        auto constraint_lambda = [&pCur, &context, &constraint](auto value) {
+        auto constraint_lambda = [&pCur, &context, &constraint](auto value, bool safe) {
           auto expr = (const char*)sqlite3_value_text(value);
-          if (expr == nullptr || expr[0] == 0) {
-            // SQLite did not expose the expression value.
+          if (!safe && (expr == nullptr || expr[0] == 0)) {
+            // The column is unsafe to handle unexposed expressions values.
             return;
           }
 
@@ -955,7 +955,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
           for (rc = sqlite3_vtab_in_first(argv[i], &in_value);
                rc == SQLITE_OK && in_value;
                rc = sqlite3_vtab_in_next(argv[i], &in_value)) {
-            constraint_lambda(in_value);
+            constraint_lambda(in_value, true);
           }
 
           if (rc != SQLITE_DONE && rc != SQLITE_EMPTY) {
@@ -963,7 +963,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                        << constraint.first << " (" << rc << ")";
           }
         } else {
-          constraint_lambda(argv[i]);
+          constraint_lambda(argv[i], false);
         }
       }
     } else if (constraints.size() > 0) {
