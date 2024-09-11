@@ -1,7 +1,7 @@
 table_name("lxd_instances")
 description("LXD instances information.")
 schema([
-    Column("name", TEXT, "Instance name", index=True, optimized=True),
+    Column("name", TEXT, "Instance name", index=True),
     Column("status", TEXT, "Instance state (running, stopped, etc.)"),
     Column("stateful", INTEGER, "Whether the instance is stateful(1) or not(0)"),
     Column("ephemeral", INTEGER, "Whether the instance is ephemeral(1) or not(0)"),

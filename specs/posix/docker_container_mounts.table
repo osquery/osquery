@@ -1,7 +1,7 @@
 table_name("docker_container_mounts")
 description("Docker container mounts.")
 schema([
-    Column("id", TEXT, "Container ID", index=True, optimized=True),
+    Column("id", TEXT, "Container ID", index=True),
     Column("type", TEXT, "Type of mount (bind, volume)"),
     Column("name", TEXT, "Optional mount name", index=True),
     Column("source", TEXT, "Source path on host"),

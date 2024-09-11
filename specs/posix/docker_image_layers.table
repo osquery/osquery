@@ -1,7 +1,7 @@
 table_name("docker_image_layers")
 description("Docker image layers information.")
 schema([
-    Column("id", TEXT, "Image ID", index=True, optimized=True),
+    Column("id", TEXT, "Image ID", index=True),
     Column("layer_id", TEXT, "Layer ID"),
     Column("layer_order", INTEGER, "Layer Order (1 = base layer)")
 ])

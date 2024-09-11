@@ -1,7 +1,8 @@
 table_name("preferences")
 description("macOS defaults and managed preferences.")
 schema([
-    Column("domain", TEXT, "Application ID usually in com.name.product format", index=True, optimized=True),
+    Column("domain", TEXT, "Application ID usually in com.name.product format",
+      index=True),
     Column("key", TEXT, "Preference top-level key", index=True),
     Column("subkey", TEXT, "Intemediate key path, includes lists/dicts"),
     Column("value", TEXT, "String value of most CF types"),

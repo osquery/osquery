@@ -1,7 +1,8 @@
 table_name("browser_plugins")
 description("All C/NPAPI browser plugin details for all users. C/NPAPI has been deprecated on all major browsers. To query for plugins on modern browsers, try: `chrome_extensions` `firefox_addons` `safari_extensions`.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the plugin", index=True, optimized=True),
+    Column("uid", BIGINT, "The local user that owns the plugin",
+      index=True),
     Column("name", TEXT, "Plugin display name"),
     Column("identifier", TEXT, "Plugin identifier"),
     Column("version", TEXT, "Plugin short version", collate="version"),

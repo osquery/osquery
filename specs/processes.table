@@ -1,7 +1,7 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", BIGINT, "Process (or thread) ID", index=True, optimized=True),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT, "Path to executed binary"),
     Column("cmdline", TEXT, "Complete argv"),

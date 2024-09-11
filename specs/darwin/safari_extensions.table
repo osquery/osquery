@@ -1,7 +1,8 @@
 table_name("safari_extensions")
 description("Safari browser extension details for all users. This table requires Full Disk Access (FDA) permission.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the extension", index=True, optimized=True),
+    Column("uid", BIGINT, "The local user that owns the extension",
+      index=True),
     Column("name", TEXT, "Extension display name"),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension long version", collate="version"),

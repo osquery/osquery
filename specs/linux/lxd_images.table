@@ -1,7 +1,7 @@
 table_name("lxd_images")
 description("LXD images information.")
 schema([
-    Column("id", TEXT, "Image ID", index=True, optimized=True),
+    Column("id", TEXT, "Image ID", index=True),
     Column("architecture", TEXT, "Target architecture for the image"),
     Column("os", TEXT, "OS on which image is based"),
     Column("release", TEXT, "OS release version on which the image is based"),

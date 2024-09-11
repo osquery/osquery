@@ -7,7 +7,7 @@ schema([
     Column("author", TEXT, "Optional package author"),
     Column("license", TEXT, "License under which package is launched"),
     Column("path", TEXT, "Path at which this module resides"),
-    Column("directory", TEXT, "Directory where Python modules are located", index=True, optimized=True)
+    Column("directory", TEXT, "Directory where Python modules are located", index=True)
 ])
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),

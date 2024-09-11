@@ -9,7 +9,7 @@ schema([
     Column("version", TEXT, "Version info of the crashed process", collate="version"),
     Column("parent", BIGINT, "Parent PID of the crashed process"),
     Column("responsible", TEXT, "Process responsible for the crashed process"),
-    Column("uid", INTEGER, "User ID of the crashed process", index=True, optimized=True),
+    Column("uid", INTEGER, "User ID of the crashed process", index=True),
     Column("datetime", TEXT, "Date/Time at which the crash occurred"),
     Column("crashed_thread", BIGINT, "Thread ID which crashed"),
     Column("stack_trace", TEXT, "Most recent frame from the stack trace"),

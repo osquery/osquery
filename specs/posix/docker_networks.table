@@ -1,7 +1,7 @@
 table_name("docker_networks")
 description("Docker networks information.")
 schema([
-    Column("id", TEXT, "Network ID", index=True, optimized=True),
+    Column("id", TEXT, "Network ID", index=True),
     Column("name", TEXT, "Network name"),
     Column("driver", TEXT, "Network driver"),
     Column("created", BIGINT, "Time of creation as UNIX time"),
