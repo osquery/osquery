@@ -925,9 +925,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
         // Set the expression from SQLite's now-populated argv.
         auto& constraint = constraints[i];
-        auto constraint_lambda = [&pCur, &context, &constraint](auto value, bool safe) {
+        auto constraint_lambda = [&pCur, &context, &constraint](auto value,
+                                                                bool safe) {
           auto expr = (const char*)sqlite3_value_text(value);
-          if (!safe && (expr == nullptr || expr[0] == 0)) {
+          if (expr == nullptr || (!safe && expr[0] == 0)) {
             // The column is unsafe to handle unexposed expressions values.
             return;
           }
