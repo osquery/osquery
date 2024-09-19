@@ -211,7 +211,7 @@ jobs:
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
 
     - name: Store the cppcheck log (Release)
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: cppcheck-release
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_release.txt
@@ -240,7 +240,7 @@ jobs:
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
 
     - name: Store the cppcheck log (Debug)
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: cppcheck-debug
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
@@ -477,42 +477,42 @@ jobs:
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_package_data
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_deb
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
     - name: Store the unsigned debug DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_deb
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
     - name: Store the unsigned release RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_rpm
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
     - name: Store the unsigned debug RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_rpm
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
     - name: Store the unsigned release TGZ artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_tgz
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
@@ -756,7 +756,7 @@ jobs:
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
@@ -770,7 +770,7 @@ jobs:
 
     - name: Store the packaged tests for the x86_64 macOS-12 worker
       if: matrix.architecture == 'x86_64'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: macos_tests_${{ matrix.build_type }}
         path: workspace/macos_tests_${{ matrix.build_type }}.tar.gz
@@ -888,7 +888,7 @@ jobs:
           tools/ci/scripts/macos/build_universal_package_data.sh
 
       - name: Store the universal unsigned release package data artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: macos_unsigned_release_package_data_universal
           path: package_data.tar.gz
@@ -926,13 +926,13 @@ jobs:
           echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls package_build/*.tar.gz)" >> $GITHUB_OUTPUT
 
       - name: Store the PKG unsigned release packages
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: macos_unsigned_pkg_universal
           path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PKG_PATH }}
 
       - name: Store the TGZ unsigned release packages
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: macos_unsigned_tgz_universal
           path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
@@ -1335,21 +1335,21 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls *.nupkg)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_package_data
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release MSI artifact
       if: matrix.bitness != 'arm64'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_msi
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_MSI_PATH }}
 
     - name: Store the unsigned release NUPKG artifact
       if: matrix.bitness != 'arm64'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_nupkg
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_NUPKG_PATH }}
