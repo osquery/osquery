@@ -28,11 +28,14 @@ namespace {
 
 /// Each home directory will include custom extensions.
 #if defined(__APPLE__)
-const std::vector<std::string> kFirefoxPaths = {"/Library/Application Support/Firefox/Profiles/"};
+const std::vector<std::string> kFirefoxPaths = {
+    "/Library/Application Support/Firefox/Profiles/"};
 #elif defined(__linux__)
-const std::vector<std::string> kFirefoxPaths = {"/.mozilla/firefox/", "/snap/firefox/common/.mozilla/firefox/"};
+const std::vector<std::string> kFirefoxPaths = {
+    "/.mozilla/firefox/", "/snap/firefox/common/.mozilla/firefox/"};
 #elif defined(WIN32)
-const std::vector<std::string> kFirefoxPaths = {"\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"};
+const std::vector<std::string> kFirefoxPaths = {
+    "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"};
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"
