@@ -97,15 +97,31 @@ void WinSockets::parseSocketTable(WinSockTableType sockType,
   unsigned int numEntries;
   switch (sockType) {
   case WinSockTableType::tcp:
+    if (tcpTable_ == nullptr) {
+      TLOG << "Error the TCP IPv4 socket table has not been allocated";
+      return;
+    }
     numEntries = tcpTable_->dwNumEntries;
     break;
   case WinSockTableType::tcp6:
+    if (tcp6Table_ == nullptr) {
+      TLOG << "Error the TCP IPv6 socket table has not been allocated";
+      return;
+    }
     numEntries = tcp6Table_->dwNumEntries;
     break;
   case WinSockTableType::udp:
+    if (udpTable_ == nullptr) {
+      TLOG << "Error the UDP IPv4 socket table has not been allocated";
+      return;
+    }
     numEntries = udpTable_->dwNumEntries;
     break;
   case WinSockTableType::udp6:
+    if (udp6Table_ == nullptr) {
+      TLOG << "Error the UDP IPv6 socket table has not been allocated";
+      return;
+    }
     numEntries = udp6Table_->dwNumEntries;
     break;
   default:
