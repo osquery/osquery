@@ -39,7 +39,7 @@ TEST_F(Mdfind, test_sanity) {
 
   auto file_path = rows[0]["path"];
   boost::filesystem::path path(file_path);
-  auto filename = path.leaf().string();
+  auto filename = path.filename().string();
 
   rows =
       execute_query("select * from mdfind where query = 'kMDItemFSName = \"" +
@@ -49,7 +49,7 @@ TEST_F(Mdfind, test_sanity) {
 
   for (auto row : rows) {
     boost::filesystem::path retrieved_path(row["path"]);
-    EXPECT_EQ(retrieved_path.leaf().string(), filename);
+    EXPECT_EQ(retrieved_path.filename().string(), filename);
   }
 }
 

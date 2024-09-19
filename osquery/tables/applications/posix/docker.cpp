@@ -847,12 +847,11 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
  * @return Cumulative value for "key".
  */
 std::string getNetworkBytes(const pt::ptree& tree, const std::string& key) {
-  uint64_t value = 0;
-  for (const auto& node : tree) {
-    value += node.second.get<uint64_t>(key, 0);
+  auto opt = tree.get_optional<std::string>(key);
+  if (opt) {
+    return *opt;
   }
-
-  return BIGINT(value);
+  return "0";
 }
 
 /**
@@ -922,10 +921,13 @@ QueryData genContainerStats(QueryContext& context) {
           BIGINT(container.get<uint64_t>("memory_stats.max_usage", 0));
       r["memory_limit"] =
           BIGINT(container.get<uint64_t>("memory_stats.limit", 0));
-      r["network_rx_bytes"] = getNetworkBytes(
-          container.get_child("networks", pt::ptree()), "rx_bytes");
-      r["network_tx_bytes"] = getNetworkBytes(
-          container.get_child("networks", pt::ptree()), "tx_bytes");
+      if (auto networks = container.get_child_optional("networks")) {
+        r["network_rx_bytes"] = getNetworkBytes(*networks, "rx_bytes");
+        r["network_tx_bytes"] = getNetworkBytes(*networks, "tx_bytes");
+      } else {
+        r["network_rx_bytes"] = "0";
+        r["network_tx_bytes"] = "0";
+      }
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
       VLOG(1) << "Error getting docker container stats " << id << ": "

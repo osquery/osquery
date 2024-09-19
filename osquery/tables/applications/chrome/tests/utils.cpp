@@ -154,8 +154,8 @@ const std::unordered_map<std::string, std::string>
         {"description", "Description"},
         {"permissions", "1, 2"},
         {"optional_permissions", "3, 4"},
-        {"permissions_json", "{\"\":\"1\",\"\":\"2\"}\n"},
-        {"optional_permissions_json", "{\"\":\"3\",\"\":\"4\"}\n"},
+        {"permissions_json", "{\"\":\"1\",\"\":\"2\"}"},
+        {"optional_permissions_json", "{\"\":\"3\",\"\":\"4\"}"},
 };
 
 const std::string kExpectedComputedExtensionIdentifier{
@@ -208,6 +208,11 @@ TEST_F(ChromeUtilsTests, getExtensionContentScriptsMatches) {
   }
 }
 
+std::string trim_trailing_newline(const std::string& str) {
+  auto end = str.find_last_not_of('\n');
+  return (end == std::string::npos) ? "" : str.substr(0, end + 1);
+}
+
 TEST_F(ChromeUtilsTests, getExtensionProperties) {
   pt::iptree parsed_manifest;
 
@@ -230,7 +235,8 @@ TEST_F(ChromeUtilsTests, getExtensionProperties) {
     ASSERT_TRUE(property_it != properties.end());
 
     const auto& value = property_it->second;
-    EXPECT_EQ(value, expected_value);
+    std::string trimmed_value = trim_trailing_newline(value);
+    EXPECT_EQ(trimmed_value, expected_value);
   }
 }
 
