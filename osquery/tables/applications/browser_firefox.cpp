@@ -26,7 +26,7 @@ namespace tables {
 
 namespace {
 
-/// Each home directory will include custom extensions. Comma separated list of paths.
+/// Each home directory will include custom extensions.
 #if defined(__APPLE__)
 const std::vector<std::string> kFirefoxPaths = {"/Library/Application Support/Firefox/Profiles/"};
 #elif defined(__linux__)
