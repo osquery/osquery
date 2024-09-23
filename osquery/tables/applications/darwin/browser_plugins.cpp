@@ -7,10 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-extern "C" {
-#include <xar/xar.h>
-}
-
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core/system.h>
@@ -38,18 +34,6 @@ inline void jsonBoolAsInt(std::string& s) {
 }
 
 } // namespace
-
-/// Safari App Extension Type
-#define kSafariAppExtensionType "WebOrAppExtension"
-
-/// Safari Legacy Extension Type
-#define kSafariLegacyExtensionType "LegacyExtension"
-
-/// Each home directory will include custom legacy extensions.
-#define kSafariLegacyExtensionsPath "/Library/Safari/Extensions/"
-
-/// Safari extensions will not load unless they have the expected pattern.
-#define kSafariLegacyExtensionsPattern "%.safariextz"
 
 /// Safari Extension Point Identifier
 #define kSafariExtensionPointIdentifier "com.apple.Safari"
@@ -83,17 +67,6 @@ const std::map<std::string, std::string> kBrowserPluginKeys = {
     {"WebPluginDescription", "description"},
     {"CFBundleDevelopmentRegion", "development_region"},
     {"LSRequiresNativeExecution", "native"},
-};
-
-const std::map<std::string, std::string> kSafariLegacyExtensionKeys = {
-    {"CFBundleDisplayName", "name"},
-    {"CFBundleIdentifier", "identifier"},
-    {"CFBundleShortVersionString", "version"},
-    {"Author", "author"},
-    {"CFBundleInfoDictionaryVersion", "sdk"},
-    {"Description", "description"},
-    {"Update Manifest URL", "update_url"},
-    {"DeveloperIdentifier", "developer_id"},
 };
 
 struct SandboxedExtensionData {
@@ -200,120 +173,6 @@ QueryData genBrowserPlugins(QueryContext& context) {
     }
   }
   return results;
-}
-
-inline void genSafariLegacyExtension(const std::string& uid,
-                                     const std::string& gid,
-                                     const std::string& path,
-                                     QueryData& results) {
-  Row r;
-  r["uid"] = uid;
-  r["path"] = path;
-
-  // Perform a dry run of the file read.
-  if (!isReadable(path).ok()) {
-    return;
-  }
-
-  // Finally drop privileges to the user controlling the extension.
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo(uid, gid)) {
-    VLOG(1) << "Cannot drop privileges to UID " << uid;
-    return;
-  }
-
-  xar_t xar = xar_open(path.c_str(), READ);
-  if (xar == nullptr) {
-    TLOG << "Cannot open extension archive: " << path;
-    return;
-  }
-
-  xar_iter_t iter = xar_iter_new();
-  xar_file_t xfile = xar_file_first(xar, iter);
-
-  size_t max_files = 500;
-  for (size_t index = 0; index < max_files; ++index) {
-    if (xfile == nullptr) {
-      break;
-    }
-
-    char* xfile_path = xar_get_path(xfile);
-    if (xfile_path == nullptr) {
-      break;
-    }
-
-    // Clean up the allocated content ASAP.
-    std::string entry_path(xfile_path);
-    free(xfile_path);
-    if (entry_path.find("Info.plist") != std::string::npos) {
-      if (xar_verify(xar, xfile) != XAR_STREAM_OK) {
-        TLOG << "Extension info extraction failed verification: " << path;
-      }
-
-      size_t size = 0;
-      char* buffer = nullptr;
-      if (xar_extract_tobuffersz(xar, xfile, &buffer, &size) != 0 ||
-          size == 0) {
-        break;
-      }
-
-      std::string content(buffer, size);
-      free(buffer);
-
-      pt::ptree tree;
-      if (parsePlistContent(content, tree).ok()) {
-        for (const auto& it : kSafariLegacyExtensionKeys) {
-          r[it.second] = tree.get(it.first, "");
-        }
-      }
-      break;
-    }
-
-    xfile = xar_file_next(iter);
-  }
-
-  xar_iter_free(iter);
-  xar_close(xar);
-
-  if (!r.empty()) {
-    r["extension_type"] = kSafariLegacyExtensionType;
-  }
-
-  results.push_back(r);
-}
-
-inline void genSafariLegacyExtensions(const QueryContext& context,
-                                      QueryData& results) {
-  // Iterate over each user
-  auto users = usersFromContext(context);
-  for (const auto& row : users) {
-    auto uid = row.find("uid");
-    auto gid = row.find("gid");
-    auto directory = row.find("directory");
-    if (uid == row.end() || gid == row.end() || directory == row.end()) {
-      continue;
-    }
-
-    auto dir = fs::path(directory->second) / kSafariLegacyExtensionsPath;
-    // Check that an extensions directory exists.
-    if (!pathExists(dir).ok()) {
-      continue;
-    }
-
-    // Glob the extension files.
-    std::vector<std::string> paths;
-    if (!resolveFilePattern(dir / kSafariLegacyExtensionsPattern,
-                            paths,
-                            GLOB_ALL | GLOB_NO_CANON)
-             .ok()) {
-      continue;
-    }
-
-    for (const auto& extension_path : paths) {
-      genSafariLegacyExtension(
-          uid->second, gid->second, extension_path, results);
-    }
-  }
 }
 
 inline bool getPtreeFromPlist(const fs::path& plist_path, pt::ptree& tree) {
@@ -504,7 +363,6 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
         r["bundle_version"] = extension_data.cf_bundle_version;
         r["copyright"] = extension_data.ns_hr_copyright;
         r["description"] = extension_data.hr_description;
-        r["extension_type"] = kSafariAppExtensionType;
         results.push_back(r);
       }
     }
@@ -513,9 +371,6 @@ inline void genSafariSandboxedExtensions(const QueryContext& context,
 
 QueryData genSafariExtensions(QueryContext& context) {
   QueryData results;
-
-  // Getting Legacy Extensions metainformation
-  genSafariLegacyExtensions(context, results);
 
   // Getting Sandboxed Safari Extensions metainformation
   // Logic is capable of extracting metainformation from Safari Web extensions
