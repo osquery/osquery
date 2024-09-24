@@ -604,8 +604,8 @@ void findUserPersonalCertsOnDisk(const std::string& username,
           static_cast<unsigned long>(encodedCert.size()));
 
       if (ctx == nullptr) {
-        VLOG(1) << "Failed to create certificate context with (" << GetLastError()
-                << ")";
+        VLOG(1) << "Failed to create certificate context with ("
+                << GetLastError() << ")";
         continue;
       }
 
