@@ -13,6 +13,9 @@
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/darwin/firewall.h>
 #include <osquery/utils/darwin/plist.h>
+#include <osquery/utils/darwin/system_profiler.h>
+
+#import <CoreFoundation/CoreFoundation.h>
 
 namespace pt = boost::property_tree;
 
@@ -67,12 +70,98 @@ QueryData parseALFTree(const pt::ptree& tree) {
 }
 
 QueryData genALF(QueryContext& context) {
-  pt::ptree tree;
-  auto s = genALFTreeFromFilesystem(tree);
-  if (!s.ok()) {
+  const auto& qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    LOG(ERROR) << "Couldn't determine macOS version";
     return {};
   }
-  return parseALFTree(tree);
+
+  if (qd.front().at("major") < "15") {
+    pt::ptree tree;
+    auto s = genALFTreeFromFilesystem(tree);
+    if (!s.ok()) {
+      return {};
+    }
+    return parseALFTree(tree);
+  } else {
+    // Starting on version 15 ALF information is no longer on a plist file, see
+    // https://developer.apple.com/documentation/macos-release-notes/macos-15-release-notes#Deprecations
+    return genALFFromSystemProfiler();
+  }
+}
+
+QueryData genALFFromSystemProfiler() {
+  QueryData results;
+  @autoreleasepool {
+    NSDictionary* __autoreleasing result;
+    Status status = getSystemProfilerReport("SPFirewallDataType", result);
+    if (!status.ok()) {
+      LOG(ERROR) << "failed to get SPFirewallDataType config: "
+                 << status.getMessage();
+      return {};
+    }
+
+    Row r;
+
+    // _versionInfo
+    NSDictionary* version_info = [result objectForKey:@"_versionInfo"];
+    if ([version_info
+            valueForKey:@"com.apple.SystemProfiler.SPFirewallReporter"]) {
+      const std::string version = [[version_info
+          valueForKey:@"com.apple.SystemProfiler.SPFirewallReporter"]
+          UTF8String];
+      r["version"] = version;
+    }
+
+    NSDictionary* report = [[result objectForKey:@"_items"] lastObject];
+
+    // spfirewall_globalstate
+    if ([report valueForKey:@"spfirewall_globalstate"]) {
+      const std::string s =
+          [[report valueForKey:@"spfirewall_globalstate"] UTF8String];
+      if (s == "spfirewall_globalstate_limit_connections") {
+        r["global_state"] = INTEGER(1);
+      } else if (s == "spfirewall_globalstate_block_all") {
+        r["global_state"] = INTEGER(2);
+      } else if (s == "spfirewall_globalstate_allow_all") {
+        r["global_state"] = INTEGER(0);
+      } else {
+        LOG(ERROR) << "unknown value for spfirewall_globalstate: \"" << s
+                   << "\"";
+      }
+    }
+
+    // spfirewall_stealthenabled
+    if ([report valueForKey:@"spfirewall_stealthenabled"]) {
+      const std::string s =
+          [[report valueForKey:@"spfirewall_stealthenabled"] UTF8String];
+      if (s == "Yes") {
+        r["stealth_enabled"] = INTEGER(1);
+      } else if (s == "No") {
+        r["stealth_enabled"] = INTEGER(0);
+      } else {
+        LOG(ERROR) << "unknown value for spfirewall_stealthenabled: \"" << s
+                   << "\"";
+      }
+    }
+
+    // spfirewall_loggingenabled
+    if ([report valueForKey:@"spfirewall_loggingenabled"]) {
+      const std::string s =
+          [[report valueForKey:@"spfirewall_loggingenabled"] UTF8String];
+      if (s == "Yes") {
+        r["logging_enabled"] = INTEGER(1);
+      } else if (s == "No") {
+        r["logging_enabled"] = INTEGER(0);
+      } else {
+        LOG(ERROR) << "unknown value for spfirewall_loggingenabled: \"" << s
+                   << "\"";
+      }
+    }
+
+    results.push_back(r);
+  }
+  return results;
 }
 
 QueryData parseALFExceptionsTree(const pt::ptree& tree) {
