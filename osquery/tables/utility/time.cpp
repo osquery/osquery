@@ -31,12 +31,14 @@ QueryData genTime(QueryContext& context) {
 
   time_t osquery_time = getUnixTime();
 
-  struct tm gmt;
+  struct tm gmt {};
   gmtime_r(&osquery_time, &gmt);
   struct tm now = gmt;
   auto osquery_timestamp = toAsciiTime(&now);
 
   std::string local_timezone;
+  std::string weekday;
+  std::string iso_8601;
 
   {
 #ifdef WIN32
@@ -52,22 +54,34 @@ QueryData genTime(QueryContext& context) {
     struct tm local {};
     localtime_r(&osquery_time, &local);
 
-    std::array<char, 5> buffer;
-    strftime(buffer.data(), buffer.size(), "%Z", &local);
-
-    local_timezone.assign(buffer.data());
+    std::array<char, 5> buffer{};
+    if (strftime(buffer.data(), buffer.size(), "%Z", &local) == 0) {
+      LOG(ERROR)
+          << "Failed to extract the local timezone from the current time";
+    } else {
+      local_timezone.assign(buffer.data());
+    }
 #endif
   }
 
-  char weekday[10] = {0};
-  strftime(weekday, sizeof(weekday), "%A", &now);
+  {
+    std::array<char, 10> buffer{};
+    if (strftime(buffer.data(), buffer.size(), "%A", &now) == 0) {
+      LOG(ERROR) << "Failed to extract the weekday from the current time";
+    } else {
+      weekday.assign(buffer.data());
+    }
+  }
 
-  char timezone[5] = {0};
-  strftime(timezone, sizeof(timezone), "%Z", &now);
+  {
+    std::array<char, 21> buffer{};
+    if (strftime(buffer.data(), buffer.size(), "%FT%TZ", &now) == 0) {
+      LOG(ERROR) << "Failed to extract the iso_8601 date from the current time";
+    } else {
+      iso_8601.assign(buffer.data());
+    }
+  }
 
-
-  char iso_8601[21] = {0};
-  strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 #ifdef WIN32
   if (context.isColumnUsed("win_timestamp")) {
     FILETIME ft = {0};
