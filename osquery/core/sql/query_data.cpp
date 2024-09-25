@@ -9,6 +9,8 @@
 
 #include "query_data.h"
 
+#include <algorithm>
+
 namespace rj = rapidjson;
 
 namespace osquery {

@@ -84,11 +84,9 @@ function(setupBuildFlags)
       -Woverloaded-virtual
       -Wnon-virtual-dtor
       -Weffc++
-      -stdlib=libc++
     )
 
     set(posix_cxx_link_options
-      -stdlib=libc++
       -ldl
     )
 
@@ -179,7 +177,6 @@ function(setupBuildFlags)
       )
 
       set(linux_cxx_link_libraries
-        c++abi.a
         rt
         dl
       )
@@ -355,6 +352,9 @@ function(setupBuildFlags)
       "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>"
       _WIN32_WINNT=_WIN32_WINNT_WIN7
       NTDDI_VERSION=NTDDI_WIN7
+      # VS2022 warns about this; the AWS SDK uses this non standard extension.
+      # Updating the SDK and switching to C++20 should fix this.
+      _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
     )
 
     set(windows_cxx_compile_options

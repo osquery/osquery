@@ -874,8 +874,6 @@ TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
   // This test verifies that a recursive directory junction can be handled by
   // listDirectoriesInDirectory logic
 
-  const unsigned int EXPECTED_NR_OF_DIRECTORIES = 1;
-
   const fs::path test_root_raw = fs::temp_directory_path() / genRandomName();
   ASSERT_TRUE(fs::create_directory(test_root_raw));
   const fs::path junction_dir = test_root_raw / genRandomName();
@@ -892,9 +890,7 @@ TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
   std::vector<std::string> found_directories;
   ASSERT_TRUE(
       listDirectoriesInDirectory(test_root_raw, found_directories, false));
-  ASSERT_TRUE(!found_directories.empty());
-
-  ASSERT_TRUE(found_directories.size() == EXPECTED_NR_OF_DIRECTORIES);
+  ASSERT_TRUE(found_directories.empty());
 
   deleteDirectoryContent(test_root_raw);
 }
@@ -949,6 +945,67 @@ TEST_F(FilesystemTests, test_directory_listing_with_legacy_logic) {
 
   deleteDirectoryContent(test_root_raw_dirs);
   deleteDirectoryContent(test_root_work_dirs);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_file_symlink) {
+  // This test verifies that a file symlink is not mistaken for a directory.
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  std::ofstream test_file((test_root_dir / "test_file.txt").string());
+  test_file.close();
+
+  // Create symlink
+  try {
+    fs::create_symlink(test_root_dir / "test_file.txt", test_root_dir / "link");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
+
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
+  ASSERT_TRUE(found_directories.empty());
+
+  deleteDirectoryContent(test_root_dir);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_bad_symlinks) {
+  // This test verifies that bad symlinks are not mistaken for a directory.
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  // Create symlink that points to itself.
+  try {
+    fs::create_symlink(test_root_dir / "link", test_root_dir / "link");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  // Create symlink that points to non-existent file.
+  try {
+    fs::create_symlink(test_root_dir / "not_exists.txt",
+                       test_root_dir / "link2");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
+
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
+  ASSERT_TRUE(found_directories.empty());
+
+  deleteDirectoryContent(test_root_dir);
 }
 
 } // namespace osquery

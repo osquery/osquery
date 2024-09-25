@@ -12,6 +12,7 @@
 #include <array>
 #include <ctime>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <string>
 

@@ -18,6 +18,7 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/hashing/hashing.h>
+#include <osquery/logger/logger.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/status/status.h>
@@ -53,6 +54,21 @@ Hash::Hash(HashType algorithm, HashEncodingType encoding)
   } else {
     throw std::domain_error("Unknown hash function");
   }
+}
+
+Hash::Hash(Hash&& other) noexcept
+    : algorithm_(other.algorithm_),
+      encoding_(other.encoding_),
+      ctx_(std::exchange(other.ctx_, nullptr)),
+      length_(other.length_) {}
+
+Hash& Hash::operator=(Hash&& other) noexcept {
+  algorithm_ = other.algorithm_;
+  encoding_ = other.encoding_;
+  ctx_ = std::exchange(other.ctx_, nullptr);
+  length_ = other.length_;
+
+  return *this;
 }
 
 void Hash::update(const void* buffer, size_t size) {
@@ -103,40 +119,40 @@ std::string hashFromBuffer(HashType hash_type,
 }
 
 MultiHashes hashMultiFromFile(int mask, const std::string& path) {
-  std::map<HashType, std::shared_ptr<Hash>> hashes = {
-      {HASH_TYPE_MD5, std::make_shared<Hash>(HASH_TYPE_MD5)},
-      {HASH_TYPE_SHA1, std::make_shared<Hash>(HASH_TYPE_SHA1)},
-      {HASH_TYPE_SHA256, std::make_shared<Hash>(HASH_TYPE_SHA256)},
-  };
+  std::map<HashType, Hash> hashes;
+  hashes.emplace(HASH_TYPE_MD5, Hash{HASH_TYPE_MD5});
+  hashes.emplace(HASH_TYPE_SHA1, Hash{HASH_TYPE_SHA1});
+  hashes.emplace(HASH_TYPE_SHA256, Hash{HASH_TYPE_SHA256});
 
-  auto blocking = isPlatform(PlatformType::TYPE_WINDOWS);
-  auto s = readFile(path,
-                    0,
-                    kHashChunkSize,
-                    false,
-                    ([&hashes, &mask](std::string& buffer, size_t size) {
-                      for (auto& hash : hashes) {
-                        if (mask & hash.first) {
-                          hash.second->update(&buffer[0], size);
-                        }
-                      }
-                    }),
-                    blocking);
+  auto status =
+      readFile(path,
+               0,
+               kHashChunkSize,
+               false,
+               [&hashes, &mask](const std::string& buffer, std::size_t size) {
+                 for (auto& hash : hashes) {
+                   if (mask & hash.first) {
+                     hash.second.update(buffer.data(), buffer.size());
+                   }
+                 }
+               });
+
+  if (!status.ok()) {
+    LOG(WARNING) << "Failed to hash " << path;
+    return {};
+  }
 
   MultiHashes mh = {};
-  if (!s.ok()) {
-    return mh;
-  }
 
   mh.mask = mask;
   if (mask & HASH_TYPE_MD5) {
-    mh.md5 = hashes.at(HASH_TYPE_MD5)->digest();
+    mh.md5 = hashes.at(HASH_TYPE_MD5).digest();
   }
   if (mask & HASH_TYPE_SHA1) {
-    mh.sha1 = hashes.at(HASH_TYPE_SHA1)->digest();
+    mh.sha1 = hashes.at(HASH_TYPE_SHA1).digest();
   }
   if (mask & HASH_TYPE_SHA256) {
-    mh.sha256 = hashes.at(HASH_TYPE_SHA256)->digest();
+    mh.sha256 = hashes.at(HASH_TYPE_SHA256).digest();
   }
   return mh;
 }
