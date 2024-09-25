@@ -667,7 +667,15 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
+        if [[ "${{ matrix.os }}" == "macos-14" ]]; then
+          xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
+        elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
+          xcode_path="/Applications/Xcode_16.app/Contents/Developer"
+        else
+          echo "Invalid matrix.os: ${{ matrix.os }}"
+          exit 1
+        fi
+
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
