@@ -537,7 +537,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-14]
+        os: [macos-14, macos-15]
 
     steps:
     - name: Select the build job count
