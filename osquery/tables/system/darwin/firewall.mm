@@ -228,6 +228,18 @@ QueryData parseALFExplicitAuthsTree(const pt::ptree& tree) {
 }
 
 QueryData genALFExplicitAuths(QueryContext& context) {
+  const auto& qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    LOG(ERROR) << "Couldn't determine macOS version";
+    return {};
+  }
+
+  if (qd.front().at("major") >= "15") {
+    // Currently not supported on macOS 15+.
+    VLOG(1) << "alf_explicit_auths is currently not supported on macOS 15";
+    return {};
+  }
+
   pt::ptree tree;
   auto s = genALFTreeFromFilesystem(tree);
   if (!s.ok()) {
