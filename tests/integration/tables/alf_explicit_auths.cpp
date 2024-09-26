@@ -36,7 +36,7 @@ TEST_F(alfExplicitAuths, test_sanity) {
   }
 
   ValidationMap row_map = {
-    {"process", NormalType},
+      {"process", NormalType},
   };
   validate_rows(data, row_map);
 }
