@@ -763,21 +763,21 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release'
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Package the tests for the x86_64 macOS-12 worker
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       working-directory: ${{ github.workspace }}/workspace
       run: |
         mkdir macos_tests_${{ matrix.build_type }}
         ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }}
 
     - name: Store the packaged tests for the x86_64 macOS-12 worker
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_tests_${{ matrix.build_type }}
