@@ -603,8 +603,16 @@ void findUserPersonalCertsOnDisk(const std::string& username,
           encodedCert.data(),
           static_cast<unsigned long>(encodedCert.size()));
 
+      if (ctx == nullptr) {
+        VLOG(1) << "Failed to create certificate context with ("
+                << GetLastError() << ")";
+        continue;
+      }
+
       addCertRow(
           ctx, storeId, sid, storeName, username, storeLocation, results);
+
+      CertFreeCertificateContext(ctx);
     }
   } catch (const fs::filesystem_error& e) {
     VLOG(1) << "Error traversing " << certsPath.str() << ": " << e.what();
