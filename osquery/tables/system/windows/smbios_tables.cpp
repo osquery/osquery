@@ -182,7 +182,7 @@ QueryData genMemoryDevices(QueryContext& context) {
     wmiResults[i].GetLong("DataWidth", dataWidth);
     r["data_width"] = INTEGER(dataWidth);
     std::wstring capacityWStr;
-    wmiResults[i].GetString(stringToWstring("Capacity"), capacityWStr);
+    wmiResults[i].GetString(L"Capacity", capacityWStr);
     r["size"] = INTEGER(getMemorySize(capacityWStr));
     wmiResults[i].GetString("DeviceLocator", r["device_locator"]);
     wmiResults[i].GetString("BankLabel", r["bank_locator"]);

@@ -447,8 +447,8 @@ Status logPEBInfo(IDebugClient5* client,
   }
   wchar_t curDir[MAX_PATH + 1] = {0};
   data->ReadUnicodeStringVirtualWide(
-      curDirBufferAddr, sizeof(curDir), curDir, MAX_PATH + 1, nullptr);
-  r["current_directory"] = wstringToString(curDir);
+      curDirBufferAddr, sizeof(curDir), curDir, ARRAYSIZE(curDir), nullptr);
+  r["current_directory"] = wstringToString(curDir, ARRAYSIZE(curDir));
 
   // Get CommandLine offset in ProcessParameters
   unsigned long cmdLineOffset = 0;
@@ -464,13 +464,11 @@ Status logPEBInfo(IDebugClient5* client,
                                 &cmdLineBufferAddr) != S_OK) {
     return Status(1);
   }
-  wchar_t cmdLine[UNICODE_STRING_MAX_BYTES] = {0};
-  data->ReadUnicodeStringVirtualWide(cmdLineBufferAddr,
-                                     sizeof(cmdLine),
-                                     cmdLine,
-                                     UNICODE_STRING_MAX_BYTES,
-                                     nullptr);
-  r["command_line"] = wstringToString(cmdLine);
+
+  wchar_t cmdLine[UNICODE_STRING_MAX_CHARS] = {0};
+  data->ReadUnicodeStringVirtualWide(
+      cmdLineBufferAddr, sizeof(cmdLine), cmdLine, ARRAYSIZE(cmdLine), nullptr);
+  r["command_line"] = wstringToString(cmdLine, ARRAYSIZE(cmdLine));
 
   // Get Environment offset in ProcessParameters
   unsigned long envOffset = 0;
@@ -489,13 +487,13 @@ Status logPEBInfo(IDebugClient5* client,
   // Loop through environment variables and log those of interest
   // The environment variables are stored in the following format:
   // Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
-  wchar_t env[UNICODE_STRING_MAX_BYTES] = {0};
+  wchar_t env[UNICODE_STRING_MAX_CHARS] = {0};
   unsigned long bytesRead = 0;
   auto ret = data->ReadUnicodeStringVirtualWide(
-      envBufferAddr, sizeof(env), env, UNICODE_STRING_MAX_BYTES, &bytesRead);
+      envBufferAddr, sizeof(env), env, ARRAYSIZE(env), &bytesRead);
   while (ret == S_OK) {
     envBufferAddr += bytesRead;
-    auto envVar = wstringToString(env);
+    auto envVar = wstringToString(env, ARRAYSIZE(env));
     auto pos = envVar.find('=');
     auto varName = envVar.substr(0, pos);
     auto varValue = envVar.substr(pos + 1, envVar.length());
@@ -507,7 +505,7 @@ Status logPEBInfo(IDebugClient5* client,
     }
 
     ret = data->ReadUnicodeStringVirtualWide(
-        envBufferAddr, sizeof(env), env, UNICODE_STRING_MAX_BYTES, &bytesRead);
+        envBufferAddr, sizeof(env), env, ARRAYSIZE(env), &bytesRead);
   }
 
   return Status::success();
@@ -667,5 +665,5 @@ QueryData genCrashLogs(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

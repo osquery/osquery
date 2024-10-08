@@ -17,13 +17,13 @@
 #include <cfgmgr32.h>
 // clang-format on
 
+#include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/core/windows/wmi.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
-#include <osquery/tables/system/windows/registry.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
@@ -75,7 +75,8 @@ static inline std::string kNormalizeImage(std::string& path) {
   if (path.find("system32") != std::string::npos) {
     path = boost::regex_replace(path, boost::regex("^.*?system32"), "");
   }
-  boost::filesystem::path normalized_path(wstringToString(sys_root));
+  boost::filesystem::path normalized_path(
+      wstringToString(sys_root.data(), sys_root.size()));
   normalized_path /= path;
   return normalized_path.string();
 }
@@ -161,7 +162,7 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   } else if (dev_prop_type == DEVPROP_TYPE_INT32) {
     result = std::to_string(*(PINT32)drv_buff.get());
   } else if (dev_prop_type == DEVPROP_TYPE_STRING) {
-    result = wstringToString((PWCHAR)drv_buff.get());
+    result = wstringToString((PWCHAR)drv_buff.get(), buff_size / sizeof(WCHAR));
   } else if (dev_prop_type == DEVPROP_TYPE_FILETIME) {
     result =
         std::to_string(osquery::filetimeToUnixtime(*(PFILETIME)drv_buff.get()));
@@ -208,7 +209,9 @@ Status getDriverImagePath(const std::string& svc_name, std::string& result) {
     return Status(ret, "Failed to query registry value(length)");
   }
 
-  auto buff = std::make_unique<WCHAR[]>(buff_size / sizeof(WCHAR));
+  const auto buff_chars = buff_size / sizeof(WCHAR);
+
+  auto buff = std::make_unique<WCHAR[]>(buff_chars);
   ret = RegGetValueW(hkey,
                      nullptr,
                      image_path_value,
@@ -220,7 +223,7 @@ Status getDriverImagePath(const std::string& svc_name, std::string& result) {
     return Status(ret, "Failed to query registry value");
   }
 
-  auto path = wstringToString(buff.get());
+  auto path = wstringToString(buff.get(), buff_chars);
   result = kNormalizeImage(path);
   return Status::success();
 }
@@ -369,7 +372,7 @@ QueryData genDrivers(QueryContext& context) {
                 << r["device_name"] << " with " << GetLastError();
         r["inf"] = wstringToString(inf_name);
       } else {
-        r["inf"] = wstringToString(inf.data());
+        r["inf"] = wstringToString(inf.data(), inf.size());
       }
     }
 

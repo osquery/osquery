@@ -292,7 +292,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // of the string content. Also it is guaranteed that the buffer is
   // null-terminated. See
   // https://en.cppreference.com/w/cpp/string/basic_string/data
-  auto argv = argv_stream.str();
+  auto argv_str = argv_stream.str();
 
   // In POSIX, this environment variable is set to the child's process ID. But
   // that is not easily accomplishable on Windows and provides no value since
@@ -305,11 +305,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
   // We are autoloading a Python extension, so pass off to our helper
   if (ext_path.extension().wstring() == L".ext") {
-    return launchTestPythonScript(wstringToString(argv));
+    return launchTestPythonScript(wstringToString(argv_str));
   } else {
     auto status =
         ::CreateProcess(nullptr,
-                        argv.data(),
+                        argv_str.data(),
                         nullptr,
                         nullptr,
                         TRUE,

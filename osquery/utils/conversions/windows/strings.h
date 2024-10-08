@@ -18,24 +18,42 @@ namespace osquery {
 
 /**
  * @brief Windows helper function for converting narrow strings to wide
- *
+ * The string must be null-terminated, otherwise it will overflow.
+ * @returns A wide string, constructed from a narrow string
+ */
+std::wstring stringToWstring(const char* src);
+
+/**
+ * @brief Windows helper function for converting narrow strings to wide
+ * The input string is assumed to only contain characters that need to be
+ * converted, no null terminator is necessary. Embedded nulls will be kept.
  * @returns A wide string, constructed from a narrow string
  */
 std::wstring stringToWstring(const std::string& src);
 
 /**
  * @brief Windows helper function for converting wide strings to narrow
- *
+ * The input string is assumed to only contain characters that need to be
+ * converted, no null terminator is necessary. Embedded nulls will be kept.
  * @returns A narrow string, constructed from a wide string
  */
 std::string wstringToString(const std::wstring& src);
 
 /**
  * @brief Windows helper function for converting wide C-strings to narrow
- *
+ * The string must be null-terminated, otherwise it will overflow.
  * @returns A narrow string, constructed from a wide C-string
  */
 std::string wstringToString(const wchar_t* src);
+
+/**
+ * @brief Windows helper function for converting wide C-strings and a maximum
+ * size to narrow. max_chars represents the maximum amount of characters that
+ * will be scanned to find a null-terminator. The null terminator does not need
+ * to exist; when it's not found, the size for the string will be max_chars.
+ * @returns A narrow string, constructed from a wide C-string and a size
+ */
+std::string wstringToString(const wchar_t* src, std::size_t max_chars);
 
 /**
  * @brief Windows helper function to convert a CIM Datetime to Unix timestamp

@@ -240,7 +240,7 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
           BIGINT(reinterpret_cast<unsigned long long>(mInfo.AllocationBase));
       r["device"] = "-1";
       r["inode"] = INTEGER(-1);
-      r["path"] = wstringToString(me.szExePath);
+      r["path"] = wstringToString(me.szExePath, ARRAYSIZE(me.szExePath));
       r["pseudo"] = INTEGER(-1);
       results.push_back(r);
     }
@@ -333,7 +333,7 @@ Status getProcessCommandLineLegacy(HANDLE proc,
     return Status::failure("Failed to read command line for " +
                            std::to_string(pid));
   }
-  out = wstringToString(command_line.data());
+  out = wstringToString(command_line.data(), command_line.size());
   return Status::success();
 }
 
@@ -390,7 +390,7 @@ Status getProcessCurrentDirectory(HANDLE proc,
     return Status::failure("Failed to read current working directory for " +
                            std::to_string(pid));
   }
-  out = wstringToString(current_directory.data());
+  out = wstringToString(current_directory.data(), current_directory.size());
   return Status::success();
 }
 
@@ -409,7 +409,7 @@ void getProcessPathInfo(HANDLE& proc,
     VLOG(1) << "Failed to lookup path information for process " << pid
             << " with " << GetLastError();
   } else {
-    r["path"] = SQL_TEXT(wstringToString(path.data()));
+    r["path"] = SQL_TEXT(wstringToString(path.data(), path.size()));
   }
 
   {
@@ -586,7 +586,8 @@ TableRows genProcesses(QueryContext& context) {
     auto r = make_table_row();
     r["pid"] = BIGINT(pid);
     r["parent"] = BIGINT(proc.th32ParentProcessID);
-    r["name"] = SQL_TEXT(wstringToString(proc.szExeFile));
+    r["name"] =
+        SQL_TEXT(wstringToString(proc.szExeFile, ARRAYSIZE(proc.szExeFile)));
     r["threads"] = INTEGER(proc.cntThreads);
 
     // Set default values for columns, in the event opening the process fails

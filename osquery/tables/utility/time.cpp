@@ -45,7 +45,9 @@ QueryData genTime(QueryContext& context) {
         TIME_ZONE_ID_INVALID) {
       LOG(ERROR) << "Failed to acquire the time";
     } else {
-      local_timezone = wstringToString(time_zone_information.StandardName);
+      local_timezone =
+          wstringToString(time_zone_information.StandardName,
+                          ARRAYSIZE(time_zone_information.StandardName));
     }
 
 #else
@@ -64,7 +66,6 @@ QueryData genTime(QueryContext& context) {
 
   char timezone[5] = {0};
   strftime(timezone, sizeof(timezone), "%Z", &now);
-
 
   char iso_8601[21] = {0};
   strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);

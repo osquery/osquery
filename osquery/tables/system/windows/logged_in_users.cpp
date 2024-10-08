@@ -77,7 +77,8 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
 
     const auto wtsSession = reinterpret_cast<WTSINFOW*>(sessionInfo);
-    r["user"] = SQL_TEXT(wstringToString(wtsSession->UserName));
+    r["user"] = SQL_TEXT(
+        wstringToString(wtsSession->UserName, ARRAYSIZE(wtsSession->UserName)));
     r["type"] = SQL_TEXT(kSessionStates.at(pSessionInfo[i].State));
     r["tty"] = pSessionInfo[i].pSessionName == nullptr
                    ? ""
