@@ -26,6 +26,28 @@ namespace tables {
 // parseALFExceptionsTree parses out the "exceptions" key
 osquery::QueryData parseALFExceptionsTree(const pt::ptree& tree);
 
+// Currently on macOS 15+ osquery supports the following 'alf' columns:
+//
+// 'global_state', 'stealth_enabled', 'logging_enabled', and 'version'.
+// These columns are populated from information gathered from system_profiler's
+// "SPFirewallDataType".
+//
+// 'alf' columns that are not supported (returned empty) on macOS 15+:
+//
+//  - 'allow_signed_enabled': (As of September 24th, 2024) This setting is only
+//  exposed through
+//    executing '/usr/libexec/ApplicationFirewall/socketfilterfw
+//    --getallowsigned'.
+//  - 'logging_option': Quote from https://support.apple.com/en-jo/121011: "The
+//  EnableLogging and
+//    LoggingOption keys in the Firewall payload are deprecated and no longer
+//    necessary. Application Firewall logging is increased by default for the
+//    socketfilterfw process."
+//  - 'firewall_unload': This does not seem available on system_profiler's
+//  "SPFirewallDataType"
+//    or the socketfilterfw command.
+osquery::QueryData genALFFromSystemProfiler();
+
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFExplicitAuthsTree parses out the "explicitauth" key
 osquery::QueryData parseALFExplicitAuthsTree(const pt::ptree& tree);

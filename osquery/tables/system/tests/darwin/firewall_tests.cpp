@@ -113,6 +113,15 @@ TEST_F(FirewallTests, test_errors) {
 }
 
 TEST_F(FirewallTests, test_on_disk_format) {
+  const auto& qd = SQL::selectAllFrom("os_version");
+  ASSERT_EQ(qd.size(), 1ul);
+  const auto macOS15Plus = qd.front().at("major") >= "15";
+
+  if (macOS15Plus) {
+    GTEST_SKIP() << "macOS 15+ no longer has firewall settings in "
+                    "/Library/Preferences/com.apple.alf.plist";
+  }
+
   pt::ptree tree;
   auto s = osquery::parsePlist(kALFPlistPath, tree);
   EXPECT_TRUE(s.ok());
