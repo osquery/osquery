@@ -54,7 +54,7 @@ const std::string kWinPythonInstallKey =
 
 void genPackage(const std::string& path, Row& r, Logger& logger) {
   std::string content;
-  auto s = readFile(path, content, false, false);
+  auto s = readFile(path, content);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
     logger.vlog(1, "Cannot find info file: " + path);

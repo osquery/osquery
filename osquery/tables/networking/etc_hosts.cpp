@@ -66,7 +66,7 @@ QueryData genEtcHostsImpl(QueryContext& context, Logger& logger) {
   std::string content;
   QueryData qres = {};
 
-  auto s = readFile(kEtcHosts, content, 0, false, false, false);
+  auto s = readFile(kEtcHosts, content);
   if (s.ok()) {
     qres = parseEtcHostsContent(content);
   } else {

@@ -40,73 +40,70 @@ void genShellHistoryFromFile(
     const std::string& uid,
     const boost::filesystem::path& history_file,
     std::function<void(DynamicTableRowHolder& row)> predicate) {
-  struct HistoryState hState;
+  struct HistoryState history_state;
 
-  auto parseLine =
-      [&hState, &uid, &history_file, &predicate](std::string& line) {
-        std::smatch bash_timestamp_matches;
-        std::smatch zsh_timestamp_matches;
+  auto parseLine = [&history_state, &uid, &history_file, &predicate](
+                       std::string& line) {
+    std::smatch bash_timestamp_matches;
+    std::smatch zsh_timestamp_matches;
 
-        if (hState.prev_bash_timestamp.empty() &&
-            std::regex_search(
-                line, bash_timestamp_matches, hState.bash_timestamp_rx)) {
-          hState.prev_bash_timestamp = bash_timestamp_matches[1];
-          return;
-        }
-
-        auto r = make_table_row();
-
-        if (!hState.prev_bash_timestamp.empty()) {
-          r["time"] = INTEGER(hState.prev_bash_timestamp);
-          r["command"] = std::move(line);
-          hState.prev_bash_timestamp.clear();
-        } else if (std::regex_search(
-                       line, zsh_timestamp_matches, hState.zsh_timestamp_rx)) {
-          std::string timestamp = zsh_timestamp_matches[1];
-          r["time"] = INTEGER(timestamp);
-          r["command"] = zsh_timestamp_matches[2];
-        } else {
-          r["time"] = INTEGER(0);
-          r["command"] = std::move(line);
-        }
-
-        r["uid"] = uid;
-        r["history_file"] = history_file.string();
-        predicate(r);
-      };
-
-  auto parseChunk = [&hState, &parseLine](std::string& buffer, size_t size) {
-    // We may be appending this chunk to the end of the previous.
-    if (buffer.size() == size) {
-      hState.content += std::move(buffer);
-    } else {
-      hState.content += buffer.substr(0, size);
+    if (history_state.prev_bash_timestamp.empty() &&
+        std::regex_search(
+            line, bash_timestamp_matches, history_state.bash_timestamp_rx)) {
+      history_state.prev_bash_timestamp = bash_timestamp_matches[1];
+      return;
     }
+
+    auto r = make_table_row();
+
+    if (!history_state.prev_bash_timestamp.empty()) {
+      r["time"] = INTEGER(history_state.prev_bash_timestamp);
+      r["command"] = std::move(line);
+      history_state.prev_bash_timestamp.clear();
+    } else if (std::regex_search(line,
+                                 zsh_timestamp_matches,
+                                 history_state.zsh_timestamp_rx)) {
+      std::string timestamp = zsh_timestamp_matches[1];
+      r["time"] = INTEGER(timestamp);
+      r["command"] = zsh_timestamp_matches[2];
+    } else {
+      r["time"] = INTEGER(0);
+      r["command"] = std::move(line);
+    }
+
+    r["uid"] = uid;
+    r["history_file"] = history_file.string();
+    predicate(r);
+  };
+
+  auto parseChunk = [&history_state, &parseLine](std::string_view buffer) {
+    history_state.content += buffer;
 
     // Search for newlines and parse each.
     size_t last_newline = 0;
-    auto newline = hState.content.find('\n');
+    auto newline = history_state.content.find('\n');
     while (newline != std::string::npos) {
-      auto line = hState.content.substr(last_newline, newline - last_newline);
+      auto line =
+          history_state.content.substr(last_newline, newline - last_newline);
       parseLine(line);
 
       last_newline = newline + 1;
-      newline = hState.content.find('\n', last_newline);
+      newline = history_state.content.find('\n', last_newline);
     }
 
-    if (last_newline != hState.content.size() - 1) {
+    if (last_newline != history_state.content.size() - 1) {
       // We need to buffer the end of the string.
-      hState.content = hState.content.substr(last_newline);
+      history_state.content = history_state.content.substr(last_newline);
     }
   };
 
-  if (!readFile(history_file, 0, 4096, false, parseChunk, false)) {
+  if (!readFile(history_file, parseChunk)) {
     return;
   }
 
   // Parse the final line.
-  if (!hState.content.empty()) {
-    parseLine(hState.content);
+  if (!history_state.content.empty()) {
+    parseLine(history_state.content);
   }
 }
 

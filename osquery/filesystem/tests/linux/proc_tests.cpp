@@ -8,6 +8,9 @@
  */
 
 #include <gtest/gtest.h>
+
+#include <boost/filesystem.hpp>
+
 #include <osquery/filesystem/linux/proc.h>
 
 #ifndef ETH_P_ALL
@@ -17,6 +20,8 @@
 #ifndef ETH_P_LLDP
 #define ETH_P_LLDP 0x88cc
 #endif
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace {
@@ -121,6 +126,26 @@ TEST_F(LinuxProc, testProcGetSocketListPacketValidInvalidContent) {
   EXPECT_EQ(ETH_P_ALL, socket_list[0].protocol);
   EXPECT_EQ("154955523", socket_list[0].socket);
   EXPECT_EQ("NONE", socket_list[0].state);
+}
+
+TEST_F(LinuxProc, test_user_namespace_parser) {
+  auto unique_path = fs::temp_directory_path() /
+                     fs::unique_path("osquery.tests.user_ns_parser.%%%%.%%%%");
+
+  auto temp_path = unique_path.native();
+
+  boost::system::error_code error_code;
+  EXPECT_EQ(fs::create_directory(temp_path, error_code), true);
+
+  auto symlink_path = temp_path + "/namespace";
+  EXPECT_EQ(symlink("namespace:[112233]", symlink_path.data()), 0);
+
+  ino_t namespace_inode;
+  auto status = procGetNamespaceInode(namespace_inode, "namespace", temp_path);
+  EXPECT_TRUE(status.ok());
+
+  removePath(temp_path);
+  EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
 }
 
 } // namespace

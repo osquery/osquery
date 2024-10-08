@@ -104,7 +104,7 @@ void genSSHkeysForUser(const std::string& uid,
       continue;
     }
 
-    auto s = readFile(keys_file, keys_content, false, false, false);
+    auto s = readFile(keys_file, keys_content);
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_ERROR, s.getMessage());
