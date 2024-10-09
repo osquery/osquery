@@ -537,7 +537,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-14]
+        os: [macos-14, macos-15]
 
     steps:
     - name: Select the build job count
@@ -667,7 +667,15 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
+        if [[ "${{ matrix.os }}" == "macos-14" ]]; then
+          xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
+        elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
+          xcode_path="/Applications/Xcode_16.app/Contents/Developer"
+        else
+          echo "Invalid matrix.os: ${{ matrix.os }}"
+          exit 1
+        fi
+
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
@@ -755,21 +763,21 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release'
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Package the tests for the x86_64 macOS-12 worker
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       working-directory: ${{ github.workspace }}/workspace
       run: |
         mkdir macos_tests_${{ matrix.build_type }}
         ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }}
 
     - name: Store the packaged tests for the x86_64 macOS-12 worker
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_tests_${{ matrix.build_type }}
