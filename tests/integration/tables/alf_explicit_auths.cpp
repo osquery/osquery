@@ -23,20 +23,22 @@ class alfExplicitAuths : public testing::Test {
 };
 
 TEST_F(alfExplicitAuths, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from alf_explicit_auths");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"process", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  const auto& qd = SQL::selectAllFrom("os_version");
+  ASSERT_EQ(qd.size(), 1ul);
+
+  const auto macOS15Plus = qd.front().at("major") >= "15";
+
+  if (macOS15Plus) {
+    ASSERT_EQ(data.size(), 0ul);
+    return;
+  }
+
+  ValidationMap row_map = {
+      {"process", NormalType},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests
