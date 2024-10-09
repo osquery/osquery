@@ -144,6 +144,7 @@ enum ConstraintOperator : unsigned char {
   GLOB = 66,
   REGEXP = 67,
   UNIQUE = 1,
+  IN_OP = 3,
 };
 
 /// Type for flags for what constraint operators are admissible.
