@@ -203,12 +203,65 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
 }
 
 QueryData genALFExceptions(QueryContext& context) {
-  pt::ptree tree;
-  auto s = genALFTreeFromFilesystem(tree);
-  if (!s.ok()) {
+  const auto& qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    LOG(ERROR) << "Couldn't determine macOS version";
     return {};
   }
-  return parseALFExceptionsTree(tree);
+
+  if (qd.front().at("major") < "15") {
+    pt::ptree tree;
+    auto s = genALFTreeFromFilesystem(tree);
+    if (!s.ok()) {
+      return {};
+    }
+    return parseALFExceptionsTree(tree);
+  } else {
+    // Starting on version 15 ALF information is no longer on a plist file, see
+    // https://developer.apple.com/documentation/macos-release-notes/macos-15-release-notes#Deprecations
+    return genALFExceptionsFromSystemProfiler();
+  }
+}
+
+QueryData genALFExceptionsFromSystemProfiler() {
+  QueryData results;
+  @autoreleasepool {
+    NSDictionary* __autoreleasing result;
+    Status status = getSystemProfilerReport("SPFirewallDataType", result);
+    if (!status.ok()) {
+      LOG(ERROR) << "failed to get SPFirewallDataType config: " +
+                        status.getMessage();
+      return {};
+    }
+
+    NSDictionary* report = [[result objectForKey:@"_items"] lastObject];
+
+    // spfirewall_applications
+    if ([report valueForKey:@"spfirewall_applications"]) {
+      NSDictionary* apps = [report valueForKey:@"spfirewall_applications"];
+
+      for (NSString* key in apps) {
+        NSString* value = apps[key];
+        Row r;
+        const std::string skey = [key UTF8String];
+        r["path"] = skey;
+        const std::string svalue = [value UTF8String];
+        if (svalue == "spfirewall_allow_all") {
+          r["state"] = INTEGER(
+              0); // to match the state=0 on macOS versions lower than 15
+        } else if (svalue == "spfirewall_block_all") {
+          r["state"] = INTEGER(
+              2); // to match the state=2 on macOS versions lower than 15
+        } else {
+          LOG(ERROR) << "unknown value for spfirewall_applications \"" << skey
+                     << "\": \"" << svalue << "\"";
+          continue;
+        }
+        results.push_back(r);
+      };
+    }
+  }
+  return results;
 }
 
 QueryData parseALFExplicitAuthsTree(const pt::ptree& tree) {

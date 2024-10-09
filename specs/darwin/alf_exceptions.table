@@ -1,7 +1,7 @@
 table_name("alf_exceptions")
 description("macOS application layer firewall (ALF) service exceptions.")
 schema([
-    Column("path", TEXT, "Path to the executable that is excepted"),
-    Column("state", INTEGER, "Firewall exception state"),
+    Column("path", TEXT, "Path to the executable that is excepted. On macOS 15+ this can also be a bundle identifier"),
+    Column("state", INTEGER, "Firewall exception state. 0 if the application is configured to allow incoming connections, 2 if the application is configured to block incoming connections and 3 if the application is configuted to allow incoming connections but with additional restrictions."),
 ])
 implementation("firewall@genALFExceptions")
