@@ -406,7 +406,7 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_aarch64.tar.gz)" >> $GITHUB_OUTPUT
-        sha256sum ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*
+        find ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/ -type f | xargs sha256sum
 
 
     - name: Store the unsigned release package data artifact
