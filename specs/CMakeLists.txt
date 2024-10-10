@@ -38,6 +38,7 @@ function(generateNativeTables)
     certificates.table
     chrome_extensions.table
     chrome_extension_content_scripts.table
+    cpu_time.table
     curl.table
     curl_certificate.table
     etc_hosts.table
@@ -199,7 +200,6 @@ function(generateNativeTables)
     "posix/augeas.table:linux,macos"
     "posix/authorized_keys.table:linux,macos"
     "posix/block_devices.table:linux,macos"
-    "posix/cpu_time.table:linux,macos"
     "posix/crontab.table:linux,macos"
     "posix/disk_encryption.table:linux,macos"
     "posix/dns_resolvers.table:linux,macos"
