@@ -12,6 +12,8 @@ endfunction()
 function(generateOsqueryUtilsLinux)
   set(public_header_files
     dpkg/idpkgquery.h
+
+    block_device/block_device_enumeration.h
   )
 
   add_osquery_library(osquery_utils_linux EXCLUDE_FROM_ALL
@@ -21,6 +23,8 @@ function(generateOsqueryUtilsLinux)
 
     dpkg/dpkgquery.h
     dpkg/dpkgquery.cpp
+
+    block_device/block_device_enumeration.cpp
   )
 
   target_link_libraries(osquery_utils_linux PUBLIC
