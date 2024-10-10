@@ -19,6 +19,8 @@ on:
   schedule:
    - cron: "0 */6 * * *"
 
+  merge_group:
+
   push:
     branches:
       - 'master'
@@ -463,7 +465,7 @@ jobs:
             --target package
         done
 
-    - name: Locate the packages
+    - name: Locate output, and display checksums
       if: matrix.build_type == 'RelWithDebInfo'
       id: packages
       shell: bash
@@ -474,6 +476,7 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)" >> $GITHUB_OUTPUT
+        sha256sum ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
@@ -753,6 +756,8 @@ jobs:
       shell: bash
       run: |
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
+        sha256sum ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*
+
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release'
@@ -1333,6 +1338,8 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls *.zip)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_MSI_PATH=$(ls *.msi)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls *.nupkg)" >> $GITHUB_OUTPUT
+        sha256sum ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*
+
 
     - name: Store the unsigned release package data artifact
       uses: actions/upload-artifact@v1
