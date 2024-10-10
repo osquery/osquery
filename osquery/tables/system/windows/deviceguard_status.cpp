@@ -23,9 +23,11 @@ QueryData genDeviceGuardStatus(QueryContext& context) {
                                           "VBS_ENABLED_AND_NOT_RUNNING",
                                           "VBS_ENABLED_AND_RUNNING"};
 
-  std::vector<std::string> security_services = {
-      "NONE", "CREDENTIAL_GUARD", "MEMORY_INTEGRITY",
-      "SYSTEM_GUARD_SECURE_LAUNCH", "SMM_FIRMWARE_MEASUREMENT" };
+  std::vector<std::string> security_services = {"NONE",
+                                                "CREDENTIAL_GUARD",
+                                                "MEMORY_INTEGRITY",
+                                                "SYSTEM_GUARD_SECURE_LAUNCH",
+                                                "SMM_FIRMWARE_MEASUREMENT"};
 
   std::vector<std::string> enforcement_methods = {
       "OFF", "AUDIT_MODE", "ENFORCED_MODE"};
@@ -64,19 +66,26 @@ QueryData genDeviceGuardStatus(QueryContext& context) {
     std::vector<long> running_security_services;
     data.GetVectorOfLongs("SecurityServicesRunning", running_security_services);
     for (int i = 0; i < running_security_services.size(); i++) {
-        r["running_security_services"].append(security_services.size() > running_security_services[i] ? security_services[running_security_services[i]] : "UNKNOWN");
-        if (i < (running_security_services.size() - 1)) {
-            r["running_security_services"].append(", ");
-        }
+      r["running_security_services"].append(
+          security_services.size() > running_security_services[i]
+              ? security_services[running_security_services[i]]
+              : "UNKNOWN");
+      if (i < (running_security_services.size() - 1)) {
+        r["running_security_services"].append(", ");
+      }
     }
 
     std::vector<long> configured_security_services;
-    data.GetVectorOfLongs("SecurityServicesConfigured", configured_security_services);
+    data.GetVectorOfLongs("SecurityServicesConfigured",
+                          configured_security_services);
     for (int i = 0; i < configured_security_services.size(); i++) {
-        r["configured_security_services"].append(security_services.size() > configured_security_services[i] ? security_services[configured_security_services[i]] : "UNKNOWN");
-        if (i < (configured_security_services.size() - 1)) {
-            r["configured_security_services"].append(", ");
-        }
+      r["configured_security_services"].append(
+          security_services.size() > configured_security_services[i]
+              ? security_services[configured_security_services[i]]
+              : "UNKNOWN");
+      if (i < (configured_security_services.size() - 1)) {
+        r["configured_security_services"].append(", ");
+      }
     }
 
     results.push_back(r);
