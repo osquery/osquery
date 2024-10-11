@@ -33,6 +33,8 @@ TEST_F(DeviceGuardStatus, test_sanity) {
       {"vbs_status", NonEmptyString},
       {"code_integrity_policy_enforcement_status", NonEmptyString},
       {"umci_policy_status", NonEmptyString},
+      {"configured_security_services", NonEmptyString},
+      {"running_security_services", NonEmptyString},
   };
   validate_rows(data, row_map);
 }
