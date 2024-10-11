@@ -71,7 +71,7 @@ QueryData genDeviceGuardStatus(QueryContext& context) {
               ? security_services[running_security_services[i]]
               : "UNKNOWN");
       if (i < (running_security_services.size() - 1)) {
-        r["running_security_services"].append(", ");
+        r["running_security_services"].append(",");
       }
     }
 
@@ -84,7 +84,7 @@ QueryData genDeviceGuardStatus(QueryContext& context) {
               ? security_services[configured_security_services[i]]
               : "UNKNOWN");
       if (i < (configured_security_services.size() - 1)) {
-        r["configured_security_services"].append(", ");
+        r["configured_security_services"].append(",");
       }
     }
 
