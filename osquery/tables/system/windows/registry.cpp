@@ -331,7 +331,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
     std::unique_ptr<BYTE[]> bpDataBuff = std::make_unique<BYTE[]>(lpData);
 
-    // Read the registry value data ensuring correct handling of non-terminated strings
+    // Read the registry value data ensuring correct handling of non-terminated
+    // strings
     retCode = RegGetValueW(hRegistryHandle.get(),
                            nullptr,
                            achValue.get(),
