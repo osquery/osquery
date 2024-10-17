@@ -1338,15 +1338,14 @@ jobs:
         dir
 
     - name: Locate the packages
-      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       id: packages
       shell: bash
       run: |
         pwd
         ls
-        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls *.zip)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_MSI_PATH=$(ls *.msi)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls *.nupkg)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}/*.zip)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_MSI_PATH=$(ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}/*.msi)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}/*.nupkg)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
       uses: actions/upload-artifact@v4.4.0
