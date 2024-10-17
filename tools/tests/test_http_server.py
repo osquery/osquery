@@ -28,7 +28,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 # Default values for global variables
 HTTP_SERVER_USE_TLS = False
 HTTP_SERVER_PERSIST = False
-HTTP_SERVER_TIMEOUT = 30
+HTTP_SERVER_TIMEOUT = 120
 HTTP_SERVER_VERBOSE = False
 HTTP_SERVER_CERT = "test_server.pem"
 HTTP_SERVER_KEY = "test_server.key"
