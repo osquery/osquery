@@ -1287,13 +1287,12 @@ jobs:
         cmake --build . --target install -j 3
 
     - name: Create the packages
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       shell: cmd
 
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
-
-        cd ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
         7z ^
           a windows_package_data.zip ^
@@ -1335,6 +1334,8 @@ jobs:
           --target package
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+
+        dir
 
     - name: Locate the packages
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
