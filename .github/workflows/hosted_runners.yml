@@ -980,12 +980,14 @@ jobs:
         $rel_install_path = "w\install"
         $rel_package_data_path = "w\package_data"
         $rel_packaging_path = "w\osquery-packaging"
+        $rel_packaging_build = "w\package-build"
 
         New-Item -ItemType Directory -Force -Path $rel_build_path
         New-Item -ItemType Directory -Force -Path $rel_sccache_path
         New-Item -ItemType Directory -Force -Path $rel_downloads_path
         New-Item -ItemType Directory -Force -Path $rel_install_path
         New-Item -ItemType Directory -Force -Path $rel_package_data_path
+        New-Item -ItemType Directory -Force -Path $rel_packaging_build
 
         $base_dir = (Get-Item .).FullName
 
@@ -997,6 +999,7 @@ jobs:
         echo "INSTALL=$base_dir\$rel_install_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
 
     - name: Setup the VC arch
       shell: powershell
