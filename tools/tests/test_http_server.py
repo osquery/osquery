@@ -9,6 +9,7 @@
 
 import argparse
 import base64
+from datetime import datetime
 import json
 import os
 import random
@@ -127,7 +128,7 @@ FILE_CARVE_MAP = {}
 
 def debug(response):
     if ARGS["verbose"]:
-        print("-- [DEBUG] %s" % str(response))
+        print(f"-- [DEBUG] {datetime.now().isoformat()} {str(response)}")
         sys.stdout.flush()
         sys.stderr.flush()
 
