@@ -41,6 +41,7 @@ TEST_F(blockDevices, test_sanity) {
   //      {"block_size", IntType}
   //      {"uuid", NormalType}
   //      {"type", NormalType}
+  //      {"serial", NormalType}
   //      {"label", NormalType}
   //}
   // 4. Perform validation
