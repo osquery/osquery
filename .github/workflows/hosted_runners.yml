@@ -641,8 +641,8 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12.2'
-        architecture: 'x64'
+        python-version: '3.13.x'
+        architecture: arm64
 
     - name: Install tests dependencies
       id: install_test_deps
@@ -769,14 +769,14 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for the x86_64 macOS-12 worker
+    - name: Package the tests for older x86_64 macOS workers
       if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       working-directory: ${{ github.workspace }}/workspace
       run: |
         mkdir macos_tests_${{ matrix.build_type }}
-        ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }}
+        ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} ${{ matrix.architecture }}
 
-    - name: Store the packaged tests for the x86_64 macOS-12 worker
+    - name: Store the packaged tests for older x86_64 macOS workers
       if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4.4.0
       with:
@@ -822,7 +822,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12.2'
+          python-version: '3.13.x'
           architecture: ${{ matrix.python_architecture }}
 
       - name: Install tests dependencies
@@ -1081,8 +1081,8 @@ jobs:
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
       with:
-        python-version: "3.x"
-        architecture: "x64"
+        python-version: "3.13.x"
+        architecture: x64
 
     # The runners will likely have both the x86 and x64 versions of
     # Python but we always need the 64-bit one regardless of which
