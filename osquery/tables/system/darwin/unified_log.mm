@@ -286,12 +286,12 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       }
 
       if (latest_timestamp > -1) {
-        /* We are summing 1 because with a > constraint we want entries with a
-          time that's at least one second after the constraint value we passed,
-          but the log entries have a higher precision, so the underlying library
-          will also return entries few milliseconds after. If we don't do this
-          then these will be filtered out by sqlite and will count
-          towards the max_rows limit */
+        /* We are summing 1 because with a > integer constraint we want entries
+          with a time that's at least one second after the constraint value we
+          passed, but the log entries have a higher precision, so the underlying
+          library will also return entries few milliseconds after. If we don't
+          do this then these will count towards the max_rows limit but end up
+          being filtered out by sqlite */
         double search_timestamp = using_greather_than_constraint
                                       ? latest_timestamp + 1
                                       : latest_timestamp;
