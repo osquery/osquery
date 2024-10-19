@@ -641,8 +641,7 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12.2'
-        architecture: 'x64'
+        python-version: '3.13.x'
 
     - name: Install tests dependencies
       id: install_test_deps
@@ -817,8 +816,8 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12.2'
-          architecture: 'x64'
+          python-version: '3.13.x'
+          architecture: x64
 
       - name: Install tests dependencies
         id: install_test_deps
@@ -1073,8 +1072,8 @@ jobs:
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v2
       with:
-        python-version: "3.x"
-        architecture: "x64"
+        python-version: "3.13.x"
+        architecture: x64
 
     # The runners will likely have both the x86 and x64 versions of
     # Python but we always need the 64-bit one regardless of which
