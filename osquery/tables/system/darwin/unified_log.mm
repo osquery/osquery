@@ -380,7 +380,8 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
         Row r;
 
-        r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
+        r["timestamp"] = BIGINT(
+            static_cast<std::uint32_t>([[entry date] timeIntervalSince1970]));
         r["message"] = SQL_TEXT(
             std::string([[entry composedMessage] UTF8String],
                         [[entry composedMessage]
