@@ -48,6 +48,7 @@ TEST_F(UnifiedLogTest, test_sanity) {
 
   ValidationMap row_map = {
       {"timestamp", IntType},
+      {"timestamp_double", NonEmptyString},
       {"level", NormalType},
       {"storage", IntType},
       {"message", NormalType},
