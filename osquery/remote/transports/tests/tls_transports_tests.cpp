@@ -59,10 +59,11 @@ class TLSTransportsTests : public testing::Test {
 
   void startServer(const std::string& server_cert = {},
                    bool verify_client_cert = false) {
-    certs_ = FLAGS_tls_server_certs;
-    FLAGS_tls_server_certs = "";
     ASSERT_TRUE(TLSServerRunner::start(server_cert, verify_client_cert));
     port_ = TLSServerRunner::port();
+
+    certs_ = FLAGS_tls_server_certs;
+    FLAGS_tls_server_certs = "";
   }
 
   void TearDown() override {
