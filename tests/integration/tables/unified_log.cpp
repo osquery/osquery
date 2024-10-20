@@ -65,6 +65,7 @@ TEST_F(UnifiedLogTest, test_sanity) {
   // NOTE: Because of https://github.com/osquery/osquery/pull/8274 the
   // unified_log behavior without a timestamp is horrific. As a workaround, we
   // impose a short timestamp. Better would be to fix the underlying issue
+  // Where that's not possible, we limit the category
 
   // max rows test
   QueryData const r1 = execute_query(
@@ -89,11 +90,13 @@ TEST_F(UnifiedLogTest, test_sanity) {
   DeltaContext dc1, dc2;
   dc1.load();
   QueryData const r5 = execute_query(
-      "select * from unified_log where max_rows = 1 and timestamp > -1");
+      "select * from unified_log where max_rows = 1 and timestamp > -1 and "
+      "category = 'General'");
   dc2.load();
   EXPECT_TRUE(dc1 < dc2);
   QueryData const r6 = execute_query(
-      "select * from unified_log where max_rows = 1 and timestamp > -1");
+      "select * from unified_log where max_rows = 1 and timestamp > -1 "
+      "category = 'General'");
   ASSERT_EQ(r5.size(), 1ul);
   ASSERT_EQ(r6.size(), 1ul);
   bool sequential_queries_diff = false;
