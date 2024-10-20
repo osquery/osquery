@@ -364,10 +364,14 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
         return {};
       }
 
+      // auto blah = enumerator.countByEnumerating
+
       int skip_counter = 0;
       bool first = isSequential;
       OSLogEntryLog* entry;
-      while (entry = [enumerator nextObject]) {
+      //while (entry = [enumerator nextObject]) {
+          for (entry in enumerator){
+
         if (first) {
           // Skips the log entries that have been already extracted
           double load_date = [[entry date] timeIntervalSince1970];
@@ -380,10 +384,12 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
         }
 
         // Escape if the rows number reached the limit
-        if (++rows_counter > max_rows)
+        if (++rows_counter > max_rows) {
+                 //TLOG << "  seph skip";
           // Free OSLogEnumerator by enumerating all remaining objects before
           // escaping
           continue;
+        }
 
         if (isSequential) {
           // Save timestamp and count

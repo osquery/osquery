@@ -95,7 +95,7 @@ TEST_F(UnifiedLogTest, test_sanity) {
   dc2.load();
   EXPECT_TRUE(dc1 < dc2);
   QueryData const r6 = execute_query(
-      "select * from unified_log where max_rows = 1 and timestamp > -1 "
+      "select * from unified_log where max_rows = 1 and timestamp > -1 and "
       "category = 'General'");
   ASSERT_EQ(r5.size(), 1ul);
   ASSERT_EQ(r6.size(), 1ul);
