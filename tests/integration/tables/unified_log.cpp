@@ -62,18 +62,26 @@ TEST_F(UnifiedLogTest, test_sanity) {
   };
   validate_rows(rows, row_map);
 
+  // NOTE: Because of https://github.com/osquery/osquery/pull/8274 the
+  // unified_log behavior without a timestamp is horrific. As a workaround, we
+  // impose a short timestamp. Better would be to fix the underlying issue
+
   // max rows test
-  QueryData const r1 =
-      execute_query("select * from unified_log where max_rows = 50");
+  QueryData const r1 = execute_query(
+      "select * from unified_log where max_rows = 50 and timestamp > (select "
+      "unix_time - 120 from time)");
   ASSERT_EQ(r1.size(), 50ul);
-  QueryData const r2 =
-      execute_query("select * from unified_log where max_rows = 1");
+  QueryData const r2 = execute_query(
+      "select * from unified_log where max_rows = 1 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r2.size(), 1ul);
-  QueryData const r3 =
-      execute_query("select * from unified_log where max_rows = 0");
+  QueryData const r3 = execute_query(
+      "select * from unified_log where max_rows = 0 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r3.size(), 0ul);
-  QueryData const r4 =
-      execute_query("select * from unified_log where max_rows = -1");
+  QueryData const r4 = execute_query(
+      "select * from unified_log where max_rows = -1 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r4.size(), 0ul);
 
   // Sequential test: checks the pointer is increased and the data extracted
