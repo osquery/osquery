@@ -10,6 +10,7 @@ description("Queries the OSLog framework for entries in the system log. "
 
 schema([
   Column("timestamp", BIGINT, "unix timestamp associated with the entry", additional=True),
+  Column("timestamp_double", TEXT, "floating point timestamp associated with the entry"),
   Column("storage", INTEGER, "the storage category for the entry", additional=True),
   Column("message", TEXT, "composed message", additional=True),
   Column("activity", BIGINT, "the activity ID associate with the entry", additional=True),
