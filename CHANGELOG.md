@@ -7,6 +7,10 @@
 
 Representing commits from 13 contributors! Thank you all.
 
+### Windows codesigning note
+
+Starting with Osquery 5.14, we have changed our codesigning. Henceforth our releases will be signed by an osquery specific signing key issues by Microsoft Azure. 
+
 ### New Features
 
 - Add `--yara_sigurl_authenticate` flag ([#8437](https://github.com/osquery/osquery/pull/8437))
