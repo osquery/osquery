@@ -9,7 +9,7 @@ Representing commits from 13 contributors! Thank you all.
 
 ### Windows codesigning note
 
-Starting with Osquery 5.14, we have changed our codesigning. Henceforth our releases will be signed by an osquery specific signing key issues by Microsoft Azure. 
+Starting with Osquery 5.14, we have changed our codesigning. Henceforth our releases will be signed by an osquery specific signing key issued by Microsoft Azure. 
 
 ### New Features
 
