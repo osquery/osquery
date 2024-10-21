@@ -1,5 +1,61 @@
 # osquery Changelog
 
+<a name="5.14.1"></a>
+## [5.14.1](https://github.com/osquery/osquery/releases/tag/5.14.1)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.13.1...5.14.1)
+
+Representing commits from 13 contributors! Thank you all.
+
+### Windows codesigning note
+
+Starting with Osquery 5.14, we have changed our codesigning. Henceforth our releases will be signed by an osquery specific signing key issued by Microsoft Azure. 
+
+### New Features
+
+- Add `--yara_sigurl_authenticate` flag ([#8437](https://github.com/osquery/osquery/pull/8437))
+
+### Table Changes
+
+- Add additional WMI data to `deviceguard_status` table ([#8440](https://github.com/osquery/osquery/pull/8440))
+- Fix linux `groups` table to handle larger group sets by increasing buffer size ([#8387](https://github.com/osquery/osquery/pull/8387))
+- Add support for Firefox addons for snap installations ([#8374](https://github.com/osquery/osquery/pull/8374))
+- Remove support for deprecated Safari Legacy Extensions ([#8426](https://github.com/osquery/osquery/pull/8426))
+- macOS 15 `alf` support ([#8428](https://github.com/osquery/osquery/pull/8428))
+- Update table `alf_explicit_auths` as not supported on macOS 15 ([#8435](https://github.com/osquery/osquery/pull/8435))
+- Update table `alf_exceptions` to support macOS 15 ([#8434](https://github.com/osquery/osquery/pull/8434))
+- Fix for `windows_crashes` missing information on user mode memory dumps ([#8394](https://github.com/osquery/osquery/pull/8394))
+- Fix: `safari_extensions` not returning results ([#8427](https://github.com/osquery/osquery/pull/8427))
+- Rename `hvci_status` to `deviceguard_status` to better reflect the data collected. ([#8390](https://github.com/osquery/osquery/pull/8390))
+
+### Under the Hood improvements
+
+- Add column optimization support to allow processing `IN` constraints all at once in xFilter ([#8263](https://github.com/osquery/osquery/pull/8263))
+- Minor improvements to the hashing logic ([#8398](https://github.com/osquery/osquery/pull/8398))
+- Refactor `readFile` ([#8410](https://github.com/osquery/osquery/pull/8410))
+
+### Bug Fixes
+
+- Fix `unified_log` handling of timestamp formats ([#8451](https://github.com/osquery/osquery/pull/8451))
+- Fixes crash with non-null-terminated values in registry enumeration ([#8421](https://github.com/osquery/osquery/pull/8421))
+- Fix: Check and free cert context creation in windows certificates table ([#8420](https://github.com/osquery/osquery/pull/8420))
+- fix: Handle strftime potential error in the time table ([#8431](https://github.com/osquery/osquery/pull/8431))
+- Fix crash in socket table parsing on windows ([#8419](https://github.com/osquery/osquery/pull/8419))
+
+### Build
+
+- Run tests on macos-15 ([#8430](https://github.com/osquery/osquery/pull/8430))
+- Update tests for `unified_log` table to work around slowness ([#8450](https://github.com/osquery/osquery/pull/8450))
+- tests: Ensure python http server is ready to serve ([#8452](https://github.com/osquery/osquery/pull/8452))
+- Extend timeout for test HTTP server ([#8445](https://github.com/osquery/osquery/pull/8445))
+- Upgrade GitHub Actions `upload-artifact` to v4 ([#8423](https://github.com/osquery/osquery/pull/8423))
+- Boost 1.86 compatibility ([#8409](https://github.com/osquery/osquery/pull/8409))
+- build: Cleanups and fixes for a newer clang toolchain ([#8412](https://github.com/osquery/osquery/pull/8412))
+- ci: Update the upload-artifact action to v4.4.0 ([#8416](https://github.com/osquery/osquery/pull/8416))
+- build: Silence deprecation warnings about non standard extensions on VS2022 ([#8405](https://github.com/osquery/osquery/pull/8405))
+- Add missing includes causing compilation error with Clang 18.1.8 ([#8400](https://github.com/osquery/osquery/pull/8400))
+- build(deps): bump actions/download-artifact from 2 to 4.1.7 in /.github/workflows ([#8411](https://github.com/osquery/osquery/pull/8411))
+
 <a name="5.13.1"></a>
 ## [5.13.1](https://github.com/osquery/osquery/releases/tag/5.13.1)
 
