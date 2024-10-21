@@ -9,37 +9,23 @@
 
 #include "cfdata.h"
 
-#include <iomanip>
-#include <sstream>
-
 namespace osquery {
 
 std::string stringFromCFData(const CFDataRef& cf_data) {
-  CFRange range = CFRangeMake(0, CFDataGetLength(cf_data));
-
-  char* buffer = (char*)malloc(range.length + 1);
-  if (buffer == nullptr) {
-    return "";
+  const std::string kHexDigitsLowercase = "0123456789abcdef";
+  const uint8_t* src = CFDataGetBytePtr(cf_data);
+  const auto len = CFDataGetLength(cf_data);
+  const uint8_t* end = src + len;
+  auto lenOfCharacters = len * 2;
+  std::string output;
+  while (src < end && lenOfCharacters >= 2) {
+    uint8_t b = *src;
+    ++src;
+    output.push_back(kHexDigitsLowercase.at(b >> 4));
+    output.push_back(kHexDigitsLowercase.at(b & 0xF));
+    lenOfCharacters = lenOfCharacters - 2;
   }
-  memset(buffer, 0, range.length + 1);
-
-  std::stringstream result;
-  CFDataGetBytes(cf_data, range, (UInt8*)buffer);
-  for (CFIndex i = 0; i < range.length; ++i) {
-    uint8_t byte = buffer[i];
-    if (isprint(byte)) {
-      result << byte;
-    } else if (range.length > 1 && buffer[i] == 0) {
-      result << ' ';
-    } else {
-      result << '%' << std::setfill('0') << std::setw(2) << std::hex
-             << (int)byte;
-    }
-  }
-
-  // Cleanup allocations.
-  free(buffer);
-  return result.str();
+  return output;
 }
 
 
