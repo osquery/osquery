@@ -19,16 +19,18 @@ Starting with Osquery 5.14, we have changed our codesigning. Henceforth our rele
 
 - Add additional WMI data to `deviceguard_status` table ([#8440](https://github.com/osquery/osquery/pull/8440))
 - Fix linux `groups` table to handle larger group sets by increasing buffer size ([#8387](https://github.com/osquery/osquery/pull/8387))
-- Update table `alf_explicit_auths` as not supported on macOS 15 ([#8435](https://github.com/osquery/osquery/pull/8435))
-- Update table `alf_exceptions` to support macOS 15 ([#8434](https://github.com/osquery/osquery/pull/8434))
-- Add column optimization support to allow processing `IN` constraints all at once in xFilter ([#8263](https://github.com/osquery/osquery/pull/8263))
 - Add support for Firefox addons for snap installations ([#8374](https://github.com/osquery/osquery/pull/8374))
 - table: Remove support for deprecated Safari Legacy Extensions ([#8426](https://github.com/osquery/osquery/pull/8426))
 - macOS 15 `alf` support ([#8428](https://github.com/osquery/osquery/pull/8428))
+- Update table `alf_explicit_auths` as not supported on macOS 15 ([#8435](https://github.com/osquery/osquery/pull/8435))
+- Update table `alf_exceptions` to support macOS 15 ([#8434](https://github.com/osquery/osquery/pull/8434))
 - Fix for `windows_crashes` missing information on user mode memory dumps ([#8394](https://github.com/osquery/osquery/pull/8394))
+- Fix: `safari_extensions` not returning results ([#8427](https://github.com/osquery/osquery/pull/8427))
+- Rename `hvci_status` to `deviceguard_status` to better reflect the data collected. ([#8390](https://github.com/osquery/osquery/pull/8390))
 
 ### Under the Hood improvements
 
+- Add column optimization support to allow processing `IN` constraints all at once in xFilter ([#8263](https://github.com/osquery/osquery/pull/8263))
 - Minor improvements to the hashing logic ([#8398](https://github.com/osquery/osquery/pull/8398))
 - Refactor `readFile` ([#8410](https://github.com/osquery/osquery/pull/8410))
 
@@ -38,9 +40,7 @@ Starting with Osquery 5.14, we have changed our codesigning. Henceforth our rele
 - Fixes crash with non-null-terminated values in registry enumeration ([#8421](https://github.com/osquery/osquery/pull/8421))
 - Fix: Check and free cert context creation in windows certificates table ([#8420](https://github.com/osquery/osquery/pull/8420))
 - fix: Handle strftime potential error in the time table ([#8431](https://github.com/osquery/osquery/pull/8431))
-- Fix: `safari_extensions` not returning results ([#8427](https://github.com/osquery/osquery/pull/8427))
 - Fix crash in socket table parsing on windows ([#8419](https://github.com/osquery/osquery/pull/8419))
-- Rename `hvci_status` to `deviceguard_status` to better reflect the data collected. ([#8390](https://github.com/osquery/osquery/pull/8390))
 
 ### Build
 
