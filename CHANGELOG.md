@@ -20,7 +20,7 @@ Starting with Osquery 5.14, we have changed our codesigning. Henceforth our rele
 - Add additional WMI data to `deviceguard_status` table ([#8440](https://github.com/osquery/osquery/pull/8440))
 - Fix linux `groups` table to handle larger group sets by increasing buffer size ([#8387](https://github.com/osquery/osquery/pull/8387))
 - Add support for Firefox addons for snap installations ([#8374](https://github.com/osquery/osquery/pull/8374))
-- table: Remove support for deprecated Safari Legacy Extensions ([#8426](https://github.com/osquery/osquery/pull/8426))
+- Remove support for deprecated Safari Legacy Extensions ([#8426](https://github.com/osquery/osquery/pull/8426))
 - macOS 15 `alf` support ([#8428](https://github.com/osquery/osquery/pull/8428))
 - Update table `alf_explicit_auths` as not supported on macOS 15 ([#8435](https://github.com/osquery/osquery/pull/8435))
 - Update table `alf_exceptions` to support macOS 15 ([#8434](https://github.com/osquery/osquery/pull/8434))
