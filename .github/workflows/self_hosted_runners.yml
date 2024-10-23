@@ -14,9 +14,9 @@
 name: build_aarch64
 
 on:
-  # Run this workflow once every 6 hours against the master branch
+  # Run this workflow once every day against the master branch
   schedule:
-   - cron: "0 */6 * * *"
+   - cron: "0 7 * * *"
 
   # Do not run this on pull requests
   push:
