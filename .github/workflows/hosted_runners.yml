@@ -172,7 +172,7 @@ jobs:
         fetch-depth: 0
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -353,7 +353,7 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -364,7 +364,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -578,7 +578,7 @@ jobs:
         echo "PACKAGE_BUILD=$(pwd)/${rel_package_build_path}" >> $GITHUB_OUTPUT
 
     - name: Clone the osquery repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
@@ -592,7 +592,7 @@ jobs:
         vm_stat
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -603,7 +603,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -614,7 +614,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -802,7 +802,7 @@ jobs:
 
     steps:
       - name: Clone the osquery repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -866,7 +866,7 @@ jobs:
 
     steps:
       - name: Clone the osquery repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -1019,7 +1019,7 @@ jobs:
         git config --global core.symlinks true
 
     - name: Clone the osquery repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
@@ -1049,7 +1049,7 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
 
@@ -1060,7 +1060,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -1071,7 +1071,7 @@ jobs:
           downloads_${{ matrix.os }}
 
     - name: Initialize the Python 3 installation
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
         architecture: "x64"
@@ -1228,7 +1228,7 @@ jobs:
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
     - name: Update the cache (sccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
 
