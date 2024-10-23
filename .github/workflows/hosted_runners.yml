@@ -792,13 +792,18 @@ jobs:
 
 
 
-  # This job takes the packaged tests (Release + Debug) from the Sonoma
-  # builder and runs them on a new Monterey instance
-  test_macos_monterey:
+  # This job takes the packaged tests (Release + Debug) from the latest macos
+  # builder and runs them on the previous available macOS versions
+  test_older_macos:
 
     needs: build_macos
 
-    runs-on: macos-12
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        python_architecture: [x64]
+        os: [macos-13]
 
     steps:
       - name: Clone the osquery repository
@@ -818,11 +823,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12.2'
-          architecture: 'x64'
+          architecture: ${{ matrix.python_architecture }}
 
       - name: Install tests dependencies
         id: install_test_deps
         run: |
+          uname -a
           pip3 install setuptools \
                         pexpect==3.3 \
                         psutil \
@@ -860,7 +866,7 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_macos_monterey
+    needs: test_older_macos
 
     runs-on: macos-14
 
