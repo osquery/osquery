@@ -107,7 +107,11 @@
     "vendor": "libexpat_project",
     "version": "2.6.0",
     "commit": "849da3e3fe727fccef5e96ef35482d66447f06a2",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2024-45490",
+      "CVE-2024-45491",
+      "CVE-2024-45492"
+    ]
   },
   "gflags": {
     "vendor": "google",
@@ -132,7 +136,10 @@
     "version": "3.6.2",
     "commit": "ba80276ccc3c941c4918ec6e2460059f0c525c43",
     "ignored-cves": [
-      "CVE-2023-30571"
+      "CVE-2023-30571",
+      "CVE-2024-37407",
+      "CVE-2024-48957",
+      "CVE-2024-48958"
     ]
   },
   "libaudit": {
@@ -305,7 +312,9 @@
     "vendor": "virustotal",
     "version": "4.2.3",
     "commit": "ba94b4f8ebb6d56786d14f6a0f7529b32d7c216f",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2021-45429"
+    ]
   },
   "zlib": {
     "product": "zlib",
