@@ -489,7 +489,7 @@ There are also encoding functions available, to process query results.
 
     </p>
     </details>
-- `conditional_to_base64`: Encode a string if and only if the string contains non-ASCII characters.
+- `conditional_to_base64`: Encode a string if and only if the string contains non-printable ASCII characters. (Specifically, it considers `0x20` through `0x7e` printable)
     <details>
     <summary>Conditional Base64 encode example:</summary>
     <p>
@@ -502,8 +502,8 @@ There are also encoding functions available, to process query results.
       osquery> select conditional_to_base64(device_id) as device_id from cpu_info;
       device_id = CPU0
 
-      osquery> select conditional_to_base64(device_id + char(183)) as device_id from cpu_info;
-      device_id = 0
+      osquery> select conditional_to_base64(device_id || char(183)) as device_id from cpu_info;
+      device_id = Q1BVMMK3
 
     </p>
     </details>
