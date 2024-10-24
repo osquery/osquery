@@ -502,8 +502,8 @@ There are also encoding functions available, to process query results.
       osquery> select conditional_to_base64(device_id) as device_id from cpu_info;
       device_id = CPU0
 
-      osquery> select conditional_to_base64(device_id + char(183)) as device_id from cpu_info;
-      device_id = 0
+      osquery> select conditional_to_base64(device_id || char(183)) as device_id from cpu_info;
+      device_id = Q1BVMMK3
 
     </p>
     </details>
