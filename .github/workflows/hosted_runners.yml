@@ -828,7 +828,6 @@ jobs:
       - name: Install tests dependencies
         id: install_test_deps
         run: |
-          uname -a
           pip3 install setuptools \
                         pexpect==3.3 \
                         psutil \
