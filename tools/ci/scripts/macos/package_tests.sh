@@ -10,26 +10,34 @@
 #
 
 main() {
-  if [[ $# != 2 ]] ; then
-    printf "Usage:\n\t$0 <source> <destination>\n"
+  if [[ $# != 3 ]] ; then
+    printf "Usage:\n\t$0 <source> <destination> <architecure>\n"
     return 1
   fi
 
   local source="$1"
   local destination="$(realpath $2)"
+  local architecture="$3"
+
+  local python_architecture
+  if [ "$architecture" = "x86_64" ]; then
+    python_architecture="x64"
+  else
+    python_architecture="$architecture"
+  fi
 
   printf "Source path: ${source}\n"
-  printf "Destination path: ${destination}\n\n"
+  printf "Destination path: ${destination}\n"
+  printf "Architecture: ${architecture}\n\n"
 
   ( cd "${source}" && copy_files "${destination}" ) || return 1
-  patch_make_files "${destination}" || return 1
-  patch_ctest_files "$(realpath ${source})" "${destination}" || return 1
+  patch_make_files "${destination}" "${python_architecture}" || return 1
+  patch_ctest_files "$(realpath ${source})" "${destination}" "${python_architecture}" || return 1
 
   printf "Generating the launcher..\n"
   local launcher_path="${destination}/run.sh"
 
   printf '#!/usr/bin/env bash\n\n' > "${launcher_path}"
-  printf 'export _OSQUERY_PYTHON_INTERPRETER_PATH=`where python`\n' >> "${launcher_path}"
   printf 'export RUNNER_ROOT_FOLDER="$(pwd)"\n\n' >> "${launcher_path}"
   printf 'ctest --build-nocmake -V\n' >> "${launcher_path}"
   chmod 755 "${launcher_path}" || return 1
@@ -80,10 +88,13 @@ copy_files() {
 }
 
 patch_make_files() {
-  if [[ $# != 1 ]] ; then
-    printf "Usage:\n\t$0 <destination>\n"
+  if [[ $# != 2 ]] ; then
+    printf "Usage:\n\t$0 <destination> <python_architecture>\n"
     return 1
   fi
+
+  local destination="$1"
+  local python_architecture="$2"
 
   printf "Patching the Make files...\n\n"
 
@@ -96,35 +107,41 @@ patch_make_files() {
   which gsed > /dev/null 2>&1
   if [[ $? == 0 ]] ; then
     local sed_binary="gsed"
+    local in_place_option="-i"
   else
     local sed_binary="sed"
+    local in_place_option="-i ''"
   fi
 
   find "${destination}" -type f \( -name '*.make' -o -name 'Makefile' -o -name '*.cmake' \) | while read file_path ; do
     printf "  ${file_path}\n"
 
-    ${sed_binary} "s+${cmake_path}+cmake+g" -i "${file_path}"
+    ${sed_binary} "s#${cmake_path}#cmake#g" $in_place_option "${file_path}"
+    ${sed_binary} "s#Python/\([0-9.]*\)/[^/]*/bin/python3#Python/\1/${python_architecture}/bin/python3#g" $in_place_option "${file_path}"
   done
 
   return 0
 }
 
 patch_ctest_files() {
-  if [[ $# != 2 ]] ; then
-    printf "Usage:\n\t$0 <source> <destination>\n"
+  if [[ $# != 3 ]] ; then
+    printf "Usage:\n\t$0 <source> <destination> <python_architecture>\n"
     return 1
   fi
 
   local source="$1"
   local destination="$2"
+  local python_architecture="$3"
 
   printf "Patching the CTest files...\n\n"
 
   which gsed > /dev/null 2>&1
   if [[ $? == 0 ]] ; then
     local sed_binary="gsed"
+    local in_place_option="-i"
   else
     local sed_binary="sed"
+    local in_place_option="-i ''"
   fi
 
   printf "  sed binary: '${sed_binary}'\n\n"
@@ -132,10 +149,10 @@ patch_ctest_files() {
   find "${destination}" -type f -name '*.cmake' | while read file_path ; do
     printf "  ${file_path}\n"
 
-    ${sed_binary} "s=${source}=\$ENV{RUNNER_ROOT_FOLDER}=g" -i "${file_path}"
-    ${sed_binary} 's+TEST_CONF_FILES_DIR=${source}/test_configs+TEST_CONF_FILES_DIR=$ENV{RUNNER_ROOT_FOLDER}/test_configs+g' -i "${file_path}"
-    ${sed_binary} 's+TEST_HELPER_SCRIPTS_DIR=${source}/tools/tests+TEST_HELPER_SCRIPTS_DIR=$ENV{RUNNER_ROOT_FOLDER}/tools/tests+g' -i "${file_path}"
-    ${sed_binary} 's+OSQUERY_PYTHON_INTERPRETER_PATH=${source}/tools/tests+OSQUERY_PYTHON_INTERPRETER_PATH=$ENV{_OSQUERY_PYTHON_INTERPRETER_PATH}+g' -i "${file_path}"
+    ${sed_binary} "s=${source}=\$ENV{RUNNER_ROOT_FOLDER}=g" $in_place_option "${file_path}"
+    ${sed_binary} 's#TEST_CONF_FILES_DIR=${source}/test_configs#TEST_CONF_FILES_DIR=$ENV{RUNNER_ROOT_FOLDER}/test_configs#g' $in_place_option "${file_path}"
+    ${sed_binary} 's#TEST_HELPER_SCRIPTS_DIR=${source}/tools/tests#TEST_HELPER_SCRIPTS_DIR=$ENV{RUNNER_ROOT_FOLDER}/tools/tests#g' $in_place_option "${file_path}"
+    ${sed_binary} "s#Python/\([0-9.]*\)/[^/]*/bin/python3#Python/\1/${python_architecture}/bin/python3#g" $in_place_option "${file_path}"
   done
 
   printf "\n"
