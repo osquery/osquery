@@ -360,20 +360,22 @@ QueryData genIntelPlatformInfo(QueryContext& context) {
 QueryData genAarch64PlatformInfo(QueryContext& context) {
   auto device_tree =
       IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
-  if (device_tree == 0) {
+  if (device_tree == MACH_PORT_NULL) {
     return {};
   }
 
-  CFMutableDictionaryRef details = nullptr;
+  CFMutableDictionaryRef device_tree_details = nullptr;
   IORegistryEntryCreateCFProperties(
-      device_tree, &details, kCFAllocatorDefault, kNilOptions);
+      device_tree, &device_tree_details, kCFAllocatorDefault, kNilOptions);
   IOObjectRelease(device_tree);
 
-  if (details == nullptr) {
+  if (device_tree_details == nullptr) {
     return {};
   }
+
   Row r;
-  r["vendor"] = getIOKitProperty(details, "manufacturer");
+  r["vendor"] = getIOKitProperty(device_tree_details, "manufacturer");
+  CFRelease(device_tree_details);
 
   auto opt_firmware_kind = getFirmwareKind();
   if (opt_firmware_kind.has_value()) {
@@ -387,15 +389,21 @@ QueryData genAarch64PlatformInfo(QueryContext& context) {
 
   auto chosen =
       IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
-  if (chosen != 0) {
+  if (chosen != MACH_PORT_NULL) {
+    CFMutableDictionaryRef chosen_details = nullptr;
     IORegistryEntryCreateCFProperties(
-        chosen, &details, kCFAllocatorDefault, kNilOptions);
+        chosen, &chosen_details, kCFAllocatorDefault, kNilOptions);
     IOObjectRelease(chosen);
-    r["version"] = getIOKitProperty(details, "system-firmware-version");
+
+    if (chosen_details != nullptr) {
+      r["version"] =
+          getIOKitProperty(chosen_details, "system-firmware-version");
+      CFRelease(chosen_details);
+    }
   }
 
   auto root = IORegistryGetRootEntry(kIOMasterPortDefault);
-  if (root != 0) {
+  if (root != MACH_PORT_NULL) {
     CFTypeRef property = (CFDataRef)IORegistryEntryCreateCFProperty(
         root, CFSTR(kIOKitBuildVersionKey), kCFAllocatorDefault, 0);
     if (property != nullptr) {
@@ -412,7 +420,6 @@ QueryData genAarch64PlatformInfo(QueryContext& context) {
   r["revision"] = "";
   r["address"] = "";
 
-  CFRelease(details);
   return {r};
 }
 
