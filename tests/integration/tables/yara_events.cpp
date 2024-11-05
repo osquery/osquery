@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for yara_events
-// Spec file: specs/yara/yara_events.table
+// Spec file: specs/posix/yara_events.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -16,10 +16,10 @@ namespace osquery {
 namespace table_tests {
 
 class yaraEvents : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(yaraEvents, test_sanity) {
