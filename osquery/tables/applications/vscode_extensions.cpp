@@ -25,7 +25,7 @@ namespace tables {
 
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
-                                    const std::string& version_type,
+                                    const std::string& vscode_edition,
                                     QueryData& results) {
   if (!pathExists(path).ok()) {
     return;
@@ -60,7 +60,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
 
     Row r;
     r["uid"] = uid;
-    r["version_type"] = version_type;
+    r["vscode_edition"] = vscode_edition;
 
     rapidjson::Value::ConstMemberIterator it = identifier.FindMember("id");
     if (it != identifier.MemberEnd() && it->value.IsString()) {
@@ -109,11 +109,11 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
 struct ConfDir {
   std::string uid;
   fs::path path;
-  std::string version_type;
+  std::string vscode_edition;
 
   bool operator<(const ConfDir& other) const {
-    return std::tie(uid, path, version_type) <
-           std::tie(other.uid, other.path, other.version_type);
+    return std::tie(uid, path, vscode_edition) <
+           std::tie(other.uid, other.path, other.vscode_edition);
   }
 };
 
@@ -148,7 +148,7 @@ QueryData genVSCodeExtensions(QueryContext& context) {
   for (const auto& conf_dir : conf_dirs) {
     auto path = conf_dir.path / "extensions" / "extensions.json";
     genReadJSONAndAddExtensionRows(
-        conf_dir.uid, path.string(), conf_dir.version_type, results);
+        conf_dir.uid, path.string(), conf_dir.vscode_edition, results);
   }
 
   return results;
