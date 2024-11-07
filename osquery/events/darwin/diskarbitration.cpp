@@ -261,9 +261,11 @@ std::string DiskArbitrationEventPublisher::getProperty(
   } else if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
     return (CFBooleanGetValue((CFBooleanRef)value)) ? "1" : "0";
   } else if (CFGetTypeID(value) == CFUUIDGetTypeID()) {
-    return stringFromCFString(
-        CFUUIDCreateString(kCFAllocatorDefault, (CFUUIDRef)value));
+    auto cf_string = CFUUIDCreateString(kCFAllocatorDefault, (CFUUIDRef)value);
+    auto string = stringFromCFString(cf_string);
+    CFRelease(cf_string);
+    return string;
   }
   return "";
 }
-}
+} // namespace osquery
