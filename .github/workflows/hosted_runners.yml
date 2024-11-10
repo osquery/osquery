@@ -668,7 +668,7 @@ jobs:
       id: xcode_selector
       run: |
         if [[ "${{ matrix.os }}" == "macos-14" ]]; then
-          xcode_path="/Applications/Xcode_14.3.1.app/Contents/Developer"
+          xcode_path="/Applications/Xcode_15.4.app/Contents/Developer"
         elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
           xcode_path="/Applications/Xcode_16.app/Contents/Developer"
         else
