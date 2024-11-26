@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/utils/scope_guard.h>
 #include <IOKit/IOMessage.h>
 
 #include <osquery/core/tables.h>
@@ -22,7 +23,10 @@ REGISTER(IOKitEventPublisher, "event_publisher", "iokit");
 struct DeviceTracker : private boost::noncopyable {
  public:
   explicit DeviceTracker(IOKitEventPublisher* p) : publisher(p) {}
-
+  ~DeviceTracker() {
+    if(notification)
+      IOObjectRelease(notification);
+  }
  public:
   IOKitEventPublisher* publisher{nullptr};
   io_object_t notification{0};
@@ -147,26 +151,29 @@ void IOKitEventPublisher::deviceAttach(void* refcon, io_iterator_t iterator) {
   // It is possible to reiterate devices, but that will cause duplicate events.
   while ((device = IOIteratorNext(iterator))) {
     {
+      // release reference obtained by IOIteratorNext
+      auto release = scope_guard::create([&]() { IOObjectRelease(device); });
       WriteLock lock(self->mutex_);
       if (self->port_ == nullptr) {
-        IOObjectRelease(device);
         continue;
       }
 
       // Create a notification tracker.
       auto tracker = std::make_shared<struct DeviceTracker>(self);
-      self->devices_.push_back(tracker);
-      IOServiceAddInterestNotification(self->port_,
+      auto kr = IOServiceAddInterestNotification(self->port_,
                                        device,
                                        kIOGeneralInterest,
                                        (IOServiceInterestCallback)deviceDetach,
                                        tracker.get(),
                                        &(tracker->notification));
+      if (KERN_SUCCESS != kr) {
+        continue;
+      }
+      self->devices_.push_back(tracker);
     }
     if (self->publisher_started_) {
       self->newEvent(device, IOKitEventContext::Action::DEVICE_ATTACH);
     }
-    IOObjectRelease(device);
   }
 }
 
@@ -184,20 +191,17 @@ void IOKitEventPublisher::deviceDetach(void* refcon,
   // The device tracker allows us to emit using the publisher and release the
   // notification created for this device.
   self->newEvent(device, IOKitEventContext::Action::DEVICE_DETACH);
-  IOObjectRelease(device);
 
   {
     WriteLock lock(self->mutex_);
     // Remove the device tracker.
-    IOObjectRelease(tracker->notification);
     auto it = self->devices_.begin();
     while (it != self->devices_.end()) {
       if ((*it)->notification == tracker->notification) {
-        IOObjectRelease((*it)->notification);
         self->devices_.erase(it);
         break;
       }
-      it++;
+      ++it;
     }
   }
 }
@@ -251,9 +255,6 @@ void IOKitEventPublisher::stop() {
   }
 
   // Clear all devices and their notifications.
-  for (const auto& device : devices_) {
-    IOObjectRelease(device->notification);
-  }
   devices_.clear();
 }
 
