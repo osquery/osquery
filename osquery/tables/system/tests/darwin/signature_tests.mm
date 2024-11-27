@@ -65,7 +65,7 @@ TEST_F(SignatureTest, test_get_valid_signature) {
                   {"authority", "Software Signing"}};
 
   for (bool hash_resources : {true, false}) {
-    for (bool hash_executable: {true, false}) {
+    for (bool hash_executable : {true, false}) {
       QueryData results;
       genSignatureForFile(path, hash_resources, hash_executable, results);
 
@@ -215,11 +215,11 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   genSignatureForFile(newPath, false, false, results2);
 
   Row expected2 = {{"path", newPath},
-                  {"hash_resources", "0"},
-                  {"hash_executable", "0"},
-                  {"signed", "1"},
-                  {"identifier", "com.apple.ls"},
-                  {"authority", "Software Signing"}};
+                   {"hash_resources", "0"},
+                   {"hash_executable", "0"},
+                   {"signed", "1"},
+                   {"identifier", "com.apple.ls"},
+                   {"authority", "Software Signing"}};
 
   for (const auto& column : expected2) {
     EXPECT_EQ(results2.front()[column.first], column.second);
