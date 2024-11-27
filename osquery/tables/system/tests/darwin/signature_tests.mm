@@ -27,6 +27,7 @@ namespace tables {
 
 void genSignatureForFile(const std::string& path,
                          bool hashResources,
+                         bool hashExecutable,
                          QueryData& results);
 
 // Get the full, real path to the unsigned test executable (only works on
@@ -64,24 +65,27 @@ TEST_F(SignatureTest, test_get_valid_signature) {
                   {"authority", "Software Signing"}};
 
   for (bool hash_resources : {true, false}) {
-    QueryData results;
-    genSignatureForFile(path, hash_resources, results);
+    for (bool hash_executable: {true, false}) {
+      QueryData results;
+      genSignatureForFile(path, hash_resources, hash_executable, results);
 
-    const auto& first_row = results.front();
+      const auto& first_row = results.front();
 
-    for (const auto& column : expected) {
-      const auto& actual_value = first_row.at(column.first);
-      const auto& expected_value = column.second;
+      for (const auto& column : expected) {
+        const auto& actual_value = first_row.at(column.first);
+        const auto& expected_value = column.second;
 
-      EXPECT_EQ(expected_value, actual_value)
-          << " for column named " << column.first;
+        EXPECT_EQ(expected_value, actual_value)
+            << " for column named " << column.first;
+      }
+
+      EXPECT_EQ(first_row.at("hash_resources"), INTEGER(hash_resources));
+      EXPECT_EQ(first_row.at("hash_executable"), INTEGER(hash_executable));
+
+      // Could check the team identifier but it is flaky on some distros.
+      // ASSERT_TRUE(results.front()["team_identifier"].length() > 0);
+      ASSERT_TRUE(first_row.at("cdhash").length() > 0);
     }
-
-    EXPECT_EQ(first_row.at("hash_resources"), INTEGER(hash_resources));
-
-    // Could check the team identifier but it is flaky on some distros.
-    // ASSERT_TRUE(results.front()["team_identifier"].length() > 0);
-    ASSERT_TRUE(first_row.at("cdhash").length() > 0);
   }
 }
 
@@ -95,10 +99,11 @@ TEST_F(SignatureTest, test_get_unsigned) {
   std::string path = getUnsignedExecutablePath();
 
   QueryData results;
-  genSignatureForFile(path, true, results);
+  genSignatureForFile(path, true, true, results);
 
   Row expected = {{"path", path},
                   {"hash_resources", "1"},
+                  {"hash_executable", "1"},
                   {"signed", "0"},
                   {"identifier", ""},
                   {"cdhash", ""},
@@ -189,10 +194,11 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
 
   // Get the signature of this new file.
   QueryData results;
-  genSignatureForFile(newPath, true, results);
+  genSignatureForFile(newPath, true, true, results);
 
   Row expected = {{"path", newPath},
                   {"hash_resources", "1"},
+                  {"hash_executable", "1"},
                   {"signed", "0"},
                   {"identifier", "com.apple.ls"},
                   {"authority", "Software Signing"}};
@@ -202,6 +208,24 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   }
   ASSERT_TRUE(results.front().count("team_identifier") > 0);
   ASSERT_TRUE(results.front()["cdhash"].length() > 0);
+
+  // Now requesting a signature should return signed = 1 even if the
+  // executable was modified because we are setting hash_executable=0.
+  QueryData results2;
+  genSignatureForFile(newPath, false, false, results2);
+
+  Row expected2 = {{"path", newPath},
+                  {"hash_resources", "0"},
+                  {"hash_executable", "0"},
+                  {"signed", "1"},
+                  {"identifier", "com.apple.ls"},
+                  {"authority", "Software Signing"}};
+
+  for (const auto& column : expected2) {
+    EXPECT_EQ(results2.front()[column.first], column.second);
+  }
+  ASSERT_TRUE(results2.front().count("team_identifier") > 0);
+  ASSERT_TRUE(results2.front()["cdhash"].length() > 0);
 }
 }
 }
