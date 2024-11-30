@@ -45,7 +45,7 @@ The recommended way to set these ACLs is with PowerShell, and we've written a he
 C:\Users\Thor\work\repos\osquery [master ≡]
 λ  . .\tools\deployment\chocolatey\tools\osquery_utils.ps1
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  Set-SafePermissions C:\Program Files\osquery\osqueryd\
+λ  Set-SafePermissions "`"C:\Program Files\osquery\osqueryd\`""
 True
 ```
 
@@ -66,7 +66,7 @@ C:\Program Files\osquery
 
 ```PowerShell
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  New-Service -Name "osqueryd" -BinaryPathName "C:\Program Files\osquery\osqueryd\osqueryd.exe --flagfile=C:\Program Files\osquery\osquery.flags"
+λ  New-Service -Name "osqueryd" -BinaryPathName "`"C:\Program Files\osquery\osqueryd\osqueryd.exe`" --flagfile=`"C:\Program Files\osquery\osquery.flags`""
 ```
 
 * Lastly, if you'd prefer to use the Windows service utility `sc.exe` you can use:
