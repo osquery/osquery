@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/scope_guard.h>
 #include <IOKit/IOMessage.h>
+#include <osquery/utils/scope_guard.h>
 
 #include <osquery/core/tables.h>
 #include <osquery/events/darwin/iokit.h>
@@ -24,9 +24,10 @@ struct DeviceTracker : private boost::noncopyable {
  public:
   explicit DeviceTracker(IOKitEventPublisher* p) : publisher(p) {}
   ~DeviceTracker() {
-    if(notification)
+    if (notification)
       IOObjectRelease(notification);
   }
+
  public:
   IOKitEventPublisher* publisher{nullptr};
   io_object_t notification{0};
@@ -160,12 +161,13 @@ void IOKitEventPublisher::deviceAttach(void* refcon, io_iterator_t iterator) {
 
       // Create a notification tracker.
       auto tracker = std::make_shared<struct DeviceTracker>(self);
-      auto kr = IOServiceAddInterestNotification(self->port_,
-                                       device,
-                                       kIOGeneralInterest,
-                                       (IOServiceInterestCallback)deviceDetach,
-                                       tracker.get(),
-                                       &(tracker->notification));
+      auto kr = IOServiceAddInterestNotification(
+          self->port_,
+          device,
+          kIOGeneralInterest,
+          (IOServiceInterestCallback)deviceDetach,
+          tracker.get(),
+          &(tracker->notification));
       if (KERN_SUCCESS != kr) {
         continue;
       }
