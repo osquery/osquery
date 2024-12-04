@@ -6,7 +6,7 @@ free to reach out on osquery Slack.
 
 ## Slack
 
-You can register on our Slack using our [shared invite](https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ).
+You can register on our Slack using our [shared invite](https://join.slack.com/t/osquery/shared_invite/zt-1wipcuc04-DBXmo51zYJKBu3_EP3xZPA).
 Before posting to the `general` channel take a look at other available channels where your question might be a better fit.
 If you have a question about a vendor solution post **only** on the vendor specific channel.
 

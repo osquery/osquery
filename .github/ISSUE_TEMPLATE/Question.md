@@ -17,7 +17,7 @@ We only use issues to track bugs, feature requests or blueprints. For everything
 
 Slack : https://osquery.slack.com
 
-Slack newcomers, first use this invite link: https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ
+Slack newcomers, first use this invite link: https://join.slack.com/t/osquery/shared_invite/zt-1wipcuc04-DBXmo51zYJKBu3_EP3xZPA
 
 Reddit : https://www.reddit.com/r/osquery/
 

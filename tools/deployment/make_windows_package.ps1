@@ -430,7 +430,7 @@ function New-ChocolateyPackage() {
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/osquery/osquery</projectSourceUrl>
     <docsUrl>https://osquery.readthedocs.io/en/stable</docsUrl>
-    <mailingListUrl>https://join.slack.com/t/osquery/shared_invite/zt-1wi6cdgf7-zR2wt7FZ0ClHj6tEym6KFQ</mailingListUrl>
+    <mailingListUrl>https://join.slack.com/t/osquery/shared_invite/zt-1wipcuc04-DBXmo51zYJKBu3_EP3xZPA</mailingListUrl>
     <bugTrackerUrl>https://github.com/osquery/osquery/issues</bugTrackerUrl>
     <tags>InfoSec Tools</tags>
     <summary>
