@@ -57,6 +57,7 @@ def platform_for_spec(path):
     platforms that table will work on. In the event that no match is found, it
     will be assumed that the table is found on all platforms.
     """
+
     full_path = os.path.abspath(path)
     directory_list = os.path.dirname(full_path).split("/")
     directory = directory_list[len(directory_list)-1]
