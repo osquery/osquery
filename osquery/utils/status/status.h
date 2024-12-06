@@ -34,14 +34,13 @@ namespace osquery {
 class Status {
  public:
   static constexpr int kSuccessCode = 0;
-  static const std::string okMessage;
   /**
    * @brief Default constructor
    *
    * Note that the default constructor initialized an osquery::Status instance
    * to a state such that a successful operation is indicated.
    */
-  explicit Status(int c = Status::kSuccessCode) : code_(c), message_(okMessage) {}
+  explicit Status(int c = Status::kSuccessCode) : code_(c), message_("OK") {}
 
   /**
    * @brief A constructor which can be used to concisely express the status of
