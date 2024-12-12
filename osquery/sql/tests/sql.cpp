@@ -314,14 +314,12 @@ TEST_F(SQLTests, test_regex_split_slashes) {
   query(
       "select regex_split('/foo/bar', '/', 0) as t0, \
                 regex_split('/foo/bar', '/', 1) as t1, \
-                regex_split('/foo/bar', '/', 2) as t2, \
-                regex_split('/foo/bar', '/', 3) as t3",
+                regex_split('/foo/bar', '/', 2) as t2",
       d);
   ASSERT_EQ(d.size(), 1U);
-  EXPECT_EQ(d[0]["t0"], "");
-  EXPECT_EQ(d[0]["t1"], "foo");
-  EXPECT_EQ(d[0]["t2"], "bar");
-  EXPECT_EQ(d[0]["t3"], "");
+  EXPECT_EQ(d[0]["t0"], "foo");
+  EXPECT_EQ(d[0]["t1"], "bar");
+  EXPECT_EQ(d[0]["t2"], "");
 }
 
 TEST_F(SQLTests, test_regex_split_double_semicolon) {
@@ -359,7 +357,7 @@ TEST_F(SQLTests, test_regex_split_filename_extract) {
   // A more complex example.
   query(
       "select regex_split('/filesystem/path/download.extension.zip', "
-      "'(.*/)|(.extension.zip)', 1) as test",
+      "'(.*/)|(.extension.zip)', 0) as test",
       d);
   ASSERT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "download");
