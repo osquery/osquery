@@ -10,7 +10,7 @@ schema([
     Column("inactive", BIGINT, "Number of days after password expires until account is blocked"),
     Column("expire", BIGINT, "Number of days since UNIX epoch date until account is disabled"),
     Column("flag", BIGINT, "Reserved"),
-    Column("username", TEXT, "Username", index=True),
+    Column("username", TEXT, "Username", index=True, optimized=True),
 ])
 implementation("system/shadow@genShadow")
 examples([
