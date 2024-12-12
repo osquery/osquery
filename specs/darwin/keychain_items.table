@@ -9,6 +9,6 @@ schema([
     Column("modified", TEXT, "Date of last modification"),
     Column("type", TEXT, "Keychain item type (class)"),
     Column("pk_hash", TEXT, "Hash of associated public key (SHA1 of subjectPublicKey, see RFC 8520 4.2.1.2)"),
-    Column("path", TEXT, "Path to keychain containing item", additional=True),
+    Column("path", TEXT, "Path to keychain containing item", additional=True, optimized=True),
 ])
 implementation("keychain_items@genKeychainItems")
