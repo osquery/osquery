@@ -1,7 +1,7 @@
 table_name("prefetch")
 description("Prefetch files show metadata related to file execution.")
 schema([
-    Column("path", TEXT, "Prefetch file path.", additional=True),
+    Column("path", TEXT, "Prefetch file path.", additional=True, optimized=True),
     Column("filename", TEXT, "Executable filename."),
     Column("hash", TEXT, "Prefetch CRC hash."),
     Column("last_run_time", INTEGER, "Most recent time application was run."),
