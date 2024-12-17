@@ -145,9 +145,10 @@ QueryData genLoggedInUsers(QueryContext& context) {
       wtsClient = nullptr;
     }
 
-    const auto sidBuf =
-        getSidFromAccountName(wstringToString(wtsSession->Domain) + "\\" +
-                              wstringToString(wtsSession->UserName));
+    std::wstring domainUser = wtsSession->Domain;
+    domainUser += L"\\";
+    domainUser += wtsSession->UserName;
+    const auto sidBuf = getSidFromAccountName(domainUser);
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);
