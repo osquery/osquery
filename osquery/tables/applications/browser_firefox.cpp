@@ -9,6 +9,7 @@
 
 #include <optional>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core/tables.h>
@@ -194,6 +195,17 @@ QueryData genFirefoxAddons(QueryContext& context) {
           continue;
         }
       }
+
+      // Do not list Crash Reports and Pending Pings folders as profiles
+      profiles.erase(std::remove_if(profiles.begin(),
+                                    profiles.end(),
+                                    [](const std::string& s) {
+                                      return boost::algorithm::ends_with(
+                                                 s, "Crash Reports") ||
+                                             boost::algorithm::ends_with(
+                                                 s, "Pending Pings");
+                                    }),
+                     profiles.end());
 
       // Generate an addons list from their extensions JSON.
       for (const auto& profile : profiles) {
