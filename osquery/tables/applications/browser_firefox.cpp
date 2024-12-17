@@ -195,6 +195,15 @@ QueryData genFirefoxAddons(QueryContext& context) {
         }
       }
 
+      // Do not list Crash Reports and Pending Pings folders as profiles
+      profiles.erase(std::remove_if(profiles.begin(),
+                                    profiles.end(),
+                                    [](const std::string& s) {
+                                      return s.ends_with("Crash Reports") ||
+                                             s.ends_with("Pending Pings");
+                                    }),
+                     profiles.end());
+
       // Generate an addons list from their extensions JSON.
       for (const auto& profile : profiles) {
         genFirefoxAddonsFromExtensions(row.at("uid"), profile, results);
