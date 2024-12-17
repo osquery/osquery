@@ -146,7 +146,8 @@ QueryData genLoggedInUsers(QueryContext& context) {
     }
 
     const auto sidBuf =
-        getSidFromAccountName(wtsSession->Domain + "\\" + wtsSession->UserName);
+        getSidFromAccountName(wstringToString(wtsSession->Domain) + "\\" +
+                              wstringToString(wtsSession->UserName));
 
     if (sessionInfo != nullptr) {
       WTSFreeMemory(sessionInfo);
