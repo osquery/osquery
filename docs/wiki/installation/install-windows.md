@@ -59,7 +59,7 @@ For example:
 
 ````PowerShell
 C:\Program Files\osquery
-λ  .\manage-osqueryd.ps1 -install -startupArgs "C:\Program Files\osquery\osquery.flags"
+λ  .\manage-osqueryd.ps1 -install -startupArgs "--flagfile=`"C:\Program Files\osquery\osquery.flags`""
 ````
 
 * If you'd rather use Powershell to manually create the service you can run:
@@ -99,7 +99,6 @@ In order to enable support for the Windows Event Log, you first have to install 
 
 * **Install**: `wevtutil im "C:\Program Files\osquery\osquery.man"`
 * **Uninstall**: `wevtutil um "C:\Program Files\osquery\osquery.man"`
-
 The same operation can be performed using the osquery manager (`C:\Program Files\osquery\manage-osqueryd.ps1`):
 
 * **Install**: `.\manage-osqueryd.ps1 -installWelManifest`
