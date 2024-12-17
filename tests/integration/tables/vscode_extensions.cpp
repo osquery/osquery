@@ -57,6 +57,7 @@ TEST_F(vscodeExtensions, test_sanity) {
       {"installed_at", NonNegativeInt},
       {"prerelease", Bool | EmptyOk},
       {"uid", NonNegativeInt},
+      {"vscode_edition", NormalType},
   };
   validate_rows(data, row_map);
 }
