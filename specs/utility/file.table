@@ -18,6 +18,7 @@ schema([
     Column("hard_links", INTEGER, "Number of hard links"),
     Column("symlink", INTEGER, "1 if the path is a symlink, otherwise 0"),
     Column("type", TEXT, "File status"),
+    Column("symlink_target", TEXT, "Full path of the symlink target if any")
 ])
 extended_schema(WINDOWS, [
     Column("attributes", TEXT, "File attrib string. See: https://ss64.com/nt/attrib.html"),
