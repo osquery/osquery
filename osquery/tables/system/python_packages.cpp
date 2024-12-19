@@ -16,7 +16,9 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
@@ -48,6 +50,11 @@ const std::set<std::string> kDarwinPythonPath = {
     "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions",
 };
 // clang-format on
+
+const std::set<std::string> kUserDirectoryPaths = {
+    ".pyenv/versions",
+    "Library/Python",
+};
 
 const std::string kWinPythonInstallKey =
     "SOFTWARE\\Python\\PythonCore\\%\\InstallPath";
@@ -87,7 +94,8 @@ void genPackage(const std::string& path, Row& r, Logger& logger) {
 
 void genSiteDirectories(const std::string& site,
                         QueryData& results,
-                        Logger& logger) {
+                        Logger& logger,
+                        const std::int64_t& user_id) {
   std::vector<std::string> directories;
 
   if (!listDirectoriesInDirectory(site, directories, true).ok()) {
@@ -113,13 +121,15 @@ void genSiteDirectories(const std::string& site,
     r["directory"] = site;
     r["path"] = directory;
     r["pid_with_namespace"] = "0";
+    r["uid"] = BIGINT(user_id);
     results.push_back(r);
   }
 }
 
 void genWinPythonPackages(const std::string& keyGlob,
                           QueryData& results,
-                          Logger& logger) {
+                          Logger& logger,
+                          const std::int64_t& user_id) {
 #ifdef WIN32
   std::set<std::string> installPathKeys;
   expandRegistryGlobs(keyGlob, installPathKeys);
@@ -130,11 +140,57 @@ void genWinPythonPackages(const std::string& keyGlob,
       if (p.at("name") != "(Default)") {
         continue;
       }
-      genSiteDirectories(p.at("data"), results, logger);
+      genSiteDirectories(p.at("data"), results, logger, user_id);
     }
     pythonInstallLocation.clear();
   }
 #endif
+}
+
+std::vector<std::map<std::string, std::variant<std::int64_t, std::string>>>
+getUserPathList(const QueryContext& context) {
+  std::vector<std::map<std::string, std::variant<std::int64_t, std::string>>>
+      paths_list;
+
+  auto user_list = usersFromContext(context);
+  for (const auto& user : user_list) {
+    if (user.count("uid") == 0 || user.count("directory") == 0) {
+      continue;
+    }
+
+    const auto& uid_as_string = user.at("uid");
+    auto uid_as_big_int = tryTo<int64_t>(uid_as_string, 10);
+    if (uid_as_big_int.isError()) {
+      LOG(ERROR) << "Invalid uid field returned: " << uid_as_string;
+      continue;
+    }
+    const auto& path = user.at("directory");
+
+    for (const auto& path_postfix : kUserDirectoryPaths) {
+      auto dir = path + "/" + path_postfix + "/";
+
+      std::vector<std::string> versions;
+      if (!listDirectoriesInDirectory(dir, versions, false).ok()) {
+        continue;
+      }
+
+      for (const auto& version : versions) {
+        auto path = version + "/lib" + "/python%" + "/site-packages";
+        std::vector<std::string> sites;
+        resolveFilePattern(path, sites);
+        for (const auto& site : sites) {
+          std::map<std::string, std::variant<std::int64_t, std::string>>
+              user_path = {
+                  {"user_id", uid_as_big_int.get()},
+                  {"path", site},
+              };
+          paths_list.push_back(user_path);
+        }
+      }
+    }
+  }
+
+  return paths_list;
 }
 
 QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
@@ -153,10 +209,18 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
     }
   }
   for (const auto& key : paths) {
-    genSiteDirectories(key, results, logger);
+    genSiteDirectories(key, results, logger, 0);
   }
 
   if (isPlatform(PlatformType::TYPE_OSX)) {
+    auto user_paths = getUserPathList(context);
+    for (const auto& user_path : user_paths) {
+      genSiteDirectories(std::get<std::string>(user_path.at("path")),
+                         results,
+                         logger,
+                         std::get<std::int64_t>(user_path.at("user_id")));
+    }
+
     for (const auto& dir : kDarwinPythonPath) {
       std::vector<std::string> versions;
       if (!listDirectoriesInDirectory(dir, versions, false).ok()) {
@@ -172,17 +236,17 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
 
         auto complete = version + "lib/python" +
                         version_path.filename().string() + "/site-packages";
-        genSiteDirectories(complete, results, logger);
+        genSiteDirectories(complete, results, logger, 0);
       }
     }
   } else if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     // Enumerate any system installed python packages
     auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinPythonInstallKey;
-    genWinPythonPackages(installPathKey, results, logger);
+    genWinPythonPackages(installPathKey, results, logger, 0);
 
     // Enumerate any user installed python packages
     installPathKey = "HKEY_USERS\\%\\" + kWinPythonInstallKey;
-    genWinPythonPackages(installPathKey, results, logger);
+    genWinPythonPackages(installPathKey, results, logger, 0);
   }
 
   return results;
