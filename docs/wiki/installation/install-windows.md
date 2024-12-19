@@ -45,7 +45,7 @@ The recommended way to set these ACLs is with PowerShell, and we've written a he
 C:\Users\Thor\work\repos\osquery [master ≡]
 λ  . .\tools\deployment\chocolatey\tools\osquery_utils.ps1
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  Set-SafePermissions C:\Program Files\osquery\osqueryd\
+λ  Set-SafePermissions "C:\Program Files\osquery\osqueryd\"
 True
 ```
 
@@ -59,21 +59,21 @@ For example:
 
 ````PowerShell
 C:\Program Files\osquery
-λ  .\manage-osqueryd.ps1 -install -startupArgs "C:\Program Files\osquery\osquery.flags"
+λ  .\manage-osqueryd.ps1 -install -startupArgs "--flagfile=`"C:\Program Files\osquery\osquery.flags`""
 ````
 
 * If you'd rather use Powershell to manually create the service you can run:
 
 ```PowerShell
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  New-Service -Name "osqueryd" -BinaryPathName "C:\Program Files\osquery\osqueryd\osqueryd.exe --flagfile=C:\Program Files\osquery\osquery.flags"
+λ  New-Service -Name "osqueryd" -BinaryPathName "`"C:\Program Files\osquery\osqueryd\osqueryd.exe`" --flagfile=`"C:\Program Files\osquery\osquery.flags`""
 ```
 
 * Lastly, if you'd prefer to use the Windows service utility `sc.exe` you can use:
 
 ```PowerShell
 C:\Users\Thor\work\repos\osquery [master ≡]
-λ  sc.exe create osqueryd type= own start= auto error= normal binpath= "C:\Program Files\osquery\osqueryd\osqueryd.exe --flagfile=\Program Files\osquery\osquery.flags" displayname= 'osqueryd'
+λ  sc.exe create osqueryd type= own start= auto error= normal binpath= "`"C:\Program Files\osquery\osqueryd\osqueryd.exe`" --flagfile=`"C:\Program Files\osquery\osquery.flags`"" displayname= 'osqueryd'
 ```
 
 ## Running osquery
@@ -97,9 +97,8 @@ If you'd like to create your own osquery Chocolatey package, you can run [`.\too
 
 In order to enable support for the Windows Event Log, you first have to install the manifest file. To install and uninstall it manually, you can use the built-in `wevtutil` command:
 
-* **Install**: `wevtutil im C:\Program Files\osquery\osquery.man`
-* **Uninstall**: `wevtutil um C:\Program Files\osquery\osquery.man`
-
+* **Install**: `wevtutil im "C:\Program Files\osquery\osquery.man"`
+* **Uninstall**: `wevtutil um "C:\Program Files\osquery\osquery.man"`
 The same operation can be performed using the osquery manager (`C:\Program Files\osquery\manage-osqueryd.ps1`):
 
 * **Install**: `.\manage-osqueryd.ps1 -installWelManifest`
