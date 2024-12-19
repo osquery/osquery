@@ -42,8 +42,13 @@ struct EndpointSecurityEventContext : public EventContext {
   std::string event_type;
 
   pid_t pid;
+  int pidversion;
   pid_t parent;
+  int parent_pidversion;
   pid_t original_parent;
+  pid_t session_id;
+  pid_t responsible_pid;
+  int responsible_pidversion;
 
   std::string path;
   std::string cwd;
