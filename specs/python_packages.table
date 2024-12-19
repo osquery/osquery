@@ -1,18 +1,22 @@
 table_name("python_packages")
-description("Python packages installed in a system.")
+description("Python packages installed in a system. NOTE: when querying on windows, even without a users cross join, all user installed python packages will be returned. This special behavior is to not break original functionality.")
 schema([
     Column("name", TEXT, "Package display name"),
+    Column("uid", BIGINT, "The local user that owns the python package", index=True),
     Column("version", TEXT, "Package-supplied version", collate="version"),
     Column("summary", TEXT, "Package-supplied summary"),
     Column("author", TEXT, "Optional package author"),
     Column("license", TEXT, "License under which package is launched"),
     Column("path", TEXT, "Path at which this module resides"),
-    Column("directory", TEXT, "Directory where Python modules are located", index=True, optimized=True)
+    Column("directory", TEXT, "Directory where Python modules are located", index=True, optimized=True),
+    ForeignKey(column="uid", table="users"),
 ])
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
 ])
+attributes(user_data=True)
 implementation("system/linux/python_packages@genPythonPackages")
 examples([
-"select * from python_packages where directory='/usr/'",
+    "select * from python_packages where directory='/usr/'",
+    "select * from users cross join python_packages using (uid)"
 ])
