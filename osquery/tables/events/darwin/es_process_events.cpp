@@ -48,8 +48,13 @@ Status ESProcessEventSubscriber::Callback(
   r["event_type"] = ec->event_type;
 
   r["pid"] = BIGINT(ec->pid);
+  r["pidversion"] = INTEGER(ec->pidversion);
   r["parent"] = BIGINT(ec->parent);
+  r["parent_pidversion"] = INTEGER(ec->parent_pidversion);
   r["original_parent"] = BIGINT(ec->original_parent);
+  r["session_id"] = BIGINT(ec->session_id);
+  r["responsible_pid"] = BIGINT(ec->responsible_pid);
+  r["responsible_pidversion"] = INTEGER(ec->responsible_pidversion);
 
   r["path"] = ec->path;
   r["cwd"] = ec->cwd;
