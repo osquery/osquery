@@ -30,7 +30,7 @@ TEST_F(ProcessContextFactoryTests, captureSingleProcess) {
 
   EXPECT_TRUE(succeeded);
 
-  EXPECT_EQ(process_context.parent_process_id, 3616);
+  EXPECT_EQ(process_context.parent_process_id, 33616);
   EXPECT_EQ(process_context.binary_path, "/usr/bin/zsh");
 
   ASSERT_EQ(process_context.argv.size(), 3U);

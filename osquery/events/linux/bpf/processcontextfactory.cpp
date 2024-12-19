@@ -245,7 +245,7 @@ bool ProcessContextFactory::getParentPidFromStatFile(IFilesystem& fs,
     return false;
   }
 
-  auto parent_pid_it = std::next(parent_pid_r_it.base(), 4);
+  auto parent_pid_it = std::next(parent_pid_r_it.base(), 3);
   if (parent_pid_it >= buffer.end()) {
     return false;
   }
