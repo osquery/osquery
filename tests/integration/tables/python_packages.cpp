@@ -25,6 +25,7 @@ class pythonPackages : public testing::Test {
 TEST_F(pythonPackages, test_sanity) {
   ValidationMap row_map = {
       {"name", NormalType},
+      {"uid", IntType},
       {"version", NormalType},
       {"summary", NormalType},
       {"author", NormalType},
