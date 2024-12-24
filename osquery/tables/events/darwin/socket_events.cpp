@@ -185,6 +185,8 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
         } else if (r["action"] == "accept") {
           r["remote_address"] = getIpFromToken(tok);
+          // The message does contain a port value but it does not seem to
+          // correspond to either the local or the remote port.
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
@@ -208,6 +210,8 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
         } else if (r["action"] == "accept") {
           r["remote_address"] = getIpFromToken(tok);
+          // The message does contain a port value but it does not seem to
+          // correspond to either the local or the remote port.
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
