@@ -57,15 +57,9 @@ bool SocketEventSubscriber::parseSockAddr(const std::string& saddr,
   if (row["action"] == "bind") {
     address_column = "local_address";
     port_column = "local_port";
-
-    row["remote_address"] = "0";
-    row["remote_port"] = "0";
   } else {
     address_column = "remote_address";
     port_column = "remote_port";
-
-    row["local_address"] = "0";
-    row["local_port"] = "0";
   }
 
   // The protocol is not included in the audit message.
