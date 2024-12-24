@@ -6,7 +6,6 @@ schema([
     Column("path", TEXT, "Path of executed file"),
     Column("fd", TEXT, "The file description for the process socket"),
     Column("auid", BIGINT, "Audit User ID"),
-    Column("status", TEXT, "Either 'succeeded', 'failed', 'in_progress' (connect() on non-blocking socket) or 'no_client' (null accept() on non-blocking socket)"),
     Column("family", INTEGER, "The Internet protocol family ID"),
     Column("protocol", INTEGER, "The network protocol ID",
         hidden=True),
@@ -20,6 +19,9 @@ schema([
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
     Column("success", INTEGER, "Deprecated. Use the 'status' column instead", hidden=True),
+])
+extended_schema(LINUX, [
+        Column("status", TEXT, "Either 'succeeded', 'failed', 'in_progress' (connect() on non-blocking socket) or 'no_client' (null accept() on non-blocking socket)"),
 ])
 attributes(event_subscriber=True)
 implementation("socket_events@socket_events::genTable")

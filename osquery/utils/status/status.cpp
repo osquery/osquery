@@ -15,6 +15,8 @@ namespace osquery {
 
 constexpr int Status::kSuccessCode;
 
+const std::string Status::okMessage("OK");
+
 Status Status::failure(int code, std::string message) {
   assert(code != Status::kSuccessCode &&
          "Using 'failure' to create Status object with a kSuccessCode");

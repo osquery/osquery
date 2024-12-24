@@ -434,8 +434,10 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   audit_rule_data rule = {};
 
   // Attempt to add each one of the rules we collected
+  int machine = audit_detect_machine();
   for (int syscall_number : monitored_syscall_list_) {
-    audit_rule_syscall_data(&rule, syscall_number);
+    const char* syscall_name = audit_syscall_to_name(syscall_number, machine);
+    audit_rule_syscallbyname_data(&rule, syscall_name);
     if (FLAGS_audit_debug) {
       VLOG(1) << "Audit rule queued for syscall " << syscall_number;
     }
