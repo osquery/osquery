@@ -38,7 +38,6 @@ from gentable import *
 PLATFORM_DIRS = {
     "specs": ["darwin", "linux", "windows"],
     "utility": ["darwin", "linux", "windows"],
-    "yara": ["darwin", "linux", "windows"],
     "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
     "kernel": ["darwin"],

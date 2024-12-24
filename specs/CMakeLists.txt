@@ -74,6 +74,7 @@ function(generateNativeTables)
     utility/osquery_registry.table
     utility/osquery_schedule.table
     utility/time.table
+    yara.table
     ycloud_instance_metadata.table
   )
 
@@ -307,7 +308,6 @@ function(generateNativeTables)
     "windows/tpm_info.table:windows"
     "windows/security_profile_info.table:windows"
     "windows/windows_search.table:windows"
-    "yara/yara.table:linux,macos,windows"
   )
 
   if(OSQUERY_BUILD_BPF)
