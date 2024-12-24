@@ -118,7 +118,7 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["action"] = "connect";
         } else if (tok.tt.hdr64_ex.e_type == AUE_BIND) {
           r["action"] = "bind";
-        } else if (tok.tt.hdr32.e_type == AUE_ACCEPT) {
+        } else if (tok.tt.hdr64.e_type == AUE_ACCEPT) {
           r["action"] = "accept";
         } else {
           continue;
