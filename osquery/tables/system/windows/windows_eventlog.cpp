@@ -92,7 +92,7 @@ void renderQueryResults(QueryContext& context,
   uint32_t position = 0;
   std::vector<EVT_HANDLE> events(numEventsBlock);
 
-  auto vevents = osquery::scope_guard::create([&]() {
+  auto close_events = osquery::scope_guard::create([&]() {
     for (auto& evt : events) {
       EvtClose(evt);
       evt = nullptr;
