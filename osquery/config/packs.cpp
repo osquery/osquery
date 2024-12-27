@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <chrono>
 #include <random>
 
 #include <osquery/config/packs.h>
