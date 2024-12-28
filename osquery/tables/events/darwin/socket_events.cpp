@@ -179,8 +179,6 @@ Status OpenBSMNetEvSubscriber::Callback(
       }
       case AUT_SOCKINET32: {
         if (r["action"] == "bind") {
-          r["remote_address"] = "0";
-          r["remote_port"] = "0";
           r["local_address"] = getIpFromToken(tok);
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
         } else if (r["action"] == "accept") {
@@ -190,8 +188,6 @@ Status OpenBSMNetEvSubscriber::Callback(
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
-          r["local_address"] = "0";
-          r["local_port"] = "0";
         }
         if (tok.tt.sockinet_ex32.family == 2) {
           r["family"] = INTEGER(2);
@@ -204,8 +200,6 @@ Status OpenBSMNetEvSubscriber::Callback(
       }
       case AUT_SOCKINET128: {
         if (r["action"] == "bind") {
-          r["remote_address"] = "0";
-          r["remote_port"] = "0";
           r["local_address"] = getIpFromToken(tok);
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
         } else if (r["action"] == "accept") {
@@ -215,8 +209,6 @@ Status OpenBSMNetEvSubscriber::Callback(
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
-          r["local_address"] = "0";
-          r["local_port"] = "0";
         }
         if (tok.tt.sockinet_ex32.family == 2) {
           r["family"] = INTEGER(2);
