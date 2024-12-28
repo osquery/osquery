@@ -18,6 +18,7 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/openbsm.h>
+#include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/uptime.h>
 
@@ -70,7 +71,7 @@ Status OpenBSMNetEvSubscriber::init() {
 }
 
 void OpenBSMNetEvSubscriber::configure() {
-  std::vector<size_t> event_ids{AUE_CONNECT, AUE_BIND};
+  std::vector<size_t> event_ids{AUE_CONNECT, AUE_BIND, AUE_ACCEPT};
   for (const auto& evid : event_ids) {
     auto sc = createSubscriptionContext();
     sc->event_id = evid;
@@ -92,6 +93,8 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["action"] = "connect";
         } else if (tok.tt.hdr32.e_type == AUE_BIND) {
           r["action"] = "bind";
+        } else if (tok.tt.hdr32.e_type == AUE_ACCEPT) {
+          r["action"] = "accept";
         } else {
           continue;
         }
@@ -102,6 +105,8 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["action"] = "connect";
         } else if (tok.tt.hdr32_ex.e_type == AUE_BIND) {
           r["action"] = "bind";
+        } else if (tok.tt.hdr32.e_type == AUE_ACCEPT) {
+          r["action"] = "accept";
         } else {
           continue;
         }
@@ -113,6 +118,8 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["action"] = "connect";
         } else if (tok.tt.hdr64_ex.e_type == AUE_BIND) {
           r["action"] = "bind";
+        } else if (tok.tt.hdr64.e_type == AUE_ACCEPT) {
+          r["action"] = "accept";
         } else {
           continue;
         }
@@ -176,6 +183,10 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["remote_port"] = "0";
           r["local_address"] = getIpFromToken(tok);
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
+        } else if (r["action"] == "accept") {
+          r["remote_address"] = getIpFromToken(tok);
+          // The message does contain a port value but it does not seem to
+          // correspond to either the local or the remote port.
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
@@ -197,6 +208,10 @@ Status OpenBSMNetEvSubscriber::Callback(
           r["remote_port"] = "0";
           r["local_address"] = getIpFromToken(tok);
           r["local_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));
+        } else if (r["action"] == "accept") {
+          r["remote_address"] = getIpFromToken(tok);
+          // The message does contain a port value but it does not seem to
+          // correspond to either the local or the remote port.
         } else {
           r["remote_address"] = getIpFromToken(tok);
           r["remote_port"] = INTEGER(ntohs(tok.tt.sockinet_ex32.port));

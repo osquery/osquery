@@ -1,7 +1,7 @@
 table_name("socket_events")
-description("Track network socket opens and closes.")
+description("Track network socket bind, connect, and accepts.")
 schema([
-    Column("action", TEXT, "The socket action (bind, listen, close)"),
+    Column("action", TEXT, "The socket action (bind, connect, accept)"),
     Column("pid", BIGINT, "Process (or thread) ID"),
     Column("path", TEXT, "Path of executed file"),
     Column("fd", TEXT, "The file description for the process socket"),
