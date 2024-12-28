@@ -77,26 +77,24 @@ TEST_F(WindowsEventLogTests, parse_wel_xml) {
 }
 
 TEST_F(WindowsEventLogTests, parse_wel_xml_fails) {
-    std::string xml_event =
-        R"(<?xml version="1.0" encoding="UTF-8"?>
-               <Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
-                  <System>
-                         <Provider Name="Microsoft-Windows-Security-Auditing" Guid="{54849625-5478-4994-a5ba-3e3b0328c30d}" EventSourceName="" />
-                         <EventID>1234</EventID>
-                         <Version>0</Version>
-                         <Level>0</Level>
-                         <Task>13569</Task>
-                         <Opcode>0</Opcode>
-                         <Keywords>0x8020000000000000</Keywords>
-                         <TimeCreated SystemTime="2021-07-09T17:42:21.9876643Z" />
-                         <EventRecordID>203</EventRecordID>
-                         <Correlation ActivityID="{5afc5725-7524-0001-8857-fc5a2475d701}" />
-                         <Execution ProcessID="624" ThreadID="728" />
-                         <Channel>Security</Channel>
-                         <Computer>DESKTOP-HFR8AR9</Computer>
-                         <Security />
-                  </System>
-               </Event>)";
+  std::string xml_event =
+      "<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'>"
+      "<System>"
+      "<Provider Name='Microsoft-Windows-Security-Auditing' "
+      "Guid='{54849625-5478-4994-a5ba-3e3b0328c30d}' EventSourceName='' />"
+      "<EventID>1234</EventID>"
+      "<Version>0</Version>"
+      "<Level>0</Level>"
+      "<Task>13569</Task>"
+      "<Opcode>0</Opcode>"
+      "<Keywords>0x8020000000000000</Keywords>"
+      "<TimeCreated SystemTime='2021-07-09T17:42:21.9876643Z' />"
+      "<EventRecordID>203</EventRecordID>"
+      "<Correlation ActivityID='{5afc5725-7524-0001-8857-fc5a2475d701}' />"
+      "<Execution ProcessID='624' ThreadID='728' />"
+      "<Channel>Security</Channel>"
+      "<Computer>DESKTOP-HFR8AR9</Computer>"
+      "<Security /></System></Event>";
 
   QueryContext context;
 
