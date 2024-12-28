@@ -53,7 +53,7 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 
 ## macOS
 
-The current build of osquery supports deployment to the same set of macOS versions (macOS 10.15 and newer).  _Building_
+The current build of osquery supports deployment to the same set of macOS versions (macOS 10.15 and newer). _Building_
 osquery from source on macOS now requires macOS 12 Monterey alongwith Xcode 14 or newer.
 
 The initial directory is assumed to be `/Users/<user>`
@@ -94,11 +94,34 @@ cmake --build . -j $(sysctl -n hw.ncpu)
 
 Certain functionality on macOS requires an entitled and code-signed executable. By default, macOS builds from source will be _unsigned_ and these particular features will be disabled at runtime.
 
-Specifically, the `es_process_events` and `es_process_file_events` tables makes use of the EndpointSecurity APIs, which require osquery to be code-signed with a certificate possessing the EndpointSecurity Client entitlement. If unsigned, osquery will still run as normal, but `es_process_events`  and `es_process_file_events` will be disabled.
+Specifically, the `es_process_events` and `es_process_file_events` tables makes use of the EndpointSecurity APIs, which require osquery to be code-signed with a certificate possessing the EndpointSecurity Client entitlement. If unsigned, osquery will still run as normal, but `es_process_events` and `es_process_file_events` will be disabled.
 
-Organizations wishing to code-sign osquery themselves will need their Apple Developer team _account owner_ to manually request and obtain the EndpointSecurity Client entitlement from Apple, for their organization's code-signing certificate. Developers can also disable SIP in a development VM (disabling SIP decreases your system's security and is _not_ recommended except on a VM dedicated to building osquery) and use ad-hoc code-signing, if they want to work on `es_process_events` and `es_process_file_events` without pursuing the entitlement.
+Organizations wishing to code-sign osquery themselves will need their Apple Developer team _account owner_ to manually request and obtain the EndpointSecurity Client entitlement from Apple, for their organization's code-signing certificate.
+
+#### Testing EndpointSecurity Without Entitlements from Apple
+
+Developers can also disable SIP in a development VM (disabling SIP decreases your system's security and is _not_ recommended except on a VM dedicated to building osquery) and use ad-hoc code-signing to test `es_process_events` and `es_process_file_events` without pursuing the entitlement.
 
 If using VMware Fusion 12, for example, you can reach Recovery Mode by going to Virtual Machine, Settings, Startup Disk. There, hold the Option key, and click `Restart to Firmware...`. Restarting the VM will now enter the VMware virtual EFI shell. From here, select `Enter Setup`, `Boot from a File`, and then arrow down to the Recovery partition. Hit return to find and select the `boot.efi`, and hit return again to enter Recovery Mode. From a Terminal in Recovery Mode, you can [disable SIP](https://developer.apple.com/library/archive/documentation/Security/Conceptual/System_Integrity_Protection_Guide/ConfiguringSystemIntegrityProtection/ConfiguringSystemIntegrityProtection.html) and then reboot to macOS.
+
+To perform the ad-hoc signing, first create an entitlements file (`entitlements.plist`) with the following contents:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.endpoint-security.client</key>
+    <true/>
+</dict>
+</plist>
+```
+
+Then sign the osquery binary (update binary and entitlement file paths as appropriate). This codesign command must be run on the VM where the testing is taking place:
+
+```
+codesign -s - -f --entitlements ./entitlements.plist ./osqueryd
+```
 
 ## Windows 10
 
@@ -114,7 +137,7 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CMake](https://cmake.org/) (>= 3.21.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first!  Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
+- [CMake](https://cmake.org/) (>= 3.21.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
 - Visual Studio 2019 (2 options)
   1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", "C++ ATL tools", and "C++ Clang tools for Windows".
   2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
@@ -242,9 +265,9 @@ To avoid having to move the committed files to the stage area and back each time
 The `cppcheck` tool runs some static analysis checks on the C++ code to detect possible bugs or undefined behaviors.
 
 1. Install the cppcheck prerequisite:
-    - On Linux: `apt install cppcheck`
-    - On macOS: `brew install cppcheck`
-    - On Windows: download and run [the cppcheck MSI installer](https://github.com/danmar/cppcheck/releases).
+   - On Linux: `apt install cppcheck`
+   - On macOS: `brew install cppcheck`
+   - On Windows: download and run [the cppcheck MSI installer](https://github.com/danmar/cppcheck/releases).
 2. Build the `cppcheck` target: `cmake --build . --target cppcheck`
 
 ## Running clang-tidy (Linux only)
@@ -257,13 +280,13 @@ The `clang-tidy` executable is shipped along with the osquery toolchain, and it 
 
 By default, the following checks are enabled:
 
-1. cert-*
-2. cppcoreguidelines-*
-3. performance-*
-4. portability-*
-5. readability-*
-6. modernize-*
-7. bugprone-*
+1. cert-\*
+2. cppcoreguidelines-\*
+3. performance-\*
+4. portability-\*
+5. readability-\*
+6. modernize-\*
+7. bugprone-\*
 
 ## Using Vagrant
 
@@ -383,21 +406,21 @@ cd build
 
 Common input parameters
 
- - **OSQUERY_VERSION**: can be customized, but we usually use the output of `git describe --always`
- - **OSQUERY_DATA_PATH**: Where the package data has been installed
+- **OSQUERY_VERSION**: can be customized, but we usually use the output of `git describe --always`
+- **OSQUERY_DATA_PATH**: Where the package data has been installed
 
 ### Creating the Linux packages
 
 When generating packages, the install path for osquery is determined by `CMAKE_INSTALL_PREFIX` (default:
- `/usr/local/`) when building the TGZ "package", and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
-  when building either the DEB or RPM packages.
+`/usr/local/`) when building the TGZ "package", and `CMAKE_PACKAGING_INSTALL_PREFIX` (default: `/usr/`)
+when building either the DEB or RPM packages.
 
 Linux-specific parameters:
 
- - **CPACK_GENERATOR**: Either `DEB`, `RPM` or `TGZ`
- - **OSQUERY_SOURCE_DIRECTORY_LIST**: An optional list of paths, populated when creating the debuginfo and dbgsym packages for DEB/RPM. Pass the source and the build folders of osquery if you want to generate them.
+- **CPACK_GENERATOR**: Either `DEB`, `RPM` or `TGZ`
+- **OSQUERY_SOURCE_DIRECTORY_LIST**: An optional list of paths, populated when creating the debuginfo and dbgsym packages for DEB/RPM. Pass the source and the build folders of osquery if you want to generate them.
 
-*Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder to be in a path that's longer than `/usr/src/debug/osquery/src_1`.*
+_Note: RPM will always try to create debuginfo packages, to do so though it needs the source folder to be in a path that's longer than `/usr/src/debug/osquery/src_0` and the build folder to be in a path that's longer than `/usr/src/debug/osquery/src_1`._
 
 ```sh
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -414,10 +437,10 @@ cmake --build . --target package
 
 Windows-specific parameters:
 
- - **CPACK_GENERATOR**: Either `WIX` or `NuGet`
- - **OSQUERY_BITNESS**: Either 32 or 64, depending on which architecture has been built
+- **CPACK_GENERATOR**: Either `WIX` or `NuGet`
+- **OSQUERY_BITNESS**: Either 32 or 64, depending on which architecture has been built
 
-*Note: Please note that the NuGet and WIX generators only support the `a.b.c` version format. If the commit being built is not tagged, consider using `git describe --tags --abbrev=0`*
+_Note: Please note that the NuGet and WIX generators only support the `a.b.c` version format. If the commit being built is not tagged, consider using `git describe --tags --abbrev=0`_
 
 ```batch
 call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -436,7 +459,7 @@ cmake --build . --config Release --target package
 
 macOS-specific parameters:
 
- - **CPACK_GENERATOR**: Either `productbuild` (PKG  files) or `TGZ`
+- **CPACK_GENERATOR**: Either `productbuild` (PKG files) or `TGZ`
 
 ```sh
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -450,7 +473,7 @@ cmake --build . --target package
 
 ## Build Performance
 
-Generating a virtual table should *not* impact system performance. This is easier said than done, as some tables may _seem_ inherently latent (if you expect to run queries like `SELECT * from suid_bin;` which performs a complete filesystem traversal looking for binaries with suid permissions). Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
+Generating a virtual table should _not_ impact system performance. This is easier said than done, as some tables may _seem_ inherently latent (if you expect to run queries like `SELECT * from suid_bin;` which performs a complete filesystem traversal looking for binaries with suid permissions). Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
 
 Some quick features include:
 
