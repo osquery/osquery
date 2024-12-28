@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for yara
-// Spec file: specs/yara/yara.table
+// Spec file: specs/yara.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
@@ -16,10 +16,10 @@ namespace osquery {
 namespace table_tests {
 
 class yara : public testing::Test {
-  protected:
-    void SetUp() override {
-      setUpEnvironment();
-    }
+ protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
 };
 
 TEST_F(yara, test_sanity) {
