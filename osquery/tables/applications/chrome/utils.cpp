@@ -76,7 +76,8 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
     {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
     {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"},
-    {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"}};
+    {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"},
+    {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"}};
 // clang-format on
 
 const ChromePathSuffixMap kLinuxPathList = {
@@ -105,6 +106,7 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::Edge, "edge"},
         {ChromeBrowserType::Edge, "edge_beta"},
         {ChromeBrowserType::Vivaldi, "vivaldi"},
+        {ChromeBrowserType::Arc, "arc"},
 };
 
 /// Base paths for built-in extensions; used to silence warnings for
