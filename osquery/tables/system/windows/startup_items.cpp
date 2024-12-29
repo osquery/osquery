@@ -60,34 +60,60 @@ const std::set<std::string> kStartupStatusRegKeys = {
 // Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
-static inline void parseStartupPath(const std::string& path, Row& r) {
-  std::string expandedPath = path;
+bool parseStartupPath(const std::string& cmdline, Row& r) {
 
-  // NOTE(ww): This is a pretty dumb expansion test, but the query that feeds
-  // us these paths doesn't pass us REG_EXPAND_SZ or any other hint
-  // that we could use instead.
-  if (path.find('%') != std::string::npos) {
-    if (const auto expanded = expandEnvString(path)) {
-      expandedPath = *expanded;
+  const auto argsp = splitArgs(cmdline);
+
+  if (!argsp.has_value()) {
+    return false;
+  }
+
+  if (pathExists(cmdline)) {
+    r["path"] = cmdline;
+    return true;
+  }
+
+  auto args = argsp.value();
+
+  // In case the path is already quoted, splitArgs(...) extract correctly the path with/without spaces
+  // We already tested for emptyness
+  auto path = args[0];
+
+  /*
+   * Entries in HKEY_USERS\<SID>\Software\Microsoft\Windows\CurrentVersion\RunNotification are 
+   * just numbers. Should we keep them ?
+   */
+  if (args.size() == 1) {
+    r["path"] = path;
+    return true;
+  }
+
+  if (pathExists(path)) {
+    r["path"] = path;
+    r["args"] = boost::join(
+        std::vector<std::string>{std::begin(args) + 1, std::end(args)}, " ");
+    return true;
+  }
+
+  auto end = std::end(args);
+
+  std::vector<std::string> tmp_path(std::begin(args), end);
+
+  while (!pathExists(path)) {
+
+    path = boost::join(tmp_path, " ");
+    tmp_path = std::vector<std::string>{ std::begin(args), --end };
+
+    if (std::begin(args) == end) {
+      return false;
     }
   }
 
-  if (pathExists(fs::path(expandedPath)).ok()) {
-    r["path"] = expandedPath;
-  } else {
-    if (const auto argsp = splitArgs(expandedPath)) {
-      auto args = *argsp;
-
-      r["path"] = args[0];
-
-      if (args.size() > 1) {
-        args.erase(args.begin());
-        r["args"] = boost::join(args, " ");
-      }
-    } else {
-      r["path"] = expandedPath;
-    }
-  }
+  // We have a path and arguments
+  r["path"] = path;
+  r["args"] =
+      boost::join(std::vector<std::string>{end + 1, std::end(args)}, " ");
+  return true;
 }
 
 QueryData genStartupItems(QueryContext& context) {
@@ -136,7 +162,11 @@ QueryData genStartupItems(QueryContext& context) {
       }
     }
 
-    parseStartupPath(startup.at("data"), r);
+    const auto data = startup.at("data");
+    if (!parseStartupPath(data, r))
+    {
+        continue;
+    }
 
     r["status"] = regex_match(startup.at("status"), kStartupDisabledRegex)
                       ? "disabled"
