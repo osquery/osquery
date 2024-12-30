@@ -61,7 +61,6 @@ const std::set<std::string> kStartupStatusRegKeys = {
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 bool parseStartupPath(const std::string& cmdline, Row& r) {
-
   const auto argsp = splitArgs(cmdline);
 
   if (!argsp.has_value()) {
@@ -75,13 +74,13 @@ bool parseStartupPath(const std::string& cmdline, Row& r) {
 
   auto args = argsp.value();
 
-  // In case the path is already quoted, splitArgs(...) extract correctly the path with/without spaces
   // We already tested for emptyness
   auto path = args[0];
 
   /*
-   * Entries in HKEY_USERS\<SID>\Software\Microsoft\Windows\CurrentVersion\RunNotification are 
-   * just numbers. Should we keep them ?
+   * Entries in
+   * HKEY_USERS\<SID>\Software\Microsoft\Windows\CurrentVersion\RunNotification
+   * are just numbers.
    */
   if (args.size() == 1) {
     r["path"] = path;
@@ -100,9 +99,8 @@ bool parseStartupPath(const std::string& cmdline, Row& r) {
   std::vector<std::string> tmp_path(std::begin(args), end);
 
   while (!pathExists(path)) {
-
     path = boost::join(tmp_path, " ");
-    tmp_path = std::vector<std::string>{ std::begin(args), --end };
+    tmp_path = std::vector<std::string>{std::begin(args), --end};
 
     if (std::begin(args) == end) {
       return false;
@@ -163,9 +161,8 @@ QueryData genStartupItems(QueryContext& context) {
     }
 
     const auto data = startup.at("data");
-    if (!parseStartupPath(data, r))
-    {
-        continue;
+    if (!parseStartupPath(data, r)) {
+      continue;
     }
 
     r["status"] = regex_match(startup.at("status"), kStartupDisabledRegex)
