@@ -537,7 +537,7 @@ static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
     explodeRegistryPath(key, hive, _);
     if (hive == "HKEY_CURRENT_USER" ||
         hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
-      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
+      LOG(WARNING) << "CURRENT_USER hives are not queryable by agenttoold; "
                       "query HKEY_USERS with the desired users SID instead";
       break;
     }

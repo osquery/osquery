@@ -132,7 +132,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
     ::execve(exec_path.c_str(), argv, ::environ);
 
     // Code should never reach this point
-    LOG(ERROR) << "osqueryd could not start worker process";
+    LOG(ERROR) << "agenttoold could not start worker process";
     ::exit(EXIT_CATASTROPHIC);
     return std::shared_ptr<PlatformProcess>();
   }

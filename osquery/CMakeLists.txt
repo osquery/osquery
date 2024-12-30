@@ -54,9 +54,9 @@ function(generateOsqueryd)
     set(osquery_ext ".exe")
   endif()
 
-  add_custom_target(create_osqueryi ALL DEPENDS osqueryi${osquery_ext})
-  add_custom_command(OUTPUT osqueryi${osquery_ext}
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink agenttoold${osquery_ext} osqueryi${osquery_ext}
+  add_custom_target(create_osqueryi ALL DEPENDS agenttooli${osquery_ext})
+  add_custom_command(OUTPUT agenttooli${osquery_ext}
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink agenttoold${osquery_ext} agenttooli${osquery_ext}
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:agenttoold>"
   )
   add_dependencies(create_osqueryi agenttoold)
