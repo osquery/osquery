@@ -39,8 +39,12 @@ function(generateOsqueryd)
   # Upstream uses an empty executable that links to a library with a
   # a main() entry point; try to emulate this.
   set(source_file "${CMAKE_CURRENT_BINARY_DIR}/empty_osqueryd_target_source_file.cpp")
-  generateBuildTimeSourceFile(${source_file} "extern int main(int argc, char* argv[]);")
-
+  if(PLATFORM_WINDOWS)
+    generateBuildTimeSourceFile(${source_file} "extern int wmain(int argc, wchar_t* argv[]);")
+  else()
+    generateBuildTimeSourceFile(${source_file} "extern int main(int argc, char* argv[]);")
+  endif()
+  
   add_osquery_executable(osqueryd "${source_file}")
   set_target_properties(osqueryd PROPERTIES POSITION_INDEPENDENT_CODE true)
 
