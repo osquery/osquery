@@ -21,31 +21,31 @@
 #pragma once
 
 #if defined(__linux__)
-#define OSQUERY_HOME "/etc/osquery/"
-#define OSQUERY_DB_HOME "/var/osquery/"
+#define OSQUERY_HOME "/etc/agenttool/"
+#define OSQUERY_DB_HOME "/var/agenttool/"
 #define OSQUERY_SOCKET OSQUERY_DB_HOME
 #define OSQUERY_PIDFILE "/var/run/"
-#define OSQUERY_LOG_HOME "/var/log/osquery/"
-#define OSQUERY_CERTS_HOME "/opt/osquery/share/osquery/certs/"
+#define OSQUERY_LOG_HOME "/var/log/agenttool/"
+#define OSQUERY_CERTS_HOME "/opt/agenttool/share/agenttool/certs/"
 #elif defined(WIN32)
-#define OSQUERY_HOME "\\Program Files\\osquery\\"
+#define OSQUERY_HOME "\\Program Files\\agenttool\\"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET "\\\\.\\pipe\\"
 #define OSQUERY_PIDFILE OSQUERY_DB_HOME
 #define OSQUERY_LOG_HOME OSQUERY_HOME "log\\"
 #define OSQUERY_CERTS_HOME OSQUERY_HOME "certs\\"
 #elif defined(FREEBSD)
-#define OSQUERY_HOME "/var/db/osquery/"
+#define OSQUERY_HOME "/var/db/agenttool/"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET "/var/run/"
 #define OSQUERY_PIDFILE "/var/run/"
-#define OSQUERY_LOG_HOME "/var/log/osquery/"
+#define OSQUERY_LOG_HOME "/var/log/agenttool/"
 #define OSQUERY_CERTS_HOME "/etc/ssl/"
 #else
-#define OSQUERY_HOME "/var/osquery/"
+#define OSQUERY_HOME "/var/agenttool/"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET OSQUERY_DB_HOME
 #define OSQUERY_PIDFILE OSQUERY_DB_HOME
-#define OSQUERY_LOG_HOME "/var/log/osquery/"
+#define OSQUERY_LOG_HOME "/var/log/agenttool/"
 #define OSQUERY_CERTS_HOME OSQUERY_HOME "certs/"
 #endif

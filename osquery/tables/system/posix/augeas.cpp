@@ -30,12 +30,12 @@ namespace osquery {
 #ifdef __APPLE__
 FLAG(string,
      augeas_lenses,
-     "/private/var/osquery/lenses",
+     "/private/var/agenttool/lenses",
      "Directory that contains augeas lenses files");
 #else
 FLAG(string,
      augeas_lenses,
-     "/opt/osquery/share/osquery/lenses",
+     "/opt/agenttool/share/agenttool/lenses",
      "Directory that contains augeas lenses files");
 #endif
 

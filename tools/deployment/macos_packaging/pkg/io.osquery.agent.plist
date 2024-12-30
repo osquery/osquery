@@ -10,8 +10,8 @@
   <string>io.osquery.agent</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/opt/osquery/lib/osquery.app/Contents/MacOS/agenttoold</string>
-    <string>--flagfile=/private/var/osquery/osquery.flags</string>
+    <string>/opt/agenttool/lib/osquery.app/Contents/MacOS/agenttoold</string>
+    <string>--flagfile=/private/var/agenttool/osquery.flags</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

@@ -30,9 +30,9 @@ extract_package_data() {
 }
 
 create_universal_package_data() {
-  declare -a path_list=("opt/osquery/osquery.app/Contents/MacOS/agenttoold" \
-                        "opt/osquery/bin/agenttooli" \
-                        "opt/osquery/bin/agenttoold")
+  declare -a path_list=("opt/agenttool/osquery.app/Contents/MacOS/agenttoold" \
+                        "opt/agenttool/bin/agenttooli" \
+                        "opt/agenttool/bin/agenttoold")
 
   if [[ -d "universal" ]] ; then
     rm -rf "universal" || return 1

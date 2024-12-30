@@ -12,7 +12,7 @@ function(generateInstallDirectives)
 
   if(PLATFORM_LINUX)
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+      set(CMAKE_INSTALL_PREFIX "/opt/agenttool" CACHE PATH "" FORCE)
     endif()
 
     install(
@@ -89,29 +89,29 @@ function(generateInstallDirectives)
 
     install(
       FILES "tools/deployment/osquery.example.conf"
-      DESTINATION "share/osquery"
+      DESTINATION "share/agenttool"
     )
 
     install(
       DIRECTORY "${augeas_lenses_path}/"
-      DESTINATION "share/osquery/lenses"
+      DESTINATION "share/agenttool/lenses"
       FILES_MATCHING PATTERN "*.aug"
       PATTERN "tests" EXCLUDE
     )
 
     install(
       FILES "${augeas_lenses_path}/../COPYING"
-      DESTINATION "share/osquery/lenses"
+      DESTINATION "share/agenttool/lenses"
     )
 
     install(
       DIRECTORY "packs"
-      DESTINATION "share/osquery"
+      DESTINATION "share/agenttool"
     )
 
     install(
       FILES "${CMAKE_SOURCE_DIR}/tools/deployment/certs.pem"
-      DESTINATION "share/osquery/certs"
+      DESTINATION "share/agenttool/certs"
     )
 
     install(
@@ -250,7 +250,7 @@ function(generateInstallDirectives)
   elseif(PLATFORM_MACOS)
 
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-      set(CMAKE_INSTALL_PREFIX "/opt/osquery" CACHE PATH "" FORCE)
+      set(CMAKE_INSTALL_PREFIX "/opt/agenttool" CACHE PATH "" FORCE)
     endif()
 
     install(
@@ -299,19 +299,19 @@ function(generateInstallDirectives)
 
     install(
       DIRECTORY "${augeas_lenses_path}"
-      DESTINATION "/private/var/osquery"
+      DESTINATION "/private/var/agenttool"
       FILES_MATCHING PATTERN "*.aug"
       PATTERN "tests" EXCLUDE
     )
 
     install(
       DIRECTORY "packs"
-      DESTINATION "/private/var/osquery"
+      DESTINATION "/private/var/agenttool"
     )
 
     install(
       FILES "tools/deployment/certs.pem"
-      DESTINATION "/private/var/osquery/certs"
+      DESTINATION "/private/var/agenttool/certs"
     )
 
     install(
@@ -319,7 +319,7 @@ function(generateInstallDirectives)
         "tools/deployment/osquery.example.conf"
 
       DESTINATION
-        "/private/var/osquery"
+        "/private/var/agenttool"
     )
 
     install(

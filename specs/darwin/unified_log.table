@@ -28,7 +28,7 @@ examples([
   "select * from unified_log",
   "select * from unified_log where process = 'agenttoold'",
   "select * from unified_log where predicate = 'process = \"agenttoold\" OR process = \"Santa\"'",
-  "select * from unified_log where predicate = 'processImagePath = \"/opt/osquery/lib/osquery.app/Contents/MacOS/agenttoold\"'",
+  "select * from unified_log where predicate = 'processImagePath = \"/opt/agenttool/lib/osquery.app/Contents/MacOS/agenttoold\"'",
   "select * from unified_log where max_rows = 1234",
   "select * from unified_log where timestamp > -1",
   "select * from unified_log where timestamp > -1 and max_rows = 500",

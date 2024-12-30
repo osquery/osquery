@@ -23,6 +23,6 @@ implementation("yara@genYara")
 examples([
   "select * from yara where path = '/etc/passwd'",
   "select * from yara where path LIKE '/etc/%'",
-  "select * from yara where path = '/etc/passwd' and sigfile = '/etc/osquery/yara/test.yara'",
+  "select * from yara where path = '/etc/passwd' and sigfile = '/etc/agenttool/yara/test.yara'",
   "select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }'",
 ])

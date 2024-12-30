@@ -39,7 +39,7 @@ FLAG(bool, enable_syslog, false, "Enable the syslog ingestion event publisher");
 
 FLAG(string,
      syslog_pipe_path,
-     "/var/osquery/syslog_pipe",
+     "/var/agenttool/syslog_pipe",
      "Path to the named pipe used for forwarding rsyslog events");
 
 FLAG(uint64,

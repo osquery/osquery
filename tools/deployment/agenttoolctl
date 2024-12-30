@@ -106,15 +106,15 @@ main() {
   platform OS
 
   if [[ $OS = "darwin" ]]; then
-    REAL_CONFIG_PATH="/var/osquery/osquery.conf"
-    FLAGS_FILE_PATH="/var/osquery/osquery.flags"
-    EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
-    PIDFILE="/var/osquery/osquery.pid"
-    LOCKFILE="/var/osquery/osquery.lock"
-    EXEC="/opt/osquery/lib/osquery.app/Contents/MacOS/agenttoold"
+    REAL_CONFIG_PATH="/var/agenttool/osquery.conf"
+    FLAGS_FILE_PATH="/var/agenttool/osquery.flags"
+    EXAMPLE_CONFIG_PATH="/var/agenttool/osquery.example.conf"
+    PIDFILE="/var/agenttool/osquery.pid"
+    LOCKFILE="/var/agenttool/osquery.lock"
+    EXEC="/opt/agenttool/lib/osquery.app/Contents/MacOS/agenttoold"
     PLIST_DOMAIN="io.osquery.agent"
     PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
-    PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
+    PLIST_INSTALLATION_PATH="/var/agenttool/$PLIST_DOMAIN.plist"
     LAUNCHCTL_LIST=`launchctl list | grep io.osquery.agent || true`
     LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
   else
@@ -126,14 +126,14 @@ main() {
       exit 6
     fi
 
-    REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
-    EXAMPLE_CONFIG_PATH="/opt/osquery/share/osquery/osquery.example.conf"
+    REAL_CONFIG_PATH="/etc/agenttool/osquery.conf"
+    EXAMPLE_CONFIG_PATH="/opt/agenttool/share/agenttool/osquery.example.conf"
     PIDFILE="/var/run/osquery.pid"
     LOCKFILE="/var/lock/subsys/agenttoold"
-    EXEC="/opt/osquery/bin/agenttoold"
+    EXEC="/opt/agenttool/bin/agenttoold"
   fi
 
-  OSQUERY_DB="/var/osquery/osquery.db"
+  OSQUERY_DB="/var/agenttool/osquery.db"
   PROG="agenttoold"
 
   case "$1" in

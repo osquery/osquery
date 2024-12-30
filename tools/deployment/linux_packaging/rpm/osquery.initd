@@ -29,9 +29,9 @@
 
 if [ -z $RETVAL ]; then RETVAL=0; fi
 if [ -z $PROG ]; then PROG="agenttoold"; fi
-if [ -z $EXEC ]; then EXEC=/opt/osquery/bin/agenttoold; fi
-if [ -z $FLAGS_PATH ]; then FLAGS_PATH=/etc/osquery/osquery.flags; fi
-if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
+if [ -z $EXEC ]; then EXEC=/opt/agenttool/bin/agenttoold; fi
+if [ -z $FLAGS_PATH ]; then FLAGS_PATH=/etc/agenttool/osquery.flags; fi
+if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/agenttool/osquery.conf; fi
 if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/agenttoold; fi
 if [ -z $PIDFILE ]; then PIDFILE=/var/run/agenttoold.pidfile; fi
 if [ -z $OLD_PIDFILE ]; then OLD_PIDFILE=/var/run/agenttoold.pid; fi
@@ -48,7 +48,7 @@ fi
 if [ ! -e $FLAGS_PATH ] && [ ! -e $REAL_CONFIG_PATH ]; then
   echo "No config file found at $REAL_CONFIG_PATH"
   echo "Additionally, no flags file or config override found at $FLAGS_PATH"
-  echo "See '/opt/osquery/share/osquery/osquery.example.conf' for an example config."
+  echo "See '/opt/agenttool/share/agenttool/osquery.example.conf' for an example config."
   RETVAL=1
 fi
 
