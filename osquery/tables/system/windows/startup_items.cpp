@@ -60,15 +60,17 @@ const std::set<std::string> kStartupStatusRegKeys = {
 // Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
-bool parseStartupPath(const std::string& cmdline, Row& r) {
-  const auto argsp = splitArgs(cmdline);
+bool parseStartupPath(const std::string& entry, Row& r) {
+
+  // In case the path is already quoted, splitArgs(...) extract correctly the path with/without spaces
+  const auto argsp = splitArgs(entry);
 
   if (!argsp.has_value()) {
     return false;
   }
 
-  if (pathExists(cmdline)) {
-    r["path"] = cmdline;
+  if (pathExists(entry)) {
+    r["path"] = entry;
     return true;
   }
 
@@ -77,11 +79,6 @@ bool parseStartupPath(const std::string& cmdline, Row& r) {
   // We already tested for emptyness
   auto path = args[0];
 
-  /*
-   * Entries in
-   * HKEY_USERS\<SID>\Software\Microsoft\Windows\CurrentVersion\RunNotification
-   * are just numbers.
-   */
   if (args.size() == 1) {
     r["path"] = path;
     return true;

@@ -14,15 +14,13 @@ namespace osquery {
 namespace tables {
 
 /**
- * @brief Extract path and arguments from a command line string in input
+ * @brief Extract path and arguments from a startup entry in input
  *
- * If no user is provided the current user is returned.
- *
- * @param cmdline The command line string in input
+ * @param path The startup path string
  * @param r  A row where to store `path` and `args`
- * @return true if extraction was succeeded, false otherwise
+ * @return true if the parsing succeeded, false otherwise
  */
-bool parseStartupPath(const std::string& cmdline, Row& r);
+bool parseStartupPath(const std::string& entry, Row& r);
 
 } // namespace tables
 } // namespace osquery
