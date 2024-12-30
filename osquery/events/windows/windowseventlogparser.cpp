@@ -181,6 +181,10 @@ Status parseWindowsEventLogPTree(WELEvent& windows_event,
     property_list.add_child(node_name, event_data);
   };
 
+  /*
+   * Full Event schema description:
+   * https://learn.microsoft.com/en-us/windows/win32/wes/eventschema-eventtype-complextype
+   */
   // Add the event & user data node to the property list
   getDataFromPtree("Event.EventData");
   getDataFromPtree("Event.UserData");
@@ -195,6 +199,9 @@ Status parseWindowsEventLogPTree(WELEvent& windows_event,
     return Status::failure(
         "Invalid Windows event object: the EventData tag is not valid: " +
         e.message());
+  } catch (const std::exception& e) {
+    return Status::failure("Invalid Windows event object: " +
+                           std::string{e.what()});
   }
 
   if (output.data.empty()) {
