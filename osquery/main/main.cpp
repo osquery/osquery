@@ -46,13 +46,13 @@ HIDDEN_FLAG(int32,
             0,
             "Sleep a number of seconds before and after the profiling");
 
-CLI_FLAG(bool, install, false, "Install osqueryd as a service");
+CLI_FLAG(bool, install, false, "Install agenttoold as a service");
 
-CLI_FLAG(bool, uninstall, false, "Uninstall osqueryd as a service");
+CLI_FLAG(bool, uninstall, false, "Uninstall agenttoold as a service");
 
 DECLARE_bool(disable_caching);
 
-const std::string kWatcherWorkerName{"osqueryd: worker"};
+const std::string kWatcherWorkerName{"agenttoold: worker"};
 
 int profile(int argc, char* argv[]) {
   std::string query;
@@ -147,9 +147,9 @@ int startOsquery(int argc, char* argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL_DAEMON);
 
-  // Options for installing or uninstalling the osqueryd as a service
+  // Options for installing or uninstalling the agenttoold as a service
   if (FLAGS_install && FLAGS_uninstall) {
-    LOG(ERROR) << "osqueryd service install and uninstall can not be "
+    LOG(ERROR) << "agenttoold service install and uninstall can not be "
                   "requested together";
     return 1;
   }
@@ -158,18 +158,18 @@ int startOsquery(int argc, char* argv[]) {
     auto binPath = fs::system_complete(fs::path(argv[0]));
     // "Wrap" the binPath in the event it contains spaces
     if (installService("\"" + binPath.string() + "\"")) {
-      LOG(INFO) << "osqueryd service was installed successfully.";
+      LOG(INFO) << "agenttoold service was installed successfully.";
       return 0;
     } else {
-      LOG(ERROR) << "Unable to install the osqueryd service";
+      LOG(ERROR) << "Unable to install the agenttoold service";
       return 1;
     }
   } else if (FLAGS_uninstall) {
     if (uninstallService()) {
-      LOG(INFO) << "osqueryd service was uninstalled successfully.";
+      LOG(INFO) << "agenttoold service was uninstalled successfully.";
       return 0;
     } else {
-      LOG(ERROR) << "Unable to uninstall the osqueryd service";
+      LOG(ERROR) << "Unable to uninstall the agenttoold service";
       return 1;
     }
   }

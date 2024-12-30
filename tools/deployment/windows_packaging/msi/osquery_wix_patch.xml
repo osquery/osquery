@@ -1,5 +1,5 @@
 <CPackWiXPatch>
-    <CPackWiXFragment Id="CM_CP_osquery.osqueryd.osqueryd.exe">
+    <CPackWiXFragment Id="CM_CP_osquery.agenttoold.agenttoold.exe">
         <CreateFolder>
             <Permission User="[WIX_ACCOUNT_USERS]" Read="yes"
               ReadExtendedAttributes="yes" Traverse="yes"
@@ -8,16 +8,16 @@
             <Permission User="[WIX_ACCOUNT_ADMINISTRATORS]" GenericAll="yes"/>
             <Permission User="[WIX_ACCOUNT_LOCALSYSTEM]" GenericAll="yes"/>
         </CreateFolder>
-        <ServiceInstall Id='osqueryd'
-            Name='osqueryd'
+        <ServiceInstall Id='agenttoold'
+            Name='agenttoold'
             Account='NT AUTHORITY\SYSTEM'
             Arguments='--flagfile="[INSTALL_ROOT]osquery.flags"'
             Start='auto'
             Type='ownProcess'
             Vital='yes'
             ErrorControl='normal'/>
-        <ServiceControl Id='osqueryd'
-            Name='osqueryd'
+        <ServiceControl Id='agenttoold'
+            Name='agenttoold'
             Stop='both'
             Start='install'
             Remove='uninstall'

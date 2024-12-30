@@ -1,2 +1,2 @@
-/etc/init.d/osqueryd
-/etc/default/osqueryd
+/etc/init.d/agenttoold
+/etc/default/agenttoold

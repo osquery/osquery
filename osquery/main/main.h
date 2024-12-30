@@ -16,7 +16,7 @@
 namespace osquery {
 
 /**
- * @brief Install osqueryd as a service for the platform.
+ * @brief Install agenttoold as a service for the platform.
  *
  * Currently, this is only used by Windows. POSIX platforms use a companion
  * script called osquerycrtl to move files and install launch daemons or init

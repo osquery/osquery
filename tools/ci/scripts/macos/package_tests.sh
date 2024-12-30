@@ -80,8 +80,8 @@ copy_files() {
   cp -r "python_path" "${destination}" || return 1
 
   mkdir -p "${destination}/osquery" || return 1
-  cp "osquery/osqueryd" "${destination}/osquery" || return 1
-  cp "osquery/osqueryi" "${destination}/osquery" || return 1
+  cp "osquery/agenttoold" "${destination}/osquery" || return 1
+  cp "osquery/agenttooli" "${destination}/osquery" || return 1
 
   printf "\n"
   return 0

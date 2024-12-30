@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# osqueryd 	Start/Stop the osquery daemon.
+# agenttoold 	Start/Stop the osquery daemon.
 #
 # chkconfig: 345 90 60
 # Description:
@@ -11,12 +11,12 @@
 #  SQL query are transparently returned to you quickly and easily
 #
 ### BEGIN INIT INFO
-# Provides: osquery osqueryd
+# Provides: osquery agenttoold
 # Required-Start: $local_fs $syslog
 # Required-Stop: $local_fs $syslog
 # Default-Start:  3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: run osqueryd daemon
+# Short-Description: run agenttoold daemon
 # Description:
 #   With osquery, you can use SQL to query low-level
 #   operating system information. Under the hood, instead
@@ -28,13 +28,13 @@
 ### END INIT INFO
 
 if [ -z $RETVAL ]; then RETVAL=0; fi
-if [ -z $PROG ]; then PROG="osqueryd"; fi
-if [ -z $EXEC ]; then EXEC=/opt/osquery/bin/osqueryd; fi
+if [ -z $PROG ]; then PROG="agenttoold"; fi
+if [ -z $EXEC ]; then EXEC=/opt/osquery/bin/agenttoold; fi
 if [ -z $FLAGS_PATH ]; then FLAGS_PATH=/etc/osquery/osquery.flags; fi
 if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
-if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/osqueryd; fi
-if [ -z $PIDFILE ]; then PIDFILE=/var/run/osqueryd.pidfile; fi
-if [ -z $OLD_PIDFILE ]; then OLD_PIDFILE=/var/run/osqueryd.pid; fi
+if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/agenttoold; fi
+if [ -z $PIDFILE ]; then PIDFILE=/var/run/agenttoold.pidfile; fi
+if [ -z $OLD_PIDFILE ]; then OLD_PIDFILE=/var/run/agenttoold.pid; fi
 if [ -z $UID ]; then UID=$(id -u); fi
 
 if [ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ]; then
@@ -77,7 +77,7 @@ start() {
     if [ "$PROCNAME" = "$PROG" ]; then
       return 0
     else
-      # osqueryd pidfile exists but it's not running
+      # agenttoold pidfile exists but it's not running
       rm $PIDFILE
     fi
   fi
@@ -126,7 +126,7 @@ status() {
       echo "$PROG is already running: $PID"
       RETVAL=0
     else
-      # osqueryd pidfile exists but it's not running
+      # agenttoold pidfile exists but it's not running
       echo "$PROG is not running but a stale pidfile was found."
       RETVAL=7
     fi
@@ -137,7 +137,7 @@ status() {
       echo "$PROG is already running (old pidfile): $PID"
       RETVAL=0
     else
-      # osqueryd pidfile exists but it's not running
+      # agenttoold pidfile exists but it's not running
       echo "$PROG is not running but a stale old pidfile was found."
       RETVAL=7
     fi

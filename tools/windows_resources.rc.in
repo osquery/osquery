@@ -11,7 +11,7 @@
 #define VER_FILEDESCRIPTION_STR     "osquery daemon and shell"
 #define VER_INTERNALNAME_STR        "osquery"
 #define VER_LEGALCOPYRIGHT_STR      "Copyright (c) 2014-present, The osquery authors. See LICENSE file found in the root directory of this source tree."
-#define VER_ORIGINALFILENAME_STR    "osqueryd.exe"
+#define VER_ORIGINALFILENAME_STR    "agenttoold.exe"
 #define VER_PRODUCTNAME_STR         "osquery"
 
 #ifndef DEBUG

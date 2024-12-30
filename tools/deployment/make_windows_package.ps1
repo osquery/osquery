@@ -104,7 +104,7 @@ function New-MsiPackage() {
   $shell = Resolve-Path $shell
   $daemon = Resolve-Path $daemon
   if ((-not (Test-Path $daemon)) -or (-not (Test-Path $shell))) {
-    $msg = '[-] Failed to resolve full path of osqueryd, check Shell and Daemon parameters'
+    $msg = '[-] Failed to resolve full path of agenttoold, check Shell and Daemon parameters'
     Write-Host $msg -ForegroundColor Red
     exit 1
   }
@@ -202,8 +202,8 @@ $wix +=
     <Directory Id='TARGETDIR' Name='SourceDir'>
       <Directory Id='ProgramFiles64Folder'>
         <Directory Id='INSTALLFOLDER' Name='osquery'>
-          <Directory Id='DaemonFolder' Name='osqueryd'>
-            <Component Id='osqueryd'
+          <Directory Id='DaemonFolder' Name='agenttoold'>
+            <Component Id='agenttoold'
                 Win64='yes'
                 Guid='41c9910d-bded-45dc-8f82-3cd00a24fa2f'>
                 <CreateFolder>
@@ -214,29 +214,29 @@ $wix +=
                 <Permission User="[WIX_ACCOUNT_ADMINISTRATORS]" GenericAll="yes"/>
                 <Permission User="[WIX_ACCOUNT_LOCALSYSTEM]" GenericAll="yes"/>
               </CreateFolder>
-              <File Id='osqueryd'
-                Name='osqueryd.exe'
+              <File Id='agenttoold'
+                Name='agenttoold.exe'
                 Source='OSQUERY_DAEMON_PATH'
                 KeyPath='yes'/>
-              <ServiceInstall Id='osqueryd'
-                Name='osqueryd'
+              <ServiceInstall Id='agenttoold'
+                Name='agenttoold'
                 Account='NT AUTHORITY\SYSTEM'
                 Arguments='--flagfile="C:\Program Files\osquery\osquery.flags"'
                 Start='auto'
                 Type='ownProcess'
                 Vital='yes'
                 ErrorControl='normal'/>
-              <ServiceControl Id='osqueryd'
-                Name='osqueryd'
+              <ServiceControl Id='agenttoold'
+                Name='agenttoold'
                 Stop='both'
                 Start='install'
                 Remove='uninstall'
                 Wait='no'/>
             </Component>
           </Directory>
-          <Component Id='osqueryi' Win64='yes' Guid='6a49524e-52b0-4e99-876f-ec50c0082a04'>
-            <File Id='osqueryi'
-              Name='osqueryi.exe'
+          <Component Id='agenttooli' Win64='yes' Guid='6a49524e-52b0-4e99-876f-ec50c0082a04'>
+            <File Id='agenttooli'
+              Name='agenttooli.exe'
               Source='OSQUERY_SHELL_PATH'
               KeyPath='yes'/>
           </Component>
@@ -312,8 +312,8 @@ $wix += @'
     </Component>
 
     <Feature Id='Complete' Level='1'>
-      <ComponentRef Id='osqueryd'/>
-      <ComponentRef Id='osqueryi'/>
+      <ComponentRef Id='agenttoold'/>
+      <ComponentRef Id='agenttooli'/>
       <ComponentRef Id='packs'/>
       <ComponentRef Id='certs'/>
       <ComponentRef Id='logs'/>
@@ -370,8 +370,8 @@ $wix += @'
 
 function New-ChocolateyPackage() {
   param(
-    [string] $shell = 'build\windows10\osquery\Release\osqueryi.exe',
-    [string] $daemon = 'build\windows10\osquery\Release\osqueryd.exe',
+    [string] $shell = 'build\windows10\osquery\Release\agenttooli.exe',
+    [string] $daemon = 'build\windows10\osquery\Release\agenttoold.exe',
     [string] $version = '0.0.0',
     [string] $latest = '0.0.0'
   )
@@ -469,8 +469,8 @@ function New-ChocolateyPackage() {
   Copy-Item -Recurse -Force "$osqRoot\tools\deployment\chocolatey\tools" "$osqueryChocoPath"
 
   $binDir = "$osqRoot\build\windows10\osquery\Release\"
-  $clientPath = Join-Path $binDir 'osqueryi.exe'
-  $daemonPath = Join-Path $binDir 'osqueryd.exe'
+  $clientPath = Join-Path $binDir 'agenttooli.exe'
+  $daemonPath = Join-Path $binDir 'agenttoold.exe'
   $mgmtScript = "$osqRoot\tools\manage-osqueryd.ps1"
   $license = Join-Path "$osqueryChocoPath\tools\" 'LICENSE.txt'
   Copy-Item $lic $license
@@ -479,9 +479,9 @@ function New-ChocolateyPackage() {
   @'
 To verify the osquery binaries are valid and not corrupted, one can run one of the following:
 
-C:\Users\> Get-FileHash -Algorithm SHA256 C:\Program Files\osquery\osqueryd\osqueryd.exe
-C:\Users\> Get-FileHash -Algorithm SHA1 C:\Program Files\osquery\osqueryd\osqueryd.exe
-C:\Users\> Get-FileHash -Algorithm MD5 C:\Program Files\osquery\osqueryd\osqueryd.exe
+C:\Users\> Get-FileHash -Algorithm SHA256 C:\Program Files\osquery\agenttoold\agenttoold.exe
+C:\Users\> Get-FileHash -Algorithm SHA1 C:\Program Files\osquery\agenttoold\agenttoold.exe
+C:\Users\> Get-FileHash -Algorithm MD5 C:\Program Files\osquery\agenttoold\agenttoold.exe
 
 And verify that the digests match one of the below values:
 
@@ -620,7 +620,7 @@ function Main() {
     exit 1
   }
 
-  $daemon = Join-Path $BuildPath 'osqueryd.exe'
+  $daemon = Join-Path $BuildPath 'agenttoold.exe'
   if (-not (Test-Path $daemon)) {
     $msg = '[-] Did not find Release binaries, check build script output.'
     Write-Host $msg -ForegroundColor Red
@@ -634,8 +634,8 @@ function Main() {
     exit 1
   }
 
-  # osqueryi.exe is just a copy of osqueryd.exe
-  $shell = Join-Path $BuildPath 'osqueryi.exe'
+  # agenttooli.exe is just a copy of agenttoold.exe
+  $shell = Join-Path $BuildPath 'agenttooli.exe'
   if (-not (Test-Path $shell)) {
     $msg = '[*] Did not find shell, copying daemon to shell.'
     Write-Host $msg -ForegroundColor Yellow

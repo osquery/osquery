@@ -4,10 +4,10 @@ After=network.service syslog.service
 
 [Service]
 TimeoutStartSec=0
-EnvironmentFile=/etc/default/osqueryd
+EnvironmentFile=/etc/default/agenttoold
 ExecStartPre=/bin/sh -c "if [ ! -f $FLAG_FILE ]; then touch $FLAG_FILE; fi"
 ExecStartPre=/bin/sh -c "if [ -f $LOCAL_PIDFILE ]; then mv $LOCAL_PIDFILE $PIDFILE; fi"
-ExecStart=/opt/osquery/bin/osqueryd \
+ExecStart=/opt/osquery/bin/agenttoold \
   --flagfile $FLAG_FILE \
   --config_path $CONFIG_FILE
 Restart=on-failure

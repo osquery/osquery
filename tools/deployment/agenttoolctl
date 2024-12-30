@@ -60,7 +60,7 @@ start() {
     cp $PLIST_INSTALLATION_PATH $PLIST_PATH
     launchctl load $PLIST_PATH
   else
-    exec_with_env "service osqueryd start"
+    exec_with_env "service agenttoold start"
   fi
 }
 
@@ -69,7 +69,7 @@ stop() {
     launchctl unload $PLIST_PATH
     rm $PLIST_PATH
   else
-    exec_with_env "service osqueryd stop"
+    exec_with_env "service agenttoold stop"
   fi
 }
 
@@ -86,7 +86,7 @@ status() {
       echo "$PLIST_DOMAIN is running. pid: $LAUNCHCTL_LIST_PID"
     fi
   else
-    exec_with_env "service osqueryd status"
+    exec_with_env "service agenttoold status"
   fi
 }
 
@@ -111,15 +111,15 @@ main() {
     EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
     PIDFILE="/var/osquery/osquery.pid"
     LOCKFILE="/var/osquery/osquery.lock"
-    EXEC="/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd"
+    EXEC="/opt/osquery/lib/osquery.app/Contents/MacOS/agenttoold"
     PLIST_DOMAIN="io.osquery.agent"
     PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
     PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
     LAUNCHCTL_LIST=`launchctl list | grep io.osquery.agent || true`
     LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
   else
-    INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
-    SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/osqueryd.service"
+    INIT_SCRIPT_PATH="/etc/init.d/agenttoold"
+    SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/agenttoold.service"
     if [[ ! -e "$INIT_SCRIPT_PATH" && ! -f "$SERVICE_SCRIPT_PATH" ]]; then
       echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
       echo "Additionally, no systemd service at $SERVICE_SCRIPT_PATH"
@@ -129,12 +129,12 @@ main() {
     REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
     EXAMPLE_CONFIG_PATH="/opt/osquery/share/osquery/osquery.example.conf"
     PIDFILE="/var/run/osquery.pid"
-    LOCKFILE="/var/lock/subsys/osqueryd"
-    EXEC="/opt/osquery/bin/osqueryd"
+    LOCKFILE="/var/lock/subsys/agenttoold"
+    EXEC="/opt/osquery/bin/agenttoold"
   fi
 
   OSQUERY_DB="/var/osquery/osquery.db"
-  PROG="osqueryd"
+  PROG="agenttoold"
 
   case "$1" in
     clean)

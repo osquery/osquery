@@ -23,13 +23,13 @@ if ((Get-Service $serviceName -ErrorAction SilentlyContinue)) {
   Stop-Service $serviceName
 
   # If we find zombie processes, ensure they're termintated
-  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
+  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'agenttoold' }
   if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }
 
   Set-Service $serviceName -startuptype 'manual'
-  Get-CimInstance -ClassName Win32_Service -Filter "Name='osqueryd'" | Invoke-CimMethod -methodName Delete
+  Get-CimInstance -ClassName Win32_Service -Filter "Name='agenttoold'" | Invoke-CimMethod -methodName Delete
 }
 
 if (Test-Path $targetFolder) {

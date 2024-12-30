@@ -17,11 +17,11 @@ $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
 # Ensure the service is stopped and processes are not running if exists.
-$svc = Get-WmiObject -ClassName Win32_Service -Filter "Name='osqueryd'"
+$svc = Get-WmiObject -ClassName Win32_Service -Filter "Name='agenttoold'"
 if ($svc -and $svc.State -eq 'Running') {
   Stop-Service $serviceName
   # If we find zombie processes, ensure they're termintated
-  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
+  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'agenttoold' }
   if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }
@@ -29,7 +29,7 @@ if ($svc -and $svc.State -eq 'Running') {
   # If the service was installed using the legacy path in ProgramData, remove
   # it and allow the service creation below to fix it up.
   if ([regex]::escape($svc.PathName) -like [regex]::escape("${legacyInstall}*")) {
-    Get-CimInstance -ClassName Win32_Service -Filter "Name='osqueryd'" |
+    Get-CimInstance -ClassName Win32_Service -Filter "Name='agenttoold'" |
     Invoke-CimMethod -MethodName Delete
   }
 }
@@ -73,13 +73,13 @@ New-Item -Force -Type directory -Path $logFolder
 # Grab the primary folders
 $packageRoot = (Join-Path "$PSScriptRoot" "..")
 Copy-Item -Force -Recurse (Join-Path "$packageRoot" "certs") $targetFolder
-Copy-Item -Force -Recurse (Join-Path "$packageRoot" "osqueryd") $targetFolder
+Copy-Item -Force -Recurse (Join-Path "$packageRoot" "agenttoold") $targetFolder
 
 # Grab the individual files
 Copy-Item -Force (Join-Path "$packageRoot" "manage-osqueryd.ps1") $targetFolder
 Copy-Item -Force (Join-Path "$packageRoot" "osquery.man") $targetFolder
 Copy-Item -Force (Join-Path "$PSScriptRoot" "osquery_utils.ps1") $targetFolder
-Copy-Item -Force (Join-Path "$packageRoot" "osqueryi.exe") $targetFolder
+Copy-Item -Force (Join-Path "$packageRoot" "agenttooli.exe") $targetFolder
 
 # We intentionally do not replace configuration and flags files from previous
 # installations, as these often dictate the osquery configuration and may not

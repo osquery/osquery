@@ -142,18 +142,18 @@ FLAG(uint64,
      "to reduce the retained memory (Linux only)")
 #endif
 
-/// Should the daemon force unload previously-running osqueryd daemons.
+/// Should the daemon force unload previously-running agenttoold daemons.
 CLI_FLAG(bool,
          force,
          false,
-         "Force osqueryd to kill previously-running daemons");
+         "Force agenttoold to kill previously-running daemons");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
-/// The path to the pidfile for osqueryd
+/// The path to the pidfile for agenttoold
 CLI_FLAG(string,
          pidfile,
-         OSQUERY_PIDFILE "osqueryd.pidfile",
+         OSQUERY_PIDFILE "agenttoold.pidfile",
          "Path to the daemon pidfile mutex");
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
@@ -269,13 +269,13 @@ Initializer::Initializer(int& argc,
 
   // osquery can function as the daemon or shell depending on argv[0].
   if (tool == ToolType::SHELL_DAEMON) {
-    if (fs::path(argv[0]).filename().string().find("osqueryd") !=
+    if (fs::path(argv[0]).filename().string().find("agenttoold") !=
         std::string::npos) {
       setToolType(ToolType::DAEMON);
-      binary_ = "osqueryd";
+      binary_ = "agenttoold";
     } else {
       setToolType(ToolType::SHELL);
-      binary_ = "osqueryi";
+      binary_ = "agenttooli";
     }
   } else {
     // Set the tool type to allow runtime decisions based on daemon, shell, etc.
@@ -317,10 +317,10 @@ Initializer::Initializer(int& argc,
     auto help = std::string((*argv_)[i]);
     if (help == "-S" || help == "--S") {
       setToolType(ToolType::SHELL);
-      binary_ = "osqueryi";
+      binary_ = "agenttooli";
     } else if (help == "-D" || help == "--D") {
       setToolType(ToolType::DAEMON);
-      binary_ = "osqueryd";
+      binary_ = "agenttoold";
     } else if ((help == "--help" || help == "-help" || help == "--h" ||
                 help == "-h") &&
                tool != ToolType::TEST) {
@@ -443,11 +443,11 @@ bool terminateActiveOsqueryInstance() {
     return true;
   }
 
-  // The pid is running, check if it is an osqueryd process by name.
+  // The pid is running, check if it is an agenttoold process by name.
   std::stringstream query_text;
 
   query_text << "SELECT name FROM processes WHERE pid = " << pid
-             << " AND name LIKE 'osqueryd%';";
+             << " AND name LIKE 'agenttoold%';";
 
   SQL q(query_text.str());
   if (!q.ok()) {
@@ -460,13 +460,13 @@ bool terminateActiveOsqueryInstance() {
     PlatformProcess target(pid);
     auto kill_succeeded = target.kill();
 
-    LOG(ERROR) << "Killing osqueryd process: " << pid << " ("
+    LOG(ERROR) << "Killing agenttoold process: " << pid << " ("
                << (kill_succeeded ? "succeeded" : "failed") << ")";
 
     return true;
 
   } else {
-    LOG(ERROR) << "Refusing to kill non-osqueryd process " << pid;
+    LOG(ERROR) << "Refusing to kill non-agenttoold process " << pid;
     return false;
   }
 }

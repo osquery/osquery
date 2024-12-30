@@ -16,7 +16,7 @@ if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
   (Get-Service $serviceName).Status -eq 'Running') {
   Stop-Service $serviceName
   # If we find zombie processes, ensure they're termintated
-  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
+  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'agenttoold' }
   if ($null -ne $proc) {
     Stop-Process -Force $proc -ErrorAction SilentlyContinue
   }

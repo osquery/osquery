@@ -21,7 +21,7 @@ function(generateInstallDirectives)
     )
 
     install(
-      FILES "tools/deployment/linux_packaging/deb/osqueryd.service"
+      FILES "tools/deployment/linux_packaging/deb/agenttoold.service"
       DESTINATION "/control/deb/lib/systemd/system"
     )
 
@@ -33,7 +33,7 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/linux_packaging/deb/osquery.initd"
       DESTINATION "/control/deb/etc/init.d"
-      RENAME "osqueryd"
+      RENAME "agenttoold"
 
       PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -44,7 +44,7 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/linux_packaging/rpm/osquery.initd"
       DESTINATION "/control/rpm/etc/init.d"
-      RENAME "osqueryd"
+      RENAME "agenttoold"
 
       PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -53,7 +53,7 @@ function(generateInstallDirectives)
     )
 
     install(
-      FILES "tools/deployment/linux_packaging/rpm/osqueryd.service"
+      FILES "tools/deployment/linux_packaging/rpm/agenttoold.service"
       DESTINATION "/control/rpm/lib/systemd/system"
     )
 
@@ -63,22 +63,22 @@ function(generateInstallDirectives)
     )
 
     install(
-      TARGETS osqueryd
+      TARGETS agenttoold
       DESTINATION "bin"
     )
 
     execute_process(
-      COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd osqueryi
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink agenttoold agenttooli
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     install(
-      FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/agenttooli"
       DESTINATION "bin"
     )
 
     install(
-      FILES "tools/deployment/osqueryctl"
+      FILES "tools/deployment/agenttoolctl"
       DESTINATION "bin"
 
       PERMISSIONS
@@ -115,15 +115,15 @@ function(generateInstallDirectives)
     )
 
     install(
-      FILES "tools/deployment/linux_packaging/osqueryd.sysconfig"
+      FILES "tools/deployment/linux_packaging/agenttoold.sysconfig"
       DESTINATION "/control/deb/etc/default"
-      RENAME "osqueryd"
+      RENAME "agenttoold"
     )
 
     install(
-      FILES "tools/deployment/linux_packaging/osqueryd.sysconfig"
+      FILES "tools/deployment/linux_packaging/agenttoold.sysconfig"
       DESTINATION "/control/rpm/etc/sysconfig"
-      RENAME "osqueryd"
+      RENAME "agenttoold"
     )
 
     install(
@@ -147,14 +147,14 @@ function(generateInstallDirectives)
     endif()
 
     install(
-      TARGETS osqueryd
-      DESTINATION "osqueryd"
+      TARGETS agenttoold
+      DESTINATION "agenttoold"
     )
 
     install(
-      PROGRAMS "$<TARGET_FILE:osqueryd>"
+      PROGRAMS "$<TARGET_FILE:agenttoold>"
       DESTINATION "."
-      RENAME "osqueryi.exe"
+      RENAME "agenttooli.exe"
     )
 
     install(
@@ -278,22 +278,22 @@ function(generateInstallDirectives)
     )
 
     install(
-      TARGETS osqueryd
+      TARGETS agenttoold
       DESTINATION "bin"
     )
 
     execute_process(
-      COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd osqueryi
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink agenttoold agenttoold
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     install(
-      FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/agenttooli"
       DESTINATION "bin"
     )
 
     install(
-      FILES "tools/deployment/osqueryctl"
+      FILES "tools/deployment/agenttoolctl"
       DESTINATION "bin"
     )
 
@@ -338,7 +338,7 @@ function(generateInstallDirectives)
     )
 
     install(
-      TARGETS osqueryd
+      TARGETS agenttoold
       DESTINATION "osquery.app/Contents/MacOS"
       PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -357,7 +357,7 @@ function(generateInstallDirectives)
     )
 
     install(
-      FILES "tools/deployment/osqueryctl"
+      FILES "tools/deployment/agenttoolctl"
       DESTINATION "osquery.app/Contents/Resources"
       PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE

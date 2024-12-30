@@ -14,8 +14,8 @@ markdown_extensions:
 nav:
 - Introduction:
   - Welcome to osquery: index.md
-  - osqueryi (shell): introduction/using-osqueryi.md
-  - osqueryd (daemon): introduction/using-osqueryd.md
+  - agenttooli (shell): introduction/using-agenttooli.md
+  - agenttoold (daemon): introduction/using-agenttoold.md
   - SQL Introduction: introduction/sql.md
 - Installation:
   - Install on MacOS: installation/install-macos.md

@@ -21,9 +21,9 @@ param(
   [string] $welManifestPath = (Join-Path $PSScriptRoot "osquery.man")
 )
 
-$kServiceName = "osqueryd"
+$kServiceName = "agenttoold"
 $kServiceDescription = "osquery daemon service"
-$kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
+$kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'agenttoold', 'agenttoold.exe'))
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -39,11 +39,11 @@ function Do-Help {
   Write-Host ""
   Write-Host "  Only one of the following options can be used. Using multiple will result in "
   Write-Host "  options being ignored."
-  Write-Host "    -install                  Install the osqueryd service"
+  Write-Host "    -install                  Install the agenttoold service"
   Write-Host "    -startupArgs              Specifies additional arguments for the service (only used with -install)"
-  Write-Host "    -uninstall                Uninstall the osqueryd service"
-  Write-Host "    -start                    Start the osqueryd service"
-  Write-Host "    -stop                     Stop the osqueryd service"
+  Write-Host "    -uninstall                Uninstall the agenttoold service"
+  Write-Host "    -start                    Start the agenttoold service"
+  Write-Host "    -stop                     Stop the agenttoold service"
   Write-Host "    -installWelManifest       Installs the Windows Event Log manifest"
   Write-Host "    -uninstallWelManifest     Uninstalls the Windows Event Log manifest"
   Write-Host "    -welManifestPath <path>   The Windows Event Log manifest path"

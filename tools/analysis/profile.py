@@ -125,7 +125,7 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
 
 
 def run_query(shell, query, timeout=0, count=1):
-    """Execute the osqueryi shell in profile mode with a setup/teardown delay."""
+    """Execute the agenttooli shell in profile mode with a setup/teardown delay."""
     start_time = time.time()
     return utils.profile_cmd([
         shell,
@@ -236,7 +236,7 @@ def regress_check(profile1, profile2):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=(
         "Profile osquery, individual tables, "
-        "or a set of osqueryd config queries."
+        "or a set of agenttoold config queries."
     ))
     parser.add_argument(
         "-n", action="store_true", default=False,
@@ -284,8 +284,8 @@ if __name__ == "__main__":
         help="Run the profile for N rounds and use the average."
     )
     group.add_argument(
-        "--shell", metavar="PATH", default="./build/osquery/osqueryi",
-        help="Path to osqueryi shell (./build/osquery/osqueryi)."
+        "--shell", metavar="PATH", default="./build/osquery/agenttooli",
+        help="Path to agenttooli shell (./build/osquery/agenttooli)."
     )
     group.add_argument(
         "--force", action="store_true", default=False,

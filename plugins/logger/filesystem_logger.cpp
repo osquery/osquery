@@ -83,8 +83,8 @@ CLI_FLAG(string,
 
 DEFINE_validator(logger_mode, &validateLoggerMode);
 
-const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
-const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
+const std::string kFilesystemLoggerFilename = "agenttoold.results.log";
+const std::string kFilesystemLoggerSnapshots = "agenttoold.snapshots.log";
 
 bool LogRotate::shouldRotate() {
   return this->fileSize(path_) >= this->getRotateSize();
