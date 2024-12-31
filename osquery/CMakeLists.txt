@@ -56,6 +56,11 @@ function(generateOsqueryd)
   set(osquery_ext "")
   if(PLATFORM_WINDOWS)
     set(osquery_ext ".exe")
+
+    # Allows the use of wmain(...)
+    target_link_options(osqueryd INTERFACE
+      /ENTRY:wmainCRTStartup
+    )
   endif()
 
   add_custom_target(create_osqueryi ALL DEPENDS osqueryi${osquery_ext})
