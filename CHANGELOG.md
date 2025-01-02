@@ -1,5 +1,67 @@
 # osquery Changelog
 
+<a name="5.15.0"></a>
+## [5.15.0](https://github.com/osquery/osquery/releases/tag/5.15.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.14.1...5.15.0)
+
+Representing commits from 17 contributors! Thank you all.
+
+### Table Changes
+
+- Add arc path to `chrome_extensions` on macOS ([#8473](https://github.com/osquery/osquery/pull/8473))
+- Use empty columns instead of zeroes when undefined in `socket_events` ([#8510](https://github.com/osquery/osquery/pull/8510))
+- Add support for accept to macOS table `socket_events` ([#8508](https://github.com/osquery/osquery/pull/8508))
+- Add all-platform user-based optimized columns ([#8496](https://github.com/osquery/osquery/pull/8496))
+- Add columns to `es_process_events` ([#8506](https://github.com/osquery/osquery/pull/8506))
+- Add Darwin platform optimized miscellaneous columns ([#8484](https://github.com/osquery/osquery/pull/8484))
+- Add all-platform path-based optimized columns ([#8497](https://github.com/osquery/osquery/pull/8497))
+- Add Windows platform optimized columns ([#8495](https://github.com/osquery/osquery/pull/8495))
+- Add `hash_executable` column to `signature` table ([#8471](https://github.com/osquery/osquery/pull/8471))
+- Include VSCode Insiders extensions in `vscode_extensions` table ([#8396](https://github.com/osquery/osquery/pull/8396))
+- Add POSIX platforms optimized columns ([#8494](https://github.com/osquery/osquery/pull/8494))
+- Add Linux platform optimized columns ([#8493](https://github.com/osquery/osquery/pull/8493))
+- Add all platform process based and curl optimized columns ([#8498](https://github.com/osquery/osquery/pull/8498))
+- Add Darwin platform optimized system-related columns ([#8483](https://github.com/osquery/osquery/pull/8483))
+- Add Darwin platform optimized path columns ([#8482](https://github.com/osquery/osquery/pull/8482))
+- Fix incorrect SID in `logged_in_users` table on windows when username and domain/device name are the same ([#8486](https://github.com/osquery/osquery/pull/8486))
+- Update the `browser_firefox` table to exclude "Crash Reports" and "Pending Pings" folders ([#8478](https://github.com/osquery/osquery/pull/8478))
+- Move status column to `extended_schema` for linux `socket_events` ([#8503](https://github.com/osquery/osquery/pull/8503))
+
+### Under the Hood improvements
+
+- Utils: Optimize default status message constructor ([#8489](https://github.com/osquery/osquery/pull/8489))
+
+### Bug Fixes
+
+- Fix a leak in `genAarch64PlatformInfo` ([#8462](https://github.com/osquery/osquery/pull/8462))
+- Fix a leak in `DiskArbitrationEventPublisher::getProperty` ([#8463](https://github.com/osquery/osquery/pull/8463))
+- Catching generic exception in order to avoid crashing when parsing windows events logs ([#8513](https://github.com/osquery/osquery/pull/8513))
+- Fix leak in `windows_events` by using `scope_guard` ([#8511](https://github.com/osquery/osquery/pull/8511))
+- Fixed eBPF's parsing of parent pid ([#8501](https://github.com/osquery/osquery/pull/8501))
+- Fix IO objects refcounting ([#8481](https://github.com/osquery/osquery/pull/8481))
+
+### Documentation
+
+- Add documentation for testing macOS EndpointSecurity ([#8509](https://github.com/osquery/osquery/pull/8509))
+- Add double quotes in Windows installation documentation ([#8492](https://github.com/osquery/osquery/pull/8492))
+- Update expired Slack invite ([#8488](https://github.com/osquery/osquery/pull/8488))
+- Update docs to correctly define `conditional_to_base64` ([#8460](https://github.com/osquery/osquery/pull/8460))
+
+### Build
+
+- build(deps): bump jinja2 from 3.1.4 to 3.1.5 ([#8507](https://github.com/osquery/osquery/pull/8507))
+- Remove yara schema subdirectory ([#8461](https://github.com/osquery/osquery/pull/8461))
+- Added chrono header file ([#8512](https://github.com/osquery/osquery/pull/8512))
+- Replace usage of libaudit function removed in v3.0.7 ([#8401](https://github.com/osquery/osquery/pull/8401))
+- Update xcode version for macos-14 from 14.3.1 to 15.4 ([#8467](https://github.com/osquery/osquery/pull/8467))
+- Restrict python versions differently ([#8453](https://github.com/osquery/osquery/pull/8453))
+- Update macOS test runner from 12 to 13 ([#8459](https://github.com/osquery/osquery/pull/8459))
+- Add CVEs to the ignored lists ([#8458](https://github.com/osquery/osquery/pull/8458))
+- Add a specific package build folder on Windows jobs ([#8446](https://github.com/osquery/osquery/pull/8446))
+- Update all Github actions to a version using NodeJs 20 ([#8449](https://github.com/osquery/osquery/pull/8449))
+- Reduce scheduled builds amount ([#8457](https://github.com/osquery/osquery/pull/8457))
+
 <a name="5.14.1"></a>
 ## [5.14.1](https://github.com/osquery/osquery/releases/tag/5.14.1)
 
