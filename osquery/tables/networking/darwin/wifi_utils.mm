@@ -53,17 +53,13 @@ std::string extractSsid(const CFDataRef& data) {
   if (data == nil) {
     return "";
   }
-  std::stringstream ss;
   auto bytes = CFDataGetBytePtr(data);
   auto length = CFDataGetLength(data);
+  std::string s;
   for (CFIndex i = 0; i < length; i++) {
-    if (i > 0 && i % 4 == 0) {
-      ss << " ";
-    }
-    ss << std::setfill('0') << std::setw(2) << std::hex
-       << (unsigned int)bytes[i];
+    s += static_cast<char>(bytes[i]);
   }
-  return ss.str();
+  return s;
 }
 
 std::string getSecurityName(const CWSecurity cw) {
