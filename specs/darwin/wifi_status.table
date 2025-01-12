@@ -2,7 +2,7 @@ table_name("wifi_status")
 description("macOS current WiFi status.")
 schema([
     Column("interface", TEXT, "Name of the interface"),
-    Column("ssid", TEXT, "SSID octets of the network"),
+    Column("ssid", TEXT, "Raw bytes of the network name (aka SSID) as a hexadecimal string, for network names with non-printable Unicode characters"),
     Column("bssid", TEXT, "The current basic service set identifier"),
     Column("network_name", TEXT, "Name of the network"),
     Column("country_code", TEXT, "The country code (ISO/IEC 3166-1:1997) for the network"),

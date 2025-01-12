@@ -1,7 +1,7 @@
 table_name("wifi_networks")
 description("macOS known/remembered Wi-Fi networks list.")
 schema([
-    Column("ssid", TEXT, "SSID octets of the network"),
+    Column("ssid", TEXT, "Raw bytes of the network name (aka SSID) as a hexadecimal string, for network names with non-printable Unicode characters"),
     Column("network_name", TEXT, "Name of the network"),
     Column("security_type", TEXT, "Type of security on this network"),
     Column("last_connected", INTEGER, "Last time this network was connected to as a unix_time", hidden=True),
