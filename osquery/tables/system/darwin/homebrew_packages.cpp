@@ -223,10 +223,7 @@ void computeVersionsForCasks(QueryData& results,
       r["version"] = version;
       r["type"] = type;
       r["prefix"] = prefix;
-      r["auto_updates"] = "0";
-      if (getHomebrewAutoUpdate(path)) {
-        r["auto_updates"] = "1";
-      }
+      r["auto_updates"] = getHomebrewAutoUpdate(path) ? "1" : "0";
 
       results.push_back(r);
     }
