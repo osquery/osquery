@@ -37,6 +37,7 @@ const size_t kNumFields = 2;
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python%/dist-packages",
     "/usr/local/lib/python%/site-packages",
+    "/usr/local/lib64/python%/site-packages",
     "/opt/homebrew/lib/python%/dist-packages",
     "/opt/homebrew/lib/python%/site-packages",
     "/usr/lib/python%/dist-packages",
@@ -53,6 +54,7 @@ const std::set<std::string> kDarwinPythonPath = {
 
 const std::set<std::string> kUserDirectoryPaths = {
     ".pyenv/versions",
+    ".local/lib/python%",
 };
 
 const std::set<std::string> kDarwinUserDirectoryPaths = {
@@ -223,9 +225,22 @@ std::vector<std::map<std::string, UserPath>> getUserPathList(
 
       for (const auto& path_postfix : user_paths) {
         auto dir = path + "/" + path_postfix + "/";
+        std::vector<std::string> site_paths;
 
+        // check versioned pattern, nested
+        // versions/%d.%d/lib/python%d.%d
         std::vector<std::string> versions = traverseVersions(dir);
-        for (const auto& site_path : versions) {
+        if (!versions.empty()) {
+          site_paths.insert(site_paths.end(), versions.begin(), versions.end());
+        } else {
+          // check basic path, non-versioned
+          // lib/python%d.%d
+          std::vector<std::string> sites;
+          resolveFilePattern(dir, sites);
+          site_paths.insert(site_paths.end(), sites.begin(), sites.end());
+        }
+
+        for (const auto& site_path : site_paths) {
           std::map<std::string, UserPath> user_path;
           user_path = {
               {"user_id", uid_as_big_int.get()},
