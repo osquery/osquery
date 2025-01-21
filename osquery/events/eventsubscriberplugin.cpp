@@ -608,6 +608,15 @@ void EventSubscriberPlugin::expireEventBatches(Context& context,
 
     auto range_start = context.event_index.begin();
     auto range_end = context.event_index.upper_bound(oldest_valid_time);
+    // Ensure that we leave the set of events corresponding to the last valid
+    // timestamp. This is because the events are scanned at osquery startup to
+    // determine the next event ID to generate. If all events are expired, we
+    // restart event IDs at 1, potentially losing events that have been ingested
+    // but not yet returned by queries. See
+    // https://github.com/osquery/osquery/issues/8524
+    if (range_end != range_start) {
+      range_end = std::prev(range_end);
+    }
 
     expired_event_batch_list.insert(std::make_move_iterator(range_start),
                                     std::make_move_iterator(range_end));
