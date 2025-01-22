@@ -259,8 +259,10 @@ std::vector<std::map<std::string, UserPath>> getUserPathList(
 QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::set<std::string> paths;
-  if (context.constraints.count("directory") > 0 &&
-      context.constraints.at("directory").exists(EQUALS)) {
+  bool directory_filter = context.constraints.count("directory") > 0 &&
+                          context.constraints.at("directory").exists(EQUALS);
+
+  if (directory_filter) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
     for (const auto& path : kPythonPath) {
@@ -273,6 +275,10 @@ QueryData genPythonPackagesImpl(QueryContext& context, Logger& logger) {
   }
   for (const auto& key : paths) {
     genSiteDirectories(key, results, logger, 0);
+  }
+  // If user has specified `where directory = "path"` then return results early.
+  if (directory_filter) {
+    return results;
   }
 
   // Enumerate user installed python packages
