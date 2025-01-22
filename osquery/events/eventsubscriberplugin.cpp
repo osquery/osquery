@@ -614,8 +614,8 @@ void EventSubscriberPlugin::expireEventBatches(Context& context,
     // restart event IDs at 1, potentially losing events that have been ingested
     // but not yet returned by queries. See
     // https://github.com/osquery/osquery/issues/8524
-    if (range_end != range_start) {
-      range_end = std::prev(range_end);
+    if (range_end != range_start && range_end == context.event_index.end()) {
+      --range_end;
     }
 
     expired_event_batch_list.insert(std::make_move_iterator(range_start),
