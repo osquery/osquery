@@ -13,8 +13,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/tests/test_util.h>
-
 #include <osquery/tables/system/windows/startup_items.h>
 
 namespace osquery {

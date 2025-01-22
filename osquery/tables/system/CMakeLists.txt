@@ -359,6 +359,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_eventlog.h
       windows/windows_update_history.h
       windows/security_profile_info_utils.h
+      windows/startup_items.h
     )
   endif()
 
