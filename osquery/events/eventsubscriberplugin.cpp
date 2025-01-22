@@ -676,11 +676,29 @@ EventSubscriberPlugin::GenerateRowsResult EventSubscriberPlugin::generateRows(
                               ? context.event_index.end()
                               : context.event_index.upper_bound(end_time);
 
+    bool loggedWarning{false};
     for (auto it = lower_bound_it; it != upper_bound_it; ++it) {
       const auto& event_id_list = it->second;
 
       for (const auto& event_identifier : event_id_list) {
         if (last_eid >= event_identifier) {
+          // Events that are optimized away by this if statement should only be
+          // from the same time (in seconds) as the start_time. If we see events
+          // that are from later than that time, it indicates that there is some
+          // issue with either the optimization data or the event IDs that have
+          // been generated. See https://github.com/osquery/osquery/issues/8524
+          // for one possible case.
+          if (!loggedWarning && it->first > start_time + 1) {
+            LOG(WARNING)
+                << "May be an error in events optimization causing data loss. "
+                   "Please report in a GitHub issue. start_time: "
+                << start_time << " end_time: " << end_time
+                << " last_eid: " << last_eid
+                << " event_identifier: " << event_identifier
+                << " event_time: " << it->first;
+            loggedWarning = true;
+          }
+
           // A previous optimized query has already visited this event.
           continue;
         }
