@@ -61,8 +61,8 @@ const std::set<std::string> kStartupStatusRegKeys = {
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 bool parseStartupPath(const std::string& entry, Row& r) {
-
-  // In case the path is already quoted, splitArgs(...) extract correctly the path with/without spaces
+  // In case the path is already quoted, splitArgs(...) extract correctly the
+  // path with/without spaces
   const auto argsp = splitArgs(entry);
 
   if (!argsp.has_value()) {
