@@ -151,8 +151,10 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
     auto names = context.constraints["name"].getAll(EQUALS);
     for (const auto& name : names) {
       // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
-        logger.vlog(1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
+      if (rpmdbSetIteratorRE(
+              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
+        logger.vlog(
+            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
       }
     }
   }
@@ -220,8 +222,11 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     auto packages = context.constraints["package"].getAll(EQUALS);
     for (const auto& package : packages) {
       // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(matches, RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) != 0) {
-        logger.vlog(1, "Cannot add pattern: (" + package + ") to RPM iterator selector");
+      if (rpmdbSetIteratorRE(
+              matches, RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) != 0) {
+        logger.vlog(
+            1,
+            "Cannot add pattern: (" + package + ") to RPM iterator selector");
       }
     }
   }
