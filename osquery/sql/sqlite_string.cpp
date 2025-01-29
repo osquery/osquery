@@ -68,10 +68,14 @@ static SplitResult tokenSplit(const std::string& input,
  * Example:
  *   1. SELECT ip_address from addresses;
  *      192.168.0.1
- *   2. SELECT SPLIT(ip_address, "\.", 1) from addresses;
+ *   2. SELECT REGEX_SPLIT(ip_address, "\.", 1) from addresses;
  *      168
- *   3. SELECT SPLIT(ip_address, "\.0", 0) from addresses;
+ *   3. SELECT REGEX_SPLIT(ip_address, "\.0", 0) from addresses;
  *      192.168
+ *   4. SELECT REGEX_SPLIT("5.9.0-6-g85f19825e", "\.|-", 0);
+ *      5
+ *   5. SELECT REGEX_SPLIT("5.9.0-6-g85f19825e", "\.|-", 4);
+ *      g85f19825e
  */
 static SplitResult regexSplit(const std::string& input,
                               const std::string& token) {
@@ -87,7 +91,10 @@ static SplitResult regexSplit(const std::string& input,
   std::sregex_token_iterator iter_begin(
       input.begin(), input.end(), pattern, -1);
   std::sregex_token_iterator iter_end;
-  std::copy(iter_begin, iter_end, std::back_inserter(result));
+  std::copy_if(iter_begin,
+               iter_end,
+               std::back_inserter(result),
+               [](const std::string& match) { return !match.empty(); });
 
   return result;
 }
