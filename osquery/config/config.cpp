@@ -351,9 +351,12 @@ Schedule::Schedule() {
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
-    // Add this query name to the denylist and save the denylist.
-    denylist_[failed_query_] = getUnixTime() + 86400;
-    saveScheduleDenylist(denylist_);
+    // If watchdog is enabled, add this query name to the denylist and save the
+    // denylist.
+    if (Flag::getValue("disable_watchdog") == "false") {
+      denylist_[failed_query_] = getUnixTime() + 86400;
+      saveScheduleDenylist(denylist_);
+    }
   }
 }
 
