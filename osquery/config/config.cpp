@@ -346,15 +346,17 @@ Schedule::Schedule() {
   // Parse the schedule's query denylist from backing storage.
   restoreScheduleDenylist(denylist_);
 
-  // Checks if any queries were executing when the tool last stopped, and only
-  // denies a query when watchdog is enabled.
+  // Check if any queries were executing when the tool last stopped.
   getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
-  if (!failed_query_.empty() && Flag::getValue("disable_watchdog") == "false") {
+  if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
-    // Add this query name to the denylist and save the denylist.
-    denylist_[failed_query_] = getUnixTime() + 86400;
-    saveScheduleDenylist(denylist_);
+    // If watchdog is enabled, add this query name to the denylist and save the
+    // denylist.
+    if (Flag::getValue("disable_watchdog") == "false") {
+      denylist_[failed_query_] = getUnixTime() + 86400;
+      saveScheduleDenylist(denylist_);
+    }
   }
 }
 
@@ -474,23 +476,20 @@ void Config::scheduledQueries(
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
       std::string name = getQueryName(pack->getName(), it.first);
-      // Only check the schedule's denylist when watchdog is enabled.
-      if (Flag::getValue("disable_watchdog") == "false") {
-        // The query may have failed and been added to the schedule's denylist.
-        auto denylisted_query = schedule_->denylist_.find(name);
-        if (denylisted_query != schedule_->denylist_.end()) {
-          if (denylistExpired(denylisted_query->second, it.second)) {
-            // The denylisted query passed the expiration time (remove).
-            schedule_->denylist_.erase(denylisted_query);
-            saveScheduleDenylist(schedule_->denylist_);
-            it.second.denylisted = false;
-          } else {
-            // The query is still denylisted.
-            it.second.denylisted = true;
-            if (!denylisted) {
-              // The caller does not want denylisted queries.
-              continue;
-            }
+      // They query may have failed and been added to the schedule's denylist.
+      auto denylisted_query = schedule_->denylist_.find(name);
+      if (denylisted_query != schedule_->denylist_.end()) {
+        if (denylistExpired(denylisted_query->second, it.second)) {
+          // The denylisted query passed the expiration time (remove).
+          schedule_->denylist_.erase(denylisted_query);
+          saveScheduleDenylist(schedule_->denylist_);
+          it.second.denylisted = false;
+        } else {
+          // The query is still denylisted.
+          it.second.denylisted = true;
+          if (!denylisted) {
+            // The caller does not want denylisted queries.
+            continue;
           }
         }
       }
