@@ -208,6 +208,16 @@ class Schedule : private boost::noncopyable {
    */
   std::map<std::string, uint64_t> denylist_;
 
+  /**
+   * @brief Set of denylisted queries which have been debug logged.
+   *
+   * A set of denied queries which have been debug logged. When a query gets
+   * denied by watchdog, we would like for it to be logged before it unexpires.
+   * Since the schedule is hit frequently, we track which queries have been
+   * logged as not to spam the debug logs.
+   */
+  std::unordered_set<std::string> log_denied_queries_;
+
  private:
   friend class Config;
 };
@@ -481,6 +491,7 @@ void Config::scheduledQueries(
       if (denylisted_query != schedule_->denylist_.end()) {
         if (denylistExpired(denylisted_query->second, it.second)) {
           // The denylisted query passed the expiration time (remove).
+          schedule_->log_denied_queries_.erase(name);
           schedule_->denylist_.erase(denylisted_query);
           saveScheduleDenylist(schedule_->denylist_);
           it.second.denylisted = false;
@@ -488,7 +499,17 @@ void Config::scheduledQueries(
           // The query is still denylisted.
           it.second.denylisted = true;
           if (!denylisted) {
-            // The caller does not want denylisted queries.
+            // The caller does not want denylisted queries. Log the first time
+            // skipping this query per osquery init or schedule query expiry
+            // period.
+            auto logged_denied_query =
+                schedule_->log_denied_queries_.find(name);
+            if (logged_denied_query == schedule_->log_denied_queries_.end()) {
+              LOG(WARNING) << "The caller does not want denied queries, "
+                              "skipping denied scheduled query: "
+                           << name;
+              schedule_->log_denied_queries_.insert(name);
+            }
             continue;
           }
         }
