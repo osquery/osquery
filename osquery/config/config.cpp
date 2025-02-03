@@ -212,7 +212,7 @@ class Schedule : private boost::noncopyable {
    * @brief Set of denylisted queries which have been debug logged.
    *
    * A set of denied queries which have been debug logged. When a query gets
-   * denied by watchdog, we would like for it to be logged before it unexpires.
+   * denied by watchdog, we would like for it to be logged before it expires.
    * Since the schedule is hit frequently, we track which queries have been
    * logged as not to spam the debug logs.
    */
