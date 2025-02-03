@@ -503,9 +503,8 @@ void Config::scheduledQueries(
             // The caller does not want denylisted queries. Log the first time
             // skipping this query per osquery init or schedule query expiry
             // period.
-            auto logged_denied_query =
-                schedule_->log_denied_queries_.find(name);
-            if (logged_denied_query == schedule_->log_denied_queries_.end()) {
+            if (schedule_->log_denied_queries_.find(name) ==
+                schedule_->log_denied_queries_.end()) {
               LOG(WARNING) << "The caller does not want denied queries, "
                               "skipping denied scheduled query: "
                            << name;
