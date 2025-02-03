@@ -495,6 +495,7 @@ void Config::scheduledQueries(
           schedule_->denylist_.erase(denylisted_query);
           saveScheduleDenylist(schedule_->denylist_);
           it.second.denylisted = false;
+          LOG(INFO) << "Scheduled denylisted query has unexpired: " << name;
         } else {
           // The query is still denylisted.
           it.second.denylisted = true;
