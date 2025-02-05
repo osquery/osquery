@@ -208,6 +208,16 @@ class Schedule : private boost::noncopyable {
    */
   std::map<std::string, uint64_t> denylist_;
 
+  /**
+   * @brief Set of denylisted queries which have been debug logged.
+   *
+   * A set of denied queries which have been logged. When a query gets
+   * denied by watchdog, we would like for it to be logged before it expires.
+   * Since the schedule is hit frequently, we track which queries have been
+   * logged as not to spam the logs.
+   */
+  std::unordered_set<std::string> log_denied_queries_;
+
  private:
   friend class Config;
 };
@@ -351,9 +361,12 @@ Schedule::Schedule() {
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
-    // Add this query name to the denylist and save the denylist.
-    denylist_[failed_query_] = getUnixTime() + 86400;
-    saveScheduleDenylist(denylist_);
+    // If watchdog is enabled, add this query name to the denylist and save the
+    // denylist.
+    if (Flag::getValue("disable_watchdog") == "false") {
+      denylist_[failed_query_] = getUnixTime() + 86400;
+      saveScheduleDenylist(denylist_);
+    }
   }
 }
 
@@ -478,6 +491,8 @@ void Config::scheduledQueries(
       if (denylisted_query != schedule_->denylist_.end()) {
         if (denylistExpired(denylisted_query->second, it.second)) {
           // The denylisted query passed the expiration time (remove).
+          LOG(INFO) << "Scheduled denylisted query has expired: " << name;
+          schedule_->log_denied_queries_.erase(name);
           schedule_->denylist_.erase(denylisted_query);
           saveScheduleDenylist(schedule_->denylist_);
           it.second.denylisted = false;
@@ -485,7 +500,16 @@ void Config::scheduledQueries(
           // The query is still denylisted.
           it.second.denylisted = true;
           if (!denylisted) {
-            // The caller does not want denylisted queries.
+            // The caller does not want denylisted queries. Log the first time
+            // skipping this query per osquery init or schedule query expiry
+            // period.
+            if (schedule_->log_denied_queries_.find(name) ==
+                schedule_->log_denied_queries_.end()) {
+              LOG(WARNING) << "The caller does not want denied queries, "
+                              "skipping denied scheduled query: "
+                           << name;
+              schedule_->log_denied_queries_.insert(name);
+            }
             continue;
           }
         }
