@@ -166,7 +166,7 @@ TEST_F(FileTests, test_sanity) {
                            {"hard_links", IntType},
                            {"symlink", IntType},
                            {"type", NonEmptyString},
-                           {"symlink_target", NormalType}};
+                           {"symlink_target_path", NormalType}};
 #ifdef WIN32
   row_map["attributes"] = NormalType;
   row_map["volume_serial"] = NormalType;

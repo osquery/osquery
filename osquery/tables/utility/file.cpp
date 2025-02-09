@@ -386,7 +386,7 @@ void genFileInfoPosix(const fs::path& path,
   if (S_ISLNK(link_stat.st_mode)) {
     r["symlink"] = "1";
     fs::path symlink_target = fs::read_symlink(path);
-    r["symlink_target"] = symlink_target.string();
+    r["symlink_target_path"] = symlink_target.string();
   }
 
   if (stat(path.string().c_str(), &file_stat)) {
