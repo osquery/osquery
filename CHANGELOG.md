@@ -1,5 +1,27 @@
 # osquery Changelog
 
+<a name="5.16.0"></a>
+## [5.16.0](https://github.com/osquery/osquery/releases/tag/5.16.0)
+
+[Git Commits](https://github.com/osquery/osquery/compare/5.15.0...5.16.0)
+
+Representing commits from 7 contributors! Thank you all.
+
+### Table Changes
+
+- Fix the `python_paths` table to skip unnecessary code paths when filtering by `directory` ([#8544](https://github.com/osquery/osquery/pull/8544))
+- Added python packages in user directories on `python_packages` ([#8504](https://github.com/osquery/osquery/pull/8504))
+- Added RHEL paths for `python_packages` table ([#8529](https://github.com/osquery/osquery/pull/8529))
+- Buffer error logs in `deb_packages` table ([#8540](https://github.com/osquery/osquery/pull/8540))
+- Fix `wifi_status` to correctly gather `network_name` on MacOS 14+ ([#8530](https://github.com/osquery/osquery/pull/8530))
+- Fix hardware model and version on Lenovo on `system_info` ([#8534](https://github.com/osquery/osquery/pull/8534))
+- Optimize `rpm_packages` and `rpm_package_files` use of query context ([#8537](https://github.com/osquery/osquery/pull/8537))
+
+### Bug Fixes
+
+- Fix to only deny-list scheduled queries when watchdog is enabled ([#8541](https://github.com/osquery/osquery/pull/8541))
+- Switched to `wmain` to accept non-ascii characters from command line ([#8519](https://github.com/osquery/osquery/pull/8519))
+
 <a name="5.15.0"></a>
 ## [5.15.0](https://github.com/osquery/osquery/releases/tag/5.15.0)
 
