@@ -96,15 +96,14 @@ std::unique_ptr<BYTE[]> getSidFromAccountName(
 }
 
 std::string psidToString(PSID sid) {
-  LPSTR sid_out = nullptr;
-  auto ret = ConvertSidToStringSidA(sid, &sid_out);
+  LPWSTR sid_out = nullptr;
+  auto guard = scope_guard::create([&] { LocalFree(sid_out); });
+  auto ret = ConvertSidToStringSidW(sid, &sid_out);
   if (ret == 0) {
-    VLOG(1) << "ConvertSidToString failed with " << GetLastError();
+    VLOG(1) << "ConvertSidToStringW failed with " << GetLastError();
     return {};
   }
-  std::string sid_string(sid_out);
-  LocalFree(sid_out);
-  return sid_string;
+  return wstringToString(sid_out);
 }
 
 std::string getGroupSidFromUsername(LPCWSTR username) {
@@ -114,7 +113,6 @@ std::string getGroupSidFromUsername(LPCWSTR username) {
   DWORD entries_read = 0;
   DWORD total_entries = 0;
   std::unique_ptr<BYTE[]> sid_smart_ptr = nullptr;
-  PSID sid_ptr = nullptr;
 
   localgroup_users_info_0_ptr user_groups_buff;
 
@@ -138,8 +136,6 @@ std::string getGroupSidFromUsername(LPCWSTR username) {
     return {};
   }
 
-  LPWSTR sid_string;
-
   // A user often has more than one local group. We only return the first!
   sid_smart_ptr = getSidFromAccountName(user_groups_buff->lgrui0_name);
 
@@ -148,16 +144,7 @@ std::string getGroupSidFromUsername(LPCWSTR username) {
     return {};
   }
 
-  sid_ptr = static_cast<PSID>(sid_smart_ptr.get());
-
-  auto convert_res = ConvertSidToStringSidW(sid_ptr, &sid_string);
-
-  if (!convert_res) {
-    VLOG(1) << "Failed to convert sid to string";
-    return {};
-  }
-
-  return wstringToString(sid_string);
+  return psidToString(static_cast<PSID>(sid_smart_ptr.get()));
 }
 
 std::string getGroupSidFromUsername(const std::wstring& username) {
@@ -285,7 +272,7 @@ std::string getUserHomeDir(const std::string& sid) {
   profile_key_path += kRegSep;
   profile_key_path += stringToWstring(sid);
 
-  HKEY hkey;
+  HKEY hkey = nullptr;
   auto ret = RegOpenKeyExW(
       HKEY_LOCAL_MACHINE, profile_key_path.c_str(), 0, KEY_READ, &hkey);
 
