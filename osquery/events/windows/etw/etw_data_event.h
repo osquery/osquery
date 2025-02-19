@@ -108,17 +108,53 @@ struct EtwProcessStopData final {
 using EtwProcStopDataRef = std::shared_ptr<EtwProcessStopData>;
 
 /**
+ * @brief DNS request event payload
+ */
+struct EtwDnsRequestData final {
+  /// Process ID
+  std::uint32_t ProcessId{0};
+
+  // Process image path
+  std::string ProcessImagePath;
+
+  /// Query Name
+  std::string QueryName;
+
+  /// Query Type
+  std::uint32_t QueryType{0};
+
+  // Query Type as a string
+  std::string QueryTypeString;
+
+  /// Query Status Code
+  std::uint32_t QueryStatus{0};
+
+  /// Query Results
+  std::string QueryResults;
+
+  /// User SID
+  std::string UserSid;
+
+  /// User Name
+  std::string UserName;
+};
+
+using EtwDnsRequestDataRef = std::shared_ptr<EtwDnsRequestData>;
+
+/**
  * @brief ETW Event Payload
  */
-using EtwPayloadVariant =
-    std::variant<std::monostate, EtwProcStartDataRef, EtwProcStopDataRef>;
+using EtwPayloadVariant = std::variant<std::monostate,
+                                       EtwProcStartDataRef,
+                                       EtwProcStopDataRef,
+                                       EtwDnsRequestDataRef>;
 
 /**
  * @brief Event types
  * The event type is used to tag an ETW event to an specific data type that will
  * be used to dispatch events to different provider post processors
  */
-enum class EtwEventType { Invalid, ProcessStart, ProcessStop };
+enum class EtwEventType { Invalid, ProcessStart, ProcessStop, DnsRequest };
 
 /**
  * @brief Event Type string representation
@@ -126,7 +162,8 @@ enum class EtwEventType { Invalid, ProcessStart, ProcessStop };
 const auto kEtwEventTypeStrings = std::unordered_map<EtwEventType, std::string>{
     {EtwEventType::Invalid, "Invalid"},
     {EtwEventType::ProcessStart, "ProcessStart"},
-    {EtwEventType::ProcessStop, "ProcessStop"}};
+    {EtwEventType::ProcessStop, "ProcessStop"},
+    {EtwEventType::DnsRequest, "DnsRequests"}};
 
 /**
  * @brief ETW Event Header

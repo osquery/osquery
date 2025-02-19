@@ -64,6 +64,13 @@ class EtwPublisherBase {
    */
   std::function<void(const EtwEventDataRef&)> getPostProcessorCallback();
 
+ protected:
+  /**
+   * @brief Given the userSid, update the username using a cached value or
+   * looking up the value if no cached value exists.
+   */
+  void updateUserInfo(const std::string& userSid, std::string& username);
+
  private:
   /**
    * @brief Abstract method that has to be implemented in the ETW publisher
@@ -79,6 +86,10 @@ class EtwPublisherBase {
    * @brief Provider name
    */
   std::string name_;
+
+  // Cache for updateUserInfo
+  using UsernameBySIDCollection = std::unordered_map<std::string, std::string>;
+  UsernameBySIDCollection usernamesBySIDs_;
 };
 
 } // namespace osquery
