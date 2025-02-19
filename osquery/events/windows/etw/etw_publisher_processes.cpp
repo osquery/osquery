@@ -27,9 +27,7 @@ REGISTER_ETW_PUBLISHER(EtwPublisherProcesses, kEtwProcessPublisherName.c_str());
 
 // Publisher constructor
 EtwPublisherProcesses::EtwPublisherProcesses()
-    : EtwPublisherBase(kEtwProcessPublisherName) {
-  initializeHardVolumeConversions();
-};
+    : EtwPublisherBase(kEtwProcessPublisherName) {};
 
 // There are multiple ETW providers being setup here. Events arriving from
 // these providers will be aggregated in the post-processing phase.
@@ -361,21 +359,6 @@ void EtwPublisherProcesses::providerPostProcessor(
   }
 }
 
-void EtwPublisherProcesses::initializeHardVolumeConversions() {
-  const auto& validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  for (const auto& driveLetter : validDriveLetters) {
-    std::string queryPath;
-    queryPath.push_back(driveLetter);
-    queryPath.push_back(':');
-
-    char hardVolume[MAX_PATH + 1] = {0};
-    if (QueryDosDeviceA(queryPath.c_str(), hardVolume, MAX_PATH)) {
-      hardVolumeDrives_.insert({hardVolume, queryPath});
-    }
-  }
-}
-
 void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
   // Time stamp value is expressed in 100 nanosecond units, this is about
   // 10000000 nanoseconds per second
@@ -406,18 +389,6 @@ void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
     }
 
     ++it;
-  }
-}
-
-void EtwPublisherProcesses::updateHardVolumeWithLogicalDrive(
-    std::string& path) {
-  // Updating the hardvolume entries with logical volume data
-  for (const auto& [hardVolume, logicalDrive] : hardVolumeDrives_) {
-    size_t pos = 0;
-    if ((pos = path.find(hardVolume, pos)) != std::string::npos) {
-      path.replace(pos, hardVolume.length(), logicalDrive);
-      break;
-    }
   }
 }
 

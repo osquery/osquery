@@ -113,9 +113,7 @@ class EtwPublisherProcesses
   void providerPostProcessor(const EtwEventDataRef& data) override;
 
   /// Event post-processing helpers
-  void initializeHardVolumeConversions();
   void cleanOldAggregationCacheEntries();
-  void updateHardVolumeWithLogicalDrive(std::string& path);
   void updateTokenInfo(const std::uint32_t& tokenType, std::string& tokenInfo);
   void updateImagePath(const std::uint64_t& key1,
                        const std::uint64_t& key2,
@@ -135,12 +133,9 @@ class EtwPublisherProcesses
       std::unordered_map<std::uint64_t, EtwProcStartDataRef>;
   using ProcessImageCacheCollection =
       std::unordered_map<std::uint64_t, std::string>;
-  using HardVolumeDriveCollection =
-      std::unordered_map<std::string, std::string>;
 
   ProcessStartCacheCollection processStartAggregationCache_;
   ProcessImageCacheCollection processImageCache_;
-  HardVolumeDriveCollection hardVolumeDrives_;
 };
 
 } // namespace osquery

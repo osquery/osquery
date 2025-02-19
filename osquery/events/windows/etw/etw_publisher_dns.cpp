@@ -250,6 +250,7 @@ void EtwPublisherDNS::providerPostProcessor(const EtwEventDataRef& eventData) {
       dnsQueryTypeToString(dnsRequestData->QueryType);
   dnsRequestData->ProcessImagePath =
       processImagePathFromProcessId(dnsRequestData->ProcessId);
+  updateHardVolumeWithLogicalDrive(dnsRequestData->ProcessImagePath);
   
   LOG(INFO) << "QueryName: " << dnsRequestData->QueryName
             << " QueryType: " << dnsRequestData->QueryType
