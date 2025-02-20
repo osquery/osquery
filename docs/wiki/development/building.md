@@ -203,7 +203,7 @@ A "single" test case often still involves dozens or hundreds of unit tests. To r
 
 ```PowerShell
 $Env:GTEST_FILTER='windowsEventLog.*'
-ctest -R tests_integration_tests_tables-test -C RelWithDebInfo -V #runs just the windowsEventLog under the integration tables tests
+ctest -R tests_integration_tables-test -C RelWithDebInfo -V #runs just the windowsEventLog under the integration tables tests
 ```
 
 ### Run tests on Linux and macOS
