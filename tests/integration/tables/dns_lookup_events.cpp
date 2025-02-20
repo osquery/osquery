@@ -27,9 +27,9 @@ class etwdnsEvents : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
 
-    // Enable ETW dns events
+    // Enable ETW DNS events
     RegistryFactory::get().registry("config_parser")->setUp();
-    FLAGS_enable_dns_etw_events = true;
+    FLAGS_enable_dns_lookup_events = true;
 
     // Start eventing framework
     attachEvents();
@@ -42,18 +42,14 @@ class etwdnsEvents : public testing::Test {
   }
 };
 
-TEST_F(etwdnsEvents, test_sanity) {
-  // 1. Launching process to generate ProcessStart and ProcessStop events
+TEST_F(dnsLookupEvents, test_sanity) {
+  // 1. Ping to generate a DNS request
   system("ping -n 1 hostname.invalid");
   Sleep(4000);
 
   // 2. Query data
   auto const data = execute_query(
-      "select type, pid, ppid, session_id, flags, exit_code, path, cmdline, "
-      "username, token_elevation_type, token_elevation_status, "
-      "mandatory_label, datetime, time_windows, time, eid, header_pid, "
-      "process_sequence_number, parent_process_sequence_number from "
-      "process_etw_events");
+      "select * from dns_lookup_events");
 
   // 3. Check size before validation
   ASSERT_GE(data.size(), 0ul);
