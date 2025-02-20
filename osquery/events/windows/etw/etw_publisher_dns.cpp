@@ -21,9 +21,9 @@
 namespace osquery {
 
 FLAG(bool,
-     enable_dns_etw_events,
+     enable_dns_lookup_events,
      false,
-     "Enables the dns_etw_events publisher");
+     "Enables the dns_lookup_events publisher");
 
 // ETW Event publisher registration into the Osquery pub-sub framework
 REGISTER_ETW_PUBLISHER(EtwPublisherDNS, kEtwDNSPublisherName.c_str());
@@ -252,16 +252,6 @@ void EtwPublisherDNS::providerPostProcessor(const EtwEventDataRef& eventData) {
       processImagePathFromProcessId(dnsRequestData->ProcessId);
   updateHardVolumeWithLogicalDrive(dnsRequestData->ProcessImagePath);
   
-  LOG(INFO) << "QueryName: " << dnsRequestData->QueryName
-            << " QueryType: " << dnsRequestData->QueryType
-            << " QueryTypeString: " << dnsRequestData->QueryTypeString
-            << " QueryStatus: " << dnsRequestData->QueryStatus
-            << " QueryResults: " << dnsRequestData->QueryResults
-            << " UserSid: " << dnsRequestData->UserSid
-            << " UserName: " << dnsRequestData->UserName
-            << " ProcessID: " << dnsRequestData->ProcessId
-            << " ProcessImagePath: " << dnsRequestData->ProcessImagePath;
-
   // Event dispatch
   event_context->data = std::move(eventData);
   fire(event_context);

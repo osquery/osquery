@@ -272,6 +272,7 @@ EventSubscriberRef EventFactory::getEventSubscriber(
 }
 
 bool EventFactory::exists(const std::string& name_id) {
+
   return (getInstance().event_subs_.count(name_id) > 0);
 }
 
