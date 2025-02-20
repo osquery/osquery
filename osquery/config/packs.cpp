@@ -8,8 +8,8 @@
  */
 
 #include <algorithm>
-#include <mutex>
 #include <chrono>
+#include <mutex>
 #include <random>
 
 #include <osquery/config/packs.h>
@@ -249,15 +249,29 @@ void Pack::initialize(const std::string& name,
       query.options["denylist"] = JSON::valueToBool(q.value["denylist"]);
     }
 
-    schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
+    if (q.value.HasMember("startup_priority")) {
+      query.startup_priority = JSON::valueToSize(q.value["startup_priority"]);
+    }
+
+    schedule_.push_back(std::move(query));
   }
+
+  std::sort(schedule_.begin(),
+            schedule_.end(),
+            [](ScheduledQuery& a, ScheduledQuery& b) {
+              if (a.startup_priority != b.startup_priority) {
+                return a.startup_priority < b.startup_priority;
+              } else {
+                return a.name < b.name;
+              }
+            });
 }
 
-const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
+const std::vector<ScheduledQuery>& Pack::getSchedule() const {
   return schedule_;
 }
 
-std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
+std::vector<ScheduledQuery>& Pack::getSchedule() {
   return schedule_;
 }
 
@@ -340,4 +354,4 @@ bool Pack::checkDiscovery() {
 bool Pack::isActive() const {
   return active_;
 }
-}
+} // namespace osquery
