@@ -245,12 +245,12 @@ void EtwPublisherDNS::providerPostProcessor(const EtwEventDataRef& eventData) {
     return;
   }
 
-  updateUserInfo(dnsRequestData->UserSid, dnsRequestData->UserName);
-  dnsRequestData->QueryTypeString =
-      dnsQueryTypeToString(dnsRequestData->QueryType);
   dnsRequestData->ProcessImagePath =
       processImagePathFromProcessId(dnsRequestData->ProcessId);
   updateHardVolumeWithLogicalDrive(dnsRequestData->ProcessImagePath);
+  updateUserInfo(dnsRequestData->UserSid, dnsRequestData->UserName);
+  dnsRequestData->QueryTypeString =
+      dnsQueryTypeToString(dnsRequestData->QueryType);
   
   // Event dispatch
   event_context->data = std::move(eventData);

@@ -22,7 +22,7 @@ DECLARE_bool(enable_dns_lookup_events);
 
 namespace table_tests {
 
-class etwdnsEvents : public testing::Test {
+class dnsLookupEvents : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
@@ -43,41 +43,64 @@ class etwdnsEvents : public testing::Test {
 };
 
 TEST_F(dnsLookupEvents, test_sanity) {
-  // 1. Ping to generate a DNS request
-  system("ping -n 1 hostname.invalid");
+  // Ping to generate DNS lookups
+  system("ping hostname.invalid"); // invalid, will fail
+  system("ping localhost"); // valid, should succeed
   Sleep(4000);
 
-  // 2. Query data
+  // Query data
   auto const data = execute_query(
-      "select * from dns_lookup_events");
+      "SELECT eid, time, time_windows, datetime, pid, path, username, name, "
+      "type, type_id, status, response FROM dns_lookup_events");
 
-  // 3. Check size before validation
+  // General validation of rows
   ASSERT_GE(data.size(), 0ul);
-
-  // 4. Build validation map
-  ValidationMap row_map = {
-      {"type", NonEmptyString},
-      {"pid", NonNegativeInt},
-      {"ppid", NonNegativeInt},
-      {"session_id", NonNegativeInt},
-      {"flags", NonNegativeInt},
-      {"exit_code", EmptyOk | NullOk},
-      {"path", NonEmptyString},
-      {"cmdline", EmptyOk | NullOk},
-      {"username", NonEmptyString},
-      {"token_elevation_type", EmptyOk | NullOk},
-      {"token_elevation_status", EmptyOk | NullOk},
-      {"mandatory_label", EmptyOk | NullOk},
-      {"datetime", NonNegativeInt},
-      {"time_windows", NonNegativeInt},
-      {"time", NonNegativeInt},
-      {"eid", NonNegativeInt},
-      {"header_pid", NonNegativeInt},
-      {"process_sequence_number", NonNegativeInt},
-      {"parent_process_sequence_number", EmptyOk | NullOk}};
-
-  // 5. Perform validation
+  ValidationMap row_map = {{"eid", NonNegativeInt},
+                           {"time", NonNegativeInt},
+                           {"time_windows", NonNegativeInt},
+                           {"datetime", NonNegativeInt},
+                           {"pid", NonNegativeInt},
+                           {"path", FileOnDisk | EmptyOk | NullOk},
+                           {"username", NonEmptyString},
+                           {"name", NonEmptyString},
+                           {"type", NonEmptyString},
+                           {"type_id", NonNegativeInt},
+                           {"status", NonEmptyString},
+                           {"response", NonEmptyString | EmptyOk | NullOk}};
   validate_rows(data, row_map);
+
+  // Specific validation of rows
+  {
+    // Unsuccessful A record
+    const auto it = std::find_if(data.begin(), data.end(), [](const Row& row) {
+      return row.at("name") == "hostname.invalid" && row.at("type") == "A";
+    });
+    ASSERT_NE(it, data.end());
+    const Row& row = *it;
+    EXPECT_EQ(row.at("status"), INTEGER(87));
+    EXPECT_EQ(row.at("response").size(), 0);
+  }
+
+  {
+    // Unsuccessful AAAA record
+    const auto it = std::find_if(data.begin(), data.end(), [](const Row& row) {
+      return row.at("name") == "hostname.invalid" && row.at("type") == "AAAA";
+    });
+    ASSERT_NE(it, data.end());
+    const Row& row = *it;
+    EXPECT_EQ(row.at("status"), INTEGER(9003));
+    EXPECT_EQ(row.at("response").size(), 0);
+  }
+
+  {
+    // Check the successful localhost lookup (could be A or AAAA)
+    const auto it = std::find_if(data.begin(), data.end(), [](const Row& row) {
+      return row.at("name") == "localhost" && row.at("status") == "0";
+    });
+    ASSERT_NE(it, data.end());
+    const Row& row = *it;
+    EXPECT_GE(row.at("response").size(), 0);
+  }
 }
 
 } // namespace table_tests
