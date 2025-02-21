@@ -126,6 +126,52 @@ fs.inotify.max_user_instances = 256
 fs.inotify.max_queued_events = 32768
 ```
 
+## macOS and FIM
+
+### Process based FIM with EndpointSecurity
+
+For osquery to capture process based file events in its `es_process_file_events` table, EndpointSecurity must first be enabled. To enable EndpointSecurity and EndpointSecurity based table set `--disable_endpointsecurity=false` and `--disable_endpointsecurity_fim=false` in the configuration. 
+
+> NOTE: In addition to above flags, osquery will also need Full Disk Access (FDA) permissions on macOS. For more information on granting osquery the FDA permission, refer to the [process auditing docs](/process-auditing.md).
+
+This will enable osquery to report on `CREATE`, `WRITE`, `RENAME`, and `TRUNCATE` events. 
+
+#### File Open events
+
+With macOS 13 Ventura (and later), and osquery version 5.10.2 (and later), it is now possible to report on `OPEN` events as well. This event type will report on whenever a file is opened or accessed. This disabled by default, to enable it, set `--es_fim_enable_open_events=true` in the configuration. 
+
+To set the `file_paths` to be monitored by `es_process_file_events` table, let's look at that from the sample config above:
+
+```json
+{
+  "file_paths": {
+    "homes": [
+      "/root/.ssh/%%",
+      "/home/%/.ssh/%%"
+    ],
+    "etc": [
+      "/etc/%%"
+    ],
+    "tmp": [
+      "/tmp/%%"
+    ]
+  }
+  "exclude_paths": {
+    "homes": [
+      "/home/not_to_monitor/.ssh/%%"
+    ],
+    "tmp": [
+      "/tmp/too_many_events/"
+    ]
+  }
+}
+```
+
+The same rules described above apply to the `file_paths` and `exclude_paths` blocks in the configuration. For any changes/updates to `file_paths` or `exclude_paths`, osquery must be restarted in order for them to take effect.
+
+> **NOTE:** Not specifying `file_paths` in the configuration, would result in entire filesystem being monitored.
+
+
 ## File Accesses (Linux only)
 
 In addition to FIM, which generates events if a file is created/modified/deleted, osquery also supports file *access* monitoring which can generate events if a file is accessed.
