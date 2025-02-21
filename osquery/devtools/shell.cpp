@@ -213,7 +213,7 @@ static double timeDiff(struct timeval* pStart, struct timeval* pEnd) {
 static void endTimer() {
   if (enableTimer != 0) {
     sqlite3_int64 iEnd = timeOfDay();
-    struct rusage sEnd{};
+    struct rusage sEnd {};
 
 #ifdef WIN32
     FILETIME ftCreation, ftExit;
@@ -1398,7 +1398,7 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
   n = strlen30(azArg[0]);
   c = azArg[0][0];
   if (c == 'a' && strncmp(azArg[0], "all", n) == 0 && nArg == 2) {
-    struct callback_data data{};
+    struct callback_data data {};
     memcpy(&data, p, sizeof(data));
     auto query = std::string("SELECT * FROM ") + azArg[1];
     rc = shell_exec(query.c_str(), shell_callback, &data, nullptr);
@@ -1832,7 +1832,7 @@ int runPack(struct callback_data* data) {
 }
 
 int launchIntoShell(int argc, char** argv) {
-  struct callback_data data{};
+  struct callback_data data {};
   main_init(&data);
 
 #if defined(SQLITE_ENABLE_WHERETRACE)

@@ -335,8 +335,8 @@ void SchedulerRunner::start() {
   }
 }
 
-std::chrono::milliseconds SchedulerRunner::getCurrentTimeDrift()
-    const noexcept {
+std::chrono::milliseconds SchedulerRunner::getCurrentTimeDrift() const
+    noexcept {
   return time_drift_;
 }
 
