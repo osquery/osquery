@@ -179,6 +179,9 @@ void Pack::initialize(const std::string& name,
     return;
   }
 
+  // Track the schedule query names to ensure no duplicates.
+  schedule_queries_.clear();
+
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
     if (!q.value.IsObject() || !q.name.IsString()) {
@@ -205,13 +208,21 @@ void Pack::initialize(const std::string& name,
       }
     }
 
+    auto query_name = q.name.GetString();
+
     if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
-      VLOG(1) << "No query string defined for query " << q.name.GetString();
+      VLOG(1) << "No query string defined for query " << query_name;
       continue;
     }
 
-    ScheduledQuery query(
-        name_, q.name.GetString(), q.value["query"].GetString());
+    if (schedule_queries_.count(query_name)) {
+      // Duplicated query name.
+      continue;
+    } else {
+      schedule_queries_.emplace(query_name);
+    }
+
+    ScheduledQuery query(name_, query_name, q.value["query"].GetString());
 
     query.oncall = oncall;
 
@@ -224,13 +235,12 @@ void Pack::initialize(const std::string& name,
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
-      LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
-                   << ": " << query.interval;
+      LOG(WARNING) << "Query has invalid interval: " << query_name << ": "
+                   << query.interval;
       continue;
     }
 
-    query.splayed_interval =
-        restoreSplayedValue(q.name.GetString(), query.interval);
+    query.splayed_interval = restoreSplayedValue(query_name, query.interval);
 
     if (!q.value.HasMember("snapshot")) {
       query.options["snapshot"] = false;

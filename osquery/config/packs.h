@@ -12,6 +12,7 @@
 #include <atomic>
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <gtest/gtest_prod.h>
@@ -112,6 +113,9 @@ class Pack : private boost::noncopyable {
  protected:
   /// List of query strings.
   std::vector<std::string> discovery_queries_;
+
+  /// Set of scheduled queries by name.
+  std::unordered_set<std::string> schedule_queries_;
 
   /// Array of scheduled query details.
   std::vector<ScheduledQuery> schedule_;
