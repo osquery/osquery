@@ -215,13 +215,6 @@ void Pack::initialize(const std::string& name,
       continue;
     }
 
-    if (schedule_queries_.count(query_name)) {
-      // Duplicated query name.
-      continue;
-    } else {
-      schedule_queries_.emplace(query_name);
-    }
-
     ScheduledQuery query(name_, query_name, q.value["query"].GetString());
 
     query.oncall = oncall;
@@ -238,6 +231,13 @@ void Pack::initialize(const std::string& name,
       LOG(WARNING) << "Query has invalid interval: " << query_name << ": "
                    << query.interval;
       continue;
+    }
+
+    if (schedule_queries_.count(query_name)) {
+      // Duplicated query name.
+      continue;
+    } else {
+      schedule_queries_.emplace(query_name);
     }
 
     query.splayed_interval = restoreSplayedValue(query_name, query.interval);
