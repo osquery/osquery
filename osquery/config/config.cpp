@@ -260,7 +260,7 @@ Schedule::getSqlQueriesForSource(const std::string& source) {
     if (it != packs_.end()) {
       auto& schedule = (*it)->getSchedule();
       for (auto& s : schedule) {
-        queries[(*it)->getName()][s.first] = s.second.query;
+        queries[(*it)->getName()][s.name] = s.query;
       }
       it++;
     } else {
@@ -484,21 +484,21 @@ void Config::scheduledQueries(
     bool denylisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
-    for (auto& it : pack->getSchedule()) {
-      std::string name = getQueryName(pack->getName(), it.first);
+    for (auto& query : pack->getSchedule()) {
+      std::string name = getQueryName(pack->getName(), query.name);
       // They query may have failed and been added to the schedule's denylist.
       auto denylisted_query = schedule_->denylist_.find(name);
       if (denylisted_query != schedule_->denylist_.end()) {
-        if (denylistExpired(denylisted_query->second, it.second)) {
+        if (denylistExpired(denylisted_query->second, query)) {
           // The denylisted query passed the expiration time (remove).
           LOG(INFO) << "Scheduled denylisted query has expired: " << name;
           schedule_->log_denied_queries_.erase(name);
           schedule_->denylist_.erase(denylisted_query);
           saveScheduleDenylist(schedule_->denylist_);
-          it.second.denylisted = false;
+          query.denylisted = false;
         } else {
           // The query is still denylisted.
-          it.second.denylisted = true;
+          query.denylisted = true;
           if (!denylisted) {
             // The caller does not want denylisted queries. Log the first time
             // skipping this query per osquery init or schedule query expiry
@@ -516,7 +516,7 @@ void Config::scheduledQueries(
       }
 
       // Call the predicate.
-      predicate(std::move(name), it.second);
+      predicate(std::move(name), query);
 
       if (shutdownRequested()) {
         break;
@@ -1017,9 +1017,10 @@ void Config::purge() {
   auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
                          const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
-      const auto& pack_queries = pack->getSchedule();
-      if (pack_queries.count(query_name)) {
-        return true;
+      for (const auto& query : pack->getSchedule()) {
+        if (query.name == query_name) {
+          return true;
+        }
       }
     }
     return false;
