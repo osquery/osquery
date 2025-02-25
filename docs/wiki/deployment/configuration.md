@@ -340,7 +340,7 @@ the next section on [logging](../deployment/logging.md) for examples of each log
 
 Queries may be "denylisted" if they cause osquery to use excessive system resources. A denylisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `denylist: false` to prevent a query from being denylisted.
 
-Note that queries which leave `startup_priority` as the default value will not execute at startup.
+Note that queries which leave `startup_priority` as the default value will not execute at startup. When using watchdog, scheduled queries running on startup will generally run before watchdog starts. The watchdog start delay can be adjusted with `watchdog_delay` (default: 60), but running many queries on startup may be resource demanding, and thus could cause the watchdog to deny the startup queries if the delay is too short.
 
 ### Packs
 
