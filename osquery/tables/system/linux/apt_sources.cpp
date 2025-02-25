@@ -7,8 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/algorithm/string/replace.hpp>
-
+#include "osquery/utils/status/status.h"
+#include <algorithm>
+#include <boost/algorithm/string/compare.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/regex/v5/regex_fwd.hpp>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
@@ -119,15 +124,10 @@ std::string getCacheFilename(const std::vector<std::string>& cache_file) {
   return filename;
 }
 
-void genAptUrl(const std::string& source,
-               const std::string& line,
-               QueryData& results,
-               Logger& logger) {
-  AptSource apt_source;
-  if (!parseAptSourceLine(line, apt_source).ok()) {
-    return;
-  }
-
+void aptSourceToRow(const std::string& source,
+                    const AptSource& apt_source,
+                    QueryData& results,
+                    Logger& logger) {
   Row r;
   r["source"] = source;
   r["base_uri"] = std::move(apt_source.base_uri);
@@ -178,6 +178,18 @@ void genAptUrl(const std::string& source,
   results.push_back(r);
 }
 
+void genAptUrl(const std::string& source,
+               const std::string& line,
+               QueryData& results,
+               Logger& logger) {
+  AptSource apt_source;
+  if (!parseAptSourceLine(line, apt_source).ok()) {
+    return;
+  }
+
+  aptSourceToRow(source, apt_source, results, logger);
+}
+
 static void genAptSource(const std::string& source,
                          QueryData& results,
                          Logger& logger) {
@@ -198,6 +210,126 @@ static void genAptSource(const std::string& source,
   }
 }
 
+Status parseDeb822Block(const std::string& input_block,
+                        std::vector<AptSource>& apt_sources) {
+  std::vector<std::string> uris;
+  std::vector<std::string> suites;
+  std::vector<std::string> components;
+
+  for (const auto& input_line : osquery::split(input_block, "\n")) {
+    // Skip empty lines
+    if (input_line.empty()) {
+      continue;
+    }
+
+    // Remove everything after # from the line for comments
+    auto comment_pos = input_line.find("#");
+    std::string line;
+    if (comment_pos != std::string::npos) {
+      line = input_line.substr(0, comment_pos);
+    } else {
+      line = input_line;
+    }
+
+    auto colon_pos = line.find(":");
+    auto key = line.substr(0, colon_pos);
+    auto value = line.substr(colon_pos + 1, std::string::npos);
+    boost::trim(value);
+
+    if (key == "Types") {
+      auto types = osquery::split(value);
+      if (std::find(types.begin(), types.end(), "deb") == types.end()) {
+        return Status::failure("not a deb type repo");
+      }
+    }
+
+    if (key == "Enabled" && value != "on") {
+      return Status::failure("repo is not enabled");
+    }
+
+    if (key == "URIs") {
+      for (auto& uri : osquery::split(value)) {
+        // Cannot have trailing slashes
+        while (uri.back() == '/') {
+          uri.pop_back();
+        }
+        uris.push_back(uri);
+      }
+    }
+
+    if (key == "Suites") {
+      for (const auto& suite : osquery::split(value)) {
+        suites.push_back(suite);
+      }
+    }
+
+    if (key == "Components") {
+      for (const auto& component : osquery::split(value)) {
+        components.push_back(component);
+      }
+    }
+  }
+
+  for (const auto& uri : uris) {
+    auto name = uri.substr(uri.find("://") + 3);
+    for (const auto& suite : suites) {
+      auto suite_parts = osquery::split(suite, "/");
+      AptSource apt_source;
+
+      apt_source.base_uri = uri;
+      apt_source.name = name + ' ' + suite;
+      apt_source.cache_file.push_back(name);
+
+      if (suite_parts.size() == 1) {
+        apt_source.cache_file.push_back("dists");
+        apt_source.cache_file.push_back(suite);
+      } else {
+        apt_source.cache_file.insert(apt_source.cache_file.end(),
+                                     suite_parts.begin(),
+                                     suite_parts.end());
+      }
+
+      apt_sources.push_back(apt_source);
+    }
+  }
+
+  return Status::success();
+}
+
+void genDeb822Block(const std::string& source,
+                    const std::string& block,
+                    QueryData& results,
+                    Logger& logger) {
+  std::vector<AptSource> apt_sources;
+  parseDeb822Block(block, apt_sources);
+
+  for (const auto& apt_source : apt_sources) {
+    aptSourceToRow(source, apt_source, results, logger);
+  }
+}
+
+static void genDeb822Source(const std::string& source,
+                            QueryData& results,
+                            Logger& logger) {
+  std::string content;
+
+  auto s = readFile(source, content);
+  if (!s.ok()) {
+    logger.log(google::GLOG_WARNING, s.getMessage());
+    return;
+  }
+
+  std::vector<std::string> blocks;
+  boost::algorithm::split_regex(blocks, content, boost::regex("\n\n"));
+  for (const auto& block : blocks) {
+    // Skip empty lines
+    if (block.empty()) {
+      continue;
+    }
+    genDeb822Block(source, block, results, logger);
+  }
+}
+
 QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
   QueryData results;
 
@@ -206,16 +338,27 @@ QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
   dropper->dropTo("nobody");
 
   // Expect the APT home to be /etc/apt.
-  std::vector<std::string> sources;
-  sources.push_back("/etc/apt/sources.list");
+  std::vector<std::string> source_lists;
+  source_lists.push_back("/etc/apt/sources.list");
   if (!resolveFilePattern(
-          "/etc/apt/sources.list.d/%.list", sources, GLOB_FILES)) {
+          "/etc/apt/sources.list.d/%.list", source_lists, GLOB_FILES)) {
     logger.vlog(1, "Cannot resolve apt sources /etc/apt/sources.list.d");
     return results;
   }
 
-  for (const auto& source : sources) {
+  for (const auto& source : source_lists) {
     genAptSource(source, results, logger);
+  }
+
+  std::vector<std::string> source_deb822;
+  if (!resolveFilePattern(
+          "/etc/apt/sources.list.d/%.sources", source_deb822, GLOB_FILES)) {
+    logger.vlog(1, "Cannot resolve apt sources /etc/apt/sources.list.d");
+    return results;
+  }
+
+  for (const auto& source : source_deb822) {
+    genDeb822Source(source, results, logger);
   }
 
   return results;
