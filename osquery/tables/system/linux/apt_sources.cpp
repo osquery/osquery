@@ -232,9 +232,17 @@ Status parseDeb822Block(const std::string& input_block,
     }
 
     auto colon_pos = line.find(":");
+    if (colon_pos == std::string::npos) {
+      continue;
+    }
+
     auto key = line.substr(0, colon_pos);
     auto value = line.substr(colon_pos + 1, std::string::npos);
     boost::trim(value);
+
+    if (value.empty()) {
+      continue;
+    }
 
     if (key == "Types") {
       auto types = osquery::split(value);
@@ -249,6 +257,9 @@ Status parseDeb822Block(const std::string& input_block,
 
     if (key == "URIs") {
       for (auto& uri : osquery::split(value)) {
+        if (uri.find("://") == std::string::npos) {
+          continue;
+        }
         // Cannot have trailing slashes
         while (uri.back() == '/') {
           uri.pop_back();
@@ -270,8 +281,18 @@ Status parseDeb822Block(const std::string& input_block,
     }
   }
 
+  if (uris.size() == 0) {
+    return Status::failure("missing valid URIs");
+  }
+
+  if (suites.size() == 0) {
+    return Status::failure("missing Suites");
+  }
+
   for (const auto& uri : uris) {
-    auto name = uri.substr(uri.find("://") + 3);
+    // All URLs should have protocol, checked earlier
+    auto proto_end = uri.find("://");
+    auto name = uri.substr(proto_end + 3);
     for (const auto& suite : suites) {
       auto suite_parts = osquery::split(suite, "/");
       AptSource apt_source;
