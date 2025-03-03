@@ -214,7 +214,6 @@ Status parseDeb822Block(const std::string& input_block,
                         std::vector<AptSource>& apt_sources) {
   std::vector<std::string> uris;
   std::vector<std::string> suites;
-  std::vector<std::string> components;
 
   for (const auto& input_line : osquery::split(input_block, "\n")) {
     // Skip empty lines
@@ -271,12 +270,6 @@ Status parseDeb822Block(const std::string& input_block,
     if (key == "Suites") {
       for (const auto& suite : osquery::split(value)) {
         suites.push_back(suite);
-      }
-    }
-
-    if (key == "Components") {
-      for (const auto& component : osquery::split(value)) {
-        components.push_back(component);
       }
     }
   }
