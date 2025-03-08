@@ -79,6 +79,54 @@ struct EndpointSecurityEventContext : public EventContext {
 
   // exit
   int exit_code;
+
+  // Auth-related fields
+  uid_t target_uid;
+  uid_t target_euid;
+  gid_t target_gid;
+  gid_t target_egid;
+
+  // Signal-related fields
+  int signal_number;
+
+  // Network-related fields
+  std::string socket_domain;
+  std::string socket_type;
+  std::string socket_protocol;
+  std::string local_address;
+  std::string remote_address;
+  int local_port;
+  int remote_port;
+
+  // Mount-related fields
+  std::string mount_path;
+  std::string mount_type;
+
+  // SSH-related fields
+  std::string ssh_login_username;
+
+  // ScreenSharing-related fields
+  std::string screensharing_type;
+  std::string screensharing_viewer_app_path;
+
+  // SU-related fields
+  std::string su_from_username;
+  std::string su_to_username;
+
+  // Sudo-related fields
+  bool sudo_success;
+  std::string sudo_command;
+
+  // Authorization fields
+  std::string auth_right;
+  bool auth_success;
+
+  // Profile fields
+  std::string profile_identifier;
+  std::string profile_uuid;
+
+  // Additional metadata field
+  std::map<std::string, std::string> metadata;
 };
 
 using EndpointSecurityEventContextRef =
@@ -101,8 +149,18 @@ struct EndpointSecurityFileEventContext : EndpointSecurityEventContext {
   std::string event_type;
 
   std::string filename;
-
   std::string dest_filename;
+
+  // Extended attributes
+  std::string extattr_name;
+
+  // Permission information
+  mode_t file_mode;
+  uid_t file_owner;
+  gid_t file_group;
+
+  // Additional information
+  bool file_modified;
 };
 
 using EndpointSecurityFileEventContextRef =

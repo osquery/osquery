@@ -292,6 +292,134 @@ void EndpointSecurityFileEventPublisher::handleMessage(
     ec->event_type = "open";
     ec->filename = getStringFromToken(&message->event.open.file->path);
   } break;
+  // Advanced file operations - extended attributes
+  case ES_EVENT_TYPE_NOTIFY_SETEXTATTR: {
+    ec->event_type = "setextattr";
+    ec->filename = getStringFromToken(&message->event.setextattr.target->path);
+
+    if (message->event.setextattr.name) {
+      ec->metadata["extattr_name"] =
+          getStringFromToken(message->event.setextattr.name);
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_GETEXTATTR: {
+    ec->event_type = "getextattr";
+    ec->filename = getStringFromToken(&message->event.getextattr.target->path);
+
+    if (message->event.getextattr.name) {
+      ec->metadata["extattr_name"] =
+          getStringFromToken(message->event.getextattr.name);
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR: {
+    ec->event_type = "deleteextattr";
+    ec->filename =
+        getStringFromToken(&message->event.deleteextattr.target->path);
+
+    if (message->event.deleteextattr.name) {
+      ec->metadata["extattr_name"] =
+          getStringFromToken(message->event.deleteextattr.name);
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR: {
+    ec->event_type = "listextattr";
+    ec->filename = getStringFromToken(&message->event.listextattr.target->path);
+  } break;
+
+  // Advanced file operations - data exchange
+  case ES_EVENT_TYPE_NOTIFY_CLONE: {
+    ec->event_type = "clone";
+    ec->filename = getStringFromToken(&message->event.clone.source->path);
+
+    if (message->event.clone.target_path) {
+      ec->dest_filename = getStringFromToken(message->event.clone.target_path);
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_EXCHANGEDATA: {
+    ec->event_type = "exchangedata";
+    ec->filename = getStringFromToken(&message->event.exchangedata.file1->path);
+    ec->dest_filename =
+        getStringFromToken(&message->event.exchangedata.file2->path);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_COPYFILE: {
+    ec->event_type = "copyfile";
+    ec->filename = getStringFromToken(&message->event.copyfile.source->path);
+
+    if (message->event.copyfile.target_path) {
+      ec->dest_filename =
+          getStringFromToken(message->event.copyfile.target_path);
+    }
+  } break;
+
+  // Advanced file operations - permissions
+  case ES_EVENT_TYPE_NOTIFY_SETACL: {
+    ec->event_type = "setacl";
+    ec->filename = getStringFromToken(&message->event.setacl.target->path);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_CHMOD: {
+    ec->event_type = "chmod";
+    ec->filename = getStringFromToken(&message->event.chmod.target->path);
+
+    // Convert mode to octal format for easier reading
+    ec->metadata["mode"] = std::to_string(message->event.chmod.mode);
+    ec->metadata["mode_octal"] =
+        std::to_string(((message->event.chmod.mode & 0700) >> 6) * 100 +
+                       ((message->event.chmod.mode & 0070) >> 3) * 10 +
+                       (message->event.chmod.mode & 0007));
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_CHOWN: {
+    ec->event_type = "chown";
+    ec->filename = getStringFromToken(&message->event.chown.target->path);
+
+    ec->metadata["uid"] = std::to_string(message->event.chown.uid);
+    ec->metadata["gid"] = std::to_string(message->event.chown.gid);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_SETATTRLIST: {
+    ec->event_type = "setattrlist";
+    ec->filename = getStringFromToken(&message->event.setattrlist.target->path);
+  } break;
+
+  // Other file system operations
+  case ES_EVENT_TYPE_NOTIFY_LINK: {
+    ec->event_type = "link";
+    ec->filename = getStringFromToken(&message->event.link.source->path);
+
+    // Store the destination for the link
+    if (message->event.link.target_dir && message->event.link.target_filename) {
+      std::string link_target =
+          getStringFromToken(&message->event.link.target_dir->path);
+      link_target += "/";
+      link_target += getStringFromToken(message->event.link.target_filename);
+      ec->dest_filename = link_target;
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_SYMLINK: {
+    ec->event_type = "symlink";
+
+    // Store the source path (what will be created)
+    if (message->event.symlink.source_dir &&
+        message->event.symlink.source_filename) {
+      std::string symlink_source =
+          getStringFromToken(&message->event.symlink.source_dir->path);
+      symlink_source += "/";
+      symlink_source +=
+          getStringFromToken(message->event.symlink.source_filename);
+      ec->filename = symlink_source;
+    }
+
+    // Store the target path (what the symlink will point to)
+    if (message->event.symlink.target_path) {
+      ec->dest_filename =
+          getStringFromToken(message->event.symlink.target_path);
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_CLOSE: {
+    ec->event_type = "close";
+    ec->filename = getStringFromToken(&message->event.close.target->path);
+
+    // Include information about whether the file was modified
+    ec->metadata["modified"] = message->event.close.modified ? "true" : "false";
+  } break;
   default:
     VLOG(1) << "endpointsecurity_fim: unexpected event " << message->event_type;
     break;
