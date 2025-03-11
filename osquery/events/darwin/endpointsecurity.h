@@ -25,24 +25,45 @@
 
 namespace osquery {
 
-struct EndpointSecuritySubscriptionContext : public SubscriptionContext {
-  std::vector<es_event_type_t> es_event_subscriptions_;
-  std::vector<Row> row_list;
-};
-
-using EndpointSecuritySubscriptionContextRef =
-    std::shared_ptr<EndpointSecuritySubscriptionContext>;
-
-struct EndpointSecurityEventContext : public EventContext {
+// Base class for all EndpointSecurity event contexts
+struct BaseESEventContext : public EventContext {
   es_event_type_t es_event;
   int version;
   long seq_num;
   long global_seq_num;
 
   std::string event_type;
+  std::string category;
+  std::string severity;
 
   pid_t pid;
   int pidversion;
+
+  std::string path;
+  std::string username;
+  std::string description;
+
+  // Event ID serves as a unique identifier for correlation
+  std::string eid;
+};
+
+using BaseESEventContextRef = std::shared_ptr<BaseESEventContext>;
+
+// Base class for all EndpointSecurity subscription contexts
+struct BaseESSubscriptionContext : public SubscriptionContext {
+  std::vector<es_event_type_t> es_event_subscriptions_;
+  std::vector<Row> row_list;
+};
+
+using BaseESSubscriptionContextRef = std::shared_ptr<BaseESSubscriptionContext>;
+
+struct EndpointSecuritySubscriptionContext : public BaseESSubscriptionContext {
+};
+
+using EndpointSecuritySubscriptionContextRef =
+    std::shared_ptr<EndpointSecuritySubscriptionContext>;
+
+struct EndpointSecurityEventContext : public BaseESEventContext {
   pid_t parent;
   int parent_pidversion;
   pid_t original_parent;
@@ -50,7 +71,6 @@ struct EndpointSecurityEventContext : public EventContext {
   pid_t responsible_pid;
   int responsible_pidversion;
 
-  std::string path;
   std::string cwd;
 
   uid_t uid;
@@ -65,7 +85,6 @@ struct EndpointSecurityEventContext : public EventContext {
   std::string codesigning_flags;
 
   std::string executable;
-  std::string username;
 
   // exec
   int argc;
@@ -84,29 +103,84 @@ struct EndpointSecurityEventContext : public EventContext {
 using EndpointSecurityEventContextRef =
     std::shared_ptr<EndpointSecurityEventContext>;
 
-struct EndpointSecurityFileSubscriptionContext : public SubscriptionContext {
+struct EndpointSecurityFileSubscriptionContext
+    : public BaseESSubscriptionContext {
   std::vector<es_event_type_t> es_file_event_subscriptions_;
-  std::vector<Row> row_list;
 };
 
 using EndpointSecurityFileSubscriptionContextRef =
     std::shared_ptr<EndpointSecurityFileSubscriptionContext>;
 
-struct EndpointSecurityFileEventContext : EndpointSecurityEventContext {
-  es_event_type_t es_event;
-  int version;
-  long seq_num;
-  long global_seq_num;
-
-  std::string event_type;
-
+struct EndpointSecurityFileEventContext : BaseESEventContext {
   std::string filename;
-
   std::string dest_filename;
+
+  // Add process information fields
+  pid_t parent = 0; // Default to 0 if not available
 };
 
 using EndpointSecurityFileEventContextRef =
     std::shared_ptr<EndpointSecurityFileEventContext>;
+
+// Authentication Events subscription context and event context
+struct ESAuthenticationSubscriptionContext : public BaseESSubscriptionContext {
+};
+
+using ESAuthenticationSubscriptionContextRef =
+    std::shared_ptr<ESAuthenticationSubscriptionContext>;
+
+struct ESAuthenticationEventContext : public BaseESEventContext {
+  bool success;
+  std::string auth_type;
+  std::string result_type;
+  std::string auth_right;
+  std::string remote_address;
+  int remote_port;
+
+  // Specific fields for SSH login events
+  std::string ssh_login_username;
+
+  // Specific fields for su/sudo events
+  std::string su_from_username;
+  std::string su_to_username;
+  std::string sudo_command;
+
+  // Specific fields for screensharing events
+  std::string screensharing_type;
+  std::string screensharing_viewer_app_path;
+  std::string connection_type;
+
+  // Specific fields for profile events
+  std::string profile_identifier;
+  std::string profile_uuid;
+
+  // Target UID for privilege events
+  uid_t target_uid;
+};
+
+using ESAuthenticationEventContextRef =
+    std::shared_ptr<ESAuthenticationEventContext>;
+
+// Core event category system
+// These help determine which subscriber should handle each event
+enum class ESEventCategory {
+  PROCESS,
+  AUTHENTICATION,
+  NETWORK,
+  FILE,
+  PRIVILEGE,
+  SYSTEM
+};
+
+// Function to determine the category of an event
+ESEventCategory categorizeESEvent(es_event_type_t event_type);
+
+// Core router for EndpointSecurity events
+class CoreEventRouter {
+ public:
+  static void routeEvent(const es_message_t* message,
+                         const BaseESEventContextRef& ec);
+};
 
 class EndpointSecurityPublisher
     : public EventPublisher<EndpointSecuritySubscriptionContext,
@@ -230,4 +304,22 @@ class ESProcessFileEventSubscriber
                   const EndpointSecurityFileSubscriptionContextRef& sc)
       API_AVAILABLE(macos(10.15));
 };
+
+// ES Authentication Events Subscriber
+class ESAuthenticationEventSubscriber
+    : public EventSubscriber<EndpointSecurityPublisher> {
+ public:
+  ESAuthenticationEventSubscriber() {
+    setName("es_authentication_events");
+  }
+
+  Status init() override API_AVAILABLE(macos(10.15));
+  Status Callback(const EndpointSecurityEventContextRef& ec,
+                  const EndpointSecuritySubscriptionContextRef& sc)
+      API_AVAILABLE(macos(10.15));
+
+  static Status getAuthenticationEventData(const es_message_t* message,
+                                           ESAuthenticationEventContextRef& ec);
+};
+
 } // namespace osquery

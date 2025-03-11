@@ -11,6 +11,7 @@ Because different platforms have different choices for collecting real-time even
 | Process events | [`process_events`](https://osquery.io/schema/current#process_events)    | Audit (Linux), OpenBSM (macOS)  | Linux, macOS (10.15 and older) |
 | Process events | [`bpf_process_events`](https://osquery.io/schema/current#bpf_process_events) | BPF | Linux (kernel 4.18 and newer) |
 | Process events | [`es_process_events`](https://osquery.io/schema/current#es_process_events) | EndpointSecurity | macOS (10.15 and newer) |
+| Authentication events | [`es_authentication_events`](https://osquery.io/schema/current#es_authentication_events) | EndpointSecurity | macOS (13.0 and newer) |
 | Socket events  | [`socket_events`](https://osquery.io/schema/current#process_events)      | Audit (Linux), OpenBSM (macOS) | Linux, macOS (10.15 and older) |
 | Socket events  | [`bpf_socket_events`](https://osquery.io/schema/current#bpf_socket_events) | BPF | Linux (kernel 4.18 and newer) |
 
@@ -278,9 +279,40 @@ To enable EndpointSecurity in osquery, set `--disable_endpointsecurity=false` in
 
 EndpointSecurity is already enabled in the OS on all macOS hosts beginning with macOS 10.15, and needs no special configuration. There are however some additional steps to permit osquery to collect events.
 
-For osquery to capture events in its `es_process_events` table, it must have the Full Disk Access (FDA) permission enabled in macOS Privacy & Security settings. Without this permission, osquery will run as normal, but the table will always be empty. **Note:** If osquery is already running without the permission, it must be restarted after you have granted the permission.
+For osquery to capture events in its `es_process_events` or `es_authentication_events` tables, it must have the Full Disk Access (FDA) permission enabled in macOS Privacy & Security settings. Without this permission, osquery will run as normal, but the tables will always be empty. **Note:** If osquery is already running without the permission, it must be restarted after you have granted the permission.
 
-**If osquery is not granted the FDA permission, it will not prompt the user to grant it.** It will just issue a warning (when running with `--verbose`), and the `es_process_events` table will simply be empty when queried.
+**If osquery is not granted the FDA permission, it will not prompt the user to grant it.** It will just issue a warning (when running with `--verbose`), and the EndpointSecurity tables will simply be empty when queried.
+
+### Authentication Events with EndpointSecurity
+
+Starting in macOS 13.0 (Ventura), the EndpointSecurity API provides rich authentication event monitoring capabilities. osquery exposes these events through the `es_authentication_events` table.
+
+To enable authentication event collection:
+
+1. Set `--disable_endpointsecurity=false` (as with other EndpointSecurity tables)
+2. Set `--enable_es_authentication_events=true` to specifically enable the authentication events
+3. Ensure osquery has the Full Disk Access permission as described above
+
+Once enabled, you can collect various authentication events:
+
+```sql
+-- Monitor failed authentication attempts
+SELECT time, username, event_type, auth_type, path, description 
+FROM es_authentication_events 
+WHERE success = 0;
+
+-- Track SSH logins and details
+SELECT time, username, ssh_login_username, remote_address, result_type, success 
+FROM es_authentication_events 
+WHERE event_type = 'openssh_login';
+
+-- Monitor sudo command usage
+SELECT time, username, sudo_command, success
+FROM es_authentication_events
+WHERE event_type = 'sudo';
+```
+
+Authentication events include login window events, SSH logins/logouts, screen sharing sessions, su/sudo usage, and general system authentication events. Available event types depend on the macOS version - some events like su/sudo are only available starting in macOS 14.0 (Sonoma).
 
 #### Full Disk Access
 
