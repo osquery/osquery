@@ -45,6 +45,7 @@ function(generateOsqueryEvents)
       file_events_flags.cpp
       darwin/diskarbitration.cpp
       darwin/es_utils.cpp
+      darwin/es_event_categories.cpp
       darwin/endpointsecurity.cpp
       darwin/endpointsecurity_fim.cpp
       darwin/event_taps.cpp
@@ -162,6 +163,7 @@ function(generateOsqueryEvents)
     set(platform_public_header_files
       darwin/diskarbitration.h
       darwin/es_utils.h
+      darwin/es_event_categories.h
       darwin/endpointsecurity.h
       darwin/event_taps.h
       darwin/fsevents.h
@@ -209,6 +211,9 @@ function(generateOsqueryEvents)
 
   if(DEFINED PLATFORM_MACOS)
     add_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
+    add_test(NAME osquery_events_tests_es_categories-test COMMAND osquery_events_tests_es_categories-test)
+    add_test(NAME osquery_events_tests_es_compatibility-test COMMAND osquery_events_tests_es_compatibility-test)
+    add_test(NAME osquery_events_tests_es_fields-test COMMAND osquery_events_tests_es_fields-test)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
