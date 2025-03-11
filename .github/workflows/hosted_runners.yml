@@ -641,7 +641,8 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13.x'
+        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
+        python-version: '3.13.1'
         architecture: arm64
 
     - name: Install tests dependencies
@@ -822,7 +823,8 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13.x'
+          # Pin an exact python version to avoid mismatches between the builder and this test_older_macos runner
+          python-version: '3.13.1'
           architecture: ${{ matrix.python_architecture }}
 
       - name: Install tests dependencies
