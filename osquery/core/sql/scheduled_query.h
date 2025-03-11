@@ -42,6 +42,10 @@ struct ScheduledQuery : private only_movable {
   /// A temporary splayed internal.
   uint64_t splayed_interval{0};
 
+  /// The priority of running at startup. Only runs at startup if the priority
+  /// is not the default value.
+  uint64_t startup_priority{UINT64_MAX};
+
   /**
    * @brief Queries are denylisted based on logic in the configuration.
    *

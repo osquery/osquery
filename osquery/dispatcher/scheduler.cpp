@@ -277,11 +277,21 @@ void SchedulerRunner::start() {
   // Timeout is the number of seconds from starting.
   auto end = (timeout_ == 0) ? 0 : timeout_ + i;
 
+  // A set of query names which have run for the first time.
+  std::unordered_set<std::string> first_query_runs;
+
   for (; (end == 0) || (i <= end); ++i) {
     auto start_time_point = std::chrono::steady_clock::now();
-    Config::get().scheduledQueries(([&i](const std::string& name,
-                                         const ScheduledQuery& query) {
-      if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+    Config::get().scheduledQueries(([&i, &first_query_runs](
+                                        const std::string& name,
+                                        const ScheduledQuery& query) {
+      bool query_has_not_run =
+          first_query_runs.find(name) == first_query_runs.end();
+      if ((query.splayed_interval > 0 && i % query.splayed_interval == 0) ||
+          (query.startup_priority != UINT64_MAX && query_has_not_run)) {
+        if (query_has_not_run) {
+          first_query_runs.insert(name);
+        }
         TablePlugin::kCacheInterval = query.splayed_interval;
         TablePlugin::kCacheStep = i;
         const auto status = launchQuery(name, query);
