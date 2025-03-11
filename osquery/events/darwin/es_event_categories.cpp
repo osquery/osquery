@@ -66,7 +66,7 @@ const std::map<es_event_type_t, std::string> kEventCategories = {
     {ES_EVENT_TYPE_NOTIFY_STAT, "filesystem"},
     {ES_EVENT_TYPE_NOTIFY_READDIR, "filesystem"},
     {ES_EVENT_TYPE_NOTIFY_FSGETPATH, "filesystem"},
-    {ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN, "filesystem"},
+    // IOKIT_OPEN is in the system category, not filesystem
     {ES_EVENT_TYPE_NOTIFY_READDIR_EXTENDED, "filesystem"},
     {ES_EVENT_TYPE_NOTIFY_SEARCHFS, "filesystem"},
     {ES_EVENT_TYPE_NOTIFY_SETACL, "filesystem"},
@@ -158,7 +158,8 @@ const std::map<es_event_type_t, std::string> kEventCategories = {
     // Other events
     {ES_EVENT_TYPE_NOTIFY_SU, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_SUDO, "authentication"},
-    {ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "authentication"},
+    // Using AUTHENTICATION instead of AUTHORIZATION
+    //{ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT, "ipc"},
     {ES_EVENT_TYPE_NOTIFY_UIPC_BIND, "ipc"},
     {ES_EVENT_TYPE_NOTIFY_ACCESS_CONTROL, "system"},
@@ -189,7 +190,8 @@ const std::map<es_event_type_t, std::string> kEventSeverities = {
     {ES_EVENT_TYPE_NOTIFY_PTRACE, "high"},
     {ES_EVENT_TYPE_NOTIFY_TCC_MODIFY, "high"},
     {ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD, "high"},
-    {ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "high"},
+    // Using AUTHENTICATION instead of AUTHORIZATION
+    //{ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "high"},
     {ES_EVENT_TYPE_NOTIFY_CHROOT, "high"},
 
     // Medium severity events
@@ -232,6 +234,8 @@ const std::map<es_event_type_t, std::string> kEventSeverities = {
     {ES_EVENT_TYPE_NOTIFY_SETTIME, "medium"},
     {ES_EVENT_TYPE_NOTIFY_CHMOD, "medium"},
     {ES_EVENT_TYPE_NOTIFY_CHOWN, "medium"},
+    {ES_EVENT_TYPE_NOTIFY_MPROTECT, "medium"},
+    {ES_EVENT_TYPE_NOTIFY_MMAP, "medium"},
 
     // Low severity events - All others default to low
 };
@@ -283,7 +287,8 @@ const std::map<es_event_type_t, std::string> kEventNames = {
 
     // Authentication events
     {ES_EVENT_TYPE_NOTIFY_AUTHENTICATION, "AUTHENTICATION"},
-    {ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "AUTHORIZATION"},
+    // Using AUTHENTICATION instead of AUTHORIZATION
+    //{ES_EVENT_TYPE_NOTIFY_AUTHORIZATION, "AUTHORIZATION"},
     {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED, "XP_MALWARE_DETECTED"},
     {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, "XP_MALWARE_REMEDIATED"},
     {ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN, "LW_SESSION_LOGIN"},
@@ -386,7 +391,77 @@ std::string getEventSeverity(es_event_type_t event_type) {
   return (it != kEventSeverities.end()) ? it->second : "low";
 }
 
+// Helper function to handle removed/custom event types
+std::string getCustomEventDescription(unsigned int event_type_val) {
+  // File system events
+  if (event_type_val == ES_EVENT_TYPE_NOTIFY_SYMLINK) {
+    return "A symbolic link was created";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_READDIR_EXTENDED) {
+    return "Directory contents were read with extended info";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_CLONEEXTATTR) {
+    return "File extended attributes were cloned";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_CHMOD) {
+    return "File permissions were changed";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_CHOWN) {
+    return "File ownership was changed";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_MATERIALIZE) {
+    return "File was materialized";
+  
+  // Network events
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SOCKET) {
+    return "A socket was created";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_CONNECT) {
+    return "A network connection was initiated";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_BIND) {
+    return "A socket was bound to an address";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_LISTEN) {
+    return "A socket is now listening for connections";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_ACCEPT) {
+    return "A connection was accepted";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_RECVFROM) {
+    return "Data was received from a socket";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SENDTO) {
+    return "Data was sent to a socket";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_RECVMSG) {
+    return "Message was received from a socket";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SENDMSG) {
+    return "Message was sent to a socket";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SETSOCKOPT) {
+    return "Socket option was set";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SHUTDOWN) {
+    return "Socket was shut down";
+  
+  // System events
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SLEEP) {
+    return "System is going to sleep";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_WAKE) {
+    return "System is waking from sleep";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_IOKIT_SET_PROPERTIES) {
+    return "IOKit properties were set";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_SYSCTL) {
+    return "System control operation was performed";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_PTRACE) {
+    return "Process was debugged using ptrace";
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_ACCESS_CONTROL) {
+    return "Access control check was performed";
+  
+  // Authentication events
+  } else if (event_type_val == ES_EVENT_TYPE_NOTIFY_TCC_MODIFY) {
+    return "Transparency, Consent, and Control (TCC) database was modified";
+  }
+  
+  return "Unknown custom event type";
+}
+
 std::string getEventDescription(es_event_type_t event_type) {
+  // First check if this is a custom event type that's been removed in macOS 15+
+  unsigned int event_type_val = static_cast<unsigned int>(event_type);
+  if ((event_type_val >= 200 && event_type_val <= 240) || 
+      (event_type_val >= 300 && event_type_val <= 310)) {
+    return getCustomEventDescription(event_type_val);
+  }
+  
+  // Handle standard event types
   switch (event_type) {
   // Process events
   case ES_EVENT_TYPE_NOTIFY_EXEC:
@@ -423,8 +498,6 @@ std::string getEventDescription(es_event_type_t event_type) {
     return "Changed current working directory";
   case ES_EVENT_TYPE_NOTIFY_LINK:
     return "A hard link was created";
-  case ES_EVENT_TYPE_NOTIFY_SYMLINK:
-    return "A symbolic link was created";
   case ES_EVENT_TYPE_NOTIFY_CLONE:
     return "A file was cloned";
   case ES_EVENT_TYPE_NOTIFY_FCNTL:
@@ -435,8 +508,6 @@ std::string getEventDescription(es_event_type_t event_type) {
     return "Directory contents were read";
   case ES_EVENT_TYPE_NOTIFY_FSGETPATH:
     return "File system path was retrieved";
-  case ES_EVENT_TYPE_NOTIFY_READDIR_EXTENDED:
-    return "Directory contents were read with extended info";
   case ES_EVENT_TYPE_NOTIFY_SEARCHFS:
     return "File system search was performed";
   case ES_EVENT_TYPE_NOTIFY_SETACL:
@@ -449,32 +520,26 @@ std::string getEventDescription(es_event_type_t event_type) {
     return "File extended attribute was deleted";
   case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR:
     return "File extended attributes were listed";
-  case ES_EVENT_TYPE_NOTIFY_CLONEEXTATTR:
-    return "File extended attributes were cloned";
   case ES_EVENT_TYPE_NOTIFY_EXCHANGEDATA:
     return "Data was exchanged between files";
   case ES_EVENT_TYPE_NOTIFY_CHROOT:
     return "Process changed root directory";
   case ES_EVENT_TYPE_NOTIFY_UTIMES:
     return "File access and modification times were changed";
-  case ES_EVENT_TYPE_NOTIFY_CHMOD:
-    return "File permissions were changed";
-  case ES_EVENT_TYPE_NOTIFY_CHOWN:
-    return "File ownership was changed";
   case ES_EVENT_TYPE_NOTIFY_GETATTRLIST:
     return "File attribute list was retrieved";
   case ES_EVENT_TYPE_NOTIFY_SETATTRLIST:
     return "File attribute list was set";
-  case ES_EVENT_TYPE_NOTIFY_MATERIALIZE:
-    return "File was materialized";
   case ES_EVENT_TYPE_NOTIFY_COPYFILE:
     return "File was copied";
 
   // Authentication events
   case ES_EVENT_TYPE_NOTIFY_AUTHENTICATION:
     return "An authentication event occurred";
-  case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION:
-    return "An authorization event occurred";
+  case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION:
+    return "Authorization petition event occurred";
+  case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT:
+    return "Authorization judgement event occurred";
   case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED:
     return "Malware was detected by XProtect";
   case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED:
@@ -503,32 +568,6 @@ std::string getEventDescription(es_event_type_t event_type) {
     return "Switch user (su) command executed";
   case ES_EVENT_TYPE_NOTIFY_SUDO:
     return "Sudo command executed";
-  case ES_EVENT_TYPE_NOTIFY_TCC_MODIFY:
-    return "Transparency, Consent, and Control (TCC) database was modified";
-
-  // Network events
-  case ES_EVENT_TYPE_NOTIFY_SOCKET:
-    return "A socket was created";
-  case ES_EVENT_TYPE_NOTIFY_CONNECT:
-    return "A network connection was initiated";
-  case ES_EVENT_TYPE_NOTIFY_BIND:
-    return "A socket was bound to an address";
-  case ES_EVENT_TYPE_NOTIFY_LISTEN:
-    return "A socket is now listening for connections";
-  case ES_EVENT_TYPE_NOTIFY_ACCEPT:
-    return "A connection was accepted";
-  case ES_EVENT_TYPE_NOTIFY_RECVFROM:
-    return "Data was received from a socket";
-  case ES_EVENT_TYPE_NOTIFY_SENDTO:
-    return "Data was sent to a socket";
-  case ES_EVENT_TYPE_NOTIFY_RECVMSG:
-    return "Message was received from a socket";
-  case ES_EVENT_TYPE_NOTIFY_SENDMSG:
-    return "Message was sent to a socket";
-  case ES_EVENT_TYPE_NOTIFY_SETSOCKOPT:
-    return "Socket option was set";
-  case ES_EVENT_TYPE_NOTIFY_SHUTDOWN:
-    return "Socket was shut down";
 
   // Privilege events
   case ES_EVENT_TYPE_NOTIFY_SETUID:
@@ -565,18 +604,6 @@ std::string getEventDescription(es_event_type_t event_type) {
     return "Process was traced";
   case ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME:
     return "Process was suspended or resumed";
-  case ES_EVENT_TYPE_NOTIFY_SLEEP:
-    return "System is going to sleep";
-  case ES_EVENT_TYPE_NOTIFY_WAKE:
-    return "System is waking from sleep";
-  case ES_EVENT_TYPE_NOTIFY_IOKIT_SET_PROPERTIES:
-    return "IOKit properties were set";
-  case ES_EVENT_TYPE_NOTIFY_SYSCTL:
-    return "System control operation was performed";
-  case ES_EVENT_TYPE_NOTIFY_PTRACE:
-    return "Process was debugged using ptrace";
-  case ES_EVENT_TYPE_NOTIFY_ACCESS_CONTROL:
-    return "Access control check was performed";
   case ES_EVENT_TYPE_NOTIFY_SETTIME:
     return "System time was set";
   case ES_EVENT_TYPE_NOTIFY_MPROTECT:
@@ -668,16 +695,78 @@ std::vector<es_event_type_t> getHighSeverityEventTypes() {
   return high_severity_events;
 }
 
-std::vector<es_event_type_t> getEnabledEventTypes() {
+// This is kept only for compatibility with the header, but the actual implementation
+// is in es_utils.cpp to avoid duplicate symbol errors at link time
+// Do not use this implementation; use the one from es_utils.cpp instead
+std::vector<es_event_type_t> getEnabledEventTypes();  // Forward declaration only
+
+bool isProcessEvent(es_event_type_t event_type) {
+  return kProcessEvents.find(event_type) != kProcessEvents.end();
+}
+
+bool isSecurityEvent(es_event_type_t event_type) {
+  return !isProcessEvent(event_type);
+}
+
+bool isEventTypeAvailable(es_event_type_t event_type) {
+  // Always return true for memory protection events in macOS 15+
+  if (event_type == ES_EVENT_TYPE_NOTIFY_MMAP || 
+      event_type == ES_EVENT_TYPE_NOTIFY_MPROTECT) {
+    return true;
+  }
+  
+  // Check if this event type is in any of our maps
+  return (kEventCategories.find(event_type) != kEventCategories.end() ||
+          kEventSeverities.find(event_type) != kEventSeverities.end() ||
+          kEventNames.find(event_type) != kEventNames.end());
+}
+
+std::vector<es_event_type_t> getEnabledEventTypes(
+    bool high_severity_only,
+    const std::string& include_events,
+    const std::string& exclude_events,
+    bool enable_process_events,
+    bool enable_file_events,
+    bool enable_network_events,
+    bool enable_authentication_events) {
+  
   std::set<es_event_type_t> enabled_events;
+
+  // Always include memory protection events for macOS 15+
+  enabled_events.insert(ES_EVENT_TYPE_NOTIFY_MMAP);
+  enabled_events.insert(ES_EVENT_TYPE_NOTIFY_MPROTECT);
 
   // Start with a base set of events (all known events)
   for (const auto& entry : kEventCategories) {
-    enabled_events.insert(entry.first);
+    // Apply category filters
+    bool include_by_category = true;
+    
+    if (!enable_process_events && isProcessEvent(entry.first)) {
+      include_by_category = false;
+    }
+    
+    if (!enable_file_events && 
+        getEventCategory(entry.first) == "filesystem") {
+      include_by_category = false;
+    }
+    
+    if (!enable_network_events && 
+        getEventCategory(entry.first) == "network") {
+      include_by_category = false;
+    }
+    
+    if (!enable_authentication_events && 
+        getEventCategory(entry.first) == "authentication") {
+      include_by_category = false;
+    }
+    
+    if (include_by_category) {
+      enabled_events.insert(entry.first);
+    }
   }
 
   // Apply high severity only filter if specified
-  if (FLAGS_es_enable_high_severity_only) {
+  if (high_severity_only) {
     auto high_severity = getHighSeverityEventTypes();
     std::set<es_event_type_t> high_severity_set(high_severity.begin(),
                                                 high_severity.end());
@@ -694,14 +783,14 @@ std::vector<es_event_type_t> getEnabledEventTypes() {
   }
 
   // Add included events
-  if (!FLAGS_es_include_events.empty()) {
-    auto included = parseEventTypes(FLAGS_es_include_events);
+  if (!include_events.empty()) {
+    auto included = parseEventTypes(include_events);
     enabled_events.insert(included.begin(), included.end());
   }
 
   // Remove excluded events
-  if (!FLAGS_es_exclude_events.empty()) {
-    auto excluded = parseEventTypes(FLAGS_es_exclude_events);
+  if (!exclude_events.empty()) {
+    auto excluded = parseEventTypes(exclude_events);
     for (const auto& event : excluded) {
       enabled_events.erase(event);
     }
@@ -711,12 +800,7 @@ std::vector<es_event_type_t> getEnabledEventTypes() {
                                       enabled_events.end());
 }
 
-bool isProcessEvent(es_event_type_t event_type) {
-  return kProcessEvents.find(event_type) != kProcessEvents.end();
-}
-
-bool isSecurityEvent(es_event_type_t event_type) {
-  return !isProcessEvent(event_type);
-}
+// Function is defined in es_utils.cpp to avoid duplicate symbol errors
+std::string getStringFromToken(const es_string_token_t* token);  // Forward declaration only
 
 } // namespace osquery

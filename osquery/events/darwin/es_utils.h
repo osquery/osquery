@@ -17,6 +17,12 @@
 
 namespace osquery {
 
+// Map of event names to event types for EndpointSecurity
+extern std::map<std::string, es_event_type_t> kESEventNameMap;
+
+// Get all enabled EndpointSecurity event types based on configuration
+std::vector<es_event_type_t> getEnabledEventTypes();
+
 std::string getEsNewClientErrorMessage(const es_new_client_result_t r);
 std::string getPath(const es_process_t* p);
 std::string getSigningId(const es_process_t* p);
