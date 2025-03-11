@@ -25,6 +25,8 @@ struct AptSource {
 };
 
 Status parseAptSourceLine(const std::string& input_line, AptSource& apt_source);
+Status parseDeb822Block(const std::string& input_block,
+                        std::vector<AptSource>& apt_sources);
 
 std::string getCacheFilename(const std::vector<std::string>& cache_file);
 
