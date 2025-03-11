@@ -279,6 +279,7 @@ endfunction()
 function(generateOsqueryUtilsSystemUsersGroups)
   add_osquery_library(osquery_utils_system_usersgroupshelpers EXCLUDE_FROM_ALL
     windows/users_groups_helpers.cpp
+    windows/etw_helpers.cpp
   )
 
   target_link_libraries(osquery_utils_system_usersgroupshelpers PUBLIC
@@ -288,6 +289,7 @@ function(generateOsqueryUtilsSystemUsersGroups)
 
   set(public_header_files
     windows/users_groups_helpers.h
+    windows/etw_helpers.h
   )
 
   generateIncludeNamespace(osquery_utils_system_usersgroupshelpers "osquery/utils/system" "FULL_PATH" ${public_header_files})
