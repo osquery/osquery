@@ -30,11 +30,10 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   callback();
 
   {
-    boost::system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
+    boost::asio::io_context::count_type handlers_executed = ioc_.run();
+    ioc_.restart();
+    if (handlers_executed == 0) {
+      ec_ = boost::asio::error::operation_aborted;
     }
   }
 }
@@ -232,7 +231,7 @@ void Client::encryptConnection() {
   ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
                              client_options_.remote_hostname_->c_str());
 
-  ssl_sock_->set_verify_callback(boost::asio::ssl::rfc2818_verification(
+  ssl_sock_->set_verify_callback(boost::asio::ssl::host_name_verification(
       *client_options_.remote_hostname_));
 
   callNetworkOperation([&]() {
