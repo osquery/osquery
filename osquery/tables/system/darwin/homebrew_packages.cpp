@@ -146,9 +146,9 @@ std::string getAppNameFromJsonManifest(const std::string& file_path) {
     return "";
   }
 
-  BOOST_FOREACH (auto artifact, artifacts.get()) {
+  for (const auto& artifact : artifacts.get()) {
     if (artifact.second.get_optional<std::string>("app")) {
-      BOOST_FOREACH (auto app, artifact.second.get_child("app")) {
+      for (const auto& app : artifact.second.get_child("app")) {
         return app.second.get_value("");
       }
     }
