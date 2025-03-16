@@ -309,22 +309,32 @@ Status ESAuthenticationEventSubscriber::Callback(
   return Status::success();
 }
 
+void ESAuthenticationEventSubscriber::genTable(RowYield& yield,
+                                               QueryContext& context) {
+  // Get all records for this subscriber
+  auto records = getEvents(context);
+  for (const auto& record : records) {
+    if (record.count("time") == 0 || record.count("event_type") == 0) {
+      continue;
+    }
+
+    yield(record);
+  }
+}
+
 namespace tables {
 
-QueryData genTable(QueryContext& context) {
-  QueryData results;
+void genTable(RowYield& yield, QueryContext& context) {
   auto es_auth_events =
       EventFactory::getEventSubscriber("es_authentication_events");
   if (es_auth_events != nullptr) {
     auto subscriber =
         dynamic_cast<ESAuthenticationEventSubscriber*>(es_auth_events.get());
     if (subscriber != nullptr) {
-      // addBatch is protected, so the event subscriber needs to handle exposing
-      // results itself For this first version, we'll just return an empty
-      // result set
+      // Call the subscriber's genTable method to get the results
+      subscriber->genTable(yield, context);
     }
   }
-  return results;
 }
 
 } // namespace tables

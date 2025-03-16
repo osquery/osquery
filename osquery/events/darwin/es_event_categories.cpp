@@ -82,8 +82,6 @@ static std::map<es_event_type_t, std::string> kEventCategories = {
 
     // Authentication events
     {ES_EVENT_TYPE_NOTIFY_AUTHENTICATION, "authentication"},
-    {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED, "authentication"},
-    {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_LOGIN_LOGOUT, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN, "authentication"},
@@ -97,6 +95,10 @@ static std::map<es_event_type_t, std::string> kEventCategories = {
     {ES_EVENT_TYPE_NOTIFY_SU, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_SUDO, "authentication"},
     {ES_EVENT_TYPE_NOTIFY_TCC_MODIFY, "authentication"},
+
+    // Security/Malware events
+    {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED, "security"},
+    {ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, "security"},
 
     // System events
     {ES_EVENT_TYPE_NOTIFY_KEXTLOAD, "system"},
@@ -357,12 +359,25 @@ std::vector<es_event_type_t> getEnabledEventTypes(const std::string& category) {
     enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT);
     enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SCREENSHARING_ATTACH);
     enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SCREENSHARING_DETACH);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LOGIN_LOGOUT);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGOUT);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOCK);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK);
 
     // Add SU/SUDO events for macOS 14.0+
     if (__builtin_available(macos 14.0, *)) {
       enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SU);
       enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SUDO);
     }
+  }
+
+  // Security/Malware events
+  if ((category == "security" || category == "all") &&
+      __builtin_available(macos 13.0, *)) {
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED);
   }
 
   // Memory events
@@ -376,10 +391,16 @@ std::vector<es_event_type_t> getEnabledEventTypes(const std::string& category) {
   if (category == "system" || category == "all") {
     enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_KEXTLOAD);
     enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_KEXTUNLOAD);
+    enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN);
 
     // Add sysctl event if not on macOS 15+
     if (!(__builtin_available(macos 15.0, *))) {
       enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SYSCTL);
+      enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_PTRACE);
+      enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_SLEEP);
+      enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_WAKE);
+      enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_IOKIT_SET_PROPERTIES);
+      enabled_events.push_back(ES_EVENT_TYPE_NOTIFY_ACCESS_CONTROL);
     }
   }
 

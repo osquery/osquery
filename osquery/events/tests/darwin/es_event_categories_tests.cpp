@@ -35,6 +35,12 @@ TEST_F(ESEventCategoriesTests, categorization) {
   EXPECT_EQ("authentication", getEventCategory(ES_EVENT_TYPE_NOTIFY_SU));
   EXPECT_EQ("authentication", getEventCategory(ES_EVENT_TYPE_NOTIFY_SUDO));
 
+  // Test security events
+  EXPECT_EQ("security",
+            getEventCategory(ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED));
+  EXPECT_EQ("security",
+            getEventCategory(ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED));
+
   // Test network events
   EXPECT_EQ("network", getEventCategory(ES_EVENT_TYPE_NOTIFY_SOCKET));
   EXPECT_EQ("network", getEventCategory(ES_EVENT_TYPE_NOTIFY_CONNECT));
@@ -145,6 +151,25 @@ TEST_F(ESEventCategoriesTests, enabledEvents) {
     EXPECT_GT(memory_events.size(), 0U);
   } else {
     EXPECT_EQ(memory_events.size(), 0U);
+  }
+
+  // Test security events (available on macOS 13+)
+  auto security_events = getEnabledEventTypes("security");
+  if (__builtin_available(macos 13.0, *)) {
+    EXPECT_GT(security_events.size(), 0U);
+    // Verify security events are included
+    if (security_events.size() > 0) {
+      EXPECT_NE(std::find(security_events.begin(),
+                          security_events.end(),
+                          ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED),
+                security_events.end());
+      EXPECT_NE(std::find(security_events.begin(),
+                          security_events.end(),
+                          ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED),
+                security_events.end());
+    }
+  } else {
+    EXPECT_EQ(security_events.size(), 0U);
   }
 }
 

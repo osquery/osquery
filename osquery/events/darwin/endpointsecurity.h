@@ -320,6 +320,8 @@ class ESAuthenticationEventSubscriber
 
   static Status getAuthenticationEventData(const es_message_t* message,
                                            ESAuthenticationEventContextRef& ec);
+
+  void genTable(RowYield& yield, QueryContext& context);
 };
 
 } // namespace osquery
