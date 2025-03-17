@@ -925,8 +925,8 @@ QueryData genContainerStats(QueryContext& context) {
         r["network_rx_bytes"] = getNetworkBytes(*networks, "rx_bytes");
         r["network_tx_bytes"] = getNetworkBytes(*networks, "tx_bytes");
       } else {
-        r["network_rx_bytes"] = BIGINT(0);
-        r["network_tx_bytes"] = BIGINT(0);
+        r["network_rx_bytes"] = "0";
+        r["network_tx_bytes"] = "0";
       }
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
