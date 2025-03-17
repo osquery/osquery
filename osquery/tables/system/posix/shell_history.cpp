@@ -27,6 +27,7 @@ const std::vector<std::string> kShellHistoryFiles = {
     ".zhistory",
     ".history",
     ".sh_history",
+    ".ash_history",
 };
 
 struct HistoryState {
