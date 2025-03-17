@@ -847,11 +847,11 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
  * @return Cumulative value for "key".
  */
 std::string getNetworkBytes(const pt::ptree& tree, const std::string& key) {
-  auto opt = tree.get_optional<std::string>(key);
-  if (opt) {
-    return *opt;
+  uint64_t value = 0;
+  for (const auto& node : tree) {
+    value += node.second.get<uint64_t>(key, 0);
   }
-  return "0";
+  return BIGINT(value);
 }
 
 /**
@@ -925,8 +925,8 @@ QueryData genContainerStats(QueryContext& context) {
         r["network_rx_bytes"] = getNetworkBytes(*networks, "rx_bytes");
         r["network_tx_bytes"] = getNetworkBytes(*networks, "tx_bytes");
       } else {
-        r["network_rx_bytes"] = "0";
-        r["network_tx_bytes"] = "0";
+        r["network_rx_bytes"] = BIGINT(0);
+        r["network_tx_bytes"] = BIGINT(0);
       }
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
