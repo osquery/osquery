@@ -149,6 +149,21 @@ QueryData genSystemInfo(QueryContext& context) {
     break;
   }
 
+  // If we're running in ARM x86 emulation, we can get the true processor type
+  // Only available on Win 10 and later
+  typedef BOOL(WINAPI *LPFN_ISWOW64PROCESS2)(HANDLE hProcess, USHORT *pProcessMachine, USHORT *pNativeMachine);
+
+  auto pIsWow64Process2 = reinterpret_cast<LPFN_ISWOW64PROCESS2>(GetProcAddress(GetModuleHandle(L"kernel32.dll"), "IsWow64Process2"));
+  if (pIsWow64Process2 != nullptr) {
+    USHORT pProcessMachine, pNativeMachine;
+
+    if (pIsWow64Process2(GetCurrentProcess(), &pProcessMachine, &pNativeMachine)) {
+      if (pNativeMachine == IMAGE_FILE_MACHINE_ARM64) {
+        r["cpu_type"] = "ARM";
+      }
+    }
+  }
+
   r["cpu_subtype"] = "-1";
   r["hardware_version"] = "-1";
   return {r};
