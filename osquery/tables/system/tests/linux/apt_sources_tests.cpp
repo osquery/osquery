@@ -241,7 +241,7 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
 
   s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: off",
                        apt_sourecs);
-  EXPECT_FALSE(s.ok()) << "disabled source";
+  EXPECT_TRUE(s.ok()) << "disabled source";
   EXPECT_EQ(apt_sourecs.size(), 0);
 }
 

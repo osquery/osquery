@@ -14,6 +14,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/regex/v5/regex_fwd.hpp>
+#include <filesystem>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
@@ -251,7 +252,7 @@ Status parseDeb822Block(const std::string& input_block,
     }
 
     if (key == "Enabled" && value != "on") {
-      return Status::failure("repo is not enabled");
+      return Status::success();
     }
 
     if (key == "URIs") {
@@ -315,7 +316,13 @@ void genDeb822Block(const std::string& source,
                     QueryData& results,
                     Logger& logger) {
   std::vector<AptSource> apt_sources;
-  parseDeb822Block(block, apt_sources);
+  auto status = parseDeb822Block(block, apt_sources);
+
+  if (!status.ok()) {
+    logger.vlog(1,
+                "failed to parse DEB822 block in " + source + ": " +
+                    status.getMessage());
+  }
 
   for (const auto& apt_source : apt_sources) {
     aptSourceToRow(source, apt_source, results, logger);
@@ -353,7 +360,9 @@ QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
 
   // Expect the APT home to be /etc/apt.
   std::vector<std::string> source_lists;
-  source_lists.push_back("/etc/apt/sources.list");
+  if (std::filesystem::exists("/etc/apt/sources.list")) {
+    source_lists.push_back("/etc/apt/sources.list");
+  }
   if (!resolveFilePattern(
           "/etc/apt/sources.list.d/%.list", source_lists, GLOB_FILES)) {
     logger.vlog(1, "Cannot resolve apt sources /etc/apt/sources.list.d");
