@@ -319,6 +319,7 @@ The basic scheduled query specification includes:
 - `version`: only run on osquery versions greater than or equal-to this version string
 - `shard`: restrict this query to a percentage (1-100) of target hosts
 - `denylist`: a boolean to determine if this query may be denylisted (when stopped by the Watchdog for excessive resource consumption), default true
+- `startup_priority`: an unsigned integer to set the order of executing scheduled queries on startup, default is UINT64_MAX
 
 The `platform` key can be:
 
@@ -338,6 +339,8 @@ Snapshot queries, those with `snapshot: true` will not store differentials and w
 the next section on [logging](../deployment/logging.md) for examples of each log output.
 
 Queries may be "denylisted" if they cause osquery to use excessive system resources. A denylisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `denylist: false` to prevent a query from being denylisted.
+
+Note that queries which leave `startup_priority` as the default value will not execute at startup. When using watchdog, scheduled queries running on startup will generally run before watchdog starts. The watchdog start delay can be adjusted with `watchdog_delay` (default: 60), but running many queries on startup may be resource demanding, and thus could cause the watchdog to deny the startup queries if the delay is too short.
 
 ### Packs
 
@@ -646,7 +649,7 @@ Here is an example configuration:
 You can inspect the list of subscribers using the query `SELECT * FROM osquery_events where type = 'subscriber';`.
 This table will show `1` for the `active` column if a subscriber is enabled.
 Note that publishers are more complex and cannot be disabled and enabled this way, please look for a specific CLI flag to control specific publishers.
-Also note that different platforms such as Windows and Linux have different sets of subscriber tables. 
+Also note that different platforms such as Windows and Linux have different sets of subscriber tables.
 
 ## Chef Configuration
 
