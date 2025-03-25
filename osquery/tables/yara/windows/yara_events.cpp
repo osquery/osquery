@@ -134,10 +134,6 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
                                      const FileSubscriptionContextRef& sc) {
   std::vector<Row> rows;
   for (const auto& event : ec->event_list) {
-    if (!USNJournalEventRecord::isWriteOperation(event.type)) {
-      continue;
-    }
-
     if (!shouldEmit(sc, event)) {
       continue;
     }
