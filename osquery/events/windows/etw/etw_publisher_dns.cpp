@@ -29,9 +29,14 @@ FLAG(bool,
 REGISTER_ETW_PUBLISHER(EtwPublisherDNS, kEtwDNSPublisherName.c_str());
 
 // Publisher constructor
-EtwPublisherDNS::EtwPublisherDNS() : EtwPublisherBase(kEtwDNSPublisherName) {};
+EtwPublisherDNS::EtwPublisherDNS() : EtwPublisherBase(kEtwDNSPublisherName){};
 
 Status EtwPublisherDNS::setUp() {
+  if (!FLAGS_enable_dns_lookup_events) {
+    return Status::failure(kEtwDNSPublisherName +
+                           " publisher disabled via configuration.");
+  }
+
   // Userspace ETW Provider configuration
   EtwProviderConfig dnsETWconfig;
   dnsETWconfig.setName("Microsoft-Windows-DNS-Client");

@@ -27,7 +27,7 @@ REGISTER_ETW_PUBLISHER(EtwPublisherProcesses, kEtwProcessPublisherName.c_str());
 
 // Publisher constructor
 EtwPublisherProcesses::EtwPublisherProcesses()
-    : EtwPublisherBase(kEtwProcessPublisherName) {};
+    : EtwPublisherBase(kEtwProcessPublisherName){};
 
 // There are multiple ETW providers being setup here. Events arriving from
 // these providers will be aggregated in the post-processing phase.
