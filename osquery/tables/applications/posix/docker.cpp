@@ -830,7 +830,7 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
   uint64_t value = 0;
   for (const auto& entry : tree) {
     const pt::ptree& node = entry.second;
-    if (node.get<std::string>("op", "") == op) {
+    if (boost::iequals(node.get<std::string>("op", ""), op)) {
       value += node.get<uint64_t>("value", 0);
     }
   }
