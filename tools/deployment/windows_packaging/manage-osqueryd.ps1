@@ -66,7 +66,7 @@ function Do-Service {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
     } else {
-      New-Service -BinaryPathName "$kServiceBinaryPath $startupArgs" `
+      New-Service -BinaryPathName "`"$kServiceBinaryPath`" $startupArgs" `
                   -Name $kServiceName `
                   -DisplayName $kServiceName `
                   -Description $kServiceDescription `
