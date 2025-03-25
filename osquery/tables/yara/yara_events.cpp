@@ -21,6 +21,8 @@
 #include <osquery/events/darwin/fsevents.h>
 #elif __linux__
 #include <osquery/events/linux/inotify.h>
+#elif WIN32
+#include <osquery/events/windows/ntfs_event_publisher.h>
 #endif
 
 #ifdef CONCAT
@@ -44,6 +46,12 @@ using FileEventContextRef = INotifyEventContextRef;
 using FileSubscriptionContextRef = INotifySubscriptionContextRef;
 #define FILE_CHANGE_MASK                                                       \
   ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) | (IN_MOVED_TO))
+#elif WIN32
+using FileEventSubscriber = EventSubscriber<NTFSEventPublisher>;
+using FileEventContextRef = NTFSEventContextRef;
+using FileSubscriptionContextRef = NTFSEventSubscriptionContextRef;
+#define FILE_CHANGE_MASK                                                       \
+  0 // TODO
 #endif
 
 /**
