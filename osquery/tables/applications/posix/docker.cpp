@@ -917,6 +917,10 @@ QueryData genContainerStats(QueryContext& context) {
           BIGINT(container.get<uint64_t>("memory_stats.usage", 0));
       r["memory_cached"] =
           BIGINT(container.get<uint64_t>("memory_stats.stats.cache", 0));
+      r["memory_inactive_file"] = BIGINT(
+          container.get<uint64_t>("memory_stats.stats.inactive_file", 0));
+      r["memory_total_inactive_file"] = BIGINT(
+          container.get<uint64_t>("memory_stats.stats.total_inactive_file", 0));
       r["memory_max_usage"] =
           BIGINT(container.get<uint64_t>("memory_stats.max_usage", 0));
       r["memory_limit"] =
