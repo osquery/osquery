@@ -26,8 +26,9 @@ namespace osquery {
 std::string sidStringFromEtwRecord(const EVENT_RECORD& record);
 
 /**
- * @brief Windows helper function that gets the process image file path from the process ID.
- * 
+ * @brief Windows helper function that gets the process image file path from the
+ * process ID.
+ *
  * @returns string representation of the process image file path.
  */
 std::string processImagePathFromProcessId(uint32_t processId);

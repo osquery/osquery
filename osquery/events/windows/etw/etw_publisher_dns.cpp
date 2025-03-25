@@ -251,7 +251,7 @@ void EtwPublisherDNS::providerPostProcessor(const EtwEventDataRef& eventData) {
   updateUserInfo(dnsRequestData->UserSid, dnsRequestData->UserName);
   dnsRequestData->QueryTypeString =
       dnsQueryTypeToString(dnsRequestData->QueryType);
-  
+
   // Event dispatch
   event_context->data = std::move(eventData);
   fire(event_context);
