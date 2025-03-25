@@ -5,6 +5,8 @@ schema([
     Column("path", TEXT, "Package install path"),
     Column("version", TEXT, "Current 'linked' version", collate="version"),
     Column("type", TEXT, "Package type ('formula' or 'cask')"),
+    Column("auto_updates", INTEGER, "1 if the cask auto-updates otherwise 0"),
+    Column("app_name", TEXT, "Name of the installed App (for Casks)"),
     Column("prefix", TEXT, "Homebrew install prefix", hidden=True, additional=True, optimized=True),
 ])
 attributes(cacheable=True)
