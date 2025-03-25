@@ -101,7 +101,7 @@ const std::unordered_map<USNJournalEventRecord::Type, std::string>
         {USNJournalEventRecord::Type::FileSecurityAttributesChange, "FileSecurityAttributesChange"}};
 // clang-format on
 
-bool USNJournalEventRecord::isWriteOperation(USNJournalEventRecord::Type type){
+bool USNJournalEventRecord::isWriteOperation(USNJournalEventRecord::Type type) {
   switch (type) {
   case USNJournalEventRecord::Type::FileWrite:
   case USNJournalEventRecord::Type::DirectoryCreation:

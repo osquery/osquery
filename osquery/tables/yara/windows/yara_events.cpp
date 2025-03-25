@@ -12,8 +12,8 @@
 
 #include <osquery/config/config.h>
 #include <osquery/events/eventsubscriber.h>
-#include <osquery/filesystem/filesystem.h>
 #include <osquery/events/windows/ntfs_event_publisher.h>
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/windows/ntfs_journal_events.h>
