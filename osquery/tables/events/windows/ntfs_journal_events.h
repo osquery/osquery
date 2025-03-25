@@ -16,6 +16,7 @@
 namespace osquery {
 /// Subscriber for file change events
 class NTFSEventSubscriber : public EventSubscriber<NTFSEventPublisher> {
+ protected:
   /// Returns true if the specified event should be emitted
   bool shouldEmit(const SCRef& sc, const NTFSEventRecord& event);
 

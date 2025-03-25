@@ -12,11 +12,12 @@
 
 #include <osquery/config/config.h>
 #include <osquery/events/eventsubscriber.h>
+#include <osquery/filesystem/filesystem.h>
+#include <osquery/events/windows/ntfs_event_publisher.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
-#include <osquery/tables/yara/yara_utils.h>
-#include <osquery/events/windows/ntfs_event_publisher.h>
 #include <osquery/tables/events/windows/ntfs_journal_events.h>
+#include <osquery/tables/yara/yara_utils.h>
 
 #include <yara.h>
 
@@ -75,14 +76,18 @@ void YARAEventSubscriber::configure() {
     return;
   }
 
+  const auto& json = Config::getParser("file_paths")->getData();
+  const auto& json_document = json.doc();
+
   // Collect the set of paths, we are mostly concerned with the categories.
   // But the subscriber must duplicate the set of subscriptions such that the
   // publisher's 'fire'-matching logic routes related events to our callback.
   std::map<std::string, std::vector<std::string>> file_map;
-  Config::get().files([&file_map](const std::string& category,
-                                  const std::vector<std::string>& files) {
-    file_map[category] = files;
-  });
+  Config::get().files(
+      [this, &file_map, &json_document](const std::string& category,
+                                        const std::vector<std::string>& files) {
+        file_map[category] = files;
+      });
 
   // For each category within yara's file_paths, add a subscription to the
   // corresponding set of paths.
@@ -95,13 +100,33 @@ void YARAEventSubscriber::configure() {
       continue;
     }
 
+    StringList include_path_list = {};
     for (const auto& file : file_map.at(category)) {
-      VLOG(1) << "Added YARA listener to: " << file;
-      auto sc = createSubscriptionContext();
-      sc->write_paths.insert(file);
-      sc->category = category;
-      subscribe(&YARAEventSubscriber::Callback, sc);
+      // NOTE(woodruffw): This will remove nonexistent paths, even if
+      // they aren't patterns. For example, C:\foo\bar won't
+      // be monitored if it doesn't already exist at table/event
+      // creation time. Is that what we want?
+      resolveFilePattern(file, include_path_list);
     }
+
+    StringList exclude_path_list = {};
+    if (json_document.HasMember("exclude_paths") &&
+        json_document["exclude_paths"][category].IsArray()) {
+      const auto& excludes =
+          json_document["exclude_paths"][category].GetArray();
+      for (const auto& exclude : excludes) {
+        if (!exclude.IsString()) {
+          continue;
+        }
+        resolveFilePattern(exclude.GetString(), exclude_path_list);
+      }
+    }
+
+    auto sc = createSubscriptionContext();
+    sc->category = category;
+    processConfiguration(sc, {}, include_path_list, exclude_path_list);
+    VLOG(1) << "Added YARA listener for category: " << category;
+    subscribe(&YARAEventSubscriber::Callback, sc);
   }
 }
 
@@ -110,6 +135,10 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   std::vector<Row> rows;
   for (const auto& event : ec->event_list) {
     if (!USNJournalEventRecord::isWriteOperation(event.type)) {
+      continue;
+    }
+
+    if (!shouldEmit(sc, event)) {
       continue;
     }
 
@@ -176,7 +205,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
     }
 
     if (r["action"] != "" && !r.at("matches").empty()) {
-        rows.push_back(r);
+      rows.push_back(r);
     }
   }
 
