@@ -27,9 +27,7 @@ REGISTER_ETW_PUBLISHER(EtwPublisherProcesses, kEtwProcessPublisherName.c_str());
 
 // Publisher constructor
 EtwPublisherProcesses::EtwPublisherProcesses()
-    : EtwPublisherBase(kEtwProcessPublisherName) {
-  initializeHardVolumeConversions();
-};
+    : EtwPublisherBase(kEtwProcessPublisherName){};
 
 // There are multiple ETW providers being setup here. Events arriving from
 // these providers will be aggregated in the post-processing phase.
@@ -361,21 +359,6 @@ void EtwPublisherProcesses::providerPostProcessor(
   }
 }
 
-void EtwPublisherProcesses::initializeHardVolumeConversions() {
-  const auto& validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  for (const auto& driveLetter : validDriveLetters) {
-    std::string queryPath;
-    queryPath.push_back(driveLetter);
-    queryPath.push_back(':');
-
-    char hardVolume[MAX_PATH + 1] = {0};
-    if (QueryDosDeviceA(queryPath.c_str(), hardVolume, MAX_PATH)) {
-      hardVolumeDrives_.insert({hardVolume, queryPath});
-    }
-  }
-}
-
 void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
   // Time stamp value is expressed in 100 nanosecond units, this is about
   // 10000000 nanoseconds per second
@@ -406,68 +389,6 @@ void EtwPublisherProcesses::cleanOldAggregationCacheEntries() {
     }
 
     ++it;
-  }
-}
-
-void EtwPublisherProcesses::updateHardVolumeWithLogicalDrive(
-    std::string& path) {
-  // Updating the hardvolume entries with logical volume data
-  for (const auto& [hardVolume, logicalDrive] : hardVolumeDrives_) {
-    size_t pos = 0;
-    if ((pos = path.find(hardVolume, pos)) != std::string::npos) {
-      path.replace(pos, hardVolume.length(), logicalDrive);
-      break;
-    }
-  }
-}
-
-void EtwPublisherProcesses::updateUserInfo(const std::string& userSid,
-                                           std::string& username) {
-  // Updating user information using gathered user SIDs as input
-  auto usernameIt = usernamesBySIDs_.find(userSid);
-  if (usernameIt != usernamesBySIDs_.end()) {
-    auto cachedUsername = usernameIt->second;
-    username.assign(cachedUsername);
-  } else {
-    PSID pSid = nullptr;
-
-    if (!ConvertStringSidToSidA(userSid.c_str(), &pSid) || pSid == nullptr) {
-      // Inserting empty username to avoid the lookup logic to be called again
-      usernamesBySIDs_.insert({userSid, ""});
-      return;
-    }
-
-    std::vector<char> domainNameStr(MAX_PATH - 1, 0x0);
-    std::vector<char> userNameStr(MAX_PATH - 1, 0x0);
-    DWORD domainNameSize = MAX_PATH;
-    DWORD userNameSize = MAX_PATH;
-    SID_NAME_USE sidType = SID_NAME_USE::SidTypeInvalid;
-
-    if (!LookupAccountSidA(NULL,
-                           pSid,
-                           userNameStr.data(),
-                           &userNameSize,
-                           domainNameStr.data(),
-                           &domainNameSize,
-                           &sidType) ||
-        strlen(domainNameStr.data()) == 0 ||
-        strlen(domainNameStr.data()) >= MAX_PATH ||
-        strlen(userNameStr.data()) == 0 ||
-        strlen(userNameStr.data()) >= MAX_PATH ||
-        sidType == SID_NAME_USE::SidTypeInvalid) {
-      // Inserting empty username to avoid the lookup logic to be called again
-      usernamesBySIDs_.insert({userSid, ""});
-      LocalFree(pSid);
-      return;
-    }
-
-    LocalFree(pSid);
-
-    username.append(domainNameStr.data());
-    username.append("\\");
-    username.append(userNameStr.data());
-
-    usernamesBySIDs_.insert({userSid, username});
   }
 }
 
@@ -505,9 +426,9 @@ void EtwPublisherProcesses::updateTokenInfo(const std::uint32_t& tokenType,
   }
 }
 
-// Checking if given ETW event is a supported kernel event
+// Check if given ETW event is a supported kernel event
 bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
-  // ETW events coming from kernel providers have this fields set to zero
+  // ETW events coming from kernel providers have these fields set to zero
   return (header.EventDescriptor.Channel == 0 &&
           header.EventDescriptor.Level == 0 &&
           header.EventDescriptor.Task == 0 &&
@@ -517,7 +438,7 @@ bool EtwPublisherProcesses::isSupportedKernelEvent(const EVENT_HEADER& header) {
                static_cast<UCHAR>(etwKernelProcVersion::Version4)));
 }
 
-// Checking if given ETW event is a supported userspace process start event
+// Check if given ETW event is a supported userspace process start event
 bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
     const EVENT_HEADER& header) {
   return (header.EventDescriptor.Id == etwProcessStartID &&
@@ -531,14 +452,14 @@ bool EtwPublisherProcesses::isSupportedUserProcessStartEvent(
                static_cast<UCHAR>(etwUserProcStartVersion::Version3)));
 }
 
-// Checking if given ETW event ID is supported by preprocessor logic
+// Check if given ETW event ID is supported by preprocessor logic
 bool EtwPublisherProcesses::isSupportedEvent(const EVENT_HEADER& header) {
   return (isSupportedKernelEvent(header) ||
           isSupportedUserProcessStartEvent(header) ||
           isSupportedUserProcessStopEvent(header));
 }
 
-// Checking if given ETW event is a supported userspace process stop event
+// Check if given ETW event is a supported userspace process stop event
 bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
     const EVENT_HEADER& header) {
   return (header.EventDescriptor.Id == etwProcessStopID &&
@@ -550,7 +471,7 @@ bool EtwPublisherProcesses::isSupportedUserProcessStopEvent(
                static_cast<UCHAR>(etwUserProcStopVersion::Version2)));
 }
 
-// Get uint64 composed kit
+// Get uint64 composed key
 std::uint64_t EtwPublisherProcesses::getComposedKey(const std::uint64_t& key1,
                                                     const std::uint64_t& key2) {
   return static_cast<std::uint64_t>(static_cast<std::uint64_t>(key1) << 32 |

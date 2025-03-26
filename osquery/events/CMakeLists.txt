@@ -68,6 +68,7 @@ function(generateOsqueryEvents)
       list(APPEND source_files
         windows/etw/etw_user_session.cpp
         windows/etw/etw_publisher_processes.cpp
+        windows/etw/etw_publisher_dns.cpp
         windows/etw/etw_provider_config.cpp
         windows/etw/etw_post_processing_pipeline.cpp
         windows/etw/etw_kernel_session.cpp
@@ -183,6 +184,7 @@ function(generateOsqueryEvents)
     if(OSQUERY_BUILD_ETW)
       list(APPEND platform_public_header_files
         windows/etw/etw_user_session.h
+        windows/etw/etw_publisher_dns.h
         windows/etw/etw_publisher_processes.h
         windows/etw/etw_publisher.h
         windows/etw/etw_provider_config.h
