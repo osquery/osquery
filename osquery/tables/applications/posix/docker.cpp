@@ -847,11 +847,11 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
  * @return Cumulative value for "key".
  */
 std::string getNetworkBytes(const pt::ptree& tree, const std::string& key) {
-  auto opt = tree.get_optional<std::string>(key);
-  if (opt) {
-    return *opt;
+  uint64_t value = 0;
+  for (const auto& node : tree) {
+    value += node.second.get<uint64_t>(key, 0);
   }
-  return "0";
+  return BIGINT(value);
 }
 
 /**
