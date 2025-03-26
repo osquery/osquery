@@ -76,6 +76,8 @@ function(generateTestsIntegrationTablesTestsTest)
     device_partitions.cpp
     ycloud_instance_metadata.cpp
     vscode_extensions.cpp
+    yara.cpp
+    yara_events.cpp
   )
 
   if(NOT PLATFORM_LINUX OR OSQUERY_BUILD_ROOT_TESTS)
@@ -184,8 +186,6 @@ function(generateTestsIntegrationTablesTestsTest)
       startup_items.cpp
       syslog_events.cpp
       systemd_units.cpp
-      yara_events.cpp
-      yara.cpp
       yum_sources.cpp
     )
 
@@ -275,8 +275,6 @@ function(generateTestsIntegrationTablesTestsTest)
       xprotect_entries.cpp
       xprotect_meta.cpp
       xprotect_reports.cpp
-      yara_events.cpp
-      yara.cpp
     )
 
     list(APPEND source_files ${platform_source_files})
@@ -335,7 +333,6 @@ function(generateTestsIntegrationTablesTestsTest)
       wmi_filter_consumer_binding.cpp
       wmi_script_event_consumers.cpp
       deviceguard_status.cpp
-      yara.cpp
       tpm_info.cpp
       security_profile_info.cpp
     )

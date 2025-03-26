@@ -32,6 +32,13 @@ function(generateOsqueryTablesYaraYaratable)
     )
   endif()
 
+
+  if(DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      windows/yara_events.cpp
+    )
+  endif()
+
   add_osquery_library(osquery_tables_yara_yaratable EXCLUDE_FROM_ALL
     ${source_files}
   )
@@ -43,6 +50,7 @@ function(generateOsqueryTablesYaraYaratable)
     osquery_config
     osquery_dispatcher
     osquery_events
+    osquery_tables_events_eventstable
     osquery_logger
     osquery_registry
     osquery_remote_utility

@@ -15,10 +15,8 @@
 
 namespace osquery {
 /// Subscriber for file change events
-class NTFSEventSubscriber final : public EventSubscriber<NTFSEventPublisher> {
-  /// Returns true if the specified event is a write operation
-  bool isWriteOperation(const USNJournalEventRecord::Type& type);
-
+class NTFSEventSubscriber : public EventSubscriber<NTFSEventPublisher> {
+ protected:
   /// Returns true if the specified event should be emitted
   bool shouldEmit(const SCRef& sc, const NTFSEventRecord& event);
 
