@@ -30,31 +30,6 @@
 namespace osquery {
 REGISTER(NTFSEventSubscriber, "event_subscriber", "ntfs_journal_events");
 
-bool NTFSEventSubscriber::isWriteOperation(
-    const USNJournalEventRecord::Type& type) {
-  switch (type) {
-  case USNJournalEventRecord::Type::FileWrite:
-  case USNJournalEventRecord::Type::DirectoryCreation:
-  case USNJournalEventRecord::Type::DirectoryOverwrite:
-  case USNJournalEventRecord::Type::FileOverwrite:
-  case USNJournalEventRecord::Type::DirectoryTruncation:
-  case USNJournalEventRecord::Type::FileTruncation:
-  case USNJournalEventRecord::Type::TransactedDirectoryChange:
-  case USNJournalEventRecord::Type::TransactedFileChange:
-  case USNJournalEventRecord::Type::FileCreation:
-  case USNJournalEventRecord::Type::DirectoryDeletion:
-  case USNJournalEventRecord::Type::FileDeletion:
-  case USNJournalEventRecord::Type::DirectoryLinkChange:
-  case USNJournalEventRecord::Type::FileLinkChange:
-  case USNJournalEventRecord::Type::DirectoryRename_NewName:
-  case USNJournalEventRecord::Type::FileRename_NewName:
-    return true;
-
-  default:
-    return false;
-  }
-}
-
 bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
                                      const NTFSEventRecord& event) {
   const auto& write_paths = sc->write_paths;
@@ -65,7 +40,7 @@ bool NTFSEventSubscriber::shouldEmit(const SCRef& sc,
   // TODO(woodruffw): Should we look for FileDeletion events and remove the FRN
   // when we encounter them? Does NTFS recycle FRNs? Does it matter in terms of
   // memory consumption?
-  if (isWriteOperation(event.type)) {
+  if (USNJournalEventRecord::isWriteOperation(event.type)) {
     bool frn_found =
         write_frns.find(event.node_ref_number) != write_frns.end() ||
         access_frns.find(event.node_ref_number) != access_frns.end();
