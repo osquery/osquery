@@ -21,5 +21,6 @@ schema([
     Column("board_serial", TEXT, "Board serial number"),
     Column("computer_name", TEXT, "Friendly computer name (optional)"),
     Column("local_hostname", TEXT, "Local hostname (optional)"),
+    Column("emulated_cpu_type", TEXT, "Emulated CPU type"),
 ])
 implementation("system/system_info@genSystemInfo")
