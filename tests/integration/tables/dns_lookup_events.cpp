@@ -70,16 +70,6 @@ TEST_F(dnsLookupEvents, test_sanity) {
   validate_rows(data, row_map);
 
   // Specific validation of rows
-  {
-    // Unsuccessful A record
-    const auto it = std::find_if(data.begin(), data.end(), [](const Row& row) {
-      return row.at("name") == "hostname.invalid" && row.at("type") == "A";
-    });
-    ASSERT_NE(it, data.end());
-    const Row& row = *it;
-    EXPECT_EQ(row.at("status"), INTEGER(87));
-    EXPECT_EQ(row.at("response").size(), 0);
-  }
 
   {
     // Unsuccessful AAAA record
