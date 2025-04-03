@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/status/status.h>
 #include <algorithm>
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/regex.hpp>
@@ -21,6 +20,7 @@
 #include <osquery/tables/system/linux/apt_sources.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/status/status.h>
 #include <osquery/utils/system/system.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
@@ -237,6 +237,10 @@ Status parseDeb822Block(const std::string& input_block,
     }
 
     auto key = line.substr(0, colon_pos);
+    std::transform(
+        key.begin(), key.end(), key.begin(), [](unsigned char c) {
+          return std::tolower(c);
+        });
     auto value = line.substr(colon_pos + 1, std::string::npos);
     boost::trim(value);
 
@@ -244,18 +248,18 @@ Status parseDeb822Block(const std::string& input_block,
       continue;
     }
 
-    if (key == "Types") {
+    if (key == "types") {
       auto types = osquery::split(value);
       if (std::find(types.begin(), types.end(), "deb") == types.end()) {
         return Status::failure("not a deb type repo");
       }
     }
 
-    if (key == "Enabled" && value != "on") {
+    if (key == "enabled" && value != "on") {
       return Status::success();
     }
 
-    if (key == "URIs") {
+    if (key == "uris") {
       for (auto& uri : osquery::split(value)) {
         if (uri.find("://") == std::string::npos) {
           continue;
@@ -268,7 +272,7 @@ Status parseDeb822Block(const std::string& input_block,
       }
     }
 
-    if (key == "Suites") {
+    if (key == "suites") {
       for (const auto& suite : osquery::split(value)) {
         suites.push_back(suite);
       }
@@ -360,7 +364,7 @@ QueryData genAptSrcsImpl(QueryContext& context, Logger& logger) {
 
   // Expect the APT home to be /etc/apt.
   std::vector<std::string> source_lists;
-  if (std::filesystem::exists("/etc/apt/sources.list")) {
+  if (pathExists("/etc/apt/sources.list")) {
     source_lists.push_back("/etc/apt/sources.list");
   }
   if (!resolveFilePattern(

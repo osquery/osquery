@@ -188,9 +188,9 @@ Signed-By: /usr/share/keyrings/osquery-archive-keyring.gpg",
        "pkg.osquery.io_dists_noble"},
       // trailing comments are ok
       {"Types: deb # commented line \n\
-URIs: https://pkg.osquery.io \n\
+uris: https://pkg.osquery.io \n\
 # Entire commented line \n\
-Suites: noble \n\
+suites: noble \n\
 Components: main # trailing comment \n\
 Signed-By: /usr/share/keyrings/osquery-archive-keyring.gpg",
        "https://pkg.osquery.io",
