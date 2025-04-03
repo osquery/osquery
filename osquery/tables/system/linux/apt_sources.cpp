@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include "osquery/utils/status/status.h"
+#include <osquery/utils/status/status.h>
 #include <algorithm>
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/regex.hpp>
