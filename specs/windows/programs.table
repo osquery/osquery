@@ -10,6 +10,7 @@ schema([
     Column("uninstall_string", TEXT, "Path and filename of the uninstaller."),
     Column("install_date", TEXT, "Date that this product was installed on the system. "),
     Column("identifying_number", TEXT, "Product identification such as a serial number on software, or a die number on a hardware chip."),
+    Column("upgrade_code", TEXT, "Specific to MSI applications, a GUID used to identify a product suite across multiple versions.")
 ])
 implementation("programs@genPrograms")
 examples([

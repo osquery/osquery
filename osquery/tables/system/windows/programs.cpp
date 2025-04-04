@@ -12,14 +12,112 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 
 #include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
 namespace tables {
 
+// Function to reverse a string
+std::string reverseString(const std::string& input) {
+  std::string reversed = input;
+  std::reverse(reversed.begin(), reversed.end());
+  return reversed;
+}
+
+// Function to convert a registry-encoded GUID into a standard GUID
+std::string decodeMsiRegistryGuid(const std::string& encoded) {
+  // Ensure the encoded string is exactly 32 characters long
+  if (encoded.length() != 32) {
+    VLOG(1) << "Invalid registry GUID '" << encoded << "'";
+    return "";
+  }
+
+  // Microsoft uses a custom encoding for GUIDs in the registry
+  // It reverses the order of the bytes in the string
+  // This 2CCAB6107DB47314AB175756630CCD04
+  // 1.  Reverse last 2 characters 04
+  // 2.  Reverse next 2 characters CD
+  // 3.  Reverse next 2 characters 0C
+  // 4.  Reverse next 2 characters 63
+  // 5.  Reverse next 2 characters 56
+  // 6.  Reverse next 2 characters 57
+  // 7.  Reverse next 2 characters 17
+  // 8.  Reverse next 2 characters AB
+  // 9.  Reverse next 4 characters 7314
+  // 10. Reverse next 4 characters 7DB4
+  // 11. Reverse first 8 characters 2CCAB610
+  // becomes 016BACC2-4BD7-4137-BA71-756536C0DC40
+
+  std::string str = reverseString(encoded.substr(0, 8)) + "-" +
+                    reverseString(encoded.substr(8, 4)) + "-" +
+                    reverseString(encoded.substr(12, 4)) + "-" +
+                    reverseString(encoded.substr(16, 2)) +
+                    reverseString(encoded.substr(18, 2)) + "-" +
+                    reverseString(encoded.substr(20, 2)) +
+                    reverseString(encoded.substr(22, 2)) +
+                    reverseString(encoded.substr(24, 2)) +
+                    reverseString(encoded.substr(26, 2)) +
+                    reverseString(encoded.substr(28, 2)) +
+                    reverseString(encoded.substr(30, 2));
+
+  return "{" + str + "}";
+}
+
+// Function to return a map of product code -> upgrade code
+// Note that this is not a 1:1 mapping, a single upgrade code can have many
+// product codes However, a product code can only have one upgrade code
+std::map<std::string, std::string> generateProductCodeUpgradeCodeMap() {
+  std::map<std::string, std::string> productCodeUpgradeCodeMap;
+  std::set<std::string> upgradeCodeKeys = {
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Installer\\UpgradeCodes",
+      "HKEY_LOCAL_"
+      "MACHINE\\SOFTWARE\\WOW6432Node\\Classes\\Installer\\UpgradeCodes",
+  };
+
+  for (const auto& key : upgradeCodeKeys) {
+    QueryData regResults;
+    queryKey(key, regResults);
+    for (const auto& rKey : regResults) {
+      // Each subkey represents an upgrade code
+      if (rKey.at("type") != "subkey") {
+        continue;
+      }
+
+      auto upgradeCode = decodeMsiRegistryGuid(rKey.at("name"));
+      if (upgradeCode.empty()) {
+        continue;
+      }
+
+      // Each upgrade code can have 1 or more product codes
+      QueryData upgradeCodeResults;
+      queryKey(rKey.at("path"), upgradeCodeResults);
+      for (const auto& pKey : upgradeCodeResults) {
+        // name contains the data for the product code
+        const auto& encryptedProductCode = pKey.find("name");
+        if (encryptedProductCode != pKey.end()) {
+          auto productCode =
+              decodeMsiRegistryGuid(encryptedProductCode->second);
+          if (productCode.empty()) {
+            continue;
+          }
+          std::transform(productCode.begin(),
+                         productCode.end(),
+                         productCode.begin(),
+                         ::toupper);
+          productCodeUpgradeCodeMap[productCode] = upgradeCode;
+        }
+      }
+    }
+  }
+
+  return productCodeUpgradeCodeMap;
+}
+
 void keyEnumPrograms(const std::string& key,
                      std::set<std::string>& processed,
+                     std::map<std::string, std::string> upgradeCodeMap,
                      QueryData& results) {
   QueryData regResults;
   queryKey(key, regResults);
@@ -50,6 +148,19 @@ void keyEnumPrograms(const std::string& key,
     if (std::regex_search(fullProgramName, matches, expression)) {
       identifyingNumber = matches[0];
       r["identifying_number"] = identifyingNumber;
+    }
+
+    if (!identifyingNumber.empty()) {
+      std::string identifyingNumberUpper = identifyingNumber;
+      std::transform(identifyingNumberUpper.begin(),
+                     identifyingNumberUpper.end(),
+                     identifyingNumberUpper.begin(),
+                     ::toupper);
+
+      const auto& upgradeCode = upgradeCodeMap[identifyingNumberUpper];
+      if (!upgradeCode.empty()) {
+        r["upgrade_code"] = upgradeCode;
+      }
     }
 
     for (const auto& aKey : appResults) {
@@ -105,9 +216,10 @@ QueryData genPrograms(QueryContext& context) {
       userProgramKeys);
   programKeys.insert(userProgramKeys.begin(), userProgramKeys.end());
 
+  const auto& upgradeCodeMap = generateProductCodeUpgradeCodeMap();
   std::set<std::string> processedPrograms;
   for (const auto& k : programKeys) {
-    keyEnumPrograms(k, processedPrograms, results);
+    keyEnumPrograms(k, processedPrograms, upgradeCodeMap, results);
   }
 
   return results;
