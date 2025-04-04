@@ -354,6 +354,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND platform_public_header_files
+      windows/programs.h
       windows/registry.h
       windows/certificates.h
       windows/windows_eventlog.h
