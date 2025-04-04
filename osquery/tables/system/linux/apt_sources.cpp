@@ -237,10 +237,9 @@ Status parseDeb822Block(const std::string& input_block,
     }
 
     auto key = line.substr(0, colon_pos);
-    std::transform(
-        key.begin(), key.end(), key.begin(), [](unsigned char c) {
-          return std::tolower(c);
-        });
+    std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c) {
+      return std::tolower(c);
+    });
     auto value = line.substr(colon_pos + 1, std::string::npos);
     boost::trim(value);
 
