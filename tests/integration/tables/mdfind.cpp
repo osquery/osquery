@@ -25,11 +25,16 @@ class Mdfind : public testing::Test {
 };
 
 TEST_F(Mdfind, test_sanity) {
+  // Check if mdfind is available
+  int mdfind_status = system("mdfind -literal 'kMDItemFSName = \"*.app\"'");
+
   QueryData rows = execute_query(
       "select * from mdfind where query = 'kMDItemFSName = \"*.app\"'"
       " LIMIT 10;");
 
-  ASSERT_EQ(rows.size(), 10);
+  if (mdfind_status == 0) {
+    ASSERT_EQ(rows.size(), 10);
+  }
 
   ValidationMap row_map = {
       {"path", NonEmptyString},
@@ -45,11 +50,12 @@ TEST_F(Mdfind, test_sanity) {
       execute_query("select * from mdfind where query = 'kMDItemFSName = \"" +
                     filename + "\"';");
 
-  ASSERT_FALSE(rows.empty());
-
-  for (auto row : rows) {
-    boost::filesystem::path retrieved_path(row["path"]);
-    EXPECT_EQ(retrieved_path.filename().string(), filename);
+  if (mdfind_status == 0) {
+    ASSERT_FALSE(rows.empty());
+    for (auto row : rows) {
+      boost::filesystem::path retrieved_path(row["path"]);
+      EXPECT_EQ(retrieved_path.filename().string(), filename);
+    }
   }
 }
 
