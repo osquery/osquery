@@ -29,6 +29,14 @@ TEST_F(Mdfind, test_sanity) {
       "select * from mdfind where query = 'kMDItemFSName = \"*.app\"'"
       " LIMIT 10;");
 
+  // Skip the rest of the assertions if mdfind is disabled. We should still do
+  // the first query though just to be sure osquery doesn't crash in that case.
+  int mdfind_disabled = system("mdutil -s / | grep disabled");
+  if (mdfind_disabled == 0) {
+    GTEST_SKIP() << "mdfind is disabled on this system";
+    return;
+  }
+
   ASSERT_EQ(rows.size(), 10);
 
   ValidationMap row_map = {
