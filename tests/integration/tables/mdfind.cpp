@@ -10,9 +10,11 @@
 // Sanity check integration test for mdfind
 // Spec file: specs/darwin/mdfind.table
 
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 #include <boost/filesystem.hpp>
+
 
 namespace osquery {
 namespace table_tests {
@@ -37,7 +39,7 @@ TEST_F(Mdfind, test_sanity) {
     GTEST_SKIP() << "mdfind is disabled on this system";
     return;
   }
-  if (getenv("GITHUB_JOB") == "test_older_macos") {
+  if (std::string(getenv("GITHUB_JOB")) == "test_older_macos") {
     LOG(INFO)
         << "Disabling mdfind test on the older macOS runner due to flakiness";
     GTEST_SKIP() << "mdfind test disabled on older macOS runner";
