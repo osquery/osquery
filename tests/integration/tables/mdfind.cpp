@@ -15,7 +15,6 @@
 
 #include <boost/filesystem.hpp>
 
-
 namespace osquery {
 namespace table_tests {
 
@@ -39,7 +38,7 @@ TEST_F(Mdfind, test_sanity) {
     GTEST_SKIP() << "mdfind is disabled on this system";
     return;
   }
-  if (std::string(getenv("GITHUB_JOB")) == "test_older_macos") {
+  if (strcmp(getenv("GITHUB_JOB"), "test_older_macos")) == 0 {
     LOG(INFO)
         << "Disabling mdfind test on the older macOS runner due to flakiness";
     GTEST_SKIP() << "mdfind test disabled on older macOS runner";
