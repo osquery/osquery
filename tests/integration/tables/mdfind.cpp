@@ -38,7 +38,7 @@ TEST_F(Mdfind, test_sanity) {
     GTEST_SKIP() << "mdfind is disabled on this system";
     return;
   }
-  if (strcmp(getenv("GITHUB_JOB"), "test_older_macos")) == 0 {
+  if (strcmp(getenv("GITHUB_JOB"), "test_older_macos") == 0) {
     LOG(INFO)
         << "Disabling mdfind test on the older macOS runner due to flakiness";
     GTEST_SKIP() << "mdfind test disabled on older macOS runner";
