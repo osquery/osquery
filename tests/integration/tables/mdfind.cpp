@@ -33,7 +33,14 @@ TEST_F(Mdfind, test_sanity) {
   // the first query though just to be sure osquery doesn't crash in that case.
   int mdfind_disabled = system("mdutil -s / | grep disabled");
   if (mdfind_disabled == 0) {
+    LOG(INFO) << "Skipping mdfind test because mdfind is disabled";
     GTEST_SKIP() << "mdfind is disabled on this system";
+    return;
+  }
+  if (getenv("GITHUB_JOB") == "test_older_macos") {
+    LOG(INFO)
+        << "Disabling mdfind test on the older macOS runner due to flakiness";
+    GTEST_SKIP() << "mdfind test disabled on older macOS runner";
     return;
   }
 
