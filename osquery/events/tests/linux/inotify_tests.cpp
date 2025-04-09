@@ -429,8 +429,8 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   EXPECT_GT(sub->actions().size(), 0U);
   if (sub->actions().size() >= 2) {
     if (!(sub->actions()[0] == "UPDATED" || sub->actions()[1] == "UPDATED")) {
-      ADD_FAILURE() << "Expected UPDATED action, got: "
-                    << sub->actions()[0] << " and " << sub->actions()[1];
+      ADD_FAILURE() << "Expected UPDATED action, got: " << sub->actions()[0]
+                    << " and " << sub->actions()[1];
     }
   }
 
