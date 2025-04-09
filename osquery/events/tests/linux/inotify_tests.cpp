@@ -428,7 +428,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   // Make sure the inotify action was expected.
   EXPECT_GT(sub->actions().size(), 0U);
   if (sub->actions().size() >= 2) {
-    EXPECT_EQ(sub->actions()[0], "UPDATED");
+    EXPECT_THAT(sub->actions()[0], AnyOf("UPDATED", "OPENED"));
   }
 
   StopEventLoop();

@@ -415,6 +415,8 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
       run: |
+        # Allow access to the docker socket
+        sudo chmod 666 /var/run/docker.sock
         ctest --build-nocmake -LE "root-required" -V
 
     - name: Run the tests as root user
