@@ -9,6 +9,7 @@
 
 #include <optional>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core/tables.h>
@@ -28,11 +29,14 @@ namespace {
 
 /// Each home directory will include custom extensions.
 #if defined(__APPLE__)
-#define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
+const std::vector<std::string> kFirefoxPaths = {
+    "/Library/Application Support/Firefox/Profiles/"};
 #elif defined(__linux__)
-#define kFirefoxPath "/.mozilla/firefox/"
+const std::vector<std::string> kFirefoxPaths = {
+    "/.mozilla/firefox/", "/snap/firefox/common/.mozilla/firefox/"};
 #elif defined(WIN32)
-#define kFirefoxPath "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"
+const std::vector<std::string> kFirefoxPaths = {
+    "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"};
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"
@@ -183,12 +187,25 @@ QueryData genFirefoxAddons(QueryContext& context) {
   QueryData users = usersFromContext(context);
   for (const auto& row : users) {
     if (row.count("uid") > 0 && row.count("directory") > 0) {
-      // For each user, enumerate all of their Firefox profiles.
+      // For each user, enumerate all of their Firefox profiles in each path.
       std::vector<std::string> profiles;
-      auto directory = fs::path(row.at("directory")) / kFirefoxPath;
-      if (!listDirectoriesInDirectory(directory, profiles).ok()) {
-        continue;
+      for (const auto& path : kFirefoxPaths) {
+        auto directory = fs::path(row.at("directory")) / path;
+        if (!listDirectoriesInDirectory(directory, profiles).ok()) {
+          continue;
+        }
       }
+
+      // Do not list Crash Reports and Pending Pings folders as profiles
+      profiles.erase(std::remove_if(profiles.begin(),
+                                    profiles.end(),
+                                    [](const std::string& s) {
+                                      return boost::algorithm::ends_with(
+                                                 s, "Crash Reports") ||
+                                             boost::algorithm::ends_with(
+                                                 s, "Pending Pings");
+                                    }),
+                     profiles.end());
 
       // Generate an addons list from their extensions JSON.
       for (const auto& profile : profiles) {

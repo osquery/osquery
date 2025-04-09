@@ -25,6 +25,7 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/uri.h>
+#include <osquery/remote/utility.h>
 #include <osquery/tables/yara/yara_utils.h>
 #include <osquery/utils/status/status.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
@@ -51,6 +52,12 @@ FLAG(uint32,
      50,
      "Time in ms to sleep after scan of each file (default 50) to reduce "
      "memory spikes");
+
+FLAG(bool,
+     yara_sigurl_authenticate,
+     false,
+     "Enable authentication in yara sigrule requests. Request will be "
+     "authenticated with the node key like other osquery TLS requests.");
 
 HIDDEN_FLAG(bool,
             enable_yara_string,
@@ -137,7 +144,21 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
     http::Response response;
     http::Request request(url);
 
-    response = client.get(request);
+    if (FLAGS_yara_sigurl_authenticate) {
+      // If authentication is turned on, make a POST request with the node key
+      // in the JSON body.
+      JSON params;
+      params.add("node_key", getNodeKey("tls"));
+      std::string postBody;
+      Status result = params.toString(postBody);
+      if (!result.ok()) {
+        return Status::failure("Failed to stringify JSON body: " +
+                               result.getMessage());
+      }
+      response = client.post(request, postBody, "application/json");
+    } else {
+      response = client.get(request);
+    }
     // Check for the status code and update the rule string on success
     // and result has been transmitted to the message body
     if (response.status() == 200) {

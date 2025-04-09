@@ -50,7 +50,7 @@ Status BufferedLogForwarder::setUp() {
   return Status(0);
 }
 
-void BufferedLogForwarder::check() {
+void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
   // Get a list of all the buffered log items, with a max of 1024 lines.
   std::vector<std::string> indexes;
   auto status = scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
@@ -66,13 +66,25 @@ void BufferedLogForwarder::check() {
           }));
 
   // If any results/statuses were found in the flushed buffer, send.
-  if (results.size() > 0) {
+  if (send_results && !results.empty()) {
     status = send(results, "result");
     if (!status.ok()) {
       VLOG(1) << "Error sending results to logger: " << status.getMessage();
 
       if (interrupted()) {
         return;
+      }
+      if (max_backoff_period_ > std::chrono::seconds::zero()) {
+        results_backoff_++;
+        // Apply exponential backoff time.
+        results_backoff_period_ =
+            log_period_ * results_backoff_ * results_backoff_;
+        if (results_backoff_period_ > max_backoff_period_) {
+          results_backoff_period_ = max_backoff_period_;
+          results_backoff_--;
+        }
+        VLOG(1) << "Will attempt to send results again in "
+                << results_backoff_period_.count() << " seconds";
       }
     } else {
       // Clear the results logs once they were sent.
@@ -82,16 +94,30 @@ void BufferedLogForwarder::check() {
                 }
                 deleteValueWithCount(kLogs, index);
               }));
+      results_backoff_ = 0;
+      results_backoff_period_ = std::chrono::seconds::zero();
     }
   }
 
-  if (statuses.size() > 0) {
+  if (send_statuses && !statuses.empty()) {
     status = send(statuses, "status");
     if (!status.ok()) {
       VLOG(1) << "Error sending status to logger: " << status.getMessage();
 
       if (interrupted()) {
         return;
+      }
+      if (max_backoff_period_ > std::chrono::seconds::zero()) {
+        statuses_backoff_++;
+        // Apply exponential backoff time.
+        statuses_backoff_period_ =
+            log_period_ * statuses_backoff_ * statuses_backoff_;
+        if (statuses_backoff_period_ > max_backoff_period_) {
+          statuses_backoff_period_ = max_backoff_period_;
+          statuses_backoff_--;
+        }
+        VLOG(1) << "Will attempt to send status again in "
+                << statuses_backoff_period_.count() << " seconds";
       }
     } else {
       // Clear the status logs once they were sent.
@@ -101,6 +127,8 @@ void BufferedLogForwarder::check() {
                 }
                 deleteValueWithCount(kLogs, index);
               }));
+      statuses_backoff_ = 0;
+      statuses_backoff_period_ = std::chrono::seconds::zero();
     }
   }
 
@@ -174,10 +202,40 @@ void BufferedLogForwarder::purge() {
 
 void BufferedLogForwarder::start() {
   while (!interrupted()) {
-    check();
+    bool send_results = results_backoff_period_ <= std::chrono::seconds::zero();
+    bool send_statuses =
+        statuses_backoff_period_ <= std::chrono::seconds::zero();
+    check(send_results, send_statuses);
 
-    // Cool off and time wait the configured period.
-    pause(std::chrono::milliseconds(log_period_));
+    do {
+      // Cool off and time wait the configured period.
+      pause(std::chrono::milliseconds(log_period_));
+      // Apply any updates to configuration options, such as disabling of
+      // backoff.
+      applyNewConfiguration();
+      // Update backoff timers.
+      backoffTick();
+    } while (!interrupted() &&
+             results_backoff_period_ > std::chrono::seconds::zero() &&
+             statuses_backoff_period_ > std::chrono::seconds::zero());
+  }
+}
+
+void BufferedLogForwarder::backoffTick() {
+  // Check if backoff was cancelled.
+  if (max_backoff_period_ <= log_period_) {
+    results_backoff_period_ = std::chrono::seconds::zero();
+    statuses_backoff_period_ = std::chrono::seconds::zero();
+    results_backoff_ = 0;
+    statuses_backoff_ = 0;
+  } else {
+    // Otherwise keep backing off, but reduce the amount of time left.
+    if (results_backoff_period_ > std::chrono::seconds::zero()) {
+      results_backoff_period_ -= log_period_;
+    }
+    if (statuses_backoff_period_ > std::chrono::seconds::zero()) {
+      statuses_backoff_period_ -= log_period_;
+    }
   }
 }
 

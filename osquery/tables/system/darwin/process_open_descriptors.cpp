@@ -178,8 +178,8 @@ void genSocketDescriptor(int pid, int descriptor, QueryData& results) {
 
     r["pid"] = INTEGER(pid);
     r["socket"] = INTEGER(descriptor);
-    r["family"] = "0";
-    r["protocol"] = "0";
+    r["family"] = INTEGER(si.psi.soi_family);
+    r["protocol"] = INTEGER(si.psi.soi_protocol);
     r["local_address"] = "";
     r["local_port"] = "0";
     r["remote_address"] = "";

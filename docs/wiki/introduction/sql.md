@@ -27,9 +27,11 @@ osquery> .help
 Welcome to the osquery shell. Please explore your OS!
 You are connected to a transient 'in-memory' virtual database.
 
-.all [TABLE]       Select all from a table
-.bail ON|OFF       Stop after hitting an error; default OFF
-.echo ON|OFF       Turn command echo on or off
+.all [TABLE]     Select all from a table
+.bail ON|OFF     Stop after hitting an error
+.connect PATH    Connect to an osquery extension socket
+.disconnect      Disconnect from a connected extension socket
+.echo ON|OFF     Turn command echo on or off
 [...]
 osquery>
 ```
@@ -39,10 +41,10 @@ Try the meta-commands `.tables` and `.schema` to list all of the tables and thei
 ```text
 osquery> .schema process
 [...]
-CREATE TABLE process_memory_map(pid INTEGER, start TEXT, end TEXT, permissions TEXT, offset BIGINT, device TEXT, inode INTEGER, path TEXT, pseudo INTEGER);
-CREATE TABLE process_open_files(pid BIGINT, fd BIGINT, path TEXT);
-CREATE TABLE process_open_sockets(pid INTEGER, fd BIGINT, socket BIGINT, family INTEGER, protocol INTEGER, local_address TEXT, remote_address TEXT, local_port INTEGER, remote_port INTEGER, path TEXT);
-CREATE TABLE processes(pid BIGINT, name TEXT, path TEXT, cmdline TEXT, state TEXT, cwd TEXT, root TEXT, uid BIGINT, gid BIGINT, euid BIGINT, egid BIGINT, suid BIGINT, sgid BIGINT, on_disk INTEGER, wired_size BIGINT, resident_size BIGINT, phys_footprint BIGINT, user_time BIGINT, system_time BIGINT, start_time BIGINT, parent BIGINT, pgroup BIGINT, nice INTEGER);
+CREATE TABLE process_memory_map(`pid` INTEGER, `start` TEXT, `end` TEXT, `permissions` TEXT, `offset` BIGINT, `device` TEXT, `inode` INTEGER, `path` TEXT, `pseudo` INTEGER, PRIMARY KEY (`pid`)) WITHOUT ROWID;
+CREATE TABLE process_open_files(`pid` BIGINT, `fd` BIGINT, `path` TEXT, PRIMARY KEY (`pid`)) WITHOUT ROWID;
+CREATE TABLE process_open_sockets(`pid` INTEGER, `fd` BIGINT, `socket` BIGINT, `family` INTEGER, `protocol` INTEGER, `local_address` TEXT, `remote_address` TEXT, `local_port` INTEGER, `remote_port` INTEGER, `path` TEXT, `state` TEXT, `net_namespace` TEXT HIDDEN, PRIMARY KEY (`pid`, `fd`, `socket`, `family`, `protocol`, `local_address`, `remote_address`, `local_port`, `remote_port`, `path`, `state`, `net_namespace`)) WITHOUT ROWID;
+CREATE TABLE processes(`pid` BIGINT, `name` TEXT, `path` TEXT, `cmdline` TEXT, `state` TEXT, `cwd` TEXT, `root` TEXT, `uid` BIGINT, `gid` BIGINT, `euid` BIGINT, `egid` BIGINT, `suid` BIGINT, `sgid` BIGINT, `on_disk` INTEGER, `wired_size` BIGINT, `resident_size` BIGINT, `total_size` BIGINT, `user_time` BIGINT, `system_time` BIGINT, `disk_bytes_read` BIGINT, `disk_bytes_written` BIGINT, `start_time` BIGINT, `parent` BIGINT, `pgroup` BIGINT, `threads` INTEGER, `nice` INTEGER, `elevated_token` INTEGER HIDDEN, `secure_process` INTEGER HIDDEN, `protection_type` TEXT HIDDEN, `virtual_process` INTEGER HIDDEN, `elapsed_time` BIGINT HIDDEN, `handle_count` BIGINT HIDDEN, `percent_processor_time` BIGINT HIDDEN, `upid` BIGINT, `uppid` BIGINT, `cpu_type` INTEGER, `cpu_subtype` INTEGER, `translated` INTEGER, `cgroup_path` TEXT HIDDEN, PRIMARY KEY (`pid`)) WITHOUT ROWID;
 ```
 
 This [complete schema](https://osquery.io/schema/) for all supported platforms is available on the homepage. To see schema in your shell for tables foreign to your OS, like kernel modules on macOS, use the `--enable_foreign` [command line flag](../installation/cli-flags.md).
@@ -52,14 +54,14 @@ This [complete schema](https://osquery.io/schema/) for all supported platforms i
 On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 
 ```text
-osquery> SELECT pid, name, path FROM processes LIMIT 1;
+osquery> SELECT pid, name, path WHERE pid>0 FROM processes LIMIT 1;
 +-----+---------+---------------+
 | pid | name    | path          |
 +-----+---------+---------------+
 | 1   | launchd | /sbin/launchd |
 +-----+---------+---------------+
 osquery> .mode line
-osquery> SELECT pid, name, path FROM processes LIMIT 1;
+osquery> SELECT pid, name, path WHERE pid>0 FROM processes LIMIT 1;
   pid = 1
  name = launchd
  path = /sbin/launchd
@@ -132,9 +134,9 @@ We can expand upon this later using subqueries and more tables.
 
 ### Tables with arguments
 
-Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`: you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged by a *dropper icon* in the [schema documentation](https://osquery.io/schema/) as requiring a column or as using a column to generate additional information.
+Several tables, `file` for example, require arguments to be queried. Consider `SELECT * FROM file`: you would not want this to trigger a complete walk of the mounted file systems. The query must be constrained with some sort of argument or input parameter. Tables like this are indicated by a *pushpin icon* in the [schema documentation](https://osquery.io/schema/) next to the columns that act as arguments to constrain a query.
 
-Let's exercise the `file` table:
+As an example of this concept, let's exercise the `file` table:
 
 ```
 osquery> .mode line
@@ -487,7 +489,7 @@ There are also encoding functions available, to process query results.
 
     </p>
     </details>
-- `conditional_to_base64`: Encode a string if and only if the string contains non-ASCII characters.
+- `conditional_to_base64`: Encode a string if and only if the string contains non-printable ASCII characters. (Specifically, it considers `0x20` through `0x7e` printable)
     <details>
     <summary>Conditional Base64 encode example:</summary>
     <p>
@@ -500,8 +502,8 @@ There are also encoding functions available, to process query results.
       osquery> select conditional_to_base64(device_id) as device_id from cpu_info;
       device_id = CPU0
 
-      osquery> select conditional_to_base64(device_id + char(183)) as device_id from cpu_info;
-      device_id = 0
+      osquery> select conditional_to_base64(device_id || char(183)) as device_id from cpu_info;
+      device_id = Q1BVMMK3
 
     </p>
     </details>

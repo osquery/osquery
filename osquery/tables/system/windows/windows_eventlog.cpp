@@ -25,6 +25,8 @@
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
+#include <osquery/utils/scope_guard.h>
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -89,6 +91,13 @@ void renderQueryResults(QueryContext& context,
   uint32_t numEventsBlock = 1024;
   uint32_t position = 0;
   std::vector<EVT_HANDLE> events(numEventsBlock);
+
+  auto close_events = osquery::scope_guard::create([&]() {
+    for (auto& evt : events) {
+      EvtClose(evt);
+      evt = nullptr;
+    }
+  });
 
   // The batch size should be more than 32. It is not documented
   // but `EvtNext` should not fail (RPC_S_INVALID_BOUND error)

@@ -1,6 +1,6 @@
 table_name("alf_explicit_auths")
-description("ALF services explicitly allowed to perform networking.")
+description("ALF services explicitly allowed to perform networking. Not supported on macOS 15+ (returns no results).")
 schema([
-    Column("process", TEXT, "Process name explicitly allowed"),
+    Column("process", TEXT, "Process name that is explicitly allowed"),
 ])
 implementation("firewall@genALFExplicitAuths")

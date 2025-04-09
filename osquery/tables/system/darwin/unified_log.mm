@@ -260,14 +260,20 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
       if (isSequential) {
         latest_timestamp = sc.timestamp;
       }
+
+      bool using_greather_than_constraint = false;
+
       for (const auto& constraint :
            queryContext.constraints["timestamp"].getAll(GREATER_THAN)) {
         double provided_timestamp =
             [[NSString stringWithUTF8String:constraint.c_str()] doubleValue];
+
         if (provided_timestamp > latest_timestamp) {
           latest_timestamp = provided_timestamp;
+          using_greather_than_constraint = true;
         }
       }
+
       for (const auto& constraint :
            queryContext.constraints["timestamp"].getAll(
                GREATER_THAN_OR_EQUALS)) {
@@ -275,11 +281,23 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
             [[NSString stringWithUTF8String:constraint.c_str()] doubleValue];
         if (provided_timestamp > latest_timestamp) {
           latest_timestamp = provided_timestamp;
+          using_greather_than_constraint = false;
         }
       }
+
       if (latest_timestamp > -1) {
+        /* We are summing 1 because with a > integer constraint we want entries
+          with a time that's at least one second after the constraint value we
+          passed, but the log entries have a higher precision, so the underlying
+          library will also return entries few milliseconds after. If we don't
+          do this then these will count towards the max_rows limit but end up
+          being filtered out by sqlite */
+        double search_timestamp = using_greather_than_constraint
+                                      ? latest_timestamp + 1
+                                      : latest_timestamp;
+
         NSDate* provided_date =
-            [NSDate dateWithTimeIntervalSince1970:latest_timestamp];
+            [NSDate dateWithTimeIntervalSince1970:search_timestamp];
         position = [logstore positionWithDate:provided_date];
       }
 
@@ -348,7 +366,8 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
       int skip_counter = 0;
       bool first = isSequential;
-      for (OSLogEntryLog* entry in enumerator) {
+      OSLogEntryLog* entry;
+      while (entry = [enumerator nextObject]) {
         if (first) {
           // Skips the log entries that have been already extracted
           double load_date = [[entry date] timeIntervalSince1970];
@@ -362,7 +381,9 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
         // Escape if the rows number reached the limit
         if (++rows_counter > max_rows)
-          break;
+          // Free OSLogEnumerator by enumerating all remaining objects before
+          // escaping
+          continue;
 
         if (isSequential) {
           // Save timestamp and count
@@ -377,7 +398,9 @@ QueryData genUnifiedLog(QueryContext& queryContext) {
 
         Row r;
 
-        r["timestamp"] = BIGINT([[entry date] timeIntervalSince1970]);
+        double entry_timestamp = [[entry date] timeIntervalSince1970];
+        r["timestamp"] = BIGINT(static_cast<std::uint32_t>(entry_timestamp));
+        r["timestamp_double"] = SQL_TEXT(entry_timestamp);
         r["message"] = SQL_TEXT(
             std::string([[entry composedMessage] UTF8String],
                         [[entry composedMessage]

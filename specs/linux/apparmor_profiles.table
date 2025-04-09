@@ -6,6 +6,7 @@ schema([
     Column("attach", TEXT, "Which executable(s) a profile will attach to."),
     Column("mode", TEXT, "How the policy is applied."),
     Column("sha1", TEXT, "A unique hash that identifies this policy."),
+    Column("sha256", TEXT, "A unique hash that identifies this policy."),
 ])
 implementation("system/apparmor_profiles@genAppArmorProfiles")
 examples([

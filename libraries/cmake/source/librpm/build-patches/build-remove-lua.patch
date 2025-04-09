@@ -1,0 +1,209 @@
+diff --git a/Makefile.am b/Makefile.am
+index e81f9f7d8..47e672c0e 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -26,7 +26,7 @@ EXTRA_DIST = ChangeLog CREDITS INSTALL \
+ BUILT_SOURCES =
+ 
+ SUBDIRS = po misc
+-SUBDIRS += rpmio lib sign build scripts fileattrs docs .
++SUBDIRS += rpmio lib sign build scripts fileattrs .
+ 
+ if ENABLE_PYTHON
+ SUBDIRS += python
+@@ -95,14 +95,8 @@ pkginclude_HEADERS += include/rpm/rpmsign.h
+ 
+ pkginclude_HEADERS += include/rpm/rpmbuild.h
+ pkginclude_HEADERS += include/rpm/rpmfc.h
+-pkginclude_HEADERS += include/rpm/rpmspec.h
+ 
+ 
+-bin_PROGRAMS =		rpm rpm2cpio rpmbuild rpmdb rpmkeys rpmsign rpmspec
+-if WITH_ARCHIVE
+-bin_PROGRAMS += 	rpm2archive 
+-endif
+-
+ rpmlibexec_PROGRAMS =
+ rpmconfig_SCRIPTS =	mkinstalldirs
+ 
+@@ -112,59 +106,6 @@ libcliutils_la_CPPFLAGS =	$(AM_CPPFLAGS)
+ libcliutils_la_LIBADD = 	lib/librpm.la rpmio/librpmio.la
+ libcliutils_la_LIBADD +=	@WITH_POPT_LIB@
+ 
+-rpm_SOURCES =		rpm.c debug.h system.h
+-rpm_CPPFLAGS =		$(AM_CPPFLAGS)
+-rpm_LDADD =		libcliutils.la
+-rpm_LDADD +=		lib/librpm.la rpmio/librpmio.la
+-rpm_LDADD +=		@WITH_POPT_LIB@
+-
+-rpmdb_SOURCES =		rpmdb.c debug.h system.h
+-rpmdb_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmdb_LDADD =		libcliutils.la
+-rpmdb_LDADD +=		lib/librpm.la rpmio/librpmio.la
+-rpmdb_LDADD +=		@WITH_POPT_LIB@
+-
+-rpmkeys_SOURCES =	rpmkeys.c debug.h system.h
+-rpmkeys_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmkeys_LDADD =		libcliutils.la
+-rpmkeys_LDADD +=	lib/librpm.la rpmio/librpmio.la
+-rpmkeys_LDADD +=	@WITH_POPT_LIB@
+-
+-rpmsign_SOURCES =	rpmsign.c debug.h system.h
+-rpmsign_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmsign_LDADD =		libcliutils.la
+-rpmsign_LDADD +=	sign/librpmsign.la lib/librpm.la rpmio/librpmio.la
+-rpmsign_LDADD +=	@WITH_POPT_LIB@
+-
+-rpmbuild_SOURCES =	rpmbuild.c debug.h system.h
+-rpmbuild_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmbuild_LDADD =	libcliutils.la
+-rpmbuild_LDADD +=	build/librpmbuild.la lib/librpm.la rpmio/librpmio.la
+-rpmbuild_LDADD += 	@WITH_POPT_LIB@
+-
+-rpmspec_SOURCES =	rpmspec.c debug.h system.h
+-rpmspec_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmspec_CPPFLAGS +=	@READLINE_CFLAGS@
+-rpmspec_LDADD =		libcliutils.la
+-rpmspec_LDADD +=	build/librpmbuild.la lib/librpm.la rpmio/librpmio.la
+-rpmspec_LDADD +=	@WITH_POPT_LIB@ @READLINE_LIBS@
+-
+-rpm2cpio_SOURCES =	rpm2cpio.c debug.h system.h
+-rpm2cpio_LDADD =	lib/librpm.la rpmio/librpmio.la
+-rpm2cpio_LDADD +=	@WITH_POPT_LIB@
+-
+-rpm2archive_SOURCES =	rpm2archive.c debug.h system.h
+-rpm2archive_LDADD =	lib/librpm.la rpmio/librpmio.la
+-rpm2archive_LDADD +=	@WITH_POPT_LIB@ @WITH_ARCHIVE_LIB@
+-
+-bin_PROGRAMS +=		rpmlua
+-rpmlua_CPPFLAGS =	$(AM_CPPFLAGS)
+-rpmlua_CPPFLAGS +=	@READLINE_CFLAGS@
+-rpmlua_SOURCES =	tools/rpmlua.c debug.h system.h
+-rpmlua_LDADD =		lib/librpm.la rpmio/librpmio.la
+-rpmlua_LDADD +=		@WITH_POPT_LIB@
+-rpmlua_LDADD += 	@READLINE_LIBS@
+-
+ if LIBELF
+ rpmlibexec_PROGRAMS +=	elfdeps
+ elfdeps_SOURCES =	tools/elfdeps.c
+@@ -180,10 +121,6 @@ rpmlibexec_PROGRAMS +=	rpmuncompress
+ rpmuncompress_SOURCES =	tools/rpmuncompress.c
+ rpmuncompress_LDADD =	lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
+ 
+-bin_PROGRAMS +=		rpmgraph
+-rpmgraph_SOURCES =	tools/rpmgraph.c
+-rpmgraph_LDADD =	lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
+-
+ dist_bin_SCRIPTS =	scripts/gendiff
+ 
+ rpmconfig_DATA = rpmrc
+diff --git a/build/Makefile.am b/build/Makefile.am
+index d9e4f45b5..167d4e2a2 100644
+--- a/build/Makefile.am
++++ b/build/Makefile.am
+@@ -7,7 +7,6 @@ AM_CFLAGS += @OPENMP_CFLAGS@
+ AM_CPPFLAGS =  -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/include/
+ AM_CPPFLAGS += @WITH_MAGIC_INCLUDE@
+ AM_CPPFLAGS += @WITH_POPT_INCLUDE@
+-AM_CPPFLAGS += @LUA_CFLAGS@
+ AM_CPPFLAGS += -I$(top_srcdir)/misc
+ 
+ usrlibdir = $(libdir)
+@@ -15,11 +14,10 @@ usrlib_LTLIBRARIES = librpmbuild.la
+ librpmbuild_la_SOURCES = \
+ 	build.c files.c misc.c pack.c \
+ 	parseSimpleScript.c parseChangelog.c parseDescription.c \
+-	parseFiles.c parsePreamble.c parsePrep.c parseReqs.c parseScript.c \
++	parseFiles.c parsePreamble.c parsePrep.c parseReqs.c \
+ 	parseSpec.c parseList.c reqprov.c rpmfc.c spec.c \
+ 	parsePolicies.c policies.c \
+-	rpmbuild_internal.h rpmbuild_misc.h \
+-	speclua.c
++	rpmbuild_internal.h rpmbuild_misc.h
+ 
+ librpmbuild_la_LDFLAGS = -version-info $(rpm_version_info)
+ librpmbuild_la_LIBADD = \
+@@ -27,7 +25,6 @@ librpmbuild_la_LIBADD = \
+ 	$(top_builddir)/rpmio/librpmio.la \
+ 	$(top_builddir)/misc/libmisc.la \
+ 	@LTLIBICONV@ \
+-	@LUA_LIBS@ \
+ 	@WITH_POPT_LIB@ \
+ 	@WITH_MAGIC_LIB@
+ 
+diff --git a/configure.ac b/configure.ac
+index 340cff070..7fbcb874d 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -782,13 +782,6 @@ AS_IF([test "$with_acl" = yes],[
+ AC_SUBST(WITH_ACL_LIB)
+ AM_CONDITIONAL(ACL,[test "$with_acl" = yes])
+ 
+-PKG_CHECK_MODULES([LUA],
+-    [lua >= 5.2],
+-    [],
+-    [AC_MSG_ERROR([lua not present or too old)])])
+-AC_SUBST(LUA_CFLAGS)
+-AC_SUBST(LUA_LIBS)
+-
+ AC_ARG_WITH([readline],[AS_HELP_STRING([--with-readline=@<:@yes/no/auto@:>@], [build with readline support])], [with_readline="$withval"], [with_readline="auto"])
+ AS_IF([test "$with_readline" != "no"],[
+   PKG_CHECK_MODULES([READLINE], [readline], [have_readline=yes], [have_readline=no])
+diff --git a/lib/Makefile.am b/lib/Makefile.am
+index 5a953597f..848001230 100644
+--- a/lib/Makefile.am
++++ b/lib/Makefile.am
+@@ -5,7 +5,6 @@ AM_CFLAGS = @RPMCFLAGS@
+ 
+ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/include
+ AM_CPPFLAGS += @WITH_POPT_INCLUDE@
+-AM_CPPFLAGS += @LUA_CFLAGS@
+ AM_CPPFLAGS += -I$(top_srcdir)/misc
+ AM_CPPFLAGS += -DLOCALEDIR="\"$(localedir)\""
+ AM_CPPFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\""
+@@ -37,7 +36,6 @@ librpm_la_SOURCES = \
+ 	rpmte.c rpmte_internal.h rpmts.c rpmfs.h rpmfs.c \
+ 	signature.c signature.h transaction.c \
+ 	verify.c rpmlock.c rpmlock.h misc.h relocation.c \
+-	rpmscript.h rpmscript.c \
+ 	rpmchroot.c rpmchroot.h \
+ 	rpmplugins.c rpmplugins.h rpmplugin.h rpmug.c rpmug.h \
+ 	rpmtriggers.h rpmtriggers.c rpmvs.c rpmvs.h
+@@ -49,7 +47,6 @@ librpm_la_LIBADD = \
+ 	@WITH_POPT_LIB@ \
+ 	@WITH_CAP_LIB@ \
+ 	@WITH_ACL_LIB@ \
+-	@LUA_LIBS@ \
+ 	@LIBINTL@
+ 
+ if BDB_RO
+diff --git a/rpmio/Makefile.am b/rpmio/Makefile.am
+index e302f3209..55c349270 100644
+--- a/rpmio/Makefile.am
++++ b/rpmio/Makefile.am
+@@ -11,7 +11,6 @@ AM_CPPFLAGS += @WITH_LIBGCRYPT_INCLUDE@
+ AM_CPPFLAGS += @WITH_RPM_SEQUOIA_INCLUDE@
+ AM_CPPFLAGS += @WITH_POPT_INCLUDE@
+ AM_CPPFLAGS += $(ZSTD_CFLAGS)
+-AM_CPPFLAGS += @LUA_CFLAGS@
+ AM_CPPFLAGS += -I$(top_srcdir)/misc
+ AM_CPPFLAGS += -DRPMCONFIGDIR="\"@RPMCONFIGDIR@\""
+ AM_CPPFLAGS += -DLOCALSTATEDIR="\"$(localstatedir)\""
+@@ -24,8 +23,7 @@ librpmio_la_SOURCES = \
+ 	rpmpgp.c rpmpgpval.h rpmsq.c rpmsw.c url.c \
+ 	rpmio_internal.h rpmhook.h rpmvercmp.c rpmver.c \
+ 	rpmstring.c rpmfileutil.c rpmglob.c \
+-	rpmkeyring.c rpmstrpool.c rpmmacro_internal.h \
+-	rpmlua.c rpmlua.h lposix.c lposix.h
++	rpmkeyring.c rpmstrpool.c rpmmacro_internal.h
+ 
+ if WITH_OPENSSL
+ librpmio_la_SOURCES += digest_openssl.c rpmpgp_internal.c rpmpgp_internal.h
+@@ -49,7 +47,6 @@ librpmio_la_LIBADD = \
+ 	@WITH_ZLIB_LIB@ \
+ 	@WITH_POPT_LIB@ \
+ 	@WITH_LZMA_LIB@ \
+-	@LUA_LIBS@ \
+ 	$(ZSTD_LIBS) \
+ 	-lpthread
+ 

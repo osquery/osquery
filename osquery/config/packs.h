@@ -10,8 +10,8 @@
 #pragma once
 
 #include <atomic>
-#include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <gtest/gtest_prod.h>
@@ -79,10 +79,10 @@ class Pack : private boost::noncopyable {
   }
 
   /// Returns the schedule dictated by the pack
-  const std::map<std::string, ScheduledQuery>& getSchedule() const;
+  const std::vector<ScheduledQuery>& getSchedule() const;
 
   /// Returns the schedule dictated by the pack
-  std::map<std::string, ScheduledQuery>& getSchedule();
+  std::vector<ScheduledQuery>& getSchedule();
 
   /// Verify that the platform is compatible
   bool checkPlatform() const;
@@ -113,8 +113,11 @@ class Pack : private boost::noncopyable {
   /// List of query strings.
   std::vector<std::string> discovery_queries_;
 
-  /// Map of query names to the scheduled query details.
-  std::map<std::string, ScheduledQuery> schedule_;
+  /// Set of scheduled queries by name.
+  std::unordered_set<std::string> schedule_queries_;
+
+  /// Array of scheduled query details.
+  std::vector<ScheduledQuery> schedule_;
 
   /// Platform requirement for pack.
   std::string platform_;

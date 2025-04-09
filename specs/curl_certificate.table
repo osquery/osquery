@@ -1,7 +1,7 @@
 table_name("curl_certificate")
 description("Inspect TLS certificates by connecting to input hostnames.")
 schema([
-    Column("hostname", TEXT, "Hostname to CURL (domain[:port], e.g. osquery.io)", required=True),
+    Column("hostname", TEXT, "Hostname to CURL (domain[:port], e.g. osquery.io)", required=True, optimized=True),
     Column("common_name", TEXT, "Common name of company issued to"),
     Column("organization", TEXT, "Organization issued to"),
     Column("organization_unit", TEXT, "Organization unit issued to"),

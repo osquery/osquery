@@ -27,14 +27,25 @@ class ATCPlugin : public TablePlugin {
   TableColumns columns() const override {
     return tc_columns_;
   }
+  TableAttributes table_attributes_;
 
  public:
   ATCPlugin(const std::string& path,
             const TableColumns& tc_columns,
             const std::string& sqlite_query)
-      : tc_columns_(tc_columns), sqlite_query_(sqlite_query), path_(path) {}
+      : tc_columns_(tc_columns),
+        sqlite_query_(sqlite_query),
+        path_(path),
+        table_attributes_(TableAttributes::PENDING) {}
 
   TableRows generate(QueryContext& context) override;
+
+  // setActive indicates the ATCPlugin table is no longer in a pending state
+  // and is ready to be queried. The pending state is used to avoid race
+  // conditions that lead to attaching the table twice if the SQL database is
+  // (re)initialized in between registering the table and attaching it in SQL.
+  void setActive();
+  TableAttributes attributes() const override;
 };
 
 /**

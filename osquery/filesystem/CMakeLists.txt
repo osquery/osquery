@@ -124,6 +124,7 @@ function(generateOsqueryFilesystemTest)
   if(DEFINED PLATFORM_POSIX)
     list(APPEND source_files
       tests/posix/xattrs.cpp
+      tests/posix/filesystem_tests.cpp
     )
   endif()
 
@@ -137,6 +138,12 @@ function(generateOsqueryFilesystemTest)
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       tests/linux/proc_tests.cpp
+    )
+  endif()
+
+  if (DEFINED PLATFORM_WINDOWS)
+    list(APPEND source_files
+      tests/windows/filesystem_tests.cpp
     )
   endif()
 

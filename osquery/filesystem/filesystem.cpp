@@ -33,11 +33,9 @@
 #if WIN32
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/system/system.h>
 
-#include <osquery/utils/json/json.h>
-
-namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
@@ -48,7 +46,27 @@ FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
 /// See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
 
-static const size_t kMaxRecursiveGlobs = 64;
+namespace {
+const size_t kMaxRecursiveGlobs = 64;
+
+constexpr std::size_t kBlockSize = 16384;
+
+Status checkFileReadLimit(std::size_t file_size,
+                          const fs::path& path,
+                          bool shouldLog) {
+  if (file_size > FLAGS_read_max) {
+    auto error_message = "Cannot read " + path.string() +
+                         " size exceeds limit: " + std::to_string(file_size) +
+                         " > " + std::to_string(FLAGS_read_max);
+    if (shouldLog) {
+      LOG(WARNING) << error_message;
+    }
+    return Status::failure(error_message);
+  }
+
+  return Status::success();
+}
+} // namespace
 
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
@@ -80,24 +98,6 @@ Status writeTextFile(const fs::path& path,
   return Status::success();
 }
 
-struct OpenReadableFile : private boost::noncopyable {
- public:
-  explicit OpenReadableFile(const fs::path& path, bool blocking = false)
-      : blocking_io(blocking) {
-    int mode = PF_OPEN_EXISTING | PF_READ;
-    if (!blocking) {
-      mode |= PF_NONBLOCK;
-    }
-
-    // Open the file descriptor and allow caller to perform error checking.
-    fd = std::make_unique<PlatformFile>(path, mode);
-  }
-
- public:
-  std::unique_ptr<PlatformFile> fd{nullptr};
-  bool blocking_io;
-};
-
 void initializeFilesystemAPILocale() {
 #if defined(WIN32)
   setlocale(LC_ALL, ".UTF-8");
@@ -108,111 +108,135 @@ void initializeFilesystemAPILocale() {
 }
 
 Status readFile(const fs::path& path,
-                size_t size,
-                size_t block_size,
-                bool dry_run,
-                std::function<void(std::string& buffer, size_t size)> predicate,
-                bool blocking,
-                bool log) {
-  OpenReadableFile handle(path, blocking);
+                std::function<void(std::string_view)> predicate,
+                bool shouldLog) {
+  PlatformFile file_handle(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
 
-  if (handle.fd == nullptr || !handle.fd->isValid()) {
-    return Status::failure("Cannot open file for reading: " + path.string());
+  if (!file_handle.isValid()) {
+    return Status::failure("Cannot open file for reading: " +
+                           file_handle.getFilePath().string());
   }
 
-  off_t file_size = static_cast<off_t>(handle.fd->size());
+  const std::uint64_t file_size = file_handle.size();
 
-  if (size > 0 &&
-      (handle.fd->isSpecialFile() || static_cast<off_t>(size) < file_size)) {
-    file_size = static_cast<off_t>(size);
+  // Fail to read if the file is bigger than the configured limit.
+  auto status = checkFileReadLimit(file_size, path, shouldLog);
+  if (!status.ok()) {
+    return status;
   }
 
-  // Apply the max byte-read based on file/link target ownership.
-  auto read_max = static_cast<off_t>(FLAGS_read_max);
-  if (file_size > read_max) {
-    if (!dry_run) {
-      auto s =
-          Status::failure("Cannot read " + path.string() +
-                          " size exceeds limit: " + std::to_string(file_size) +
-                          " > " + std::to_string(read_max));
-      if (log) {
-        LOG(WARNING) << s.getMessage();
-      }
-      return s;
+  const bool isSpecialFile = file_handle.isSpecialFile();
+
+  /* If the file is a regular file on disk and has no data,
+     do not attempt to read */
+  if (!isSpecialFile && file_size == 0) {
+    return Status::success();
+  }
+
+  ssize_t res = 0;
+  std::size_t total_bytes = 0;
+  char buffer[kBlockSize];
+
+  do {
+    res = file_handle.read(buffer, kBlockSize);
+
+    // EOF
+    if (res == 0) {
+      break;
     }
-    return Status::failure("File exceeds read limits");
-  }
 
-  if (dry_run) {
-    // The caller is only interested in performing file read checks.
-    boost::system::error_code ec;
-    try {
-      return Status(0, fs::canonical(path, ec).string());
-    } catch (const boost::filesystem::filesystem_error& err) {
-      return Status::failure(err.what());
+    if (res > 0) {
+      total_bytes += res;
+      status = checkFileReadLimit(total_bytes, path, shouldLog);
+
+      if (!status.ok()) {
+        return status;
+      }
+
+      predicate({buffer, static_cast<std::size_t>(res)});
     }
-  }
+  } while (res > 0 || (!isSpecialFile && file_handle.hasPendingIo()));
 
-  off_t total_bytes = 0;
-  if (handle.blocking_io || handle.fd->isSpecialFile()) {
-    // Reset block size to a sane minimum.
-    block_size = (block_size < 4096) ? 4096 : block_size;
-    ssize_t part_bytes = 0;
-    bool overflow = false;
-    do {
-      std::string part(block_size, '\0');
-      part_bytes = handle.fd->read(&part[0], block_size);
-      if (part_bytes > 0) {
-        total_bytes += static_cast<off_t>(part_bytes);
-        if (total_bytes >= read_max) {
-          return Status::failure("File exceeds read limits");
-        }
-        if (file_size > 0 && total_bytes > file_size) {
-          overflow = true;
-          part_bytes -= (total_bytes - file_size);
-        }
-        predicate(part, part_bytes);
-      }
-    } while (part_bytes > 0 && !overflow);
-  } else {
-    std::string content(file_size, '\0');
-    do {
-      auto part_bytes =
-          handle.fd->read(&content[total_bytes], file_size - total_bytes);
-      if (part_bytes > 0) {
-        total_bytes += static_cast<off_t>(part_bytes);
-      }
-    } while (handle.fd->hasPendingIo());
-    predicate(content, file_size);
+  if (res < 0) {
+    return Status::failure("Failed to read " + path.string());
   }
 
   return Status::success();
-} // namespace osquery
-
-Status readFile(const fs::path& path,
-                std::string& content,
-                size_t size,
-                bool dry_run,
-                bool blocking,
-                bool log) {
-  return readFile(path,
-                  size,
-                  4096,
-                  dry_run,
-                  ([&content](std::string& buffer, size_t _size) {
-                    if (buffer.size() == _size) {
-                      content += std::move(buffer);
-                    } else {
-                      content += buffer.substr(0, _size);
-                    }
-                  }),
-                  blocking,
-                  log);
 }
 
-Status readFile(const fs::path& path, bool blocking) {
-  std::string blank;
-  return readFile(path, blank, 0, true, false, blocking);
+Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
+  PlatformFile file_handle(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+
+  if (!file_handle.isValid()) {
+    return Status::failure("Cannot open file for reading: " +
+                           file_handle.getFilePath().string());
+  }
+
+  const std::uint64_t file_size = file_handle.size();
+
+  // Fail to read if the file is bigger than the configured limit
+  auto status = checkFileReadLimit(file_size, path, shouldLog);
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  const bool isSpecialFile = file_handle.isSpecialFile();
+
+  /* If the file is a regular file on disk and has no data,
+   do not attempt to read */
+  if (!isSpecialFile && file_size == 0) {
+    return Status::success();
+  }
+
+  /* We read in blocks only if we don't know the file size;
+     otherwise use the file size for efficiency */
+  std::size_t read_size = 0;
+  if (file_size > 0) {
+    read_size = file_size;
+    content.resize(file_size);
+  } else {
+    read_size = kBlockSize;
+    content.resize(kBlockSize);
+  }
+
+  std::size_t offset = 0;
+  ssize_t res = 0;
+
+  do {
+    res = file_handle.read(&content[offset], read_size);
+
+    // EOF
+    if (res == 0) {
+      break;
+    }
+
+    if (res > 0) {
+      offset += res;
+      auto status = checkFileReadLimit(offset, path, shouldLog);
+
+      if (!status.ok()) {
+        content.clear();
+        return status;
+      }
+
+      if (file_size > 0) {
+        read_size = file_size - offset;
+      } else {
+        content.resize(content.size() + kBlockSize);
+      }
+    }
+  } while (read_size > 0 &&
+           (res > 0 || (!isSpecialFile && file_handle.hasPendingIo())));
+
+  if (res < 0) {
+    content.clear();
+    return Status::failure("Failed to read " + path.string());
+  }
+
+  content.resize(offset);
+
+  return Status::success();
 }
 
 Status isWritable(const fs::path& path, bool effective) {
@@ -431,24 +455,60 @@ Status listFilesInDirectory(const fs::path& path,
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  if (path.empty() || !pathExists(path)) {
+  // We don't really need the error, but by passing it into
+  // recursive_directory_iterator we invoked the non-throw version.
+  boost::system::error_code ignored_ec;
+
+  if (path.empty() || !pathExists(path) ||
+      !fs::is_directory(path, ignored_ec)) {
     return Status(1, "Target directory is invalid");
   }
 
   if (recursive) {
-    for (const auto& entry : fs::recursive_directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
-        results.push_back(entry.path().string());
+    for (fs::recursive_directory_iterator entry(
+             path, fs::directory_options::skip_permission_denied, ignored_ec),
+         end;
+         entry != end;
+         entry.increment(ignored_ec)) {
+      // Exclude symlinks that do not point at directories
+      if (fs::is_symlink(entry->path(), ignored_ec)) {
+        boost::system::error_code ec;
+        auto canonical = fs::canonical(entry->path(), ec);
+        if (ec.value() != errc::success) {
+          // The symlink is broken or points to a non-existent file.
+          continue;
+        }
+        auto is_dir = fs::is_directory(canonical, ec);
+        if (ec.value() != errc::success || !is_dir) {
+          // The symlink is not a directory.
+          continue;
+        }
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path(), ignored_ec)) {
+        results.push_back(entry->path().string());
       }
     }
   } else {
-    for (const auto& entry : fs::directory_iterator(path)) {
-      if (fs::is_symlink(entry)) {
-        results.push_back(entry.path().string());
-      } else if (fs::is_directory(entry)) {
-        results.push_back(entry.path().string());
+    for (fs::directory_iterator entry(
+             path, fs::directory_options::skip_permission_denied, ignored_ec),
+         end;
+         entry != end;
+         entry.increment(ignored_ec)) {
+      if (fs::is_symlink(entry->path(), ignored_ec)) {
+        boost::system::error_code ec;
+        auto canonical = fs::canonical(entry->path(), ec);
+        if (ec.value() != errc::success) {
+          // The symlink is broken or points to a non-existent file.
+          continue;
+        }
+        auto is_dir = fs::is_directory(canonical, ec);
+        if (ec.value() != errc::success || !is_dir) {
+          // The symlink is not a directory.
+          continue;
+        }
+        results.push_back(entry->path().string());
+      } else if (fs::is_directory(entry->path(), ignored_ec)) {
+        results.push_back(entry->path().string());
       }
     }
   }
@@ -463,8 +523,8 @@ Status isDirectory(const fs::path& path) {
   }
 
   // The success error code is returned for as a failure (undefined error)
-  // We need to flip that into an error, a success would have falling through
-  // in the above conditional.
+  // We need to flip that into an error, a success would have falling
+  // through in the above conditional.
   if (ec.value() == errc::success) {
     return Status(1, "Path is not a directory: " + path.string());
   }
@@ -526,8 +586,8 @@ bool safePermissions(const fs::path& dir,
 
   Status result = platformIsTmpDir(dir);
   if (!result.ok() && result.getCode() < 0) {
-    // An error has occurred in stat() on dir, most likely because the file path
-    // does not exist
+    // An error has occurred in stat() on dir, most likely because the file
+    // path does not exist
     return false;
   } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.

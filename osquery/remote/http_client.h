@@ -29,7 +29,7 @@
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
 // clang-format on

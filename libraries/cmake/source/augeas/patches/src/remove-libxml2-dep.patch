@@ -1,0 +1,32 @@
+diff --git a/src/augeas.h b/src/augeas.h
+index 228a67ac..abc1b663 100644
+--- a/src/augeas.h
++++ b/src/augeas.h
+@@ -21,7 +21,6 @@
+  */
+ 
+ #include <stdio.h>
+-#include <libxml/tree.h>
+ 
+ #ifndef AUGEAS_H_
+ #define AUGEAS_H_
+@@ -412,19 +411,6 @@ int aug_print(const augeas *aug, FILE *out, const char *path);
+  */
+ int aug_source(const augeas *aug, const char *path, char **file_path);
+ 
+-/* Function: aug_to_xml
+- *
+- * Turn the Augeas tree(s) matching PATH into an XML tree XMLDOC. The
+- * parameter FLAGS is currently unused and must be set to 0.
+- *
+- * Returns:
+- * 0 on success, or a negative value on failure
+- *
+- * In case of failure, *xmldoc is set to NULL
+- */
+-int aug_to_xml(const augeas *aug, const char *path, xmlNode **xmldoc,
+-               unsigned int flags);
+-
+ /*
+  * Function: aug_transform
+  *

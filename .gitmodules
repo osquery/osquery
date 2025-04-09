@@ -10,15 +10,12 @@
 [submodule "libraries/cmake/source/libudev/src"]
 	path = libraries/cmake/source/libudev/src
 	url = https://github.com/systemd/systemd
-[submodule "libraries/cmake/source/libxml2/src"]
-	path = libraries/cmake/source/libxml2/src
-	url = https://github.com/GNOME/libxml2
 [submodule "libraries/cmake/source/linenoise-ng/src"]
 	path = libraries/cmake/source/linenoise-ng/src
 	url = https://github.com/arangodb/linenoise-ng
 [submodule "libraries/cmake/source/lzma/src"]
 	path = libraries/cmake/source/lzma/src
-	url = https://github.com/tukaani-project/xz.git
+	url = https://github.com/tukaani-project/xz
 [submodule "libraries/cmake/source/rapidjson/src"]
 	path = libraries/cmake/source/rapidjson/src
 	url = https://github.com/Tencent/rapidjson
@@ -36,7 +33,7 @@
 	url = https://github.com/apache/thrift
 [submodule "libraries/cmake/source/util-linux/src"]
 	path = libraries/cmake/source/util-linux/src
-	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux
+	url = https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git
 [submodule "libraries/cmake/source/yara/src"]
 	path = libraries/cmake/source/yara/src
 	url = https://github.com/VirusTotal/yara

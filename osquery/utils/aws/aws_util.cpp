@@ -732,7 +732,7 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   log = output.str();
 
   // Get rid of newline
-  if (!log.empty()) {
+  if (!log.empty() && log.back() == '\n') {
     log.pop_back();
   }
   return Status::success();

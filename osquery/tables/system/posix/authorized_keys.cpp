@@ -26,11 +26,14 @@ namespace tables {
 const std::vector<std::string> kSSHAuthorizedkeys = {".ssh/authorized_keys",
                                                      ".ssh/authorized_keys2"};
 const std::string kKeyRingLabelOptionPrefix = "zos-key-ring-label=";
-const std::vector<std::string> kSSHKeyTypes = {"ssh-rsa",
-                                               "ssh-ed25519",
-                                               "ecdsa-sha2-nistp256",
-                                               "ecdsa-sha2-nistp384",
-                                               "ecdsa-sha2-nistp521"};
+const std::vector<std::string> kSSHKeyTypes = {
+    "ssh-rsa",
+    "ssh-ed25519",
+    "ecdsa-sha2-nistp256",
+    "ecdsa-sha2-nistp384",
+    "ecdsa-sha2-nistp521",
+    "sk-ecdsa-sha2-nistp256@openssh.com",
+    "sk-ssh-ed25519@openssh.com"};
 const std::string kWhitespace{"\t "};
 
 bool KeyRingLabelOptExists(const std::string& line) {
@@ -101,7 +104,7 @@ void genSSHkeysForUser(const std::string& uid,
       continue;
     }
 
-    auto s = readFile(keys_file, keys_content, false, false, false);
+    auto s = readFile(keys_file, keys_content);
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_ERROR, s.getMessage());

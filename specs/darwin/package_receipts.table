@@ -12,7 +12,7 @@ schema([
 ])
 implementation("packages@genPackageReceipts")
 examples([
-    "select * from package_bom where path = '/var/db/receipts/com.apple.pkg.MobileDevice.bom'"
+    "SELECT * FROM package_receipts;"
 ])
 fuzz_paths([
     "/private/var/db/receipts/",

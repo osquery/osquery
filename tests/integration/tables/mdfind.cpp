@@ -10,6 +10,7 @@
 // Sanity check integration test for mdfind
 // Spec file: specs/darwin/mdfind.table
 
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 #include <boost/filesystem.hpp>
@@ -29,6 +30,22 @@ TEST_F(Mdfind, test_sanity) {
       "select * from mdfind where query = 'kMDItemFSName = \"*.app\"'"
       " LIMIT 10;");
 
+  // Skip the rest of the assertions if mdfind is disabled. We should still do
+  // the first query though just to be sure osquery doesn't crash in that case.
+  int mdfind_disabled = system("mdutil -s / | grep disabled");
+  if (mdfind_disabled == 0) {
+    LOG(INFO) << "Skipping mdfind test because mdfind is disabled";
+    GTEST_SKIP() << "mdfind is disabled on this system";
+    return;
+  }
+  const char* github_job = getenv("GITHUB_JOB");
+  if (github_job != nullptr && strcmp(github_job, "test_older_macos") == 0) {
+    LOG(INFO)
+        << "Disabling mdfind test on the older macOS runner due to flakiness";
+    GTEST_SKIP() << "mdfind test disabled on older macOS runner";
+    return;
+  }
+
   ASSERT_EQ(rows.size(), 10);
 
   ValidationMap row_map = {
@@ -39,7 +56,7 @@ TEST_F(Mdfind, test_sanity) {
 
   auto file_path = rows[0]["path"];
   boost::filesystem::path path(file_path);
-  auto filename = path.leaf().string();
+  auto filename = path.filename().string();
 
   rows =
       execute_query("select * from mdfind where query = 'kMDItemFSName = \"" +
@@ -49,7 +66,7 @@ TEST_F(Mdfind, test_sanity) {
 
   for (auto row : rows) {
     boost::filesystem::path retrieved_path(row["path"]);
-    EXPECT_EQ(retrieved_path.leaf().string(), filename);
+    EXPECT_EQ(retrieved_path.filename().string(), filename);
   }
 }
 

@@ -133,8 +133,14 @@ void getProcessProperties(const es_process_t* p,
                           const EndpointSecurityEventContextRef& ec) {
   auto audit_token = p->audit_token;
   ec->pid = audit_token_to_pid(audit_token);
+  ec->pidversion = audit_token_to_pidversion(p->audit_token);
   ec->parent = p->ppid;
+  ec->parent_pidversion = audit_token_to_pidversion(p->parent_audit_token);
   ec->original_parent = p->original_ppid;
+  ec->session_id = p->session_id;
+  ec->responsible_pid = audit_token_to_pid(p->responsible_audit_token);
+  ec->responsible_pidversion =
+      audit_token_to_pidversion(p->responsible_audit_token);
 
   ec->path = getPath(p);
   ec->cwd = getCwdPathFromPid(ec->pid);

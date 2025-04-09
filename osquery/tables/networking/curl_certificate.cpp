@@ -114,14 +114,14 @@ static std::string certificate_extensions(X509* cert, int nid) {
 
   // remove the ending newline from the extension value
   auto length = bio_buf->length;
-  if (bio_buf->data[length - 1] == '\n' || bio_buf->data[length - 1] == '\r') {
-    bio_buf->data[length - 1] = '\0';
+  for (auto i = 0; length > 0 && i < 2; i++) {
+    if (bio_buf->data[length - 1] == '\n' ||
+        bio_buf->data[length - 1] == '\r') {
+      length--;
+    }
   }
 
-  if (bio_buf->data[length] == '\n' || bio_buf->data[length] == '\r') {
-    bio_buf->data[length] = '\0';
-  }
-  auto ident = std::string(bio_buf->data, bio_buf->length);
+  auto ident = std::string(bio_buf->data, length);
 
   // Replace the newline character with the comma
   std::replace(ident.begin(), ident.end(), '\n', ';');

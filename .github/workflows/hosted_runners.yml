@@ -15,13 +15,14 @@
 name: build_x86
 
 on:
-  # Run this workflow once every 6 hours against the master branch
+  # Run this workflow once every day against the master branch
   schedule:
-   - cron: "0 */6 * * *"
+   - cron: "0 7 * * *"
 
   push:
     branches:
       - 'master'
+      - 'main'
 
     tags:
       - '*'
@@ -39,8 +40,8 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: 4caa2c54f0d893c1efa47932571046bbce156c52
-  SUBMODULE_CACHE_VERSION: 2
+  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
+  SUBMODULE_CACHE_VERSION: 3
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -53,24 +54,10 @@ jobs:
     runs-on: ubuntu-20.04
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+      image: osquery/builder20.04:7e9ee0339
+      options: --user 1001
 
     steps:
-
-    # We are using checkout@v1 because the checkout@v2 action downloads
-    # the source code without cloning if the installed git is < v2.18.
-    # Once we update the image we will also be able to select the clone
-    # destination; right now we are moving the .git folder manually.
-    - name: Clone the osquery repository
-      uses: actions/checkout@v1
-
-    # This script makes sure that the copyright headers have been correctly
-    # placed on all the source code files
-    - name: Check the copyright headers
-      run: |
-        ./tools/ci/scripts/check_copyright_headers.py
-
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -79,10 +66,23 @@ jobs:
         rel_source_path="workspace/src"
 
         mkdir -p "${rel_build_path}"
-        ln -sf "$(pwd)" "${rel_source_path}"
+        mkdir -p "${rel_source_path}"
 
         echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
         echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
+
+    # This script makes sure that the copyright headers have been correctly
+    # placed on all the source code files
+    - name: Check the copyright headers
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: |
+        ./tools/ci/scripts/check_copyright_headers.py
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -109,7 +109,7 @@ jobs:
 
     steps:
     - name: Clone the osquery repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install python pre-requisites
       run: |
@@ -121,6 +121,17 @@ jobs:
         --repository .
 
 
+  # Test generating the website json
+  check_genwebsitejson:
+    needs: [check_code_style, check_libraries_manifest]
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Clone the osquery repository
+      uses: actions/checkout@v4
+
+    - name: genwebsitejson.py
+      run: python3 tools/codegen/genwebsitejson.py --specs=specs/
 
 
   # This job runs source code analysis tools (currently, just cppcheck)
@@ -130,17 +141,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock
+      image: osquery/builder20.04:7e9ee0339
+      options: --user 1001
 
     strategy:
       matrix:
         os: [ubuntu-20.04]
 
     steps:
-    - name: Clone the osquery repository
-      uses: actions/checkout@v1
-
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -153,15 +161,18 @@ jobs:
                  ${rel_source_path} \
                  ${rel_install_path}
 
-        mv .git "${rel_source_path}"
-        ( cd "${rel_source_path}" && git reset --hard )
-
         echo "SOURCE=$(realpath ${rel_source_path})" >> $GITHUB_OUTPUT
         echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
         echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
 
+    - name: Clone the osquery repository
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
+
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -200,7 +211,7 @@ jobs:
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
 
     - name: Store the cppcheck log (Release)
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: cppcheck-release
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_release.txt
@@ -229,7 +240,7 @@ jobs:
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
 
     - name: Store the cppcheck log (Debug)
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: cppcheck-debug
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
@@ -245,8 +256,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container:
-      image: osquery/builder18.04:c7a9d706d
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host
+      image: osquery/builder20.04:7e9ee0339
+      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host --user 1001
 
     strategy:
       matrix:
@@ -257,13 +268,45 @@ jobs:
     - name: Make space uninstalling packages
       shell: bash
       run: |
-        run_on_host="nsenter -t 1 -m -u -n -i"
+        run_on_host="sudo nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
 
+    # Due to how the RPM packaging tools work, we have to adhere to some
+    # character count requirements in the build path vs source path.
+    #
+    # Failing to do so, will break the debuginfo RPM package.
+    - name: Setup the build paths
+      id: build_paths
+      run: |
+        rel_build_path="workspace/usr/src/debug/osquery/build"
+        rel_src_path="workspace/padding-required-by-rpm-packages/src"
+        rel_ccache_path="workspace/ccache"
+        rel_package_data_path="workspace/package_data"
+        rel_packaging_path="workspace/osquery-packaging"
+        rel_package_build_path="workspace/package-build"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_src_path} \
+                 ${rel_ccache_path} \
+                 ${rel_src_path} \
+                 ${rel_package_data_path} \
+                 ${rel_package_build_path}
+
+        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
+        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
+
     - name: Clone the osquery repository
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}
+        fetch-depth: 0
 
     - name: Select the build job count
       shell: bash
@@ -302,49 +345,6 @@ jobs:
           echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
-    # When we spawn in the container, we are root; create an unprivileged
-    # user now so that we can later use it to launch the normal user tests
-    - name: Create a non-root user
-      if: matrix.build_type != 'RelWithDebInfo'
-      id: unprivileged_user
-      run: |
-        useradd -m -s /bin/bash unprivileged_user
-        echo "NAME=unprivileged_user" >> $GITHUB_OUTPUT
-
-    # Due to how the RPM packaging tools work, we have to adhere to some
-    # character count requirements in the build path vs source path.
-    #
-    # Failing to do so, will break the debuginfo RPM package.
-    - name: Setup the build paths
-      id: build_paths
-      run: |
-        rel_build_path="workspace/usr/src/debug/osquery/build"
-        rel_src_path="workspace/padding-required-by-rpm-packages/src"
-        rel_ccache_path="workspace/ccache"
-        rel_package_data_path="workspace/package_data"
-        rel_packaging_path="workspace/osquery-packaging"
-        rel_package_build_path="workspace/package-build"
-
-        mkdir -p ${rel_build_path} \
-                 ${rel_src_path} \
-                 ${rel_ccache_path} \
-                 ${rel_src_path} \
-                 ${rel_package_data_path} \
-                 ${rel_package_build_path}
-
-        chown -R ${{ steps.unprivileged_user.outputs.NAME }}:${{ steps.unprivileged_user.outputs.NAME }} .
-
-        mv .git "${rel_src_path}"
-        ( cd "${rel_src_path}" && git reset --hard )
-
-        echo "SOURCE=$(realpath ${rel_src_path})" >> $GITHUB_OUTPUT
-        echo "BINARY=$(realpath ${rel_build_path})" >> $GITHUB_OUTPUT
-        echo "CCACHE=$(realpath ${rel_ccache_path})" >> $GITHUB_OUTPUT
-        echo "PACKAGING=$(realpath ${rel_packaging_path})" >> $GITHUB_OUTPUT
-        echo "PACKAGE_DATA=$(realpath ${rel_package_data_path})" >> $GITHUB_OUTPUT
-        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
-        echo "PACKAGE_BUILD=$(realpath ${rel_package_build_path})" >> $GITHUB_OUTPUT
-
     - name: Clone the osquery-packaging repository
       run: |
         git clone ${{ env.PACKAGING_REPO }} \
@@ -352,16 +352,8 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    # One of the tests in the test suit will spawn a Docker container
-    # using this socket. Allow the unprivileged user we created
-    # to access it.
-    - name: Update the Docker socket permissions
-      if: matrix.build_type != 'RelWithDebInfo'
-      run: |
-        chmod 666 /var/run/docker.sock
-
     - name: Update the cache (ccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -372,7 +364,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -423,7 +415,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
       run: |
-        sudo -u ${{ steps.unprivileged_user.outputs.NAME }} ctest --build-nocmake -LE "root-required" -V
+        ctest --build-nocmake -LE "root-required" -V
 
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -444,14 +436,6 @@ jobs:
           --build . \
           --target install \
           -j ${{ steps.build_job_count.outputs.VALUE }}
-
-    # Since we need to run CMake to create the packages with osquery-packaging, the
-    # configuration will fail unless the C and C++ compilers are found
-    - name: Install packaging dependencies
-      if: matrix.build_type == 'RelWithDebInfo'
-      run: |
-        sudo apt update
-        sudo apt install build-essential gcc g++ -y
 
     - name: Create the packages
       if: matrix.build_type == 'RelWithDebInfo'
@@ -493,42 +477,42 @@ jobs:
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_release_package_data
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_release_deb
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
     - name: Store the unsigned debug DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_debug_deb
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
     - name: Store the unsigned release RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_release_rpm
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
     - name: Store the unsigned debug RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_debug_rpm
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
     - name: Store the unsigned release TGZ artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: linux_unsigned_release_tgz
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
@@ -553,11 +537,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-12]
-
-        exclude:
-          - build_type: Debug
-            architecture: arm64
+        os: [macos-14, macos-15]
 
     steps:
     - name: Select the build job count
@@ -598,7 +578,7 @@ jobs:
         echo "PACKAGE_BUILD=$(pwd)/${rel_package_build_path}" >> $GITHUB_OUTPUT
 
     - name: Clone the osquery repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
@@ -612,7 +592,7 @@ jobs:
         vm_stat
 
     - name: Update the cache (ccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -623,7 +603,7 @@ jobs:
           ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
@@ -634,7 +614,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -658,20 +638,23 @@ jobs:
           coreutils \
           gnu-sed
 
+    - name: Setup python
+      uses: actions/setup-python@v5
+      with:
+        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
+        python-version: '3.13.1'
+        architecture: arm64
+
     - name: Install tests dependencies
       id: install_test_deps
       run: |
-        python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
-
-        ${python_root}/bin/pip3 install setuptools \
-                     pexpect==3.3 \
-                     psutil \
-                     timeout_decorator \
-                     six \
-                     thrift==0.11.0 \
-                     osquery
-
-        echo "PYTHON_ROOT=${python_root}" >> $GITHUB_OUTPUT
+        pip3 install setuptools \
+                      pexpect==3.3 \
+                      psutil \
+                      timeout_decorator \
+                      six \
+                      thrift==0.11.0 \
+                      osquery
 
     - name: Install CMake
       shell: bash
@@ -685,7 +668,15 @@ jobs:
       shell: bash
       id: xcode_selector
       run: |
-        xcode_path="/Applications/Xcode_14.1.app/Contents/Developer"
+        if [[ "${{ matrix.os }}" == "macos-14" ]]; then
+          xcode_path="/Applications/Xcode_15.4.app/Contents/Developer"
+        elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
+          xcode_path="/Applications/Xcode_16.app/Contents/Developer"
+        else
+          echo "Invalid matrix.os: ${{ matrix.os }}"
+          exit 1
+        fi
+
         echo "PATH=${path}" >> $GITHUB_OUTPUT
 
         sudo xcode-select -s "${xcode_path}"
@@ -721,7 +712,6 @@ jobs:
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
-          -DPython3_ROOT_DIR=${{ steps.install_test_deps.outputs.PYTHON_ROOT }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
     - name: Build the project
@@ -741,7 +731,7 @@ jobs:
         du -sh ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Run the tests
-      if: matrix.architecture == 'x86_64'
+      if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         ctest --build-nocmake -V
@@ -774,20 +764,22 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release'
-      uses: actions/upload-artifact@v1
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-14'
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for the x86_64 macOS-11 worker
-      if: matrix.architecture == 'x86_64'
+    - name: Package the tests for older x86_64 macOS workers
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
+      working-directory: ${{ github.workspace }}/workspace
       run: |
-        ( cd workspace && ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} )
+        mkdir macos_tests_${{ matrix.build_type }}
+        ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} ${{ matrix.architecture }}
 
-    - name: Store the packaged tests for the x86_64 macOS-11 worker
-      if: matrix.architecture == 'x86_64'
-      uses: actions/upload-artifact@v1
+    - name: Store the packaged tests for older x86_64 macOS workers
+      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_tests_${{ matrix.build_type }}
         path: workspace/macos_tests_${{ matrix.build_type }}.tar.gz
@@ -801,39 +793,50 @@ jobs:
 
 
 
-  # This job takes the packaged tests (Release + Debug) from the Monterey
-  # builder and runs them on a new Big Sur instance
-  test_macos_bigsur:
+  # This job takes the packaged tests (Release + Debug) from the latest macos
+  # builder and runs them on the previous available macOS versions
+  test_older_macos:
 
     needs: build_macos
 
-    runs-on: macos-11
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        python_architecture: [x64]
+        os: [macos-13]
 
     steps:
       - name: Clone the osquery repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_tests_Release
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_tests_Debug
 
-      - name: Install tests dependencies
-        run: |
-          python_root="/usr/local/Frameworks/Python.framework/Versions/Current"
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          # Pin an exact python version to avoid mismatches between the builder and this test_older_macos runner
+          python-version: '3.13.1'
+          architecture: ${{ matrix.python_architecture }}
 
-          ${python_root}/bin/pip3 install setuptools \
-                       pexpect==3.3 \
-                       psutil \
-                       timeout_decorator \
-                       six \
-                       thrift==0.11.0 \
-                       osquery
+      - name: Install tests dependencies
+        id: install_test_deps
+        run: |
+          pip3 install setuptools \
+                        pexpect==3.3 \
+                        psutil \
+                        timeout_decorator \
+                        six \
+                        thrift==0.11.0 \
+                        osquery
 
       - name: Install CMake
         shell: bash
@@ -864,13 +867,13 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_macos_bigsur
+    needs: test_older_macos
 
-    runs-on: macos-12
+    runs-on: macos-14
 
     steps:
       - name: Clone the osquery repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -885,12 +888,12 @@ jobs:
             "workspace/install" \
             "3.21.4"
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_unsigned_release_package_data_x86_64
           path: macos_unsigned_release_package_data_x86_64
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos_unsigned_release_package_data_arm64
           path: macos_unsigned_release_package_data_arm64
@@ -900,7 +903,7 @@ jobs:
           tools/ci/scripts/macos/build_universal_package_data.sh
 
       - name: Store the universal unsigned release package data artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: macos_unsigned_release_package_data_universal
           path: package_data.tar.gz
@@ -938,13 +941,13 @@ jobs:
           echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls package_build/*.tar.gz)" >> $GITHUB_OUTPUT
 
       - name: Store the PKG unsigned release packages
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: macos_unsigned_pkg_universal
           path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PKG_PATH }}
 
       - name: Store the TGZ unsigned release packages
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: macos_unsigned_tgz_universal
           path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
@@ -984,12 +987,14 @@ jobs:
         $rel_install_path = "w\install"
         $rel_package_data_path = "w\package_data"
         $rel_packaging_path = "w\osquery-packaging"
+        $rel_packaging_build = "w\package-build"
 
         New-Item -ItemType Directory -Force -Path $rel_build_path
         New-Item -ItemType Directory -Force -Path $rel_sccache_path
         New-Item -ItemType Directory -Force -Path $rel_downloads_path
         New-Item -ItemType Directory -Force -Path $rel_install_path
         New-Item -ItemType Directory -Force -Path $rel_package_data_path
+        New-Item -ItemType Directory -Force -Path $rel_packaging_build
 
         $base_dir = (Get-Item .).FullName
 
@@ -1001,6 +1006,7 @@ jobs:
         echo "INSTALL=$base_dir\$rel_install_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$base_dir\$rel_packaging_build" >> $env:GITHUB_OUTPUT
 
     - name: Setup the VC arch
       shell: powershell
@@ -1023,7 +1029,7 @@ jobs:
         git config --global core.symlinks true
 
     - name: Clone the osquery repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
@@ -1053,7 +1059,7 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Update the cache (git submodules)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
 
@@ -1064,7 +1070,7 @@ jobs:
           gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
@@ -1075,10 +1081,10 @@ jobs:
           downloads_${{ matrix.os }}
 
     - name: Initialize the Python 3 installation
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.x"
-        architecture: "x64"
+        python-version: "3.13.x"
+        architecture: x64
 
     # The runners will likely have both the x86 and x64 versions of
     # Python but we always need the 64-bit one regardless of which
@@ -1232,7 +1238,7 @@ jobs:
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
     - name: Update the cache (sccache)
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
 
@@ -1288,13 +1294,12 @@ jobs:
         cmake --build . --target install -j 3
 
     - name: Create the packages
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       shell: cmd
 
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
-
-        cd ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
 
         7z ^
           a windows_package_data.zip ^
@@ -1338,30 +1343,29 @@ jobs:
         if %errorlevel% neq 0 exit /b %errorlevel%
 
     - name: Locate the packages
-      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       id: packages
-      shell: bash
+      shell: powershell
       run: |
-        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls *.zip)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_MSI_PATH=$(ls *.msi)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$(ls *.nupkg)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$((ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}\*.zip).FullName)" >> $env:GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_MSI_PATH=$((ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}\*.msi).FullName)" >> $env:GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_NUPKG_PATH=$((ls ${{ steps.build_paths.outputs.PACKAGE_BUILD }}\*.nupkg).FullName)" >> $env:GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_package_data
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release MSI artifact
       if: matrix.bitness != 'arm64'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_msi
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_MSI_PATH }}
 
     - name: Store the unsigned release NUPKG artifact
       if: matrix.bitness != 'arm64'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: windows${{ matrix.bitness }}_unsigned_release_nupkg
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_NUPKG_PATH }}

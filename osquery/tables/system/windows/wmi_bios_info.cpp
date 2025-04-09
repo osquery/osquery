@@ -406,7 +406,7 @@ QueryData genBiosInfo(QueryContext& context) {
     const auto& wmi_item_list = wmi_request.results();
     if (wmi_item_list.size() != 1) {
       LOG(ERROR) << "wmi_bios_info: Too many items returned when trying to "
-                    "query for the the "
+                    "query for the "
                     "manufacturer";
       return row_list;
     }

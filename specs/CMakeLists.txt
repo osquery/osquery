@@ -74,6 +74,8 @@ function(generateNativeTables)
     utility/osquery_registry.table
     utility/osquery_schedule.table
     utility/time.table
+    yara.table
+    yara_events.table
     ycloud_instance_metadata.table
   )
 
@@ -95,7 +97,6 @@ function(generateNativeTables)
     "darwin/asl.table:macos"
     "darwin/authorization_mechanisms.table:macos"
     "darwin/authorizations.table:macos"
-    "darwin/battery.table:macos"
     "darwin/browser_plugins.table:macos"
     "darwin/connected_displays.table:macos"
     "darwin/crashes.table:macos"
@@ -193,6 +194,7 @@ function(generateNativeTables)
     "linux/systemd_units.table:linux"
     "linux/yum_sources.table:linux"
     "linwin/intel_me_info.table:linux,windows"
+    "macwin/battery.table:macos,windows"
     "kernel_info.table:linux,macos,windows"
     "posix/extended_attributes.table:linux,macos"
     "posix/acpi_tables.table:linux,macos"
@@ -299,15 +301,13 @@ function(generateNativeTables)
     "windows/windows_firewall_rules.table:windows"
     "windows/userassist.table:windows"
     "windows/dns_cache.table:windows"
-    "windows/hvci_status.table:windows"
+    "windows/deviceguard_status.table:windows"
     "windows/shimcache.table:windows"
     "windows/shellbags.table:windows"
     "windows/prefetch.table:windows"
     "windows/tpm_info.table:windows"
     "windows/security_profile_info.table:windows"
     "windows/windows_search.table:windows"
-    "yara/yara_events.table:linux,macos"
-    "yara/yara.table:linux,macos,windows"
   )
 
   if(OSQUERY_BUILD_BPF)

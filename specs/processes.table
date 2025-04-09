@@ -1,7 +1,7 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", BIGINT, "Process (or thread) ID", index=True),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True, optimized=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT, "Path to executed binary"),
     Column("cmdline", TEXT, "Complete argv"),
@@ -18,8 +18,7 @@ schema([
         "The process path exists yes=1, no=0, unknown=-1"),
     Column("wired_size", BIGINT, "Bytes of unpageable memory used by process"),
     Column("resident_size", BIGINT, "Bytes of private memory used by process"),
-    Column("total_size", BIGINT, "Total virtual memory size",
-        aliases=["phys_footprint"]),
+    Column("total_size", BIGINT, "Total virtual memory size (Linux, Windows) or 'footprint' (macOS)"),
     Column("user_time", BIGINT, "CPU time in milliseconds spent in user space"),
     Column("system_time", BIGINT, "CPU time in milliseconds spent in kernel space"),
     Column("disk_bytes_read", BIGINT, "Bytes read from disk"),

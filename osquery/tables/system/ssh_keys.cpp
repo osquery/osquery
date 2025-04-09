@@ -57,6 +57,9 @@ bool isOpenSSHKeyEncrypted(const std::string& keys_content) {
 // if it's an openssh key.
 bool parsePrivateKey(const std::string& keys_content,
                      int& key_type,
+                     std::string& key_group_name,
+                     int& key_length,
+                     int& key_security_bits,
                      bool& is_encrypted) {
   BIO* bio_stream = BIO_new(BIO_s_mem());
   auto const bio_stream_guard =
@@ -101,6 +104,17 @@ bool parsePrivateKey(const std::string& keys_content,
     return false;
   }
   key_type = EVP_PKEY_base_id(pkey);
+  key_length = EVP_PKEY_bits(pkey);
+  key_security_bits = EVP_PKEY_security_bits(pkey);
+  // openssl group names are all under 24 chars today, leave some extra room
+  char groupname[32];
+  size_t gname_len;
+  int status;
+  status =
+      EVP_PKEY_get_group_name(pkey, groupname, sizeof(groupname), &gname_len);
+  if (status) {
+    key_group_name.assign(groupname, gname_len);
+  }
   return true;
 }
 
@@ -146,15 +160,23 @@ void genSSHkeyForHosts(const std::string& uid,
   // Go through each file
   for (const auto& kfile : files_list) {
     std::string keys_content;
-    auto s = readFile(kfile, keys_content, false, false, false);
+    auto s = readFile(kfile, keys_content);
     if (!s.ok()) {
       // Cannot read a specific keys file.
       logger.log(google::GLOG_WARNING, s.getMessage());
       continue;
     }
     int key_type;
+    std::string key_group_name;
+    int key_length = -1;
+    int key_security_bits = -1;
     bool encrypted;
-    bool parsed = parsePrivateKey(keys_content, key_type, encrypted);
+    bool parsed = parsePrivateKey(keys_content,
+                                  key_type,
+                                  key_group_name,
+                                  key_length,
+                                  key_security_bits,
+                                  encrypted);
     if (parsed) {
       Row r;
       r["pid_with_namespace"] = "0";
@@ -162,6 +184,9 @@ void genSSHkeyForHosts(const std::string& uid,
       r["path"] = kfile;
       r["encrypted"] = encrypted ? "1" : "0";
       r["key_type"] = keyTypeAsString(key_type);
+      r["key_group_name"] = key_group_name;
+      r["key_length"] = INTEGER(key_length);
+      r["key_security_bits"] = INTEGER(key_security_bits);
       results.push_back(r);
     }
   }

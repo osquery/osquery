@@ -27,9 +27,21 @@ class TLSLogForwarder : public BufferedLogForwarder {
  public:
   explicit TLSLogForwarder();
 
+  /// Mutex for ensuring only one thread is reading/writing configuration.
+  std::mutex configuration_mutex;
+  /// Flag indicating whether configuration was updated.
+  bool configuration_updated = false;
+  /// Updated configs to be applied on the next applyNewConfiguration() call:
+  std::string updated_uri;
+  std::chrono::seconds updated_log_period;
+  std::chrono::seconds updated_max_backoff_period;
+  uint64_t updated_max_log_lines;
+
  protected:
   Status send(std::vector<std::string>& log_data,
               const std::string& log_type) override;
+
+  void applyNewConfiguration() override;
 
   /// Endpoint URI
   std::string uri_;
@@ -54,6 +66,9 @@ class TLSLoggerPlugin : public LoggerPlugin {
 
   /// Setup node key and worker thread for sending logs.
   Status setUp() override;
+
+  //// React to configuration updates.
+  void configure() override;
 
   bool usesLogStatus() override {
     return true;

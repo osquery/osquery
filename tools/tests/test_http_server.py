@@ -9,6 +9,7 @@
 
 import argparse
 import base64
+from datetime import datetime
 import json
 import os
 import random
@@ -28,7 +29,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 # Default values for global variables
 HTTP_SERVER_USE_TLS = False
 HTTP_SERVER_PERSIST = False
-HTTP_SERVER_TIMEOUT = 10
+HTTP_SERVER_TIMEOUT = 120
 HTTP_SERVER_VERBOSE = False
 HTTP_SERVER_CERT = "test_server.pem"
 HTTP_SERVER_KEY = "test_server.key"
@@ -127,7 +128,7 @@ FILE_CARVE_MAP = {}
 
 def debug(response):
     if ARGS["verbose"]:
-        print("-- [DEBUG] %s" % str(response))
+        print(f"-- [DEBUG] {datetime.now().isoformat()} {str(response)}")
         sys.stdout.flush()
         sys.stderr.flush()
 

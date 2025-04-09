@@ -1,11 +1,13 @@
 table_name("user_ssh_keys")
 description("Returns the private keys in the users ~/.ssh directory and whether or not they are encrypted.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the key file",
-      additional=True),
+    Column("uid", BIGINT, "The local user that owns the key file", additional=True, optimized=True),
     Column("path", TEXT, "Path to key file", index=True),
     Column("encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
     Column("key_type", TEXT, "The type of the private key. One of [rsa, dsa, dh, ec, hmac, cmac], or the empty string."),
+    Column("key_group_name", TEXT, "The group of the private key. Supported for a subset of key_types implemented by OpenSSL"),
+    Column("key_length", INTEGER, "The cryptographic length of the cryptosystem to which the private key belongs, in bits. Definition of cryptographic length is specific to cryptosystem. -1 if unavailable"),
+    Column("key_security_bits", INTEGER, "The number of security bits of the private key, bits of security as defined in NIST SP800-57. -1 if unavailable"),
     ForeignKey(column="uid", table="users"),
 ])
 extended_schema(LINUX, [

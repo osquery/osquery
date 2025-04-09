@@ -38,7 +38,7 @@ std::vector<std::string> cronFromFile(const std::string& path, Logger& logger) {
     return cron_lines;
   }
 
-  auto s = readFile(path, content, false, false, false);
+  auto s = readFile(path, content);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
     return cron_lines;

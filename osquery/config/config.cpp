@@ -208,6 +208,16 @@ class Schedule : private boost::noncopyable {
    */
   std::map<std::string, uint64_t> denylist_;
 
+  /**
+   * @brief Set of denylisted queries which have been debug logged.
+   *
+   * A set of denied queries which have been logged. When a query gets
+   * denied by watchdog, we would like for it to be logged before it expires.
+   * Since the schedule is hit frequently, we track which queries have been
+   * logged as not to spam the logs.
+   */
+  std::unordered_set<std::string> log_denied_queries_;
+
  private:
   friend class Config;
 };
@@ -250,7 +260,7 @@ Schedule::getSqlQueriesForSource(const std::string& source) {
     if (it != packs_.end()) {
       auto& schedule = (*it)->getSchedule();
       for (auto& s : schedule) {
-        queries[(*it)->getName()][s.first] = s.second.query;
+        queries[(*it)->getName()][s.name] = s.query;
       }
       it++;
     } else {
@@ -351,9 +361,12 @@ Schedule::Schedule() {
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
-    // Add this query name to the denylist and save the denylist.
-    denylist_[failed_query_] = getUnixTime() + 86400;
-    saveScheduleDenylist(denylist_);
+    // If watchdog is enabled, add this query name to the denylist and save the
+    // denylist.
+    if (Flag::getValue("disable_watchdog") == "false") {
+      denylist_[failed_query_] = getUnixTime() + 86400;
+      saveScheduleDenylist(denylist_);
+    }
   }
 }
 
@@ -471,28 +484,39 @@ void Config::scheduledQueries(
     bool denylisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
-    for (auto& it : pack->getSchedule()) {
-      std::string name = getQueryName(pack->getName(), it.first);
+    for (auto& query : pack->getSchedule()) {
+      std::string name = getQueryName(pack->getName(), query.name);
       // They query may have failed and been added to the schedule's denylist.
       auto denylisted_query = schedule_->denylist_.find(name);
       if (denylisted_query != schedule_->denylist_.end()) {
-        if (denylistExpired(denylisted_query->second, it.second)) {
+        if (denylistExpired(denylisted_query->second, query)) {
           // The denylisted query passed the expiration time (remove).
+          LOG(INFO) << "Scheduled denylisted query has expired: " << name;
+          schedule_->log_denied_queries_.erase(name);
           schedule_->denylist_.erase(denylisted_query);
           saveScheduleDenylist(schedule_->denylist_);
-          it.second.denylisted = false;
+          query.denylisted = false;
         } else {
           // The query is still denylisted.
-          it.second.denylisted = true;
+          query.denylisted = true;
           if (!denylisted) {
-            // The caller does not want denylisted queries.
+            // The caller does not want denylisted queries. Log the first time
+            // skipping this query per osquery init or schedule query expiry
+            // period.
+            if (schedule_->log_denied_queries_.find(name) ==
+                schedule_->log_denied_queries_.end()) {
+              LOG(WARNING) << "The caller does not want denied queries, "
+                              "skipping denied scheduled query: "
+                           << name;
+              schedule_->log_denied_queries_.insert(name);
+            }
             continue;
           }
         }
       }
 
       // Call the predicate.
-      predicate(std::move(name), it.second);
+      predicate(std::move(name), query);
 
       if (shutdownRequested()) {
         break;
@@ -782,7 +806,8 @@ Status Config::updateSource(const std::string& source,
     if (newQueries.find(oldPack.first) == newQueries.end()) {
       // This pack was removed. Also remove performance stats.
       for (const auto& oldQuery : oldPack.second) {
-        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance,
+                            getQueryName(oldPack.first, oldQuery.first));
       }
       continue;
     }
@@ -790,7 +815,8 @@ Status Config::updateSource(const std::string& source,
       if (newQueries[oldPack.first].find(oldQuery.first) ==
           newQueries[oldPack.first].end()) {
         // This query was removed. Also remove performance stats.
-        performance_.erase(getQueryName(oldPack.first, oldQuery.first));
+        deleteDatabaseValue(kQueryPerformance,
+                            getQueryName(oldPack.first, oldQuery.first));
         continue;
       }
       if (queries[oldPack.first][oldQuery.first] !=
@@ -798,10 +824,9 @@ Status Config::updateSource(const std::string& source,
         // This query was updated. Clear the performance stats.
         auto fullName = getQueryName(oldPack.first, oldQuery.first);
         RecursiveLock lock(config_performance_mutex_);
-        if (performance_.count(fullName) != 0) {
-          LOG(INFO) << "Clearing performance stats for query: " << fullName;
-          performance_[fullName] = QueryPerformance();
-        }
+        LOG(INFO) << "Clearing performance stats for query: " << fullName;
+        setDatabaseValue(
+            kQueryPerformance, fullName, QueryPerformance().toCSV());
       }
     }
   }
@@ -992,9 +1017,10 @@ void Config::purge() {
   auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
                          const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
-      const auto& pack_queries = pack->getSchedule();
-      if (pack_queries.count(query_name)) {
-        return true;
+      for (const auto& query : pack->getSchedule()) {
+        if (query.name == query_name) {
+          return true;
+        }
       }
     }
     return false;
@@ -1043,7 +1069,6 @@ void Config::reset() {
   setStartTime(getUnixTime());
 
   schedule_ = std::make_unique<Schedule>();
-  std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
@@ -1087,12 +1112,13 @@ void Config::recordQueryPerformance(const std::string& name,
                                     const Row& r0,
                                     const Row& r1) {
   RecursiveLock lock(config_performance_mutex_);
-  if (performance_.count(name) == 0) {
-    performance_[name] = QueryPerformance();
+  std::string csv;
+  QueryPerformance query;
+  auto status = getDatabaseValue(kQueryPerformance, name, csv);
+  if (status.ok()) {
+    query = QueryPerformance(csv);
   }
 
-  // Grab access to the non-const schedule item.
-  auto& query = performance_.at(name);
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
     auto ut1 = tryTo<long long>(r1.at("user_time"));
     auto ut0 = tryTo<long long>(r0.at("user_time"));
@@ -1132,6 +1158,12 @@ void Config::recordQueryPerformance(const std::string& name,
   query.executions += 1;
   query.last_executed = getUnixTime();
 
+  status = setDatabaseValue(kQueryPerformance, name, query.toCSV());
+  if (!status.ok()) {
+    LOG(WARNING) << "Could not write performance stats for query " << name
+                 << " to the database: " << status.getMessage();
+  }
+
   /* Clear the executing query only if a resource limit has not been hit.
      This is used by the next worker execution to denylist a query
      that triggered a watchdog resource limit. */
@@ -1153,10 +1185,11 @@ void Config::recordQueryStart(const std::string& name) {
 
 void Config::getPerformanceStats(
     const std::string& name,
-    std::function<void(const QueryPerformance& query)> predicate) const {
-  if (performance_.count(name) > 0) {
-    RecursiveLock lock(config_performance_mutex_);
-    predicate(performance_.at(name));
+    std::function<void(const QueryPerformance& query)> predicate) {
+  std::string csv;
+  auto status = getDatabaseValue(kQueryPerformance, name, csv);
+  if (status.ok()) {
+    predicate(QueryPerformance(csv));
   }
 }
 

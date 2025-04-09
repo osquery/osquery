@@ -30,11 +30,6 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/info/platform_type.h>
 
-// Some proc* functions are only compiled when building on linux
-#ifdef __linux__
-#include "osquery/filesystem/linux/proc.h"
-#endif
-
 #ifdef WIN32
 #include "winbase.h"
 #include <osquery/utils/conversions/windows/strings.h>
@@ -292,14 +287,6 @@ TEST_F(FilesystemTests, test_read_limit) {
   EXPECT_TRUE(status.ok());
 }
 
-TEST_F(FilesystemTests, test_read_size) {
-  std::string content;
-  size_t s = 3;
-  auto status = readFile(fake_directory_ / "root.txt", content, s);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(content.size(), s);
-}
-
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
   std::vector<std::string> results;
   auto status = listFilesInDirectory("/foo/bar", results);
@@ -545,30 +532,6 @@ TEST_F(FilesystemTests, test_safe_permissions) {
   }
 }
 
-// This will fail to link (procGetNamespaceInode) if we are not
-// compiling on linux
-#ifdef __linux__
-TEST_F(FilesystemTests, test_user_namespace_parser) {
-  auto unique_path = fs::temp_directory_path() /
-                     fs::unique_path("osquery.tests.user_ns_parser.%%%%.%%%%");
-
-  auto temp_path = unique_path.native();
-
-  boost::system::error_code error_code;
-  EXPECT_EQ(fs::create_directory(temp_path, error_code), true);
-
-  auto symlink_path = temp_path + "/namespace";
-  EXPECT_EQ(symlink("namespace:[112233]", symlink_path.data()), 0);
-
-  ino_t namespace_inode;
-  auto status = procGetNamespaceInode(namespace_inode, "namespace", temp_path);
-  EXPECT_TRUE(status.ok());
-
-  removePath(temp_path);
-  EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
-}
-#endif
-
 TEST_F(FilesystemTests, test_read_proc) {
   std::string content;
 
@@ -586,29 +549,6 @@ TEST_F(FilesystemTests, test_read_symlink) {
     auto status = readFile(fake_directory_ / "root2.txt", content);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(content, "root");
-  }
-}
-
-TEST_F(FilesystemTests, test_read_zero) {
-  std::string content;
-
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    auto status = readFile("/dev/zero", content, 10);
-    EXPECT_EQ(content.size(), 10U);
-    for (size_t i = 0; i < 10; i++) {
-      EXPECT_EQ(content[i], 0);
-    }
-  }
-}
-
-TEST_F(FilesystemTests, test_read_urandom) {
-  std::string first, second;
-
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    auto status = readFile("/dev/urandom", first, 10);
-    EXPECT_TRUE(status.ok());
-    status = readFile("/dev/urandom", second, 10);
-    EXPECT_NE(first, second);
   }
 }
 
@@ -702,38 +642,6 @@ TEST_F(FilesystemTests, test_read_empty_file) {
   std::string content;
   ASSERT_TRUE(readFile(test_file, content));
   ASSERT_TRUE(content.empty());
-}
-
-TEST_F(FilesystemTests, test_read_fifo) {
-  // This test verifies that open and read operations do not hang when using
-  // non-blocking mode for pipes. Pipes are platform dependent, hence the
-  // ifndef. Seems preferable to adding half-baked pipes to each fileops
-  // implementation.
-#ifndef WIN32
-  auto test_file = test_working_dir_ / "fifo";
-  ASSERT_EQ(::mkfifo(test_file.c_str(), S_IRUSR | S_IWUSR), 0);
-
-  // The failure behavior is that this test will just hang forever, so
-  // maybe it should be run in another thread with a timeout.
-  std::string content;
-  ASSERT_TRUE(readFile(test_file, content));
-  ASSERT_TRUE(content.empty());
-  ::unlink(test_file.c_str());
-#else
-  std::wstring pipe_name = stringToWstring("\\.pipe\test_pipe");
-  HANDLE pipe_handle = CreateNamedPipe(pipe_name.c_str(),
-                                       PIPE_ACCESS_DUPLEX,
-                                       PIPE_WAIT,
-                                       PIPE_UNLIMITED_INSTANCES,
-                                       0,
-                                       0,
-                                       1000,
-                                       0);
-  std::string content;
-  ASSERT_FALSE(readFile(pipe_name, content));
-  ASSERT_TRUE(content.empty());
-  CloseHandle(pipe_handle);
-#endif
 }
 
 TEST_F(FilesystemTests, test_directory_listing_with_no_nested_dirs) {
@@ -874,8 +782,6 @@ TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
   // This test verifies that a recursive directory junction can be handled by
   // listDirectoriesInDirectory logic
 
-  const unsigned int EXPECTED_NR_OF_DIRECTORIES = 1;
-
   const fs::path test_root_raw = fs::temp_directory_path() / genRandomName();
   ASSERT_TRUE(fs::create_directory(test_root_raw));
   const fs::path junction_dir = test_root_raw / genRandomName();
@@ -892,9 +798,7 @@ TEST_F(FilesystemTests, test_directory_listing_with_recursive_junction) {
   std::vector<std::string> found_directories;
   ASSERT_TRUE(
       listDirectoriesInDirectory(test_root_raw, found_directories, false));
-  ASSERT_TRUE(!found_directories.empty());
-
-  ASSERT_TRUE(found_directories.size() == EXPECTED_NR_OF_DIRECTORIES);
+  ASSERT_TRUE(found_directories.empty());
 
   deleteDirectoryContent(test_root_raw);
 }
@@ -949,6 +853,67 @@ TEST_F(FilesystemTests, test_directory_listing_with_legacy_logic) {
 
   deleteDirectoryContent(test_root_raw_dirs);
   deleteDirectoryContent(test_root_work_dirs);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_file_symlink) {
+  // This test verifies that a file symlink is not mistaken for a directory.
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  std::ofstream test_file((test_root_dir / "test_file.txt").string());
+  test_file.close();
+
+  // Create symlink
+  try {
+    fs::create_symlink(test_root_dir / "test_file.txt", test_root_dir / "link");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
+
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
+  ASSERT_TRUE(found_directories.empty());
+
+  deleteDirectoryContent(test_root_dir);
+}
+
+TEST_F(FilesystemTests, test_directory_listing_with_bad_symlinks) {
+  // This test verifies that bad symlinks are not mistaken for a directory.
+  const fs::path test_root_dir = fs::temp_directory_path() / genRandomName();
+  ASSERT_TRUE(fs::create_directory(test_root_dir));
+
+  // Create symlink that points to itself.
+  try {
+    fs::create_symlink(test_root_dir / "link", test_root_dir / "link");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  // Create symlink that points to non-existent file.
+  try {
+    fs::create_symlink(test_root_dir / "not_exists.txt",
+                       test_root_dir / "link2");
+  } catch (const fs::filesystem_error& e) {
+    FAIL() << "Error creating symlink: " << e.what();
+  }
+
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, false));
+  ASSERT_TRUE(found_directories.empty());
+
+  // Test with recursive=true
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(test_root_dir, found_directories, true));
+  ASSERT_TRUE(found_directories.empty());
+
+  deleteDirectoryContent(test_root_dir);
 }
 
 } // namespace osquery

@@ -264,7 +264,8 @@ TEST_F(SchedulerTests, test_scheduler_drift_accumulation) {
           "6": {"query": "select 6 as number", "interval": 1},
           "7": {"query": "select 7 as number", "interval": 1},
           "8": {"query": "select 1 as number", "interval": 1},
-          "9": {"query": "select 2 as number", "interval": 1}
+          "9": {"query": "select 2 as number", "interval": 1},
+          "10": {"query": "select sleep(1)", "interval": 1}
         }
       }
     }

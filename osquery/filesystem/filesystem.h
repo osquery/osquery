@@ -49,42 +49,43 @@ void initializeFilesystemAPILocale();
  * @brief Read a file from disk.
  *
  * @param path the path of the file that you would like to read.
- * @param size Number of bytes to read from file.
- * @param content a reference to a string which will be populated with the
- * contents of the path indicated by the path parameter.
- * @param dry_run do not actually read the file content.
- * @param preserve_time Attempt to preserve file mtime and atime.
- * @param blocking Request a blocking read.
- * @param log emit log messages using default logger for read size errors.
- *
+ * @param content the file contents.
+ * @param shouldLog emit log messages using default logger for read size errors.
  * @return an instance of Status, indicating success or failure.
+ *
+ * This function reads a file from disk in a non-blocking manner. Note that:
+ * 1. In every case the amount of bytes read are limited by the read_max flag
+ * 2. If the file has a size, it will read up to that size,
+ *    determined at the start, even if the file is then written to
+ * 3. If the file has no size and is considered a special file,
+ *    (file with no size on Posix or a file type different from FILE_TYPE_DISK
+ *    on Windows) it will stop reading when encountering the EOF,
+ *    or if the data is not immediately available.
+ *    This is to avoid infinite loops, since special files like a FIFO
+ *    or a Named Pipe, will cause the logic to retry until some data is written
+ *    from the other end, which might never happen
  */
 Status readFile(const boost::filesystem::path& path,
                 std::string& content,
-                size_t size = 0,
-                bool dry_run = false,
-                bool blocking = false,
-                bool log = true);
+                bool shouldLog = true);
 
 /**
- * @brief Return the status of an attempted file read.
+ * @brief Read a file from disk in chunks, returning each of the to a user
+ * provided callback
  *
  * @param path the path of the file that you would like to read.
- * @param blocking Request a blocking read.
+ * @param predicate the callback to be called when a chunk is successfully read.
+ * @param shouldLog emit log messages using default logger for read size errors.
+ * @return an instance of Status, indicating success or failure.
  *
- * @return success iff the file would have been read. On success the status
- * message is the complete/absolute path.
+ * Functionally behaves the same as the readFile without callback,
+ * the only difference is that files are always read in chunks.
+ * The amount of data returned in the callback each time,
+ * is not guaranteed to be always the same.
  */
-Status readFile(const boost::filesystem::path& path, bool blocking = false);
-
-/// Internal representation for predicate-based chunk reading.
 Status readFile(const boost::filesystem::path& path,
-                size_t size,
-                size_t block_size,
-                bool dry_run,
-                std::function<void(std::string& buffer, size_t size)> predicate,
-                bool blocking = false,
-                bool log = true);
+                std::function<void(std::string_view)> predicate,
+                bool shouldLog = true);
 
 /**
  * @brief Write text to disk.

@@ -1,0 +1,28 @@
+table_name("battery")
+description("Provides information about the internal battery of a laptop. Note: On Windows, columns with Ah or mAh units assume that the battery is 12V.")
+schema([
+    Column("manufacturer", TEXT, "The battery manufacturer's name"),
+    Column("model", TEXT, "The battery's model number"),
+    Column("serial_number", TEXT, "The battery's serial number"),
+    Column("cycle_count", INTEGER, "The number of charge/discharge cycles"),
+    Column("state", TEXT, "One of the following: \"AC Power\" indicates the battery is connected to an external power source, \"Battery Power\" indicates that the battery is drawing internal power, \"Off Line\" indicates the battery is off-line or no longer connected"),
+    Column("charging", INTEGER, "1 if the battery is currently being charged by a power source. 0 otherwise"),
+    Column("charged", INTEGER, "1 if the battery is currently completely charged. 0 otherwise"),
+    Column("designed_capacity", INTEGER, "The battery's designed capacity in mAh"),
+    Column("max_capacity", INTEGER, "The battery's actual capacity when it is fully charged in mAh"),
+    Column("current_capacity", INTEGER, "The battery's current capacity (level of charge) in mAh"),
+    Column("percent_remaining", INTEGER, "The percentage of battery remaining before it is drained"),
+    Column("amperage", INTEGER, "The current amperage in/out of the battery in mA (positive means charging, negative means discharging)"),
+    Column("voltage", INTEGER, "The battery's current voltage in mV"),
+    Column("minutes_until_empty", INTEGER, "The number of minutes until the battery is fully depleted. This value is -1 if this time is still being calculated"),
+    Column("minutes_to_full_charge", INTEGER, "The number of minutes until the battery is fully charged. This value is -1 if this time is still being calculated. On Windows this is calculated from the charge rate and capacity and may not agree with the number reported in \"Power & Battery\""),
+])
+extended_schema(WINDOWS, [
+    Column("chemistry", TEXT, "The battery chemistry type (eg. LiP). Some possible values are documented in https://learn.microsoft.com/en-us/windows/win32/power/battery-information-str."),
+])
+extended_schema(DARWIN, [
+    Column("health", TEXT, "One of the following: \"Good\" describes a well-performing battery, \"Fair\" describes a functional battery with limited capacity, or \"Poor\" describes a battery that's not capable of providing power"),
+    Column("condition", TEXT, "One of the following: \"Normal\" indicates the condition of the battery is within normal tolerances, \"Service Needed\" indicates that the battery should be checked out by a licensed Mac repair service, \"Permanent Failure\" indicates the battery needs replacement"),
+    Column("manufacture_date", INTEGER, "The date the battery was manufactured UNIX Epoch"),
+])
+implementation("battery@genBatteryInfo")

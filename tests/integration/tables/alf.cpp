@@ -23,26 +23,33 @@ class alf : public testing::Test {
 };
 
 TEST_F(alf, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from alf");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"allow_signed_enabled", IntType}
-  //      {"firewall_unload", IntType}
-  //      {"global_state", IntType}
-  //      {"logging_enabled", IntType}
-  //      {"logging_option", IntType}
-  //      {"stealth_enabled", IntType}
-  //      {"version", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  ASSERT_EQ(data.size(), 1ul);
+
+  const auto& qd = SQL::selectAllFrom("os_version");
+  ASSERT_EQ(qd.size(), 1ul);
+
+  const auto macOS15Plus = qd.front().at("major") >= "15";
+
+  ValidationMap row_map = {
+      {"global_state", IntType},
+      {"logging_enabled", IntType},
+      {"stealth_enabled", IntType},
+      {"version", NormalType},
+  };
+
+  if (macOS15Plus) {
+    // The following fields are empty for macOS 15+.
+    row_map["allow_signed_enabled"] = EmptyOk;
+    row_map["firewall_unload"] = EmptyOk;
+    row_map["logging_option"] = EmptyOk;
+  } else {
+    row_map["allow_signed_enabled"] = IntType;
+    row_map["firewall_unload"] = IntType;
+    row_map["logging_option"] = IntType;
+  }
+
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

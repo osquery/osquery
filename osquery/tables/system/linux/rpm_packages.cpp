@@ -26,7 +26,7 @@
 #include <osquery/worker/logging/glog/glog_logger.h>
 
 // librpm may be configured and compiled with glibc < 2.17.
-#if defined(__GLIBC__) && __GLIBC_MINOR__ > 17
+#if defined(__GLIBC__) && __GLIBC_MINOR__ >= 17
 extern "C" char* __secure_getenv(const char* _s) __attribute__((weak));
 extern "C" char* __secure_getenv(const char* _s) {
   return secure_getenv(_s);
@@ -145,12 +145,18 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   }
 
   rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches;
+  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+
   if (context.constraints["name"].exists(EQUALS)) {
-    auto name = (*context.constraints["name"].getAll(EQUALS).begin());
-    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
-  } else {
-    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+    auto names = context.constraints["name"].getAll(EQUALS);
+    for (const auto& name : names) {
+      // Limit RPM iterator to constraint values
+      if (rpmdbSetIteratorRE(
+              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
+        logger.vlog(
+            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
+      }
+    }
   }
 
   Header header;
@@ -210,12 +216,19 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches;
+  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+
   if (context.constraints["package"].exists(EQUALS)) {
-    auto name = (*context.constraints["package"].getAll(EQUALS).begin());
-    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
-  } else {
-    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+    auto packages = context.constraints["package"].getAll(EQUALS);
+    for (const auto& package : packages) {
+      // Limit RPM iterator to constraint values
+      if (rpmdbSetIteratorRE(
+              matches, RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) != 0) {
+        logger.vlog(
+            1,
+            "Cannot add pattern: (" + package + ") to RPM iterator selector");
+      }
+    }
   }
 
   Header header;

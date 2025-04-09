@@ -1,20 +1,15 @@
 table_name("safari_extensions")
 description("Safari browser extension details for all users. This table requires Full Disk Access (FDA) permission.")
 schema([
-    Column("uid", BIGINT, "The local user that owns the extension",
-      index=True),
+    Column("uid", BIGINT, "The local user that owns the extension", index=True, optimized=True),
     Column("name", TEXT, "Extension display name"),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension long version", collate="version"),
     Column("sdk", TEXT, "Bundle SDK used to compile extension", collate="version"),
-    Column("update_url", TEXT, "Extension-supplied update URI"),
-    Column("author", TEXT, "Optional extension author"),
-    Column("developer_id", TEXT, "Optional developer identifier"),
     Column("description", TEXT, "Optional extension description text"),
-    Column("path", TEXT, "Path to extension XAR bundle"),
+    Column("path", TEXT, "Path to the Info.plist describing the extension"),
     Column("bundle_version", TEXT, "The version of the build that identifies an iteration of the bundle"),
     Column("copyright", TEXT, "A human-readable copyright notice for the bundle"),
-    Column("extension_type", TEXT, "Extension Type: WebOrAppExtension or LegacyExtension"),	
     ForeignKey(column="uid", table="users")
 ])
 attributes(user_data=True)

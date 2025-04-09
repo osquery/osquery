@@ -1,8 +1,8 @@
 table_name("file")
 description("Interactive filesystem attributes and metadata.")
 schema([
-    Column("path", TEXT, "Absolute file path", required=True, index=True),
-    Column("directory", TEXT, "Directory of file(s)", required=True),
+    Column("path", TEXT, "Absolute file path", required=True, index=True, optimized=True),
+    Column("directory", TEXT, "Directory of file(s)", required=True, optimized=True),
     Column("filename", TEXT, "Name portion of file path"),
     Column("inode", BIGINT, "Filesystem inode number"),
     Column("uid", BIGINT, "Owning user ID"),
@@ -18,6 +18,7 @@ schema([
     Column("hard_links", INTEGER, "Number of hard links"),
     Column("symlink", INTEGER, "1 if the path is a symlink, otherwise 0"),
     Column("type", TEXT, "File status"),
+    Column("symlink_target_path", TEXT, "Full path of the symlink target if any")
 ])
 extended_schema(WINDOWS, [
     Column("attributes", TEXT, "File attrib string. See: https://ss64.com/nt/attrib.html"),

@@ -29,38 +29,6 @@ CLI_FLAG(bool,
 
 std::atomic<bool> kCarverPendingCarves{true};
 
-/// Helper function to update values related to a carve
-void updateCarveValue(const std::string& guid,
-                      const std::string& key,
-                      const std::string& value) {
-  std::string carve;
-  auto s = getDatabaseValue(kCarves, kCarverDBPrefix + guid, carve);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to update status of carve in database " << guid;
-    return;
-  }
-
-  JSON tree;
-  s = tree.fromString(carve);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to parse carve entries: " << s.what();
-    return;
-  }
-
-  tree.add(key, value);
-
-  std::string out;
-  s = tree.toString(out);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to serialize carve entries: " << s.what();
-  }
-
-  s = setDatabaseValue(kCarves, kCarverDBPrefix + guid, out);
-  if (!s.ok()) {
-    VLOG(1) << "Failed to update status of carve in database " << guid;
-  }
-}
-
 std::string createCarveGuid() {
   return boost::uuids::to_string(boost::uuids::random_generator()());
 }

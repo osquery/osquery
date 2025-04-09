@@ -229,7 +229,7 @@ std::string NormalizePath(const std::string& cwd,
   */
 
   boostfs::path normalized_path(translated_path);
-  normalized_path = normalized_path.normalize();
+  normalized_path = normalized_path.lexically_normal();
 
   return normalized_path.string();
 };

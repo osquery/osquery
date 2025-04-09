@@ -206,7 +206,7 @@ Status PowershellEventSubscriber::parseScriptMessageEvent(
 
       if (!output.script_path.empty()) {
         output.script_name =
-            boost::filesystem::path(output.script_path).leaf().string();
+            boost::filesystem::path(output.script_path).filename().string();
       }
     }
   }

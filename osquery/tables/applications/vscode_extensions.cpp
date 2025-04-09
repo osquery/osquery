@@ -25,7 +25,12 @@ namespace tables {
 
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
+                                    const std::string& vscode_edition,
                                     QueryData& results) {
+  if (!pathExists(path).ok()) {
+    return;
+  }
+
   std::string json;
   if (!readFile(path, json).ok()) {
     LOG(INFO) << "Could not read vscode extensions.json from " << path;
@@ -55,6 +60,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
 
     Row r;
     r["uid"] = uid;
+    r["vscode_edition"] = vscode_edition;
 
     rapidjson::Value::ConstMemberIterator it = identifier.FindMember("id");
     if (it != identifier.MemberEnd() && it->value.IsString()) {
@@ -100,11 +106,22 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
   }
 }
 
+struct ConfDir {
+  std::string uid;
+  fs::path path;
+  std::string vscode_edition;
+
+  bool operator<(const ConfDir& other) const {
+    return std::tie(uid, path, vscode_edition) <
+           std::tie(other.uid, other.path, other.vscode_edition);
+  }
+};
+
 QueryData genVSCodeExtensions(QueryContext& context) {
   QueryData results;
 
   // find vscode config directories
-  std::set<std::pair<std::string, fs::path>> confDirs;
+  std::set<ConfDir> conf_dirs;
   auto users = usersFromContext(context);
   for (const auto& row : users) {
     auto uid = row.find("uid");
@@ -112,14 +129,26 @@ QueryData genVSCodeExtensions(QueryContext& context) {
     if (directory == row.end() || uid == row.end()) {
       continue;
     }
-    confDirs.insert(
-        {uid->second, fs::path(directory->second) / ".vscode-server"});
-    confDirs.insert({uid->second, fs::path(directory->second) / ".vscode"});
+
+    // Determine the version type and add paths for both VSCode and VSCode
+    // Insiders
+    conf_dirs.insert(ConfDir{
+        uid->second, fs::path(directory->second) / ".vscode-server", "vscode"});
+    conf_dirs.insert(ConfDir{
+        uid->second, fs::path(directory->second) / ".vscode", "vscode"});
+    conf_dirs.insert(
+        ConfDir{uid->second,
+                fs::path(directory->second) / ".vscode-server-insiders",
+                "vscode_insiders"});
+    conf_dirs.insert(ConfDir{uid->second,
+                             fs::path(directory->second) / ".vscode-insiders",
+                             "vscode_insiders"});
   }
 
-  for (const auto& confDir : confDirs) {
-    auto path = confDir.second / "extensions" / "extensions.json";
-    genReadJSONAndAddExtensionRows(confDir.first, path.string(), results);
+  for (const auto& conf_dir : conf_dirs) {
+    auto path = conf_dir.path / "extensions" / "extensions.json";
+    genReadJSONAndAddExtensionRows(
+        conf_dir.uid, path.string(), conf_dir.vscode_edition, results);
   }
 
   return results;

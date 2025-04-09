@@ -1,5 +1,9 @@
 # Augeas library build notes
 
+The library will depend on libxml2; the system one should be enough, osquery will not use it. In fact, when editing the augeas CMakeLists.txt in osquery, remember to remove `augrun.c` and `xml.c` from the build files, since these are what require libxml2 and are unused in osquery.
+
+It's also possible to do the same when configuring the library on its own to avoid requiring libxml2 in the system.
+
 ## Linux
 
 ## Common
@@ -31,13 +35,6 @@ Disable the command line tools:
 ```bash
 sed -i '/AUGEAS_CHECK_READLINE/d' configure.ac
 sed -i '/bin_PROGRAMS = augtool augparse augmatch/c\bin_PROGRAMS = ' src/Makefile.am
-```
-
-Pass the include headers of the libxml2 library we have in osquery (make sure to set the correct architecture!). Also set a fake library to pass the configuration step.
-
-```bash
-export LIBXML_CFLAGS="-I/home/ubuntu/osquery/libraries/cmake/source/libxml2/src/include -I/home/ubuntu/osquery/libraries/cmake/source/libxml2/generated/config/linux/x86_64 -I/home/ubuntu/osquery/libraries/cmake/source/libxml2/generated/version/linux/x86_64"
-export LIBXML_LIBS="-lpthreads"
 ```
 
 Now configure the library
@@ -97,13 +94,6 @@ Disable the command line tools:
 ```bash
 gsed -i '/AUGEAS_CHECK_READLINE/d' configure.ac
 gsed -i '/bin_PROGRAMS = augtool augparse augmatch/c\bin_PROGRAMS = ' src/Makefile.am
-```
-
-Pass the include headers of the libxml2 library we have in osquery (make sure to set the correct architecture!). Also set a fake library to pass the configuration step.
-
-```bash
-export LIBXML_CFLAGS="-I/Users/alessandro/Projects/osquery/libraries/cmake/source/libxml2/src/include -I/Users/alessandro/Projects/osquery/libraries/cmake/source/libxml2/generated/config/macos/x86_64 -I/Users/alessandro/Projects/osquery/libraries/cmake/source/libxml2/generated/version/macos/x86_64"
-export LIBXML_LIBS="-lpthreads"
 ```
 
 Now configure the library

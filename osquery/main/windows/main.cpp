@@ -27,6 +27,8 @@
 #include <osquery/core/shutdown.h>
 #include <osquery/filesystem/filesystem.h>
 
+#include <osquery/utils/conversions/windows/strings.h>
+
 DECLARE_string(flagfile);
 
 namespace osquery {
@@ -89,18 +91,17 @@ class ServiceArgumentParser {
       LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);
 
       if (wargv != nullptr) {
+        owns_argv_ptrs_ = true;
         for (int i = 0; i < wargc; i++) {
           LPSTR arg = toMBString(wargv[i]);
 
           // On error, bail out and clean up the vector
           if (arg == nullptr) {
             cleanArgs();
-            ::LocalFree(wargv);
             break;
           }
           args_.push_back(arg);
         }
-        owns_argv_ptrs_ = true;
         ::LocalFree(wargv);
       }
     }
@@ -368,4 +369,21 @@ int main(int argc, char* argv[]) {
     }
   }
   return retcode;
+}
+
+int wmain(int argc, wchar_t* wargv[]) {
+  std::vector<std::wstring> wargs(wargv, wargv + argc);
+  std::vector<std::string> copies;
+  std::vector<char*> argv;
+
+  copies.reserve(wargs.size());
+  argv.reserve(wargs.size());
+
+  for (auto& arg : wargs) {
+    auto str = osquery::wstringToString(arg);
+    copies.emplace_back(str);
+    argv.push_back(copies.back().data());
+  }
+
+  return main(argc, &argv[0]);
 }

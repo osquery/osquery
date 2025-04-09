@@ -10,7 +10,7 @@ on-demand YARA scan.
 In this document, "signature file" is intended to be synonymous with "YARA rule file" (plain-text files commonly
 distributed with a `.yar` or `.yara` filename extension, although any extension is allowed).
 
-For more information about YARA, check out the [documentation](https://yara.readthedocs.io/en/stable/). 
+For more information about YARA, check out the [documentation](https://yara.readthedocs.io/en/stable/).
 
 ## YARA Configuration
 
@@ -23,23 +23,23 @@ filesystem:
   "yara": {
     "signatures": {
       // Each key is an arbitrary group name to give the signatures listed
-      "sig_group_1": [ "/Users/wxs/sigs/foo.yar", "/Users/wxs/sigs/bar.yar" ],
-      "sig_group_2": [ "/Users/wxs/sigs/baz.yar" ]
+      "sig_group_1": ["/Users/wxs/sigs/foo.yar", "/Users/wxs/sigs/bar.yar"],
+      "sig_group_2": ["/Users/wxs/sigs/baz.yar"]
     },
     "file_paths": {
       // Each key is a key from file_paths
       // The value is a list of signature groups to run when an event fires
       // These will be watched for and scanned when the event framework
       // fire off an event to yara_events table
-      "system_binaries": [ "sig_group_1" ],
-      "tmp": [ "sig_group_1", "sig_group_2" ]
+      "system_binaries": ["sig_group_1"],
+      "tmp": ["sig_group_1", "sig_group_2"]
     }
   },
 
   // Paths to watch for filesystem events
   "file_paths": {
-    "system_binaries": [ "/usr/bin/%", "/usr/sbin/%" ],
-    "tmp": [ "/Users/%/tmp/%%", "/tmp/%" ]
+    "system_binaries": ["/usr/bin/%", "/usr/sbin/%"],
+    "tmp": ["/Users/%/tmp/%%", "/tmp/%"]
   }
 }
 ```
@@ -110,12 +110,16 @@ Query must specify sig_group, sigfile, or sigrule for scan
 YARA rule strings are omitted from output by default, to prevent disclosure in osquery's results and logs. To include
 the YARA rules in the `sigrule` column, set the `enable_yara_string` flag to `true`.
 
+#### Authentication
+
+Request authentication can be enabled with the `--yara_sigurl_authenticate` flag. When enabled, instead of a `GET` request osquery will send a `POST` request with a JSON body containing the node key. The receiving server can then authenticate the request using the node key before responding with the yara rules. All other behavior remains unchanged.
+
 #### Notes
 
 - Retrieved YARA rules are retrieved only once and then cached; the cached copy is used until it is stale as specified
- by the HTTP `Last-Modified` header in the server's response.
+  by the HTTP `Last-Modified` header in the server's response.
 - The osquery agent always validates the HTTPS server certificate of the server providing the YARA signatures, but
-currently has no support for client authentication. YARA rule files must be accessible without authentication.
+  currently has no support for client authentication. YARA rule files must be accessible without authentication.
 
 ## Continuous monitoring using the yara_events table
 
@@ -256,7 +260,7 @@ osquery> select * from yara where path LIKE 'C:\tmp\%' and sigrule = 'rule hello
 +------------------------------+-------------+-------+-----------+---------+---------+------+
 ```
 
-**Note:**  when entering a `sigrule` inline, be careful to avoid double-quoting the rule and then also a string
+**Note:** when entering a `sigrule` inline, be careful to avoid double-quoting the rule and then also a string
 variable within the rule, as the second `"` will terminate the rule and cause a `syntax error`. In the example
 above, the `sigrule` string has been single-quoted so the enclosed variable `"Hello world"` can be double-quoted.
 

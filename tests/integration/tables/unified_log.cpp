@@ -48,6 +48,7 @@ TEST_F(UnifiedLogTest, test_sanity) {
 
   ValidationMap row_map = {
       {"timestamp", IntType},
+      {"timestamp_double", NonEmptyString},
       {"level", NormalType},
       {"storage", IntType},
       {"message", NormalType},
@@ -61,18 +62,27 @@ TEST_F(UnifiedLogTest, test_sanity) {
   };
   validate_rows(rows, row_map);
 
+  // NOTE: Because of https://github.com/osquery/osquery/pull/8274 the
+  // unified_log behavior without a timestamp is horrific. As a workaround, we
+  // impose a short timestamp. Better would be to fix the underlying issue
+  // Where that's not possible, we limit the category
+
   // max rows test
-  QueryData const r1 =
-      execute_query("select * from unified_log where max_rows = 50");
+  QueryData const r1 = execute_query(
+      "select * from unified_log where max_rows = 50 and timestamp > (select "
+      "unix_time - 120 from time)");
   ASSERT_EQ(r1.size(), 50ul);
-  QueryData const r2 =
-      execute_query("select * from unified_log where max_rows = 1");
+  QueryData const r2 = execute_query(
+      "select * from unified_log where max_rows = 1 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r2.size(), 1ul);
-  QueryData const r3 =
-      execute_query("select * from unified_log where max_rows = 0");
+  QueryData const r3 = execute_query(
+      "select * from unified_log where max_rows = 0 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r3.size(), 0ul);
-  QueryData const r4 =
-      execute_query("select * from unified_log where max_rows = -1");
+  QueryData const r4 = execute_query(
+      "select * from unified_log where max_rows = -1 and timestamp > (select "
+      "unix_time - 60 from time)");
   ASSERT_EQ(r4.size(), 0ul);
 
   // Sequential test: checks the pointer is increased and the data extracted
@@ -80,11 +90,13 @@ TEST_F(UnifiedLogTest, test_sanity) {
   DeltaContext dc1, dc2;
   dc1.load();
   QueryData const r5 = execute_query(
-      "select * from unified_log where max_rows = 1 and timestamp > -1");
+      "select * from unified_log where max_rows = 1 and timestamp > -1 and "
+      "category = 'General'");
   dc2.load();
   EXPECT_TRUE(dc1 < dc2);
   QueryData const r6 = execute_query(
-      "select * from unified_log where max_rows = 1 and timestamp > -1");
+      "select * from unified_log where max_rows = 1 and timestamp > -1 and "
+      "category = 'General'");
   ASSERT_EQ(r5.size(), 1ul);
   ASSERT_EQ(r6.size(), 1ul);
   bool sequential_queries_diff = false;

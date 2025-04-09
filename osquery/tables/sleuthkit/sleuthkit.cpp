@@ -170,7 +170,7 @@ void DeviceHelper::generateFile(const std::string& partition,
   r["device"] = device_path_;
   r["partition"] = partition;
   r["path"] = path;
-  r["filename"] = fs::path(path).leaf().string();
+  r["filename"] = fs::path(path).filename().string();
 
   if (fs != nullptr) {
     r["block_size"] = BIGINT(fs->getBlockSize());

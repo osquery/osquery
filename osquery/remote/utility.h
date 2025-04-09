@@ -17,10 +17,11 @@
 #include <osquery/remote/transports/tls.h>
 // clang-format on
 
-#include <osquery/remote/enroll/enroll.h>
 #include <osquery/core/flags.h>
-#include <osquery/core/system.h>
 #include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
+#include <osquery/logger/logger.h>
+#include <osquery/remote/enroll/enroll.h>
 
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
@@ -269,15 +270,24 @@ class TLSRequestHelper : private boost::noncopyable {
       if (s.ok()) {
         return s;
       }
+
+      const auto& sleep_time_seconds = i * i;
+      const auto& errMessage = "HTTP(S) request failed: " + s.getMessage();
+
       if (i == attempts) {
+        VLOG(1) << errMessage << ", done retrying after " << i << " times";
         break;
+      } else {
+        VLOG(1) << errMessage << ", retrying in " << sleep_time_seconds
+                << " seconds...";
       }
+
       for (auto& m : override_params_doc.GetObject()) {
         params.add(m.name.GetString(), m.value);
       }
 
-      should_shutdown =
-          waitTimeoutOrShutdown(std::chrono::milliseconds(i * i * 1000));
+      should_shutdown = waitTimeoutOrShutdown(
+          std::chrono::milliseconds(sleep_time_seconds * 1000));
     }
     return s;
   }
