@@ -108,7 +108,5 @@ TEST_F(dnsLookupEvents, test_sanity) {
     }
   }
 }
-}
-
 } // namespace table_tests
 } // namespace osquery
