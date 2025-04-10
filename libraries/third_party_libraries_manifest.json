@@ -105,13 +105,9 @@
   "expat": {
     "product": "libexpat",
     "vendor": "libexpat_project",
-    "version": "2.6.0",
-    "commit": "849da3e3fe727fccef5e96ef35482d66447f06a2",
-    "ignored-cves": [
-      "CVE-2024-45490",
-      "CVE-2024-45491",
-      "CVE-2024-45492"
-    ]
+    "version": "2.7.1",
+    "commit": "f9a3eeb3e09fbea04b1c451ffc422ab2f1e45744",
+    "ignored-cves": []
   },
   "gflags": {
     "vendor": "google",
