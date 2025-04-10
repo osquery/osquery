@@ -53,8 +53,7 @@ void EtwPublisherBase::updateUserInfo(const std::string& userSid,
       usernamesBySIDs_.insert({userSid, ""});
       return;
     }
-    auto sid_guard =
-        scope_guard::create([&pSid]() { LocalFree(pSid); });
+    auto sid_guard = scope_guard::create([&pSid]() { LocalFree(pSid); });
 
     std::vector<wchar_t> domainNameStr(MAX_PATH, 0x0);
     std::vector<wchar_t> userNameStr(MAX_PATH, 0x0);
