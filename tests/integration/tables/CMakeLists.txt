@@ -339,7 +339,8 @@ function(generateTestsIntegrationTablesTestsTest)
 
     if(OSQUERY_BUILD_ETW)
       list(APPEND platform_source_files
-        etw_process_events.cpp
+      etw_process_events.cpp
+      dns_lookup_events.cpp
       )
     endif()
 
