@@ -75,6 +75,7 @@ function(generateNativeTables)
     utility/osquery_schedule.table
     utility/time.table
     yara.table
+    yara_events.table
     ycloud_instance_metadata.table
   )
 
@@ -250,7 +251,6 @@ function(generateNativeTables)
     "posix/ulimit_info.table:linux,macos"
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
-    "posix/yara_events.table:linux,macos"
     "secureboot.table:linux,macos,windows"
     "sleuthkit/device_file.table:linux,macos,windows"
     "sleuthkit/device_hash.table:linux,macos,windows"
@@ -319,7 +319,8 @@ function(generateNativeTables)
 
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files
-      "windows/process_etw_events.table:windows"
+    "windows/process_etw_events.table:windows"
+    "windows/dns_lookup_events.table:windows"
     )
   endif()
 

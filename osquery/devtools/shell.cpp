@@ -1818,12 +1818,12 @@ int runPack(struct callback_data* data) {
     }
 
     for (const auto& query : pack.getSchedule()) {
-      rc = runQuery(data, query.second.query.c_str());
+      rc = runQuery(data, query.query.c_str());
       if (rc != 0) {
         fprintf(stderr,
                 "Could not execute query %s: %s\n",
-                query.first.c_str(),
-                query.second.query.c_str());
+                query.name.c_str(),
+                query.query.c_str());
         return;
       }
     }
