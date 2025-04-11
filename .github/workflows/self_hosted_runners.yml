@@ -40,7 +40,7 @@ jobs:
   # This job performs basic source code check, looking for formatting
   # issues and missing copyright headers
   check_code_style:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     container:
       image: osquery/builder20.04:7e9ee0339
