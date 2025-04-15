@@ -11,6 +11,8 @@
 
 #include <osquery/events/windows/etw/etw_publisher.h>
 
+#include <osquery/utils/scope_guard.h>
+
 namespace osquery {
 
 EtwPublisherBase::EtwPublisherBase(const std::string& name) {
@@ -45,41 +47,43 @@ void EtwPublisherBase::updateUserInfo(const std::string& userSid,
   } else {
     PSID pSid = nullptr;
 
-    if (!ConvertStringSidToSidA(userSid.c_str(), &pSid) || pSid == nullptr) {
+    std::wstring userSidW = stringToWstring(userSid);
+    if (!ConvertStringSidToSidW(userSidW.c_str(), &pSid) || pSid == nullptr) {
       // Inserting empty username to avoid the lookup logic to be called again
       usernamesBySIDs_.insert({userSid, ""});
       return;
     }
+    auto sid_guard = scope_guard::create([&pSid]() { LocalFree(pSid); });
 
-    std::vector<char> domainNameStr(MAX_PATH - 1, 0x0);
-    std::vector<char> userNameStr(MAX_PATH - 1, 0x0);
+    std::vector<wchar_t> domainNameStr(MAX_PATH, 0x0);
+    std::vector<wchar_t> userNameStr(MAX_PATH, 0x0);
     DWORD domainNameSize = MAX_PATH;
     DWORD userNameSize = MAX_PATH;
     SID_NAME_USE sidType = SID_NAME_USE::SidTypeInvalid;
 
-    if (!LookupAccountSidA(NULL,
+    if (!LookupAccountSidW(NULL,
                            pSid,
                            userNameStr.data(),
                            &userNameSize,
                            domainNameStr.data(),
                            &domainNameSize,
                            &sidType) ||
-        strlen(domainNameStr.data()) == 0 ||
-        strlen(domainNameStr.data()) >= MAX_PATH ||
-        strlen(userNameStr.data()) == 0 ||
-        strlen(userNameStr.data()) >= MAX_PATH ||
+        wcsnlen_s(domainNameStr.data(), MAX_PATH) == 0 ||
+        wcsnlen_s(domainNameStr.data(), MAX_PATH) >= MAX_PATH ||
+        wcsnlen_s(userNameStr.data(), MAX_PATH) == 0 ||
+        wcsnlen_s(userNameStr.data(), MAX_PATH) >= MAX_PATH ||
         sidType == SID_NAME_USE::SidTypeInvalid) {
       // Inserting empty username to avoid the lookup logic to be called again
       usernamesBySIDs_.insert({userSid, ""});
-      LocalFree(pSid);
       return;
     }
 
-    LocalFree(pSid);
+    std::wstring usernameW;
+    usernameW.append(domainNameStr.data());
+    usernameW.append(L"\\");
+    usernameW.append(userNameStr.data());
 
-    username.append(domainNameStr.data());
-    username.append("\\");
-    username.append(userNameStr.data());
+    username = wstringToString(usernameW);
 
     usernamesBySIDs_.insert({userSid, username});
   }
@@ -89,12 +93,16 @@ void EtwPublisherBase::initializeHardVolumeConversions() {
   const auto& validDriveLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   for (const auto& driveLetter : validDriveLetters) {
+    // Convert drive letter to a wide-character string
     std::string queryPath;
     queryPath.push_back(driveLetter);
     queryPath.push_back(':');
+    std::wstring queryPathW = stringToWstring(queryPath);
 
-    char hardVolume[MAX_PATH + 1] = {0};
-    if (QueryDosDeviceA(queryPath.c_str(), hardVolume, MAX_PATH)) {
+    wchar_t hardVolumeW[MAX_PATH + 1] = {0};
+    if (QueryDosDeviceW(queryPathW.c_str(), hardVolumeW, MAX_PATH)) {
+      // Convert wide-character strings back to UTF-8 for storage
+      std::string hardVolume = wstringToString(hardVolumeW);
       hardVolumeDrives_.insert({hardVolume, queryPath});
     }
   }
