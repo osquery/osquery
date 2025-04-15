@@ -39,8 +39,11 @@ QueryData genSystemInfo(QueryContext& context) {
   const auto wmiSystemReq =
       WmiRequest::CreateWmiRequest("select * from Win32_ComputerSystem");
   auto wmiExecutedSuccessful = wmiSystemReq.isValue();
+  // Why not select * here?  Because we only use NumberOfCores out of this
+  // structure, however getting the full structure takes a 1s per CPU core
+  // penalty, which really hurts on large CPU systems
   const auto wmiSystemReqProc =
-      WmiRequest::CreateWmiRequest("select * from Win32_Processor");
+      WmiRequest::CreateWmiRequest("select NumberOfCores from Win32_Processor");
   wmiExecutedSuccessful &= wmiSystemReqProc.isValue();
   if (wmiExecutedSuccessful && !wmiSystemReq->results().empty() &&
       !wmiSystemReqProc->results().empty()) {
