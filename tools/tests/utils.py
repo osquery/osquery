@@ -213,6 +213,14 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
 
     if len(stats.keys()) == 0:
         raise Exception("No stats recorded, perhaps binary returns -1?")
+    
+    # print out stderr if it exists
+    exit_code = p.wait()
+    if exit_code != 0:
+        err = proc.stderr.read()
+        if len(err) > 0:
+            print("Error: %s" % err.decode("utf-8"))
+
     rval = {
         "utilization": avg_utilization,
         "duration": duration,
