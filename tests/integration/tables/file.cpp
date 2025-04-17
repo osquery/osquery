@@ -103,7 +103,9 @@ class FileTests : public testing::Test {
       }
 
 #ifdef WIN32
-      createShellLink(filepath.replace_extension(".lnk"), filepath);
+      createShellLink(
+          filepath.replace_extension(filepath.extension().string() + ".lnk"),
+          filepath);
 #endif
     }
   }
@@ -208,17 +210,18 @@ TEST_F(FileTests, test_sanity) {
     ASSERT_EQ(row.at("filename"), test_file_name);
 
     if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-      auto link_path = boost::filesystem::path(expected_path);
+      // Check for corresponding shortcut (.lnk) files
+      auto link_index = getRowIndexForFileName(data, test_file_name + ".lnk");
+      ASSERT_TRUE(link_index.has_value());
+      const auto& row = data.at(link_index.value());
 
-      if (row.at("path").rfind(".lnk") != std::string::npos) {
-        EXPECT_EQ(row.at("shortcut_target_path"),
-                  link_path.replace_extension(".lnk").string());
-        EXPECT_EQ(row.at("shortcut_target_type"), "File");
-        EXPECT_EQ(row.at("shortcut_target_location"), test_file_name);
-        EXPECT_EQ(row.at("shortcut_target_start_in"), directory.string());
-        EXPECT_EQ(row.at("shortcut_target_run"), "Normal window");
-        EXPECT_EQ(row.at("shortcut_target_comment"), "Test shortcut");
-      }
+      EXPECT_EQ(row.at("shortcut_target_path"), expected_path);
+      EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
+      EXPECT_EQ(row.at("shortcut_target_location"),
+                directory.filename().string());
+      EXPECT_EQ(row.at("shortcut_start_in"), directory.string());
+      EXPECT_EQ(row.at("shortcut_run"), "Normal window");
+      EXPECT_EQ(row.at("shortcut_comment"), "Test shortcut");
     }
   }
 
