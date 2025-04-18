@@ -107,18 +107,16 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
   /* Empty files are still able to be loaded via the ShellLink COM interface,
      but they are not ShellLink files, so verify that the file
      contains a header of a certain size */
-  std::string header_size_field_bytes;
-  auto status =
-      readFile(link, header_size_field_bytes, kShellLinkHeaderSizeFieldSize);
+  std::string link_content;
+  auto status = readFile(link, link_content);
 
-  if (!status.ok() ||
-      header_size_field_bytes.size() != kShellLinkHeaderSizeFieldSize) {
+  if (!status.ok() || link_content.size() < kShellLinkHeaderSizeFieldSize) {
     return boost::none;
   }
 
   std::uint32_t header_size_field_value;
   std::memcpy(&header_size_field_value,
-              header_size_field_bytes.data(),
+              link_content.data(),
               kShellLinkHeaderSizeFieldSize);
 
   if (header_size_field_value != kShellLinkHeaderSizeExpectedValue) {
