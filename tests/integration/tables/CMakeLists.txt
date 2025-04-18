@@ -335,6 +335,7 @@ function(generateTestsIntegrationTablesTestsTest)
       deviceguard_status.cpp
       tpm_info.cpp
       security_profile_info.cpp
+      windows_recent_files.cpp
     )
 
     if(OSQUERY_BUILD_ETW)
