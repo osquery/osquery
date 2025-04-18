@@ -215,7 +215,8 @@ TEST_F(FileTests, test_sanity) {
       ASSERT_TRUE(link_index.has_value());
       const auto& row = data.at(link_index.value());
 
-      EXPECT_EQ(row.at("shortcut_target_path"), expected_path);
+      EXPECT_EQ(row.at("shortcut_target_path"), directory.string() + "\\" +
+                test_file_name);
       EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
       EXPECT_EQ(row.at("shortcut_target_location"),
                 directory.filename().string());
