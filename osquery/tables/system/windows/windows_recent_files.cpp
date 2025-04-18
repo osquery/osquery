@@ -53,8 +53,9 @@ QueryData genWindowsRecentFiles(QueryContext& context) {
     }
 
     Row r;
-    r["filename"] =
-        std::filesystem::path(row.at("shortcut_target_path")).filename().string();
+    r["filename"] = std::filesystem::path(row.at("shortcut_target_path"))
+                        .filename()
+                        .string();
     r["path"] = row.at("shortcut_target_path");
     r["mtime"] = row.at("mtime");
     r["type"] = row.at("shortcut_target_type");
