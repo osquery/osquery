@@ -35,6 +35,20 @@ Status processRequest(Row& r) {
 
     // Change the user-agent for the request to be osquery
     request << osquery::http::Request::Header("User-Agent", r["user_agent"]);
+    
+    // Process additional headers
+    if (!r["additional_headers"].empty()) {
+      std::stringstream ss(r["additional_headers"]);
+      std::string line;
+      while (std::getline(ss, line,'\n')) {
+        size_t separator = line.find(':');
+        if (separator != std::string::npos) {
+          std::string k = line.substr(0, separator);
+          std::string v = line.substr(separator + 1);
+          request << osquery::http::Request::Header(k, v);
+        }
+      }
+    }
 
     // Measure the rtt using the system clock
     auto time_start = std::chrono::system_clock::now();

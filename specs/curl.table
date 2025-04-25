@@ -5,6 +5,7 @@ schema([
     Column("method", TEXT, "The HTTP method for the request"),
     Column("user_agent", TEXT, "The user-agent string to use for the request",
        additional=True),
+    Column("additional_headers", TEXT, "A newline separated list of additional headers to use for the request", additional=True),
     Column("response_code", INTEGER, "The HTTP status code for the response"),
     Column("round_trip_time", BIGINT, "Time taken to complete the request"),
     Column("bytes", BIGINT, "Number of bytes in the response"),
