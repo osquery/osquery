@@ -83,7 +83,17 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   r["subject_key_id"] = SQL_TEXT(opt_subject_key_id.value_or(""));
 
   auto opt_cert_serial_number = getCertificateSerialNumber(cert);
-  r["serial"] = SQL_TEXT(opt_cert_serial_number.value_or(""));
+  // If the serial number is <= 8 bytes, translate it from
+  // hex to decimal.
+  if (opt_cert_serial_number.has_value()) {
+    auto serial = opt_cert_serial_number.value();
+    if (serial.size() <= 16) {
+      unsigned long decimal_serial = strtoul(serial.c_str(), nullptr, 16);
+      r["serial"] = SQL_TEXT(decimal_serial);
+    } else {
+      r["serial"] = SQL_TEXT(serial);
+    }
+  }
 
   results.push_back(r);
 }

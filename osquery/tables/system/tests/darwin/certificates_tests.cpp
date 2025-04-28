@@ -31,11 +31,20 @@ static std::string getCACertificateContent() {
   return content;
 }
 
+static std::string getCACertificateContentBigSerial() {
+  std::string content;
+  readFile(getTestConfigDirectory() / "test_cert_big_serial.pem", content);
+  return content;
+}
+
+void genCertificate(X509* cert, const std::string& path, QueryData& results);
+
 class CACertsTests : public ::testing::Test {
  protected:
   virtual void SetUp() {
     std::string raw;
     CFDataRef data;
+    CFDataRef data_bigserial;
 
     raw = base64::decode(getCACertificateContent());
     data =
@@ -46,23 +55,44 @@ class CACertsTests : public ::testing::Test {
     x_cert = d2i_X509(nullptr, &bytes, CFDataGetLength(cert_der_data));
 
     CFRelease(data);
+
+    raw = base64::decode(getCACertificateContentBigSerial());
+    data_bigserial =
+        CFDataCreate(nullptr, (const UInt8*)raw.c_str(), (CFIndex)raw.size());
+    cert_bigserial = SecCertificateCreateWithData(nullptr, data_bigserial);
+    cert_der_data_bigserial = SecCertificateCopyData(cert_bigserial);
+    auto bytes_bigserial = CFDataGetBytePtr(cert_der_data_bigserial);
+    x_cert_bigserial = d2i_X509(
+        nullptr, &bytes_bigserial, CFDataGetLength(cert_der_data_bigserial));
   }
 
   virtual void TearDown() {
     if (cert != nullptr) {
       CFRelease(cert);
     }
+    if (cert_bigserial != nullptr) {
+      CFRelease(cert_bigserial);
+    }
     if (cert_der_data != nullptr) {
       CFRelease(cert_der_data);
+    }
+    if (cert_der_data_bigserial != nullptr) {
+      CFRelease(cert_der_data_bigserial);
     }
     if (x_cert != nullptr) {
       X509_free(x_cert);
     }
+    if (x_cert_bigserial != nullptr) {
+      X509_free(x_cert_bigserial);
+    }
   }
 
   SecCertificateRef cert;
+  SecCertificateRef cert_bigserial;
   CFDataRef cert_der_data;
+  CFDataRef cert_der_data_bigserial;
   X509* x_cert;
+  X509* x_cert_bigserial;
 };
 
 TEST_F(CACertsTests, test_certificate_sha1) {
@@ -70,6 +100,20 @@ TEST_F(CACertsTests, test_certificate_sha1) {
   ASSERT_TRUE(opt_digest.has_value());
 
   EXPECT_EQ("f149bae28e3c754ff4bb062b2c1b8bac81b8783e", opt_digest.value());
+}
+
+TEST_F(CACertsTests, test_certificate_serial) {
+  std::string path = "/tmp/test.pem";
+  QueryData results;
+  genCertificate(x_cert, path, results);
+  EXPECT_EQ(results[0]["serial"], "10185763458774006113");
+}
+
+TEST_F(CACertsTests, test_certificate_bigserial) {
+  std::string path = "/tmp/test2.pem";
+  QueryData results;
+  genCertificate(x_cert_bigserial, path, results);
+  EXPECT_EQ(results[0]["serial"], "0102030405060708090A0B0C0D0E0F");
 }
 
 TEST_F(CACertsTests, test_certificate_properties) {
@@ -102,6 +146,10 @@ TEST_F(CACertsTests, test_certificate_properties) {
   bool is_self_signed{};
   getCertificateAttributes(x_cert, is_ca, is_self_signed);
   EXPECT_TRUE(is_ca);
+
+  auto opt_serial = getCertificateSerialNumber(x_cert);
+  ASSERT_TRUE(opt_serial.has_value());
+  EXPECT_EQ("8D5B19E63660F961", opt_serial.value());
 }
 } // namespace tables
 } // namespace osquery
