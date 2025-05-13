@@ -70,6 +70,11 @@ std::string showCmdToString(int show_cmd) {
 }
 
 boost::optional<LnkData> parseLnkData(const fs::path& link) {
+  // Shortcuts must have a .lnk extension to be usable
+  if (link.extension() != ".lnk") {
+    return boost::none;
+  }
+
   IShellLink* shell_link;
   auto hres = CoCreateInstance(CLSID_ShellLink,
                                nullptr,
@@ -104,19 +109,22 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
     return boost::none;
   }
 
-  /* Empty files are still able to be loaded via the ShellLink COM interface,
-     but they are not ShellLink files, so verify that the file
-     contains a header of a certain size */
-  std::string link_content;
-  auto status = readFile(link, link_content);
+  /* Read only the first 4 bytes of the file to verify the header size */
+  std::ifstream file_reader(link.string(), std::ios::binary);
+  if (!file_reader.is_open()) {
+    return boost::none;
+  }
 
-  if (!status.ok() || link_content.size() < kShellLinkHeaderSizeFieldSize) {
+  std::array<char, kShellLinkHeaderSizeFieldSize> header_buffer{};
+  file_reader.read(header_buffer.data(), kShellLinkHeaderSizeFieldSize);
+
+  if (file_reader.gcount() < kShellLinkHeaderSizeFieldSize) {
     return boost::none;
   }
 
   std::uint32_t header_size_field_value;
   std::memcpy(&header_size_field_value,
-              link_content.data(),
+              header_buffer.data(),
               kShellLinkHeaderSizeFieldSize);
 
   if (header_size_field_value != kShellLinkHeaderSizeExpectedValue) {
