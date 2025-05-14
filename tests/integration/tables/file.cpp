@@ -215,8 +215,16 @@ TEST_F(FileTests, test_sanity) {
       ASSERT_TRUE(link_index.has_value());
       const auto& row = data.at(link_index.value());
 
-      EXPECT_EQ(row.at("shortcut_target_path"),
-                directory.string() + "\\" + test_file_name);
+      auto expected_path = directory.string() + "\\" + test_file_name;
+      // Transform the expected path to a "long path" because otherwise the test
+      // was failing on GitHub runners due to use of an abbreviated path.
+      wchar_t long_path[MAX_PATH];
+      auto result = GetLongPathNameW(
+          std::wstring(expected_path.begin(), expected_path.end()).c_str(),
+          long_path,
+          MAX_PATH);
+      EXPECT_EQ(row.at("shortcut_target_path"), wstringToString(long_path));
+
       EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
       EXPECT_EQ(row.at("shortcut_target_location"),
                 directory.filename().string());
