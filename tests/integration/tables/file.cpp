@@ -221,15 +221,14 @@ TEST_F(FileTests, test_sanity) {
       const auto& row = data.at(link_index.value());
 
       auto short_path = directory.string();
-      // Transform the expected path to a "full path" using GetFullPathNameW
-      wchar_t full_path[MAX_PATH];
-      auto result = GetFullPathNameW(
+      // Transform the expected path to a "full path" using GetLongPathNameW
+      wchar_t long_path[MAX_PATH];
+      auto result = GetLongPathNameW(
           std::wstring(short_path.begin(), short_path.end()).c_str(),
-          MAX_PATH,
-          full_path,
-          nullptr);
+          long_path,
+          MAX_PATH);
       EXPECT_EQ(row.at("shortcut_target_path"),
-                wstringToString(full_path) + "\\" + test_file_name);
+            wstringToString(long_path) + "\\" + test_file_name);
 
       EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
       EXPECT_EQ(row.at("shortcut_target_location"),
