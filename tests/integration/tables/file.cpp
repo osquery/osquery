@@ -228,7 +228,7 @@ TEST_F(FileTests, test_sanity) {
           long_path,
           MAX_PATH);
       EXPECT_EQ(row.at("shortcut_target_path"),
-            wstringToString(long_path) + "\\" + test_file_name);
+                wstringToString(long_path) + "\\" + test_file_name);
 
       EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
       EXPECT_EQ(row.at("shortcut_target_location"),
