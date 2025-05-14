@@ -23,8 +23,11 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/integration/tables/helper.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
+
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
 
 namespace osquery {
 namespace table_tests {
