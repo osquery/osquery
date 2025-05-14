@@ -23,6 +23,7 @@
 
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
@@ -209,21 +210,23 @@ TEST_F(FileTests, test_sanity) {
     ASSERT_EQ(row.at("directory"), directory.string());
     ASSERT_EQ(row.at("filename"), test_file_name);
 
-    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+#ifdef WIN32
+    {
       // Check for corresponding shortcut (.lnk) files
       auto link_index = getRowIndexForFileName(data, test_file_name + ".lnk");
       ASSERT_TRUE(link_index.has_value());
       const auto& row = data.at(link_index.value());
 
-      auto expected_path = directory.string() + "\\" + test_file_name;
-      // Transform the expected path to a "long path" because otherwise the test
-      // was failing on GitHub runners due to use of an abbreviated path.
-      wchar_t long_path[MAX_PATH];
-      auto result = GetLongPathNameW(
-          std::wstring(expected_path.begin(), expected_path.end()).c_str(),
-          long_path,
-          MAX_PATH);
-      EXPECT_EQ(row.at("shortcut_target_path"), wstringToString(long_path));
+      auto short_path = directory.string();
+      // Transform the expected path to a "full path" using GetFullPathNameW
+      wchar_t full_path[MAX_PATH];
+      auto result = GetFullPathNameW(
+          std::wstring(short_path.begin(), short_path.end()).c_str(),
+          MAX_PATH,
+          full_path,
+          nullptr);
+      EXPECT_EQ(row.at("shortcut_target_path"),
+                wstringToString(full_path) + "\\" + test_file_name);
 
       EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
       EXPECT_EQ(row.at("shortcut_target_location"),
@@ -232,6 +235,7 @@ TEST_F(FileTests, test_sanity) {
       EXPECT_EQ(row.at("shortcut_run"), "Normal window");
       EXPECT_EQ(row.at("shortcut_comment"), "Test shortcut");
     }
+#endif
   }
 
   validate_rows(data, row_map);
