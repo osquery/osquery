@@ -77,7 +77,6 @@ typedef struct _PREFETCH_FILE_HEADER {
   DWORD Reserved2;
 } PREFETCH_FILE_HEADER, *PPREFETCH_FILE_HEADER;
 
-// 
 typedef struct _PREFETCH_FILE_INFORMATION {
   DWORD FileMetricsArrayOffset;
   DWORD NumberOfMetricEntries;
