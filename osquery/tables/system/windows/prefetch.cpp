@@ -154,7 +154,8 @@ PrefetchFileInfo parseFileInfo(
   std::vector<std::string> run_times;
 
   switch (version) {
-  case kPrefetchVersionWindows10, kPrefetchVersionWindows11:
+  case kPrefetchVersionWindows10:
+  case kPrefetchVersionWindows11:
     last_run_time = prefetch_file_info->ext.v30v2.LastRunTime;
     result.run_count = prefetch_file_info->ext.v30v2.RunCount;
     for (const auto& entry : prefetch_file_info->ext.v30v2.OtherRunTimes) {
