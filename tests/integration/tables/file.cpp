@@ -25,6 +25,10 @@
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/info/platform_type.h>
 
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
+
 namespace osquery {
 namespace table_tests {
 
@@ -103,7 +107,9 @@ class FileTests : public testing::Test {
       }
 
 #ifdef WIN32
-      createShellLink(filepath.replace_extension(".lnk"), filepath);
+      createShellLink(
+          filepath.replace_extension(filepath.extension().string() + ".lnk"),
+          filepath);
 #endif
     }
   }
@@ -207,19 +213,28 @@ TEST_F(FileTests, test_sanity) {
     ASSERT_EQ(row.at("directory"), directory.string());
     ASSERT_EQ(row.at("filename"), test_file_name);
 
-    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-      auto link_path = boost::filesystem::path(expected_path);
+#ifdef WIN32
+    {
+      // Check for corresponding shortcut (.lnk) files
+      auto link_index = getRowIndexForFileName(data, test_file_name + ".lnk");
+      ASSERT_TRUE(link_index.has_value());
+      const auto& row = data.at(link_index.value());
 
-      if (row.at("path").rfind(".lnk") != std::string::npos) {
-        EXPECT_EQ(row.at("shortcut_target_path"),
-                  link_path.replace_extension(".lnk").string());
-        EXPECT_EQ(row.at("shortcut_target_type"), "File");
-        EXPECT_EQ(row.at("shortcut_target_location"), test_file_name);
-        EXPECT_EQ(row.at("shortcut_target_start_in"), directory.string());
-        EXPECT_EQ(row.at("shortcut_target_run"), "Normal window");
-        EXPECT_EQ(row.at("shortcut_target_comment"), "Test shortcut");
-      }
+      auto short_path =
+          stringToWstring(directory.string() + "\\" + test_file_name);
+      // Transform the expected path to a "full path" using GetLongPathNameW
+      wchar_t long_path[MAX_PATH];
+      auto result = GetLongPathNameW(short_path.c_str(), long_path, MAX_PATH);
+      EXPECT_EQ(row.at("shortcut_target_path"), wstringToString(long_path));
+
+      EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
+      EXPECT_EQ(row.at("shortcut_target_location"),
+                directory.filename().string());
+      EXPECT_EQ(row.at("shortcut_start_in"), directory.string());
+      EXPECT_EQ(row.at("shortcut_run"), "Normal window");
+      EXPECT_EQ(row.at("shortcut_comment"), "Test shortcut");
     }
+#endif
   }
 
   validate_rows(data, row_map);
