@@ -968,7 +968,7 @@ jobs:
       matrix:
         build_type: [Release]
         bitness: [64, arm64]
-        os: [windows-2019]
+        os: [windows-2022]
 
     steps:
     - name: Select the build job count
