@@ -28,7 +28,11 @@ namespace osquery {
 namespace tables {
 namespace {
 
+// https://github.com/libyal/libscca/blob/main/documentation/Windows%20Prefetch%20File%20(PF)%20format.asciidoc
+// looks like the best resource for the Prefetch file format.
+
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
+const unsigned int kPrefetchVersionWindows11 = 31;
 const unsigned int kPrefetchVersionWindows10 = 30;
 const unsigned int kPrefetchVersionWindows8 = 26;
 const unsigned int kPrefetchVersionWindows7 = 23;
@@ -103,7 +107,7 @@ typedef struct _PREFETCH_FILE_INFORMATION {
       FILETIME OtherRunTimes[7];
       DWORD Reserved2[2];
       DWORD RunCount;
-    } v30v2;
+    } v30v2, v31; // v31 does not seem to have substantial differences.
   } ext;
 } PREFETCH_FILE_INFORMATION, *PPREFETCH_FILE_INFORMATION;
 
@@ -151,6 +155,7 @@ PrefetchFileInfo parseFileInfo(
 
   switch (version) {
   case kPrefetchVersionWindows10:
+  case kPrefetchVersionWindows11:
     last_run_time = prefetch_file_info->ext.v30v2.LastRunTime;
     result.run_count = prefetch_file_info->ext.v30v2.RunCount;
     for (const auto& entry : prefetch_file_info->ext.v30v2.OtherRunTimes) {
@@ -297,10 +302,12 @@ void parsePrefetchData(RowYield& yield,
   }
 
   const auto version = prefetch_header->Version;
-  if (version != kPrefetchVersionWindows10 &&
+  if (version != kPrefetchVersionWindows11 &&
+      version != kPrefetchVersionWindows10 &&
       version != kPrefetchVersionWindows7 &&
       version != kPrefetchVersionWindows8) {
-    LOG(INFO) << "Unsupported prefetch file version: " << file_path;
+    LOG(INFO) << "Unsupported prefetch file version ("
+              << prefetch_header->Version << "): " << file_path;
     return;
   }
 
