@@ -294,6 +294,7 @@ function(generateNativeTables)
     "windows/physical_disk_performance.table:windows"
     "windows/autoexec.table:windows"
     "windows/default_environment.table:windows"
+    "windows/windows_recent_files.table:windows"
     "windows/windows_security_products.table:windows"
     "windows/windows_security_center.table:windows"
     "windows/windows_optional_features.table:windows"
