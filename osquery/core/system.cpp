@@ -123,7 +123,7 @@ bool isPlaceholderHardwareUUID(const std::string& uuid) {
                    lower_uuid) != kPlaceholderHardwareUUIDList.end();
 }
 
-std::string generateHostUUID() {
+std::string getHardwareUUID() {
   std::string hardware_uuid;
 #ifdef __APPLE__
   // Use the hardware UUID available on OSX to identify this machine
@@ -158,18 +158,7 @@ std::string generateHostUUID() {
     // Construct a new string to remove trailing nulls.
     hardware_uuid = std::string(hardware_uuid.c_str());
   }
-
-  // Check whether the UUID is valid. If not generate an ephemeral UUID.
-  if (hardware_uuid.empty()) {
-    VLOG(1) << "Failed to read system uuid, returning ephemeral uuid";
-    return generateNewUUID();
-  } else if (isPlaceholderHardwareUUID(hardware_uuid)) {
-    VLOG(1) << "Hardware uuid '" << hardware_uuid
-            << "' is a placeholder, returning ephemeral uuid";
-    return generateNewUUID();
-  } else {
-    return hardware_uuid;
-  }
+  return hardware_uuid;
 }
 
 Status getInstanceUUID(std::string& ident) {
@@ -193,11 +182,26 @@ Status getEphemeralUUID(std::string& ident) {
 }
 
 Status getHostUUID(std::string& ident) {
+  static bool checked_hardware_uuid = false;
+  static std::mutex mutex;
+
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (!checked_hardware_uuid) {
+    // Attempt to get the hardware UUID from the system.
+    std::string hardware_uuid = osquery::getHardwareUUID();
+    // If it's valid, store it in the database.
+    if (!hardware_uuid.empty() && !isPlaceholderHardwareUUID(hardware_uuid)) {
+      setDatabaseValue(kPersistentSettings, "host_uuid_v3", hardware_uuid);
+    }
+    checked_hardware_uuid = true;
+  }
   // Lookup the host identifier (UUID) previously generated and stored.
   auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   if (ident.size() == 0) {
-    // There was no UUID stored in the database, generate one and store it.
-    ident = osquery::generateHostUUID();
+    // There was no UUID stored in the database, meaning that no valid
+    // hardware UUID was found. Generate a new one and store it.
+    ident = generateNewUUID();
     return setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   }
   return status;
