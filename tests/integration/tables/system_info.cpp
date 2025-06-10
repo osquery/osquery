@@ -47,7 +47,7 @@ TEST_F(SystemInfo, test_sanity) {
                            {"local_hostname", NonEmptyString}};
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    row_map.emplace("emulated_cpu_type", NormalType)
+    row_map.emplace("emulated_cpu_type", NormalType);
   }
 
   validate_rows(data, row_map);
