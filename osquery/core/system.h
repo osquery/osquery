@@ -217,7 +217,7 @@ bool isPlaceholderHardwareUUID(const std::string& uuid);
  *
  * @return uuid string to identify this machine
  */
-std::string generateHostUUID();
+std::string getHardwareUUID();
 
 /**
  * @brief Get a configured UUID/name that uniquely identify this machine
