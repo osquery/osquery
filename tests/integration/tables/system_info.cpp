@@ -10,6 +10,7 @@
 // Sanity check integration test for system_info
 // Spec file: specs/system_info.table
 
+#include <osquery/utils/info/platform_type.h>
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
