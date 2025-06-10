@@ -47,6 +47,7 @@ function(generateTestsIntegrationTablesTestsTest)
     hash.cpp
     interface_addresses.cpp
     interface_details.cpp
+    jetbrains_plugins.cpp
     listening_ports.cpp
     logged_in_users.cpp
     npm_packages.cpp

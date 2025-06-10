@@ -9,6 +9,7 @@ function(osqueryTablesApplicationsMain)
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("posix/tests")
     add_subdirectory("chrome/tests")
+    add_subdirectory("tests")
   endif()
 
   generateOsqueryTablesApplications()
@@ -20,6 +21,7 @@ function(generateOsqueryTablesApplications)
     chrome/chrome_extension_content_scripts.cpp
     chrome/utils.cpp
     browser_firefox.cpp
+    jetbrains_plugins.cpp
     vscode_extensions.cpp
   )
 
@@ -73,6 +75,7 @@ function(generateOsqueryTablesApplications)
 
   set(public_header_files
     chrome/utils.h
+    jetbrains_plugins.h
   )
 
   if(DEFINED PLATFORM_POSIX)

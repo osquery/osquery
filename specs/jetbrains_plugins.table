@@ -1,0 +1,20 @@
+table_name("jetbrains_plugins")
+description("JetBrains IDEs plugins.")
+schema([
+    Column("product_type", TEXT, "The product type (Valid values: CLion, DataGrip, GoLand, IntelliJIdea, IntelliJIdeaCommunityEdition, PhpStorm, PyCharm, PyCharmCommunityEdition, ReSharper, Rider, RubyMine, RustRover, WebStorm)"),
+    Column("uid", BIGINT, "The local user that owns the plugin", index=True),
+    Column("name", TEXT, "Name of the plugin (Title Case)"),
+    Column("version", TEXT, "Version of the plugin"),
+    Column("vendor", TEXT, "The vendor name or organization id that authored the plugin"),
+    Column("path", TEXT, "The path on the filesystem for the plugin. This may be a folder or a jar filename"),
+])
+attributes(user_data=True)
+implementation("applications/jetbrains_plugins@genJetBrainsPlugins")
+examples([
+    "select * from users cross join jetbrains_plugins using (uid)"
+])
+fuzz_paths([
+    "/Library/Application Support/JetBrains",
+    "%APPDATA%\\JetBrains\\",
+    "/.local/share/JetBrains/"
+])
