@@ -59,7 +59,7 @@ void genRecentFilesForUser(QueryData& results,
   }
 }
 
-QueryData genWindowsRecentFiles(QueryContext& context) {
+QueryData genRecentFiles(QueryContext& context) {
   QueryData results;
 
   auto users = usersFromContext(context);

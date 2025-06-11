@@ -1,4 +1,4 @@
-table_name("windows_recent_files")
+table_name("recent_files")
 description("Recently files (as displayed in Start Menu or File Explorer).")
 schema([
     Column("uid", BIGINT, "The local user ID", index=True, optimized=True),
@@ -9,8 +9,8 @@ schema([
     Column("shortcut_path", TEXT, "Path to the shortcut where Windows stores the recent file data"),
 ])
 attributes(user_data=True)
-implementation("system/windows/windows_recent_files@genWindowsRecentFiles")
+implementation("system/windows/recent_files@genRecentFiles")
 examples([
-    "SELECT * FROM windows_recent_files",
-    "SELECT * FROM windows_recent_files WHERE mtime > unixepoch('now') - 3600",
+    "SELECT * FROM recent_files",
+    "SELECT * FROM recent_files WHERE mtime > unixepoch('now') - 3600",
 ])
