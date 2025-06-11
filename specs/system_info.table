@@ -22,4 +22,7 @@ schema([
     Column("computer_name", TEXT, "Friendly computer name (optional)"),
     Column("local_hostname", TEXT, "Local hostname (optional)"),
 ])
+extended_schema(WINDOWS, [
+    Column("emulated_cpu_type", TEXT, "Emulated CPU type"),
+])
 implementation("system/system_info@genSystemInfo")
