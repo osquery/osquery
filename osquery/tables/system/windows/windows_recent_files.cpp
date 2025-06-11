@@ -10,6 +10,8 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/errno.h>
@@ -20,28 +22,20 @@
 namespace osquery {
 namespace tables {
 
-QueryData genWindowsRecentFiles(QueryContext& context) {
-  QueryData results;
-
-  PWSTR recentPath = nullptr;
-  if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &recentPath))) {
-    LOG(ERROR) << "Could not get known folder path for recent items: "
-               << platformStrerr(GetLastError());
-    return results;
-  }
-  auto path_guard =
-      scope_guard::create([&recentPath]() { CoTaskMemFree(recentPath); });
-
+void genRecentFilesForUser(QueryData& results,
+                           const std::string& user_path_prefix,
+                           const std::int64_t& uid) {
   SQL sql(
       "SELECT filename, path, mtime, shortcut_target_path, "
       "shortcut_target_type FROM file WHERE shortcut_target_type != 'File "
       "folder' AND path LIKE '" +
-      wstringToString(std::wstring(recentPath)) +
-      "\\%.lnk' ORDER BY mtime DESC");
+      user_path_prefix +
+      "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\%.lnk' ORDER BY mtime "
+      "DESC");
   if (!sql.ok()) {
     LOG(ERROR) << "Failed to list recent files: "
                << sql.getStatus().getMessage();
-    return results;
+    return;
   }
 
   for (const auto& row : sql.rows()) {
@@ -53,6 +47,7 @@ QueryData genWindowsRecentFiles(QueryContext& context) {
     }
 
     Row r;
+    r["uid"] = BIGINT(uid);
     r["filename"] = std::filesystem::path(row.at("shortcut_target_path"))
                         .filename()
                         .string();
@@ -62,6 +57,37 @@ QueryData genWindowsRecentFiles(QueryContext& context) {
     r["shortcut_path"] = row.at("path");
     results.push_back(r);
   }
+}
+
+QueryData genWindowsRecentFiles(QueryContext& context) {
+  QueryData results;
+
+  auto users = usersFromContext(context);
+  for (const auto& user : users) {
+    if (user.count("uid") == 0 || user.count("directory") == 0) {
+      continue;
+    }
+
+    const auto& uid_as_string = user.at("uid");
+    auto uid_as_big_int = tryTo<int64_t>(uid_as_string, 10);
+    if (uid_as_big_int.isError()) {
+      LOG(ERROR) << "Invalid uid field returned: " << uid_as_string;
+      continue;
+    }
+    const auto& user_path_prefix = user.at("directory");
+
+    genRecentFilesForUser(results, user_path_prefix, uid_as_big_int.get());
+  }
+  /*
+    PWSTR recentPath = nullptr;
+    if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &recentPath)))
+    { LOG(ERROR) << "Could not get known folder path for recent items: "
+                 << platformStrerr(GetLastError());
+      return results;
+    }
+    auto path_guard =
+        scope_guard::create([&recentPath]() { CoTaskMemFree(recentPath); });
+  */
 
   return results;
 }
