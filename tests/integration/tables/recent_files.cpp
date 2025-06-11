@@ -10,7 +10,9 @@
 // Sanity check integration test for windows_recent_files
 // Spec file: specs/windows/windows_recent_files.table
 
+#include <osquery/dispatcher/dispatcher.h>
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 namespace table_tests {
