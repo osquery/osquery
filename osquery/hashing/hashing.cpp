@@ -121,16 +121,18 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
   hashes.emplace(HASH_TYPE_SHA1, Hash{HASH_TYPE_SHA1});
   hashes.emplace(HASH_TYPE_SHA256, Hash{HASH_TYPE_SHA256});
 
-  auto status = readFile(path, ([&hashes, &mask](std::string_view buffer) {
+  auto status = readFile(path,
+                         ([&hashes, &mask](std::string_view buffer) {
                            for (auto& hash : hashes) {
                              if (mask & hash.first) {
                                hash.second.update(buffer.data(), buffer.size());
                              }
                            }
-                         }));
+                         }),
+                         false);
 
   if (!status.ok()) {
-    LOG(WARNING) << "Failed to hash " << path;
+    VLOG(1) << "Failed to hash " << path << ": " << status.getMessage();
     return {};
   }
 
