@@ -15,19 +15,33 @@
 namespace osquery {
 namespace table_tests {
 
-class WindowsRecentFilesTest : public testing::Test {
+class RecentFilesTest : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
   }
+
+#ifdef OSQUERY_WINDOWS
+  static void SetUpTestSuite() {
+    initUsersAndGroupsServices(true, false);
+  }
+
+  static void TearDownTestSuite() {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+    deinitUsersAndGroupsServices(true, false);
+    Dispatcher::instance().resetStopping();
+  }
+#endif
 };
 
-TEST_F(WindowsRecentFilesTest, test_sanity) {
-  auto const data = execute_query("select * from windows_recent_files");
+TEST_F(RecentFilesTest, test_sanity) {
+  auto const data = execute_query("select * from recent_files");
 
   // Ideally we would check that there are some rows, but on CI there are none
 
   ValidationMap row_map = {
+      {"uid", NonNegativeInt},
       {"filename", NormalType},
       {"path", NonEmptyString},
       {"mtime", NonNegativeInt},

@@ -78,16 +78,6 @@ QueryData genRecentFiles(QueryContext& context) {
 
     genRecentFilesForUser(results, user_path_prefix, uid_as_big_int.get());
   }
-  /*
-    PWSTR recentPath = nullptr;
-    if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Recent, 0, NULL, &recentPath)))
-    { LOG(ERROR) << "Could not get known folder path for recent items: "
-                 << platformStrerr(GetLastError());
-      return results;
-    }
-    auto path_guard =
-        scope_guard::create([&recentPath]() { CoTaskMemFree(recentPath); });
-  */
 
   return results;
 }

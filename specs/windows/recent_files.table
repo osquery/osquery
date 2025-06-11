@@ -11,6 +11,6 @@ schema([
 attributes(user_data=True)
 implementation("system/windows/recent_files@genRecentFiles")
 examples([
-    "SELECT * FROM recent_files",
-    "SELECT * FROM recent_files WHERE mtime > unixepoch('now') - 3600",
+    "SELECT * FROM users CROSS JOIN recent_files USING (uid)",
+    "SELECT recent_files.* FROM users CROSS JOIN recent_files USING (uid) WHERE mtime > unixepoch('now') - 3600",
 ])
