@@ -54,14 +54,14 @@ This [complete schema](https://osquery.io/schema/) for all supported platforms i
 On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 
 ```text
-osquery> SELECT pid, name, path FROM processes HERE pid>0 LIMIT 1;
+osquery> SELECT pid, name, path FROM processes WHERE pid > 0 LIMIT 1;
 +-----+---------+---------------+
 | pid | name    | path          |
 +-----+---------+---------------+
 | 1   | launchd | /sbin/launchd |
 +-----+---------+---------------+
 osquery> .mode line
-osquery> SELECT pid, name, path FROM processes HERE pid>0 LIMIT 1;
+osquery> SELECT pid, name, path FROM processes WHERE pid > 0 LIMIT 1;
   pid = 1
  name = launchd
  path = /sbin/launchd
