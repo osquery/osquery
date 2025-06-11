@@ -307,12 +307,12 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 
       osquery> .mode line
 
-      osquery> select uid from users;
+      osquery> select uid from users;  
       uid = 500
 
       uid = 1001
 
-      osquery> select split(uid, 1, 0) from users;
+      osquery> select split(uid, 1, 0) from users;  
       split(uid, 1, 0) = 500
 
       split(uid, 1, 0) = 00
@@ -328,15 +328,15 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 
       osquery> .mode line
 
-      osquery> select uid from users;
+      osquery> select uid from users;  
       uid = 500
 
       uid = 1001
 
-      osquery> select split(uid, ("[1-5]"), 0) from users;
-      split(uid, 1, 0) = 00
+      osquery> select regex_split(uid, ("[1-5]"), 0) from users;  
+      regex_split(uid, 1, 0) = 00
 
-      split(uid, 1, 0) = 00
+      regex_split(uid, 1, 0) = 00
 
     </p>
     </details>
