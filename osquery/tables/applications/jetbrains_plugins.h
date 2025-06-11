@@ -86,27 +86,21 @@ const ProductPathMap kMacOsPathList = {
 
 const ProductPathMap kLinuxPathList = {
     {JetBrainsProductType::CLion, ".local/share/JetBrains/CLion%"},
-    {JetBrainsProductType::DataGrip,
-     ".local/share/JetBrains/DataGrip%"},
+    {JetBrainsProductType::DataGrip, ".local/share/JetBrains/DataGrip%"},
     {JetBrainsProductType::GoLand, ".local/share/JetBrains/GoLand%"},
     {JetBrainsProductType::IntelliJIdea,
      ".local/share/JetBrains/IntelliJIdea%"},
     {JetBrainsProductType::IntelliJIdeaCommunityEdition,
      ".local/share/JetBrains/IdeaIC%"},
-    {JetBrainsProductType::PhpStorm,
-     ".local/share/JetBrains/PhpStorm%"},
+    {JetBrainsProductType::PhpStorm, ".local/share/JetBrains/PhpStorm%"},
     {JetBrainsProductType::PyCharm, ".local/share/JetBrains/PyCharm%"},
     {JetBrainsProductType::PyCharmCommunityEdition,
      ".local/share/JetBrains/PyCharmCE%"},
-    {JetBrainsProductType::ReSharper,
-     ".local/share/JetBrains/ReSharper%"},
+    {JetBrainsProductType::ReSharper, ".local/share/JetBrains/ReSharper%"},
     {JetBrainsProductType::Rider, ".local/share/JetBrains/Rider%"},
-    {JetBrainsProductType::RubyMine,
-     ".local/share/JetBrains/RubyMine%"},
-    {JetBrainsProductType::RustRover,
-     ".local/share/JetBrains/RustRover%"},
-    {JetBrainsProductType::WebStorm,
-     ".local/share/JetBrains/WebStorm%"}};
+    {JetBrainsProductType::RubyMine, ".local/share/JetBrains/RubyMine%"},
+    {JetBrainsProductType::RustRover, ".local/share/JetBrains/RustRover%"},
+    {JetBrainsProductType::WebStorm, ".local/share/JetBrains/WebStorm%"}};
 
 const std::unordered_map<JetBrainsProductType, std::string>
     kProductTypeToString = {
