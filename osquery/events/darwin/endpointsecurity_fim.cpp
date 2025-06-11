@@ -11,6 +11,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/join.hpp> // For boost::algorithm::join
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
@@ -45,13 +46,13 @@ Status EndpointSecurityFileEventPublisher::setUp() {
     if (!FLAGS_es_fim_mute_path_literal.empty()) {
       boost::split(muted_path_literals_,
                    FLAGS_es_fim_mute_path_literal,
-                   boost::is_any_of(","));
+                   boost::algorithm::is_any_of(","));
     }
 
     if (!FLAGS_es_fim_mute_path_prefix.empty()) {
       boost::split(muted_path_prefixes_,
                    FLAGS_es_fim_mute_path_prefix,
-                   boost::is_any_of(","));
+                   boost::algorithm::is_any_of(","));
     }
 
     auto handler = ^(es_client_t* client, const es_message_t* message) {
@@ -291,6 +292,132 @@ void EndpointSecurityFileEventPublisher::handleMessage(
   case ES_EVENT_TYPE_NOTIFY_OPEN: {
     ec->event_type = "open";
     ec->filename = getStringFromToken(&message->event.open.file->path);
+  } break;
+  // Advanced file operations - extended attributes
+  case ES_EVENT_TYPE_NOTIFY_SETEXTATTR: {
+    ec->event_type = "setextattr";
+    ec->filename = getStringFromToken(&message->event.setextattr.target->path);
+
+    // In macOS 15+, the field is named extattr instead of name
+    ec->metadata["extattr_name"] =
+        getStringFromToken(&message->event.setextattr.extattr);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_GETEXTATTR: {
+    ec->event_type = "getextattr";
+    ec->filename = getStringFromToken(&message->event.getextattr.target->path);
+
+    // In macOS 15+, the field is named extattr instead of name
+    ec->metadata["extattr_name"] =
+        getStringFromToken(&message->event.getextattr.extattr);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR: {
+    ec->event_type = "deleteextattr";
+    ec->filename =
+        getStringFromToken(&message->event.deleteextattr.target->path);
+
+    // In macOS 15+, the field is named extattr instead of name
+    ec->metadata["extattr_name"] =
+        getStringFromToken(&message->event.deleteextattr.extattr);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR: {
+    ec->event_type = "listextattr";
+    ec->filename = getStringFromToken(&message->event.listextattr.target->path);
+  } break;
+
+  // Advanced file operations - data exchange
+  case ES_EVENT_TYPE_NOTIFY_CLONE: {
+    ec->event_type = "clone";
+    ec->filename = getStringFromToken(&message->event.clone.source->path);
+
+    // In macOS 15+, target_path has been renamed to target_name
+    if (message->event.clone.target_dir != nullptr && 
+        message->event.clone.target_name.data != nullptr) {
+      std::string target_path = getStringFromToken(&message->event.clone.target_dir->path);
+      target_path += "/";
+      target_path += getStringFromToken(&message->event.clone.target_name);
+      ec->dest_filename = target_path;
+    }
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_EXCHANGEDATA: {
+    ec->event_type = "exchangedata";
+    ec->filename = getStringFromToken(&message->event.exchangedata.file1->path);
+    ec->dest_filename =
+        getStringFromToken(&message->event.exchangedata.file2->path);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_COPYFILE: {
+    ec->event_type = "copyfile";
+    ec->filename = getStringFromToken(&message->event.copyfile.source->path);
+
+    // In macOS 15+, target_path has been renamed to target_name
+    if (message->event.copyfile.target_dir != nullptr && 
+        message->event.copyfile.target_name.data != nullptr) {
+      std::string target_path = getStringFromToken(&message->event.copyfile.target_dir->path);
+      target_path += "/";
+      target_path += getStringFromToken(&message->event.copyfile.target_name);
+      ec->dest_filename = target_path;
+    }
+  } break;
+
+  // Advanced file operations - permissions
+  case ES_EVENT_TYPE_NOTIFY_SETACL: {
+    ec->event_type = "setacl";
+    ec->filename = getStringFromToken(&message->event.setacl.target->path);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_SETMODE: {
+    ec->event_type = "chmod";
+    ec->filename = getStringFromToken(&message->event.setmode.target->path);
+
+    // Convert mode to octal format for easier reading
+    mode_t mode = message->event.setmode.mode;
+    ec->metadata["mode"] = std::to_string(mode);
+    ec->metadata["mode_octal"] =
+        std::to_string(((mode & 0700) >> 6) * 100 +
+                       ((mode & 0070) >> 3) * 10 +
+                       (mode & 0007));
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_SETOWNER: {
+    ec->event_type = "chown";
+    ec->filename = getStringFromToken(&message->event.setowner.target->path);
+
+    ec->metadata["uid"] = std::to_string(message->event.setowner.uid);
+    ec->metadata["gid"] = std::to_string(message->event.setowner.gid);
+  } break;
+  case ES_EVENT_TYPE_NOTIFY_SETATTRLIST: {
+    ec->event_type = "setattrlist";
+    ec->filename = getStringFromToken(&message->event.setattrlist.target->path);
+  } break;
+
+  // Other file system operations
+  case ES_EVENT_TYPE_NOTIFY_LINK: {
+    ec->event_type = "link";
+    ec->filename = getStringFromToken(&message->event.link.source->path);
+
+    // Store the destination for the link
+    if (message->event.link.target_dir != nullptr && 
+        message->event.link.target_filename.data != nullptr) {
+      std::string link_target =
+          getStringFromToken(&message->event.link.target_dir->path);
+      link_target += "/";
+      link_target += getStringFromToken(&message->event.link.target_filename);
+      ec->dest_filename = link_target;
+    }
+  } break;
+  // SYMLINK is not supported in macOS 15+
+  // Commenting out this case block
+  /* 
+  case ES_EVENT_TYPE_NOTIFY_SYMLINK: {
+    ec->event_type = "symlink";
+    // No longer available in macOS 15+
+    ec->filename = "unknown";
+    ec->dest_filename = "unknown";
+  } break;
+  */
+  case ES_EVENT_TYPE_NOTIFY_CLOSE: {
+    ec->event_type = "close";
+    ec->filename = getStringFromToken(&message->event.close.target->path);
+
+    // Include information about whether the file was modified
+    ec->metadata["modified"] = message->event.close.modified ? "true" : "false";
   } break;
   default:
     VLOG(1) << "endpointsecurity_fim: unexpected event " << message->event_type;
