@@ -85,28 +85,28 @@ const ProductPathMap kMacOsPathList = {
      "Library/Application Support/JetBrains/WebStorm%/plugins"}};
 
 const ProductPathMap kLinuxPathList = {
-    {JetBrainsProductType::CLion, ".local/share/JetBrains/CLion%/plugins"},
+    {JetBrainsProductType::CLion, ".local/share/JetBrains/CLion%"},
     {JetBrainsProductType::DataGrip,
-     ".local/share/JetBrains/DataGrip%/plugins"},
-    {JetBrainsProductType::GoLand, ".local/share/JetBrains/GoLand%/plugins"},
+     ".local/share/JetBrains/DataGrip%"},
+    {JetBrainsProductType::GoLand, ".local/share/JetBrains/GoLand%"},
     {JetBrainsProductType::IntelliJIdea,
-     ".local/share/JetBrains/IntelliJIdea%/plugins"},
+     ".local/share/JetBrains/IntelliJIdea%"},
     {JetBrainsProductType::IntelliJIdeaCommunityEdition,
-     ".local/share/JetBrains/IdeaIC%/plugins"},
+     ".local/share/JetBrains/IdeaIC%"},
     {JetBrainsProductType::PhpStorm,
-     ".local/share/JetBrains/PhpStorm%/plugins"},
-    {JetBrainsProductType::PyCharm, ".local/share/JetBrains/PyCharm%/plugins"},
+     ".local/share/JetBrains/PhpStorm%"},
+    {JetBrainsProductType::PyCharm, ".local/share/JetBrains/PyCharm%"},
     {JetBrainsProductType::PyCharmCommunityEdition,
-     ".local/share/JetBrains/PyCharmCE%/plugins"},
+     ".local/share/JetBrains/PyCharmCE%"},
     {JetBrainsProductType::ReSharper,
-     ".local/share/JetBrains/ReSharper%/plugins"},
-    {JetBrainsProductType::Rider, ".local/share/JetBrains/Rider%/plugins"},
+     ".local/share/JetBrains/ReSharper%"},
+    {JetBrainsProductType::Rider, ".local/share/JetBrains/Rider%"},
     {JetBrainsProductType::RubyMine,
-     ".local/share/JetBrains/RubyMine%/plugins"},
+     ".local/share/JetBrains/RubyMine%"},
     {JetBrainsProductType::RustRover,
-     ".local/share/JetBrains/RustRover%/plugins"},
+     ".local/share/JetBrains/RustRover%"},
     {JetBrainsProductType::WebStorm,
-     ".local/share/JetBrains/WebStorm%/plugins"}};
+     ".local/share/JetBrains/WebStorm%"}};
 
 const std::unordered_map<JetBrainsProductType, std::string>
     kProductTypeToString = {
