@@ -156,6 +156,7 @@ function(generateNativeTables)
     "darwin/xprotect_entries.table:macos"
     "darwin/xprotect_meta.table:macos"
     "darwin/xprotect_reports.table:macos"
+    "jetbrains_plugins.table:linux,macos,windows"
     "linux/apparmor_events.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apt_sources.table:linux"

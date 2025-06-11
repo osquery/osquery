@@ -175,6 +175,18 @@ function(libarchiveMain)
   target_link_libraries(thirdparty_libarchive PRIVATE
     thirdparty_c_settings
   )
+
+  # Add Zlib support
+  add_library(zlibstatic ALIAS thirdparty_zlib)
+  target_include_directories(thirdparty_libarchive PRIVATE
+    "${CMAKE_BINARY_DIR}/libraries/cmake/source/zlib/src"
+  )
+  target_compile_definitions(thirdparty_libarchive PRIVATE
+    HAVE_ZLIB_H
+  )
+  target_link_libraries(thirdparty_libarchive PRIVATE
+    zlibstatic
+  )
 endfunction()
 
 libarchiveMain()
