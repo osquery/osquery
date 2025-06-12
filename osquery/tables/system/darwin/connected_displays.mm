@@ -133,14 +133,17 @@ QueryData genConnectedDisplays(QueryContext& context) {
         }
       }
 
-      if (NSString* rotation = [obj valueForKey:@"spdisplays_rotation"]) {
-        if ([rotation isEqualToString:@"spdisplays_supported"]) {
-          r["rotation"] = INTEGER(1);
-        } else {
-          r["rotation"] = INTEGER(0);
+      id rotation = [obj valueForKey:@"spdisplays_rotation"];
+      if (rotation) {
+        if ([rotation isKindOfClass:[NSString class]]) {
+          // rotation is supported and the display is not rotated
+          if ([rotation isEqualToString:@"spdisplays_supported"]) {
+            r["rotation"] = INTEGER(0);
+          }
+        } else if ([rotation isKindOfClass:[NSNumber class]]) {
+          // rotation is supported and the display is rotated (90/180/270 degrees)
+          r["rotation"] = INTEGER([rotation intValue]);
         }
-      } else {
-        r["rotation"] = INTEGER(0);
       }
 
       results.push_back(r);
