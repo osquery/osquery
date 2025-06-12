@@ -141,7 +141,7 @@ QueryData genConnectedDisplays(QueryContext& context) {
             r["rotation"] = INTEGER(0);
           }
         } else if ([rotation isKindOfClass:[NSNumber class]]) {
-          // rotation is supported and the display is rotated (90/180/270 degrees)
+          // the display is rotated (90/180/270 degrees)
           r["rotation"] = INTEGER([rotation intValue]);
         }
       }
