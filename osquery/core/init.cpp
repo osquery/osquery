@@ -91,6 +91,12 @@ enum {
 };
 #endif
 
+// OpenFrame includes
+#include "openframe/openframe_authorization_manager_provider.h"
+#include "openframe/openframe_encryption_service.h"
+#include "openframe/openframe_token_extractor.h"
+#include "openframe/openframe_token_refresher.h"
+
 #define DESCRIPTION                                                            \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
@@ -123,6 +129,8 @@ DECLARE_bool(disable_logging);
 DECLARE_bool(enable_numeric_monitoring);
 DECLARE_bool(ignore_table_exceptions);
 DECLARE_bool(ignore_registry_exceptions);
+DECLARE_bool(openframe_mode);
+DECLARE_string(openframe_secret);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -149,6 +157,10 @@ CLI_FLAG(bool,
          "Force osqueryd to kill previously-running daemons");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
+
+/// OpenFrame functionality flags
+FLAG(bool, openframe_mode, false, "Enable OpenFrame mode");
+FLAG(string, openframe_secret, "", "OpenFrame secret key for authentication");
 
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
@@ -192,6 +204,41 @@ void initWorkDirectories() {
     if (!status.ok()) {
       LOG(ERROR) << "Could not initialize db directory: " << status.what();
     }
+  }
+}
+
+void initOpenFrame() {
+  VLOG(1) << "OpenFrame mode enabled";
+
+  // Initialize OpenFrame components if secret is provided
+  if (FLAGS_openframe_secret.empty()) {
+    LOG(ERROR) << "OpenFrame mode enabled but secret not set";
+    return;
+  }
+
+  try {
+    // Create encryption service
+    auto encryption_service = std::make_shared<OpenframeEncryptionService>(FLAGS_openframe_secret);
+    
+    // Create token extractor with encryption service
+    auto token_extractor = std::make_shared<OpenframeTokenExtractor>(encryption_service);
+    
+    // Get initial token and set it in authorization manager
+    auto initial_token = token_extractor->extractToken();
+    if (!initial_token.empty()) {
+      auto& auth_manager = OpenframeAuthorizationManagerProvider::getInstance();
+      auth_manager.updateToken(initial_token);
+      VLOG(1) << "Initial OpenFrame token set from token file";
+    } else {
+      LOG(ERROR) << "Failed to get initial token from token file";
+    }
+    
+    // Create and start token refresher
+    static auto token_refresher = std::make_shared<OpenframeTokenRefresher>(token_extractor);
+    token_refresher->start();
+    VLOG(1) << "OpenFrame token refresher started";
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Failed to initialize OpenFrame components: " << e.what();
   }
 }
 
@@ -411,6 +458,13 @@ Initializer::Initializer(int& argc,
               << PlatformProcess::getLauncherProcess()->pid() << "]";
     } else {
       VLOG(1) << "osquery initialized [version=" << kVersion << "]";
+    }
+    
+    // Initialize OpenFrame authorization manager and token refresher if mode is enabled
+    if (FLAGS_openframe_mode) {
+      initOpenFrame();
+    } else {
+      VLOG(1) << "OpenFrame mode disabled";
     }
   } else {
     VLOG(1) << "osquery extension initialized [sdk=" << kVersion << "]";

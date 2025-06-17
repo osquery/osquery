@@ -8,6 +8,8 @@
  */
 
 #include "tls.h"
+#include "openframe/openframe_authorization_manager.h"
+#include "openframe/openframe_authorization_manager_provider.h"
 
 #include <chrono>
 #include <osquery/core/core.h>
@@ -76,6 +78,8 @@ HIDDEN_FLAG(bool,
 HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
 
 DECLARE_bool(verbose);
+DECLARE_string(openframe_token);
+DECLARE_bool(openframe_mode);
 
 TLSTransport::TLSTransport() {
   if (FLAGS_tls_server_certs.size() > 0) {
@@ -92,13 +96,32 @@ void TLSTransport::decorateRequest(http::Request& r) {
   r << http::Request::Header("Content-Type", serializer_->getContentType());
   r << http::Request::Header("Accept", serializer_->getContentType());
   r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
+  
+  if (FLAGS_openframe_mode) {
+    LOG(INFO) << "Adding Authorization header with Bearer token for openframe mode";
+    auto& auth_manager = OpenframeAuthorizationManagerProvider::getInstance();
+    std::string token = auth_manager.getToken();
+    if (!token.empty()) {
+      r << http::Request::Header("Authorization", "Bearer " + token);
+      LOG(INFO) << "Token added to request";
+    } else {
+      LOG(ERROR) << "No token found in memory";
+    }
+  }
 }
 
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
 
-  options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
+  options.follow_redirects(true).timeout(16);
 
+  if (FLAGS_openframe_mode) {
+    LOG(INFO) << "Disable SSL verification for openframe mode";
+    options.always_verify_peer(false);
+    return options;
+  } 
+  
+  options.always_verify_peer(verify_peer_);
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
       LOG(WARNING) << "Cannot read TLS server certificate(s): "

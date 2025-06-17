@@ -1,4 +1,3 @@
-
 if(DEFINED PLATFORM_POSIX)
   include(CheckPIESupported)
   check_pie_supported()
@@ -44,6 +43,7 @@ function(setupBuildFlags)
       -Wno-unused-local-typedef
       -Wno-deprecated-register
       -Wno-unknown-warning-option
+      -Wno-enum-constexpr-conversion
       -Wstrict-aliasing
       -Wno-missing-field-initializers
       -Wchar-subscripts

@@ -19,6 +19,7 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/remote/requests.h>
+#include "openframe/openframe_authorization_manager.h"
 
 namespace osquery {
 
