@@ -35,9 +35,7 @@ function(generateOsqueryCoreInit)
     osquery_extensions
     osquery_distributed
     osquery_utils_pidfile
-    osquery_remote_transports_transportstls
     osquery_openframe
-    thirdparty_openssl
   )
 
   if(OSQUERY_BUILD_EXPERIMENTS)
