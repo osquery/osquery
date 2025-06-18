@@ -144,6 +144,9 @@ QueryData genConnectedDisplays(QueryContext& context) {
           // the display is rotated (90/180/270 degrees)
           r["rotation"] = INTEGER([rotation intValue]);
         }
+      } else {
+        // rotation is not supported
+        r["rotation"] = INTEGER(-1);
       }
 
       results.push_back(r);
