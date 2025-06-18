@@ -76,6 +76,7 @@ function(main)
   add_subdirectory("specs")
   add_subdirectory("external")
   add_subdirectory("tests")
+  add_subdirectory("openframe")
 
   if(DEFINED PLATFORM_WINDOWS)
     enableOsqueryWEL()

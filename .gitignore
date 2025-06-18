@@ -78,3 +78,7 @@ pyrightconfig.json
 !/external/examples
 !/external/cmake/cmakelibs.cmake
 !/external/CMakeLists.txt
+
+# Openframe
+cmake-*.tar.gz
+libraries/**/src/

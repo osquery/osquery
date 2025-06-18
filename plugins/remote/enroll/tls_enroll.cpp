@@ -32,6 +32,7 @@ namespace osquery {
 
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_enrollment);
+DECLARE_bool(openframe_mode);
 
 CLI_FLAG(uint64,
          tls_enroll_max_attempts,
@@ -71,7 +72,16 @@ std::string TLSEnrollPlugin::enroll() {
   }
 
   // If no node secret has been negotiated, try a TLS request.
-  auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
+  auto uri = "https://" + FLAGS_tls_hostname;
+  
+  // Add the prefix "/tools/agent/fleet" to all requests only if openframe mode is enabled
+  if (FLAGS_openframe_mode) {
+    LOG(INFO) << "Adding /tools/agent/fleet to URI for openframe mode";
+    uri += "/tools/agent/fleet";
+  }
+  
+  uri += FLAGS_enroll_tls_endpoint;
+  
   if (FLAGS_tls_secret_always) {
     uri += ((uri.find('?') != std::string::npos) ? '&' : '?') +
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();

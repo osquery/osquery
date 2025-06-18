@@ -33,6 +33,8 @@ DECLARE_string(tls_hostname);
 DECLARE_bool(tls_node_api);
 DECLARE_bool(tls_secret_always);
 DECLARE_bool(disable_reenrollment);
+DECLARE_bool(openframe_mode);
+DECLARE_string(openframe_token);
 
 /**
  * @brief Helper class for allowing TLS plugins to easily kick off requests
@@ -53,6 +55,13 @@ class TLSRequestHelper : private boost::noncopyable {
   static std::string makeURI(const std::string& endpoint) {
     auto node_key = getNodeKey("tls");
     auto uri = "https://" + FLAGS_tls_hostname;
+    
+    // Add the prefix "/tools/agent/fleet" to all requests only if openframe mode is enabled
+    if (FLAGS_openframe_mode) {
+      LOG(INFO) << "Adding /tools/agent/fleet to URI for openframe mode";
+      uri += "/tools/agent/fleet";
+    }
+    
     if (FLAGS_tls_node_api) {
       // The TLS API should treat clients as nodes.
       // In this case the node_key acts as an identifier (node) and the

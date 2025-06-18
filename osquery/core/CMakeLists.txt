@@ -35,6 +35,7 @@ function(generateOsqueryCoreInit)
     osquery_extensions
     osquery_distributed
     osquery_utils_pidfile
+    osquery_openframe
   )
 
   if(OSQUERY_BUILD_EXPERIMENTS)

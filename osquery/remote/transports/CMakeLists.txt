@@ -25,6 +25,7 @@ function(generateOsqueryRemoteTransportsTransportstls)
     osquery_remote_httpclient
     osquery_remote_requests
     osquery_utils_json
+    osquery_openframe
     thirdparty_boost
   )
 
