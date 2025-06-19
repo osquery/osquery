@@ -11,7 +11,6 @@
 // Spec file: specs/system_info.table
 
 #include <osquery/tests/integration/tables/helper.h>
-#include <osquery/utils/info/platform_type.h>
 
 namespace osquery {
 namespace table_tests {
@@ -46,11 +45,6 @@ TEST_F(SystemInfo, test_sanity) {
                            {"board_serial", NormalType},
                            {"computer_name", NormalType},
                            {"local_hostname", NonEmptyString}};
-
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    row_map.emplace("emulated_cpu_type", NormalType);
-  }
-
   validate_rows(data, row_map);
 }
 
