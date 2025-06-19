@@ -13,6 +13,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/scope_guard.h>
 
 #include <osquery/utils/info/platform_type.h>
 
@@ -83,12 +84,14 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
                                   const std::string& sqlite_query,
                                   TableRows& results,
                                   bool respect_locking) {
-  sqlite3* db = nullptr;
   if (!pathExists(sqlite_db).ok()) {
     return Status(1, "Database path does not exist");
   }
 
-  auto rc = sqlite3_open_v2(
+  sqlite3* db = nullptr;
+  auto db_guard = scope_guard::create([&db]() { sqlite3_close(db); });
+
+  int rc = sqlite3_open_v2(
       sqlite_db.string().c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
@@ -96,40 +99,69 @@ Status genTableRowsForSqliteTable(const fs::path& sqlite_db,
   if (rc != SQLITE_OK || db == nullptr) {
     VLOG(1) << "Cannot open specified database: "
             << getStringForSQLiteReturnCode(rc);
-    if (db != nullptr) {
-      sqlite3_close(db);
-    }
     return Status(1, "Could not open database");
   }
 
   rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
   if (rc != SQLITE_OK) {
-    sqlite3_close(db);
     auto errMsg =
         std::string("Failed to set sqlite authorizer: ") + sqlite3_errmsg(db);
     return Status(1, errMsg);
   }
 
   sqlite3_stmt* stmt = nullptr;
+  auto stmt_guard = scope_guard::create([&stmt]() { sqlite3_finalize(stmt); });
+
   rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
+    VLOG(1) << "ATC table: Could not prepare database at path: " << sqlite_db
+            << " error code: " << rc << ". Retrying with immutable=1";
+
+    // Close the previous connection, which won't be closed by the guard.
     sqlite3_close(db);
-    VLOG(1) << "ATC table: Could not prepare database at path: " << sqlite_db;
-    return Status(rc, "Could not prepare database");
+
+    // Reopen the database with the immutable=1 flag. This was found to work on
+    // databases that are currently in use by a Firefox profile when the regular
+    // open throws an error 5 or error 14. We aren't doing this by default
+    // because there may be unintended consequences. The docs say if the file
+    // changes, "SQLite might return incorrect query results and/or
+    // SQLITE_CORRUPT errors."
+    std::string sqlite_string = "file:" + sqlite_db.string() + "?immutable=1";
+    auto rc = sqlite3_open_v2(sqlite_string.c_str(),
+                              &db,
+                              (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE |
+                               SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_URI),
+                              getSystemVFS(respect_locking));
+    if (rc != SQLITE_OK || db == nullptr) {
+      VLOG(1) << "Cannot open specified database even with immutable=1: "
+              << getStringForSQLiteReturnCode(rc);
+      return Status(1, "Could not open database");
+    }
+
+    rc = sqlite3_set_authorizer(db, &sqliteAuthorizer, nullptr);
+    if (rc != SQLITE_OK) {
+      auto errMsg =
+          std::string("Failed to set sqlite authorizer: ") + sqlite3_errmsg(db);
+      return Status(1, errMsg);
+    }
+
+    rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+      VLOG(1) << "ATC table: Could not prepare database at path: " << sqlite_db
+              << " error code: " << rc << ". Even with immutable=1";
+
+      return Status(rc, "Could not prepare database");
+    }
   }
 
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
     auto s = genSqliteTableRow(stmt, results, sqlite_db);
     if (!s.ok()) {
-      break;
+      return s;
     }
   }
 
-  // Close handles and free memory
-  sqlite3_finalize(stmt);
-  sqlite3_close(db);
-
-  return Status{};
+  return Status::success();
 }
 
 Status getSqliteJournalMode(const fs::path& sqlite_db) {
