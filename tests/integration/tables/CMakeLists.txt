@@ -282,6 +282,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     set(platform_source_files
+      ads.cpp
       appcompat_shims.cpp
       arp_cache.cpp
       authenticode.cpp
