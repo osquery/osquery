@@ -56,7 +56,7 @@ TableRows ATCPlugin::generate(QueryContext& context) {
     if (!s.ok()) {
       LOG(WARNING) << "ATC Table: Error Code: " << s.getCode()
                    << " Could not generate data: " << s.getMessage()
-                   << " for path " << path_;
+                   << " for path " << path;
     }
   }
   return result;
