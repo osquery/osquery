@@ -61,6 +61,12 @@ extern const std::string kDistributedRunningQueries;
 /// The "domain" where query performance stats are stored.
 extern const std::string kQueryPerformance;
 
+// Vector of reserved prefixes used for storing query metadata
+extern const std::vector<std::string> kReservedDbPrefixes;
+
+// Vector of reserved suffixes used for storing query metadata
+extern const std::vector<std::string> kReservedDbSuffixes;
+
 /// The running version of our database schema
 const int kDbCurrentVersion = 2;
 
