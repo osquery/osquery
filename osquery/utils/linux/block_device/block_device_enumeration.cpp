@@ -86,6 +86,8 @@ void setBlockDeviceMetadata(
   for (std::string name : {"device/model",
                            "device/wwid",
                            "device/vendor",
+                           "device/device/vendor",
+                           "device/serial",
                            "size",
                            "queue/logical_block_size"}) {
     block_device.path /= name;
@@ -113,9 +115,11 @@ void setBlockDeviceMetadata(
     // Set metadata to respective block device member.
     if (name == "device/model") {
       block_device.model = data;
-    } else if (name == "device/wwid") {
+    } else if ((name == "device/wwid" || name == "device/serial") &&
+               block_device.serial.empty()) {
       block_device.serial = data;
-    } else if (name == "device/vendor") {
+    } else if ((name == "device/vendor" || name == "device/device/vendor") &&
+               block_device.vendor.empty()) {
       block_device.vendor = data;
     } else if (name == "size") {
       block_device.size = data;
