@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025-present, Akamai Technologies Inc.
+ * Copyright (c) 2014-present, The osquery authors
  *
  * This source code is licensed as defined by the LICENSE file found in the
  * root directory of this source tree.
