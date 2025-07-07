@@ -467,6 +467,9 @@ function(rocksdbMain)
   target_include_directories(thirdparty_rocksdb PRIVATE
     "${library_root}"
     "${library_root}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../boost/src/libs/scope/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../boost/src/libs/describe/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../boost/src/libs/mp11/include"
   )
 
   if(NOT PLATFORM_MACOS)
