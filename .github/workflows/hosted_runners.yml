@@ -41,7 +41,7 @@ concurrency:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
-  SUBMODULE_CACHE_VERSION: 3
+  SUBMODULE_CACHE_VERSION: v5
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
