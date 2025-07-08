@@ -36,6 +36,7 @@ importSourceSubmodule(
     "src/libs/core"
     "src/libs/coroutine2"
     "src/libs/date_time"
+    "src/libs/describe"
     "src/libs/detail"
     "src/libs/dynamic_bitset"
     "src/libs/endian"
