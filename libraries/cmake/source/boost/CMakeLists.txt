@@ -691,18 +691,6 @@ endfunction()
 function(generateBoostFilesystem)
   set(library_root "${BOOST_ROOT}/libs/filesystem")
 
-  # Create boost header directory structure for modular layout
-  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/boost_headers/boost")
-  
-  # Create symlinks to scope headers in unified location
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/boost_headers/boost/scope")
-    execute_process(
-      COMMAND ${CMAKE_COMMAND} -E create_symlink 
-      "${BOOST_ROOT}/libs/scope/include/boost/scope"
-      "${CMAKE_BINARY_DIR}/boost_headers/boost/scope"
-    )
-  endif()
-
   add_library(thirdparty_boost_filesystem STATIC EXCLUDE_FROM_ALL
     "${library_root}/src/codecvt_error_category.cpp"
     "${library_root}/src/exception.cpp"
@@ -716,18 +704,22 @@ function(generateBoostFilesystem)
   )
 
   target_include_directories(thirdparty_boost_filesystem PRIVATE
-    "${CMAKE_BINARY_DIR}/boost_headers"
-    "${BOOST_ROOT}"
     "${BOOST_ROOT}/libs/scope/include"
     "${BOOST_ROOT}/libs/describe/include"
     "${BOOST_ROOT}/libs/mp11/include"
+  )
+
+  # Add explicit compile flags to ensure scope headers are found
+  target_compile_options(thirdparty_boost_filesystem PRIVATE
+    "-I${BOOST_ROOT}/libs/scope/include"
+    "-I${BOOST_ROOT}/libs/describe/include"
+    "-I${BOOST_ROOT}/libs/mp11/include"
   )
 
   # Add all boost library include paths for cross-library dependencies
   file(GLOB boost_lib_dirs "${BOOST_ROOT}/libs/*/include")
   target_include_directories(thirdparty_boost_filesystem SYSTEM PUBLIC
     "${library_root}/include"
-    "${CMAKE_BINARY_DIR}/boost_headers"
     ${boost_lib_dirs}
     "${BOOST_ROOT}/libs/scope/include"
     "${BOOST_ROOT}/libs/describe/include"
