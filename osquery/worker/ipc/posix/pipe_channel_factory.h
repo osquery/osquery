@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "osquery/worker/ipc/table_channel_base.h"
 
 #include "osquery/worker/ipc/posix/pipe_channel.h"

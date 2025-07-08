@@ -10,6 +10,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <vector>
 
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
 
