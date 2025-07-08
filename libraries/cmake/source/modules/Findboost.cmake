@@ -25,6 +25,7 @@ importSourceSubmodule(
     "src/libs/atomic"
     "src/libs/beast"
     "src/libs/bind"
+    "src/libs/charconv"
     "src/libs/chrono"
     "src/libs/circular_buffer"
     "src/libs/concept_check"
