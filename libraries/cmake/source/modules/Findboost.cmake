@@ -78,6 +78,7 @@ importSourceSubmodule(
     "src/libs/smart_ptr"
     "src/libs/spirit"
     "src/libs/static_assert"
+    "src/libs/static_string"
     "src/libs/system"
     "src/libs/thread"
     "src/libs/throw_exception"
