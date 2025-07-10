@@ -138,6 +138,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
+      darwin/system_profiler.mm
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
