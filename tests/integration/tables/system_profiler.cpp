@@ -28,7 +28,7 @@ TEST_F(SystemProfilerTest, test_system_profiler_hardware_data) {
   auto const data = execute_query(
       "select * from system_profiler where data_type = 'SPHardwareDataType' "
       "limit 5");
-  ASSERT_GE(data.size(), 0UL);
+  ASSERT_EQ(data.size(), 1UL);
 
   for (const auto& row : data) {
     EXPECT_EQ(row.at("data_type"), "SPHardwareDataType");
