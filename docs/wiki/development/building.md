@@ -60,6 +60,13 @@ The initial directory is assumed to be `/Users/<user>`
 
 ### Step 1: Install macOS prerequisites
 
+> Build is currently broken with XCode SDK >= 16.3 (see https://github.com/osquery/osquery/issues/8593).
+>
+> The recommended workaround is to downgrade to 16.2 or lower:
+> 1. Download XCode 16.2 (requires Apple Developer login)
+> 2. Put it in `/Applications` (e.g. `mv ~/Downloads/Xcode.app /Applications/Xcode-16.2.app`)
+> 3. `xcode-select` that version (e.g. `sudo xcode-select -s /Applications/Xcode-16.2.app`)
+
 Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 14 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
 
 Then do the following.
