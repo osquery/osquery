@@ -63,6 +63,11 @@ const std::vector<std::string> kDomains = {kPersistentSettings,
                                            kDistributedRunningQueries,
                                            kQueryPerformance};
 
+const std::vector<std::string> kReservedDbPrefixes = {
+    "query.", "cache.", "config_views."};
+const std::vector<std::string> kReservedDbSuffixes = {kDbEpochSuffix,
+                                                      kDbCounterSuffix};
+
 std::atomic<bool> kDBAllowOpen(false);
 std::atomic<bool> kDBInitialized(false);
 std::atomic<bool> kDBChecking(false);
