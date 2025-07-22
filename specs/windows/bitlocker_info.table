@@ -11,5 +11,6 @@ schema([
   Column("version", INTEGER, "The FVE metadata version of the drive."),
   Column("percentage_encrypted", INTEGER, "The percentage of the drive that is encrypted."),
   Column("lock_status", INTEGER, "The accessibility status of the drive from Windows."),
+  Column("protector_types", TEXT, "Indicates what types of key protectors are setup."),
 ])
 implementation("bitlocker_info@genBitlockerInfo")

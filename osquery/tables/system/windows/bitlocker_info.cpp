@@ -13,10 +13,53 @@
 #include <osquery/sql/sql.h>
 
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
+
+static void fetchKeyProtectors(std::string& result,
+                               const WmiRequest& req,
+                               const WmiResultItem& object) {
+  WmiMethodArgs args;
+  WmiResultItem output;
+
+  result = "";
+
+  auto status = req.ExecMethod(object, "GetKeyProtectors", args, output);
+  if (!status.ok()) {
+    return;
+  }
+
+  std::vector<std::string> protectorIDs;
+  status = output.GetVectorOfStrings("VolumeKeyProtectorID", protectorIDs);
+  if (!status.ok()) {
+    return;
+  }
+
+  std::vector<std::string> protectorTypes;
+  for (const auto& protectorID : protectorIDs) {
+    WmiMethodArgs typeArgs;
+    typeArgs.Put("VolumeKeyProtectorID", protectorID);
+    WmiResultItem typeOutput;
+
+    auto typeStatus =
+        req.ExecMethod(object, "GetKeyProtectorType", typeArgs, typeOutput);
+
+    if (typeStatus.ok()) {
+      long protectorType = -1;
+      typeStatus = typeOutput.GetLong("KeyProtectorType", protectorType);
+      if (typeStatus.ok()) {
+        protectorTypes.push_back(std::to_string(protectorType));
+      }
+    }
+  }
+
+  if (!protectorTypes.empty()) {
+    result = osquery::join(protectorTypes, ", ");
+  }
+}
 
 static void fetchMethodResultLong(std::string& result,
                                   const WmiRequest& req,
@@ -92,6 +135,8 @@ QueryData genBitlockerInfo(QueryContext& context) {
                           "EncryptionPercentage");
     fetchMethodResultLong(
         r["lock_status"], *wmiSystemReq, data, "GetLockStatus", "LockStatus");
+
+    fetchKeyProtectors(r["protector_types"], *wmiSystemReq, data);
 
     results.push_back(r);
   }
