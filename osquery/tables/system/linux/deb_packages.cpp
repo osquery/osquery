@@ -144,9 +144,10 @@ QueryData genDebPackages(QueryContext& context) {
   }
 }
 
-// Implementation for deb_package_files table (moved from deb_package_files.cpp)
 void genDebPackageFiles(RowYield& yield, QueryContext& context) {
   std::vector<std::string> admindir_list{};
+  std::vector<ErrorLog> errorLogBuffer{};
+
   if (context.hasConstraint("admindir", EQUALS)) {
     for (const auto& admindir : context.constraints["admindir"].getAll(EQUALS)) {
       admindir_list.push_back(admindir);
@@ -162,17 +163,22 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
     allowed_packages = context.constraints["package"].getAll(EQUALS);
   }
 
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
+
   for (const auto& admindir : admindir_list) {
     if (!pathExists(admindir).ok()) {
       continue;
     }
     auto dpkg_query_exp = IDpkgQuery::create(admindir);
     if (dpkg_query_exp.isError()) {
+      errorLogBuffer.emplace_back("Failed to open the dpkg database", dpkg_query_exp.takeError(), admindir);
       continue;
     }
     auto dpkg_query = dpkg_query_exp.take();
     auto package_list_exp = dpkg_query->getPackageList();
     if (package_list_exp.isError()) {
+      errorLogBuffer.emplace_back("Failed to list the packages", package_list_exp.takeError(), admindir);
       continue;
     }
     auto package_list = package_list_exp.take();
@@ -202,6 +208,12 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
         yield(std::move(r));
       }
     }
+  }
+
+  // Now that we have privileges restored, we can log the errors.
+  GLOGLogger logger;
+  for (const auto& errorLog : errorLogBuffer) {
+    logError(logger, errorLog.message, errorLog.code, errorLog.admindir);
   }
 }
 
