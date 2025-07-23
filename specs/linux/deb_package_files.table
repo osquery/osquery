@@ -1,0 +1,13 @@
+table_name("deb_package_files")
+description("DEB packages that are currently installed on the host system.")
+schema([
+    Column("package", TEXT, "DEB package name", index=True, optimized=True),
+    Column("path", TEXT, "File path within the package", index=True),
+    Column("username", TEXT, "File default username from info DB"),
+    Column("groupname", TEXT, "File default groupname from info DB"),
+    Column("mode", TEXT, "File permissions mode from info DB"),
+    Column("size", BIGINT, "Expected file size in bytes from DEB info DB"),
+    Column("sha256", TEXT, "SHA256 file digest from DEB info DB"),
+    Column("admindir", TEXT, "libdpkg admindir. Defaults to /var/lib/dpkg", additional=True, optimized=True),
+])
+implementation("@genDebPackageFiles", generator=True) 

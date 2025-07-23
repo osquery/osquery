@@ -336,6 +336,7 @@ function(generateNativeTables)
   if(OSQUERY_BUILD_DPKG)
     list(APPEND platform_dependent_spec_files
       "linux/deb_packages.table:linux"
+      "linux/deb_package_files.table:linux"
     )
   endif()
 
