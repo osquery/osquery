@@ -98,7 +98,6 @@ function(generateOsqueryTablesSystemSystemtable)
     if(OSQUERY_BUILD_DPKG)
       list(APPEND source_files
         linux/deb_packages.cpp
-        linux/deb_package_files.cpp
       )
     endif()
 

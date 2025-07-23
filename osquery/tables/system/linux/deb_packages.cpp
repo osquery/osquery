@@ -14,6 +14,7 @@
 #include <osquery/utils/linux/idpkgquery.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 
 namespace osquery {
 namespace tables {
@@ -142,5 +143,67 @@ QueryData genDebPackages(QueryContext& context) {
     return genDebPackagesImpl(context, logger);
   }
 }
+
+// Implementation for deb_package_files table (moved from deb_package_files.cpp)
+void genDebPackageFiles(RowYield& yield, QueryContext& context) {
+  std::vector<std::string> admindir_list{};
+  if (context.hasConstraint("admindir", EQUALS)) {
+    for (const auto& admindir : context.constraints["admindir"].getAll(EQUALS)) {
+      admindir_list.push_back(admindir);
+    }
+  } else {
+    admindir_list.push_back("/var/lib/dpkg");
+  }
+
+  std::set<std::string> allowed_packages;
+  bool has_package_constraint = false;
+  if (context.hasConstraint("package", EQUALS)) {
+    has_package_constraint = true;
+    allowed_packages = context.constraints["package"].getAll(EQUALS);
+  }
+
+  for (const auto& admindir : admindir_list) {
+    if (!pathExists(admindir).ok()) {
+      continue;
+    }
+    auto dpkg_query_exp = IDpkgQuery::create(admindir);
+    if (dpkg_query_exp.isError()) {
+      continue;
+    }
+    auto dpkg_query = dpkg_query_exp.take();
+    auto package_list_exp = dpkg_query->getPackageList();
+    if (package_list_exp.isError()) {
+      continue;
+    }
+    auto package_list = package_list_exp.take();
+    for (const auto& package : package_list) {
+      if (has_package_constraint && allowed_packages.count(package.name) == 0) {
+        continue;
+      }
+      std::string list_file = admindir + "/info/" + package.name + ".list";
+      if (!pathExists(list_file).ok()) {
+        continue;
+      }
+      std::string file_content;
+      auto status = osquery::readFile(list_file, file_content);
+      if (!status.ok()) {
+        continue;
+      }
+      std::istringstream iss(file_content);
+      std::string file_path;
+      while (std::getline(iss, file_path)) {
+        if (file_path.empty()) {
+          continue;
+        }
+        auto r = make_table_row();
+        r["package"] = package.name;
+        r["path"] = file_path;
+        r["admindir"] = admindir;
+        yield(std::move(r));
+      }
+    }
+  }
+}
+
 } // namespace tables
 } // namespace osquery
