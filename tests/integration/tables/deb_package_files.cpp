@@ -33,9 +33,10 @@ TEST_F(DebPackageFiles, test_sanity) {
     };
     validate_rows(rows, row_map);
   } else {
-    LOG(WARNING) << "Empty results of query from 'deb_package_files', assume there are no DEB packages installed on the system";
+    LOG(WARNING) << "Empty results of query from 'deb_package_files', assume "
+                    "there are no DEB packages installed on the system";
   }
 }
 
 } // namespace table_tests
-} // namespace osquery 
+} // namespace osquery
