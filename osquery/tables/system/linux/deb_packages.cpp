@@ -153,7 +153,7 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
       admindir_list.push_back(admindir);
     }
   } else {
-    admindir_list.push_back("/var/lib/dpkg");
+    admindir_list.push_back(kAdminDir);
   }
 
   std::set<std::string> allowed_packages;
