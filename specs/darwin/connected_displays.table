@@ -16,6 +16,6 @@ schema([
     Column("main", INTEGER, "If the display is the main display."),
     Column("mirror", INTEGER, "If the display is mirrored or not. This field is 1 if mirrored and 0 if not mirrored."),
     Column("online", INTEGER, "The online status of the display. This field is 1 if the display is online and 0 if it is offline."),
-    Column("rotation", TEXT, "The orientation of the display."),
+    Column("rotation", TEXT, "The rotation of the display (0, 90, 180, or 270 degrees). This field is -1 if display rotation is not supported."),
 ])
 implementation("connected_displays@genConnectedDisplays")
