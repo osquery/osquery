@@ -115,7 +115,6 @@ function(generateOsqueryTablesSystemDarwinTests)
     darwin/launchd_tests.cpp
     darwin/mdfind_tests.cpp
     darwin/packages_tests.cpp
-    darwin/system_profiler_tests.cpp
     darwin/processes_tests.cpp
     darwin/smc_tests.cpp
     darwin/startup_items_tests.cpp
