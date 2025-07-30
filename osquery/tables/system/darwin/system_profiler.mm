@@ -109,9 +109,15 @@ QueryData genSystemProfilerResults(QueryContext& context) {
         continue;
       }
 
+      id items = [report objectForKey:@"_items"];
+      if (items == nil) {
+        LOG(WARNING) << "System profiler report items is null for " << dataType;
+        continue;
+      }
+
       Row r;
       r["data_type"] = dataType;
-      r["value"] = nsDictionaryToJson(report);
+      r["value"] = nsDictionaryToJson(items);
       results.push_back(r);
     }
   }
