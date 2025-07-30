@@ -302,11 +302,9 @@
   "yara": {
     "product": "yara",
     "vendor": "virustotal",
-    "version": "4.2.3",
-    "commit": "ba94b4f8ebb6d56786d14f6a0f7529b32d7c216f",
-    "ignored-cves": [
-      "CVE-2021-45429"
-    ]
+    "version": "4.5.4",
+    "commit": "7ff39042be5c63682a037e13a75221d59393cf8b",
+    "ignored-cves": []
   },
   "zlib": {
     "product": "zlib",
