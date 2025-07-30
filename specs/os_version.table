@@ -2,7 +2,7 @@ table_name("os_version")
 description("A single row containing the operating system name and version.")
 schema([
     Column("name", TEXT, "Distribution or product name"),
-    Column("version", TEXT, "Pretty, suitable for presentation, OS version"),
+    Column("version", TEXT, "Pretty, suitable for presentation, OS version", collate="version"),
     Column("major", INTEGER, "Major release version"),
     Column("minor", INTEGER, "Minor release version"),
     Column("patch", INTEGER, "Optional patch release"),
