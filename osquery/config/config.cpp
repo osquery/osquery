@@ -647,7 +647,8 @@ Expected<ConfigMap, Config::RestoreConfigError> Config::restoreConfigBackup() {
     if (!status.ok()) {
       LOG(ERROR)
           << "restoreConfigBackup database failed to retrieve config for key "
-          << key;
+          << key << " (error: " << status.getMessage() << ")";
+          
       return createError(Config::RestoreConfigError::DatabaseError)
              << "Could not retrieve value for the key: " << key;
     }
@@ -965,7 +966,8 @@ Status Config::update(const ConfigMap& config) {
 
     if (!status.ok()) {
       LOG(ERROR) << "updateSource failed to parse config, of source: "
-                 << source.first << " and content: " << source.second;
+                 << source.first << " and content: " << source.second
+                 << " (error: " << status.getMessage() << ")";
       return status;
     }
     // If a source was updated and the content has changed, then the registry
