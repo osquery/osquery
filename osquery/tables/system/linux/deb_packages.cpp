@@ -157,9 +157,7 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   std::set<std::string> allowed_packages;
-  bool has_package_constraint = false;
   if (context.hasConstraint("package", EQUALS)) {
-    has_package_constraint = true;
     allowed_packages = context.constraints["package"].getAll(EQUALS);
   }
 
@@ -170,27 +168,33 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
     if (!pathExists(admindir).ok()) {
       continue;
     }
-    auto dpkg_query_exp = IDpkgQuery::create(admindir);
-    if (dpkg_query_exp.isError()) {
-      errorLogBuffer.emplace_back("Failed to open the dpkg database",
-                                  dpkg_query_exp.takeError(),
-                                  admindir);
-      continue;
-    }
-    auto dpkg_query = dpkg_query_exp.take();
-    auto package_list_exp = dpkg_query->getPackageList();
-    if (package_list_exp.isError()) {
-      errorLogBuffer.emplace_back("Failed to list the packages",
-                                  package_list_exp.takeError(),
-                                  admindir);
-      continue;
-    }
-    auto package_list = package_list_exp.take();
-    for (const auto& package : package_list) {
-      if (has_package_constraint && allowed_packages.count(package.name) == 0) {
+
+    if (allowed_packages.empty()) {
+      // Only initialize dpkg query and generate package list if no package constraint is provided
+      auto dpkg_query_exp = IDpkgQuery::create(admindir);
+      if (dpkg_query_exp.isError()) {
+        errorLogBuffer.emplace_back("Failed to open the dpkg database",
+                                    dpkg_query_exp.takeError(),
+                                    admindir);
         continue;
       }
-      std::string list_file = admindir + "/info/" + package.name + ".list";
+      auto dpkg_query = dpkg_query_exp.take();
+      
+      auto package_list_exp = dpkg_query->getPackageList();
+      if (package_list_exp.isError()) {
+        errorLogBuffer.emplace_back("Failed to list the packages",
+                                    package_list_exp.takeError(),
+                                    admindir);
+        continue;
+      }
+      for (const auto& package : package_list_exp.take()) {
+        allowed_packages.insert(package.name);
+      }
+    }
+
+    // Process all packages (either from constraints or full list)
+    for (const auto& package_name : allowed_packages) {
+      std::string list_file = admindir + "/info/" + package_name + ".list";
       if (!pathExists(list_file).ok()) {
         continue;
       }
@@ -206,7 +210,7 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
           continue;
         }
         auto r = make_table_row();
-        r["package"] = package.name;
+        r["package"] = package_name;
         r["path"] = file_path;
         r["admindir"] = admindir;
         yield(std::move(r));
