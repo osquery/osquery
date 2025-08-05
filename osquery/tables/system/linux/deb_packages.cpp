@@ -170,7 +170,8 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
     }
 
     if (allowed_packages.empty()) {
-      // Only initialize dpkg query and generate package list if no package constraint is provided
+      // Only initialize dpkg query and generate package list if no package
+      // constraint is provided
       auto dpkg_query_exp = IDpkgQuery::create(admindir);
       if (dpkg_query_exp.isError()) {
         errorLogBuffer.emplace_back("Failed to open the dpkg database",
@@ -179,7 +180,7 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
         continue;
       }
       auto dpkg_query = dpkg_query_exp.take();
-      
+
       auto package_list_exp = dpkg_query->getPackageList();
       if (package_list_exp.isError()) {
         errorLogBuffer.emplace_back("Failed to list the packages",
