@@ -156,17 +156,17 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
     admindir_list.push_back(kAdminDir);
   }
 
-  std::set<std::string> allowed_packages;
-  if (context.hasConstraint("package", EQUALS)) {
-    allowed_packages = context.constraints["package"].getAll(EQUALS);
-  }
-
   auto dropper = DropPrivileges::get();
   dropper->dropTo("nobody");
 
   for (const auto& admindir : admindir_list) {
     if (!pathExists(admindir).ok()) {
       continue;
+    }
+
+    std::set<std::string> allowed_packages;
+    if (context.hasConstraint("package", EQUALS)) {
+      allowed_packages = context.constraints["package"].getAll(EQUALS);
     }
 
     if (allowed_packages.empty()) {
