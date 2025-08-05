@@ -1,0 +1,13 @@
+---
+description: Build and format configurations
+alwaysApply: true
+
+- This project uses CMake.
+- When building, use cmake commands.
+- For make commands, set paralellism (using -j) to the number of available CPU cores on the current system.
+- Always run make commands in the build/ subdirectory in the root of the repository.
+- When adding new files, edit the appropriate CMakeLists.txt.
+- Look for osqueryi and osqueryd binaries in the build/osquery directory.
+- Use -DOSQUERY_BUILD_TESTS=ON to enable building tests. This makes builds take longer, so only do it when tests are needed.
+- Format the code as specified in .clang-format. Check formatting is correct with `cmake --build . --target format_check`.
+---
