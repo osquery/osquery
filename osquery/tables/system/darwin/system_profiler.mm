@@ -83,7 +83,7 @@ std::string nsDictionaryToJson(NSDictionary* dict) {
     }
     return stringFromCFString((__bridge CFStringRef)jsonString);
   } @catch (NSException* exception) {
-    LOG(WARNING) << "NSInvalidArgumentException in nsDictionaryToJson: "
+    LOG(WARNING) << "Exception in nsDictionaryToJson: "
                  << [[exception reason] UTF8String];
     return "";
   }
