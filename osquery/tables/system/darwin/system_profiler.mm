@@ -115,9 +115,14 @@ QueryData genSystemProfilerResults(QueryContext& context) {
         continue;
       }
 
+      if (![items isKindOfClass:[NSDictionary class]]) {
+        LOG(WARNING) << "System profiler report items is not a dictionary for " << dataType;
+        continue;
+      }
+
       Row r;
       r["data_type"] = dataType;
-      r["value"] = nsDictionaryToJson(items);
+      r["value"] = nsDictionaryToJson((NSDictionary*)items);
       results.push_back(r);
     }
   }
