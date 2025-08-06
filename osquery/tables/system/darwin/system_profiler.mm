@@ -62,10 +62,10 @@ id convertForJSON(id obj) {
   }
 }
 
-std::string nsDictionaryToJson(NSDictionary* dict) {
+std::string objectToJson(id data) {
   @try {
     NSError* error = nil;
-    id safeDict = convertForJSON(dict);
+    id safeDict = convertForJSON(data);
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:safeDict
                                                        options:0
                                                          error:&error];
@@ -115,14 +115,9 @@ QueryData genSystemProfilerResults(QueryContext& context) {
         continue;
       }
 
-      if (![items isKindOfClass:[NSDictionary class]]) {
-        LOG(WARNING) << "System profiler report items is not a dictionary for " << dataType;
-        continue;
-      }
-
       Row r;
       r["data_type"] = dataType;
-      r["value"] = nsDictionaryToJson((NSDictionary*)items);
+      r["value"] = objectToJson(items);
       results.push_back(r);
     }
   }
@@ -130,5 +125,5 @@ QueryData genSystemProfilerResults(QueryContext& context) {
   return results;
 }
 
-}
-}
+} // namespace tables
+} // namespace osquery
