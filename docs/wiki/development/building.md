@@ -130,7 +130,7 @@ Then sign the osquery binary (update binary and entitlement file paths as approp
 codesign -s - -f --entitlements ./entitlements.plist ./osqueryd
 ```
 
-## Windows 10
+## Windows 11
 
 The initial directory is assumed to be `C:\`
 
@@ -144,15 +144,16 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CMake](https://cmake.org/) (>= 3.21.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
-- Visual Studio 2019 (2 options)
-  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", "C++ ATL tools", and "C++ Clang tools for Windows".
-  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+- [CmMke](https://cmake.org/download/) (>= 4.0.3): The MSI Installer Is Recommended. During Installation, Select The Option To Add It To The System `Path` For All Users. If There Is Any Older Version Of CMake Installed (E.G., Using Chocolatey), Uninstall That Version First! Do Not Install CMake Using The Visual Studio Installer, Because It Contains An Older Version Than Required.
+- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v143 - VS 2022 C++" (both x64 and ARM64 variants), "Windows 11 SDK", and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
-- [Wix Toolset](https://wixtoolset.org/releases/)
 - [Strawberry Perl](https://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+
+Optional:
+
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
+- [Wix Toolset](https://wixtoolset.org/releases/) if building the MSI package.
 
 ### Optional: Install Python tests prerequisites
 
@@ -163,23 +164,24 @@ Python 3 is assumed to be installed in `C:\Program Files\Python37`
 & 'C:\Program Files\Python37\python.exe' -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
 ```
 
-The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
-
 ### Step 2: Download and build source on Windows
 
+After installing dependencies, start a fresh PowerShell window as Administrator:
+
 ```PowerShell
-# Using a PowerShell console as Administrator (see note, below)
 # Download source
 git clone https://github.com/osquery/osquery
 cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -G "Visual Studio 16 2019" -A x64 ..
+cmake -G "Visual Studio 17 2022" -A x64 .. # or -A arm64
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
+
+The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
 
 ## Testing
 
