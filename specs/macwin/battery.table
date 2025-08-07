@@ -23,6 +23,5 @@ extended_schema(WINDOWS, [
 extended_schema(DARWIN, [
     Column("health", TEXT, "One of the following: \"Good\" describes a well-performing battery, \"Fair\" describes a functional battery with limited capacity, or \"Poor\" describes a battery that's not capable of providing power"),
     Column("condition", TEXT, "One of the following: \"Normal\" indicates the condition of the battery is within normal tolerances, \"Service Needed\" indicates that the battery should be checked out by a licensed Mac repair service, \"Permanent Failure\" indicates the battery needs replacement"),
-    Column("manufacture_date", INTEGER, "The date the battery was manufactured UNIX Epoch"),
 ])
 implementation("battery@genBatteryInfo")
