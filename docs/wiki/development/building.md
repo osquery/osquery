@@ -63,6 +63,7 @@ The initial directory is assumed to be `/Users/<user>`
 > Build is currently broken with XCode SDK >= 16.3 (see https://github.com/osquery/osquery/issues/8593).
 >
 > The recommended workaround is to downgrade to 16.2 or lower:
+>
 > 1. Download XCode 16.2 (requires Apple Developer login)
 > 2. Put it in `/Applications` (e.g. `mv ~/Downloads/Xcode.app /Applications/Xcode-16.2.app`)
 > 3. `xcode-select` that version (e.g. `sudo xcode-select -s /Applications/Xcode-16.2.app`)
@@ -144,7 +145,7 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CmMke](https://cmake.org/download/) (>= 4.0.3): The MSI Installer Is Recommended. During Installation, Select The Option To Add It To The System `Path` For All Users. If There Is Any Older Version Of CMake Installed (E.G., Using Chocolatey), Uninstall That Version First! Do Not Install CMake Using The Visual Studio Installer, Because It Contains An Older Version Than Required.
+- [CMake](https://cmake.org/download/) (>= 4.0.3): The MSI installer is recommended. During installation, select the option to add it to the system `Path` for all users. If there is any older version of CMake installed (eg. using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer.
 - [Visual Studio 2022 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v143 - VS 2022 C++" (both x64 and ARM64 variants), "Windows 11 SDK", and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
