@@ -14,6 +14,7 @@ schema([
     Column("cdhash", TEXT, "Hash of the application Code Directory"),
     Column("team_identifier", TEXT, "The team signing identifier sealed into the signature"),
     Column("authority", TEXT, "Certificate Common Name"),
+    Column("entitlements", TEXT, "JSON representation of the code signing entitlements"),
 ])
 implementation("signature@genSignature")
 examples([
