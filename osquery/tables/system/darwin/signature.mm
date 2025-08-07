@@ -207,17 +207,24 @@ Status genSignatureForFileAndArch(const std::string& path,
   // Get entitlements dictionary
   r["entitlements"] = "";
   CFDictionaryRef entitlements = nullptr;
-  if (CFDictionaryGetValueIfPresent(code_info, kSecCodeInfoEntitlementsDict, (const void**)&entitlements)) {
+  if (CFDictionaryGetValueIfPresent(code_info,
+                                    kSecCodeInfoEntitlementsDict,
+                                    (const void**)&entitlements)) {
     if (entitlements != nullptr) {
       @autoreleasepool {
-        NSDictionary *nsDict = (__bridge NSDictionary *)entitlements;
-        NSError *error = nil;
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:nsDict options:0 error:&error];
+        NSDictionary* nsDict = (__bridge NSDictionary*)entitlements;
+        NSError* error = nil;
+        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:nsDict
+                                                           options:0
+                                                             error:&error];
         if (error == nil) {
-          NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+          NSString* jsonString =
+              [[NSString alloc] initWithData:jsonData
+                                    encoding:NSUTF8StringEncoding];
           r["entitlements"] = [jsonString UTF8String];
         } else {
-          LOG(ERROR) << "Failed to serialize entitlements to JSON for " << path << ": " << [[error localizedDescription] UTF8String];
+          LOG(ERROR) << "Failed to serialize entitlements to JSON for " << path
+                     << ": " << [[error localizedDescription] UTF8String];
         }
       }
     }
