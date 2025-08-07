@@ -32,6 +32,7 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
+#include <osquery/utils/affixes.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/trim.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -1018,7 +1019,7 @@ void Config::purge() {
                          const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
       for (const auto& query : pack->getSchedule()) {
-        if (query.name == query_name) {
+        if (getQueryName(pack->getName(), query.name) == query_name) {
           return true;
         }
       }
@@ -1029,7 +1030,9 @@ void Config::purge() {
   RecursiveLock lock(config_schedule_mutex_);
   // Iterate over each result set in the database.
   for (const auto& saved_query : saved_queries) {
-    if (queryExists(saved_query)) {
+    if (hasAnyPrefix(saved_query, kReservedDbPrefixes) ||
+        hasAnySuffix(saved_query, kReservedDbSuffixes) ||
+        queryExists(saved_query)) {
       continue;
     }
 
