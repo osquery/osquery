@@ -151,8 +151,9 @@ QueryData genVSCodeExtensions(QueryContext& context) {
 
     // Add paths for each of the supported VSCode editions
     for (const auto& path_info : KPathList) {
-      conf_dirs.insert(ConfDir{
-          uid->second, fs::path(directory->second) / path_info.first, path_info.second});
+      conf_dirs.insert(ConfDir{uid->second,
+                               fs::path(directory->second) / path_info.first,
+                               path_info.second});
     }
   }
 
