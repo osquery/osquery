@@ -145,8 +145,8 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CMake](https://cmake.org/download/) (>= 4.0.3): The MSI installer is recommended. During installation, select the option to add it to the system `Path` for all users. If there is any older version of CMake installed (eg. using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer.
-- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v143 - VS 2022 C++" (both x64 and ARM64 variants), "Windows 11 SDK", and "C++ Clang tools for Windows".
+- [CMake](https://cmake.org/download/) (>= 4.0.3): The MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (eg. using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer.
+- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v143 - VS 2022 C++" (both x64 and ARM64 variants), "Windows 11 SDK", "C++ ATL" (both x64 and ARM64 variants), and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
 - [Strawberry Perl](https://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
