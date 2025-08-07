@@ -10,7 +10,7 @@ schema([
     Column("installed_at", BIGINT, "Installed Timestamp"),
     Column("prerelease", INTEGER, "Pre release version"),
     Column("uid", BIGINT, "The local user that owns the plugin", additional=True, optimized=True),
-    Column("vscode_edition", TEXT, "VSCode or VSCode Insiders")
+    Column("vscode_edition", TEXT, "The VSCode edition (vscode, vscode_insiders, vscodium, vscodium_insiders, cursor, windsurf, trae)")
 ])
 attributes(user_data=True)
 implementation("applications/vscode_extensions@genVSCodeExtensions")
