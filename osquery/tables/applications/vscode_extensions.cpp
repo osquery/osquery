@@ -23,6 +23,25 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+// Constants for VSCode configuration paths
+const std::vector<std::pair<std::string, std::string>> KPathList = {
+    {".vscode-server", "vscode"},
+    {".vscode", "vscode"},
+    {".vscode-server-insiders", "vscode_insiders"},
+    {".vscode-insiders", "vscode_insiders"},
+    // Note vscodium regular does not follow the pattern
+    {".vscode-oss", "vscodium"},
+    {".vscodium-server", "vscodium"},
+    {".vscodium-insiders", "vscodium_insiders"},
+    {".vscodium-server-insiders", "vscodium_insiders"},
+    {".cursor", "cursor"},
+    {".cursor-server", "cursor"},
+    {".windsurf", "windsurf"},
+    {".windsurf-server", "windsurf"},
+    {".trae", "trae"},
+    {".trae-server", "trae"},
+};
+
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
                                     const std::string& vscode_edition,
@@ -130,19 +149,11 @@ QueryData genVSCodeExtensions(QueryContext& context) {
       continue;
     }
 
-    // Determine the version type and add paths for both VSCode and VSCode
-    // Insiders
-    conf_dirs.insert(ConfDir{
-        uid->second, fs::path(directory->second) / ".vscode-server", "vscode"});
-    conf_dirs.insert(ConfDir{
-        uid->second, fs::path(directory->second) / ".vscode", "vscode"});
-    conf_dirs.insert(
-        ConfDir{uid->second,
-                fs::path(directory->second) / ".vscode-server-insiders",
-                "vscode_insiders"});
-    conf_dirs.insert(ConfDir{uid->second,
-                             fs::path(directory->second) / ".vscode-insiders",
-                             "vscode_insiders"});
+    // Add paths for each of the supported VSCode editions
+    for (const auto& path_info : KPathList) {
+      conf_dirs.insert(ConfDir{
+          uid->second, fs::path(directory->second) / path_info.first, path_info.second});
+    }
   }
 
   for (const auto& conf_dir : conf_dirs) {
