@@ -144,6 +144,7 @@ function(generateNativeTables)
     "darwin/sip_config.table:macos"
     "darwin/smc_keys.table:macos"
     "darwin/system_extensions.table:macos"
+    "darwin/system_profiler.table:macos"
     "darwin/temperature_sensors.table:macos"
     "darwin/time_machine_backups.table:macos"
     "darwin/time_machine_destinations.table:macos"

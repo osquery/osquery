@@ -245,6 +245,7 @@ function(generateTestsIntegrationTablesTestsTest)
       managed_policies.cpp
       mdfind.cpp
       nfs_shares.cpp
+      system_profiler.cpp
       nvram.cpp
       package_bom.cpp
       package_install_history.cpp
