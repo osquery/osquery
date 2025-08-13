@@ -18,6 +18,8 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/affixes.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
@@ -209,6 +211,20 @@ void Pack::initialize(const std::string& name,
     }
 
     auto query_name = q.name.GetString();
+
+    if (hasAnyPrefix(query_name, kReservedDbPrefixes)) {
+      LOG(WARNING) << "Invalid query name: " << query_name
+                   << " starts with one of the reserved prefixes: "
+                   << join(kReservedDbPrefixes, ", ");
+      continue;
+    }
+
+    if (hasAnySuffix(query_name, kReservedDbSuffixes)) {
+      LOG(WARNING) << "Invalid query name: " << query_name
+                   << " ends with one of the reserved suffixes: "
+                   << join(kReservedDbSuffixes, ", ");
+      continue;
+    }
 
     if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
       VLOG(1) << "No query string defined for query " << query_name;

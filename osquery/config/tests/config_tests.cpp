@@ -559,6 +559,61 @@ TEST_F(ConfigTests, test_nondenylist_query) {
   EXPECT_FALSE(query->second);
 }
 
+TEST_F(ConfigTests, test_queryname_validation) {
+  std::string packConfig = R"({
+    "version": "1.5.0",
+    "queries": {
+      "timeepoch": {
+        "query": "SELECT * FROM time",
+        "interval": 5
+      },
+      "query.info": {
+        "query": "select * from osquery_info",
+        "interval": 5
+      },
+      "valid_name": {
+        "query": "select * from etc_hosts",
+        "interval": 5
+      }
+    }
+  })";
+
+  std::string scheduleConfig = R"({
+    "queries": {
+      "valid_counter_query": {
+      "query": "SELECT * FROM time",
+      "interval": 5
+      },
+      "invalid_query_counter": {
+        "query": "select * from osquery_info",
+        "interval": 5
+      }
+    }
+  })";
+
+  JSON packDoc = JSON::newObject();
+  Status status = packDoc.fromString(packConfig);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  JSON scheduleDoc = JSON::newObject();
+  status = scheduleDoc.fromString(scheduleConfig);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  std::vector<std::string> scheduled_queries;
+  const std::vector<std::string> valid_names = {
+      "pack_query_validation_pack_valid_name", "valid_counter_query"};
+  get().reset();
+  get().addPack("query_validation_pack", "", packDoc.doc());
+  get().addPack("main", "", scheduleDoc.doc());
+
+  get().scheduledQueries(
+      ([&scheduled_queries](std::string name, const ScheduledQuery& query) {
+        scheduled_queries.push_back(std::move(name));
+      }));
+
+  EXPECT_EQ(scheduled_queries, valid_names);
+}
+
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override {

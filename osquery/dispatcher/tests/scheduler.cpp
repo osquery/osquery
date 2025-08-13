@@ -122,6 +122,8 @@ TEST_F(SchedulerTests, test_config_results_purge) {
   setDatabaseValue(kPersistentSettings, "interval.test_query", "11");
   // Store meaningless query differential results.
   setDatabaseValue(kQueries, "test_query", "{}");
+  setDatabaseValue(kQueries, "test_querycounter", "1");
+  setDatabaseValue(kQueries, "query.test_query", "SELECT * FROM TIME");
 
   // We do not need "THE" config instance.
   // We only need to trigger a 'purge' event, this occurs when configuration
@@ -145,6 +147,21 @@ TEST_F(SchedulerTests, test_config_results_purge) {
     std::string content;
     getDatabaseValue(kQueries, "test_query", content);
     EXPECT_FALSE(content.empty());
+  }
+
+  // Reserved keys should not have a set timestamp
+  {
+    std::string content;
+    getDatabaseValue(
+        kPersistentSettings, "timestamp.test_querycounter", content);
+    EXPECT_TRUE(content.empty());
+  }
+
+  {
+    std::string content;
+    getDatabaseValue(
+        kPersistentSettings, "timestamp.query.test_query", content);
+    EXPECT_TRUE(content.empty());
   }
 
   // Update the timestamp to have run a week and a day ago.
