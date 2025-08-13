@@ -1,5 +1,5 @@
 table_name("rpm_package_files")
-description("RPM packages that are currently installed on the host system.")
+description("Installed files from RPM packages that are currently installed on the system.")
 schema([
     Column("package", TEXT, "RPM package name", index=True, optimized=True),
     Column("path", TEXT, "File path within the package", index=True),
