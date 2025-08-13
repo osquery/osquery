@@ -74,8 +74,8 @@
   "boost": {
     "product": "boost",
     "vendor": "boost",
-    "version": "1.77.0",
-    "commit": "9d3f9bcd7d416880d4631d7d39cceeb4e8f25da0",
+    "version": "1.88.0",
+    "commit": "199ef13d6034c85232431130142159af3adfce22",
     "ignored-cves": []
   },
   "bzip2": {
