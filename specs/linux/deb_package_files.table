@@ -1,5 +1,5 @@
 table_name("deb_package_files")
-description("DEB packages that are currently installed on the host system.")
+description("Installed files from DEB packages that are currently installed on the system.")
 schema([
     Column("package", TEXT, "DEB package name", index=True, optimized=True),
     Column("path", TEXT, "File path within the package", index=True),
