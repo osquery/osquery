@@ -74,10 +74,10 @@ std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname;
   
-  // Add the prefix "/tools/agent/fleet" to all requests only if openframe mode is enabled
+  // Add the prefix "/tools/agent/fleetmdm-server" to all requests only if openframe mode is enabled
   if (FLAGS_openframe_mode) {
-    LOG(INFO) << "Adding /tools/agent/fleet to URI for openframe mode";
-    uri += "/tools/agent/fleet";
+    LOG(INFO) << "Adding /tools/agent/fleetmdm-server to URI for openframe mode";
+    uri += "/tools/agent/fleetmdm-server";
   }
   
   uri += FLAGS_enroll_tls_endpoint;
