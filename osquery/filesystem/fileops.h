@@ -94,6 +94,7 @@ typedef struct win_stat {
   std::string product_version;
   std::string file_version;
   std::string original_filename;
+  std::string product_name;
 
 } WINDOWS_STAT;
 

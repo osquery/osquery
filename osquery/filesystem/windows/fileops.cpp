@@ -190,12 +190,12 @@ void initLanguagesAndCodepagesHeuristic(
       {0x0409, 0x0000}); // US English + unknown codepage
 }
 
-// retrieve OriginalFilename for language and code page from version information
-// resource
-Status getOriginalFilenameForCodepage(
-    const std::unique_ptr<BYTE[]>& versionInfo,
-    const langandcodepage_t& lang_and_codepage,
-    std::string& original_filename) {
+// retrieve a file property for language and code page from version
+// information resource
+Status getFilePropertyForCodepage(const std::unique_ptr<BYTE[]>& versionInfo,
+                                    const langandcodepage_t& lang_and_codepage,
+                                    const std::wstring& property_name,
+                                    std::string& property_value) {
   WCHAR string_buf[50] = {'\0'};
   size_t string_buf_size = ARRAYSIZE(string_buf);
   WCHAR* lpBuffer = nullptr;
@@ -203,23 +203,26 @@ Status getOriginalFilenameForCodepage(
 
   HRESULT hr = StringCchPrintfW(string_buf,
                                 string_buf_size,
-                                L"\\StringFileInfo\\%04x%04x\\OriginalFilename",
+                                L"\\StringFileInfo\\%04x%04x\\%s",
                                 lang_and_codepage.wLanguage,
-                                lang_and_codepage.wCodePage);
+                                lang_and_codepage.wCodePage,
+                                property_name.c_str());
   if (SUCCEEDED(hr) &&
       VerQueryValueW(
           versionInfo.get(), string_buf, (LPVOID*)&lpBuffer, &dwBytes)) {
-    original_filename = wstringToString(lpBuffer);
+    property_value = wstringToString(lpBuffer);
     return Status::success();
   }
-  return Status(GetLastError(),
-                "Failed to retrieve OriginalFilename for codepage");
+  return Status(
+      GetLastError(),
+      "Failed to retrieve " + wstringToString(property_name) + " for codepage");
 }
 
-// retrieve OriginalFilename from version information resource
-// original_filename is only modified on successful read
-Status windowsGetOriginalFilename(const std::string& path,
-                                  std::string& original_filename) {
+// retrieve a file property from version information resource
+// property_value is only modified on successful read
+Status windowsGetFileProperty(const std::string& path,
+                                const std::wstring& property_name,
+                                std::string& property_value) {
   DWORD handle = 0;
   std::wstring wpath = stringToWstring(path);
 
@@ -252,13 +255,14 @@ Status windowsGetOriginalFilename(const std::string& path,
     return stat;
   }
 
-  // retrieve OriginalFilename for each language and code page, stop on first
+  // retrieve a file property for each language and code page, stop on first
   // successful read
-  stat = Status::failure(
-      "Failed to retrieve OriginalFilename from version information resource");
+  stat =
+      Status::failure("Failed to retrieve " + wstringToString(property_name) +
+                      " from version information resource");
   for (size_t i = 0; i < langs_and_codepages.size(); ++i) {
-    stat = getOriginalFilenameForCodepage(
-        verInfo, langs_and_codepages[i], original_filename);
+    stat = getFilePropertyForCodepage(
+        verInfo, langs_and_codepages[i], property_name, property_value);
     if (stat.ok()) {
       break;
     }
@@ -281,8 +285,8 @@ Status windowsGetOriginalFilename(const std::string& path,
     langs_and_codepages.clear();
     initLanguagesAndCodepagesHeuristic(langs_and_codepages);
     for (size_t i = 0; i < langs_and_codepages.size(); ++i) {
-      stat = getOriginalFilenameForCodepage(
-          verInfo, langs_and_codepages[i], original_filename);
+      stat = getFilePropertyForCodepage(
+          verInfo, langs_and_codepages[i], property_name, property_value);
       if (stat.ok()) {
         break;
       }
@@ -290,9 +294,9 @@ Status windowsGetOriginalFilename(const std::string& path,
   }
 
   return stat.ok() ? Status::success()
-                   : Status::failure(
-                         "Failed to retrieve OriginalFilename from "
-                         "version information resource");
+                   : Status::failure("Failed to retrieve " +
+                                     wstringToString(property_name) +
+                                     " from version information resource");
 }
 
 static bool hasGlobBraces(const std::wstring& glob) {
@@ -1958,8 +1962,13 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                         wfile_stat->product_version,
                         wfile_stat->file_version);
 
-  windowsGetOriginalFilename(wstringToString(path.wstring()),
-                             wfile_stat->original_filename);
+  windowsGetFileProperty(wstringToString(path.wstring()),
+                           L"OriginalFilename",
+                           wfile_stat->original_filename);
+
+  windowsGetFileProperty(wstringToString(path.wstring()),
+                           L"ProductName",
+                           wfile_stat->product_name);
 
   CloseHandle(file_handle);
 

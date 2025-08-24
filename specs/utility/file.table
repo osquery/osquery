@@ -27,6 +27,7 @@ extended_schema(WINDOWS, [
     Column("file_version", TEXT, "File version", collate="version"),
     Column("product_version", TEXT, "File product version", collate="version"),
     Column("original_filename", TEXT, "(Executable files only) Original filename"),
+    Column("product_name", TEXT, "File product name"),
     Column("shortcut_target_path", TEXT, "Full path to the file the shortcut points to"),
     Column("shortcut_target_type", TEXT, "Display name for the target type"),
     Column("shortcut_target_location", TEXT, "Folder name where the shortcut target resides"),

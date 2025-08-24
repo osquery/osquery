@@ -180,6 +180,7 @@ TEST_F(FileTests, test_sanity) {
   row_map["product_version"] = NormalType;
   row_map["file_version"] = NormalType;
   row_map["original_filename"] = NormalType;
+  row_map["product_name"] = NormalType;
   row_map["shortcut_target_path"] = NormalType;
   row_map["shortcut_target_type"] = NormalType;
   row_map["shortcut_target_location"] = NormalType;

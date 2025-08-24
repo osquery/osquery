@@ -305,6 +305,7 @@ void genFileInfoWindows(const fs::path& path,
   r["product_version"] = SQL_TEXT(file_stat.product_version);
   r["file_version"] = SQL_TEXT(file_stat.file_version);
   r["original_filename"] = SQL_TEXT(file_stat.original_filename);
+  r["product_name"] = SQL_TEXT(file_stat.product_name);
 
   if (get_shortcut_data) {
     auto opt_link_data = parseLnkData(path);
