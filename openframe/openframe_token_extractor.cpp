@@ -2,18 +2,22 @@
 #include <fstream>
 #include <stdexcept>
 
-OpenframeTokenExtractor::OpenframeTokenExtractor(std::shared_ptr<OpenframeEncryptionService> encryption_service)
-    : encryption_service_(encryption_service) {
+OpenframeTokenExtractor::OpenframeTokenExtractor(std::shared_ptr<OpenframeEncryptionService> encryption_service,
+                                               const std::string& token_file_path)
+    : encryption_service_(encryption_service), token_file_path_(token_file_path) {
     if (!encryption_service_) {
         throw std::runtime_error("Encryption service cannot be null");
+    }
+    if (token_file_path_.empty()) {
+        throw std::runtime_error("Token file path cannot be empty");
     }
 }
 
 std::string OpenframeTokenExtractor::extractToken() {
     // Open the token file
-    std::ifstream token_file(kTokenFilePath);
+    std::ifstream token_file(token_file_path_);
     if (!token_file.is_open()) {
-        throw std::runtime_error("Failed to open token file at: " + std::string(kTokenFilePath));
+        throw std::runtime_error("Failed to open token file at: " + token_file_path_);
     }
 
     // Read the encrypted token

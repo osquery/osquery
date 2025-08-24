@@ -161,6 +161,7 @@ FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 /// OpenFrame functionality flags
 FLAG(bool, openframe_mode, false, "Enable OpenFrame mode");
 FLAG(string, openframe_secret, "", "OpenFrame secret key for authentication");
+FLAG(string, openframe_token_path, "", "Path to the OpenFrame token file");
 
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
@@ -221,7 +222,7 @@ void initOpenFrame() {
     auto encryption_service = std::make_shared<OpenframeEncryptionService>(FLAGS_openframe_secret);
     
     // Create token extractor with encryption service
-    auto token_extractor = std::make_shared<OpenframeTokenExtractor>(encryption_service);
+    auto token_extractor = std::make_shared<OpenframeTokenExtractor>(encryption_service, FLAGS_openframe_token_path);
     
     // Get initial token and set it in authorization manager
     auto initial_token = token_extractor->extractToken();

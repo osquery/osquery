@@ -6,13 +6,14 @@
 
 class OpenframeTokenExtractor {
 public:
-    explicit OpenframeTokenExtractor(std::shared_ptr<OpenframeEncryptionService> encryption_service);
+    explicit OpenframeTokenExtractor(std::shared_ptr<OpenframeEncryptionService> encryption_service,
+                                   const std::string& token_file_path);
     ~OpenframeTokenExtractor() = default;
 
     // Extract and decrypt the token from the file
     std::string extractToken();
 
 private:
-    static constexpr const char* kTokenFilePath = "/etc/openframe/token.txt";
+    std::string token_file_path_;
     std::shared_ptr<OpenframeEncryptionService> encryption_service_;
 }; 
