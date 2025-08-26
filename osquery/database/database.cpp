@@ -562,7 +562,7 @@ static Status migrateV0V1(void) {
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
         boost::algorithm::ends_with(key, kDbCounterSuffix) ||
         boost::algorithm::starts_with(key, "query.") ||
-        boost::algorithm::states_with(key, "config_views.")) {
+        boost::algorithm::starts_with(key, "config_views.")) {
       continue;
     }
 
