@@ -653,7 +653,7 @@ Status upgradeDatabase(int to_version) {
     }
   } else {
     LOG(ERROR) << "Failed to obtain database version. Assume version '"
-               << std::to_string(db_version) << "' and migrate."
+               << std::to_string(db_version) << "' and migrate.";
   }
 
   while (db_version != to_version) {
