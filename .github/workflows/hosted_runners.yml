@@ -872,7 +872,7 @@ jobs:
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: test_older_macos
+    needs: build_macos
 
     runs-on: macos-14
 
