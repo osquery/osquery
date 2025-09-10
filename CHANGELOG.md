@@ -1,5 +1,7 @@
 # osquery Changelog
 
+## **Changes are now documented on the [Releases](https://github.com/osquery/osquery/releases) page.**
+
 <a name="5.16.0"></a>
 ## [5.16.0](https://github.com/osquery/osquery/releases/tag/5.16.0)
 
