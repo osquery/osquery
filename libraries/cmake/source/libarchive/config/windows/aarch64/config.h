@@ -316,13 +316,13 @@ typedef uint64_t uintmax_t;
 /* #undef ARCHIVE_XATTR_LINUX */
 
 /* Version number of bsdcpio */
-#define BSDCPIO_VERSION_STRING "3.7.9"
+#define BSDCPIO_VERSION_STRING "3.8.1"
 
 /* Version number of bsdtar */
-#define BSDTAR_VERSION_STRING "3.7.9"
+#define BSDTAR_VERSION_STRING "3.8.1"
 
 /* Version number of bsdcat */
-#define BSDCAT_VERSION_STRING "3.7.9"
+#define BSDCAT_VERSION_STRING "3.8.1"
 
 /* Define to 1 if you have the `acl_create_entry' function. */
 /* #undef HAVE_ACL_CREATE_ENTRY */
