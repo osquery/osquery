@@ -107,11 +107,9 @@ void genNodeSiteDirectories(const std::string& site,
                             Logger& logger) {
   std::vector<std::string> manifest_paths;
   
-  // Search for direct packages: node_modules/package/package.json
   boost::filesystem::path pattern1("node_modules/%/package.json");
   resolveFilePattern(site / pattern1, manifest_paths);
   
-  // Search for nested packages: node_modules/@scope/package/package.json
   boost::filesystem::path pattern2("node_modules/%/%/package.json");
   resolveFilePattern(site / pattern2, manifest_paths);
 
