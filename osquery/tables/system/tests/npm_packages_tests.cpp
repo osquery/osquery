@@ -34,7 +34,8 @@ namespace table_tests {
 class NpmPackagesUnitTest : public testing::Test {
  protected:
   void SetUp() override {
-    temp_dir_ = fs::temp_directory_path() / fs::unique_path("osquery_npm_test_%%%%-%%%%-%%%%-%%%%");
+    temp_dir_ = fs::temp_directory_path() /
+                fs::unique_path("osquery_npm_test_%%%%-%%%%-%%%%-%%%%");
     fs::create_directories(temp_dir_);
   }
 
@@ -51,11 +52,14 @@ class NpmPackagesUnitTest : public testing::Test {
   }
 
   // Helper to create a scoped package structure
-  void createScopedPackage(const std::string& scope, const std::string& package_name, 
-                          const std::string& version) {
-    auto package_path = temp_dir_ / "node_modules" / scope / package_name / "package.json";
+  void createScopedPackage(const std::string& scope,
+                           const std::string& package_name, 
+                           const std::string& version) {
+    auto package_path =
+        temp_dir_ / "node_modules" / scope / package_name / "package.json";
     std::string package_json = R"({
-  "name": ")" + scope + "/" + package_name + R"(",
+  "name": ")" + scope + "/" + package_name +
+                                R"(",
   "version": ")" + version + R"(",
   "description": "Test scoped package",
   "author": "Test Author",
@@ -64,9 +68,11 @@ class NpmPackagesUnitTest : public testing::Test {
     createPackageJson(package_path, package_json);
   }
 
-  // Helper to create a regular package structure  
-  void createRegularPackage(const std::string& package_name, const std::string& version) {
-    auto package_path = temp_dir_ / "node_modules" / package_name / "package.json";
+  // Helper to create a regular package structure
+  void createRegularPackage(const std::string& package_name,
+                            const std::string& version) {
+    auto package_path = 
+        temp_dir_ / "node_modules" / package_name / "package.json";
     std::string package_json = R"({
   "name": ")" + package_name + R"(",
   "version": ")" + version + R"(",
@@ -82,11 +88,11 @@ class NpmPackagesUnitTest : public testing::Test {
 
 TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
   GLOGLogger logger;
-  
+
   // Create mock scoped packages
   createScopedPackage("@types", "node", "18.0.0");
   createScopedPackage("@angular", "core", "15.0.0");
-  
+
   // Create mock regular packages
   createRegularPackage("express", "4.18.0");
   createRegularPackage("lodash", "4.17.21");
@@ -112,21 +118,25 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
     if (name == "@types/node") {
       found_scoped_types_node = true;
       EXPECT_EQ(version, "18.0.0");
-      EXPECT_TRUE(path.find("node_modules/@types/node/package.json") != std::string::npos);
+      EXPECT_TRUE(path.find("node_modules/@types/node/package.json") !=
+                  std::string::npos);
     } else if (name == "@angular/core") {
       found_scoped_angular_core = true;
       EXPECT_EQ(version, "15.0.0");
-      EXPECT_TRUE(path.find("node_modules/@angular/core/package.json") != std::string::npos);
+      EXPECT_TRUE(path.find("node_modules/@angular/core/package.json") !=
+                  std::string::npos);
     }
     // Verify regular packages  
     else if (name == "express") {
       found_regular_express = true;
       EXPECT_EQ(version, "4.18.0");
-      EXPECT_TRUE(path.find("node_modules/express/package.json") != std::string::npos);
+      EXPECT_TRUE(path.find("node_modules/express/package.json") !=
+                  std::string::npos);
     } else if (name == "lodash") {
       found_regular_lodash = true;
       EXPECT_EQ(version, "4.17.21");
-      EXPECT_TRUE(path.find("node_modules/lodash/package.json") != std::string::npos);
+      EXPECT_TRUE(path.find("node_modules/lodash/package.json") !=
+                  std::string::npos);
     }
 
     // Verify common fields based on package type
@@ -141,10 +151,14 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
   }
 
   // Ensure we found all expected packages
-  EXPECT_TRUE(found_scoped_types_node) << "Did not find @types/node scoped package";
-  EXPECT_TRUE(found_scoped_angular_core) << "Did not find @angular/core scoped package";  
-  EXPECT_TRUE(found_regular_express) << "Did not find express regular package";
-  EXPECT_TRUE(found_regular_lodash) << "Did not find lodash regular package";
+  EXPECT_TRUE(found_scoped_types_node)
+      << "Did not find @types/node scoped package";
+  EXPECT_TRUE(found_scoped_angular_core)
+      << "Did not find @angular/core scoped package";
+  EXPECT_TRUE(found_regular_express)
+      << "Did not find express regular package";
+  EXPECT_TRUE(found_regular_lodash)
+      << "Did not find lodash regular package";
 }
 
 } // namespace table_tests
