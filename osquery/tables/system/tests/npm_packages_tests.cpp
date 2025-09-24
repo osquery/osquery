@@ -119,24 +119,28 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       found_scoped_types_node = true;
       EXPECT_EQ(version, "18.0.0");
       // Check for platform-agnostic path containing package structure
-      fs::path expected_path = fs::path("node_modules") / "@types" / "node" / "package.json";
+      fs::path expected_path =
+          fs::path("node_modules") / "@types" / "node" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     } else if (name == "@angular/core") {
       found_scoped_angular_core = true;
       EXPECT_EQ(version, "15.0.0");
-      fs::path expected_path = fs::path("node_modules") / "@angular" / "core" / "package.json";
+      fs::path expected_path =
+          fs::path("node_modules") / "@angular" / "core" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     }
     // Verify regular packages
     else if (name == "express") {
       found_regular_express = true;
       EXPECT_EQ(version, "4.18.0");
-      fs::path expected_path = fs::path("node_modules") / "express" / "package.json";
+      fs::path expected_path =
+          fs::path("node_modules") / "express" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     } else if (name == "lodash") {
       found_regular_lodash = true;
       EXPECT_EQ(version, "4.17.21");
-      fs::path expected_path = fs::path("node_modules") / "lodash" / "package.json";
+      fs::path expected_path =
+          fs::path("node_modules") / "lodash" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     }
 
