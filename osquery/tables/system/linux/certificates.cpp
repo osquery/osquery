@@ -26,6 +26,7 @@ namespace {
 static const std::vector<std::filesystem::path> kDefaultBundlePathList{
     "/etc/pki/tls/certs/ca-bundle.crt",
     "/etc/ssl/certs/ca-certificates.crt",
+    "/var/lib/ca-certificates/ca-bundle.pem",
 };
 
 using BIODeleter = int (*)(BIO*);
@@ -250,8 +251,11 @@ QueryData genCerts(QueryContext& context) {
 
   auto user_path_list = context.constraints["path"].getAll(EQUALS);
   if (user_path_list.empty()) {
-    bundle_path_list = kDefaultBundlePathList;
-
+    for (const auto& path : kDefaultBundlePathList) {
+      if (std::filesystem::exists(path)) {
+        bundle_path_list.push_back(path);
+      }
+    }
   } else {
     for (const auto& user_path : user_path_list) {
       bundle_path_list.push_back(user_path);
