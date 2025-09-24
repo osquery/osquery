@@ -97,17 +97,21 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
   createRegularPackage("express", "4.18.0");
   createRegularPackage("lodash", "4.17.21");
 
+  // Create mock nested regular package
+  createScopedPackage("nested", "package", "3.2.1");
+
   QueryData results;
   tables::genNodeSiteDirectories(temp_dir_.string(), results, logger);
 
-  // We should find all 4 packages
-  EXPECT_EQ(results.size(), 4);
+  // We should find all 5 packages
+  EXPECT_EQ(results.size(), 5);
 
   // Check that we found both scoped and regular packages
   bool found_scoped_types_node = false;
   bool found_scoped_angular_core = false;
   bool found_regular_express = false;
   bool found_regular_lodash = false;
+  bool found_regular_nested_package = false;
 
   for (const auto& row : results) {
     auto name = row.at("name");
@@ -144,6 +148,17 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     }
 
+    // Verify nested regular package
+    else if (name == "nested/package") {
+      found_regular_nested_package = true;
+      EXPECT_EQ(version, "3.2.1");
+      fs::path expected_path =
+          fs::path("node_modules") / "nested" / "package" / "package.json";
+      EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
+    } else {
+      FAIL() << "Unexpected package found: " << name;
+    }
+
     // Verify common fields based on package type
     if (name.find('@') == 0) {
       EXPECT_EQ(row.at("description"), "Test scoped package");
@@ -162,6 +177,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       << "Did not find @angular/core scoped package";
   EXPECT_TRUE(found_regular_express) << "Did not find express regular package";
   EXPECT_TRUE(found_regular_lodash) << "Did not find lodash regular package";
+  EXPECT_TRUE(found_regular_nested_package) << "Did not find nested/package";
 }
 
 } // namespace table_tests
