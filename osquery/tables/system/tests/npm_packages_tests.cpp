@@ -53,13 +53,13 @@ class NpmPackagesUnitTest : public testing::Test {
 
   // Helper to create a scoped package structure
   void createScopedPackage(const std::string& scope,
-                           const std::string& package_name, 
+                           const std::string& package_name,
                            const std::string& version) {
     auto package_path =
         temp_dir_ / "node_modules" / scope / package_name / "package.json";
     std::string package_json = R"({
   "name": ")" + scope + "/" + package_name +
-                                R"(",
+                               R"(",
   "version": ")" + version + R"(",
   "description": "Test scoped package",
   "author": "Test Author",
@@ -71,7 +71,7 @@ class NpmPackagesUnitTest : public testing::Test {
   // Helper to create a regular package structure
   void createRegularPackage(const std::string& package_name,
                             const std::string& version) {
-    auto package_path = 
+    auto package_path =
         temp_dir_ / "node_modules" / package_name / "package.json";
     std::string package_json = R"({
   "name": ")" + package_name + R"(",
@@ -126,7 +126,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       EXPECT_TRUE(path.find("node_modules/@angular/core/package.json") !=
                   std::string::npos);
     }
-    // Verify regular packages  
+    // Verify regular packages
     else if (name == "express") {
       found_regular_express = true;
       EXPECT_EQ(version, "4.18.0");
@@ -155,10 +155,8 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       << "Did not find @types/node scoped package";
   EXPECT_TRUE(found_scoped_angular_core)
       << "Did not find @angular/core scoped package";
-  EXPECT_TRUE(found_regular_express)
-      << "Did not find express regular package";
-  EXPECT_TRUE(found_regular_lodash)
-      << "Did not find lodash regular package";
+  EXPECT_TRUE(found_regular_express) << "Did not find express regular package";
+  EXPECT_TRUE(found_regular_lodash) << "Did not find lodash regular package";
 }
 
 } // namespace table_tests
