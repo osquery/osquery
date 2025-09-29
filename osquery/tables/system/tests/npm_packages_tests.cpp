@@ -160,7 +160,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
     }
 
     // Verify common fields based on package type
-    if (name.find('@') == 0) {
+    if (name.find('/') != std::string::npos) {
       EXPECT_EQ(row.at("description"), "Test scoped package");
     } else {
       EXPECT_EQ(row.at("description"), "Test regular package");
