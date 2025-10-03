@@ -561,7 +561,8 @@ static Status migrateV0V1(void) {
     // Skip over epoch and counter entries, as 0 is parsed by ptree
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
         boost::algorithm::ends_with(key, kDbCounterSuffix) ||
-        boost::algorithm::starts_with(key, "query.")) {
+        boost::algorithm::starts_with(key, "query.") ||
+        boost::algorithm::starts_with(key, "config_views.")) {
       continue;
     }
 
@@ -650,6 +651,9 @@ Status upgradeDatabase(int to_version) {
     } else {
       db_version = ret.get();
     }
+  } else {
+    LOG(INFO) << "Failed to obtain database version. Assume version '"
+              << std::to_string(db_version) << "' and migrate.";
   }
 
   while (db_version != to_version) {
