@@ -172,7 +172,9 @@ QueryData genSystemInfo(QueryContext& context) {
   }
 
   r["cpu_subtype"] = "-1";
-  r["hardware_version"] = "-1";
+  if (r["hardware_version"] == "") {
+    r["hardware_version"] = "-1";
+  }
   return {r};
 }
 }
