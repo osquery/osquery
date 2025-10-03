@@ -48,16 +48,16 @@ TEST_F(vscodeExtensions, test_sanity) {
   }
 
   ValidationMap row_map = {
-      {"name", NormalType},
-      {"uuid", NormalType},
-      {"version", NormalType},
-      {"path", NormalType},
-      {"publisher", NormalType},
-      {"publisher_id", NormalType},
+      {"name", NonEmptyString},
+      {"uuid", NonEmptyString},
+      {"version", NonEmptyString},
+      {"path", NonEmptyString},
+      {"publisher", NonEmptyString},
+      {"publisher_id", NonEmptyString},
       {"installed_at", NonNegativeInt},
       {"prerelease", Bool | EmptyOk},
       {"uid", NonNegativeInt},
-      {"vscode_edition", NormalType},
+      {"vscode_edition", NonEmptyString},
   };
   validate_rows(data, row_map);
 }

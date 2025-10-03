@@ -86,11 +86,6 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
       r["name"] = it->value.GetString();
     }
 
-    it = identifier.FindMember("uuid");
-    if (it != identifier.MemberEnd() && it->value.IsString()) {
-      r["uuid"] = it->value.GetString();
-    }
-
     it = extension.FindMember("version");
     if (it != extension.MemberEnd() && it->value.IsString()) {
       r["version"] = it->value.GetString();
@@ -99,6 +94,14 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
     it = location.FindMember("path");
     if (it != location.MemberEnd() && it->value.IsString()) {
       r["path"] = it->value.GetString();
+    }
+
+    // Note that we used to look for identifier.uuid but it is not always
+    // present and in every example checked, metadata.id is present and has the
+    // same value (on Windows, macOS, and Linux and multiple VSCode forks)
+    it = metadata.FindMember("id");
+    if (it != identifier.MemberEnd() && it->value.IsString()) {
+      r["uuid"] = it->value.GetString();
     }
 
     it = metadata.FindMember("publisherDisplayName");
