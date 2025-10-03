@@ -31,13 +31,16 @@ namespace tables {
 
 const std::set<std::string> kNodeModulesPath = {
 #ifdef WIN32
-    "C:\\Users\\%\\AppData\\Roaming\\npm"
+    "C:\\Users\\%\\AppData\\Roaming\\npm",
+    "C:\\Users\\%\\AppData\\Local\\nvm\\%"
 #else
     "/usr/local/lib",
     "/opt/homebrew/lib",
     "/usr/lib",
     "/home/%/.npm-global/lib",
-    "/Users/%/.npm-global/lib"
+    "/home/%/.nvm/versions/node/%/lib",
+    "/Users/%/.npm-global/lib",
+    "/Users/%/.nvm/versions/node/%/lib"
 #endif
 };
 
