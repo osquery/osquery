@@ -1121,12 +1121,6 @@ jobs:
                               osquery `
                               pywin32
 
-#    - name: Install Strawberry Perl
-#      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-#      shell: powershell
-#      run: |
-#        tools\ci\scripts\install_openssl_formula_dependencies.ps1
-
     # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install CMake
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
