@@ -265,6 +265,12 @@ jobs:
         os: [ubuntu-22.04]
 
     steps:
+    - name: Disk space information
+      shell: bash
+      run: |
+        df -h
+        free -m
+
     - name: Make space uninstalling packages
       shell: bash
       run: |
@@ -272,6 +278,12 @@ jobs:
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
+
+    - name: Disk space information
+      shell: bash
+      run: |
+        df -h
+        free -m
 
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
