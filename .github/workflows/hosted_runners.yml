@@ -265,13 +265,36 @@ jobs:
         os: [ubuntu-22.04]
 
     steps:
-    - name: Make space uninstalling packages
+    - name: Disk space information
+      shell: bash
+      run: |
+        df -h
+        free -m
+
+    - name: Make space -- uninstalling packages
       shell: bash
       run: |
         run_on_host="sudo nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
-        \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\|^google-cloud-sdk\|^firefox\|^hhvm\|^snapd")
+        \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
+        \|^google-cloud-sdk\|^google-cloud-api\|^azure-cli\|^firefox\|^php\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
+        $run_on_host apt autoremove -y
+        $run_on_host apt clean
+
+    - name: Make space -- removing runtimes
+      shell: bash
+      run: |
+        run_on_host="sudo nsenter -t 1 -m -u -n -i"
+        $run_on_host rm -rf /usr/local/lib/android
+        $run_on_host rm -rf /usr/share/dotnet
+        $run_on_host rm -rf /opt/ghc /usr/local/.ghcup
+
+    - name: Disk space information
+      shell: bash
+      run: |
+        df -h
+        free -m
 
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
