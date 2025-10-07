@@ -279,6 +279,8 @@ jobs:
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
         \|^google-cloud-sdk\|^google-cloud-api\|^azure-cli\|^firefox\|^php\|^hhvm\|^snapd")
         $run_on_host apt purge $packages_to_remove
+        $run_on_host apt autoremove -y
+        $run_on_host apt clean
 
     - name: Make space -- removing runtimes
       shell: bash
