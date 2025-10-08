@@ -147,8 +147,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
       fs::path expected_path =
           fs::path("node_modules") / "lodash" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
-    }
-    else {
+    } else {
       FAIL() << "Unexpected package found: " << name;
     }
 
@@ -160,7 +159,8 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
     }
 
     // Ensure nested/package is NOT found (it should not match the patterns)
-    EXPECT_NE(name, "nested/package") << "nested/package should not be found by the search patterns";
+    EXPECT_NE(name, "nested/package") 
+        << "nested/package should not be found by the search patterns";
     EXPECT_EQ(row.at("author"), "Test Author");
     EXPECT_EQ(row.at("license"), "MIT");
     EXPECT_EQ(row.at("directory"), temp_dir_.string());
