@@ -159,7 +159,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
     }
 
     // Ensure nested/package is NOT found (it should not match the patterns)
-    EXPECT_NE(name, "nested/package") 
+    EXPECT_NE(name, "nested/package")
         << "nested/package should not be found by the search patterns";
     EXPECT_EQ(row.at("author"), "Test Author");
     EXPECT_EQ(row.at("license"), "MIT");
