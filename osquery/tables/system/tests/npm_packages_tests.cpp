@@ -148,8 +148,7 @@ TEST_F(NpmPackagesUnitTest, test_scoped_package_detection) {
           fs::path("node_modules") / "lodash" / "package.json";
       EXPECT_TRUE(path.find(expected_path.string()) != std::string::npos);
     }
-
-    } else {
+    else {
       FAIL() << "Unexpected package found: " << name;
     }
 
