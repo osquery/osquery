@@ -6,6 +6,7 @@ schema([
 ])
 implementation("system_profiler@genSystemProfilerResults")
 examples([
-    "select * from system_profiler where data_type = 'SPHardwareDataType';",
-    "select json_extract(value, '$.platform_UUID') from system_profiler where data_type = 'SPHardwareDataType';"
+    "SELECT * FROM system_profiler WHERE data_type = 'SPUSBDataType';",
+    "SELECT JSON_EXTRACT(value, '$[0].platform_UUID') AS hardware_uuid FROM system_profiler WHERE data_type = 'SPHardwareDataType';",
+    "SELECT each.value->>'_name' AS name, each.value->>'coreaudio_device_manufacturer' AS manufacturer FROM system_profiler sp, JSON_EACH(sp.value->'[0]._items') each WHERE data_type = 'SPAudioDataType';"
 ]) 
