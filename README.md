@@ -18,7 +18,6 @@ Available for Linux, macOS, and Windows.
 - Documentation: [ReadTheDocs](https://osquery.readthedocs.org)
 - Stack Overflow: [Stack Overflow questions](https://stackoverflow.com/questions/tagged/osquery)
 - Table Schema: [osquery.io/schema](https://osquery.io/schema)
-- Query Packs: [osquery.io/packs](https://github.com/osquery/osquery/tree/master/packs)
 - Slack: [Browse the archives](https://chat.osquery.io/c/general) or [Join the conversation](https://join.slack.com/t/osquery/shared_invite/zt-1wipcuc04-DBXmo51zYJKBu3_EP3xZPA)
 - Build Status: [![GitHub Actions Build x86 Status](https://github.com/osquery/osquery/actions/workflows/hosted_runners.yml/badge.svg?branch=master)](https://github.com/osquery/osquery/actions/workflows/hosted_runners.yml) [![GitHub Actions Build AArch64 Status](https://github.com/osquery/osquery/actions/workflows/self_hosted_runners.yml/badge.svg?branch=master)](https://github.com/osquery/osquery/actions/workflows/self_hosted_runners.yml) [![Documentation Status](https://readthedocs.org/projects/osquery/badge/?version=latest)](https://osquery.readthedocs.io/en/latest/?badge=latest)
 - CII Best Practices: [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3125/badge)](https://bestpractices.coreinfrastructure.org/projects/3125)
@@ -118,7 +117,7 @@ There are many osquery fleet managers out there. The osquery project does not en
 | Project                                                 | License     |
 | ------------------------------------------------------- | ----------- |
 | [Fleet](https://github.com/fleetdm/fleet)               | Open Core   |
-| [Kolide](https://www.kolide.com)                        | Commercial    |
+| [Kolide](https://www.kolide.com)                        | Commercial  |
 | [OSCTRL](https://github.com/jmpsec/osctrl)              | Open Source |
 | [Zentral](https://github.com/zentralopensource/zentral) | Open Source |
 
@@ -148,3 +147,4 @@ guide](https://osquery.readthedocs.org/).
 
 Development and usage discussion is happening in the osquery Slack, grab an invite
 [here](https://join.slack.com/t/osquery/shared_invite/zt-1wipcuc04-DBXmo51zYJKBu3_EP3xZPA)!
+

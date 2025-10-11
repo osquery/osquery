@@ -205,6 +205,31 @@ Belongs in an extension:
 * Expands the scope of use for osquery beyond endpoint monitoring
 * Integrates with a proprietary or esoteric tool that is not widely applicable
 
+## How to Make an Osquery Release
+
+The osquery release process is split across a couple of places, and it's not 100% automated. Note that several of these steps require a high degree of permissions.
+
+Phase 1, build a beta binary:
+
+1. Use the GitHub Release page to make a new tag and and osquery release. Leave it in `pre-release` state
+2. This will trigger a CI build, it will take 40ish minutes. 
+3. Sign the release and push it to GitHub. This is done via a [codesigning action](https://github.com/osquery/osquery-codesign/actions/workflows/build-and-sign.yml)
+5. Release it to the _testing_ bucket. Using another [action workflow](https://github.com/osquery/osquery-codesign/actions/workflows/release-to-buckets.yml) (make sure test is selected)
+4. Announce it to slack
+5. Give people time to test 1-2 weeks usually
+
+Phase 2, release it to stable
+
+Once the beta has been out a couple weeks, we usually discuss on office hours or slack when it's ready to launch.
+
+1. Edit the GitHub release to make it as stable
+2. Release it to the _prod_ bucket. Using the [action workflow](https://github.com/osquery/osquery-codesign/actions/workflows/release-to-buckets.yml) (make sure prod is selected)
+3. Wait, it will take about 15 minutes
+4. Update the website to reflect the new release. There's a [GitHub Action](https://github.com/osquery/osquery-site/actions/workflows/release-pr.yml) to make a PR
+5. Approve and Merge it! (You'll need to override the CLA signoff check)
+
+
+
 ## Contributor License Agreement
 
 You must submit a Contributor License Agreement (CLA) before we can
