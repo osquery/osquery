@@ -18,9 +18,16 @@
 namespace osquery {
 namespace tables {
 
-void genRowsFromPolicy(const CFDictionaryRef& policies,
-                       QueryData& results,
-                       const std::string& uid = "") {
+const std::vector<CFStringRef> kPolicyCategories = {
+    (__bridge CFStringRef)kODPolicyCategoryPasswordContent,
+    (__bridge CFStringRef)kODPolicyCategoryAuthentication,
+    (__bridge CFStringRef)kODPolicyCategoryPasswordChange,
+};
+
+void genRowsFromPolicyCategory(const CFDictionaryRef& policies,
+                               CFStringRef category_key,
+                               QueryData& results,
+                               const std::string& uid = "") {
   if (policies == nullptr) {
     return;
   }
@@ -30,13 +37,11 @@ void genRowsFromPolicy(const CFDictionaryRef& policies,
     return;
   }
 
-  if (!CFDictionaryContainsKey(policies,
-                               CFSTR("policyCategoryPasswordContent"))) {
+  if (!CFDictionaryContainsKey(policies, category_key)) {
     return;
   }
 
-  auto content =
-      CFDictionaryGetValue(policies, CFSTR("policyCategoryPasswordContent"));
+  auto content = CFDictionaryGetValue(policies, category_key);
   if (content == nullptr) {
     return;
   }
@@ -45,6 +50,7 @@ void genRowsFromPolicy(const CFDictionaryRef& policies,
   for (CFIndex i = 0; i < count; i++) {
     Row r;
     r["uid"] = uid.empty() ? BIGINT(-1) : BIGINT(uid);
+    r["policy_category"] = stringFromCFString(category_key);
     r["policy_content"] = getPropertiesFromDictionary(
         (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)content, i),
         "policyContent");
@@ -80,11 +86,14 @@ QueryData genPasswordPolicy(QueryContext& context) {
   }
 
   /*
-   * policies is a dictionary with `policyCategoryPasswordContent` as an
-   * optional key. The value  of `policyCategoryPasswordContent` is an array of
-   * policy dictionaries that specify the required content of passwords.
-   * Each element of that array, is a dictionary with following keys:
-   * `policyContent`, `policyContentDescription`, and `policyContentDescription`
+   * policies is a dictionary with optional keys for different policy
+   * categories:
+   * - `policyCategoryPasswordContent`: password content requirements
+   * - `policyCategoryAuthentication`: authentication policies
+   * - `policyCategoryPasswordChange`: password change requirements
+   *
+   * Each category value is an array of policy dictionaries with keys:
+   * `policyContent`, `policyContentDescription`, and `policyIdentifier`
    *
    * (From Apple's docs)
    *
@@ -95,8 +104,10 @@ QueryData genPasswordPolicy(QueryContext& context) {
 
   // get policies for the node (i.e. the global policy)
   auto policies = ODNodeCopyAccountPolicies(node, &error);
-  genRowsFromPolicy(policies, results);
   if (policies != nullptr) {
+    for (const auto& category : kPolicyCategories) {
+      genRowsFromPolicyCategory(policies, category, results);
+    }
     CFRelease(policies);
   }
 
@@ -132,7 +143,9 @@ QueryData genPasswordPolicy(QueryContext& context) {
       auto user_policy = ODRecordCopyAccountPolicies(
           (ODRecordRef)CFArrayGetValueAtIndex(records, 0), nullptr);
       if (user_policy != nullptr) {
-        genRowsFromPolicy(user_policy, results, uid);
+        for (const auto& category : kPolicyCategories) {
+          genRowsFromPolicyCategory(user_policy, category, results, uid);
+        }
         CFRelease(user_policy);
       }
     }
