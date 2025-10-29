@@ -11,6 +11,10 @@
 
 #include <utility>
 
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 namespace osquery {
 
 namespace scope_guard {
@@ -52,6 +56,30 @@ template <typename FinalRoutineType>
 inline auto create(FinalRoutineType&& final_routine) {
   return Guard<FinalRoutineType>(std::forward<FinalRoutineType>(final_routine));
 }
+
+#ifdef __APPLE__
+/**
+ * Helper function to create a scope guard that releases a CoreFoundation
+ * object.
+ *
+ * @param cf_object Reference to a CFTypeRef that will be released
+ * @return A scope guard that will call CFRelease on the object if it's not null
+ *
+ * @code{.cpp}
+ *   auto node = ODNodeCreateWithNodeType(...);
+ *   const auto node_guard = scope_guard::CFRelease(node);
+ *   // node will be automatically released at the end of scope
+ * @endcode
+ */
+template <typename CFTypeRef>
+inline auto CFRelease(CFTypeRef& cf_object) {
+  return create([&cf_object]() {
+    if (cf_object != nullptr) {
+      ::CFRelease(cf_object);
+    }
+  });
+}
+#endif
 
 } // namespace scope_guard
 

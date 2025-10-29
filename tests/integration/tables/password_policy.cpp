@@ -36,7 +36,8 @@ TEST_F(passwordPolicy, test_sanity) {
                            {"policy_identifier", NormalType},
                            {"policy_content", NormalType},
                            {"policy_description", NormalType},
-                           {"policy_category", NormalType}};
+                           {"policy_category", NormalType},
+                           {"policy_parameters", NormalType}};
   // 4. Perform validation
   validate_rows(data, row_map);
 }
