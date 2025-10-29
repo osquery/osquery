@@ -66,8 +66,13 @@ void genRowsFromPolicyCategory(const CFDictionaryRef& policies,
                                       CFSTR("policyContentDescription"),
                                       &description) &&
         description != nullptr) {
-      r["policy_description"] =
-          getPropertiesFromDictionary((CFDictionaryRef)description, "en");
+      r["policy_description"] = getPropertiesFromDictionary(
+          (CFDictionaryRef)description, "policyDefaultContentDescription");
+      if (r["policy_description"].empty()) {
+        // If policyDefaultContentDescription doesn't exist, fallback to "en"
+        r["policy_description"] =
+            getPropertiesFromDictionary((CFDictionaryRef)description, "en");
+      }
     }
     results.push_back(r);
   }
