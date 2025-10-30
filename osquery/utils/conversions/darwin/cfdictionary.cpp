@@ -9,6 +9,8 @@
 
 #include "cfdictionary.h"
 
+#import <Foundation/Foundation.h>
+
 namespace osquery {
 
 std::string getPropertiesFromDictionary(const CFDictionaryRef& dict,
@@ -39,5 +41,36 @@ std::string getPropertiesFromDictionary(const CFDictionaryRef& dict,
   }
 
   return value;
+}
+
+Status serializeCFDictionaryToJSON(const CFDictionaryRef& dict,
+                                   std::string& json) {
+  if (dict == nullptr) {
+    return Status(1, "Cannot serialize null CFDictionary");
+  }
+
+  @autoreleasepool {
+    NSError* error = nil;
+    NSData* jsonData =
+        [NSJSONSerialization dataWithJSONObject:(__bridge NSDictionary*)dict
+                                        options:0
+                                          error:&error];
+    if (error != nil || jsonData == nil) {
+      return Status(
+          1,
+          "Failed to serialize policy parameters to JSON: " +
+              (error ? std::string([[error localizedDescription] UTF8String])
+                     : "unknown error"));
+    }
+
+    NSString* jsonString =
+        [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    if (jsonString == nil) {
+      return Status(1, "Failed to create string from JSON data");
+    }
+
+    json = stringFromCFString((__bridge CFStringRef)jsonString);
+    return Status::success();
+  }
 }
 } // namespace osquery

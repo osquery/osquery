@@ -15,6 +15,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <cmath>
+#include <osquery/utils/status/status.h>
 #include <string>
 
 namespace osquery {
@@ -24,4 +25,10 @@ namespace osquery {
  */
 std::string getPropertiesFromDictionary(const CFDictionaryRef& dict,
                                         const std::string& key);
+
+/**
+ * @brief Serialize a CFDictionary to JSON string
+ */
+Status serializeCFDictionaryToJSON(const CFDictionaryRef& dict,
+                                   std::string& json);
 } // namespace osquery
