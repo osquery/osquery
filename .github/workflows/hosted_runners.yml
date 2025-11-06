@@ -123,7 +123,6 @@ jobs:
 
   # Test generating the website json
   check_genwebsitejson:
-    needs: [check_code_style, check_libraries_manifest]
     runs-on: ubuntu-22.04
 
     steps:
@@ -136,8 +135,6 @@ jobs:
 
   # This job runs source code analysis tools (currently, just cppcheck)
   check_source_code:
-    needs: [check_code_style, check_libraries_manifest]
-
     runs-on: ${{ matrix.os }}
 
     container:
@@ -251,8 +248,6 @@ jobs:
   # The Linux build will only start once we know that the code
   # has been properly formatted
   build_linux:
-    needs: [check_code_style, check_libraries_manifest]
-
     runs-on: ${{ matrix.os }}
 
     container:
@@ -554,8 +549,6 @@ jobs:
   # The macOS build will only start once we know that the code
   # has been properly formatted
   build_macos:
-    needs: [check_code_style, check_libraries_manifest]
-
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -824,7 +817,6 @@ jobs:
   # This job takes the packaged tests (Release + Debug) from the latest macos
   # builder and runs them on the previous available macOS versions
   test_older_macos:
-
     needs: build_macos
 
     runs-on: ${{ matrix.os }}
@@ -986,8 +978,6 @@ jobs:
   # The Windows build will only start once we know that the code
   # has been properly formatted
   build_windows:
-    needs: [check_code_style, check_libraries_manifest]
-
     runs-on: ${{ matrix.os }}
 
     strategy:
