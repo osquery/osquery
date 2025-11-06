@@ -251,6 +251,7 @@ function(generateTestsIntegrationTablesTestsTest)
       package_bom.cpp
       package_install_history.cpp
       package_receipts.cpp
+      password_policy.cpp
       plist.cpp
       power_sensors.cpp
       preferences.cpp
