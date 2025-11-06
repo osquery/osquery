@@ -11,6 +11,7 @@ Because different platforms have different choices for collecting real-time even
 | Process events | [`process_events`](https://osquery.io/schema/current#process_events)    | Audit (Linux), OpenBSM (macOS)  | Linux, macOS (10.15 and older) |
 | Process events | [`bpf_process_events`](https://osquery.io/schema/current#bpf_process_events) | BPF | Linux (kernel 4.18 and newer) |
 | Process events | [`es_process_events`](https://osquery.io/schema/current#es_process_events) | EndpointSecurity | macOS (10.15 and newer) |
+| Security events | [`es_security_events`](https://osquery.io/schema/current#es_security_events) | EndpointSecurity | macOS (10.15 and newer) |
 | Socket events  | [`socket_events`](https://osquery.io/schema/current#process_events)      | Audit (Linux), OpenBSM (macOS) | Linux, macOS (10.15 and older) |
 | Socket events  | [`bpf_socket_events`](https://osquery.io/schema/current#bpf_socket_events) | BPF | Linux (kernel 4.18 and newer) |
 
@@ -48,155 +49,176 @@ osquery> select * from osquery_flags where name in ("disable_events", "disable_a
 
 ### Examine event table
 
-osquery keeps state about the events subsystem in the `osquery_events`
-table. The `events` column is of note here.
+To verify that osquery can capture events, you can query the process_events table itself.
 
-This example is from a macOS machine with events enabled, but no
-events. You should try triggering an event, and then confirming that
-the event count is non-0. If it remains at zero, the problem is likely
-in how the OS auditing side is configured. See the platform specific
-instructions.
-
-```sql
-osquery> select * from osquery_events;
-+-------------------------+-----------------+------------+---------------+--------+-----------+--------+
-| name                    | publisher       | type       | subscriptions | events | refreshes | active |
-+-------------------------+-----------------+------------+---------------+--------+-----------+--------+
-| diskarbitration         | diskarbitration | publisher  | 1             | 0      | 0         | 1      |
-| event_tapping           | event_tapping   | publisher  | 1             | 0      | 0         | 0      |
-| fsevents                | fsevents        | publisher  | 0             | 0      | 24        | 1      |
-| iokit                   | iokit           | publisher  | 1             | 0      | 0         | 1      |
-| openbsm                 | openbsm         | publisher  | 9             | 0      | 0         | 0      |
-| scnetwork               | scnetwork       | publisher  | 0             | 0      | 0         | 0      |
-| disk_events             | diskarbitration | subscriber | 1             | 0      | 0         | 1      |
-| file_events             | fsevents        | subscriber | 0             | 0      | 0         | 1      |
-| hardware_events         | iokit           | subscriber | 1             | 0      | 0         | 1      |
-| process_events          | openbsm         | subscriber | 8             | 0      | 0         | 1      |
-| user_events             | openbsm         | subscriber | 1             | 0      | 0         | 1      |
-| user_interaction_events | event_tapping   | subscriber | 1             | 0      | 0         | 1      |
-| yara_events             | fsevents        | subscriber | 0             | 0      | 0         | 1      |
-+-------------------------+-----------------+------------+---------------+--------+-----------+--------+
+```
+osquery> select * from process_events limit 1;
++------------+------+-------+--------+----------+----------+--------+---------+---------+--------+------+-------+------------+
+| pid        | path | cmdline | cmdline_size | uid | gid | euid | egid | owner_uid | owner_gid | env | env_count | env_size |
++------------+------+-------+--------+----------+----------+--------+---------+---------+--------+------+-------+------------+
+| 30321      | /usr/bin/ls | /usr/bin/ls | 12     | 1000     | 1000     | 1000   | 1000    | 0        | 0       |  | 0     | 0        |
++------------+------+-------+--------+----------+----------+--------+---------+---------+--------+------+-------+------------+
 ```
 
-## Linux process auditing using Audit
-
-On Linux, osquery can the Audit system to collect and process events. It accomplishes this by monitoring syscalls such as `execve()` and `execveat()`. `auditd` should not be running when using osquery's process auditing, as it will conflict with `osqueryd` over access to the audit netlink socket. You should also ensure `auditd` is not configured to start at boot.
-
-The only prerequisite for using osquery's auditing functionality on Linux is that you must use a kernel version that contains the Audit functionality. Most kernels over version 2.6 have this capability.
-
-There is no requirement to install `auditd` or `libaudit`. Osquery only uses the audit features that exist in the kernel.
-
-A sample log entry from process_events may look something like this:
-
-```json
-{
-  "action": "added",
-  "columns": {
-    "uid": "0",
-    "time": "1527895541",
-    "pid": "30219",
-    "path": "/usr/bin/curl",
-    "auid": "1000",
-    "cmdline": "curl google.com",
-    "ctime": "1503452096",
-    "cwd": "",
-    "egid": "0",
-    "euid": "0",
-    "gid": "0",
-    "parent": ""
-  },
-  "unixTime": 1527895550,
-  "hostIdentifier": "vagrant",
-  "name": "process_events",
-  "numerics": false
-}
-```
-
-To better understand how this works, let's walk through 4 configuration options. These flags can be set at the [command line](../installation/cli-flags.md) or placed into the `osquery.flags` file.
-
-1. `--disable_audit=false` by default this is set to `true` and prevents osquery from opening the kernel audit's netlink socket. By setting it to `false`, we are telling osquery that we want to enable auditing functionality.
-2. `--audit_allow_config=true` by default this is set to `false` and prevents osquery from making changes to the audit configuration settings. These changes include adding/removing rules, setting the global enable flags, and adjusting performance and rate parameters. Unless you plan to set all of those things manually, you should leave this as true. If you are configuring audit, using a control binary, or `/etc/audit.conf`, your osquery *may* override your settings.
-3. `--audit_persist=true` but default this is `true` and instructs osquery to 'regain' the audit netlink socket if another process also accesses it. However, you should do your best to ensure there will be no other program running which is attempting to access the audit netlink socket.
-4. `--audit_allow_process_events=true` this flag indicates that you would like to record process events
-
-## Linux socket auditing using Audit
-
-Osquery can also be used to record network connections by enabling `socket_events`. This table uses the syscalls `bind()` and `connect()` to gather information about network connections. This table is not automatically enabled when process_events are enabled because it can introduce considerable load on the system.
-
-To enable socket events, use the `--audit_allow_sockets` flag.
-
-A sample socket_event log entry looks like this:
-
-```json
-{
-  "action": "added",
-  "columns": {
-    "time": "1527895541",
-    "status": "succeeded",
-    "remote_port": "80",
-    "action": "connect",
-    "auid": "1000",
-    "family": "2",
-    "local_address": "",
-    "local_port": "0",
-    "path": "/usr/bin/curl",
-    "pid": "30220",
-    "remote_address": "172.217.164.110"
-  },
-  "unixTime": 1527895545,
-  "hostIdentifier": "vagrant",
-  "name": "socket_events",
-  "numerics": false
-}
-```
-
-If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow_unix`. This will put considerable strain on the system as many default actions use domain sockets. You will also need to explicitly select the `socket` column from the `socket_events` table.
-
-The `success` column has been deprecated and replaced with `status`:
-| Status value | Description |
-|-|-|
-| failed | Definitely failed |
-| succeeded | Definitely succeeded |
-| in_progress | The `connect`()` syscall has been marked as "in progress" (EINPROGRESS) and osquery can't determine whether it will succeed or not. Reserved for non-blocking sockets. |
-| no_client | The `accept` or `accept4` syscall returned with EAGAIN since there were not incoming connections. Reserved for non-blocking sockets. |
-
-The behavior of the socket_events table can be changed with the following boolean flags:
-
-| Flag | Description |
-|-|-|
-| --audit_allow_sockets | Allow the audit publisher to install socket-related rules |
-| --audit_allow_unix | Allow socket events to collect domain sockets |
-| --audit_allow_failed_socket_events | Include rows for socket events that have failed |
-| --audit_allow_accept_socket_events | Include rows for accept socket events |
-| --audit_allow_null_accept_socket_events | Allow non-blocking accept() syscalls that returned EAGAIN/EWOULDBLOCK |
-
-## Troubleshooting Audit-based process and socket auditing on Linux
-
-There are a few different methods to ensure you have configured auditing correctly.
-
-1. Ensure you are supplied all of the necessary flags mentioned above in either a command-line argument or in your flagfile.
-2. Verify `auditd` is not running, if it is installed on the system.
-3. Run `auditctl -s` if the binary is present on your system and verify that `enable` is not set to zero and the `pid` corresponds to a process for osquery
-4. Verify that your osquery configuration has a query to `SELECT` from the process_events and/or socket_events tables
-5. You may also run auditing using osqueryi **as root**:
+If you're trying to capture network (socket) events, create a socket to test:
 
 ```sh
-osqueryi --audit_allow_config=true --audit_allow_sockets=true --audit_persist=true --disable_audit=false --events_expiry=1 --events_max=50000 --logger_plugin=filesystem  --disable_events=false
+bash # start a root shell
+password: ******
+curl google.com
 ```
 
-If you would like to debug the raw audit events as `osqueryd` sees them, use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's `stdout`.
+```
+osquery> select * from socket_events;
+```
 
-> NOTICE: Linux systems running `journald` will collect logging data originating from the kernel audit subsystem (something that osquery enables) from several sources, including audit records. To avoid performance problems on busy boxes (specially when osquery event tables are enabled), it is recommended to mask audit logs from entering the journal with the following command `systemctl mask --now systemd-journald-audit.socket`.
+## Tuning the event system
 
-### Avoid throttling, losing events and interpreting Audit publisher throttling messages
+### Improving performance through optimizations and filtering
 
-If osquery is CPU constrained and is processing a high enough stream of events, you may receive this warning message:  
-`The Audit publisher has throttled reading records from Netlink for <N> seconds. Some events may have been lost.`.
+This section provides a brief overview of common and recommended
+optimizations for event-based tables. These optimizations also apply
+to the FIM events.
 
-This message can only appear at most every minute and it indicates that the Audit publisher had to slow down reading records from the Netlink socket for the reported duration, since the previous throttling message.
-This happens when osquery is not processing records fast enough to prevent its internal buffers growing too much and consuming too much memory.
+1. `--events_optimize=true` apply optimizations when `SELECT`ing from events-based tables, enabled by default.
+2. `--events_expiry` the lifetime of buffered events in seconds with a default value of 86000.
+3. `--events_max` the maximum number of events to store in the buffer before expiring them with a default value of 1000.
 
-Throttling may cause loss of events, since the Audit subsystem backlog buffer could fill up; if that happens the kernel will be forced to drop some of them.  
+The goal of optimizations are to protect the running process and system from impacting performance. By default these are all enabled, which is good for configuration and performance, but may introduce inconsistencies on highly-stressed systems using process auditing.
+
+Optimizations work best when `SELECT`ing often from event-based tables. Otherwise the events are in a buffered state. When an event-based table is selected within the daemon, the backing storage maintaining event data is cleared according to the `--event_expiry` lifetime. Setting this value to `1` will auto-clear events whenever a `SELECT` is performed against the table, reducing all impact of the buffer.
+
+## Linux process and socket auditing with Audit
+
+On Linux, osquery can use the Audit event publisher to process events from the kernel's audit subsystem. For process-related events, the publisher builds events from the following message types: `SYSCALL`, `EXECVE`, `FORK/VFORK/CLONE`, `CRED_ACQ`, `CRED_DISP`, `EXIT`, `SOCKADDR`. Some of these message types are only available in recent versions of the Linux kernel.
+
+The process events come mostly from the `SYSCALL` (syscalls `execve`, `fork`, and `clone`) message types. These are compared and correlated with other tables for executing `path` and `cmdline`.
+
+Table: `process_events`
+
+| Fields  | Type | Description |
+| ------- | ---- | ----------- |
+| auid  | INTEGER | Authentication (user) ID. |
+| status | INTEGER | Status of the process event. |
+| atime | INTEGER | UNIX time at which the process was started. |
+| cmdline | TEXT | Full command line of the process. |
+| cwd | TEXT | String representing process's current working directory. |
+| parent  | INTEGER | Process ID of the parent process. |
+| pid  | INTEGER | Process ID. |
+| path  | TEXT | Path of executed file. |
+| syscall  | TEXT | The syscall which caused this event.|
+
+Socket events occur via the `SOCKADDR` message type. osquery uses the events to maintain tables similiar to the following:
+
+Table: `socket_events`
+
+| Fields  | Type | Description |
+| ------- | ---- | ----------- |
+| auid  | INTEGER | Authentication (user) ID. |
+| status | INTEGER | Status of the network connect/bind event. |
+| atime | INTEGER | UNIX time at which the connection/binding was observed. |
+| success  | INTEGER | True if the connect/bind system call was successful. |
+| family  | INTEGER | The Internet protocol family ID. |
+| protocol  | INTEGER | The protocol ID (given protocol family). |
+| local_address  | TEXT | Local address associated with the socket connection/binding. |
+| remote_address  | TEXT | Remote address associated with the socket connection. |
+| local_port  | INTEGER | Local port associated with the socket connection/binding. |
+| remote_port  | INTEGER | Remote port associated with the socket connection. |
+| socket_path  | TEXT | The local path (UNIX domain socket). |
+
+Both of these tables require the following flags/options to be enabled:
+
+```sh
+sudo osqueryd \
+  --disable_events=false \
+  --disable_audit=false
+```
+
+If you are running with the schedule enabled, you should see events similar to the following in the osquery logs:
+
+```
+I0916 13:30:25.068559 1605089 events.cpp:956] Event publisher failed setup: auditeventpublisher: You do not have permission to subscribe to audit events
+```
+
+This is due to restrictions the kernel places on connections to its audit subsystem. You can disable the publisher safely if you do not need process/socket events:
+
+```
+--disable_audit=true
+```
+
+But if you'd like to log process events, and are running as a non-privileged user, you need to make sure the appropriate rules are added and that the user has permission to connect.
+
+A more expected error is:
+
+```
+I0916 13:40:12.578583 1613985 events.cpp:925] Unable to add audit EventPublisher: Cannot access the Audit subsystem
+```
+
+which indicates that the osquery user does not have enough privileges to interact with the audit subsystem. With recent kernels, the `CAP_AUDIT_CONTROL` capability is required to add audit rules or run osquery with the `--disable_audit=false` flag. It can be added with:
+
+```
+sudo setcap 'cap_audit_control=ep' /usr/bin/osqueryd
+```
+
+Or, run it as root, and with `--allow_root`.
+
+### Linux audit rules
+
+After you add the following rules (or similar) to your audit configuration:
+
+```
+# /etc/audit/audit.rules
+# Add rules for events you care about.
+# Process events
+-a exit,always -F arch=b64 -S execve,execveat,fork,vfork,clone -k process_events
+# Socket events
+-a exit,always -F arch=b64 -S connect,bind -k socket_events
+```
+
+Restart the audit service:
+```
+service auditd restart
+```
+
+Check that the rules have been loaded with:
+```
+auditctl -l
+```
+
+If you would like a less verbose audit log, try the following flags:
+```
+-a exit,never -F arch=b64 -S connect -F success=0
+-a exit,never -F arch=b64 -S bind -F success=0
+```
+
+If you are having trouble and want to get raw telemetry of what the Audit subsystem is emitting, you can also check the output of audit directly. In recent distributions like CentOS, you can do this via:
+```
+ausearch --start=today --raw | aureport -i
+```
+
+In some Linux distributions (e.g., CentOS), you may need to install the audit packages via:
+```sh
+yum install audit
+```
+
+If reading from the audit service gives you trouble, try reloading and saving the rules manually:
+```
+sudo auditctl -R /etc/audit/audit.rules
+```
+
+In some Linux distributions (e.g., CentOS), the audit rules persist separate from the audit daemon. If you are experiencing trouble from `auditd`, you may modify the service and run the `auditctl` daemon too:
+```
+sudo auditctl -R /etc/audit/audit.rules
+```
+
+### Throttling the Audit publisher in high event volume situations
+
+When using the Audit publisher on Linux in environments with high events volume, it's possible for the internal Audit library to indicate "throttling" is happening.
+If this happens, a message will be logged which is the following:
+`The Audit publisher has throttled record reading for <N> seconds. This may cause loss of events.`
+
+This means that the Audit publisher is receiving events at a rate that is too high for it to process in a way that doesn't allocate unbounded memory. The consequence of throttling is that osquery allocates a constant amount of memory during the throttling window, however this might also mean that the Audit socket buffer size may be overrun, losing audit records.
+
 You can check if this is happening looking at the `lost` field via `auditctl -s`.
 
 Throttling currently starts when more than 4096 records have been read and are still in the queue to be processed by osquery; this is a number of records
@@ -247,63 +269,236 @@ perf_bytes = (2 ^ bpf_perf_event_array_exp) * online_cpu_count
 
 The cpu count numbers can be read from the `/sys` folder:
 
-```text
-possible_cpu_count: /sys/devices/system/cpu/possible
-online_cpu_count: /sys/devices/system/cpu/online
+ 1. `/sys/devices/system/cpu/possible`: possible_cpu_count - 1
+ 2. `/sys/devices/system/cpu/online`: online_cpu_count
+
+For a VM with 4 processors, using the default settings (bpf_perf_event_array_exp = 10, bpf_buffer_storage_size = 8), memory usage should be the following:
+
+ 1. `buffer_storage_bytes = 6 * (8 * 4096) * 4 = 768 KiB`
+ 2. `perf_bytes = 1024 * 4 = 4 KiB`
+
+### Performance considerations
+
+For a process with ~25 children, where each child process emits ~30k events in a very short amount of time, using the default values for both the perf event array and the buffer storage structures will fill up everything, causing events to be lost. Different workloads may need even more buffers.
+
+The following considerations are extremely important:
+
+ 1. The perf event array must be big enough to handle event bursts. When the buffer is full and events keep coming, they are lost and the kernel will increment a counter to take track of this. The producer/consumer model is very similar to /dev/null, if the consumer is not fast enough the producer will keep working but events will never make it to the consumer.
+ 2. The ring buffer pools must be big enough to handle bursts of sys_enter events. The size depends on which system calls are actually being captured. Large system calls (i.e.: those that have many large strings associated with them, like the execve call) should be allocated in dedicated pools, to minimize the chance of event loss.
+ 3. Individual maps have a limited amount of slots. Each slots eventually gets cleared but clearing is performed periodically (either when the map is close to becoming full or when events are dropped). These slots keep the information required to merge the sys_enter and the sys_exit events.
+
+## macOS process and socket auditing
+
+macOS and OS X use OpenBSM for auditing syscalls. osquery uses this system to process file descriptor events, exec events, and socket events.
+
+Auditing on macOS requires a kernel extension. You must either purchase and install a 3rd-party extension or build the extension available in the osquery repository.
+
+At startup, osquery will check if a kernel extension is loaded and accessbile. The checks use very defensive settings so it is possible for them to not detect a correctly installed and running extension. One check is if the audit rules are readable.
+
+The rule add would be more strict at execution time and later installation of the extension may require a restart.
+
+### Using a 3rd-party kernel extension
+
+If you are using a 3rd-party kernel extension, you need to ensure that it forwards system events to user space. Make sure that the vendor's product comes with an auditing daemon. If the daemon is installed and running, osquery should begin receiving events from it, no restart necessary.
+
+A typical installation will include a launch daemon such as: `/Library/LaunchDaemons/com.product.daemon.plist`.
+When the process for that daemon is running, osquery should start receiving events.
+
+To test, run:
+```
+sudo execve /usr/bin/id
 ```
 
-VMware Fusion (and possibly other systems as well) supports CPU hotswapping, raising the `possible_cpu_count` to 128. This causes a huge increase in memory usage, and it is for this reason that the default settings are rather low.
+and look for process_events:
+```
+osqueryi> select * from process_events;
+```
 
-This problem can be easily fixed by disabling hotswapping. This setting is unfortunately not available through the user interface, so it needs to be changed directly in the .vmx file (`vcpu.hotadd=FALSE`).
+### Using the osquery kernel extension
 
-## macOS process & socket auditing
+> **WARNING:** The kernel extension in osquery/kernel requires a `-dev` kernel
+> build that has not been released yet. This feature is in development.
 
-### Auditing processes with OpenBSM
+```sh
+# Download and install the osquery kernel extension.
+sudo wget https://s3.amazonaws.com/osquery-packages/osquery.kern.o
+sudo cp osquery.kern.o /tmp/osquery.kern.o
+sudo kextload -v /tmp/osquery.kern.o
+# Optional: automatically load the osquery kernel extension during boot.
+sudo cp osquery.kern.o /System/Library/Extensions/osquery.kern.o
+```
 
-To enable OpenBSM-based process auditing in osquery, set the following command-line flags:
+### Configuring the auditing subsystem
 
-- `--disable_audit=false`
-- `--disable_events=false` 
-- `--audit_allow_config`
+After installing a kernel extension, configure the audit subsystem:
 
-**Note:**: macOS systems 10.15 and earlier ship with the OpenBSM subsystem enabled, but the default settings do not audit process execution or the root user. The osquery command-line flag `--audit_allow_config` will make run-time configuration changes to your system audit to enable these features. This is all you need to get up and running.
+```sh
+sudo cp /var/osquery/packs/incident-response.conf /var/osquery/packs/ir.cnf
+sudo cp /var/osquery/packs/ossec-rootkit.conf /var/osquery/packs/rk.cnf
+sudo mkdir -p /var/osquery/Extensions
+sudo cp ./build/darwin/osquery.app/Contents/MacOS/osquery.ext /var/osquery/Extensions/osquery.extension
+sudo chmod +x /var/osquery/Extensions/osquery.extension
+sudo cp ./tools/deployment/osquery.example.conf /var/osquery/osquery.conf
+sudo cp ./tools/deployment/com.facebook.osqueryd.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
+```
 
-Alternatively, instead of using the `--audit_allow_config` flag, you may edit the `audit_control` file in `/etc/security/` for more granular/nuanced needs. This is optional and considered an "advanced configuration". An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in the future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+### Understanding the audit settings
 
-**Note:** Prior to macOS 10.15, OpenBSM was the primary source of real-time audit events. Since macOS 10.15, EndpointSecurity has been available as a newer alternative [and eventual replacement to the now-deprecated OpenBSM](https://developer.apple.com/videos/play/wwdc2020/10159/). However, with osquery, you can collect events from either of these sources.
+You may also run the extension and daemon more manually:
 
-### Auditing processes with EndpointSecurity
+```sh
+sudo kextload -v /tmp/osquery.kern.o
+osqueryi --extensions_autoload=/etc/osquery/extensions.load --disable_audit=false -S
+```
 
-To enable EndpointSecurity in osquery, set `--disable_endpointsecurity=false` in the configuration.
+And verify the settings:
 
-EndpointSecurity is already enabled in the OS on all macOS hosts beginning with macOS 10.15, and needs no special configuration. There are however some additional steps to permit osquery to collect events.
+```
+osqueryi --extensions_autoload=/etc/osquery/extensions.load --disable_audit=false -S
+osquery> select * from osquery_flags where name in ("disable_audit");
++----------------+------+---------------------------------------------------+---------------+-------+------------+
+| name           | type | description                                       | default_value | value | shell_only |
++----------------+------+---------------------------------------------------+---------------+-------+------------+
+| disable_audit  | bool | Disable receiving events from the audit subsystem | true          | false | 0          |
++----------------+------+---------------------------------------------------+---------------+-------+------------+
 
-For osquery to capture events in its `es_process_events` table, it must have the Full Disk Access (FDA) permission enabled in macOS Privacy & Security settings. Without this permission, osquery will run as normal, but the table will always be empty. **Note:** If osquery is already running without the permission, it must be restarted after you have granted the permission.
+osquery> select count(1) from process_events;
++----------+
+| count(1) |
++----------+
+| 0        |
++----------+
 
-**If osquery is not granted the FDA permission, it will not prompt the user to grant it.** It will just issue a warning (when running with `--verbose`), and the `es_process_events` table will simply be empty when queried.
+osquery> select count(1) from process_events;
++----------+
+| count(1) |
++----------+
+| 30       |
++----------+
+```
 
-#### Full Disk Access
+### Process Auditing with EndpointSecurity (macOS 10.15+)
 
-The FDA permission (or lack thereof) is inherited from `Terminal.app` when running osquery interactively, but is *not* inherited from `launchctl` when running as a service (including when started using the `osqueryctl` helper script).
+Newer versions of macOS (10.15 Catalina and newer) include Apple's EndpointSecurity API, which provides a more reliable and complete mechanism for monitoring process executions and file operations.
 
-| Parent Process | Steps Taken Before Launching osquery | Querying `es_process_events` |
-| -------- | -------- | -------- |
-| `Terminal.app`¹   | Give Full Disk Access to `Terminal.app` only  | Success     |
-| `Terminal.app`¹  | Give FDA only to osquery only, or do nothing  |  No events |
-| `launchctl`  | Give Full Disk Access to `/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd`² only | Success |
-| `launchctl`  | Give FDA to `launchctl` only, or do nothing  | No events  |
+#### macOS API Version Compatibility
 
-¹ : if you use a third-party terminal emulator like `iTerm.app`, grant that the permission instead of `Terminal.app`.
+The EndpointSecurity API has evolved across macOS versions, introducing API changes and new capabilities:
 
-² : whether running osquery via `osqueryi`, `osqueryd`, or `osqueryd -S`, the permissions will be the same in each case.
+| macOS Version | SDK Changes | New Event Types | Structure Changes |
+|---------------|-------------|-----------------|-------------------|
+| macOS 10.15 (Catalina) | Initial ES API | Basic process, file events | Original field names (uid, gid) |
+| macOS 11 (Big Sur) | Authorization → Authentication<br>ReadDir_Extended → ReadDir | Memory protection events | Field renames (uid → euid, gid → egid) |
+| macOS 12 (Monterey) | New socket event types<br>Deprecated path muting functions | Socket, network events | Path field changes in file event structures |
+| macOS 13 (Ventura) | New screensharing events | System control, kext events | Extended attribute structure changes |
+| macOS 14 (Sonoma) | New XPC, profile events | XPC service monitoring | Target path vs target name changes |
 
-##### Manually Granting Permissions
+osquery handles these differences through:
 
-To manually enable FDA permissions for an executable: open System Preferences, go to Security & Privacy, select the Privacy tab, and find Full Disk Access item on the left side. Unlock the System Preferences pane (lower left side lock icon) and enter your credentials. On the right side, clicking the `+` icon adds a new entry to the list, and you can select the executable to be granted this permission. The Finder-based file browser doesn't see paths like `/usr` by default, but you can either drag-and-drop the executable from another Finder window, or you can begin typing with `/` and enter the path explicitly. **Note:** the executable must already exist at that path before it can be manually granted the permission this way.
+1. **Compile-time adaptation:** Conditional code paths based on the SDK version used for compilation
+2. **Runtime detection:** Feature probing to identify available ES event types
+3. **Field abstraction:** Helper functions to access renamed structure fields
+4. **Graceful degradation:** Falling back to available events when newer ones aren't supported
 
-##### Automatically Granting Permissions (Silent Installs)
+To use EndpointSecurity with osquery:
 
-If a macOS host is enrolled in MDM, The FDA permissions can be granted silently by pushing a "PPPC payload" configuration profile (Privacy Preferences Policy Control) that sets the `SystemPolicyAllFiles` (*i.e.*, the FDA) key. A PPPC payload silently sets permissions, provided with an executable identifier called the  `CodeRequirement`.
+1. **Enable EndpointSecurity**: 
+   ```
+   sudo osqueryd --disable_endpointsecurity=false --events_expiry=1
+   ```
+
+2. **Sign the binary with proper entitlements**: For development/testing, sign the binary with EndpointSecurity entitlements:
+   ```
+   codesign --force --sign - --entitlements es_entitlements.xml ./build/osqueryd
+   ```
+
+   The entitlements file should contain:
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0">
+   <dict>
+       <key>com.apple.developer.endpoint-security.client</key>
+       <true/>
+   </dict>
+   </plist>
+   ```
+
+3. **Grant Full Disk Access**: macOS requires explicit user approval for Full Disk Access for applications using EndpointSecurity. You can manually add osquery in System Preferences → Security & Privacy → Privacy → Full Disk Access.
+
+4. **Verify operation**: Query the `es_process_events` table to verify events are being captured:
+   ```sql
+   SELECT * FROM es_process_events WHERE time > (SELECT unix_time - 3600 FROM time) LIMIT 10;
+   ```
+
+#### Version-Specific Behavior and Limitations
+
+- **Network Events**: Socket and network events require macOS 12+ SDK. On systems built with older SDKs, these events will be unavailable.
+- **Memory Protection**: The mmap and mprotect events require macOS 11+. Older systems will not report these events.
+- **Extended Attributes**: Field access patterns changed in macOS 13+. Builds with older SDKs will use compatibility wrappers.
+- **XPC Services**: XPC monitoring requires macOS 14+ and will be automatically disabled on older systems.
+- **Authorization Events**: The field name and constant was renamed from Authorization to Authentication in macOS 11+.
+
+### Comprehensive EndpointSecurity Monitoring
+
+Beyond process events, osquery now supports a wide range of security events through the EndpointSecurity framework. The `es_security_events` table provides visibility into:
+
+1. **Authentication Events**:
+   - Login window sessions (login, logout, lock, unlock)
+   - SSH login/logout
+   - Screen sharing connections
+   - SU/sudo operations
+
+2. **File System Events**:
+   - File operations (create, modify, delete)
+   - Permission changes
+   - Extended attribute operations
+
+3. **Network Events**:
+   - Socket operations
+   - Unix domain socket connections
+   - XPC service connections
+
+4. **Privilege Operations**:
+   - UID/GID changes (setuid, seteuid, etc.)
+   - Process control operations (signal, trace)
+
+To enable comprehensive monitoring:
+
+```sh
+sudo osqueryd \
+  --disable_endpointsecurity=false \
+  --es_enable_file_events=true \
+  --es_enable_network_events=true \
+  --es_enable_auth_events=true \
+  --events_expiry=1
+```
+
+Query examples:
+
+```sql
+-- Monitor authentication events
+SELECT * FROM es_security_events 
+WHERE category = 'authentication' AND severity = 'high'
+ORDER BY time DESC LIMIT 20;
+
+-- Track privilege escalation attempts
+SELECT * FROM es_security_events 
+WHERE event_type LIKE '%setuid%' 
+ORDER BY time DESC;
+
+-- Monitor network connections
+SELECT * FROM es_security_events 
+WHERE category = 'network' 
+ORDER BY time DESC LIMIT 20;
+```
+
+### Full Disk Access Authorization
+
+Both the OpenBSM and EndpointSecurity auditing mechanisms require Full Disk Access permissions on macOS.
+
+The recommended approach is to use a configuration profile. First, you'll need the CodeRequirement value for your osquery binary.
 
 To get the appropriate `CodeRequirement` identifier, use the `codesign` tool and then copy everything in the output after the `designated =>`.
 
@@ -361,49 +556,30 @@ For your deployment, either generate an equivalent profile using your MDM dashbo
   </dict>
  </array>
  <key>PayloadDescription</key>
- <string>osqueryd</string>
+ <string>Allows osquery to access all protected files</string>
  <key>PayloadDisplayName</key>
- <string>osqueryd</string>
+ <string>Osquery TCC</string>
  <key>PayloadIdentifier</key>
- <string>BDBD19F2-A35A-4AEC-9E96-3CA7E2994666</string>
+ <string>B663AD53-AF85-4D53-8BF4-F39A0F8DFEFD</string>
  <key>PayloadOrganization</key>
  <string>Trail of Bits</string>
+ <key>PayloadRemovalDisallowed</key>
+ <false/>
  <key>PayloadScope</key>
  <string>System</string>
  <key>PayloadType</key>
  <string>Configuration</string>
  <key>PayloadUUID</key>
- <string>28A8A2B7-A91E-4C26-BAEC-00F6F542742E</string>
+ <string>3C1BD05B-C1F2-41AC-BF55-F0BE50267280</string>
  <key>PayloadVersion</key>
  <integer>1</integer>
 </dict>
 </plist>
 ```
 
-### Auditing processes and sockets with OpenBSM
+## Tuning the event system
 
-To enable OpenBSM in osquery, set `--disable_audit=false` in the configuration.
-
-OpenBSM is already enabled in the OS on all macOS installations, but with its default settings it doesn't audit process execution or the root user. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below, but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events, while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out. However, in the future, getting the parent pid may require `fork`. If you care about getting the arguments and environment variables, you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system, but your mileage may vary.
-
-```text
-#
-# $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
-#
-dir:/var/audit
-flags:ex,pc,ap,aa,lo,nt
-minfree:5
-naflags:no
-policy:cnt,argv,arge
-filesz:2M
-expire-after:10M
-superuser-set-sflags-mask:has_authenticated,has_console_access
-superuser-clear-sflags-mask:has_authenticated,has_console_access
-member-set-sflags-mask:
-member-clear-sflags-mask:has_authenticated
-```
-
-## osquery events optimization
+### Improving performance through optimizations and filtering
 
 This section provides a brief overview of common and recommended
 optimizations for event-based tables. These optimizations also apply
@@ -416,3 +592,80 @@ to the FIM events.
 The goal of optimizations are to protect the running process and system from impacting performance. By default these are all enabled, which is good for configuration and performance, but may introduce inconsistencies on highly-stressed systems using process auditing.
 
 Optimizations work best when `SELECT`ing often from event-based tables. Otherwise the events are in a buffered state. When an event-based table is selected within the daemon, the backing storage maintaining event data is cleared according to the `--event_expiry` lifetime. Setting this value to `1` will auto-clear events whenever a `SELECT` is performed against the table, reducing all impact of the buffer.
+
+### Comprehensive EndpointSecurity event coverage
+
+By default, osquery's EndpointSecurity integration only captures basic process lifecycle events (exec, fork, exit). However, the EndpointSecurity framework provides access to many more event types that can be valuable for security monitoring and threat detection.
+
+osquery now supports an opt-in model to enable additional event categories:
+
+```
+# Basic process events (enabled by default with --disable_endpointsecurity=false)
+--disable_endpointsecurity=false
+
+# Enable all authorization-related events (setuid, seteuid, etc.)
+--enable_es_auth_events=true
+
+# Enable network events (socket binding and connections)
+--enable_es_network_events=true 
+
+# Enable file system events beyond basic FIM (mount, unmount, etc.)
+--enable_es_file_events=true
+
+# Enable remote thread creation events (detect code injection)
+--enable_es_remote_thread_events=true
+
+# Enable screen sharing connection events (macOS 13.0+)
+--enable_es_screensharing_events=true
+
+# Enable profile management events (macOS 14.0+)
+--enable_es_profile_events=true
+
+# Enable authentication events (SSH login, su, sudo, etc.)
+--enable_es_authentication_events=true
+
+# Enable XPC connection events (macOS 14.0+)
+--enable_es_xpc_events=true
+
+# Alternatively, enable specific event types for fine-grained control
+--es_enabled_events="notify_mount,notify_unmount,notify_setuid,notify_authentication"
+```
+
+#### SDK Version-Aware Configuration
+
+The availability of certain events depends on the SDK version used to build osquery. The implementation includes version checks to ensure compatibility:
+
+```cpp
+// Enable events based on SDK version availability
+#if defined(MAC_OS_X_VERSION_10_15)
+  // Basic process events available in 10.15+
+  events.push_back(ES_EVENT_TYPE_NOTIFY_EXEC);
+  events.push_back(ES_EVENT_TYPE_NOTIFY_FORK);
+  events.push_back(ES_EVENT_TYPE_NOTIFY_EXIT);
+#endif
+
+#if defined(MAC_OS_VERSION_11_0) || MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+  // Memory protection events available in macOS 11+
+  if (FLAGS_enable_es_memory_events) {
+    events.push_back(ES_EVENT_TYPE_NOTIFY_MMAP);
+    events.push_back(ES_EVENT_TYPE_NOTIFY_MPROTECT);
+  }
+  
+  // Authentication events were renamed in macOS 11
+  events.push_back(ES_EVENT_TYPE_NOTIFY_AUTHENTICATION);
+#elif defined(MAC_OS_X_VERSION_10_15)
+  // Fall back to authorization events on older SDKs
+  events.push_back(ES_EVENT_TYPE_NOTIFY_AUTHORIZATION);
+#endif
+
+#if defined(MAC_OS_VERSION_12_0) || MAC_OS_X_VERSION_MAX_ALLOWED >= 120000
+  // Socket events available in macOS 12+
+  if (FLAGS_enable_es_network_events) {
+    events.push_back(ES_EVENT_TYPE_NOTIFY_SOCKET);
+    events.push_back(ES_EVENT_TYPE_NOTIFY_CONNECT);
+    // Additional socket events...
+  }
+#endif
+```
+
+For any macOS version, osquery will enable the maximum set of events available for that version and gracefully handle missing events at runtime.
