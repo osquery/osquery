@@ -1,0 +1,29 @@
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
+
+// Sanity check integration test for certificate trust settings
+// Spec file: specs/darwin/certificate_trust_settings.table
+
+#include <osquery/tests/integration/tables/helper.h>
+
+namespace osquery {
+namespace table_tests {
+
+class certificateTrustSettings : public testing::Test {
+  protected:
+  void SetUp() override {
+    setUpEnvironment();
+  }
+};
+
+TEST_F(certificates, test_sanity) {
+  auto const data = execute_query("select * from certificate_trust_settings");
+}
+} // namespace table_tests
+} // namespace osquery

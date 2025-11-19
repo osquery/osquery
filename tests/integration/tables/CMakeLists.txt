@@ -220,6 +220,7 @@ function(generateTestsIntegrationTablesTestsTest)
       authorizations.cpp
       battery.cpp
       browser_plugins.cpp
+      certificate_trust_settings.cpp
       connected_displays.cpp
       crashes.cpp
       cups_destinations.cpp
