@@ -7,12 +7,27 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
 
 #include <boost/asio/connect.hpp>
+#include <chrono>
+
+#ifndef WIN32
+#include <resolv.h>
+#endif
+
+DECLARE_bool(openssl_enforce_fips);
 
 namespace osquery {
+
+FLAG(int32,
+     dns_resolver_refresh_interval,
+     60,
+     "Interval in seconds between DNS resolver state refreshes via res_init(). "
+     "Default: 60 seconds");
+
 namespace http {
 
 const std::string kHTTPSDefaultPort{"443"};
@@ -115,6 +130,22 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
+#ifndef WIN32
+  // Refresh DNS resolver state periodically to pick up changes to
+  // /etc/resolv.conf (e.g., when VPN connects). This ensures Boost.Asio's
+  // resolver uses the current DNS configuration rather than a stale cached
+  // state.
+  static std::chrono::steady_clock::time_point last_dns_refresh;
+  auto now = std::chrono::steady_clock::now();
+  auto refresh_interval =
+      std::chrono::seconds(FLAGS_dns_resolver_refresh_interval);
+
+  if (now - last_dns_refresh >= refresh_interval) {
+    res_init();
+    last_dns_refresh = now;
+  }
+#endif
+
   // We can resolve async, but there is a handle leak in Windows.
   auto results = r_.resolve(connect_host, port, ec_);
   if (!ec_) {
@@ -212,6 +243,20 @@ void Client::encryptConnection() {
   if (client_options_.ciphers_) {
     ::SSL_CTX_set_cipher_list(ctx.native_handle(),
                               client_options_.ciphers_->c_str());
+  } else if (FLAGS_openssl_enforce_fips) {
+    // Use FIPS-approved cipher suites for TLS 1.2+ (OpenSSL 3.x)
+    // These ciphers are FIPS 140-2 compliant and provide strong security
+    const char* fips_ciphers =
+        "TLS_AES_256_GCM_SHA384:" // TLS 1.3
+        "TLS_AES_128_GCM_SHA256:" // TLS 1.3
+        "ECDHE-RSA-AES256-GCM-SHA384:" // TLS 1.2
+        "ECDHE-RSA-AES128-GCM-SHA256:" // TLS 1.2
+        "ECDHE-ECDSA-AES256-GCM-SHA384:" // TLS 1.2
+        "ECDHE-ECDSA-AES128-GCM-SHA256:" // TLS 1.2
+        "AES256-GCM-SHA384:" // TLS 1.2
+        "AES128-GCM-SHA256"; // TLS 1.2
+    ::SSL_CTX_set_cipher_list(ctx.native_handle(), fips_ciphers);
+    VLOG(1) << "Using FIPS-approved cipher suites for TLS connection";
   }
 
   if (client_options_.ssl_options_) {
