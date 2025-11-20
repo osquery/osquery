@@ -22,7 +22,7 @@ class certificateTrustSettings : public testing::Test {
   }
 };
 
-TEST_F(certificates, test_sanity) {
+TEST_F(certificateTrustSettings, test_sanity) {
   auto const data = execute_query("select * from certificate_trust_settings");
 }
 } // namespace table_tests
