@@ -243,20 +243,6 @@ void Client::encryptConnection() {
   if (client_options_.ciphers_) {
     ::SSL_CTX_set_cipher_list(ctx.native_handle(),
                               client_options_.ciphers_->c_str());
-  } else if (FLAGS_openssl_enforce_fips) {
-    // Use FIPS-approved cipher suites for TLS 1.2+ (OpenSSL 3.x)
-    // These ciphers are FIPS 140-2 compliant and provide strong security
-    const char* fips_ciphers =
-        "TLS_AES_256_GCM_SHA384:" // TLS 1.3
-        "TLS_AES_128_GCM_SHA256:" // TLS 1.3
-        "ECDHE-RSA-AES256-GCM-SHA384:" // TLS 1.2
-        "ECDHE-RSA-AES128-GCM-SHA256:" // TLS 1.2
-        "ECDHE-ECDSA-AES256-GCM-SHA384:" // TLS 1.2
-        "ECDHE-ECDSA-AES128-GCM-SHA256:" // TLS 1.2
-        "AES256-GCM-SHA384:" // TLS 1.2
-        "AES128-GCM-SHA256"; // TLS 1.2
-    ::SSL_CTX_set_cipher_list(ctx.native_handle(), fips_ciphers);
-    VLOG(1) << "Using FIPS-approved cipher suites for TLS connection";
   }
 
   if (client_options_.ssl_options_) {
