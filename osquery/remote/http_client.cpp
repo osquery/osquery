@@ -18,8 +18,6 @@
 #include <resolv.h>
 #endif
 
-DECLARE_bool(openssl_enforce_fips);
-
 namespace osquery {
 
 FLAG(int32,
