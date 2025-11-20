@@ -47,6 +47,7 @@ function(generateOsqueryRemoteHttpclient)
 
   target_link_libraries(osquery_remote_httpclient PUBLIC
     osquery_cxx_settings
+    osquery_core
     osquery_logger
     osquery_utils_status
     thirdparty_boost
