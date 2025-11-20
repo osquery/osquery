@@ -16,7 +16,7 @@ namespace osquery {
 namespace table_tests {
 
 class certificateTrustSettings : public testing::Test {
-  protected:
+ protected:
   void SetUp() override {
     setUpEnvironment();
   }
