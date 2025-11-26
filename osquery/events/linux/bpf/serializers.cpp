@@ -315,6 +315,12 @@ const ParameterListMap kParameterListMap = {
        tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
        8U}}},
 
+    {"close",
+     {{"fd",
+       tob::ebpfpub::IFunctionTracer::Parameter::Type::Integer,
+       tob::ebpfpub::IFunctionTracer::Parameter::Mode::In,
+       8U}}},
+
     {"vfork", {}},
     {"fork", {}},
 };
