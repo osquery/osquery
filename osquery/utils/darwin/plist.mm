@@ -238,7 +238,8 @@ static Status pathFromUnknownAlias(const CFDataRef& data, std::string& result) {
   return Status(1, "Cannot find POSIX path tag in Alias");
 }
 
-/// Parse a Login Items Plist Alias data for bin path
+/// Parse plist alias data (bookmark) for bin path
+/// Used for firewall exceptions and other plist-based alias data
 Status pathFromPlistAliasData(const std::string& data, std::string& result) {
   auto decoded = base64::decode(data);
   if (decoded.size() == 0) {
