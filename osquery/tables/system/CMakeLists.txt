@@ -160,7 +160,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/sip_config.cpp
       darwin/smbios_tables.cpp
       darwin/smc_keys.cpp
-      darwin/startup_items.cpp
+      darwin/startup_items.mm
       darwin/sysctl_utils.cpp
       darwin/system_extensions.mm
       darwin/system_info.cpp
