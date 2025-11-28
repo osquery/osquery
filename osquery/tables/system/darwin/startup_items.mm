@@ -7,10 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include "osquery/utils/scope_guard.h"
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
-#include <map>
 #include <vector>
 
 #include <boost/filesystem.hpp>
@@ -21,46 +21,39 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/darwin/plist.h>
 
 namespace fs = boost::filesystem;
 
-// Path to the BTM daemon that contains the Storage class
-#define BTM_DAEMON                                                             \
-  "/System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/"      \
-  "Resources/backgroundtaskmanagementd"
-
-// Global handle to the loaded daemon
-static void* btmd = NULL;
+namespace osquery {
+namespace tables {
 
 // Types and dispositions from
 // https://www.swiftforensics.com/2025/01/macapt-update-to-btm-processing.html
 
-// Disposition values for Background Task Management items
-const std::map<uint32_t, std::string> kDispositionValues = {
-    {0x01, "Enabled"},
-    {0x02, "Allowed"},
-    {0x04, "Hidden"},
-    {0x08, "Notified"},
+// Disposition flags for Background Task Management items
+enum class DispositionFlag : uint32_t {
+  Enabled = 0x01,
+  Allowed = 0x02,
+  Hidden = 0x04,
+  Notified = 0x08,
 };
 
-// Type values for Background Task Management items
-const std::map<uint32_t, std::string> kTypeValues = {
-    {0x00001, "user item"},
-    {0x00002, "app"},
-    {0x00004, "login item"},
-    {0x00008, "agent"},
-    {0x00010, "daemon"},
-    {0x00020, "developer"},
-    {0x00040, "spotlight"},
-    {0x00800, "quicklook"},
-    {0x80000, "curated"},
-    {0x10000, "legacy"},
+// Type flags for Background Task Management items
+enum class TypeFlag : uint32_t {
+  UserItem = 0x00001,
+  App = 0x00002,
+  LoginItem = 0x00004,
+  Agent = 0x00008,
+  Daemon = 0x00010,
+  Developer = 0x00020,
+  Spotlight = 0x00040,
+  Quicklook = 0x00800,
+  Curated = 0x80000,
+  Legacy = 0x10000,
 };
-
-namespace osquery {
-namespace tables {
 
 const std::vector<std::string> kLibraryStartupItemPaths = {
     "/System/Library/StartupItems/",
@@ -70,43 +63,61 @@ const std::vector<std::string> kLibraryStartupItemPaths = {
 // Helper function to convert disposition flags to string
 std::string dispositionToString(uint32_t disposition) {
   std::vector<std::string> flags;
-  for (const auto& pair : kDispositionValues) {
-    if ((disposition & pair.first) != 0) {
-      flags.push_back(pair.second);
-    }
+  if (disposition & (uint32_t)DispositionFlag::Enabled) {
+    flags.push_back("enabled");
+  }
+  if (disposition & (uint32_t)DispositionFlag::Allowed) {
+    flags.push_back("allowed");
+  }
+  if (disposition & (uint32_t)DispositionFlag::Hidden) {
+    flags.push_back("hidden");
+  }
+  if (disposition & (uint32_t)DispositionFlag::Notified) {
+    flags.push_back("notified");
   }
   if (flags.empty()) {
-    return "Unknown";
+    return "unknown";
   }
-  std::string result;
-  for (size_t i = 0; i < flags.size(); ++i) {
-    if (i > 0) {
-      result += ", ";
-    }
-    result += flags[i];
-  }
-  return result;
+  return osquery::join(flags, ", ");
 }
 
 // Helper function to convert type flags to string
 std::string typeToString(uint32_t type) {
   std::vector<std::string> flags;
-  for (const auto& pair : kTypeValues) {
-    if ((type & pair.first) != 0) {
-      flags.push_back(pair.second);
-    }
+  if (type & (uint32_t)TypeFlag::UserItem) {
+    flags.push_back("user item");
+  }
+  if (type & (uint32_t)TypeFlag::App) {
+    flags.push_back("app");
+  }
+  if (type & (uint32_t)TypeFlag::LoginItem) {
+    flags.push_back("login item");
+  }
+  if (type & (uint32_t)TypeFlag::Agent) {
+    flags.push_back("agent");
+  }
+  if (type & (uint32_t)TypeFlag::Daemon) {
+    flags.push_back("daemon");
+  }
+  if (type & (uint32_t)TypeFlag::Developer) {
+    flags.push_back("developer");
+  }
+  if (type & (uint32_t)TypeFlag::Spotlight) {
+    flags.push_back("spotlight");
+  }
+  if (type & (uint32_t)TypeFlag::Quicklook) {
+    flags.push_back("quicklook");
+  }
+  if (type & (uint32_t)TypeFlag::Curated) {
+    flags.push_back("curated");
+  }
+  if (type & (uint32_t)TypeFlag::Legacy) {
+    flags.push_back("legacy");
   }
   if (flags.empty()) {
-    return "Unknown";
+    return "unknown";
   }
-  std::string result;
-  for (size_t i = 0; i < flags.size(); ++i) {
-    if (i > 0) {
-      result += ", ";
-    }
-    result += flags[i];
-  }
-  return result;
+  return osquery::join(flags, ", ");
 }
 
 void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
@@ -130,94 +141,59 @@ void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
   }
 }
 
-void parseItem(id item, QueryData& results) {
+void parseItem(const std::string& uuid, id item, QueryData& results) {
   if (item == nil) {
     return;
   }
 
   Row r;
 
-  // Handle if item is an object (use KVC to access properties with exception
-  // handling)
+  // Convert type property (bitmask) to string
+  r["type"] = "unknown";
+  if ([item respondsToSelector:@selector(type)]) {
+    id typeProperty = [item valueForKey:@"type"];
+    if (typeProperty != nil &&
+        [typeProperty respondsToSelector:@selector(unsignedIntValue)]) {
+      uint32_t typeValue = [typeProperty unsignedIntValue];
+      // Skip developer items because they don't seem to be login items or
+      // background tasks
+      if (typeValue & (uint32_t)TypeFlag::Developer) {
+        return;
+      }
+      r["type"] = typeToString(typeValue);
+    }
+  }
+
   id nameProperty = nil;
-  id pathProperty = nil;
-  id typeProperty = nil;
-  id dispositionProperty = nil;
-
-  @try {
-    nameProperty = [item valueForKey:@"name"];
-  } @catch (NSException* exception) {
-    // Key doesn't exist or object doesn't support KVC for this key
-    VLOG(1) << "parseItem: failed to get 'name' property: "
-            << [[exception description] UTF8String];
-  }
-
-  @
-  try {
-    pathProperty = [item valueForKey:@"path"];
-  } @catch (NSException* exception) {
-    // Key doesn't exist or object doesn't support KVC for this key
-    VLOG(1) << "parseItem: failed to get 'path' property: "
-            << [[exception description] UTF8String];
-  }
-
-  @
-  try {
-    typeProperty = [item valueForKey:@"type"];
-  } @catch (NSException* exception) {
-    // Key doesn't exist or object doesn't support KVC for this key
-  }
-
-  @
-  try {
-    dispositionProperty = [item valueForKey:@"disposition"];
-  } @catch (NSException* exception) {
-    // Key doesn't exist or object doesn't support KVC for this key
-  }
-
+  [item respondsToSelector:@selector(name)] &&
+      (nameProperty = [item valueForKey:@"name"]);
   if (nameProperty != nil) {
     r["name"] = std::string([[nameProperty description] UTF8String]);
   }
 
-  if (pathProperty != nil) {
-    r["path"] = std::string([[pathProperty description] UTF8String]);
-  } else if (nameProperty != nil) {
-    // Fallback to name if path is not available
-    r["path"] = std::string([[nameProperty description] UTF8String]);
-  }
-
-  // Convert type property (numeric flags) to string
-  if (typeProperty != nil) {
-    if ([typeProperty respondsToSelector:@selector(unsignedIntValue)]) {
-      uint32_t typeValue = [typeProperty unsignedIntValue];
-      r["type"] = typeToString(typeValue);
-    } else if ([typeProperty respondsToSelector:@selector(intValue)]) {
-      uint32_t typeValue = static_cast<uint32_t>([typeProperty intValue]);
-      r["type"] = typeToString(typeValue);
-    } else {
-      // Fallback to description if not a numeric type
-      r["type"] = std::string([[typeProperty description] UTF8String]);
-    }
-  } else {
-    r["type"] = "Background Task";
-  }
-
-  // Convert disposition property (numeric flags) to string
-  if (dispositionProperty != nil) {
-    if ([dispositionProperty respondsToSelector:@selector(unsignedIntValue)]) {
+  // Convert disposition property (bitmask) to string
+  r["status"] = "unknown";
+  if ([item respondsToSelector:@selector(disposition)]) {
+    id dispositionProperty = [item valueForKey:@"disposition"];
+    if (dispositionProperty != nil &&
+        [dispositionProperty respondsToSelector:@selector(unsignedIntValue)]) {
       uint32_t dispositionValue = [dispositionProperty unsignedIntValue];
       r["status"] = dispositionToString(dispositionValue);
-    } else if ([dispositionProperty respondsToSelector:@selector(intValue)]) {
-      uint32_t dispositionValue =
-          static_cast<uint32_t>([dispositionProperty intValue]);
-      r["status"] = dispositionToString(dispositionValue);
-    } else {
-      // Fallback to description if not a numeric type
-      r["status"] = std::string([[dispositionProperty description] UTF8String]);
     }
-  } else {
-    r["status"] = "enabled";
   }
+
+  if ([item respondsToSelector:@selector(url)]) {
+    id urlProperty = [item valueForKey:@"url"];
+    if (urlProperty != nil && [urlProperty isKindOfClass:[NSURL class]]) {
+      NSURL* url = (NSURL*)urlProperty;
+      NSString* path = [url path];
+      if (path != nil) {
+        r["path"] = std::string([path UTF8String]);
+      }
+    }
+  }
+
+  r["username"] = uuid;
 
   r["source"] = "Background Task Management";
 
@@ -227,10 +203,12 @@ void parseItem(id item, QueryData& results) {
   }
 }
 
-void parseItemsByUser(id items, QueryData& results) {
+void parseItemsByUser(id uuid, id items, QueryData& results) {
   if (items == nil) {
     return;
   }
+
+  std::string uuidString = std::string([[uuid description] UTF8String]);
 
   // Top level should always be an array
   if (![items isKindOfClass:[NSArray class]]) {
@@ -240,20 +218,20 @@ void parseItemsByUser(id items, QueryData& results) {
   }
 
   for (id item in (NSArray*)items) {
-    parseItem(item, results);
+    parseItem(uuidString, item, results);
   }
 }
 
 void genBtmStartupItems(QueryData& results) {
-  const std::string kBtmDirectory =
-      "/private/var/db/com.apple.backgroundtaskmanagement/";
-
   // Find the most recently modified .btm file using SQL query
-  std::string query = "SELECT path FROM file WHERE directory = '" +
-                      kBtmDirectory +
-                      "' AND filename LIKE '%.btm' ORDER BY mtime DESC LIMIT 1";
+  std::string query =
+      "SELECT path FROM file WHERE directory = '"
+      "/private/var/db/com.apple.backgroundtaskmanagement/"
+      "' AND filename LIKE '%.btm' ORDER BY mtime DESC LIMIT 1";
   SQL sql(query);
   if (!sql.ok() || sql.rows().empty()) {
+    LOG(ERROR) << "Found no .btm database in "
+                  "/private/var/db/com.apple.backgroundtaskmanagement/";
     return;
   }
 
@@ -270,13 +248,16 @@ void genBtmStartupItems(QueryData& results) {
   @autoreleasepool {
     // Load the BTM daemon into memory
     // This makes the Storage class available via NSClassFromString
-    btmd = dlopen(BTM_DAEMON, RTLD_LAZY);
-
+    void* btmd = dlopen(
+        "/System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/"
+        "Resources/backgroundtaskmanagementd",
+        RTLD_LAZY);
     if (btmd == NULL) {
       VLOG(1) << "Failed to load BTM daemon: " << dlerror();
     } else {
       VLOG(1) << "Successfully loaded BTM daemon";
     }
+    const auto btmd_guard = scope_guard::create([&]() { dlclose(btmd); });
 
     // Step 1: Lookup the Storage and ItemRecord classes by name
     // This works because the daemon was loaded in the constructor
@@ -313,8 +294,8 @@ void genBtmStartupItems(QueryData& results) {
       return;
     }
 
-    // Decode the Storage object. The key "store" is where the Storage object is
-    // stored in the BTM file
+    // Decode the Storage object. The key "store" is where the Storage object
+    // is stored in the BTM file
     id store = nil;
     @try {
       // Use try/catch here because we don't control the ipmlementation of the
@@ -346,14 +327,14 @@ void genBtmStartupItems(QueryData& results) {
       LOG(ERROR) << "itemsByUser is not a dictionary";
       return;
     }
-    for (id key in itemsByUser) {
-      id value = itemsByUser[key];
-      VLOG(1) << "genBtmStartupItems: itemsByUser entry key: "
-              << [[key description] UTF8String];
-      VLOG(1) << "genBtmStartupItems: itemsByUser entry value: "
-              << [[value description] UTF8String];
+    for (id uuid in itemsByUser) {
+      id items = itemsByUser[uuid];
+      VLOG(1) << "genBtmStartupItems: itemsByUser entry uuid: "
+              << [[uuid description] UTF8String];
+      VLOG(1) << "genBtmStartupItems: itemsByUser entry items: "
+              << [[items description] UTF8String];
 
-      parseItemsByUser(value, results);
+      parseItemsByUser(uuid, items, results);
     }
 
     id mdmPayloadsByIdentifier = [store valueForKey:@"mdmPayloadsByIdentifier"];
