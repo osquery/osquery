@@ -10,6 +10,9 @@
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
+#include <map>
+#include <vector>
+
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -31,7 +34,31 @@ namespace fs = boost::filesystem;
 // Global handle to the loaded daemon
 static void* btmd = NULL;
 
-// Constructor: loads the BTM daemon when the library is loaded
+// Types and dispositions from
+// https://www.swiftforensics.com/2025/01/macapt-update-to-btm-processing.html
+
+// Disposition values for Background Task Management items
+const std::map<uint32_t, std::string> kDispositionValues = {
+    {0x01, "Enabled"},
+    {0x02, "Allowed"},
+    {0x04, "Hidden"},
+    {0x08, "Notified"},
+};
+
+// Type values for Background Task Management items
+const std::map<uint32_t, std::string> kTypeValues = {
+    {0x00001, "user item"},
+    {0x00002, "app"},
+    {0x00004, "login item"},
+    {0x00008, "agent"},
+    {0x00010, "daemon"},
+    {0x00020, "developer"},
+    {0x00040, "spotlight"},
+    {0x00800, "quicklook"},
+    {0x80000, "curated"},
+    {0x10000, "legacy"},
+};
+
 namespace osquery {
 namespace tables {
 
@@ -39,6 +66,48 @@ const std::vector<std::string> kLibraryStartupItemPaths = {
     "/System/Library/StartupItems/",
     "/Library/StartupItems/",
 };
+
+// Helper function to convert disposition flags to string
+std::string dispositionToString(uint32_t disposition) {
+  std::vector<std::string> flags;
+  for (const auto& pair : kDispositionValues) {
+    if ((disposition & pair.first) != 0) {
+      flags.push_back(pair.second);
+    }
+  }
+  if (flags.empty()) {
+    return "Unknown";
+  }
+  std::string result;
+  for (size_t i = 0; i < flags.size(); ++i) {
+    if (i > 0) {
+      result += ", ";
+    }
+    result += flags[i];
+  }
+  return result;
+}
+
+// Helper function to convert type flags to string
+std::string typeToString(uint32_t type) {
+  std::vector<std::string> flags;
+  for (const auto& pair : kTypeValues) {
+    if ((type & pair.first) != 0) {
+      flags.push_back(pair.second);
+    }
+  }
+  if (flags.empty()) {
+    return "Unknown";
+  }
+  std::string result;
+  for (size_t i = 0; i < flags.size(); ++i) {
+    if (i > 0) {
+      result += ", ";
+    }
+    result += flags[i];
+  }
+  return result;
+}
 
 void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
   try {
@@ -58,6 +127,120 @@ void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
     }
   } catch (const fs::filesystem_error& e) {
     VLOG(1) << "Error traversing " << sysdir << ": " << e.what();
+  }
+}
+
+void parseItem(id item, QueryData& results) {
+  if (item == nil) {
+    return;
+  }
+
+  Row r;
+
+  // Handle if item is an object (use KVC to access properties with exception
+  // handling)
+  id nameProperty = nil;
+  id pathProperty = nil;
+  id typeProperty = nil;
+  id dispositionProperty = nil;
+
+  @try {
+    nameProperty = [item valueForKey:@"name"];
+  } @catch (NSException* exception) {
+    // Key doesn't exist or object doesn't support KVC for this key
+    VLOG(1) << "parseItem: failed to get 'name' property: "
+            << [[exception description] UTF8String];
+  }
+
+  @
+  try {
+    pathProperty = [item valueForKey:@"path"];
+  } @catch (NSException* exception) {
+    // Key doesn't exist or object doesn't support KVC for this key
+    VLOG(1) << "parseItem: failed to get 'path' property: "
+            << [[exception description] UTF8String];
+  }
+
+  @
+  try {
+    typeProperty = [item valueForKey:@"type"];
+  } @catch (NSException* exception) {
+    // Key doesn't exist or object doesn't support KVC for this key
+  }
+
+  @
+  try {
+    dispositionProperty = [item valueForKey:@"disposition"];
+  } @catch (NSException* exception) {
+    // Key doesn't exist or object doesn't support KVC for this key
+  }
+
+  if (nameProperty != nil) {
+    r["name"] = std::string([[nameProperty description] UTF8String]);
+  }
+
+  if (pathProperty != nil) {
+    r["path"] = std::string([[pathProperty description] UTF8String]);
+  } else if (nameProperty != nil) {
+    // Fallback to name if path is not available
+    r["path"] = std::string([[nameProperty description] UTF8String]);
+  }
+
+  // Convert type property (numeric flags) to string
+  if (typeProperty != nil) {
+    if ([typeProperty respondsToSelector:@selector(unsignedIntValue)]) {
+      uint32_t typeValue = [typeProperty unsignedIntValue];
+      r["type"] = typeToString(typeValue);
+    } else if ([typeProperty respondsToSelector:@selector(intValue)]) {
+      uint32_t typeValue = static_cast<uint32_t>([typeProperty intValue]);
+      r["type"] = typeToString(typeValue);
+    } else {
+      // Fallback to description if not a numeric type
+      r["type"] = std::string([[typeProperty description] UTF8String]);
+    }
+  } else {
+    r["type"] = "Background Task";
+  }
+
+  // Convert disposition property (numeric flags) to string
+  if (dispositionProperty != nil) {
+    if ([dispositionProperty respondsToSelector:@selector(unsignedIntValue)]) {
+      uint32_t dispositionValue = [dispositionProperty unsignedIntValue];
+      r["status"] = dispositionToString(dispositionValue);
+    } else if ([dispositionProperty respondsToSelector:@selector(intValue)]) {
+      uint32_t dispositionValue =
+          static_cast<uint32_t>([dispositionProperty intValue]);
+      r["status"] = dispositionToString(dispositionValue);
+    } else {
+      // Fallback to description if not a numeric type
+      r["status"] = std::string([[dispositionProperty description] UTF8String]);
+    }
+  } else {
+    r["status"] = "enabled";
+  }
+
+  r["source"] = "Background Task Management";
+
+  // Only add row if we have at least a name
+  if (!r["name"].empty()) {
+    results.push_back(r);
+  }
+}
+
+void parseItemsByUser(id items, QueryData& results) {
+  if (items == nil) {
+    return;
+  }
+
+  // Top level should always be an array
+  if (![items isKindOfClass:[NSArray class]]) {
+    VLOG(1) << "parseItemsByUser: expected array but got "
+            << [[items description] UTF8String];
+    return;
+  }
+
+  for (id item in (NSArray*)items) {
+    parseItem(item, results);
   }
 }
 
@@ -129,187 +312,62 @@ void genBtmStartupItems(QueryData& results) {
               << [error.localizedDescription UTF8String];
       return;
     }
-    unarchiver.decodingFailurePolicy = NSDecodingFailurePolicyRaiseException;
 
-    // Step 4: Deserialize the Storage object from the BTM file
+    // Decode the Storage object. The key "store" is where the Storage object is
+    // stored in the BTM file
     id store = nil;
-
     @try {
-      // Decode the Storage object using the class we found
-      // The key "store" is where the Storage object is stored in the BTM file
+      // Use try/catch here because we don't control the ipmlementation of the
+      // decoders and can't be sure that they will not raise exceptions on
+      // failure.
+      unarchiver.decodingFailurePolicy = NSDecodingFailurePolicyRaiseException;
       store = [unarchiver decodeObjectOfClass:StorageClass forKey:@"store"];
       [unarchiver finishDecoding];
-
-      if (store == nil) {
-        VLOG(1) << "Failed to decode store object from BTM file";
-        return;
-      }
     } @catch (NSException* exception) {
-      VLOG(1) << "Failed to deserialize Storage: "
+      VLOG(1) << "Failed to decode store object from BTM file "
+              << most_recent_btm_file << ": "
               << [exception.description UTF8String];
       return;
     }
 
-    // Process the store object - handle Storage class
-    NSDictionary* items_dict = nil;
-    if (StorageClass != nil && [store isKindOfClass:StorageClass]) {
-      id storage_obj = store;
-      // Combine items from both properties using KVC
-      NSMutableDictionary* combined_items = [NSMutableDictionary dictionary];
-      id itemsByUser = [storage_obj valueForKey:@"itemsByUserIdentifier"];
-      id mdmPayloads = [storage_obj valueForKey:@"mdmPayloadsByIdentifier"];
-      if (itemsByUser != nil &&
-          [itemsByUser isKindOfClass:[NSDictionary class]]) {
-        [combined_items addEntriesFromDictionary:(NSDictionary*)itemsByUser];
-      }
-      if (mdmPayloads != nil &&
-          [mdmPayloads isKindOfClass:[NSDictionary class]]) {
-        [combined_items addEntriesFromDictionary:(NSDictionary*)mdmPayloads];
-      }
-      items_dict = combined_items;
-      VLOG(1) << "genBtmStartupItems: Storage object has " << [items_dict count]
-              << " items";
-    } else if ([store isKindOfClass:[NSDictionary class]]) {
-      items_dict = (NSDictionary*)store;
-      VLOG(1) << "genBtmStartupItems: store has " << [items_dict count]
-              << " entries";
-    } else {
-      VLOG(1) << "genBtmStartupItems: store is unexpected type: "
-              << [[store className] UTF8String];
+    if (store == nil) {
+      LOG(ERROR) << "decode did not return error but store is nil";
       return;
     }
 
-    // Process items from the dictionary
-    for (id key in items_dict) {
-      id value = items_dict[key];
-      VLOG(1) << "genBtmStartupItems: value: "
-              << [[value description] UTF8String];
-      VLOG(1) << "genBtmStartupItems: store entry key: "
+    if (![store isKindOfClass:StorageClass]) {
+      LOG(ERROR) << "store is not a Storage object";
+      return;
+    }
+
+    id itemsByUser = [store valueForKey:@"itemsByUserIdentifier"];
+    if (itemsByUser == nil ||
+        ![itemsByUser isKindOfClass:[NSDictionary class]]) {
+      LOG(ERROR) << "itemsByUser is not a dictionary";
+      return;
+    }
+    for (id key in itemsByUser) {
+      id value = itemsByUser[key];
+      VLOG(1) << "genBtmStartupItems: itemsByUser entry key: "
               << [[key description] UTF8String];
+      VLOG(1) << "genBtmStartupItems: itemsByUser entry value: "
+              << [[value description] UTF8String];
 
-      // Handle arrays that may contain ItemRecord objects
-      NSArray* items_array = nil;
-      if ([value isKindOfClass:[NSArray class]]) {
-        items_array = (NSArray*)value;
-      } else if ([value isKindOfClass:[NSDictionary class]]) {
-        // If it's a dictionary, treat it as a single entry
-        items_array = @[ value ];
-      } else if (ItemRecordClass != nil &&
-                 [value isKindOfClass:ItemRecordClass]) {
-        // If it's an ItemRecord, wrap it in an array
-        items_array = @[ value ];
-      } else {
-        continue;
-      }
+      parseItemsByUser(value, results);
+    }
 
-      // Process each item in the array
-      for (id item in items_array) {
-        NSDictionary* entry = nil;
-        id item_record = nil;
-
-        // Convert ItemRecord to dictionary-like access, or use dictionary
-        // directly
-        if (ItemRecordClass != nil && [item isKindOfClass:ItemRecordClass]) {
-          item_record = item;
-        } else if ([item isKindOfClass:[NSDictionary class]]) {
-          entry = (NSDictionary*)item;
-        } else {
-          continue;
-        }
-
-        // Extract path information
-        id path_obj = nil;
-        if (entry != nil) {
-          path_obj = entry[@"path"];
-          if (path_obj == nil) {
-            // Try other possible keys
-            path_obj = entry[@"URL"];
-            if (path_obj == nil) {
-              path_obj = entry[@"url"];
-              if (path_obj == nil) {
-                path_obj = entry[@"Path"];
-              }
-            }
-          }
-        } else if (item_record != nil) {
-          // Access ItemRecord properties using KVC
-          path_obj = [item_record valueForKey:@"path"];
-          if (path_obj == nil) {
-            path_obj = [item_record valueForKey:@"URL"];
-          }
-        }
-
-        std::string path;
-        if ([path_obj isKindOfClass:[NSString class]]) {
-          path = [path_obj UTF8String];
-        } else if ([path_obj isKindOfClass:[NSURL class]]) {
-          path = [[(NSURL*)path_obj path] UTF8String];
-        }
-
-        if (!path.empty() && (path[0] == '/' || path.find("file://") == 0)) {
-          // Handle file:// URLs
-          if (path.find("file://") == 0) {
-            path = path.substr(7);
-            // URL decode if needed (simple case - just remove %20 -> space)
-            size_t pos = 0;
-            while ((pos = path.find("%20", pos)) != std::string::npos) {
-              path.replace(pos, 3, " ");
-              pos += 1;
-            }
-          }
-
-          // Filter for executables, plist files, or app bundles
-          bool is_valid = false;
-          if (path.find(".plist") != std::string::npos ||
-              path.find(".app/") != std::string::npos ||
-              path.find("/Contents/MacOS/") != std::string::npos ||
-              (path[0] == '/' && fs::path(path).extension().empty() &&
-               path.find("/bin/") != std::string::npos)) {
-            is_valid = true;
-          }
-
-          if (is_valid) {
-            Row r;
-            r["type"] = "Startup Item";
-            r["source"] = kBtmDirectory;
-
-            // Extract status from disposition
-            std::string status = "enabled";
-            id disposition_obj = nil;
-            if (entry != nil) {
-              disposition_obj = entry[@"disposition"];
-            } else if (item_record != nil) {
-              disposition_obj = [item_record valueForKey:@"disposition"];
-            }
-
-            if (disposition_obj != nil) {
-              int disposition = -1;
-              if ([disposition_obj isKindOfClass:[NSNumber class]]) {
-                disposition = [disposition_obj intValue];
-              } else if ([disposition_obj isKindOfClass:[NSString class]]) {
-                auto result =
-                    tryTo<int>(std::string([disposition_obj UTF8String]), 10);
-                if (!result.isError()) {
-                  disposition = result.get();
-                }
-              }
-
-              if (disposition >= 0) {
-                if (disposition & 0x01) {
-                  status = "enabled";
-                } else {
-                  status = "disabled";
-                }
-              }
-            }
-
-            r["status"] = status;
-            r["path"] = path;
-            r["name"] = fs::path(path).filename().string();
-            results.push_back(r);
-          }
-        }
-      }
+    id mdmPayloadsByIdentifier = [store valueForKey:@"mdmPayloadsByIdentifier"];
+    if (mdmPayloadsByIdentifier == nil ||
+        ![mdmPayloadsByIdentifier isKindOfClass:[NSDictionary class]]) {
+      LOG(ERROR) << "mdmPayloadsByIdentifier is not a dictionary";
+      return;
+    }
+    for (id key in mdmPayloadsByIdentifier) {
+      id value = mdmPayloadsByIdentifier[key];
+      VLOG(1) << "genBtmStartupItems: mdmPayloadsByIdentifier entry key: "
+              << [[key description] UTF8String];
+      VLOG(1) << "genBtmStartupItems: mdmPayloadsByIdentifier entry value: "
+              << [[value description] UTF8String];
     }
   }
 }
