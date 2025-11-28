@@ -11,6 +11,7 @@
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
+#include <map>
 #include <vector>
 
 #include <boost/filesystem.hpp>
@@ -141,7 +142,7 @@ void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
   }
 }
 
-void parseItem(const std::string& uuid, id item, QueryData& results) {
+void parseItem(const std::string& username, id item, QueryData& results) {
   if (item == nil) {
     return;
   }
@@ -214,17 +215,17 @@ void parseItem(const std::string& uuid, id item, QueryData& results) {
     }
   }
 
-  r["username"] = uuid;
+  r["username"] = username;
   r["source"] = "Background Task Management";
   results.push_back(r);
 }
 
-void parseItemsByUser(id uuid, id items, QueryData& results) {
+void parseItemsByUser(const std::string& username,
+                      id items,
+                      QueryData& results) {
   if (items == nil) {
     return;
   }
-
-  std::string uuidString = std::string([[uuid description] UTF8String]);
 
   // Top level should always be an array
   if (![items isKindOfClass:[NSArray class]]) {
@@ -234,7 +235,7 @@ void parseItemsByUser(id uuid, id items, QueryData& results) {
   }
 
   for (id item in (NSArray*)items) {
-    parseItem(uuidString, item, results);
+    parseItem(username, item, results);
   }
 }
 
@@ -335,9 +336,28 @@ void genBtmStartupItems(QueryData& results) {
       LOG(ERROR) << "itemsByUser is not a dictionary";
       return;
     }
+
+    // Build a UUID -> username map by querying the users table
+    std::map<std::string, std::string> uuidToUsername;
+    QueryData users = SQL::selectAllFrom("users");
+    for (const auto& user_row : users) {
+      if (user_row.count("uuid") > 0 && user_row.count("username") > 0) {
+        uuidToUsername[user_row.at("uuid")] = user_row.at("username");
+      }
+    }
+
     for (id uuid in itemsByUser) {
       id items = itemsByUser[uuid];
-      parseItemsByUser(uuid, items, results);
+      std::string uuidString = std::string([[uuid description] UTF8String]);
+
+      // Look up username from UUID, fallback to UUID if not found
+      std::string username = uuidString;
+      auto it = uuidToUsername.find(uuidString);
+      if (it != uuidToUsername.end()) {
+        username = it->second;
+      }
+
+      parseItemsByUser(username, items, results);
     }
   }
 }

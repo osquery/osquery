@@ -4,9 +4,9 @@ schema([
     Column("name", TEXT, "Name of startup item"),
     Column("path", TEXT, "Path of startup item"),
     Column("args", TEXT, "Arguments provided to startup executable"),
-    Column("type", TEXT, "Startup Item"),
-    Column("source", TEXT, "Directory containing startup item"),
-    Column("status", TEXT, "Startup status; either enabled or disabled"),
+    Column("type", TEXT, "Type of startup item. On macOS this can be app, agent (LaunchAgent), daemon (LaunchDaemon), login item, or user item."),
+    Column("source", TEXT, "Directory containing startup item (on macOS, the subsystem providing it)"),
+    Column("status", TEXT, "Startup status. On Linux: enabled or disabled. On macOS: Combination of enabled, allowed, notified, and hidden. Apple does not seem to document these status values, but allowed seems to indicate whether it is enabled in System Settings."),
     Column("username", TEXT, "The user associated with the startup item"),
 ])
 attributes(cacheable=True)
