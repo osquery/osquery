@@ -155,9 +155,12 @@ void parseItem(const std::string& uuid, id item, QueryData& results) {
     if (typeProperty != nil &&
         [typeProperty respondsToSelector:@selector(unsignedIntValue)]) {
       uint32_t typeValue = [typeProperty unsignedIntValue];
-      // Skip developer items because they don't seem to be login items or
-      // background tasks
-      if (typeValue & (uint32_t)TypeFlag::Developer) {
+
+      // Skip developer items and quicklook items because they don't seem to be
+      // startup items
+      if (typeValue & (uint32_t)TypeFlag::Developer ||
+          typeValue & (uint32_t)TypeFlag::Quicklook ||
+          typeValue & (uint32_t)TypeFlag::Spotlight) {
         return;
       }
       r["type"] = typeToString(typeValue);
@@ -189,6 +192,24 @@ void parseItem(const std::string& uuid, id item, QueryData& results) {
       NSString* path = [url path];
       if (path != nil) {
         r["path"] = std::string([path UTF8String]);
+      }
+    }
+  }
+
+  if ([item respondsToSelector:@selector(programArguments)]) {
+    id programArgumentsProperty = [item valueForKey:@"programArguments"];
+    if (programArgumentsProperty != nil &&
+        [programArgumentsProperty isKindOfClass:[NSArray class]]) {
+      NSArray* programArguments = (NSArray*)programArgumentsProperty;
+      std::vector<std::string> args;
+      for (id arg in programArguments) {
+        if ([arg isKindOfClass:[NSString class]]) {
+          NSString* argString = (NSString*)arg;
+          args.push_back(std::string([argString UTF8String]));
+        }
+      }
+      if (!args.empty()) {
+        r["args"] = osquery::join(args, " ");
       }
     }
   }
@@ -246,45 +267,34 @@ void genBtmStartupItems(QueryData& results) {
   }
 
   @autoreleasepool {
-    // Load the BTM daemon into memory
-    // This makes the Storage class available via NSClassFromString
+    // Load the BTM daemon to make the Storage class available via
+    // NSClassFromString
     void* btmd = dlopen(
         "/System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/"
         "Resources/backgroundtaskmanagementd",
         RTLD_LAZY);
     if (btmd == NULL) {
-      VLOG(1) << "Failed to load BTM daemon: " << dlerror();
-    } else {
-      VLOG(1) << "Successfully loaded BTM daemon";
+      LOG(ERROR) << "Failed to load BTM daemon: " << dlerror();
+      return;
     }
     const auto btmd_guard = scope_guard::create([&]() { dlclose(btmd); });
 
-    // Step 1: Lookup the Storage and ItemRecord classes by name
-    // This works because the daemon was loaded in the constructor
     Class StorageClass = NSClassFromString(@"Storage");
-    Class ItemRecordClass = NSClassFromString(@"ItemRecord");
-
     if (StorageClass == nil) {
-      VLOG(1) << "Storage class not found. Make sure BTM daemon is loaded.";
+      LOG(ERROR) << "Storage class not found in BTM daemon";
       return;
     }
 
-    // Step 2: Load the BTM file data
-    NSURL* btm_url = [NSURL
-        fileURLWithPath:[NSString
-                            stringWithUTF8String:most_recent_btm_file.c_str()]];
-    NSError* error = nil;
-    NSData* btm_data = [NSData dataWithContentsOfURL:btm_url
-                                             options:0
-                                               error:&error];
-
+    // Convert the file content to NSData
+    NSData* btm_data = [NSData dataWithBytes:btm_content.data()
+                                      length:btm_content.size()];
     if (btm_data == nil) {
-      VLOG(1) << "Failed to load BTM file: "
-              << [error.localizedDescription UTF8String];
+      LOG(ERROR) << "Failed to create NSData from BTM file content";
       return;
     }
 
-    // Step 3: Create an unarchiver for the BTM data
+    // Create an unarchiver for the BTM data
+    NSError* error = nil;
     NSKeyedUnarchiver* unarchiver =
         [[NSKeyedUnarchiver alloc] initForReadingFromData:btm_data
                                                     error:&error];
