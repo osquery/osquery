@@ -167,11 +167,11 @@ void parseItem(const std::string& uuid, id item, QueryData& results) {
     }
   }
 
-  id nameProperty = nil;
-  [item respondsToSelector:@selector(name)] &&
-      (nameProperty = [item valueForKey:@"name"]);
-  if (nameProperty != nil) {
-    r["name"] = std::string([[nameProperty description] UTF8String]);
+  if ([item respondsToSelector:@selector(name)]) {
+    id nameProperty = [item valueForKey:@"name"];
+    if (nameProperty != nil) {
+      r["name"] = std::string([[nameProperty description] UTF8String]);
+    }
   }
 
   // Convert disposition property (bitmask) to string
@@ -215,13 +215,8 @@ void parseItem(const std::string& uuid, id item, QueryData& results) {
   }
 
   r["username"] = uuid;
-
   r["source"] = "Background Task Management";
-
-  // Only add row if we have at least a name
-  if (!r["name"].empty()) {
-    results.push_back(r);
-  }
+  results.push_back(r);
 }
 
 void parseItemsByUser(id uuid, id items, QueryData& results) {
@@ -244,7 +239,10 @@ void parseItemsByUser(id uuid, id items, QueryData& results) {
 }
 
 void genBtmStartupItems(QueryData& results) {
-  // Find the most recently modified .btm file using SQL query
+  // Find the most recently modified .btm file using SQL query. It's not clear
+  // when macOS decides to increment this number, or how the file format may
+  // change. Future readers may need to make updates. Efforts were made to check
+  // all the calls so that we don't get crashes if the format changes.
   std::string query =
       "SELECT path FROM file WHERE directory = '"
       "/private/var/db/com.apple.backgroundtaskmanagement/"
@@ -308,7 +306,7 @@ void genBtmStartupItems(QueryData& results) {
     // is stored in the BTM file
     id store = nil;
     @try {
-      // Use try/catch here because we don't control the ipmlementation of the
+      // Use try/catch here because we don't control the implementation of the
       // decoders and can't be sure that they will not raise exceptions on
       // failure.
       unarchiver.decodingFailurePolicy = NSDecodingFailurePolicyRaiseException;
@@ -339,26 +337,7 @@ void genBtmStartupItems(QueryData& results) {
     }
     for (id uuid in itemsByUser) {
       id items = itemsByUser[uuid];
-      VLOG(1) << "genBtmStartupItems: itemsByUser entry uuid: "
-              << [[uuid description] UTF8String];
-      VLOG(1) << "genBtmStartupItems: itemsByUser entry items: "
-              << [[items description] UTF8String];
-
       parseItemsByUser(uuid, items, results);
-    }
-
-    id mdmPayloadsByIdentifier = [store valueForKey:@"mdmPayloadsByIdentifier"];
-    if (mdmPayloadsByIdentifier == nil ||
-        ![mdmPayloadsByIdentifier isKindOfClass:[NSDictionary class]]) {
-      LOG(ERROR) << "mdmPayloadsByIdentifier is not a dictionary";
-      return;
-    }
-    for (id key in mdmPayloadsByIdentifier) {
-      id value = mdmPayloadsByIdentifier[key];
-      VLOG(1) << "genBtmStartupItems: mdmPayloadsByIdentifier entry key: "
-              << [[key description] UTF8String];
-      VLOG(1) << "genBtmStartupItems: mdmPayloadsByIdentifier entry value: "
-              << [[value description] UTF8String];
     }
   }
 }
