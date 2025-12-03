@@ -306,29 +306,53 @@ Status removePath(const fs::path& path) {
   return Status(0, std::to_string(removed_files));
 }
 
-static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
-  if (path.empty() || path.back() != '/') {
-    return false;
+static bool isDirVisited(std::unordered_set<int>& dir_inos,
+                         const std::string& path) {
+  if (path.empty()) {
+    return true;
   }
 
-  path.pop_back();
   struct stat d_stat;
-  // On Windows systems (lstat not implemented) this immiedately returns
+  // On Windows systems (lstat not implemented) this immediately returns
   if (!platformLstat(path, d_stat).ok()) {
     return false;
   }
 
-  if ((d_stat.st_mode & 0170000) == 0) {
-    return false;
+  auto [_, inserted] = dir_inos.emplace(d_stat.st_ino);
+  return !inserted;
+}
+
+static void dfsTraverseDirectories(const std::string& current_path,
+                                   std::unordered_set<int>& visited_dirs,
+                                   std::vector<std::string>& results,
+                                   size_t depth) {
+  if (depth >= kMaxRecursiveGlobs) {
+    return;
   }
 
-  if (dsym_inos.find(d_stat.st_ino) != dsym_inos.end()) {
-    // Symlink loop detected. Ignoring
-    return true;
-  } else {
-    dsym_inos.insert(d_stat.st_ino);
+  if (isDirVisited(visited_dirs, current_path)) {
+    return;
   }
-  return false;
+
+  boost::system::error_code ec;
+  if (!fs::exists(current_path, ec) || !fs::is_directory(current_path, ec)) {
+    return;
+  }
+
+  for (fs::directory_iterator entry(
+           current_path, fs::directory_options::skip_permission_denied, ec),
+       end;
+       entry != end;
+       entry.increment(ec)) {
+    std::string entry_path = entry->path().string();
+    bool is_dir = fs::is_directory(entry->status(ec));
+
+    results.push_back(entry_path);
+
+    if (is_dir) {
+      dfsTraverseDirectories(entry_path, visited_dirs, results, depth + 1);
+    }
+  }
 }
 
 static void genGlobs(std::string path,
@@ -336,30 +360,27 @@ static void genGlobs(std::string path,
                      GlobLimits limits) {
   // Use our helped escape/replace for wildcards.
   replaceGlobWildcards(path, limits);
-  // inodes of directory symlinks for loop detection
-  std::set<int> dsym_inos;
 
-  // Generate a glob set and recurse for double star.
-  for (size_t glob_index = 0; ++glob_index < kMaxRecursiveGlobs;) {
-    auto glob_results = platformGlob(path);
+  // inodes of traversed directories to avoid loops from symlinks
+  std::unordered_set<int> dir_inos;
 
-    for (auto& result_path : glob_results) {
-      results.push_back(result_path);
+  bool should_expand =
+      (path.size() >= 2 && path.substr(path.size() - 2) == "**");
+  if (should_expand) {
+    auto initial_results = platformGlob(path);
 
-      if (checkForLoops(dsym_inos, result_path)) {
-        glob_index = kMaxRecursiveGlobs;
+    for (const auto& base_dir : initial_results) {
+      boost::system::error_code ec;
+      results.push_back(base_dir);
+      if (fs::is_directory(base_dir, ec)) {
+        dfsTraverseDirectories(base_dir, dir_inos, results, 0);
       }
     }
-
-    // The end state is a non-recursive ending or empty set of matches.
-    size_t wild = path.rfind("**");
-    // Allow a trailing slash after the double wild indicator.
-    if (glob_results.size() == 0 || wild > path.size() ||
-        wild + 3 < path.size()) {
-      break;
+  } else {
+    auto glob_results = platformGlob(path);
+    for (auto& result : glob_results) {
+      results.push_back(result);
     }
-
-    path += "/**";
   }
 
   // Prune results based on settings/requested glob limitations.
