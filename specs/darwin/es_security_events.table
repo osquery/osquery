@@ -1,0 +1,117 @@
+table_name("es_security_events")
+description("Comprehensive security events from EndpointSecurity, including authentication, network, file system, and other security-relevant events.")
+schema([
+    # Core event metadata
+    Column("version", INTEGER, "Version of EndpointSecurity event"),
+    Column("seq_num", BIGINT, "Per event sequence number"),
+    Column("global_seq_num", BIGINT, "Global sequence number"),
+    Column("event_type", TEXT, "Type of EndpointSecurity event"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    
+    # Event categorization
+    Column("category", TEXT, "High-level category of the event (authentication, network, filesystem, privilege, etc.)"),
+    Column("severity", TEXT, "Severity level of the event (high, medium, low)"),
+    
+    # Process context
+    Column("pid", BIGINT, "Process ID that triggered the event"),
+    Column("pidversion", BIGINT, "Process ID version"),
+    Column("path", TEXT, "Path of the process that triggered the event"),
+    Column("username", TEXT, "Username of the process that triggered the event"),
+    
+    # Human-readable context
+    Column("description", TEXT, "Human-readable description of the event"),
+    
+    # Event-specific fields grouped by category
+    
+    # UID/GID change event columns
+    Column("target_uid", BIGINT, "Target user ID for setuid-type events"),
+    Column("target_euid", BIGINT, "Target effective user ID for setuid-type events"),
+    Column("target_gid", BIGINT, "Target group ID for setgid-type events"),
+    Column("target_egid", BIGINT, "Target effective group ID for setgid-type events"),
+    
+    # Signal event columns
+    Column("signal_number", INTEGER, "Signal number for signal events"),
+    Column("target_pid", BIGINT, "Target process ID for signal or remote thread events"),
+    
+    # Socket event columns
+    Column("socket_domain", TEXT, "Socket domain/family for socket events"),
+    Column("socket_type", TEXT, "Socket type for socket events"),
+    Column("socket_protocol", TEXT, "Socket protocol for socket events"),
+    Column("socket_domain_description", TEXT, "Human-readable socket domain/family description"),
+    Column("socket_type_description", TEXT, "Human-readable socket type description"),
+    Column("socket_protocol_description", TEXT, "Human-readable socket protocol description"),
+    Column("socket_path", TEXT, "Socket path for UNIX domain socket events"),
+    Column("local_address", TEXT, "Local address for socket binding events"),
+    Column("local_port", INTEGER, "Local port for socket binding events"),
+    Column("remote_address", TEXT, "Remote address for socket connection events"),
+    Column("remote_port", INTEGER, "Remote port for socket connection events"),
+    Column("backlog", INTEGER, "Connection backlog size for listen events"),
+    
+    # Mount event columns
+    Column("mount_path", TEXT, "Mount point path for mount events"),
+    Column("mount_type", TEXT, "Filesystem type for mount events"),
+    
+    # SSH event columns
+    Column("ssh_login_username", TEXT, "Username for SSH login events"),
+    
+    # ScreenSharing event columns
+    Column("screensharing_type", TEXT, "Type of screensharing event (attach/detach)"),
+    Column("screensharing_viewer_app_path", TEXT, "Path of the screen sharing viewer application"),
+    Column("connection_type", TEXT, "Type of screen sharing connection"),
+    
+    # SU/sudo event columns
+    Column("su_from_username", TEXT, "Original username for su events"),
+    Column("su_to_username", TEXT, "Target username for su events"),
+    Column("sudo_command", TEXT, "Command executed with sudo"),
+    Column("success", TEXT, "Success status for authentication events"),
+    
+    # Authentication/authorization event columns
+    Column("auth_right", TEXT, "Authorization right name for authorization events"),
+    Column("auth_type", TEXT, "Type of authentication event"),
+    Column("result_type", TEXT, "Result type of authentication event"),
+    
+    # Profile event columns
+    Column("profile_identifier", TEXT, "Profile identifier for profile events"),
+    Column("profile_uuid", TEXT, "Profile UUID for profile events"),
+    
+    # XPC event columns
+    Column("service_name", TEXT, "Service name for XPC connect events"),
+    
+    # Thread event columns
+    Column("thread_state", TEXT, "Thread state info for thread-related events"),
+    
+    # Memory protection event columns
+    Column("memory_address", TEXT, "Memory address for mmap/mprotect events"),
+    Column("memory_size", TEXT, "Size of memory region for mmap/mprotect events"),
+    Column("memory_protection", TEXT, "Memory protection flags (read/write/exec)"),
+    Column("memory_old_protection", TEXT, "Previous memory protection for mprotect events"),
+    Column("memory_type", TEXT, "Memory mapping type (shared/private)"),
+    Column("memory_is_executable", TEXT, "Whether memory is being made executable"),
+    Column("memory_severity", TEXT, "Severity assessment of memory operation"),
+    
+    # Kernel extension event columns
+    Column("kext_id", TEXT, "Kernel extension bundle identifier"),
+    Column("kext_version", TEXT, "Kernel extension version"),
+    Column("kext_team_id", TEXT, "Developer team ID for kernel extension"),
+    Column("kext_signing_id", TEXT, "Signing identifier for kernel extension"),
+    Column("kext_platform_binary", TEXT, "Whether the kernel extension is an Apple platform binary"),
+    Column("kext_cdhash", TEXT, "Code Directory Hash of kernel extension"),
+    Column("kext_validation", TEXT, "Validation status of kernel extension signature"),
+    
+    # System control event columns
+    Column("sysctl_name", TEXT, "Name of the sysctl"),
+    Column("sysctl_type", TEXT, "Type of the sysctl value"),
+    Column("sysctl_operation", TEXT, "Operation performed on the sysctl"),
+    Column("sysctl_value", TEXT, "New value for sysctl (for write operations)"),
+    
+    # Unique identifier
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/es_security_events@ESSecurityEventSubscriber::genTable")
+examples([
+  "SELECT * FROM es_security_events WHERE time > (SELECT unix_time - 60 FROM time) ORDER BY time DESC",
+  "SELECT * FROM es_security_events WHERE category = 'authentication' AND severity = 'high' ORDER BY time DESC LIMIT 10",
+  "SELECT * FROM es_security_events WHERE event_type = 'openssh_login' AND success = 'false'",
+  "SELECT * FROM es_security_events WHERE category = 'network' AND time > (SELECT unix_time - 3600 FROM time)",
+])
