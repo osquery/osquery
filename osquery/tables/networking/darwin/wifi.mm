@@ -10,6 +10,9 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
 
+#include <algorithm>
+#include <string>
+
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -17,6 +20,7 @@
 #include <osquery/sql/sql.h>
 #include <osquery/tables/networking/darwin/wifi_utils.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -42,7 +46,9 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeysCommon = {
     {"passpoint", "Passpoint"},
     {"possibly_hidden", "PossiblyHiddenNetwork"},
     {"disabled", "Disabled"},
-    {"temporarily_disabled", "TemporarilyDisabled"}};
+    {"temporarily_disabled", "TemporarilyDisabled"},
+    {"last_connected_automatic", "JoinedBySystemAt"},
+    {"last_connected_manual", "JoinedByUserAt"}};
 
 // The name of the "last_connected" key changed in 10.15.
 const std::map<std::string, std::string> kKnownWifiNetworkKeysPostCatalina = {
@@ -167,6 +173,40 @@ QueryData parseBigSur(const std::string& path) {
             (CFDictionaryRef const&)values[i], "AddedAt");
         r["personal_hotspot"] = getPropertiesFromDictionary(
             (CFDictionaryRef const&)values[i], "PersonalHotspot");
+
+        // Extract last_connected_automatic and last_connected_manual
+        r["last_connected_automatic"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "JoinedBySystemAt");
+        r["last_connected_manual"] = getPropertiesFromDictionary(
+            (CFDictionaryRef const&)values[i], "JoinedByUserAt");
+
+        // Calculate last_connected as max of all available timestamps
+        long long max_timestamp = 0;
+        bool has_timestamp = false;
+
+        if (r.count("last_connected_automatic") > 0) {
+          auto auto_val_exp = tryTo<long long>(r["last_connected_automatic"]);
+          if (auto_val_exp.isValue()) {
+            max_timestamp = auto_val_exp.get();
+            has_timestamp = true;
+          }
+        }
+
+        if (r.count("last_connected_manual") > 0) {
+          auto manual_val_exp = tryTo<long long>(r["last_connected_manual"]);
+          if (manual_val_exp.isValue()) {
+            if (has_timestamp) {
+              max_timestamp = std::max(max_timestamp, manual_val_exp.get());
+            } else {
+              max_timestamp = manual_val_exp.get();
+              has_timestamp = true;
+            }
+          }
+        }
+
+        if (has_timestamp) {
+          r["last_connected"] = INTEGER(max_timestamp);
+        }
 
         cfkey = CFStringCreateWithCString(
             kCFAllocatorDefault, "AutoJoinDisabled", kCFStringEncodingUTF8);
