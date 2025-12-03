@@ -239,23 +239,62 @@ void parseItemsByUser(const std::string& username,
   }
 }
 
-void genBtmStartupItems(QueryData& results) {
-  // Find the most recently modified .btm file using SQL query. It's not clear
-  // when macOS decides to increment this number, or how the file format may
-  // change. Future readers may need to make updates. Efforts were made to check
-  // all the calls so that we don't get crashes if the format changes.
-  std::string query =
-      "SELECT path FROM file WHERE directory = '"
-      "/private/var/db/com.apple.backgroundtaskmanagement/"
-      "' AND filename LIKE '%.btm' ORDER BY mtime DESC LIMIT 1";
-  SQL sql(query);
-  if (!sql.ok() || sql.rows().empty()) {
-    LOG(ERROR) << "Found no .btm database in "
-                  "/private/var/db/com.apple.backgroundtaskmanagement/";
-    return;
+std::string findMostRecentBtmFile() {
+  // Find the most recently modified .btm file by examining files directly.
+  // It's not clear when macOS decides to increment this number, or how the
+  // file format may change. Future readers may need to make updates. Efforts
+  // were made to check all the calls so that we don't get crashes if the
+  // format changes.
+  const std::string btm_directory =
+      "/private/var/db/com.apple.backgroundtaskmanagement/";
+  fs::path btm_dir_path(btm_directory);
+
+  if (!fs::exists(btm_dir_path) || !fs::is_directory(btm_dir_path)) {
+    LOG(ERROR) << "BTM directory does not exist or is not a directory: "
+               << btm_directory;
+    return "";
   }
 
-  std::string most_recent_btm_file = sql.rows()[0].at("path");
+  std::string most_recent_btm_file;
+  std::time_t most_recent_mtime = 0;
+
+  try {
+    fs::directory_iterator it(btm_dir_path), end;
+    for (; it != end; ++it) {
+      if (!fs::is_regular_file(it->status())) {
+        continue;
+      }
+
+      const std::string filename = it->path().filename().string();
+      if (filename.length() < 4 ||
+          filename.substr(filename.length() - 4) != ".btm") {
+        continue;
+      }
+
+      std::time_t mtime = fs::last_write_time(it->path());
+      if (mtime > most_recent_mtime) {
+        most_recent_mtime = mtime;
+        most_recent_btm_file = it->path().string();
+      }
+    }
+  } catch (const fs::filesystem_error& e) {
+    LOG(ERROR) << "Error traversing BTM directory: " << e.what();
+    return "";
+  }
+
+  if (most_recent_btm_file.empty()) {
+    LOG(ERROR) << "Found no .btm database in " << btm_directory;
+    return "";
+  }
+
+  return most_recent_btm_file;
+}
+
+void genBtmStartupItems(QueryData& results) {
+  std::string most_recent_btm_file = findMostRecentBtmFile();
+  if (most_recent_btm_file.empty()) {
+    return;
+  }
 
   // Read the BTM file content
   std::string btm_content;
