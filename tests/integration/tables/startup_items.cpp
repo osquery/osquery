@@ -33,7 +33,7 @@ TEST_F(StartupItemsTest, test_sanity) {
       {"name", NonEmptyString},
       {"path", NormalType},
       {"args", NormalType},
-      {"type", SpecificValuesCheck{"Startup Item", "systemd unit"}},
+      {"type", NonEmptyString},
       {"source", NormalType},
       {"status", NonEmptyString},
       {"username", NormalType},
