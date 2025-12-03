@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include "osquery/utils/scope_guard.h"
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
@@ -25,6 +24,7 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/darwin/plist.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace fs = boost::filesystem;
 
