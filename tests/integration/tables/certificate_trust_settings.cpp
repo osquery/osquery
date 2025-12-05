@@ -23,7 +23,21 @@ class certificateTrustSettings : public testing::Test {
 };
 
 TEST_F(certificateTrustSettings, test_sanity) {
-  auto const data = execute_query("select * from certificate_trust_settings");
+  auto const all_data =
+      execute_query("select * from certificate_trust_settings");
+  ASSERT_GE(all_data.size(), 1ul);
+
+  ValidationMap row_map = {
+      {"common_name", NormalType},
+      {"serial_number", NonEmptyString},
+      {"trust_domain", NonEmptyString},
+      {"trust_policy_name", NormalType},
+      {"trust_policy_data", NormalType},
+      {"trust_allowed_error", NormalType},
+      {"trust_key_usage", NormalType},
+      {"trust_result", NormalType},
+  };
+  validate_rows(all_data, row_map);
 }
 } // namespace table_tests
 } // namespace osquery

@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <iomanip>
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
@@ -36,6 +38,10 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
   CFArrayRef certificates;
   OSStatus status = SecTrustSettingsCopyCertificates(domain, &certificates);
   if (status != errSecSuccess) {
+    CFStringRef error = SecCopyErrorMessageString(status, nil);
+    TLOG << "Failed to copy certificate trust settings for domain: " << domain
+         << ". Error: " << error;
+    CFRelease(error);
     return;
   }
 
@@ -60,16 +66,14 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
     if (serial_number) {
       const UInt8* serial_bytes = CFDataGetBytePtr(serial_number);
       CFIndex serial_length = CFDataGetLength(serial_number);
-      CFMutableStringRef serial_hex =
-          CFStringCreateMutable(kCFAllocatorDefault, serial_length * 2);
+      std::stringstream ss;
+      ss << std::hex << std::setfill('0');
 
       for (CFIndex o = 0; o < serial_length; o++) {
-        CFStringAppendFormat(serial_hex, NULL, CFSTR("%02X"), serial_bytes[o]);
+        ss << std::setw(2) << static_cast<int>(serial_bytes[o]);
       }
 
-      if (serial_hex) {
-        r["serial_number"] = stringFromCFString(serial_hex);
-      }
+      r["serial_number"] = ss.str();
 
       CFRelease(serial_number);
     }
@@ -111,7 +115,7 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
           CFNumberRef trust_key_usage;
           trust_key_usage = (CFNumberRef)CFDictionaryGetValue(
               trust_setting, kSecTrustSettingsKeyUsage);
-          long int trust_key_usage_value;
+          uint32_t trust_key_usage_value;
           if (CFNumberGetValue(trust_key_usage,
                                CFNumberGetType(trust_key_usage),
                                &trust_key_usage_value)) {
@@ -148,7 +152,7 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
           CFNumberRef trust_result;
           trust_result = (CFNumberRef)CFDictionaryGetValue(
               trust_setting, kSecTrustSettingsResult);
-          long int trust_result_value;
+          uint32_t trust_result_value;
           if (CFNumberGetValue(trust_result,
                                CFNumberGetType(trust_result),
                                &trust_result_value)) {
@@ -194,6 +198,9 @@ QueryData genCertificateTrustSettings(QueryContext& context) {
       if (kSecTrustSettingsDomains.count(domain)) {
         getCertificateTrustSettingsForDomain(
             domain, kSecTrustSettingsDomains.at(domain), results);
+      } else {
+        TLOG << "Unknown trust domain name. Must be one of (admin, system, "
+                "user).";
       }
     }
   } else {
