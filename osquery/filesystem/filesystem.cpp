@@ -347,6 +347,12 @@ static void dfsTraverseDirectories(const std::string& current_path,
     std::string entry_path = entry->path().string();
     bool is_dir = fs::is_directory(entry->status(ec));
 
+    // Add trailing separator for directories to match platformGlob behavior
+    // (which uses GLOB_MARK to add trailing slashes)
+    if (is_dir && entry_path.back() != '/' && entry_path.back() != '\\') {
+      entry_path += fs::path::preferred_separator;
+    }
+
     results.push_back(entry_path);
 
     if (is_dir) {
@@ -367,7 +373,10 @@ static void genGlobs(std::string path,
   bool should_expand =
       (path.size() >= 2 && path.substr(path.size() - 2) == "**");
   if (should_expand) {
-    auto initial_results = platformGlob(path);
+    // Replace ** with * since platformGlob doesn't understand ** as recursive
+    // We'll handle recursion manually via dfsTraverseDirectories
+    std::string glob_path = path.substr(0, path.size() - 1);
+    auto initial_results = platformGlob(glob_path);
 
     for (const auto& base_dir : initial_results) {
       boost::system::error_code ec;
@@ -479,62 +488,13 @@ Status listDirectoriesInDirectory(const fs::path& path,
   // We don't really need the error, but by passing it into
   // recursive_directory_iterator we invoked the non-throw version.
   boost::system::error_code ignored_ec;
-
   if (path.empty() || !pathExists(path) ||
       !fs::is_directory(path, ignored_ec)) {
     return Status(1, "Target directory is invalid");
   }
 
-  if (recursive) {
-    for (fs::recursive_directory_iterator entry(
-             path, fs::directory_options::skip_permission_denied, ignored_ec),
-         end;
-         entry != end;
-         entry.increment(ignored_ec)) {
-      // Exclude symlinks that do not point at directories
-      if (fs::is_symlink(entry->path(), ignored_ec)) {
-        boost::system::error_code ec;
-        auto canonical = fs::canonical(entry->path(), ec);
-        if (ec.value() != errc::success) {
-          // The symlink is broken or points to a non-existent file.
-          continue;
-        }
-        auto is_dir = fs::is_directory(canonical, ec);
-        if (ec.value() != errc::success || !is_dir) {
-          // The symlink is not a directory.
-          continue;
-        }
-        results.push_back(entry->path().string());
-      } else if (fs::is_directory(entry->path(), ignored_ec)) {
-        results.push_back(entry->path().string());
-      }
-    }
-  } else {
-    for (fs::directory_iterator entry(
-             path, fs::directory_options::skip_permission_denied, ignored_ec),
-         end;
-         entry != end;
-         entry.increment(ignored_ec)) {
-      if (fs::is_symlink(entry->path(), ignored_ec)) {
-        boost::system::error_code ec;
-        auto canonical = fs::canonical(entry->path(), ec);
-        if (ec.value() != errc::success) {
-          // The symlink is broken or points to a non-existent file.
-          continue;
-        }
-        auto is_dir = fs::is_directory(canonical, ec);
-        if (ec.value() != errc::success || !is_dir) {
-          // The symlink is not a directory.
-          continue;
-        }
-        results.push_back(entry->path().string());
-      } else if (fs::is_directory(entry->path(), ignored_ec)) {
-        results.push_back(entry->path().string());
-      }
-    }
-  }
-
-  return Status::success();
+  return listInAbsoluteDirectory(
+      (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
 }
 
 Status isDirectory(const fs::path& path) {
