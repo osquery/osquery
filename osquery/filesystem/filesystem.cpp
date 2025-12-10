@@ -508,7 +508,7 @@ Status listDirectoriesInDirectory(const fs::path& path,
     }
   }
 
-  return status;
+  return Status::success();
 }
 
 Status isDirectory(const fs::path& path) {
