@@ -150,12 +150,13 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
                             bool recursive = false);
 
 /**
- * @brief List all of the directories in a specific directory, non-recursively.
+ * @brief List all of the directories in a specific directory.
  *
  * @param path the path which you would like to list
  * @param results a non-const reference to a vector which will be populated
  * with the directory listing of the path param, assuming that all operations
- * completed successfully.
+ * completed successfully. Directories are returned without trailing directory
+ * separators.
  * @param recursive should the listing descend recursively into the directory.
  *
  * @return an instance of Status, indicating success or failure.
