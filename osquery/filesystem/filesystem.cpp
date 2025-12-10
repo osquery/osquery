@@ -486,15 +486,29 @@ Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
   // We don't really need the error, but by passing it into
-  // recursive_directory_iterator we invoked the non-throw version.
+  // recursive_directory_iterator we invoke the non-throw version.
   boost::system::error_code ignored_ec;
   if (path.empty() || !pathExists(path) ||
       !fs::is_directory(path, ignored_ec)) {
     return Status(1, "Target directory is invalid");
   }
 
-  return listInAbsoluteDirectory(
+  auto status = listInAbsoluteDirectory(
       (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
+
+  if (!status.ok()) {
+    return status;
+  }
+
+  // Remove trailing separators from directory paths
+  for (auto& dir_path : results) {
+    if (!dir_path.empty() &&
+        (dir_path.back() == '/' || dir_path.back() == '\\')) {
+      dir_path.pop_back();
+    }
+  }
+
+  return status;
 }
 
 Status isDirectory(const fs::path& path) {

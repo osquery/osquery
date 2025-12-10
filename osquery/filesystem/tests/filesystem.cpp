@@ -916,4 +916,23 @@ TEST_F(FilesystemTests, test_directory_listing_with_bad_symlinks) {
   deleteDirectoryContent(test_root_dir);
 }
 
+TEST_F(FilesystemTests, test_directory_listing_trailing_slash) {
+  // This test verifies that all directories (including nested) are returned
+  // without trailing directory separators when calling
+  // listDirectoriesInDirectory.
+  std::vector<std::string> found_directories;
+  ASSERT_TRUE(
+      listDirectoriesInDirectory(fake_directory_, found_directories, true));
+  ASSERT_FALSE(found_directories.empty());
+
+  // Verify no returned paths have a trailing separator
+  const char dir_separator = fs::path::preferred_separator;
+  for (const auto& dir_path : found_directories) {
+    EXPECT_FALSE(dir_path.empty());
+    EXPECT_FALSE(dir_path.back() == dir_separator || dir_path.back() == '/' ||
+                 dir_path.back() == '\\')
+        << "Directory path '" << dir_path << "' ends with a trailing separator";
+  }
+}
+
 } // namespace osquery
