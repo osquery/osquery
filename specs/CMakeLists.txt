@@ -98,6 +98,7 @@ function(generateNativeTables)
     "darwin/authorization_mechanisms.table:macos"
     "darwin/authorizations.table:macos"
     "darwin/browser_plugins.table:macos"
+    "darwin/certificate_trust_settings.table:macos"
     "darwin/connected_displays.table:macos"
     "darwin/crashes.table:macos"
     "darwin/cups_destinations.table:macos"

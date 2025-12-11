@@ -23,6 +23,8 @@ namespace tables {
 
 extern const std::vector<std::string> kSystemKeychainPaths;
 extern const std::vector<std::string> kUserKeychainPaths;
+extern const std::map<std::string, SecTrustSettingsDomain>
+    kSecTrustSettingsDomains;
 
 // Declare keychain flags. They are defined in keychain_utils.cpp.
 DECLARE_bool(keychain_access_cache); // enable flag
@@ -77,5 +79,5 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
                                const CFTypeRef& item_type);
 
 std::set<std::string> getKeychainPaths();
-}
-}
+} // namespace tables
+} // namespace osquery
