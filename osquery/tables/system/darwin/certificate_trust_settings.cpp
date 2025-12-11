@@ -39,8 +39,8 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
   OSStatus status = SecTrustSettingsCopyCertificates(domain, &certificates);
   if (status != errSecSuccess) {
     CFStringRef error = SecCopyErrorMessageString(status, nil);
-    TLOG << "Failed to copy certificate trust settings for domain: " << domain
-         << ". Error: " << error;
+    VLOG(1) << "Failed to copy certificate trust settings for domain: "
+            << domain << ". Error: " << error;
     CFRelease(error);
     return;
   }
@@ -67,13 +67,13 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
       const UInt8* serial_bytes = CFDataGetBytePtr(serial_number);
       CFIndex serial_length = CFDataGetLength(serial_number);
       std::stringstream ss;
-      ss << std::hex << std::setfill('0');
+      ss << std::hex << std::uppercase << std::setfill('0');
 
       for (CFIndex o = 0; o < serial_length; o++) {
         ss << std::setw(2) << static_cast<int>(serial_bytes[o]);
       }
 
-      r["serial_number"] = ss.str();
+      r["serial"] = ss.str();
 
       CFRelease(serial_number);
     }
@@ -178,9 +178,9 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
             }
           }
         }
-      }
 
-      results.push_back(r);
+        results.push_back(r);
+      }
 
       CFRelease(trust_settings);
     }
@@ -199,8 +199,8 @@ QueryData genCertificateTrustSettings(QueryContext& context) {
         getCertificateTrustSettingsForDomain(
             domain, kSecTrustSettingsDomains.at(domain), results);
       } else {
-        TLOG << "Unknown trust domain name. Must be one of (admin, system, "
-                "user).";
+        VLOG(1) << "Unknown trust domain name. Must be one of (admin, system, "
+                   "user).";
       }
     }
   } else {

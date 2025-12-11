@@ -29,7 +29,7 @@ TEST_F(certificateTrustSettings, test_sanity) {
 
   ValidationMap row_map = {
       {"common_name", NormalType},
-      {"serial_number", NonEmptyString},
+      {"serial", NonEmptyString},
       {"trust_domain", NonEmptyString},
       {"trust_policy_name", NormalType},
       {"trust_policy_data", NormalType},

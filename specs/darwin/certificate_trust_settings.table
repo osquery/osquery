@@ -2,7 +2,7 @@ table_name("certificate_trust_settings")
 description("Certificate Authorities trust settings installed in Keychains/ca-bundles.")
 schema([
     Column("common_name", TEXT, "Certificate common name"),
-    Column("serial_number", TEXT, "Certificate serial number"),
+    Column("serial", TEXT, "Certificate serial number"),
     Column("trust_domain", TEXT, "Certificate trust settings domain", index=True, optimized=True),
     Column("trust_policy_name", TEXT, "Certificate trust policy name"),
     Column("trust_policy_data", TEXT, "Certificate trust policy data"),
