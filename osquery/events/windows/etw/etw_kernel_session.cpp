@@ -16,6 +16,41 @@
 
 namespace osquery {
 
+namespace {
+
+
+bool queryExistingKernelTraceSessionProperties(
+    const std::string& sessionName, EVENT_TRACE_PROPERTIES& out_properties) {
+  if (sessionName.empty()) {
+    return false;
+  }
+
+  struct QueryData {
+    EVENT_TRACE_PROPERTIES Properties;
+    CHAR LoggerName[MAX_PATH];
+    CHAR LogFileName[MAX_PATH];
+  };
+
+  QueryData query_data = {0};
+  query_data.Properties.Wnode.BufferSize = (ULONG)sizeof(QueryData);
+  query_data.Properties.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
+  query_data.Properties.LoggerNameOffset = (ULONG)sizeof(EVENT_TRACE_PROPERTIES);
+  query_data.Properties.LogFileNameOffset =
+      query_data.Properties.LoggerNameOffset + MAX_PATH;
+
+  ULONG result = ControlTraceA(
+      NULL, sessionName.c_str(), &query_data.Properties, EVENT_TRACE_CONTROL_QUERY);
+
+  if (result != ERROR_SUCCESS) {
+    return false;
+  }
+
+  out_properties = query_data.Properties;
+  return true;
+}
+
+} // namespace
+
 HIDDEN_FLAG(
     uint32,
     etw_kernel_trace_buffer_size,
@@ -185,11 +220,15 @@ void KernelEtwSessionRunnable::initKernelTraceSession(
 
   // Setting default trace session properties
   EVENT_TRACE_PROPERTIES session_properties = {0};
-  session_properties.BufferSize = FLAGS_etw_kernel_trace_buffer_size;
-  session_properties.MinimumBuffers = FLAGS_etw_kernel_trace_minimum_buffers;
-  session_properties.MaximumBuffers = FLAGS_etw_kernel_trace_maximum_buffers;
-  session_properties.FlushTimer = FLAGS_etw_kernel_trace_flush_timer;
-  session_properties.LogFileMode = kEventTraceLogFileMode;
+
+  if (!queryExistingKernelTraceSessionProperties(
+          sessionName, session_properties)) {
+    session_properties.BufferSize = FLAGS_etw_kernel_trace_buffer_size;
+    session_properties.MinimumBuffers = FLAGS_etw_kernel_trace_minimum_buffers;
+    session_properties.MaximumBuffers = FLAGS_etw_kernel_trace_maximum_buffers;
+    session_properties.FlushTimer = FLAGS_etw_kernel_trace_flush_timer;
+    session_properties.LogFileMode = kEventTraceLogFileMode;
+  }
   kernelTraceSession_->set_trace_properties(&session_properties);
 }
 
