@@ -94,7 +94,8 @@ class Client {
           always_verify_peer_(false),
           follow_redirects_(false),
           keep_alive_(false),
-          ssl_connection_(false) {}
+          ssl_connection_(false),
+          enable_gzip_(false) {}
 
     Options& ssl_connection(bool ct) {
       ssl_connection_ = ct;
@@ -166,6 +167,11 @@ class Client {
       return *this;
     }
 
+    Options& enable_gzip(bool eg) {
+      enable_gzip_ = eg;
+      return *this;
+    }
+
     bool operator==(Options const& ropts) {
       return (server_certificate_ == ropts.server_certificate_) &&
              (verify_path_ == ropts.verify_path_) &&
@@ -180,7 +186,8 @@ class Client {
              (always_verify_peer_ == ropts.always_verify_peer_) &&
              (follow_redirects_ == ropts.follow_redirects_) &&
              (keep_alive_ == ropts.keep_alive_) &&
-             (ssl_connection_ == ropts.ssl_connection_);
+             (ssl_connection_ == ropts.ssl_connection_) &&
+             (enable_gzip_ == ropts.enable_gzip_);
     }
 
    private:
@@ -198,6 +205,7 @@ class Client {
     bool follow_redirects_;
     bool keep_alive_;
     bool ssl_connection_;
+    bool enable_gzip_;
     friend class Client;
   };
 
@@ -480,7 +488,7 @@ class HTTP_Response<T>::Iterator {
     return (iter_ != it.iter_);
   }
 
-  auto operator-> () {
+  auto operator->() {
     return std::make_shared<std::pair<std::string, std::string>>(
         std::string(iter_->name_string()), std::string(iter_->value()));
   }

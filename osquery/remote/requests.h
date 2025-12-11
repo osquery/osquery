@@ -10,8 +10,8 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest_prod.h>
 
@@ -35,6 +35,14 @@ class Serializer;
 std::string compressString(const std::string& data);
 
 /**
+ * @brief Decompress gzip-compressed data.
+ *
+ * @param data The compressed input data.
+ * @return The decompressed data, or empty string on error.
+ */
+std::string decompressString(const std::string& data);
+
+/**
  * @brief Abstract base class for remote transport implementations
  *
  * To define a new transport mechanism (HTTP, WebSockets, etc) for use with
@@ -50,7 +58,7 @@ class Transport {
    * @param A string representing the destination
    *
    * @return success or failure of the operation
-  */
+   */
   virtual void setDestination(const std::string& destination) {
     destination_ = destination;
   }
@@ -87,7 +95,9 @@ class Transport {
    *
    * @return success or failure of the operation
    */
-  Status getResponseStatus() const { return response_status_; }
+  Status getResponseStatus() const {
+    return response_status_;
+  }
 
   /**
    * @brief Get the parameters of the response
@@ -215,7 +225,9 @@ class Request {
    *
    * @return success or failure of the operation
    */
-  Status call() { return transport_->sendRequest(); }
+  Status call() {
+    return transport_->sendRequest();
+  }
 
   /**
    * @brief Send a simple request to the destination with parameters
@@ -276,6 +288,9 @@ class Request {
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
   FRIEND_TEST(TLSTransportsTests, test_wrong_hostname);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_compression_enabled);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_compression_disabled);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_with_params);
 
   friend class TestDistributedPlugin;
 };

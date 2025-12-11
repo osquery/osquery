@@ -50,6 +50,7 @@ function(generateOsqueryRemoteHttpclient)
     osquery_core
     osquery_logger
     osquery_utils_status
+    osquery_remote_requests
     thirdparty_boost
     thirdparty_openssl
   )
