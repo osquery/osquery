@@ -32,6 +32,7 @@
 namespace osquery {
 
 DECLARE_string(tls_server_certs);
+DECLARE_bool(tls_enable_gzip);
 
 class TLSTransportsTests : public testing::Test {
  public:
@@ -58,8 +59,10 @@ class TLSTransportsTests : public testing::Test {
   }
 
   void startServer(const std::string& server_cert = {},
-                   bool verify_client_cert = false) {
-    ASSERT_TRUE(TLSServerRunner::start(server_cert, verify_client_cert));
+                   bool verify_client_cert = false,
+                   bool require_gzip = false) {
+    ASSERT_TRUE(
+        TLSServerRunner::start(server_cert, verify_client_cert, require_gzip));
     port_ = TLSServerRunner::port();
 
     certs_ = FLAGS_tls_server_certs;
@@ -215,5 +218,73 @@ TEST_F(TLSTransportsTests, test_wrong_hostname) {
   Status status;
   ASSERT_NO_THROW(status = r.call());
   EXPECT_FALSE(status.ok());
+}
+
+TEST_F(TLSTransportsTests, test_gzip_compression_enabled) {
+  // Start server with gzip required to verify client actually sends the header
+  startServer({}, false, true);
+
+  // Save original flag value
+  bool original_gzip_flag = FLAGS_tls_enable_gzip;
+  FLAGS_tls_enable_gzip = true;
+
+  auto t = std::make_shared<TLSTransport>();
+  t->disableVerifyPeer();
+
+  auto url = "https://localhost:" + port_;
+  Request<TLSTransport, JSONSerializer> r(url, t);
+
+  // Make a GET request - the server should compress the response
+  Status status;
+  ASSERT_NO_THROW(status = r.call());
+  ASSERT_TRUE(status.ok()) << getTLSError(status);
+
+  // Verify the response was received and properly decompressed
+  JSON recv;
+  status = r.getResponse(recv);
+  ASSERT_TRUE(status.ok());
+
+  // Verify we got valid JSON (would fail if decompression didn't work)
+  std::string json_received;
+  recv.toString(json_received);
+  EXPECT_FALSE(json_received.empty());
+
+  // Restore original flag value
+  FLAGS_tls_enable_gzip = original_gzip_flag;
+}
+
+TEST_F(TLSTransportsTests, test_gzip_with_params) {
+  // Start server with gzip required to verify client actually sends the header
+  startServer({}, false, true);
+
+  // Save original flag value
+  bool original_gzip_flag = FLAGS_tls_enable_gzip;
+  FLAGS_tls_enable_gzip = true;
+
+  auto t = std::make_shared<TLSTransport>();
+  t->disableVerifyPeer();
+
+  auto url = "https://localhost:" + port_;
+  Request<TLSTransport, JSONSerializer> r(url, t);
+
+  JSON params;
+  params.add("test_key", "test_value");
+
+  // Make a POST request with params - verify gzip works with POST too
+  Status status;
+  ASSERT_NO_THROW(status = r.call(params));
+  ASSERT_TRUE(status.ok()) << getTLSError(status);
+
+  JSON recv;
+  status = r.getResponse(recv);
+  ASSERT_TRUE(status.ok());
+
+  // Verify we got valid JSON back
+  std::string json_received;
+  recv.toString(json_received);
+  EXPECT_FALSE(json_received.empty());
+
+  // Restore original flag value
+  FLAGS_tls_enable_gzip = original_gzip_flag;
 }
 } // namespace osquery

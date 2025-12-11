@@ -44,7 +44,8 @@ class TLSServerRunner : private boost::noncopyable {
    * A failure status is returned on error.
    */
   static bool start(const std::string& server_cert = {},
-                    bool verify_client_cert = false);
+                    bool verify_client_cert = false,
+                    bool require_gzip = false);
 
   /// Stop the service when the process exits.
   static void stop();
@@ -65,7 +66,8 @@ class TLSServerRunner : private boost::noncopyable {
    */
   Status startAndSetScript(const std::string& port,
                            const std::string& server_cert,
-                           bool verify_client_cert);
+                           bool verify_client_cert,
+                           bool require_gzip = false);
 
  private:
   /// Current server handle.

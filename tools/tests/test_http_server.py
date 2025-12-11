@@ -10,6 +10,7 @@
 import argparse
 import base64
 from datetime import datetime
+import gzip
 import json
 import os
 import random
@@ -36,6 +37,7 @@ HTTP_SERVER_KEY = "test_server.key"
 HTTP_SERVER_CA = "test_server_ca.pem"
 HTTP_SERVER_USE_ENROLL_SECRET = True
 HTTP_SERVER_ENROLL_SECRET = "test_enroll_secret.txt"
+HTTP_SERVER_REQUIRE_GZIP = False
 
 # Global accessor value for arguments passed to the server
 ARGS = None
@@ -142,6 +144,19 @@ TIMEOUT_TIMER = None
 
 
 class RealSimpleHandler(BaseHTTPRequestHandler):
+    def _check_gzip_required(self):
+        """Check if gzip is required and client doesn't support it."""
+        if ARGS.get("require_gzip", False):
+            accept_encoding = self.headers.get("Accept-Encoding", "")
+            if "gzip" not in accept_encoding.lower():
+                self.send_error(
+                    400,
+                    "Bad Request: gzip encoding required. "
+                    "Please send 'Accept-Encoding: gzip' header.",
+                )
+                return False
+        return True
+
     def _set_headers(self):
         self.protocol_version = self.request_version
         self.send_response(200)
@@ -150,6 +165,8 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         reset_timeout()
         debug("RealSimpleHandler::get %s" % self.path)
+        if not self._check_gzip_required():
+            return
         self._set_headers()
         if self.path == "/config":
             self.config(request, node=True)
@@ -166,6 +183,8 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         reset_timeout()
         debug("RealSimpleHandler::post %s" % self.path)
+        if not self._check_gzip_required():
+            return
         self._set_headers()
         content_len = int(self.headers.get("content-length", 0))
 
@@ -352,6 +371,15 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         debug("Replying: %s" % (str(response)))
         response_bytes = json.dumps(response).encode()
 
+        # Check if client accepts gzip encoding
+        accept_encoding = self.headers.get("Accept-Encoding", "")
+        use_gzip = "gzip" in accept_encoding.lower()
+
+        if use_gzip:
+            # Compress the response body
+            response_bytes = gzip.compress(response_bytes)
+            self.send_header("Content-Encoding", "gzip")
+
         if self.protocol_version == "HTTP/1.1":
             self.send_header("Content-Length", len(response_bytes))
 
@@ -481,6 +509,14 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Verify the client certificate, to implement mTLS",
+    )
+
+    parser.add_argument(
+        "--require-gzip",
+        action="store_true",
+        default=HTTP_SERVER_REQUIRE_GZIP,
+        help="Require clients to send 'Accept-Encoding: gzip' header. "
+        "Reject requests without it with 400 Bad Request.",
     )
 
     parser.add_argument(

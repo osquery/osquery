@@ -9,6 +9,9 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+#include <vector>
+
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/remote/transports/tls.h>
@@ -177,4 +180,96 @@ TEST_F(RequestsTests, test_compression) {
   EXPECT_EQ(compressed.substr(10), expected2);
   EXPECT_LT(compressed.size(), uncompressed.size());
 }
+
+TEST_F(RequestsTests, test_compress_decompress_roundtrip) {
+  // Test cases: various input strings to verify roundtrip integrity
+  std::vector<std::string> test_cases = {
+      "",
+      "hello",
+      "Hello, World!",
+      "Line 1\nLine 2\tTabbed",
+      R"({"key": "value", "number": 42, "array": [1, 2, 3]})",
+      "Test: 测试 🚀",
+      // Long repetitive string (should compress well)
+      std::string(1000, 'a'),
+      "The quick brown fox jumps over the lazy dog. " + std::string(100, 'x') +
+          " End.",
+      // Binary-like data (including null bytes)
+      std::string({'\x00', '\x01', '\x02', '\xFF', '\xFE', '\x7F', '\x80'}),
+  };
+
+  // Add a very long string
+  std::string long_string;
+  for (int i = 0; i < 1000000; i++) {
+    long_string += "This is a test string. ";
+  }
+  test_cases.push_back(long_string);
+
+  for (const auto& original : test_cases) {
+    // Compress the original string
+    std::string compressed = compressString(original);
+
+    EXPECT_FALSE(compressed.empty())
+        << "Compression failed for input: " << original.substr(0, 50);
+
+    std::string decompressed = decompressString(compressed);
+
+    EXPECT_EQ(decompressed, original)
+        << "Roundtrip failed for input: " << original.substr(0, 50);
+
+    // Verify compression actually reduced size (for repetitive/long strings)
+    if (original.size() > 100) {
+      EXPECT_LE(compressed.size(), original.size())
+          << "Compression didn't reduce size for long input";
+    }
+  }
 }
+
+TEST_F(RequestsTests, test_decompress_corrupted_data) {
+  std::string valid_compressed = compressString("This is a test string");
+  EXPECT_FALSE(valid_compressed.empty());
+
+  std::vector<std::string> corrupted_cases = {
+      "",
+      "This is not compressed data at all",
+      // Random binary data
+      std::string({'\x00', '\x01', '\x02', '\xFF', '\xFE', '\x7F', '\x80'}),
+      // Data that looks like gzip header but is corrupted
+      "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x00",
+      // Truncated gzip data (valid header, missing body)
+      "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x02\x03\x00",
+      // Corrupted gzip data (valid header, corrupted body)
+      [&]() {
+        // copy valid and corrupt it
+        std::string corrupted = valid_compressed;
+        corrupted[corrupted.size() / 2] = '\xFF';
+        corrupted[corrupted.size() / 2 + 1] = '\x00';
+        return corrupted;
+      }(),
+      // Truncated body
+      valid_compressed.substr(0, valid_compressed.size() - 1),
+      // Corrupted magic bytes
+      [&]() {
+        std::string corrupted_magic = valid_compressed;
+        corrupted_magic[0] = '\x00';
+        return corrupted_magic;
+      }(),
+      // Data with wrong magic bytes (not gzip)
+      "\x1F\x8C\x08\x00\x00\x00\x00\x00\x00\x02\x03\x00",
+      // Very short invalid data
+      "\x1F",
+      "\x1F\x8B",
+      // Long random data that might look like compressed data
+      std::string(100, 'A'),
+      std::string(1000, '\x00'),
+  };
+
+  for (const auto& corrupted : corrupted_cases) {
+    std::string result = decompressString(corrupted);
+    EXPECT_TRUE(result.empty())
+        << "Decompression of corrupted data should return empty string, "
+           "but got result of size: "
+        << result.size();
+  }
+}
+} // namespace osquery
