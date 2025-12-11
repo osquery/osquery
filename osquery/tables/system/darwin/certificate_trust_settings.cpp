@@ -106,9 +106,16 @@ void getCertificateTrustSettingsForDomain(std::string domain_name,
         if (CFDictionaryContainsKey(trust_setting,
                                     kSecTrustSettingsAllowedError)) {
           CFDataRef trust_allowed_error;
+          uint32_t trust_allowed_error_value;
           trust_allowed_error = (CFDataRef)CFDictionaryGetValue(
               trust_setting, kSecTrustSettingsAllowedError);
-          r["trust_allowed_error"] = stringFromCFNumber(trust_allowed_error);
+          CFNumberGetValue((CFNumberRef)trust_allowed_error,
+                           kCFNumberSInt32Type,
+                           &trust_allowed_error_value);
+          CFStringRef error =
+              SecCopyErrorMessageString(trust_allowed_error_value, nil);
+          r["trust_allowed_error"] = stringFromCFString(error);
+          CFRelease(error);
         }
 
         if (CFDictionaryContainsKey(trust_setting, kSecTrustSettingsKeyUsage)) {
