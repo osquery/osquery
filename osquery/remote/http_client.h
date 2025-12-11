@@ -332,6 +332,13 @@ class Client {
    */
   void cancelTimerAndSetError(boost::system::error_code const& ec);
 
+  /**
+   * @brief Decompress gzip-compressed HTTP response if needed.
+   *
+   * @param http_resp The HTTP response to potentially decompress.
+   */
+  void decompressGzipResponse(beast_http_response& http_resp);
+
  private:
   Options client_options_;
   boost::asio::io_context ioc_;

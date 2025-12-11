@@ -346,6 +346,21 @@ void Client::sendRequest(STREAM_TYPE& stream,
   }
 }
 
+void Client::decompressGzipResponse(beast_http_response& http_resp) {
+  if (client_options_.enable_gzip_) {
+    std::string content_encoding =
+        std::string(http_resp[beast_http::field::content_encoding]);
+    if (content_encoding == "gzip") {
+      std::string decompressed = osquery::decompressString(http_resp.body());
+      if (!decompressed.empty()) {
+        http_resp.body() = decompressed;
+        http_resp.content_length(decompressed.size());
+        http_resp.erase(beast_http::field::content_encoding);
+      }
+    }
+  }
+}
+
 bool Client::initHTTPRequest(Request& req) {
   bool create_connection = true;
   if (req.remoteHost()) {
@@ -438,22 +453,7 @@ Response Client::sendHTTPRequest(Request& req) {
       case beast_http::status::permanent_redirect: {
         if (!client_options_.follow_redirects_) {
           beast_http_response http_resp = resp.release();
-
-          // Check if response is gzip compressed and decompress if needed
-          if (client_options_.enable_gzip_) {
-            std::string content_encoding =
-                std::string(http_resp[beast_http::field::content_encoding]);
-            if (content_encoding == "gzip") {
-              std::string decompressed =
-                  osquery::decompressString(http_resp.body());
-              if (!decompressed.empty()) {
-                http_resp.body() = decompressed;
-                http_resp.content_length(decompressed.size());
-                http_resp.erase(beast_http::field::content_encoding);
-              }
-            }
-          }
-
+          decompressGzipResponse(http_resp);
           return Response(std::move(http_resp));
         }
 
@@ -490,24 +490,7 @@ Response Client::sendHTTPRequest(Request& req) {
       }
       default: {
         beast_http_response http_resp = resp.release();
-
-        // Check if response is gzip compressed and decompress if needed
-        if (client_options_.enable_gzip_) {
-          std::string content_encoding =
-              std::string(http_resp[beast_http::field::content_encoding]);
-          if (content_encoding == "gzip") {
-            std::string decompressed =
-                osquery::decompressString(http_resp.body());
-            if (!decompressed.empty()) {
-              http_resp.body() = decompressed;
-              // Update content length
-              http_resp.content_length(decompressed.size());
-              // Remove content-encoding header since we've decompressed
-              http_resp.erase(beast_http::field::content_encoding);
-            }
-          }
-        }
-
+        decompressGzipResponse(http_resp);
         return Response(std::move(http_resp));
       }
       }
