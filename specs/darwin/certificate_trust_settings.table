@@ -12,5 +12,5 @@ schema([
 ])
 implementation("certificate_trust_settings@genCertificateTrustSettings")
 examples([
-    "select * from certificate_trust_settings where trust_domain = 'system'",
+    "select * from certificate_trust_settings where trust_domain = 'admin'",
 ])
