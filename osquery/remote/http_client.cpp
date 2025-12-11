@@ -7,12 +7,25 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
 
 #include <boost/asio/connect.hpp>
+#include <chrono>
+
+#ifndef WIN32
+#include <resolv.h>
+#endif
 
 namespace osquery {
+
+FLAG(int32,
+     dns_resolver_refresh_interval,
+     60,
+     "Interval in seconds between DNS resolver state refreshes via res_init(). "
+     "Default: 60 seconds");
+
 namespace http {
 
 const std::string kHTTPSDefaultPort{"443"};
@@ -114,6 +127,22 @@ void Client::createConnection() {
     port = connect_host.substr(pos + 1);
     connect_host = connect_host.substr(0, pos);
   }
+
+#ifndef WIN32
+  // Refresh DNS resolver state periodically to pick up changes to
+  // /etc/resolv.conf (e.g., when VPN connects). This ensures Boost.Asio's
+  // resolver uses the current DNS configuration rather than a stale cached
+  // state.
+  static std::chrono::steady_clock::time_point last_dns_refresh;
+  auto now = std::chrono::steady_clock::now();
+  auto refresh_interval =
+      std::chrono::seconds(FLAGS_dns_resolver_refresh_interval);
+
+  if (now - last_dns_refresh >= refresh_interval) {
+    res_init();
+    last_dns_refresh = now;
+  }
+#endif
 
   // We can resolve async, but there is a handle leak in Windows.
   auto results = r_.resolve(connect_host, port, ec_);
