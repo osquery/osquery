@@ -798,99 +798,11 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Package the tests for older x86_64 macOS workers
-      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
-      working-directory: ${{ github.workspace }}/workspace
-      run: |
-        mkdir macos_tests_${{ matrix.build_type }}
-        ${{ steps.build_paths.outputs.SOURCE }}/tools/ci/scripts/macos/package_tests.sh build macos_tests_${{ matrix.build_type }} ${{ matrix.architecture }}
-
-    - name: Store the packaged tests for older x86_64 macOS workers
-      if: matrix.architecture == 'x86_64' && matrix.os == 'macos-14'
-      uses: actions/upload-artifact@v4.4.0
-      with:
-        name: macos_tests_${{ matrix.build_type }}
-        path: workspace/macos_tests_${{ matrix.build_type }}.tar.gz
-
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
-
-
-
-
-  # This job takes the packaged tests (Release + Debug) from the latest macos
-  # builder and runs them on the previous available macOS versions
-  test_older_macos:
-
-    needs: build_macos
-
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        python_architecture: [x64]
-        os: [macos-13]
-
-    steps:
-      - name: Clone the osquery repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/download-artifact@v4.1.7
-        with:
-          name: macos_tests_Release
-
-      - uses: actions/download-artifact@v4.1.7
-        with:
-          name: macos_tests_Debug
-
-      - name: Setup python
-        uses: actions/setup-python@v5
-        with:
-          # Pin an exact python version to avoid mismatches between the builder and this test_older_macos runner
-          python-version: '3.13.1'
-          architecture: ${{ matrix.python_architecture }}
-
-      - name: Install tests dependencies
-        id: install_test_deps
-        run: |
-          pip3 install setuptools \
-                        pexpect==3.3 \
-                        psutil \
-                        timeout_decorator \
-                        six \
-                        thrift==0.11.0 \
-                        osquery
-
-      - name: Install CMake
-        shell: bash
-        run: |
-          mkdir -p "workspace/downloads" \
-                   "workspace/install"
-
-          ./tools/ci/scripts/macos/install_cmake.sh \
-            "workspace/downloads" \
-            "workspace/install" \
-            "3.21.4"
-
-      - name: Extract the tests
-        run: |
-          tar xzf macos_tests_Release.tar.gz
-          tar xzf macos_tests_Debug.tar.gz
-
-      - name: Run the Debug tests
-        run: |
-          ( cd macos_tests_Debug && ./run.sh )
-
-      - name: Run the Release tests
-        run: |
-          ( cd macos_tests_Release && ./run.sh )
-
-
 
 
   # This job builds the universal macOS artifacts
