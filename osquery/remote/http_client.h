@@ -495,7 +495,7 @@ class HTTP_Response<T>::Iterator {
     return (iter_ != it.iter_);
   }
 
-  auto operator->() {
+  auto operator-> () {
     return std::make_shared<std::pair<std::string, std::string>>(
         std::string(iter_->name_string()), std::string(iter_->value()));
   }
