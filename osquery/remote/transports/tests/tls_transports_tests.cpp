@@ -32,7 +32,7 @@
 namespace osquery {
 
 DECLARE_string(tls_server_certs);
-DECLARE_bool(tls_enable_gzip);
+DECLARE_bool(tls_accept_gzip);
 
 class TLSTransportsTests : public testing::Test {
  public:
@@ -225,8 +225,8 @@ TEST_F(TLSTransportsTests, test_gzip_compression_enabled) {
   startServer({}, false, true);
 
   // Save original flag value
-  bool original_gzip_flag = FLAGS_tls_enable_gzip;
-  FLAGS_tls_enable_gzip = true;
+  bool original_gzip_flag = FLAGS_tls_accept_gzip;
+  FLAGS_tls_accept_gzip = true;
 
   auto t = std::make_shared<TLSTransport>();
   t->disableVerifyPeer();
@@ -250,7 +250,7 @@ TEST_F(TLSTransportsTests, test_gzip_compression_enabled) {
   EXPECT_FALSE(json_received.empty());
 
   // Restore original flag value
-  FLAGS_tls_enable_gzip = original_gzip_flag;
+  FLAGS_tls_accept_gzip = original_gzip_flag;
 }
 
 TEST_F(TLSTransportsTests, test_gzip_with_params) {
@@ -258,8 +258,8 @@ TEST_F(TLSTransportsTests, test_gzip_with_params) {
   startServer({}, false, true);
 
   // Save original flag value
-  bool original_gzip_flag = FLAGS_tls_enable_gzip;
-  FLAGS_tls_enable_gzip = true;
+  bool original_gzip_flag = FLAGS_tls_accept_gzip;
+  FLAGS_tls_accept_gzip = true;
 
   auto t = std::make_shared<TLSTransport>();
   t->disableVerifyPeer();
@@ -285,6 +285,6 @@ TEST_F(TLSTransportsTests, test_gzip_with_params) {
   EXPECT_FALSE(json_received.empty());
 
   // Restore original flag value
-  FLAGS_tls_enable_gzip = original_gzip_flag;
+  FLAGS_tls_accept_gzip = original_gzip_flag;
 }
 } // namespace osquery

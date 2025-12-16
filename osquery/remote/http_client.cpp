@@ -294,7 +294,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
     req.set(beast_http::field::host, host_header_value);
   }
 
-  if (client_options_.enable_gzip_) {
+  if (client_options_.accept_gzip_) {
     req.set(beast_http::field::accept_encoding, "gzip");
   }
 
@@ -347,7 +347,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
 }
 
 void Client::decompressGzipResponse(beast_http_response& http_resp) {
-  if (client_options_.enable_gzip_) {
+  if (client_options_.accept_gzip_) {
     std::string content_encoding =
         std::string(http_resp[beast_http::field::content_encoding]);
     if (content_encoding == "gzip") {

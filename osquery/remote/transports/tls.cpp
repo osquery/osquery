@@ -62,7 +62,7 @@ CLI_FLAG(uint32,
 
 /// Enable gzip compression for HTTP response bodies.
 CLI_FLAG(bool,
-         tls_enable_gzip,
+         tls_accept_gzip,
          false,
          "Enable gzip compression for HTTP responses");
 
@@ -156,7 +156,7 @@ http::Client::Options TLSTransport::getInternalOptions() {
   auto options = getOptions();
 
   options.keep_alive(FLAGS_tls_session_reuse);
-  options.enable_gzip(FLAGS_tls_enable_gzip);
+  options.accept_gzip(FLAGS_tls_accept_gzip);
 
   if (FLAGS_proxy_hostname.size() > 0) {
     options.proxy_hostname(FLAGS_proxy_hostname);

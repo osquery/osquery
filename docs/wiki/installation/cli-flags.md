@@ -105,10 +105,13 @@ If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sus
 This value sets a maximum number of allowed CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default value is `10`, meaning 10% of CPU utilization allowed.
 
 The CPU utilization limit is calculated the following way:
+
 ```text
 cpu_limit_ms = number_of_cores * check_interval_ms * (watchdog_utilization_limit / 100.0)
 ```
+
 Where:
+
 - `number_of_cores` is the number of all cpu cores (physical + virtual).
 - `check_interval_ms` is 3 seconds. It is how often the watchdog checks worker and extension processes for CPU utilization.
 
@@ -204,7 +207,7 @@ Optional comma-delimited set of extension names to require before `osqueryi` or 
 
 `--extensions_default_index=true`
 
-Enable INDEX (and thereby constraints) on all extension table columns.  Provides backwards compatibility for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
+Enable INDEX (and thereby constraints) on all extension table columns. Provides backwards compatibility for extensions (or SDKs) that don't correctly define indexes in column options. See issue 6006 for more details.
 
 ## Remote settings flags (optional)
 
@@ -244,7 +247,7 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very s
 
 `--config_tls_endpoint=`
 
-The **tls** endpoint path, e.g.: `/api/v1/config` when using the **tls** config plugin. See the other **tls_** related CLI flags.
+The **tls** endpoint path, e.g.: `/api/v1/config` when using the **tls** config plugin. See the other **tls\_** related CLI flags.
 
 `--config_tls_max_attempts=3`
 
@@ -254,7 +257,7 @@ backoff, up to the max number of attempts set.
 
 `--logger_tls_endpoint=`
 
-The **tls** endpoint path, e.g.: `/api/v1/logger` when using the **tls** logger plugin. See the other **tls_** related CLI flags.
+The **tls** endpoint path, e.g.: `/api/v1/logger` when using the **tls** logger plugin. See the other **tls\_** related CLI flags.
 
 `--enroll_tls_endpoint=`
 
@@ -360,7 +363,6 @@ Note: When the watchdog starts, it takes a snapshot of the amount of memory that
 This means that if the `watchdog_memory_limit` is set to 200MB, the watchdog triggers at 200MB + something (around 15 to 30MB) used, not at 200MB. The malloc_trim system though doesn't have access to that information, so the best thing it can do is to use `watchdog_memory_limit` to calculate its own threshold.
 This should be good enough, but the user should be aware that how soon malloc_trim acts in respect to how soon the watchdog would've acted is actually slightly variable.
 
-
 ## Windows-only runtime control flags
 
 `--users_service_delay=250`
@@ -387,7 +389,7 @@ Disable or enable osquery Operating System [eventing publish-subscribe](../devel
 
 `--events_expiry=3600`
 
-Expiration age for evented data (in seconds), applied once the data is queried. Until an evented table is queried, its collected events are cached in backing-store. *Events are only expired (i.e., removed from the table) when the evented table is queried.* For example, if `--events_expiry=1`, then events older than 1 second will only appear in the next `SELECT` from the subscriber. If no `SELECT` occurs, those events will be saved in the backing store *indefinitely* or until the `events_max` limit is reached (see below). If, on the other hand, the table contains recent events that have not yet reached expiration age, the same table can be queried repeatedly in quick succession and the same data will continue to be present unless it had reached the expiration age when it was last queried, at which point it will be removed. `3600` seconds is the default, but if querying on an interval shorter than `3600`, you may wish to lower this value to avoid retrieving duplicate events.
+Expiration age for evented data (in seconds), applied once the data is queried. Until an evented table is queried, its collected events are cached in backing-store. _Events are only expired (i.e., removed from the table) when the evented table is queried._ For example, if `--events_expiry=1`, then events older than 1 second will only appear in the next `SELECT` from the subscriber. If no `SELECT` occurs, those events will be saved in the backing store _indefinitely_ or until the `events_max` limit is reached (see below). If, on the other hand, the table contains recent events that have not yet reached expiration age, the same table can be queried repeatedly in quick succession and the same data will continue to be present unless it had reached the expiration age when it was last queried, at which point it will be removed. `3600` seconds is the default, but if querying on an interval shorter than `3600`, you may wish to lower this value to avoid retrieving duplicate events.
 
 `--events_optimize=true`
 
@@ -395,11 +397,11 @@ Since event rows are only "added" it does not make sense to emit "removed" resul
 
 `--events_max=50000`
 
-Maximum number of events to buffer in the backing store while waiting for a query to "drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for *your* osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
+Maximum number of events to buffer in the backing store while waiting for a query to "drain" them (if and only if the events are old enough to be expired out, see above). For example, the default value indicates that a maximum of the `50000` most recent events will be stored. The right value for _your_ osquery deployment, if you want to avoid missed/dropped events, should be considered based on the combination of your host's event occurrence frequency and the interval of your scheduled queries of those tables.
 
 `--events_enforce_denylist=false`
 
-This controls whether watchdog denylisting is enforced on queries using "*_events" (event-based) tables. As these these queries operate on meta-generated table logic, performance issues are unavoidable. It does not make sense to denylist. Enforcing this may lead to adverse and opposite effects because events will buffer longer and impact RocksDB storage.
+This controls whether watchdog denylisting is enforced on queries using "\*\_events" (event-based) tables. As these these queries operate on meta-generated table logic, performance issues are unavoidable. It does not make sense to denylist. Enforcing this may lead to adverse and opposite effects because events will buffer longer and impact RocksDB storage.
 
 This only considers queries that are entirely event-based. For example `SELECT * FROM process_events` is considered, but `SELECT * FROM process_events join time` is not.
 
@@ -415,7 +417,7 @@ It is not recommended to set this to `true`.
 
 `--enable_windows_events_subscriber      Enables Windows Event Log events`
 
-On Windows, in addition to the `--disable_events=false` flag mentioned above, each category of evented data must also be enabled individually, by enabling the corresponding osquery publisher and osquery subscriber. By default, all are disabled, and the corresponding evented tables will be empty. Note that an event publisher within osquery subscribes to events *from the OS* and then publishes them to an osquery event subscriber. For the current complete list of event sources usable by osquery, see `osqueryi.exe --help | findstr -i Event`.
+On Windows, in addition to the `--disable_events=false` flag mentioned above, each category of evented data must also be enabled individually, by enabling the corresponding osquery publisher and osquery subscriber. By default, all are disabled, and the corresponding evented tables will be empty. Note that an event publisher within osquery subscribes to events _from the OS_ and then publishes them to an osquery event subscriber. For the current complete list of event sources usable by osquery, see `osqueryi.exe --help | findstr -i Event`.
 
 `--windows_event_channels=System,Application,Setup,Security`
 
@@ -443,7 +445,7 @@ This is a comma delimited list of path literals, which when set, is passed to En
 
 `--es_fim_mute_path_prefix`
 
-This is a comma delimited list of path prefixes, which when set is passed to EndpointSecurity based `es_process_file_events` table. This will result in events being muted which match the path prefixes. 
+This is a comma delimited list of path prefixes, which when set is passed to EndpointSecurity based `es_process_file_events` table. This will result in events being muted which match the path prefixes.
 
 ## Logging/results flags
 
@@ -486,7 +488,7 @@ Directory path for `ERROR`/`WARN`/`INFO` and query result logging by the **files
 `--logger_mode=0640`
 
 File mode for output log files by the **filesystem** plugin, provided as an octal string. Note that this affects both the query result log and the status logs and only works on POSIX platforms. (Versions previous to osquery 5.0.0 were incorrectly interpreting `logger_mode` as a number in decimal format, not octal.)
-**Warning**: If run as root, log files may contain sensitive information! 
+**Warning**: If run as root, log files may contain sensitive information!
 
 `--logger_rotate=false`
 
@@ -510,11 +512,11 @@ Prepend a `@cee:` cookie to JSON-formatted messages sent to the **syslog** logge
 
 `--logger_kafka_brokers`
 
-A comma-delimited list of Kafka brokers to connect to.  Format can be `protocol://host:port`, `host:port` or just `host` with the port number falling back to the default value of `9092`.  `protocol` can be `plaintext` (default) or `ssl`.  When protocol is `ssl`, `--tls_server_certs` value is used as certificate trust store.  Optionally `--tls_client_cert` and `--tls_client_key` can be provided for TLS client authentication with Kafka brokers.
+A comma-delimited list of Kafka brokers to connect to. Format can be `protocol://host:port`, `host:port` or just `host` with the port number falling back to the default value of `9092`. `protocol` can be `plaintext` (default) or `ssl`. When protocol is `ssl`, `--tls_server_certs` value is used as certificate trust store. Optionally `--tls_client_cert` and `--tls_client_key` can be provided for TLS client authentication with Kafka brokers.
 
 `--logger_kafka_topic`
 
-The Kafka topic to publish logs to.  When using multiple topics this configuration becomes the base topic that unconfigured queries fall back to. Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
+The Kafka topic to publish logs to. When using multiple topics this configuration becomes the base topic that unconfigured queries fall back to. Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
 
 `--logger_kafka_acks`
 
@@ -522,7 +524,7 @@ The number of acknowledgments the Kafka leader has to receive before a publish i
 
 `--logger_kafka_compression`
 
-Compression codec to use for compressing message sets. Valid options are ("none", "gzip").  Default is "none".
+Compression codec to use for compressing message sets. Valid options are ("none", "gzip"). Default is "none".
 
 `--buffered_log_max=1000000`
 
@@ -584,9 +586,13 @@ Disable distributed queries functionality. By default, this is set to `true` (th
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
 
+`--tls_accept_gzip=true`
+
+(Default false) Enable the HTTP client to process gzip responses from the server. Will turn on sending an `Accept-Encoding: gzip` header. In the future this flag may default to true, or be removed entirely with the feature always on.
+
 ## Syslog consumption flags
 
-There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results *from* syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
+There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results _from_ syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
 
 `--enable_syslog=false`
 
