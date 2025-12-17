@@ -55,7 +55,7 @@ void enumerateCarves(QueryData& results, const std::string& new_guid) {
 
     if (tree.doc().HasMember("size")) {
       // In some instances, it was observed that the size is stored as a JSON
-      // string rather than number, resulting in an exception if GetUint64 was
+      // string rather than number, resulting in an exception if GetInt64 was
       // called. Check for the type for backwards compatibility.
       if (tree.doc()["size"].IsInt64()) {
         r["size"] = BIGINT(tree.doc()["size"].GetUint64());
