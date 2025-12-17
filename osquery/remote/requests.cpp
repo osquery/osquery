@@ -11,6 +11,8 @@
 
 #include <zlib.h>
 
+#include <osquery/logger/logger.h>
+
 namespace osquery {
 
 // zlib documentation states to add 16 to the window size to enable gzip
@@ -55,7 +57,9 @@ std::string compressString(const std::string& data) {
 
 std::string decompressString(const std::string& data) {
   z_stream zs{};
-  if (inflateInit2(&zs, MOD_GZIP_ZLIB_WINDOWSIZE) != Z_OK) {
+  int init_ret = inflateInit2(&zs, MOD_GZIP_ZLIB_WINDOWSIZE);
+  if (init_ret != Z_OK) {
+    LOG(ERROR) << "Failed to initialize zlib inflate: " << zError(init_ret);
     return std::string();
   }
   zs.next_in = (Bytef*)data.data();
@@ -74,6 +78,8 @@ std::string decompressString(const std::string& data) {
 
   inflateEnd(&zs);
   if (ret != Z_STREAM_END) {
+    const char* error_msg = zs.msg != nullptr ? zs.msg : zError(ret);
+    LOG(ERROR) << "Failed to decompress data: " << error_msg;
     return std::string();
   }
 
