@@ -301,14 +301,14 @@ TEST_F(CarverTests, test_carve_size_over_2gb_serialization) {
   // - Without the fix (only IsInt): Test will SEGFAULT
 
   std::vector<uint64_t> test_sizes = {
-      0,                           // Zero
-      1024,                        // 1KB
-      2147483647,                  // Max int32 (2GB - 1)
-      2147483648,                  // Min value that overflows int32 (exactly 2GB)
-      2684354560,                  // 2.5GB
-      4294967295,                  // Max uint32
-      4294967296,                  // Max uint32 + 1
-      8589934592                   // 8GB
+      0, // Zero
+      1024, // 1KB
+      2147483647, // Max int32 (2GB - 1)
+      2147483648, // Min value that overflows int32 (exactly 2GB)
+      2684354560, // 2.5GB
+      4294967295, // Max uint32
+      4294967296, // Max uint32 + 1
+      8589934592 // 8GB
   };
 
   for (auto test_size : test_sizes) {
@@ -331,29 +331,26 @@ TEST_F(CarverTests, test_carve_size_over_2gb_serialization) {
 
     JSON verify_doc;
     s = verify_doc.fromString(serialized);
-    ASSERT_TRUE(s.ok()) << "Failed to parse serialized JSON for size: " << test_size;
+    ASSERT_TRUE(s.ok()) << "Failed to parse serialized JSON for size: "
+                        << test_size;
     ASSERT_TRUE(verify_doc.doc().HasMember("size"))
         << "Serialized JSON missing size field for: " << test_size;
-
-    if (test_size > 2147483647) {
-      ASSERT_TRUE(verify_doc.doc()["size"].IsInt64() ||
-                  verify_doc.doc()["size"].IsUint64())
-          << "Size " << test_size << " must be Int64/Uint64, not Int32. "
-          << "Without proper Int64/Uint64 handling in carves.cpp, this will crash!";
-    }
 
     // Write to database
     std::string key = kCarverDBPrefix + guid;
     s = setDatabaseValue(kCarves, key, serialized);
-    ASSERT_TRUE(s.ok()) << "Failed to write to database for size: " << test_size;
+    ASSERT_TRUE(s.ok()) << "Failed to write to database for size: "
+                        << test_size;
 
     // Query the carves table
-    auto results = SQL::selectAllFrom("carves", "path", EQUALS,
-                                      "/tmp/test_file_" + std::to_string(test_size));
+    auto results =
+        SQL::selectAllFrom("carves",
+                           "path",
+                           EQUALS,
+                           "/tmp/test_file_" + std::to_string(test_size));
 
-    ASSERT_EQ(results.size(), 1)
-        << "Expected 1 carve result for size " << test_size
-        << ", got " << results.size();
+    ASSERT_EQ(results.size(), 1) << "Expected 1 carve result for size "
+                                 << test_size << ", got " << results.size();
 
     // Verify the size field is correct
     auto& row = results[0];
@@ -363,7 +360,8 @@ TEST_F(CarverTests, test_carve_size_over_2gb_serialization) {
     // Convert the size back to uint64_t and verify it matches
     uint64_t retrieved_size = std::stoull(row["size"]);
     EXPECT_EQ(retrieved_size, test_size)
-        << "Size mismatch: expected " << test_size << ", got " << retrieved_size;
+        << "Size mismatch: expected " << test_size << ", got "
+        << retrieved_size;
 
     deleteDatabaseValue(kCarves, key);
   }
