@@ -58,7 +58,7 @@ void enumerateCarves(QueryData& results, const std::string& new_guid) {
       // string rather than number, resulting in an exception if GetInt64 was
       // called. Check for the type for backwards compatibility.
       if (tree.doc()["size"].IsInt64()) {
-        r["size"] = BIGINT(tree.doc()["size"].GetUint64());
+        r["size"] = BIGINT(tree.doc()["size"].GetInt64());
       } else if (tree.doc()["size"].IsString()) {
         r["size"] = BIGINT(tree.doc()["size"].GetString());
       } else {
