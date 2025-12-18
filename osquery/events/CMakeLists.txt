@@ -45,6 +45,7 @@ function(generateOsqueryEvents)
       file_events_flags.cpp
       darwin/diskarbitration.cpp
       darwin/es_utils.cpp
+      darwin/es_event_categories.cpp
       darwin/endpointsecurity.cpp
       darwin/endpointsecurity_fim.cpp
       darwin/event_taps.cpp
@@ -163,6 +164,7 @@ function(generateOsqueryEvents)
     set(platform_public_header_files
       darwin/diskarbitration.h
       darwin/es_utils.h
+      darwin/es_event_categories.h
       darwin/endpointsecurity.h
       darwin/event_taps.h
       darwin/fsevents.h
