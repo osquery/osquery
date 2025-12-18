@@ -37,6 +37,7 @@ function(generateOsqueryTablesEventsEventstable)
       list(APPEND source_files
         linux/bpf_process_events.cpp
         linux/bpf_socket_events.cpp
+	linux/bpf_file_events.cpp
       )
     endif()
 
@@ -106,6 +107,7 @@ function(generateOsqueryTablesEventsEventstable)
       linux/process_file_events.h
       linux/bpf_process_events.h
       linux/bpf_socket_events.h
+      linux/bpf_file_events.h
       linux/selinux_events.h
       linux/seccomp_events.h
       linux/apparmor_events.h
