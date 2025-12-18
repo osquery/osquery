@@ -10,6 +10,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/requests.h>
 
 #include <boost/asio/connect.hpp>
 #include <chrono>
@@ -293,6 +294,10 @@ void Client::sendRequest(STREAM_TYPE& stream,
     req.set(beast_http::field::host, host_header_value);
   }
 
+  if (client_options_.accept_gzip_) {
+    req.set(beast_http::field::accept_encoding, "gzip");
+  }
+
   req.prepare_payload();
   req.keep_alive(true);
 
@@ -338,6 +343,21 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   if (!client_options_.keep_alive_) {
     closeSocket();
+  }
+}
+
+void Client::decompressGzipResponse(beast_http_response& http_resp) {
+  if (client_options_.accept_gzip_) {
+    std::string content_encoding =
+        std::string(http_resp[beast_http::field::content_encoding]);
+    if (content_encoding == "gzip") {
+      std::string decompressed = osquery::decompressString(http_resp.body());
+      if (!decompressed.empty()) {
+        http_resp.body() = decompressed;
+        http_resp.content_length(decompressed.size());
+        http_resp.erase(beast_http::field::content_encoding);
+      }
+    }
   }
 }
 
@@ -432,7 +452,9 @@ Response Client::sendHTTPRequest(Request& req) {
       case beast_http::status::temporary_redirect:
       case beast_http::status::permanent_redirect: {
         if (!client_options_.follow_redirects_) {
-          return Response(resp.release());
+          beast_http_response http_resp = resp.release();
+          decompressGzipResponse(http_resp);
+          return Response(std::move(http_resp));
         }
 
         if (redirect_attempts++ >= 10) {
@@ -466,8 +488,11 @@ Response Client::sendHTTPRequest(Request& req) {
         req.uri(redir_url);
         break;
       }
-      default:
-        return Response(resp.release());
+      default: {
+        beast_http_response http_resp = resp.release();
+        decompressGzipResponse(http_resp);
+        return Response(std::move(http_resp));
+      }
       }
     } catch (std::exception const& /* e */) {
       closeSocket();

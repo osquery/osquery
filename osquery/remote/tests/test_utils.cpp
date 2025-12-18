@@ -38,7 +38,8 @@ DECLARE_bool(disable_caching);
 
 Status TLSServerRunner::startAndSetScript(const std::string& port,
                                           const std::string& server_cert,
-                                          bool verify_client_cert) {
+                                          bool verify_client_cert,
+                                          bool require_gzip) {
   auto script = (getTestHelperScriptsDirectory() / "test_http_server.py");
   auto config_dir = getTestConfigDirectory();
   std::vector<std::string> args = {
@@ -56,6 +57,10 @@ Status TLSServerRunner::startAndSetScript(const std::string& port,
 
   if (verify_client_cert) {
     args.push_back("--verify-client-cert");
+  }
+
+  if (require_gzip) {
+    args.push_back("--require-gzip");
   }
 
   args.push_back(port);
@@ -89,7 +94,8 @@ Status TLSServerRunner::getListeningPortPid(const std::string& port,
 }
 
 bool TLSServerRunner::start(const std::string& server_cert,
-                            bool verify_client_cert) {
+                            bool verify_client_cert,
+                            bool require_gzip) {
   auto& self = instance();
   if (self.server_ != nullptr) {
     return true;
@@ -114,8 +120,8 @@ bool TLSServerRunner::start(const std::string& server_cert,
       }
     }
 
-    auto status =
-        self.startAndSetScript(self.port_, server_cert, verify_client_cert);
+    auto status = self.startAndSetScript(
+        self.port_, server_cert, verify_client_cert, require_gzip);
     if (!status.ok()) {
       // This is an unexpected problem, retry without waiting.
       LOG(WARNING) << status.getMessage();

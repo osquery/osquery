@@ -145,6 +145,9 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
   FRIEND_TEST(TLSTransportsTests, test_wrong_hostname);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_compression_enabled);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_compression_disabled);
+  FRIEND_TEST(TLSTransportsTests, test_gzip_with_params);
 
   friend class TestDistributedPlugin;
 };

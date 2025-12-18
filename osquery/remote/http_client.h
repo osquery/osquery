@@ -94,7 +94,8 @@ class Client {
           always_verify_peer_(false),
           follow_redirects_(false),
           keep_alive_(false),
-          ssl_connection_(false) {}
+          ssl_connection_(false),
+          accept_gzip_(false) {}
 
     Options& ssl_connection(bool ct) {
       ssl_connection_ = ct;
@@ -166,6 +167,11 @@ class Client {
       return *this;
     }
 
+    Options& accept_gzip(bool eg) {
+      accept_gzip_ = eg;
+      return *this;
+    }
+
     bool operator==(Options const& ropts) {
       return (server_certificate_ == ropts.server_certificate_) &&
              (verify_path_ == ropts.verify_path_) &&
@@ -180,7 +186,8 @@ class Client {
              (always_verify_peer_ == ropts.always_verify_peer_) &&
              (follow_redirects_ == ropts.follow_redirects_) &&
              (keep_alive_ == ropts.keep_alive_) &&
-             (ssl_connection_ == ropts.ssl_connection_);
+             (ssl_connection_ == ropts.ssl_connection_) &&
+             (accept_gzip_ == ropts.accept_gzip_);
     }
 
    private:
@@ -198,6 +205,7 @@ class Client {
     bool follow_redirects_;
     bool keep_alive_;
     bool ssl_connection_;
+    bool accept_gzip_;
     friend class Client;
   };
 
@@ -323,6 +331,13 @@ class Client {
    * Note that one side-effect is ec_ will be overwritten.
    */
   void cancelTimerAndSetError(boost::system::error_code const& ec);
+
+  /**
+   * @brief Decompress gzip-compressed HTTP response if needed.
+   *
+   * @param http_resp The HTTP response to potentially decompress.
+   */
+  void decompressGzipResponse(beast_http_response& http_resp);
 
  private:
   Options client_options_;
