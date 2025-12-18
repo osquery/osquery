@@ -18,6 +18,7 @@ function(osqueryEventsTestsMain)
 
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryEventsTestsFseventstestsTest()
+    generateOsqueryEventsTestsEndpointSecurityTests()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -144,6 +145,88 @@ function(generateOsqueryEventsTestsWindowsusnjournalreadertestsTest)
     tests_helper
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsqueryEventsTestsEndpointSecurityTests)
+  # Add Endpoint Security test for categories
+  add_osquery_executable(osquery_events_tests_es_categories-test
+    ../darwin/tests/es_event_categories_tests.cpp
+  )
+
+  target_link_libraries(osquery_events_tests_es_categories-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_events
+    osquery_database
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_filesystem
+    osquery_utils
+    osquery_utils_conversions
+    specs_tables
+    tests_helper
+    thirdparty_googletest
+  )
+  
+  # Add include directory for darwin headers
+  target_include_directories(osquery_events_tests_es_categories-test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../  # This points to the osquery directory
+  )
+
+  # Add Endpoint Security test for version compatibility
+  add_osquery_executable(osquery_events_tests_es_compatibility-test
+    ../darwin/tests/es_version_compatibility_tests.cpp
+  )
+
+  target_link_libraries(osquery_events_tests_es_compatibility-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_events
+    osquery_database
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_filesystem
+    osquery_utils
+    osquery_utils_conversions
+    specs_tables
+    tests_helper
+    thirdparty_googletest
+  )
+  
+  # Add include directory for darwin headers
+  target_include_directories(osquery_events_tests_es_compatibility-test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../  # This points to the osquery directory
+  )
+
+  # Add Endpoint Security test for field handling
+  add_osquery_executable(osquery_events_tests_es_fields-test
+    ../darwin/tests/es_field_handling_tests.cpp
+  )
+
+  target_link_libraries(osquery_events_tests_es_fields-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_events
+    osquery_database
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_filesystem
+    osquery_utils
+    osquery_utils_conversions
+    specs_tables
+    tests_helper
+    thirdparty_googletest
+  )
+  
+  # Add include directory for darwin headers
+  target_include_directories(osquery_events_tests_es_fields-test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../  # This points to the osquery directory
+  )
+
+  # Register the tests so they run with ctest
+  add_test(NAME osquery_events_tests_es_categories-test COMMAND osquery_events_tests_es_categories-test)
+  add_test(NAME osquery_events_tests_es_compatibility-test COMMAND osquery_events_tests_es_compatibility-test)
+  add_test(NAME osquery_events_tests_es_fields-test COMMAND osquery_events_tests_es_fields-test)
 endfunction()
 
 osqueryEventsTestsMain()
