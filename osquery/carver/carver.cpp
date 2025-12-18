@@ -352,9 +352,8 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     // TODO: Error sending files.
     status = contRequest.call(params);
     if (!status.ok()) {
-      VLOG(1) << "Post of carved block " << i
-              << " failed: " << status.getMessage();
-      continue;
+      return Status::failure("Failed to post carved block: " +
+                             status.getMessage());
     }
   }
 
