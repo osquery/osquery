@@ -16,6 +16,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/tables/system/users.h>
 #include <osquery/utils/json/json.h>
 
 namespace fs = boost::filesystem;
@@ -45,6 +46,7 @@ const std::vector<std::pair<std::string, std::string>> KPathList = {
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
                                     const std::string& vscode_edition,
+                                    const bool include_remote,
                                     QueryData& results) {
   if (!pathExists(path).ok()) {
     return;
@@ -80,6 +82,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
     Row r;
     r["uid"] = uid;
     r["vscode_edition"] = vscode_edition;
+    r["include_remote"] = include_remote ? "1" : "0";
 
     rapidjson::Value::ConstMemberIterator it = identifier.FindMember("id");
     if (it != identifier.MemberEnd() && it->value.IsString()) {
@@ -141,10 +144,19 @@ struct ConfDir {
 
 QueryData genVSCodeExtensions(QueryContext& context) {
   QueryData results;
-
-  // find vscode config directories
   std::set<ConfDir> conf_dirs;
-  auto users = usersFromContext(context);
+
+  // We need to know if include_remote is set, because we will need
+  // to include the field in our own results so that it won't be filtered out.
+  bool include_remote = false;
+  if (context.hasConstraint("include_remote", EQUALS)) {
+    include_remote = context.constraints["include_remote"].matches<int>(1);
+  }
+
+  // Call genUsers directly, rather than usersFromContext.  usersFromContext
+  // has no ability to query remote users, as it is limited to a single
+  // constraint (uid).
+  auto users = genUsers(context);
   for (const auto& row : users) {
     auto uid = row.find("uid");
     auto directory = row.find("directory");
@@ -162,8 +174,11 @@ QueryData genVSCodeExtensions(QueryContext& context) {
 
   for (const auto& conf_dir : conf_dirs) {
     auto path = conf_dir.path / "extensions" / "extensions.json";
-    genReadJSONAndAddExtensionRows(
-        conf_dir.uid, path.string(), conf_dir.vscode_edition, results);
+    genReadJSONAndAddExtensionRows(conf_dir.uid,
+                                   path.string(),
+                                   conf_dir.vscode_edition,
+                                   include_remote,
+                                   results);
   }
 
   return results;

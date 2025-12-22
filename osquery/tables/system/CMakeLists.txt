@@ -314,6 +314,7 @@ function(generateOsqueryTablesSystemSystemtable)
     smbios_utils.h
     system_utils.h
     user_groups.h
+    users.h
   )
 
   generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FILE_ONLY" ${public_header_files})
