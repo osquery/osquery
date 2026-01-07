@@ -15,18 +15,18 @@
 
 #include "tls_enroll.h"
 
-#include <osquery/remote/enroll/enroll.h>
 #include <osquery/core/flags.h>
+#include <osquery/core/system.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
+#include <osquery/remote/enroll/enroll.h>
 #include <osquery/sql/sql.h>
-#include <osquery/core/system.h>
 
+#include <osquery/core/shutdown.h>
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/utils/info/platform_type.h>
-#include <osquery/core/shutdown.h>
 
 namespace osquery {
 
@@ -128,7 +128,7 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   params.addCopy(FLAGS_tls_enroll_override, getEnrollSecret());
   params.addCopy("host_identifier", getHostIdentifier());
   params.addCopy("platform_type",
-             std::to_string(static_cast<uint64_t>(kPlatformType)));
+                 std::to_string(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
   JSON host_details;
