@@ -89,7 +89,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     {WatchdogLimitType::LATENCY_LIMIT, {12, 6, 1000}},
 
     // How often to poll for performance limit violations.
-    {WatchdogLimitType::INTERVAL, {1, 3, 3}},
+    {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
 
 /// Set to true if at least one extension is watched.
@@ -118,7 +118,7 @@ CLI_FLAG(uint64,
 
 CLI_FLAG(uint64,
          watchdog_delay,
-         10,
+         60,
          "Initial delay in seconds before watchdog starts");
 
 HIDDEN_FLAG(uint64,
