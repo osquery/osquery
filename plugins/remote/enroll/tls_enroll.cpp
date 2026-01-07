@@ -125,15 +125,15 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
                                    std::string& node_key) {
   // Read the optional enrollment secret data (sent with an enrollment request).
   JSON params;
-  params.add(FLAGS_tls_enroll_override, getEnrollSecret());
-  params.add("host_identifier", getHostIdentifier());
-  params.add("platform_type",
+  params.addCopy(FLAGS_tls_enroll_override, getEnrollSecret());
+  params.addCopy("host_identifier", getHostIdentifier());
+  params.addCopy("platform_type",
              std::to_string(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
   JSON host_details;
   genHostDetails(host_details);
-  params.add("host_details", host_details.doc());
+  params.addCopy("host_details", host_details.doc());
 
   Request<TLSTransport, JSONSerializer> request(uri);
   request.setOption("hostname", FLAGS_tls_hostname);

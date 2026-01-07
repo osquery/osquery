@@ -148,7 +148,7 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
       // If authentication is turned on, make a POST request with the node key
       // in the JSON body.
       JSON params;
-      params.add("node_key", getNodeKey("tls"));
+      params.addCopy("node_key", getNodeKey("tls"));
       std::string postBody;
       Status result = params.toString(postBody);
       if (!result.ok()) {

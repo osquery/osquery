@@ -38,11 +38,11 @@ class DocAppenderVisitor : public boost::static_visitor<> {
  public:
   DocAppenderVisitor(JSON& dc, rj::Value& ob) : doc(dc), obj(ob) {}
   void operator()(const std::string& key, const long long& i) const {
-    doc.add(key, i, obj);
+    doc.addCopy(key, i, obj);
   }
 
   void operator()(const std::string& key, const double& d) const {
-    doc.add(key, d, obj);
+    doc.addCopy(key, d, obj);
   }
 
   void operator()(const std::string& key, const std::string& str) const {
@@ -62,7 +62,7 @@ Status serializeRow(const RowTyped& r,
   for (const auto& i : r) {
     if (asNumeric) {
       boost::apply_visitor([&doc, &obj, &key = i.first](
-                               auto value) { doc.add(key, value, obj); },
+                               auto value) { doc.addCopy(key, value, obj); },
                            i.second);
     } else {
       doc.addRef(i.first, castVariant(i.second), obj);

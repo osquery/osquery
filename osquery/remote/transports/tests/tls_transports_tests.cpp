@@ -115,7 +115,7 @@ TEST_F(TLSTransportsTests, test_call_with_params) {
 
   // This time we'll construct a request parameter.
   JSON params;
-  params.add("foo", "bar");
+  params.addCopy("foo", "bar");
 
   // The call with a set of a params will push this "JSONSerializer"-serialized
   // data into the body of the request and issue a POST to the URI.
@@ -268,7 +268,7 @@ TEST_F(TLSTransportsTests, test_gzip_with_params) {
   Request<TLSTransport, JSONSerializer> r(url, t);
 
   JSON params;
-  params.add("test_key", "test_value");
+  params.addCopy("test_key", "test_value");
 
   // Make a POST request with params - verify gzip works with POST too
   Status status;

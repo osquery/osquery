@@ -29,7 +29,7 @@ Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(prometheus_targets->second.doc(), obj);
-    doc.add(kPrometheusParserRootKey, obj);
+    doc.addCopy(kPrometheusParserRootKey, obj);
     data_ = std::move(doc);
   }
 

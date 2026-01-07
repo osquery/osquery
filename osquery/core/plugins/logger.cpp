@@ -9,6 +9,7 @@
 
 #include "logger.h"
 
+#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 
 namespace rj = rapidjson;
@@ -18,7 +19,7 @@ namespace osquery {
 namespace {
 
 void deserializeIntermediateLog(const PluginRequest& request,
-                                       std::vector<StatusLogLine>& log) {
+                                std::vector<StatusLogLine>& log) {
   if (request.count("log") == 0) {
     return;
   }
@@ -27,6 +28,8 @@ void deserializeIntermediateLog(const PluginRequest& request,
   if (doc.Parse(request.at("log").c_str()).HasParseError()) {
     return;
   }
+
+  LOG(ERROR) << "deserializeIntermediateLog: " << request.at("log");
 
   for (auto& line : doc.GetArray()) {
     log.push_back({
@@ -41,7 +44,7 @@ void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-}
+} // namespace
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {

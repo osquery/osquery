@@ -206,8 +206,8 @@ TEST_F(CarverTests, test_expiration) {
     std::string request_id(tree.doc()["request_id"].GetString());
     EXPECT_EQ(request_id, "request-id");
 
-    tree.add("time", 0);
-    tree.add("status", kCarverStatusSuccess);
+    tree.addCopy("time", 0);
+    tree.addCopy("status", kCarverStatusSuccess);
     s = tree.toString(carve);
     ASSERT_TRUE(s.ok());
     s = setDatabaseValue(kCarves, carves[0], carve);
@@ -238,7 +238,7 @@ TEST_F(CarverTests, test_expiration) {
 
     // This time only update the time.
     // Expect the carve to have been successful.
-    tree.add("time", 0);
+    tree.addCopy("time", 0);
     s = tree.toString(carve);
     ASSERT_TRUE(s.ok());
     s = setDatabaseValue(kCarves, carves[0], carve);
@@ -317,13 +317,13 @@ TEST_F(CarverTests, test_carve_size_over_2gb_serialization) {
 
     // Create a carve entry with the test size
     JSON carve_doc;
-    carve_doc.add("carve_guid", guid);
-    carve_doc.add("request_id", requestId);
-    carve_doc.add("path", "/tmp/test_file_" + std::to_string(test_size));
-    carve_doc.add("status", "SUCCESS");
-    carve_doc.add("time", static_cast<uint64_t>(1234567890));
-    carve_doc.add("size", test_size);
-    carve_doc.add("sha256", "abc123");
+    carve_doc.addCopy("carve_guid", guid);
+    carve_doc.addCopy("request_id", requestId);
+    carve_doc.addCopy("path", "/tmp/test_file_" + std::to_string(test_size));
+    carve_doc.addCopy("status", "SUCCESS");
+    carve_doc.addCopy("time", static_cast<uint64_t>(1234567890));
+    carve_doc.addCopy("size", test_size);
+    carve_doc.addCopy("sha256", "abc123");
 
     std::string serialized;
     auto s = carve_doc.toString(serialized);
