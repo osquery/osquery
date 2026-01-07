@@ -9,7 +9,6 @@
 
 #include "logger.h"
 
-#include <osquery/logger/logger.h>
 #include <osquery/utils/json/json.h>
 
 namespace rj = rapidjson;
@@ -28,8 +27,6 @@ void deserializeIntermediateLog(const PluginRequest& request,
   if (doc.Parse(request.at("log").c_str()).HasParseError()) {
     return;
   }
-
-  LOG(ERROR) << "deserializeIntermediateLog: " << request.at("log");
 
   for (auto& line : doc.GetArray()) {
     log.push_back({
