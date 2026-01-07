@@ -13,6 +13,18 @@
 
 #include <algorithm>
 
+// See https://rapidjson.org/md_doc_tutorial.html#CreateModifyValues to
+// understand how rapidjson handles copying values vs. referencing values (move
+// semantics).
+//
+// Previous code in this file seemed to misunderstand that copying values always
+// happens when an allocator is passed to the Value constructor. For example:
+// rj::Value(rj::StringRef(value), document.GetAllocator()).Move() will copy the
+// value.
+//
+// To reference the value, use rj::Value(rj::StringRef(value)) (without the
+// allocator).
+
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -91,7 +103,7 @@ void JSON::addCopy(const std::string& key,
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(value, doc_.GetAllocator()).Move(),
                 doc_.GetAllocator());
 }
@@ -105,10 +117,8 @@ void JSON::addCopy(const std::string& key,
     obj.RemoveMember(itr);
   }
 
-  rj::Value sc;
-  sc.SetString(value.c_str(), value.size(), doc_.GetAllocator());
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                sc.Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
+                rj::Value(value, doc_.GetAllocator()).Move(),
                 doc_.GetAllocator());
 }
 
@@ -141,7 +151,7 @@ void JSON::addRef(const std::string& key, const char* value, rj::Value& obj) {
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(rj::StringRef(value)),
                 doc_.GetAllocator());
 }
@@ -157,7 +167,7 @@ void JSON::addCopy(const std::string& key, const char* value, rj::Value& obj) {
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(value, strlen(value), doc_.GetAllocator()).Move(),
                 doc_.GetAllocator());
 }
@@ -188,7 +198,7 @@ void JSON::addCopy(const std::string& key, long value, rj::Value& obj) {
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(static_cast<int64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
@@ -203,7 +213,7 @@ void JSON::addCopy(const std::string& key, long long value, rj::Value& obj) {
   if (itr != obj.MemberEnd()) {
     obj.RemoveMember(itr);
   }
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(static_cast<int64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
@@ -218,7 +228,7 @@ void JSON::addCopy(const std::string& key, unsigned int value, rj::Value& obj) {
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(static_cast<uint64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
@@ -236,7 +246,7 @@ void JSON::addCopy(const std::string& key,
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(static_cast<uint64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
@@ -253,7 +263,7 @@ void JSON::addCopy(const std::string& key,
   if (itr != obj.MemberEnd()) {
     obj.RemoveMember(itr);
   }
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(static_cast<uint64_t>(value)).Move(),
                 doc_.GetAllocator());
 }
@@ -266,7 +276,7 @@ void JSON::addCopy(const std::string& key, double value, rj::Value& obj) {
   if (itr != obj.MemberEnd()) {
     obj.RemoveMember(itr);
   }
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(value).Move(),
                 doc_.GetAllocator());
 }
@@ -281,7 +291,7 @@ void JSON::addCopy(const std::string& key, bool value, rj::Value& obj) {
     obj.RemoveMember(itr);
   }
 
-  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+  obj.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
                 rj::Value(value).Move(),
                 doc_.GetAllocator());
 }
