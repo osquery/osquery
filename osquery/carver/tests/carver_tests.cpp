@@ -21,6 +21,7 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/base64.h>
 #include <osquery/utils/json/json.h>
 
 namespace osquery {
@@ -74,6 +75,7 @@ class CarverTests : public testing::Test {
     platformSetup();
     registryAndPluginInit();
     initDatabasePluginForTesting();
+    setDatabaseValue(kPersistentSettings, "nodeKey", "test_node_key");
 
     working_dir_ =
         fs::temp_directory_path() /
@@ -364,6 +366,148 @@ TEST_F(CarverTests, test_carve_size_over_2gb_serialization) {
         << retrieved_size;
 
     deleteDatabaseValue(kCarves, key);
+  }
+}
+
+class TransientFailureCarver : public Carver {
+ public:
+  TransientFailureCarver(const std::set<std::string>& paths,
+                         const std::string& guid,
+                         const std::string& requestId,
+                         const std::set<size_t>& fail_on)
+      : Carver(paths, guid, requestId), fail_on_(fail_on), call_count_(0) {}
+
+  Status sendRequest(Request<TLSTransport, JSONSerializer>& request,
+                     const JSON& params,
+                     JSON& response) override {
+    call_count_++;
+    std::string body;
+    params.toString(body);
+    request_bodies_.push_back(std::move(body));
+
+    if (fail_on_.count(call_count_)) {
+      return Status::failure("Transient failure");
+    }
+
+    if (params.doc().HasMember("carve_id")) {
+      response.add("session_id", "test_session");
+    }
+
+    return Status::success();
+  }
+
+  size_t call_count() const {
+    return call_count_;
+  }
+
+  const std::vector<std::string>& request_bodies() const {
+    return request_bodies_;
+  }
+
+ private:
+  std::set<size_t> fail_on_;
+  size_t call_count_;
+  std::vector<std::string> request_bodies_;
+};
+
+TEST_F(CarverTests, test_carve_retries) {
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+
+  // Test success after specific failures.
+  // Fail start requests 1 and 2, succeed at 3.
+  // Fail block request 4, succeed at 5.
+  TransientFailureCarver carve(getCarvePaths(), guid, requestId, {1, 2, 4});
+
+  auto s = carve.carve();
+  EXPECT_TRUE(s.ok()) << s.getMessage();
+
+  const auto& bodies = carve.request_bodies();
+  // 3 start requests (att 1, 2, 3) + 2 block requests (att 1, 2)
+  ASSERT_GE(bodies.size(), 5U);
+
+  uint64_t expected_carve_size = 0;
+  // The first three requests should be 'start' requests (2 failed, 1
+  // succeeded).
+  for (size_t i = 0; i < 3; ++i) {
+    JSON doc;
+    ASSERT_TRUE(doc.fromString(bodies[i]).ok());
+    EXPECT_EQ(std::string(doc.doc()["carve_id"].GetString()), guid);
+    EXPECT_EQ(std::string(doc.doc()["request_id"].GetString()), requestId);
+    EXPECT_EQ(std::string(doc.doc()["node_key"].GetString()), "test_node_key");
+    EXPECT_TRUE(doc.doc().HasMember("block_count"));
+    expected_carve_size = doc.doc()["carve_size"].GetUint64();
+  }
+
+  // The 4th and 5th requests should be for the first block (1 failed, 1
+  // succeeded).
+  for (size_t i = 3; i < 5; ++i) {
+    JSON doc;
+    ASSERT_TRUE(doc.fromString(bodies[i]).ok());
+    EXPECT_EQ(std::string(doc.doc()["session_id"].GetString()), "test_session");
+    EXPECT_EQ(std::string(doc.doc()["request_id"].GetString()), requestId);
+    EXPECT_EQ(doc.doc()["block_id"].GetUint(), 0U);
+    ASSERT_TRUE(doc.doc().HasMember("data"));
+
+    std::string encoded_data = doc.doc()["data"].GetString();
+    std::string decoded_data = base64::decode(encoded_data);
+    EXPECT_EQ(decoded_data.size(), expected_carve_size);
+  }
+
+  EXPECT_EQ(carve.call_count(), 5U);
+}
+
+TEST_F(CarverTests, test_carve_start_failure) {
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+
+  // Test permanent failure (3 failures on start request).
+  TransientFailureCarver carve(getCarvePaths(), guid, requestId, {1, 2, 3});
+
+  auto s = carve.carve();
+  EXPECT_FALSE(s.ok());
+  EXPECT_EQ(carve.call_count(), 3U);
+
+  const auto& bodies = carve.request_bodies();
+  ASSERT_EQ(bodies.size(), 3U);
+  for (const auto& body : bodies) {
+    JSON doc;
+    ASSERT_TRUE(doc.fromString(body).ok());
+    EXPECT_EQ(std::string(doc.doc()["carve_id"].GetString()), guid);
+    EXPECT_EQ(std::string(doc.doc()["request_id"].GetString()), requestId);
+    EXPECT_TRUE(doc.doc().HasMember("carve_size"));
+    EXPECT_GT(doc.doc()["carve_size"].GetUint64(), 0U);
+  }
+}
+
+TEST_F(CarverTests, test_carve_block_failure) {
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+
+  // Test permanent failure on block send (Call 1 succeeds, Calls 2, 3, 4 fail).
+  TransientFailureCarver carve(getCarvePaths(), guid, requestId, {2, 3, 4});
+
+  auto s = carve.carve();
+  EXPECT_FALSE(s.ok());
+  // 1 success for start + 3 failures for block 0
+  EXPECT_EQ(carve.call_count(), 4U);
+
+  const auto& bodies = carve.request_bodies();
+  ASSERT_EQ(bodies.size(), 4U);
+
+  // Call 1 is start
+  {
+    JSON doc;
+    ASSERT_TRUE(doc.fromString(bodies[0]).ok());
+    EXPECT_TRUE(doc.doc().HasMember("carve_id"));
+  }
+
+  // Calls 2, 3, 4 are block sends
+  for (size_t i = 1; i < 4; ++i) {
+    JSON doc;
+    ASSERT_TRUE(doc.fromString(bodies[i]).ok());
+    EXPECT_EQ(std::string(doc.doc()["session_id"].GetString()), "test_session");
+    EXPECT_EQ(doc.doc()["block_id"].GetUint(), 0U);
   }
 }
 } // namespace osquery
