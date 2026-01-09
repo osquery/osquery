@@ -41,6 +41,10 @@ function(libbpfMain)
     __LIBBPF_STRERRNO_MAX=4096
   )
 
+  target_compile_options(thirdparty_libbpf PRIVATE
+    -include "${CMAKE_CURRENT_SOURCE_DIR}/include/pt_regs_fix.h"
+  )
+
   target_link_libraries(thirdparty_libbpf PRIVATE
     thirdparty_c_settings
     thirdparty_libelf
@@ -49,6 +53,8 @@ function(libbpfMain)
 
   target_include_directories(thirdparty_libbpf PRIVATE
     "${library_root}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/include/uapi"
   )
 
   target_include_directories(thirdparty_libbpf SYSTEM INTERFACE

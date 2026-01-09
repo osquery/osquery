@@ -19,6 +19,16 @@
 #define HAVE_UNISTD_H 1
 #define HAVE_VISIBILITY 1
 #define HAVE_FALLTHROUGH 1
+#define HAVE_ERR_H 1
+#define HAVE_ERROR_H 1
+
+#ifndef N_
+#define N_(str) str
+#endif
+
+#ifndef _
+#define _(str) str
+#endif
 
 #define PACKAGE "elfutils"
 #define PACKAGE_BUGREPORT "https://sourceware.org/bugzilla"
@@ -37,3 +47,5 @@
 
 /* Required for eu-config.h */
 #define HAVE_GCC_STRUCT 1
+
+#include "eu-config.h"
