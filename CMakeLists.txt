@@ -125,6 +125,8 @@ function(importLibraries)
 
   if(OSQUERY_BUILD_BPF)
     list(APPEND library_descriptor_list
+      "Linux:libelf"
+      "Linux:libbpf"
       "Linux:ebpfpub"
     )
   endif()

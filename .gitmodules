@@ -154,3 +154,9 @@
 [submodule "libraries/cmake/source/lz4/src"]
 	path = libraries/cmake/source/lz4/src
 	url = https://github.com/lz4/lz4.git
+[submodule "libraries/cmake/source/libelf/src"]
+	path = libraries/cmake/source/libelf/src
+	url = https://sourceware.org/git/elfutils.git
+[submodule "libraries/cmake/source/libbpf/src"]
+	path = libraries/cmake/source/libbpf/src
+	url = https://github.com/libbpf/libbpf.git
