@@ -336,6 +336,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Validate threshold arguments: ensure v1 < v2 < v3
+    def validate_thresholds(name, values):
+        if not (values[0] < values[1] < values[2]):
+            parser.error(f"{name} thresholds must be in increasing order: v1 < v2 < v3 (got {values})")
+
+    validate_thresholds("Utilization", args.utilization)
+    validate_thresholds("CPU time", args.cpu_time)
+    validate_thresholds("Memory", args.memory)
+    validate_thresholds("File descriptors", args.fds)
+    validate_thresholds("Duration", args.duration)
+
     # Update RANGES with argparse values
     RANGES.update({
         "utilization": args.utilization,
