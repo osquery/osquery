@@ -66,6 +66,7 @@ function(libbpfMain)
   # manually symlink headers if needed. osquery usually 
   # prefers flattened includes or specific search paths.
   target_include_directories(thirdparty_libbpf SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/include/uapi"
   )

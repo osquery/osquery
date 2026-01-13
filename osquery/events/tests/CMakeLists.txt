@@ -98,12 +98,14 @@ function(generateOsqueryEventsTestsBpftestsTest)
     linux/bpf/systemstatetracker.cpp
     linux/bpf/utils.cpp
     linux/bpf/utils.h
+    linux/bpf/libbpf_test.cpp
   )
 
   target_link_libraries(osquery_events_tests_bpftests-test PRIVATE
     osquery_cxx_settings
     osquery_remote_tests_remotetestutils
     thirdparty_googletest
+    thirdparty_libbpf
   )
 endfunction()
 
