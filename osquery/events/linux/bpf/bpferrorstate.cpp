@@ -12,45 +12,7 @@
 
 namespace osquery {
 
-namespace ebpfpub = tob::ebpfpub;
-
-void updateBpfErrorState(
-    BPFErrorState& bpf_error_state,
-    const ebpfpub::IPerfEventReader::ErrorCounters& perf_error_counters) {
-  bpf_error_state.perf_error_counters.invalid_event +=
-      perf_error_counters.invalid_event;
-
-  bpf_error_state.perf_error_counters.lost_events +=
-      perf_error_counters.lost_events;
-
-  bpf_error_state.perf_error_counters.invalid_probe_output +=
-      perf_error_counters.invalid_probe_output;
-
-  bpf_error_state.perf_error_counters.invalid_event_data +=
-      perf_error_counters.invalid_event_data;
-}
-
 void reportAndClearBpfErrorState(BPFErrorState& bpf_error_state) {
-  if (bpf_error_state.perf_error_counters.invalid_probe_output != 0U) {
-    VLOG(1) << "Invalid BPF probe output error count: "
-            << bpf_error_state.perf_error_counters.invalid_probe_output;
-  }
-
-  if (bpf_error_state.perf_error_counters.invalid_event != 0U) {
-    VLOG(1) << "Invalid BPF probe event id count: "
-            << bpf_error_state.perf_error_counters.invalid_event;
-  }
-
-  if (bpf_error_state.perf_error_counters.invalid_event_data != 0U) {
-    VLOG(1) << "Invalid BPF event data count: "
-            << bpf_error_state.perf_error_counters.invalid_event_data;
-  }
-
-  if (bpf_error_state.perf_error_counters.lost_events != 0U) {
-    VLOG(1) << "Lost BPF event count: "
-            << bpf_error_state.perf_error_counters.lost_events;
-  }
-
   if (bpf_error_state.probe_error_counter != 0U) {
     VLOG(1) << "Buffers/strings that could not be captured by the probe: "
             << bpf_error_state.probe_error_counter;

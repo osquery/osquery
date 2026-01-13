@@ -26,7 +26,7 @@ namespace osquery {
 namespace {
 
 // clang-format off
-const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader {
+const BPFEventHeader kBaseBPFEventHeader {
   // nsecs timestamp, starting from the system boot
   0U,
 

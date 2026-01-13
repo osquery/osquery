@@ -75,7 +75,7 @@ Status SystemStateTracker::restart() {
 }
 
 bool SystemStateTracker::createProcess(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     pid_t child_process_id) {
   return createProcess(d->context,
@@ -86,12 +86,12 @@ bool SystemStateTracker::createProcess(
 }
 
 bool SystemStateTracker::executeBinary(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int dirfd,
     int flags,
     const std::string& binary_path,
-    const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv) {
+    const BPFEventArgv& argv) {
   return executeBinary(d->context,
                        *d->process_context_factory.get(),
                        event_header,
@@ -151,7 +151,7 @@ bool SystemStateTracker::createSocket(
 }
 
 bool SystemStateTracker::bind(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr) {
@@ -164,7 +164,7 @@ bool SystemStateTracker::bind(
 }
 
 bool SystemStateTracker::listen(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd) {
   return listen(d->context,
@@ -175,7 +175,7 @@ bool SystemStateTracker::listen(
 }
 
 bool SystemStateTracker::connect(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr) {
@@ -188,7 +188,7 @@ bool SystemStateTracker::connect(
 }
 
 bool SystemStateTracker::accept(
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr,
@@ -339,7 +339,7 @@ Status SystemStateTracker::expireProcessContexts(Context& context,
 bool SystemStateTracker::createProcess(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     pid_t child_process_id) {
   ProcessContext child_process_context =
@@ -370,12 +370,12 @@ bool SystemStateTracker::createProcess(
 bool SystemStateTracker::executeBinary(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int dirfd,
     int flags,
     const std::string& binary_path,
-    const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv) {
+    const BPFEventArgv& argv) {
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
@@ -643,7 +643,7 @@ bool SystemStateTracker::createSocket(
 bool SystemStateTracker::bind(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr) {
@@ -724,7 +724,7 @@ bool SystemStateTracker::bind(
 bool SystemStateTracker::listen(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd) {
   Event::SocketData data;
@@ -787,7 +787,7 @@ bool SystemStateTracker::listen(
 bool SystemStateTracker::connect(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr) {
@@ -868,7 +868,7 @@ bool SystemStateTracker::connect(
 bool SystemStateTracker::accept(
     Context& context,
     IProcessContextFactory& process_context_factory,
-    const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+    const BPFEventHeader& event_header,
     pid_t process_id,
     int fd,
     const std::vector<std::uint8_t>& sockaddr,

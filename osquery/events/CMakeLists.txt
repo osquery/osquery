@@ -104,11 +104,6 @@ function(generateOsqueryEvents)
       thirdparty_util-linux
     )
 
-    if(OSQUERY_BUILD_BPF)
-      target_link_libraries(osquery_events PUBLIC
-        thirdparty_ebpfpub
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC

@@ -30,17 +30,17 @@ class SystemStateTracker final : public ISystemStateTracker {
   virtual Status restart() override;
 
   virtual bool createProcess(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       pid_t child_process_id) override;
 
   virtual bool executeBinary(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int dirfd,
       int flags,
       const std::string& binary_path,
-      const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv) override;
+      const BPFEventArgv& argv) override;
 
   virtual bool setWorkingDirectory(pid_t process_id, int dirfd) override;
 
@@ -64,24 +64,24 @@ class SystemStateTracker final : public ISystemStateTracker {
       pid_t process_id, int domain, int type, int protocol, int fd) override;
 
   virtual bool bind(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) override;
 
   virtual bool listen(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd) override;
 
   virtual bool connect(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) override;
 
   virtual bool accept(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr,
@@ -139,19 +139,19 @@ class SystemStateTracker final : public ISystemStateTracker {
   static bool createProcess(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       pid_t child_process_id);
 
   static bool executeBinary(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int dirfd,
       int flags,
       const std::string& binary_path,
-      const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv);
+      const BPFEventArgv& argv);
 
   static bool setWorkingDirectory(
       Context& context,
@@ -195,7 +195,7 @@ class SystemStateTracker final : public ISystemStateTracker {
   static bool bind(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr);
@@ -203,14 +203,14 @@ class SystemStateTracker final : public ISystemStateTracker {
   static bool listen(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd);
 
   static bool connect(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr);
@@ -218,7 +218,7 @@ class SystemStateTracker final : public ISystemStateTracker {
   static bool accept(
       Context& context,
       IProcessContextFactory& process_context_factory,
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr,

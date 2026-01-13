@@ -19,10 +19,17 @@
 
 namespace osquery {
 
+// Placeholder for removed ebpfpub Field type
+struct BPFEventField {
+  std::string name;
+  bool in_field;
+  std::variant<std::string, std::vector<std::string>, int, std::vector<std::uint8_t>> data;
+};
+
 namespace {
 
 // clang-format off
-const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
+const BPFEventHeader kBaseBPFEventHeader = {
   // timestamp (nsecs from boot)
   1234567890ULL,
 
@@ -50,7 +57,7 @@ const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
 // clang-format on
 
 // clang-format off
-const tob::ebpfpub::IFunctionTracer::Event kBaseBPFEvent = {
+const BPFEvent kBaseBPFEvent = {
   // event identifier
   1,
 
@@ -206,7 +213,7 @@ TEST_F(BPFEventPublisherTests, processExecveEvent) {
   bpf_event.name = "execve";
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     true,
     "/usr/bin/zsh"
@@ -214,7 +221,7 @@ TEST_F(BPFEventPublisherTests, processExecveEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field argv_field = {
+  BPFEventField argv_field = {
     "argv",
     true,
 
@@ -271,7 +278,7 @@ TEST_F(BPFEventPublisherTests, processExecveatEvent) {
   bpf_event.name = "execveat";
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     true,
     "/usr/bin/zsh"
@@ -279,7 +286,7 @@ TEST_F(BPFEventPublisherTests, processExecveatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field argv_field = {
+  BPFEventField argv_field = {
     "argv",
     true,
 
@@ -292,7 +299,7 @@ TEST_F(BPFEventPublisherTests, processExecveatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+  BPFEventField flags_field = {
     "flags",
     true,
     0ULL
@@ -300,7 +307,7 @@ TEST_F(BPFEventPublisherTests, processExecveatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     static_cast<std::uint64_t>(AT_FDCWD)
@@ -475,7 +482,7 @@ TEST_F(BPFEventPublisherTests, processDup2Event) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field oldfd_field = {
+  BPFEventField oldfd_field = {
     "oldfd",
     true,
     15ULL
@@ -483,7 +490,7 @@ TEST_F(BPFEventPublisherTests, processDup2Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field newfd_field = {
+  BPFEventField newfd_field = {
     "newfd",
     true,
     16ULL
@@ -550,7 +557,7 @@ TEST_F(BPFEventPublisherTests, processDup3Event) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field oldfd_field = {
+  BPFEventField oldfd_field = {
     "oldfd",
     true,
     15ULL
@@ -558,7 +565,7 @@ TEST_F(BPFEventPublisherTests, processDup3Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field newfd_field = {
+  BPFEventField newfd_field = {
     "newfd",
     true,
     16ULL
@@ -566,7 +573,7 @@ TEST_F(BPFEventPublisherTests, processDup3Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+  BPFEventField flags_field = {
     "flags",
     true,
     0ULL
@@ -697,7 +704,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   bpf_event.header.exit_code = 1000ULL;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field mode_field = {
+  BPFEventField mode_field = {
     "mode",
     true,
     static_cast<std::uint64_t>(S_IFREG)
@@ -705,7 +712,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     true,
     "/home/alessandro/test_file"
@@ -779,7 +786,7 @@ TEST_F(BPFEventPublisherTests, processMknodatEvent) {
   // parameter using the fd we just created
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field opt_dirfd_field = {
+  BPFEventField opt_dirfd_field = {
     "dirfd",
     true,
     static_cast<std::uint64_t>(bpf_event.header.exit_code)
@@ -816,7 +823,7 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+  BPFEventField flags_field = {
     "flags",
     true,
     0ULL
@@ -824,7 +831,7 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     true,
     "/home/alessandro/test_file.txt"
@@ -879,9 +886,9 @@ TEST_F(BPFEventPublisherTests, processOpenEvent) {
 
 void testOpenAtEventCommon(
     const std::string& event_name,
-    const tob::ebpfpub::IFunctionTracer::Event::Field& field1,
-    const tob::ebpfpub::IFunctionTracer::Event::Field& field2,
-    const tob::ebpfpub::IFunctionTracer::Event::Field& field3) {
+    const BPFEvent::Field& field1,
+    const BPFEvent::Field& field2,
+    const BPFEvent::Field& field3) {
   ASSERT_TRUE(event_name == "openat" || event_name == "openat2");
 
   auto state_tracker_ref =
@@ -970,7 +977,7 @@ void testOpenAtEventCommon(
 
 TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+  BPFEventField flags_field = {
     "flags",
     true,
     0ULL
@@ -978,7 +985,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     false,
     "/home/alessandro/test_file.txt"
@@ -986,7 +993,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field dfd_field = {
+  BPFEventField dfd_field = {
     "dfd",
     true,
     15ULL
@@ -998,7 +1005,7 @@ TEST_F(BPFEventPublisherTests, processOpenatEvent) {
 
 TEST_F(BPFEventPublisherTests, processOpenat2Event) {
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field how_field = {
+  BPFEventField how_field = {
     "how",
     true,
     std::vector<std::uint8_t>(24, 0)
@@ -1006,7 +1013,7 @@ TEST_F(BPFEventPublisherTests, processOpenat2Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field filename_field = {
+  BPFEventField filename_field = {
     "filename",
     false,
     "/home/alessandro/test_file.txt"
@@ -1014,7 +1021,7 @@ TEST_F(BPFEventPublisherTests, processOpenat2Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field dfd_field = {
+  BPFEventField dfd_field = {
     "dfd",
     true,
     15ULL
@@ -1164,7 +1171,7 @@ TEST_F(BPFEventPublisherTests, processSocketEvent) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field family_field = {
+  BPFEventField family_field = {
     "family",
     true,
     0ULL
@@ -1172,7 +1179,7 @@ TEST_F(BPFEventPublisherTests, processSocketEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field type_field = {
+  BPFEventField type_field = {
     "type",
     true,
     0ULL
@@ -1180,7 +1187,7 @@ TEST_F(BPFEventPublisherTests, processSocketEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field protocol_field = {
+  BPFEventField protocol_field = {
     "protocol",
     true,
     0ULL
@@ -1252,7 +1259,7 @@ TEST_F(BPFEventPublisherTests, processFcntlEvent) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field cmd_field = {
+  BPFEventField cmd_field = {
     "cmd",
     true,
     static_cast<std::uint64_t>(F_DUPFD)
@@ -1260,7 +1267,7 @@ TEST_F(BPFEventPublisherTests, processFcntlEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL
@@ -1340,7 +1347,7 @@ TEST_F(BPFEventPublisherTests, processConnectEvent) {
 
   // This will be read as AF_UNIX since it's all zeroed
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field uservaddr_field = {
+  BPFEventField uservaddr_field = {
     "uservaddr",
     true,
     std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
@@ -1348,7 +1355,7 @@ TEST_F(BPFEventPublisherTests, processConnectEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL
@@ -1415,7 +1422,7 @@ TEST_F(BPFEventPublisherTests, processAcceptEvent) {
 
   // This will be read as AF_UNIX since it's all zeroed
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field upeer_sockaddr_field = {
+  BPFEventField upeer_sockaddr_field = {
     "upeer_sockaddr",
     true,
     std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
@@ -1423,7 +1430,7 @@ TEST_F(BPFEventPublisherTests, processAcceptEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL
@@ -1498,7 +1505,7 @@ TEST_F(BPFEventPublisherTests, processAccept4Event) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field flags_field = {
+  BPFEventField flags_field = {
     "flags",
     true,
     0ULL
@@ -1507,7 +1514,7 @@ TEST_F(BPFEventPublisherTests, processAccept4Event) {
 
   // This will be read as AF_UNIX since it's all zeroed
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field upeer_sockaddr_field = {
+  BPFEventField upeer_sockaddr_field = {
     "upeer_sockaddr",
     true,
     std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
@@ -1515,7 +1522,7 @@ TEST_F(BPFEventPublisherTests, processAccept4Event) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL
@@ -1597,7 +1604,7 @@ TEST_F(BPFEventPublisherTests, processBindEvent) {
 
   // This will be read as AF_UNIX since it's all zeroed
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field umyaddr_field = {
+  BPFEventField umyaddr_field = {
     "umyaddr",
     true,
     std::vector<std::uint8_t>(sizeof(sockaddr_un), 0)
@@ -1605,7 +1612,7 @@ TEST_F(BPFEventPublisherTests, processBindEvent) {
   // clang-format on
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL
@@ -1673,7 +1680,7 @@ TEST_F(BPFEventPublisherTests, processListenEvent) {
   bpf_event.header.process_id = 2;
 
   // clang-format off
-  tob::ebpfpub::IFunctionTracer::Event::Field fd_field = {
+  BPFEventField fd_field = {
     "fd",
     true,
     15ULL

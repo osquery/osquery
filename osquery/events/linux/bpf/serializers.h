@@ -11,14 +11,19 @@
 
 #include <string>
 #include <unordered_map>
-
-#include <ebpfpub/ifunctiontracer.h>
+#include <vector>
 
 namespace osquery {
 
-using ParameterListMap =
-    std::unordered_map<std::string,
-                       tob::ebpfpub::IFunctionTracer::ParameterList>;
+// Placeholder types to replace removed ebpfpub types
+struct BPFParameter {
+  enum class Type { Integer, Buffer, IntegerPtr, String, Argv };
+  enum class Mode { In, Out };
+  std::size_t size{};
+};
+
+using ParameterList = std::vector<BPFParameter>;
+using ParameterListMap = std::unordered_map<std::string, ParameterList>;
 
 extern const ParameterListMap kParameterListMap;
 

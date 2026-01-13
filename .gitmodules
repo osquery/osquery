@@ -91,9 +91,6 @@
 [submodule "libraries/cmake/source/augeas/gnulib/src"]
 	path = libraries/cmake/source/augeas/gnulib/src
 	url = https://github.com/osquery/third-party-gnulib
-[submodule "libraries/cmake/source/ebpfpub/src"]
-	path = libraries/cmake/source/ebpfpub/src
-	url = https://github.com/trailofbits/ebpfpub
 [submodule "libraries/cmake/source/dbus/src"]
 	path = libraries/cmake/source/dbus/src
 	url = https://gitlab.freedesktop.org/dbus/dbus.git

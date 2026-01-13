@@ -31,7 +31,7 @@ const std::vector<std::string> kExpectedRowList = {"ntime",
                                                    "json_cmdline"};
 
 // clang-format off
-const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {
+const BPFEventHeader kBaseBPFEventHeader = {
   // timestamp (nsecs from boot)
   1234567890ULL,
 

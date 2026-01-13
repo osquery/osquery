@@ -9,15 +9,28 @@
 
 #pragma once
 
-#include <ebpfpub/ifunctiontracer.h>
-#include <ebpfpub/iperfeventreader.h>
-
 #include <cstdint>
 #include <string>
 #include <variant>
 #include <vector>
 
 namespace osquery {
+
+// Placeholder types to replace removed ebpfpub types
+struct BPFEventHeader {
+  std::uint64_t timestamp{};
+  std::uint64_t thread_id{};
+  std::uint64_t process_id{};
+  std::uint64_t user_id{};
+  std::uint64_t group_id{};
+  std::uint64_t cgroup_id{};
+  std::uint64_t exit_code{};
+  bool probe_error{};
+};
+
+struct BPFEventArgv {
+  std::vector<std::string> argv;
+};
 
 /// \brief A state tracker that emits events based on the incoming events
 /// The system state tracker starts from a full procfs-based system
@@ -29,7 +42,7 @@ class ISystemStateTracker {
 
   /// A system call event
   struct Event final {
-    using BPFHeader = tob::ebpfpub::IFunctionTracer::Event::Header;
+    using BPFHeader = BPFEventHeader;
 
     /// Event groups. Fork; fork/vfork/clone, Exec: execve/execveat
     enum class Type { Fork, Exec, Connect, Bind, Listen, Accept };
@@ -102,7 +115,7 @@ class ISystemStateTracker {
   /// syscall Once the method has updated the internal state, it will also emit
   /// a new event
   virtual bool createProcess(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       pid_t child_process_id) = 0;
 
@@ -115,12 +128,12 @@ class ISystemStateTracker {
   /// pages
   /// This method will generate a new event
   virtual bool executeBinary(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int dirfd,
       int flags,
       const std::string& binary_path,
-      const tob::ebpfpub::IFunctionTracer::Event::Field::Argv& argv) = 0;
+      const BPFEventArgv& argv) = 0;
 
   /// Sets the process working directory, in response to fchdir
   virtual bool setWorkingDirectory(pid_t process_id, int dirfd) = 0;
@@ -161,7 +174,7 @@ class ISystemStateTracker {
   /// This method will update the process file descriptor and then emit
   /// a new event
   virtual bool bind(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) = 0;
@@ -170,7 +183,7 @@ class ISystemStateTracker {
   /// This method will update the process file descriptor and then emit
   /// a new event
   virtual bool listen(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd) = 0;
 
@@ -178,7 +191,7 @@ class ISystemStateTracker {
   /// This method will update the process file descriptor and then emit
   /// a new event
   virtual bool connect(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr) = 0;
@@ -186,7 +199,7 @@ class ISystemStateTracker {
   /// \brief Creates a new file descriptor in response to accept and accept4
   /// This method will create a new file descriptor and then emit an event
   virtual bool accept(
-      const tob::ebpfpub::IFunctionTracer::Event::Header& event_header,
+      const BPFEventHeader& event_header,
       pid_t process_id,
       int fd,
       const std::vector<std::uint8_t>& sockaddr,
