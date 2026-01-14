@@ -10,10 +10,6 @@ function(osqueryEventsTestsMain)
 
   if(DEFINED PLATFORM_LINUX)
     generateOsqueryEventsLinuxtestsTest()
-
-    if(OSQUERY_BUILD_BPF)
-      generateOsqueryEventsTestsBpftestsTest()
-    endif()
   endif()
 
   if(DEFINED PLATFORM_MACOS)
@@ -80,32 +76,6 @@ function(generateOsqueryEventsLinuxtestsTest)
     specs_tables
     tests_helper
     thirdparty_googletest
-  )
-endfunction()
-
-
-function(generateOsqueryEventsTestsBpftestsTest)
-  add_osquery_executable(
-    osquery_events_tests_bpftests-test
-
-    linux/bpf/bpfeventpublisher.cpp
-    linux/bpf/bpftestsmain.h
-    linux/bpf/mockedfilesystem.cpp
-    linux/bpf/mockedfilesystem.h
-    linux/bpf/mockedprocesscontextfactory.cpp
-    linux/bpf/mockedprocesscontextfactory.h
-    linux/bpf/processcontextfactory.cpp
-    linux/bpf/systemstatetracker.cpp
-    linux/bpf/utils.cpp
-    linux/bpf/utils.h
-    linux/bpf/libbpf_test.cpp
-  )
-
-  target_link_libraries(osquery_events_tests_bpftests-test PRIVATE
-    osquery_cxx_settings
-    osquery_remote_tests_remotetestutils
-    thirdparty_googletest
-    thirdparty_libbpf
   )
 endfunction()
 

@@ -24,12 +24,6 @@ target_link_libraries(osquery_experiments_loader PUBLIC
   thirdparty_boost
 )
 
-if(PLATFORM_LINUX)
-  target_link_libraries(osquery_experiments_loader PUBLIC
-    osquery_experiments_linuxevents
-  )
-endif()
-
 target_compile_definitions(osquery_experiments_loader INTERFACE
   OSQUERY_BUILD_EXPERIMENTS=1
 )

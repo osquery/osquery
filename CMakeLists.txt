@@ -123,12 +123,6 @@ function(importLibraries)
     "Linux:libcap"
   )
 
-  if(OSQUERY_BUILD_BPF)
-    list(APPEND library_descriptor_list
-      "Linux:libelf"
-      "Linux:libbpf"
-    )
-  endif()
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND library_descriptor_list

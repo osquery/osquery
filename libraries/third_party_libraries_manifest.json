@@ -98,10 +98,6 @@
     "vendor": "trailofbits",
     "commit": "8d56c802cb0d655a6794d96ae20df6f6a8fcf385"
   },
-  "linuxevents": {
-    "vendor": "trailofbits",
-    "commit": "31db0a7acdaede9cd6a0311ff5e48ac64cd130cb"
-  },
   "expat": {
     "product": "libexpat",
     "vendor": "libexpat_project",
