@@ -94,10 +94,6 @@
       "CVE-2023-34969"
     ]
   },
-  "ebpfpub": {
-    "vendor": "trailofbits",
-    "commit": "8d56c802cb0d655a6794d96ae20df6f6a8fcf385"
-  },
   "expat": {
     "product": "libexpat",
     "vendor": "libexpat_project",
