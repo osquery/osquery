@@ -1,9 +1,11 @@
-// Copyright (c) 2014-present, The osquery authors
-//
-// This source code is licensed as defined by the LICENSE file found in the
-// root directory of this source tree.
-//
-// SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
 
 // BPF program for tracking process execution events (execve syscalls)
 // Minimal version compatible with clang 9 - no linux/ header dependencies
@@ -34,6 +36,8 @@ static long (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe
 static long (*bpf_probe_read_user)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 112;
 static __u64 (*bpf_get_current_cgroup_id)(void) = (void *) 80;
 
+// Valid license strings seem to be shared with kernel modules: https://docs.kernel.org/process/license-rules.html#id1
+// Apache-2.0 is not included in those so we specify just GPL
 char LICENSE[] SEC("license") = "GPL";
 
 // Ring buffer map definition using BTF-style macros (required for bpftool gen skeleton)
