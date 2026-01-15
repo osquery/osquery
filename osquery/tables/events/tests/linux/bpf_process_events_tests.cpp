@@ -9,8 +9,8 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/tables/events/linux/bpf_process_events.h>
 #include <osquery/events/linux/bpf/bpf_process_event_publisher.h>
+#include <osquery/tables/events/linux/bpf_process_events.h>
 
 namespace osquery {
 
@@ -68,11 +68,11 @@ TEST_F(BPFProcessEventsTests, test_json_cmdline_complex) {
   event.timestamp = 1;
   event.pid = 1;
   event.args = "ls -la /home/user";
-  
+
   Row row;
   bool status = BPFProcessEventSubscriber::generateRow(row, event);
   ASSERT_TRUE(status);
-  
+
   EXPECT_EQ(row["cmdline"], "ls -la /home/user");
   EXPECT_EQ(row["json_cmdline"], "[\"ls\",\"-la\",\"/home/user\"]");
 }

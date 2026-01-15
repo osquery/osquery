@@ -18,13 +18,13 @@ class BPFProcessEventSubscriber
     : public EventSubscriber<BPFProcessEventPublisher> {
  public:
   Status init() override;
-  
+
   Status eventCallback(const ECRef& ec, const SCRef& sc);
-  
+
   static bool generateRow(Row& row, const BPFProcessEvent& event);
   static std::vector<Row> generateRowList(
       const BPFProcessEventList& event_list);
-  
+
  private:
   static std::string generateCmdlineColumn(const std::string& args);
   static std::string generateJsonCmdlineColumn(const std::string& args);

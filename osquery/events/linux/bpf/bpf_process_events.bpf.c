@@ -20,29 +20,38 @@ typedef signed short __s16;
 typedef signed int __s32;
 typedef signed long long __s64;
 
-// Only define what we absolutely need - avoid including anything that pulls in linux/types.h
+// Only define what we absolutely need - avoid including anything that pulls in
+// linux/types.h
 #define SEC(NAME) __attribute__((section(NAME), used))
 
 #include "bpf_process_events.h"
 
 // BPF helper function declarations (from bpf_helpers.h but without includes)
-static void *(*bpf_ringbuf_reserve)(void *ringbuf, __u64 size, __u64 flags) = (void *) 131;
-static void (*bpf_ringbuf_submit)(void *data, __u64 flags) = (void *) 132;
-static __u64 (*bpf_ktime_get_ns)(void) = (void *) 5;
-static __u64 (*bpf_get_current_pid_tgid)(void) = (void *) 14;
-static __u64 (*bpf_get_current_uid_gid)(void) = (void *) 15;
-static long (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *) 16;
-static long (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 114;
-static long (*bpf_probe_read_user)(void *dst, __u32 size, const void *unsafe_ptr) = (void *) 112;
-static __u64 (*bpf_get_current_cgroup_id)(void) = (void *) 80;
+static void* (*bpf_ringbuf_reserve)(void* ringbuf,
+                                    __u64 size,
+                                    __u64 flags) = (void*)131;
+static void (*bpf_ringbuf_submit)(void* data, __u64 flags) = (void*)132;
+static __u64 (*bpf_ktime_get_ns)(void) = (void*)5;
+static __u64 (*bpf_get_current_pid_tgid)(void) = (void*)14;
+static __u64 (*bpf_get_current_uid_gid)(void) = (void*)15;
+static long (*bpf_get_current_comm)(void* buf, __u32 size_of_buf) = (void*)16;
+static long (*bpf_probe_read_user_str)(void* dst,
+                                       __u32 size,
+                                       const void* unsafe_ptr) = (void*)114;
+static long (*bpf_probe_read_user)(void* dst,
+                                   __u32 size,
+                                   const void* unsafe_ptr) = (void*)112;
+static __u64 (*bpf_get_current_cgroup_id)(void) = (void*)80;
 
-// Valid license strings seem to be shared with kernel modules: https://docs.kernel.org/process/license-rules.html#id1
-// Apache-2.0 is not included in those so we specify just GPL
+// Valid license strings seem to be shared with kernel modules:
+// https://docs.kernel.org/process/license-rules.html#id1 Apache-2.0 is not
+// included in those so we specify just GPL
 char LICENSE[] SEC("license") = "GPL";
 
-// Ring buffer map definition using BTF-style macros (required for bpftool gen skeleton)
-#define __uint(name, val) int (*name)[val]
-#define __type(name, val) typeof(val) *name
+// Ring buffer map definition using BTF-style macros (required for bpftool gen
+// skeleton)
+#define __uint(name, val) int(*name)[val]
+#define __type(name, val) typeof(val)* name
 
 struct {
   __uint(type, 27); // BPF_MAP_TYPE_RINGBUF
@@ -56,16 +65,16 @@ struct syscall_enter_execve_args {
   unsigned char common_preempt_count;
   int common_pid;
   long syscall_nr;
-  const char *filename;
-  const char *const *argv;
-  const char *const *envp;
+  const char* filename;
+  const char* const* argv;
+  const char* const* envp;
 };
 
-// Tracepoint for execve syscall entry  
+// Tracepoint for execve syscall entry
 SEC("tracepoint/syscalls/sys_enter_execve")
-int handle_execve_enter(struct syscall_enter_execve_args *ctx) {
+int handle_execve_enter(struct syscall_enter_execve_args* ctx) {
   // Reserve space in ring buffer
-  struct process_event *event = bpf_ringbuf_reserve(&events, sizeof(*event), 0);
+  struct process_event* event = bpf_ringbuf_reserve(&events, sizeof(*event), 0);
   if (!event) {
     return 0;
   }
@@ -103,28 +112,28 @@ int handle_execve_enter(struct syscall_enter_execve_args *ctx) {
     if (bpf_probe_read_user(&arg, sizeof(arg), &argv[i]) < 0 || !arg) {
       break;
     }
-    
+
     // Use a masked offset to help the verifier bound memory access
     unsigned int off = total_len & 511;
     unsigned int space_left = MAX_ARGS_LEN - off;
-    
+
     // Read the argument string directly into the ring buffer
     // The verifier can now see that off + space_left is always 512
     long len = bpf_probe_read_user_str(&event->args[off], space_left, arg);
     if (len <= 0) {
       break;
     }
-    
+
     unsigned int ulen = (unsigned int)len;
     // Update total_len for the next iteration
     total_len += ulen;
-    
+
     // Replace null terminator with space to concatenate next argument
     if (total_len > 0 && total_len < MAX_ARGS_LEN) {
         event->args[(total_len - 1) & 511] = ' ';
     }
   }
-  
+
   // Ensure the entire arguments string is null-terminated
   if (total_len > 0 && total_len <= MAX_ARGS_LEN) {
       event->args[(total_len - 1) & 511] = '\0';

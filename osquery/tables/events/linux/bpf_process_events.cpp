@@ -96,11 +96,12 @@ std::string BPFProcessEventSubscriber::generateJsonCmdlineColumn(
   // Parse space-separated args into JSON array
   std::vector<std::string> argv;
   boost::split(argv, args, boost::is_any_of(" "), boost::token_compress_on);
-  
+
   // Remove empty strings
-  argv.erase(std::remove_if(argv.begin(), argv.end(),
-                           [](const std::string& s) { return s.empty(); }),
-            argv.end());
+  argv.erase(std::remove_if(argv.begin(),
+                            argv.end(),
+                            [](const std::string& s) { return s.empty(); }),
+             argv.end());
 
   // Create JSON array
   rapidjson::Document doc;

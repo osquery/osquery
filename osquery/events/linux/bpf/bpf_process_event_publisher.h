@@ -32,7 +32,7 @@ struct BPFProcessEvent {
   int64_t exit_code;
   uint64_t duration;
   uint8_t probe_error;
-  
+
   std::string comm;
   std::string path;
   std::string cwd;
@@ -62,7 +62,7 @@ class BPFProcessEventPublisher
   Status setUp() override;
   void configure() override;
   void tearDown() override;
-  
+
   Status run() override;
 
  private:
@@ -70,17 +70,17 @@ class BPFProcessEventPublisher
   std::unique_ptr<struct ::bpf_process_events_bpf,
                   void (*)(struct ::bpf_process_events_bpf*)>
       skel_{nullptr, nullptr};
-  
-  // Ring buffer for receiving events  
-  std::unique_ptr<struct ::ring_buffer, void (*)(struct ::ring_buffer*)>
-      rb_{nullptr, nullptr};
-  
+
+  // Ring buffer for receiving events
+  std::unique_ptr<struct ::ring_buffer, void (*)(struct ::ring_buffer*)> rb_{
+      nullptr, nullptr};
+
   // Process events from ring buffer
   void processEvents();
-  
+
   // Ring buffer callback (static for C API)
   static int handleEvent(void* ctx, void* data, size_t data_sz);
-  
+
   // Thread-local storage for event batching
   BPFProcessEventList pending_events_;
 };
