@@ -150,6 +150,12 @@ function(libelfMain)
     _GNU_SOURCE
     HAVE_CONFIG_H
     PIC
+    xasprintf=libelf_xasprintf
+  )
+
+  # Hide internal symbols to avoid conflicts with augeas
+  target_compile_options(thirdparty_libelf PRIVATE
+    -fvisibility=hidden
   )
 
   target_link_libraries(thirdparty_libelf PRIVATE

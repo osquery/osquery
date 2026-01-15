@@ -16,6 +16,17 @@ endfunction()
 
 function(generateOsqueryEvents)
   if(DEFINED PLATFORM_LINUX)
+    # Build BPF skeleton for process events
+    include(${CMAKE_SOURCE_DIR}/cmake/bpf_tools.cmake)
+    
+    set(BPF_SKELETON_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linux/bpf/bpf_process_events.skel.h")
+    
+    build_bpf_skeleton(
+      bpf_process_events_skeleton
+      "${CMAKE_CURRENT_SOURCE_DIR}/linux/bpf/bpf_process_events.bpf.c"
+      "${BPF_SKELETON_OUTPUT}"
+    )
+    
     list(APPEND source_files
       audit_flags.cpp
       file_events_flags.cpp
@@ -25,6 +36,7 @@ function(generateOsqueryEvents)
       linux/syslog.cpp
       linux/udev.cpp
       linux/socket_events.cpp
+      linux/bpf/bpf_process_event_publisher.cpp
     )
 
 
@@ -70,6 +82,16 @@ function(generateOsqueryEvents)
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL
     ${source_files}
   )
+  
+  if(DEFINED PLATFORM_LINUX)
+    # Add dependency on BPF skeleton generation
+    add_dependencies(osquery_events bpf_process_events_skeleton)
+    
+    # Add include directory for generated skeleton
+    target_include_directories(osquery_events PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  endif()
 
   enableLinkWholeArchive(osquery_events)
 
@@ -91,6 +113,9 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
+      thirdparty_libbpf
+      thirdparty_libelf
+      thirdparty_zlib
     )
 
 
@@ -123,6 +148,7 @@ function(generateOsqueryEvents)
       linux/selinux_events.h
       linux/apparmor_events.h
       linux/socket_events.h
+      linux/bpf/bpf_process_event_publisher.h
       linux/syslog.h
       linux/udev.h
     )

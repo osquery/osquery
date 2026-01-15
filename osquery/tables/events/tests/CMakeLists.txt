@@ -12,6 +12,7 @@ function(osqueryTablesEventsTestsMain)
     generateOsqueryTablesEventsTestsSeccompeventstestsTest()
     generateOsqueryTablesEventsTestsSelinuxeventstestsTest()
     generateOsqueryTablesEventsTestsProcesseventstestsTest()
+    generateOsqueryTablesEventsTestsBpfprocesseventstestsTest()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     generateOsqueryTablesEventsTestsPowershelleventstestsTest()
@@ -144,6 +145,28 @@ function(generateOsqueryTablesEventsTestsWindowseventstestsTest)
     osquery_tables_events_eventstable
     tests_helper
     thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesEventsTestsBpfprocesseventstestsTest)
+  add_osquery_executable(osquery_tables_events_tests_bpfprocesseventstests-test linux/bpf_process_events_tests.cpp)
+
+  target_link_libraries(osquery_tables_events_tests_bpfprocesseventstests-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_database
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_logger
+    osquery_registry
+    osquery_tables_events_eventstable
+    tests_helper
+    thirdparty_googletest
+    ${CMAKE_BINARY_DIR}/libs/src/libbpf/libthirdparty_libbpf.a
+  )
+  
+  target_link_options(osquery_tables_events_tests_bpfprocesseventstests-test PRIVATE
+    "-Wl,--allow-multiple-definition"
   )
 endfunction()
 

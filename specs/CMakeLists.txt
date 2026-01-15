@@ -188,6 +188,7 @@ function(generateNativeTables)
     "linux/process_open_pipes.table:linux"
     "linux/rpm_package_files.table:linux"
     "linux/rpm_packages.table:linux"
+    "linux/bpf_process_events.table:linux"
     "linux/seccomp_events.table:linux"
     "linux/selinux_events.table:linux"
     "linux/selinux_settings.table:linux"
