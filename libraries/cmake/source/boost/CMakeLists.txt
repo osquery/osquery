@@ -146,6 +146,13 @@ function(importBoostInterfaceLibraries)
     BOOST_NO_CXX98_FUNCTION_BASE
   )
 
+  # silence enum constexpr conversion for MPL on Xcode 26
+  if(PLATFORM_MACOS)
+     target_compile_options(thirdparty_boost_mpl INTERFACE
+       -Wno-enum-constexpr-conversion
+      )
+  endif()
+
   # Additional settings for the libraries we just imported
   if(PLATFORM_LINUX)
     target_compile_definitions(thirdparty_boost_uuid INTERFACE
