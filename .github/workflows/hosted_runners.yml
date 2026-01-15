@@ -274,7 +274,7 @@ jobs:
     - name: Make space -- uninstalling packages
       shell: bash
       run: |
-        sudo apt update && sudo apt install linux-tools-common linux-tools-generic linux-tools-$(uname -r) -y
+        sudo apt update && sudo apt install linux-tools-common linux-tools-generic -y
         run_on_host="sudo nsenter -t 1 -m -u -n -i"
         packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
