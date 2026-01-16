@@ -48,37 +48,108 @@ class TestTablePlugin : public TablePlugin {
 
   TableRows generate(QueryContext& ctx) {
     TableRows results;
-    if (ctx.constraints["test_int"].existsAndMatches("1")) {
-      results.push_back(
-          make_table_row({{"test_int", "1"}, {"test_text", "0"}}));
-    } else {
-      results.push_back(
-          make_table_row({{"test_int", "0"}, {"test_text", "1"}}));
+
+    std::vector<std::map<std::string, std::string>> rows{
+        {{"test_int", "0"}, {"test_text", "1"}},
+        {{"test_int", "1"}, {"test_text", "0"}},
+        {{"test_int", "1"}, {"test_text", "2"}},
+    };
+
+    if (ctx.constraints.empty()) {
+      for (const auto& row : rows) {
+        results.push_back(make_table_row({{"test_int", row.at("test_int")},
+                                          {"test_text", row.at("test_text")}}));
+      }
+      return results;
     }
 
-    auto ints = ctx.constraints["test_int"].getAll<int>(EQUALS);
-    for (const auto& int_match : ints) {
-      results.push_back(make_table_row({{"test_int", INTEGER(int_match)}}));
-    }
+    auto rowMatches = [&](const std::map<std::string, std::string>& row) {
+      for (const auto& [column, constraintList] : ctx.constraints) {
+        if (!constraintList.existsAndMatches(row.at(column))) {
+          return false;
+        }
+      }
+      return true;
+    };
 
+    for (const auto& row : rows) {
+      if (rowMatches(row)) {
+        results.push_back(make_table_row({{"test_int", row.at("test_int")},
+                                          {"test_text", row.at("test_text")}}));
+      }
+    }
     return results;
   }
 };
+
+TEST_F(SQLTests, select_from_multiple_constraints) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("test", std::make_shared<TestTablePlugin>());
+
+  // No constraints should return all rows
+  {
+    ConstraintMap constraints;
+    EXPECT_EQ(constraints.size(), 0U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 3U);
+  }
+
+  // Single constraint on test_int should return only matching rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "1"));
+    EXPECT_EQ(constraints.size(), 1U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 2U);
+    EXPECT_EQ(results[0]["test_int"], "1");
+    EXPECT_EQ(results[0]["test_text"], "0");
+    EXPECT_EQ(results[1]["test_int"], "1");
+    EXPECT_EQ(results[1]["test_text"], "2");
+  }
+
+  // Multiple constraints should return only matching rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "1"));
+    constraints["test_text"].add(Constraint(EQUALS, "2"));
+    EXPECT_EQ(constraints.size(), 2U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0]["test_int"], "1");
+    EXPECT_EQ(results[0]["test_text"], "2");
+  }
+
+  // Non-matching constraints should return no rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "2"));
+    constraints["test_text"].add(Constraint(EQUALS, "3"));
+    EXPECT_EQ(constraints.size(), 2U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 0U);
+  }
+}
 
 TEST_F(SQLTests, test_raw_access_context) {
   auto tables = RegistryFactory::get().registry("table");
   tables->add("test", std::make_shared<TestTablePlugin>());
   auto results = SQL::selectAllFrom("test");
 
-  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(results.size(), 3U);
   EXPECT_EQ(results[0]["test_text"], "1");
+  EXPECT_EQ(results[1]["test_text"], "0");
+  EXPECT_EQ(results[2]["test_text"], "2");
 
   results = SQL::selectAllFrom("test", "test_int", EQUALS, "1");
   EXPECT_EQ(results.size(), 2U);
 
-  results = SQL::selectAllFrom("test", "test_int", EQUALS, "2");
+  results = SQL::selectAllFrom("test", "test_int", EQUALS, "0");
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(results[0]["test_int"], "2");
+  EXPECT_EQ(results[0]["test_int"], "0");
 }
 
 TEST_F(SQLTests, test_sql_escape) {

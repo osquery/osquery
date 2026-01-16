@@ -137,6 +137,19 @@ class SQL : private only_movable {
                               ConstraintOperator op,
                               const std::string& expr);
 
+  /**
+   * @brief Get columns with constraints, 'SELECT [columns] ... where', results
+   * given a virtual table name, column names, multiple constraints.
+   *
+   * @param columns the columns to return
+   * @param table The name of the virtual table.
+   * @param constraints A constraint map to evaluate against.
+   * @return A QueryData object of the 'SELECT [columns] ...' query results.
+   */
+  static QueryData selectFrom(const std::initializer_list<std::string>& columns,
+                              const std::string& table,
+                              ConstraintMap constraints);
+
  protected:
   /**
    * @brief Private default constructor.
