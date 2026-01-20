@@ -280,9 +280,9 @@ jobs:
         packages_to_remove=$(dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
         \|^google-cloud-sdk\|^google-cloud-api\|^azure-cli\|^firefox\|^php\|^hhvm\|^snapd")
-        sudo apt purge $packages_to_remove
-        sudo apt autoremove -y
-        sudo apt clean
+        sudo apt-get purge $packages_to_remove
+        sudo apt-get autoremove -y
+        sudo apt-get clean
 
     - name: Make space -- removing runtimes
       shell: bash
