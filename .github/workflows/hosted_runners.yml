@@ -53,11 +53,12 @@ jobs:
   check_code_style:
     runs-on: ubuntu-22.04
 
-    container:
-      image: osquery/builder20.04:7e9ee0339
-      options: --user 1001
-
     steps:
+    - name: Install osquery-toolchain
+      run: |
+        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -140,15 +141,21 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    container:
-      image: osquery/builder20.04:7e9ee0339
-      options: --user 1001
-
     strategy:
       matrix:
         os: [ubuntu-22.04]
 
     steps:
+    - name: Install osquery-toolchain
+      run: |
+        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+
     - name: Setup the build paths
       shell: bash
       id: build_paths
