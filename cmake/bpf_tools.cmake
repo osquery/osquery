@@ -10,7 +10,7 @@
 
 # Function to generate vmlinux.h from kernel BTF
 function(generate_vmlinux_h output_file)
-  find_program(BPFTOOL bpftool REQUIRED)
+  find_program(BPFTOOL bpftool REQUIRED PATHS /usr/sbin /usr/local/sbin)
   
   set(vmlinux_btf "/sys/kernel/btf/vmlinux")
   
@@ -38,7 +38,7 @@ function(build_bpf_skeleton target_name bpf_source output_skeleton)
   get_filename_component(bpf_source_name "${bpf_source}" NAME_WE)
   
   # Find required tools
-  find_program(BPFTOOL bpftool REQUIRED)
+  find_program(BPFTOOL bpftool REQUIRED PATHS /usr/sbin /usr/local/sbin)
   
   # Use clang from osquery toolchain
   set(CLANG_BPF "/usr/local/osquery-toolchain/usr/bin/clang")
