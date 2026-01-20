@@ -151,10 +151,10 @@ jobs:
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
 
-    - name: Install cppcheck
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cppcheck
+        sudo apt-get install -y cppcheck elfutils
 
     - name: Setup the build paths
       shell: bash
