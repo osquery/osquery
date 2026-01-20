@@ -274,7 +274,7 @@ jobs:
     - name: Install bpftool
       shell: bash
       run: |
-        sudo apt-get update && sudo apt-get install linux-tools-common linux-tools-generic linux-tools-$(uname -r) -y
+        sudo apt-get update && sudo apt-get install bpftool -y
 
     - name: Make space -- uninstalling packages
       shell: bash
