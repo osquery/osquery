@@ -56,6 +56,14 @@ function(cppcheckMain)
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
   )
+
+  if(TARGET codegen_native_tables)
+    add_dependencies(cppcheck codegen_native_tables)
+  endif()
+
+  if(TARGET codegen_foreign_tables)
+    add_dependencies(cppcheck codegen_foreign_tables)
+  endif()
 endfunction()
 
 cppcheckMain()
