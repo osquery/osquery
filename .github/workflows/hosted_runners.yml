@@ -151,11 +151,6 @@ jobs:
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cppcheck elfutils
-
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -302,6 +297,11 @@ jobs:
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
 
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck elfutils
+
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
     #
@@ -395,7 +395,7 @@ jobs:
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
-        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
 
         key: |
           gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
