@@ -41,7 +41,7 @@ function(cppcheckMain)
     -i "*/libs/src/*"
     -i "*/installed_formulas/*"
     -i "*/openssl/*"
-    -i "osquery/empty_osqueryd_target_source_file.cpp"
+    -i "**/empty_osqueryd_target_source_file.cpp"
   )
 
   # We don't care if multithreading disables the unusedFunction check, since that would turn off
