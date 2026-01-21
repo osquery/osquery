@@ -215,7 +215,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         # Create generated source files (if not exist) to avoid cppcheck errors
-        touch ${{ steps.build_paths.outputs.BINARY }}/empty_osqueryd_target_source_file.cpp
+        touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
 
     - name: Store the cppcheck log (Release)
