@@ -309,7 +309,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
-        pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+        pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
     # Due to how the RPM packaging tools work, we have to adhere to some
