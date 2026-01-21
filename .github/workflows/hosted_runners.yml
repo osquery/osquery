@@ -151,6 +151,11 @@ jobs:
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
 
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y cppcheck
+
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -300,7 +305,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y cppcheck elfutils python3-psutil python3-six python3-wheel
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 
 
