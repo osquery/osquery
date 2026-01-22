@@ -560,7 +560,7 @@ jobs:
 
     - name: Locate the packages (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      id: packages
+      id: packages-aarch64
       shell: bash
       run: |
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz" >> $GITHUB_OUTPUT
@@ -575,42 +575,42 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_package_data_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release DEB artifact (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_deb_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
     - name: Store the unsigned debug DEB artifact (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_deb_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
     - name: Store the unsigned release RPM artifact (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_rpm_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
     - name: Store the unsigned debug RPM artifact (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_rpm_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
     - name: Store the unsigned release TGZ artifact (aarch64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_tgz_aarch64
-        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
+        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
