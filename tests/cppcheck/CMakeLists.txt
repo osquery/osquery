@@ -33,10 +33,10 @@ function(cppcheckMain)
 
   string(REPLACE "\n" ", " cppcheck_suppressions_list "${cppcheck_suppressions_list}")
 
-  # These paths will not be analyzed, greatly increasing the analysis speed;
+  # These folders will not be analyzed, greatly increasing the analysis speed;
   # this only works for source files, while included headers will still cause warnings,
   # which will be covered by the suppression list.
-  set(ignored_paths
+  set(ignored_folders
     -i "*/libraries/*"
     -i "*/libs/src/*"
     -i "*/installed_formulas/*"
@@ -51,7 +51,7 @@ function(cppcheckMain)
     COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options}
             --enable=all --platform=unix64 --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
-            ${ignored_paths} -q
+            ${ignored_folders} -q
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
