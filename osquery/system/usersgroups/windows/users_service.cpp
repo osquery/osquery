@@ -109,7 +109,7 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
   }
 
   std::wstring key_name;
-  key_name.resize(max_name_length+1);
+  key_name.resize(max_name_length + 1);
 
   std::vector<std::string> subkeys_names;
 
