@@ -949,6 +949,25 @@ TEST_F(FilesystemTests, test_archive_preserves_metadata) {
   std::string test_content = "Test content for metadata preservation";
   ASSERT_TRUE(writeTextFile(test_file_path, test_content).ok());
 
+  // Set specific timestamps for testing
+#ifdef WIN32
+  // Windows: Use _utime to set timestamps
+  struct __utimbuf64 times;
+  times.actime = 1600000000; // Access time: 2020-09-13
+  times.modtime = 1500000000; // Modification time: 2017-07-14
+  ASSERT_EQ(_wutime64(test_file_path.wstring().c_str(), &times), 0)
+      << "Failed to set file timestamps";
+#else
+  // POSIX: Use utimensat to set timestamps with nanosecond precision
+  struct timespec times[2];
+  times[0].tv_sec = 1600000000; // Access time: 2020-09-13
+  times[0].tv_nsec = 123456789;
+  times[1].tv_sec = 1500000000; // Modification time: 2017-07-14
+  times[1].tv_nsec = 987654321;
+  ASSERT_EQ(utimensat(AT_FDCWD, test_file_path.string().c_str(), times, 0), 0)
+      << "Failed to set file timestamps";
+#endif
+
   // Get original file metadata and set permissions
 #ifdef WIN32
   struct _stat64 original_stat;
@@ -1007,8 +1026,33 @@ TEST_F(FilesystemTests, test_archive_preserves_metadata) {
 
   // Verify modification time is preserved
   time_t archived_mtime = archive_entry_mtime(entry);
+#ifdef WIN32
   EXPECT_EQ(archived_mtime, original_stat.st_mtime)
       << "Modification time not preserved";
+#else
+  EXPECT_EQ(archived_mtime, original_stat.st_mtimespec.tv_sec)
+      << "Modification time not preserved";
+#endif
+
+  // Verify access time is preserved (supported in PAX format)
+  time_t archived_atime = archive_entry_atime(entry);
+#ifdef WIN32
+  EXPECT_EQ(archived_atime, original_stat.st_atime)
+      << "Access time not preserved";
+#else
+  EXPECT_EQ(archived_atime, original_stat.st_atimespec.tv_sec)
+      << "Access time not preserved";
+#endif
+
+  // Verify change time is preserved (supported in PAX format)
+  time_t archived_ctime = archive_entry_ctime(entry);
+#ifdef WIN32
+  EXPECT_EQ(archived_ctime, original_stat.st_ctime)
+      << "Change time not preserved";
+#else
+  EXPECT_EQ(archived_ctime, original_stat.st_ctimespec.tv_sec)
+      << "Change time not preserved";
+#endif
 
   // Verify file type is preserved
 #ifdef WIN32

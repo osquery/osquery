@@ -18,6 +18,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 
@@ -168,7 +169,7 @@ Status archive(const std::set<boost::filesystem::path>& paths,
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  archive_write_set_format_pax_restricted(arch);
+  archive_write_set_format_pax(arch);
   auto ret = archive_write_open_filename(arch, out.string().c_str());
   if (ret == ARCHIVE_FATAL) {
     archive_write_free(arch);
@@ -205,6 +206,8 @@ Status archive(const std::set<boost::filesystem::path>& paths,
 
     if (!stat_success) {
       // Final fallback with defaults
+      LOG(WARNING) << "Could not stat file: " << f.string()
+                   << " to preserve metadata in archive";
       archive_entry_set_size(entry, pFile.size());
       archive_entry_set_filetype(entry, AE_IFREG);
       archive_entry_set_perm(entry, 0644);
