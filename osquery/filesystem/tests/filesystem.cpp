@@ -14,6 +14,12 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#ifdef WIN32
+#include <sys/utime.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
