@@ -179,9 +179,37 @@ Status archive(const std::set<boost::filesystem::path>& paths,
 
     auto entry = archive_entry_new();
     archive_entry_set_pathname(entry, f.string().c_str());
-    archive_entry_set_size(entry, pFile.size());
-    archive_entry_set_filetype(entry, AE_IFREG);
-    archive_entry_set_perm(entry, 0644);
+
+    // Preserve file metadata by copying from stat
+    bool stat_success = false;
+
+#ifdef WIN32
+    struct _stat64 win_stat;
+    if (_wstat64(f.wstring().c_str(), &win_stat) == 0) {
+      archive_entry_set_size(entry, win_stat.st_size);
+      archive_entry_set_filetype(
+          entry, (win_stat.st_mode & _S_IFDIR) ? AE_IFDIR : AE_IFREG);
+      archive_entry_set_perm(entry, win_stat.st_mode & 0777);
+      archive_entry_set_mtime(entry, win_stat.st_mtime, 0);
+      archive_entry_set_atime(entry, win_stat.st_atime, 0);
+      archive_entry_set_ctime(entry, win_stat.st_ctime, 0);
+      stat_success = true;
+    }
+#else
+    struct stat st;
+    if (platformLstat(f.string(), st).ok()) {
+      archive_entry_copy_stat(entry, &st);
+      stat_success = true;
+    }
+#endif
+
+    if (!stat_success) {
+      // Final fallback with defaults
+      archive_entry_set_size(entry, pFile.size());
+      archive_entry_set_filetype(entry, AE_IFREG);
+      archive_entry_set_perm(entry, 0644);
+    }
+
     archive_write_header(arch, entry);
 
     auto blkCount = static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
