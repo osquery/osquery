@@ -1030,45 +1030,20 @@ TEST_F(FilesystemTests, test_archive_preserves_metadata) {
       << ", Got: " << std::oct << archived_perm;
 #endif
 
-  // Verify modification time is preserved
   time_t archived_mtime = archive_entry_mtime(entry);
-#ifdef WIN32
   EXPECT_EQ(archived_mtime, original_stat.st_mtime)
       << "Modification time not preserved";
-#else
-  EXPECT_EQ(archived_mtime, original_stat.st_mtimespec.tv_sec)
-      << "Modification time not preserved";
-#endif
-
-  // Verify access time is preserved (supported in PAX format)
   time_t archived_atime = archive_entry_atime(entry);
-#ifdef WIN32
   EXPECT_EQ(archived_atime, original_stat.st_atime)
       << "Access time not preserved";
-#else
-  EXPECT_EQ(archived_atime, original_stat.st_atimespec.tv_sec)
-      << "Access time not preserved";
-#endif
-
-  // Verify change time is preserved (supported in PAX format)
   time_t archived_ctime = archive_entry_ctime(entry);
-#ifdef WIN32
   EXPECT_EQ(archived_ctime, original_stat.st_ctime)
       << "Change time not preserved";
-#else
-  EXPECT_EQ(archived_ctime, original_stat.st_ctimespec.tv_sec)
-      << "Change time not preserved";
-#endif
 
-  // Verify file type is preserved
-#ifdef WIN32
-  mode_t file_type = (original_stat.st_mode & _S_IFDIR) ? AE_IFDIR : AE_IFREG;
-  EXPECT_EQ(archive_entry_filetype(entry), file_type)
-      << "File type not preserved";
-#else
   EXPECT_EQ(archive_entry_filetype(entry), AE_IFREG)
       << "File type not preserved as regular file";
 
+#ifndef WIN32
   // Verify UID and GID are preserved on POSIX systems
   EXPECT_EQ(archive_entry_uid(entry), original_stat.st_uid)
       << "UID not preserved";
