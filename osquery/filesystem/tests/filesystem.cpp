@@ -1012,7 +1012,12 @@ TEST_F(FilesystemTests, test_archive_preserves_metadata) {
 
   // Verify the entry path matches our test file
   std::string entry_path = archive_entry_pathname(entry);
-  EXPECT_EQ(entry_path, test_file_path.string())
+  // Normalize paths for comparison: convert backslashes to forward slashes
+  // (tar format always uses forward slashes, but Windows paths use backslashes)
+  std::string normalized_test_path = test_file_path.string();
+  std::replace(
+      normalized_test_path.begin(), normalized_test_path.end(), '\\', '/');
+  EXPECT_EQ(entry_path, normalized_test_path)
       << "Archive entry path does not match test file path";
 
   // Verify file size is preserved
