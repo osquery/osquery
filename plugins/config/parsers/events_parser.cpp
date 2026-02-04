@@ -28,7 +28,7 @@ class EventsConfigParserPlugin : public ConfigParserPlugin {
 
 Status EventsConfigParserPlugin::setUp() {
   auto obj = data_.getObject();
-  data_.add("events", obj);
+  data_.addCopy("events", obj);
   return Status();
 }
 
@@ -39,7 +39,7 @@ Status EventsConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(events->second.doc(), obj);
-    doc.add("events", obj);
+    doc.addCopy("events", obj);
     data_ = std::move(doc);
   }
   return Status();

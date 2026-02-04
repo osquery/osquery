@@ -29,7 +29,7 @@ Status KafkaTopicsConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(topics->second.doc(), obj);
-    doc.add(kKafkaTopicParserRootKey, obj);
+    doc.addCopy(kKafkaTopicParserRootKey, obj);
     data_ = std::move(doc);
   }
   return Status();

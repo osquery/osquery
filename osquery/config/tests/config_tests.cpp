@@ -629,13 +629,13 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     for (const auto& key : config) {
       auto obj = data_.getObject();
       data_.copyFrom(key.second.doc(), obj);
-      data_.add(key.first, obj, data_.doc());
+      data_.addCopy(key.first, obj, data_.doc());
     }
 
     // Set parser-rendered additional data.
     auto obj2 = data_.getObject();
     data_.addRef("key2", "value2", obj2);
-    data_.add("dictionary3", obj2, data_.doc());
+    data_.addCopy("dictionary3", obj2, data_.doc());
     return Status::success();
   }
 

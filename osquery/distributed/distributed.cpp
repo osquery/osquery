@@ -116,9 +116,9 @@ Status Distributed::serializeResults(std::string& json) {
     if (!s.ok()) {
       return s;
     }
-    doc.add(result.request.id, arr, queries_obj);
-    doc.add(result.request.id, result.status.getCode(), statuses_obj);
-    doc.add(result.request.id, result.message, messages_obj);
+    doc.addCopy(result.request.id, arr, queries_obj);
+    doc.addCopy(result.request.id, result.status.getCode(), statuses_obj);
+    doc.addCopy(result.request.id, result.message, messages_obj);
 
     auto obj = doc.getObject();
     if (performance_.count(result.request.id) > 0) {
@@ -137,13 +137,13 @@ Status Distributed::serializeResults(std::string& json) {
                     obj.GetAllocator());
     };
 
-    doc.add(result.request.id, obj, stats_obj);
+    doc.addCopy(result.request.id, obj, stats_obj);
   }
 
-  doc.add("queries", queries_obj);
-  doc.add("statuses", statuses_obj);
-  doc.add("messages", messages_obj);
-  doc.add("stats", stats_obj);
+  doc.addCopy("queries", queries_obj);
+  doc.addCopy("statuses", statuses_obj);
+  doc.addCopy("messages", messages_obj);
+  doc.addCopy("stats", stats_obj);
   return doc.toString(json);
 }
 
@@ -502,8 +502,8 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
     return s;
   }
 
-  doc.add("request", request_obj);
-  doc.add("results", results_arr);
+  doc.addCopy("request", request_obj);
+  doc.addCopy("results", results_arr);
   return Status::success();
 }
 

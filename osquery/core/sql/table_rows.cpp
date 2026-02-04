@@ -20,7 +20,7 @@ Status serializeTableRows(const TableRows& rows, JSON& doc, rj::Document& arr) {
     if (!status.ok()) {
       return status;
     }
-    doc.push(row_obj, arr);
+    doc.pushCopy(row_obj, arr);
   }
   return Status::success();
 }
