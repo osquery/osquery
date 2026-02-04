@@ -18,6 +18,7 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 
@@ -168,7 +169,7 @@ Status archive(const std::set<boost::filesystem::path>& paths,
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  archive_write_set_format_pax_restricted(arch);
+  archive_write_set_format_pax(arch);
   auto ret = archive_write_open_filename(arch, out.string().c_str());
   if (ret == ARCHIVE_FATAL) {
     archive_write_free(arch);
@@ -179,9 +180,39 @@ Status archive(const std::set<boost::filesystem::path>& paths,
 
     auto entry = archive_entry_new();
     archive_entry_set_pathname(entry, f.string().c_str());
-    archive_entry_set_size(entry, pFile.size());
-    archive_entry_set_filetype(entry, AE_IFREG);
-    archive_entry_set_perm(entry, 0644);
+
+    // Preserve file metadata by copying from stat
+    bool stat_success = false;
+
+#ifdef WIN32
+    struct _stat64 win_stat;
+    if (_wstat64(f.wstring().c_str(), &win_stat) == 0) {
+      archive_entry_set_size(entry, win_stat.st_size);
+      archive_entry_set_filetype(
+          entry, (win_stat.st_mode & _S_IFDIR) ? AE_IFDIR : AE_IFREG);
+      archive_entry_set_perm(entry, win_stat.st_mode & 0777);
+      archive_entry_set_mtime(entry, win_stat.st_mtime, 0);
+      archive_entry_set_atime(entry, win_stat.st_atime, 0);
+      archive_entry_set_ctime(entry, win_stat.st_ctime, 0);
+      stat_success = true;
+    }
+#else
+    struct stat st;
+    if (platformLstat(f.string(), st).ok()) {
+      archive_entry_copy_stat(entry, &st);
+      stat_success = true;
+    }
+#endif
+
+    if (!stat_success) {
+      // Final fallback with defaults
+      LOG(WARNING) << "Could not stat file: " << f.string()
+                   << " to preserve metadata in archive";
+      archive_entry_set_size(entry, pFile.size());
+      archive_entry_set_filetype(entry, AE_IFREG);
+      archive_entry_set_perm(entry, 0644);
+    }
+
     archive_write_header(arch, entry);
 
     auto blkCount = static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
