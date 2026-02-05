@@ -8,18 +8,22 @@
 # CMake module for building BPF CO-RE programs with skeleton generation
 # Requires: clang, bpftool, BTF support in kernel
 
+find_program(BPFTOOL bpftool
+  PATHS
+    "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin"
+    "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/sbin"
+    /usr/sbin
+    /usr/local/sbin
+    /sbin
+  DOC "Path to bpftool binary"
+)
+
+if(NOT BPFTOOL)
+  message(FATAL_ERROR "Could not find bpftool. Please install linux-tools or bpftool package.")
+endif()
+
 # Function to generate vmlinux.h from kernel BTF
 function(generate_vmlinux_h output_file)
-  find_program(BPFTOOL bpftool
-    PATHS
-      "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin"
-      "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/sbin"
-      /usr/sbin
-      /usr/local/sbin
-      /sbin
-    REQUIRED
-  )
-  
   set(vmlinux_btf "/sys/kernel/btf/vmlinux")
   
   if(NOT EXISTS "${vmlinux_btf}")
@@ -44,17 +48,6 @@ endfunction()
 function(build_bpf_skeleton target_name bpf_source output_skeleton)
   get_filename_component(bpf_source_abs "${bpf_source}" ABSOLUTE)
   get_filename_component(bpf_source_name "${bpf_source}" NAME_WE)
-  
-  # Find required tools
-  find_program(BPFTOOL bpftool
-    PATHS
-      "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/bin"
-      "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/sbin"
-      /usr/sbin
-      /usr/local/sbin
-      /sbin
-    REQUIRED
-  )
   
   # Use clang from osquery toolchain
   set(CLANG_BPF "/usr/local/osquery-toolchain/usr/bin/clang")
