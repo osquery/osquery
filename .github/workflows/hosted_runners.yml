@@ -277,6 +277,10 @@ jobs:
         df -h
         free -m
 
+    # TODO this should probably be added to the toolchain
+    - name: Install linux-headers-generic
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends linux-headers-generic
+
     - name: Make space -- uninstalling packages
       shell: bash
       run: |
