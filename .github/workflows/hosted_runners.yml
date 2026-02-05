@@ -271,6 +271,11 @@ jobs:
         df -h
         free -m
 
+    - name: Install bpftool
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install bpftool -y
+
     - name: Make space -- uninstalling packages
       shell: bash
       run: |
