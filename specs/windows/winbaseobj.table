@@ -1,5 +1,5 @@
 table_name("winbaseobj")
-description("Lists named Windows objects in the default object directories, across all terminal services sessions.  Example Windows ojbect types include Mutexes, Events, Jobs and Semaphors.")
+description("Lists named Windows objects in the default object directories, across all terminal services sessions.  Example Windows object types include Mutexes, Events, Jobs and Semaphors.")
 schema([
     Column("session_id", INTEGER, "Terminal Services Session Id"),
     Column("object_name", TEXT, "Object Name"),
