@@ -188,6 +188,7 @@ function(generateNativeTables)
     "linux/process_open_pipes.table:linux"
     "linux/rpm_package_files.table:linux"
     "linux/rpm_packages.table:linux"
+    "linux/bpf_process_events.table:linux"
     "linux/seccomp_events.table:linux"
     "linux/selinux_events.table:linux"
     "linux/selinux_settings.table:linux"
@@ -314,12 +315,6 @@ function(generateNativeTables)
     "windows/windows_search.table:windows"
   )
 
-  if(OSQUERY_BUILD_BPF)
-    list(APPEND platform_dependent_spec_files
-      "linux/bpf_process_events.table:linux"
-      "linux/bpf_socket_events.table:linux"
-    )
-  endif()
 
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files

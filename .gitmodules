@@ -91,9 +91,6 @@
 [submodule "libraries/cmake/source/augeas/gnulib/src"]
 	path = libraries/cmake/source/augeas/gnulib/src
 	url = https://github.com/osquery/third-party-gnulib
-[submodule "libraries/cmake/source/ebpfpub/src"]
-	path = libraries/cmake/source/ebpfpub/src
-	url = https://github.com/trailofbits/ebpfpub
 [submodule "libraries/cmake/source/dbus/src"]
 	path = libraries/cmake/source/dbus/src
 	url = https://gitlab.freedesktop.org/dbus/dbus.git
@@ -148,9 +145,12 @@
 [submodule "libraries/cmake/source/krabsetw/src"]
 	path = libraries/cmake/source/krabsetw/src
 	url = https://github.com/microsoft/krabsetw.git
-[submodule "osquery/experimental/experiments/linuxevents/libraries/linuxevents/src"]
-	path = osquery/experimental/experiments/linuxevents/libraries/linuxevents/src
-	url = https://github.com/trailofbits/linuxevents
 [submodule "libraries/cmake/source/lz4/src"]
 	path = libraries/cmake/source/lz4/src
 	url = https://github.com/lz4/lz4.git
+[submodule "libraries/cmake/source/libelf/src"]
+	path = libraries/cmake/source/libelf/src
+	url = https://sourceware.org/git/elfutils.git
+[submodule "libraries/cmake/source/libbpf/src"]
+	path = libraries/cmake/source/libbpf/src
+	url = https://github.com/libbpf/libbpf.git
