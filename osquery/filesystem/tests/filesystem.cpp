@@ -14,12 +14,23 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#ifdef WIN32
+#include <sys/utime.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+
+// Required for archive metadata verification
+#define LIBARCHIVE_STATIC
+#include <archive.h>
+#include <archive_entry.h>
 
 #include <osquery/filesystem/filesystem.h>
 
@@ -933,6 +944,129 @@ TEST_F(FilesystemTests, test_directory_listing_trailing_slash) {
                  dir_path.back() == '\\')
         << "Directory path '" << dir_path << "' ends with a trailing separator";
   }
+}
+
+TEST_F(FilesystemTests, test_archive_preserves_metadata) {
+  // This test verifies that the archive function preserves file metadata
+  // including permissions, modification times, and ownership information.
+
+  auto test_file_path = test_working_dir_ / "test_metadata_file.txt";
+  auto archive_path = test_working_dir_ / "test_archive.tar";
+  std::string test_content = "Test content for metadata preservation";
+  ASSERT_TRUE(writeTextFile(test_file_path, test_content).ok());
+
+  // Set specific timestamps for testing
+#ifdef WIN32
+  // Windows: Use _utime to set timestamps
+  struct __utimbuf64 times;
+  times.actime = 1600000000; // Access time: 2020-09-13
+  times.modtime = 1500000000; // Modification time: 2017-07-14
+  ASSERT_EQ(_wutime64(test_file_path.wstring().c_str(), &times), 0)
+      << "Failed to set file timestamps";
+#else
+  // POSIX: Use utimensat to set timestamps with nanosecond precision
+  struct timespec times[2];
+  times[0].tv_sec = 1600000000; // Access time: 2020-09-13
+  times[0].tv_nsec = 123456789;
+  times[1].tv_sec = 1500000000; // Modification time: 2017-07-14
+  times[1].tv_nsec = 987654321;
+  ASSERT_EQ(utimensat(AT_FDCWD, test_file_path.string().c_str(), times, 0), 0)
+      << "Failed to set file timestamps";
+#endif
+
+  // Get original file metadata and set permissions
+#ifdef WIN32
+  struct _stat64 original_stat;
+  ASSERT_EQ(_wstat64(test_file_path.wstring().c_str(), &original_stat), 0)
+      << "Failed to stat original file";
+#else
+  mode_t test_permissions = 0640;
+  ASSERT_EQ(chmod(test_file_path.string().c_str(), test_permissions), 0)
+      << "Failed to set file permissions";
+
+  struct stat original_stat;
+  ASSERT_EQ(stat(test_file_path.string().c_str(), &original_stat), 0)
+      << "Failed to stat original file";
+#endif
+
+  // Create archive with the test file
+  std::set<fs::path> files_to_archive = {test_file_path};
+  auto archive_status = archive(files_to_archive, archive_path);
+  ASSERT_TRUE(archive_status.ok())
+      << "Archive creation failed: " << archive_status.getMessage();
+  ASSERT_TRUE(fs::exists(archive_path)) << "Archive file was not created";
+  ASSERT_GT(fs::file_size(archive_path), 0U) << "Archive file is empty";
+
+  // Extract and verify metadata using libarchive manually (osquery has no
+  // unarchive function we can use)
+  struct archive* a = archive_read_new();
+  ASSERT_NE(a, nullptr) << "Failed to create archive reader";
+
+  archive_read_support_format_all(a);
+  int r = archive_read_open_filename(a, archive_path.string().c_str(), 10240);
+  ASSERT_EQ(r, ARCHIVE_OK) << "Failed to open archive for reading";
+
+  struct archive_entry* entry;
+  r = archive_read_next_header(a, &entry);
+  ASSERT_EQ(r, ARCHIVE_OK) << "Failed to read archive entry";
+
+  // Verify the entry path matches our test file
+  std::string entry_path = archive_entry_pathname(entry);
+  // Normalize paths for comparison: convert backslashes to forward slashes
+  // (tar format always uses forward slashes, but Windows paths use backslashes)
+  std::string normalized_test_path = test_file_path.string();
+  std::replace(
+      normalized_test_path.begin(), normalized_test_path.end(), '\\', '/');
+  EXPECT_EQ(entry_path, normalized_test_path)
+      << "Archive entry path does not match test file path";
+
+  // Verify file size is preserved
+  EXPECT_EQ(archive_entry_size(entry), test_content.size())
+      << "File size mismatch in archive";
+
+  // Verify permissions are preserved
+  mode_t archived_perm = archive_entry_perm(entry);
+#ifdef WIN32
+  mode_t expected_perm = original_stat.st_mode & 0777;
+  EXPECT_EQ(archived_perm, expected_perm) << "Permissions not preserved";
+#else
+  EXPECT_EQ(archived_perm, test_permissions)
+      << "Permissions not preserved. Expected: " << std::oct << test_permissions
+      << ", Got: " << std::oct << archived_perm;
+#endif
+
+  time_t archived_mtime = archive_entry_mtime(entry);
+  EXPECT_EQ(archived_mtime, original_stat.st_mtime)
+      << "Modification time not preserved";
+  time_t archived_atime = archive_entry_atime(entry);
+  EXPECT_EQ(archived_atime, original_stat.st_atime)
+      << "Access time not preserved";
+  time_t archived_ctime = archive_entry_ctime(entry);
+  EXPECT_EQ(archived_ctime, original_stat.st_ctime)
+      << "Change time not preserved";
+
+  EXPECT_EQ(archive_entry_filetype(entry), AE_IFREG)
+      << "File type not preserved as regular file";
+
+#ifndef WIN32
+  // Verify UID and GID are preserved on POSIX systems
+  EXPECT_EQ(archive_entry_uid(entry), original_stat.st_uid)
+      << "UID not preserved";
+  EXPECT_EQ(archive_entry_gid(entry), original_stat.st_gid)
+      << "GID not preserved";
+#endif
+
+  // Read and verify the actual file content
+  std::vector<char> buffer(test_content.size());
+  ssize_t bytes_read = archive_read_data(a, buffer.data(), buffer.size());
+  EXPECT_EQ(bytes_read, static_cast<ssize_t>(test_content.size()))
+      << "Failed to read expected number of bytes";
+
+  std::string archived_content(buffer.begin(), buffer.end());
+  EXPECT_EQ(archived_content, test_content)
+      << "Archived content does not match original content";
+
+  archive_read_free(a);
 }
 
 } // namespace osquery
