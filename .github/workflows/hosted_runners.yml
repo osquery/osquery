@@ -504,8 +504,21 @@ jobs:
             --target package
         done
 
-    - name: Locate the packages (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
+    - name: Set architecture suffix
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      id: arch
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+          echo "suffix=" >> $GITHUB_OUTPUT
+          echo "arch=x86_64" >> $GITHUB_OUTPUT
+        else
+          echo "suffix=_aarch64" >> $GITHUB_OUTPUT
+          echo "arch=aarch64" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Locate the packages
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
       id: packages
       shell: bash
       run: |
@@ -514,103 +527,49 @@ jobs:
         echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_${{ steps.arch.outputs.arch }}.tar.gz)" >> $GITHUB_OUTPUT
 
-    - name: Store the unsigned release package data artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned release package data artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_package_data
+        name: linux_unsigned_release_package_data${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Store the unsigned release DEB artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned release DEB artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_deb
+        name: linux_unsigned_release_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
-    - name: Store the unsigned debug DEB artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned debug DEB artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_debug_deb
+        name: linux_unsigned_debug_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
-    - name: Store the unsigned release RPM artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned release RPM artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_rpm
+        name: linux_unsigned_release_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
-    - name: Store the unsigned debug RPM artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned debug RPM artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_debug_rpm
+        name: linux_unsigned_debug_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
-    - name: Store the unsigned release TGZ artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
+    - name: Store the unsigned release TGZ artifact
+      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_tgz
+        name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
-
-    - name: Locate the packages (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      id: packages-aarch64
-      shell: bash
-      run: |
-        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.deb)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_aarch64.tar.gz)" >> $GITHUB_OUTPUT
-
-    - name: Store the unsigned release package data artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_release_package_data_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
-
-    - name: Store the unsigned release DEB artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_release_deb_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
-
-    - name: Store the unsigned debug DEB artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_debug_deb_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
-
-    - name: Store the unsigned release RPM artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_release_rpm_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
-
-    - name: Store the unsigned debug RPM artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_debug_rpm_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
-
-    - name: Store the unsigned release TGZ artifact (aarch64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04-arm'
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux_unsigned_release_tgz_aarch64
-        path: ${{ steps.packages-aarch64.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
