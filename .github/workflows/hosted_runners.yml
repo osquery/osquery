@@ -505,7 +505,7 @@ jobs:
         done
 
     - name: Set architecture suffix
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       id: arch
       shell: bash
       run: |
@@ -518,7 +518,7 @@ jobs:
         fi
 
     - name: Locate the packages
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       id: packages
       shell: bash
       run: |
@@ -530,42 +530,42 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_${{ steps.arch.outputs.arch }}.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_package_data${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release DEB artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
     - name: Store the unsigned debug DEB artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
     - name: Store the unsigned release RPM artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
     - name: Store the unsigned debug RPM artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_debug_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
     - name: Store the unsigned release TGZ artifact
-      if: matrix.build_type == 'RelWithDebInfo' && (matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm')
+      if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
       with:
         name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
