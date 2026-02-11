@@ -11,8 +11,8 @@
 # jobs in another file inside the `needs` statement.
 #
 # This configuration file takes care of the Windows, macOS and Linux
-# builds on the x86 platform.
-name: build_x86
+# builds on x86_64 and aarch64
+name: build
 
 on:
   # Run this workflow once every day against the master branch
@@ -42,6 +42,7 @@ env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
   SUBMODULE_CACHE_VERSION: 3
+  OSQUERY_TOOLCHAIN_VERSION: 1.1.0
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -56,8 +57,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
 
     - name: Setup the build paths
       shell: bash
@@ -148,8 +149,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
 
     - name: Install dependencies
       run: |
@@ -302,8 +303,8 @@ jobs:
 
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
 
     - name: Install dependencies
       run: |
