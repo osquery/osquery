@@ -56,8 +56,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-1.2.0-$(uname -m).tar.xz -C /usr/local
 
     - name: Setup the build paths
       shell: bash
@@ -148,8 +148,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-1.2.0-$(uname -m).tar.xz -C /usr/local
 
     - name: Install dependencies
       run: |
@@ -302,8 +302,8 @@ jobs:
 
     - name: Install osquery-toolchain
       run: |
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+        wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-1.2.0-$(uname -m).tar.xz -C /usr/local
 
     - name: Install dependencies
       run: |
