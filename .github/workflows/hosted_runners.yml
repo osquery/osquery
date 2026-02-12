@@ -510,7 +510,8 @@ jobs:
       id: arch
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+        arch=$(uname -m)
+        if [ "$arch" == "x86_64" ]; then
           echo "suffix=" >> $GITHUB_OUTPUT
           echo "arch=x86_64" >> $GITHUB_OUTPUT
         else
