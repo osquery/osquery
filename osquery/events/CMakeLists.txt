@@ -16,6 +16,17 @@ endfunction()
 
 function(generateOsqueryEvents)
   if(DEFINED PLATFORM_LINUX)
+    # Build BPF skeleton for process events
+    include(${CMAKE_SOURCE_DIR}/cmake/bpf_tools.cmake)
+    
+    set(BPF_SKELETON_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linux/bpf/bpf_process_events.skel.h")
+    
+    build_bpf_skeleton(
+      bpf_process_events_skeleton
+      "${CMAKE_CURRENT_SOURCE_DIR}/linux/bpf/bpf_process_events.bpf.c"
+      "${BPF_SKELETON_OUTPUT}"
+    )
+    
     list(APPEND source_files
       audit_flags.cpp
       file_events_flags.cpp
@@ -25,19 +36,9 @@ function(generateOsqueryEvents)
       linux/syslog.cpp
       linux/udev.cpp
       linux/socket_events.cpp
+      linux/bpf/bpf_process_event_publisher.cpp
     )
 
-    if(OSQUERY_BUILD_BPF)
-      list(APPEND source_files
-        linux/bpf/bpferrorstate.cpp
-        linux/bpf/bpfeventpublisher.cpp
-        linux/bpf/filesystem.cpp
-        linux/bpf/processcontextfactory.cpp
-        linux/bpf/setrlimit.cpp
-        linux/bpf/systemstatetracker.cpp
-        linux/bpf/serializers.cpp
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -81,6 +82,16 @@ function(generateOsqueryEvents)
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL
     ${source_files}
   )
+  
+  if(DEFINED PLATFORM_LINUX)
+    # Add dependency on BPF skeleton generation
+    add_dependencies(osquery_events bpf_process_events_skeleton)
+    
+    # Add include directory for generated skeleton
+    target_include_directories(osquery_events PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  endif()
 
   enableLinkWholeArchive(osquery_events)
 
@@ -102,13 +113,11 @@ function(generateOsqueryEvents)
       thirdparty_libaudit
       thirdparty_libudev
       thirdparty_util-linux
+      thirdparty_libbpf
+      thirdparty_libelf
+      thirdparty_zlib
     )
 
-    if(OSQUERY_BUILD_BPF)
-      target_link_libraries(osquery_events PUBLIC
-        thirdparty_ebpfpub
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC
@@ -139,25 +148,11 @@ function(generateOsqueryEvents)
       linux/selinux_events.h
       linux/apparmor_events.h
       linux/socket_events.h
+      linux/bpf/bpf_process_event_publisher.h
       linux/syslog.h
       linux/udev.h
     )
 
-    if(OSQUERY_BUILD_BPF)
-      list(APPEND platform_public_header_files
-        linux/bpf/bpferrorstate.h
-        linux/bpf/bpfeventpublisher.h
-        linux/bpf/filesystem.h
-        linux/bpf/ifilesystem.h
-        linux/bpf/iprocesscontextfactory.h
-        linux/bpf/isystemstatetracker.h
-        linux/bpf/processcontextfactory.h
-        linux/bpf/setrlimit.h
-        linux/bpf/systemstatetracker.h
-        linux/bpf/serializers.h
-        linux/bpf/uniquedir.h
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
@@ -203,10 +198,6 @@ function(generateOsqueryEvents)
 
   if(DEFINED PLATFORM_LINUX)
     add_test(NAME osquery_events_tests_linuxtests-test COMMAND osquery_events_tests_linuxtests-test)
-
-    if(OSQUERY_BUILD_BPF)
-      add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
-    endif()
   endif()
 
   if(DEFINED PLATFORM_MACOS)

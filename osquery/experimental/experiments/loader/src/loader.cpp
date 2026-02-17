@@ -11,10 +11,6 @@
 #include <osquery/experiments/loader.h>
 #include <osquery/logger/logger.h>
 
-#ifdef __linux__
-#include <osquery/experiments/linuxevents.h>
-#endif
-
 #include <boost/algorithm/string.hpp>
 
 #include <unordered_map>
@@ -32,9 +28,6 @@ using ExperimentInitializer = void (*)();
 
 // clang-format off
 static std::unordered_map<std::string, ExperimentInitializer> kExperimentMap = {
-#ifdef __linux__
-  {"linuxevents", initializeLinuxEvents}
-#endif
 };
 // clang-format on
 

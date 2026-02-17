@@ -100,6 +100,8 @@ function(importLibraries)
     "Linux:libaudit"
     "Linux:libcryptsetup"
     "Linux:libdevmapper"
+    "Linux:libelf"
+    "Linux:libbpf"
     "Linux:libgcrypt"
     "Linux:libgpg-error"
     "Linux:libiptables"
@@ -123,11 +125,6 @@ function(importLibraries)
     "Linux:libcap"
   )
 
-  if(OSQUERY_BUILD_BPF)
-    list(APPEND library_descriptor_list
-      "Linux:ebpfpub"
-    )
-  endif()
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND library_descriptor_list
@@ -203,14 +200,7 @@ function(importLibraries)
       endif()
 
     else()
-      # In case we were trying to import ebpfpub, check whether the build option
-      # has been turned OFF automatically because the installed LLVM libraries
-      # were broken/not compatible
-      if(NOT OSQUERY_BUILD_BPF AND "${library}" STREQUAL "ebpfpub")
-        message(WARNING "ebpfpub could not correctly import the LLVM libraries. BPF support has been disabled")
-      else()
-        message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
-      endif()
+      message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
     endif()
   endforeach()
 endfunction()

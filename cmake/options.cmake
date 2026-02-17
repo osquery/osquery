@@ -108,8 +108,6 @@ endif()
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
 set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,modernize-*,bugprone-*" CACHE STRING "List of checks performed by clang-tidy")
 
-option(OSQUERY_BUILD_BPF "Whether to enable and build BPF support" ON)
-
 set(DEFAULT_BUILD_AWS ON)
 if(DEFINED PLATFORM_WINDOWS AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ARM64")
     message(WARNING "AWS dependency is disabled on windows-arm64 because of missing atomics support")
