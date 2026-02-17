@@ -350,12 +350,13 @@ void genMsixPrograms(const std::string& key,
           installDir = installDir.substr(0, pos);
         }
         // For bundles, strip the extra AppxMetadata directory.
-        if (installDir.size() >= 13 &&
-            installDir.compare(
-                installDir.size() - 13, 13, "\\AppxMetadata") == 0) {
-          installDir = installDir.substr(0, installDir.size() - 13);
+        const std::string kAppxMetadataSuffix = "\\AppxMetadata";
+        auto suffixPos = installDir.rfind(kAppxMetadataSuffix);
+        if (suffixPos != std::string::npos &&
+            suffixPos == installDir.size() - kAppxMetadataSuffix.size()) {
+          installDir = installDir.substr(0, suffixPos);
         }
-        // e.g. C:\Program Files\WindowsApps\Microsoft.Paint_11.0.0_neutral_~_8wekyb3d8bbwe
+        // e.g. C:\...\Microsoft.Paint_11.0_neutral_~_8wekyb3d8bbwe
         result["install_location"] = installDir;
         break;
       }
