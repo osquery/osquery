@@ -37,6 +37,8 @@ function(boostMain)
     thirdparty_boost_uuid
     thirdparty_boost_scope_exit
     thirdparty_boost_circular_buffer
+    thirdparty_boost_describe
+    thirdparty_boost_scope
   )
 endfunction()
 
@@ -47,8 +49,15 @@ function(importBoostInterfaceLibrary folder_name)
   set(target_name "thirdparty_boost_${target_name}")
 
   add_library("${target_name}" INTERFACE)
+  
+  # Add all boost library include paths for cross-library dependencies
+  file(GLOB boost_lib_dirs "${BOOST_ROOT}/libs/*/include")
   target_include_directories("${target_name}" SYSTEM INTERFACE
     "${library_root}/include"
+    ${boost_lib_dirs}
+    "${BOOST_ROOT}/libs/scope/include"
+    "${BOOST_ROOT}/libs/describe/include"
+    "${BOOST_ROOT}/libs/mp11/include"
   )
 
   foreach(additional_dependency ${ARGN})
@@ -131,6 +140,8 @@ function(importBoostInterfaceLibraries)
     "dynamic_bitset:assert,config,container_hash,core,integer,move,static_assert,throw_exception"
     "scope_exit:config,function,preprocessor,type_traits,typeof"
     "circular_buffer:assert,concept_check,config,core,move,static_assert,throw_exception,type_traits"
+    "describe:mp11"
+    "scope:config,core"
   )
 
   foreach(library_descriptor ${library_descriptor_list})
@@ -217,6 +228,7 @@ function(generateBoostSerialization)
 
   target_include_directories(thirdparty_boost_serialization SYSTEM INTERFACE
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_serialization
@@ -267,6 +279,7 @@ function(generateBoostSerialization)
 
   target_include_directories(thirdparty_boost_wserialization SYSTEM INTERFACE
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_wserialization
@@ -326,6 +339,7 @@ function(generateBoostAtomic)
 
   target_include_directories(thirdparty_boost_atomic SYSTEM PUBLIC
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_compile_definitions(thirdparty_boost_atomic PUBLIC
@@ -390,6 +404,7 @@ function(generateBoostChrono)
 
   target_include_directories(thirdparty_boost_chrono SYSTEM INTERFACE
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_chrono
@@ -451,6 +466,7 @@ function(generateBoostContainer)
 
   target_include_directories(thirdparty_boost_container SYSTEM INTERFACE
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_container
@@ -478,6 +494,7 @@ function(generateBoostRandom)
 
   target_include_directories(thirdparty_boost_random SYSTEM PUBLIC
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_random
@@ -539,8 +556,14 @@ function(generateBoostThread)
     BOOST_THREAD_BUILD_LIB=1
   )
 
+  # Add all boost library include paths for cross-library dependencies
+  file(GLOB boost_lib_dirs "${BOOST_ROOT}/libs/*/include")
   target_include_directories(thirdparty_boost_thread SYSTEM PUBLIC
     "${library_root}/include"
+    ${boost_lib_dirs}
+    "${BOOST_ROOT}/libs/scope/include"
+    "${BOOST_ROOT}/libs/describe/include"
+    "${BOOST_ROOT}/libs/mp11/include"
   )
 
   target_link_libraries(thirdparty_boost_thread
@@ -577,6 +600,7 @@ function(generateBoostThread)
       thirdparty_boost_winapi
       thirdparty_boost_algorithm
       thirdparty_boost_lexical_cast
+      thirdparty_boost_describe
   )
 
   if(PLATFORM_POSIX)
@@ -651,6 +675,7 @@ function(generateBoostLocale)
 
   target_include_directories(thirdparty_boost_locale SYSTEM PUBLIC
     "${library_root}/include"
+    "${BOOST_ROOT}"
   )
 
   target_link_libraries(thirdparty_boost_locale
@@ -685,8 +710,27 @@ function(generateBoostFilesystem)
     "${library_root}/src/utf8_codecvt_facet.cpp"
   )
 
+  target_include_directories(thirdparty_boost_filesystem PRIVATE
+    "${BOOST_ROOT}/libs/scope/include"
+    "${BOOST_ROOT}/libs/describe/include"
+    "${BOOST_ROOT}/libs/mp11/include"
+  )
+
+  # Add explicit compile flags to ensure scope headers are found
+  target_compile_options(thirdparty_boost_filesystem PRIVATE
+    "-I${BOOST_ROOT}/libs/scope/include"
+    "-I${BOOST_ROOT}/libs/describe/include"
+    "-I${BOOST_ROOT}/libs/mp11/include"
+  )
+
+  # Add all boost library include paths for cross-library dependencies
+  file(GLOB boost_lib_dirs "${BOOST_ROOT}/libs/*/include")
   target_include_directories(thirdparty_boost_filesystem SYSTEM PUBLIC
     "${library_root}/include"
+    ${boost_lib_dirs}
+    "${BOOST_ROOT}/libs/scope/include"
+    "${BOOST_ROOT}/libs/describe/include"
+    "${BOOST_ROOT}/libs/mp11/include"
   )
 
   target_link_libraries(thirdparty_boost_filesystem
@@ -706,6 +750,7 @@ function(generateBoostFilesystem)
       thirdparty_boost_type_traits
       thirdparty_boost_predef
       thirdparty_boost_atomic
+      thirdparty_boost_scope
   )
 
   target_compile_definitions(thirdparty_boost_filesystem PUBLIC
@@ -741,16 +786,19 @@ function(generateBoostContext)
   message(STATUS "osquery: boost::context is using the ${context_backend} backend")
 
   if(context_backend STREQUAL "fcontext")
+    # Always include the fcontext.cpp wrapper
+    set(source_file_list "${library_root}/src/fcontext.cpp")
+    
     if(PLATFORM_LINUX)
       if(TARGET_PROCESSOR STREQUAL "x86_64")
-        set(source_file_list
+        list(APPEND source_file_list
           "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
           "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
           "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
         )
 
       elseif(TARGET_PROCESSOR STREQUAL "aarch64")
-        set(source_file_list
+        list(APPEND source_file_list
           "${library_root}/src/asm/jump_arm64_aapcs_elf_gas.S"
           "${library_root}/src/asm/make_arm64_aapcs_elf_gas.S"
           "${library_root}/src/asm/ontop_arm64_aapcs_elf_gas.S"
@@ -759,14 +807,14 @@ function(generateBoostContext)
 
     elseif(PLATFORM_MACOS)
       if(TARGET_PROCESSOR STREQUAL "x86_64")
-        set(source_file_list
+        list(APPEND source_file_list
           "${library_root}/src/asm/jump_x86_64_sysv_macho_gas.S"
           "${library_root}/src/asm/make_x86_64_sysv_macho_gas.S"
           "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
         )
 
       elseif(TARGET_PROCESSOR STREQUAL "aarch64")
-        set(source_file_list
+        list(APPEND source_file_list
         "${library_root}/src/asm/jump_arm64_aapcs_macho_gas.S"
         "${library_root}/src/asm/make_arm64_aapcs_macho_gas.S"
         "${library_root}/src/asm/ontop_arm64_aapcs_macho_gas.S"
@@ -775,14 +823,14 @@ function(generateBoostContext)
 
     elseif(PLATFORM_WINDOWS AND TARGET_PROCESSOR STREQUAL "x86_64")
       if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(source_file_list
+        list(APPEND source_file_list
           "${library_root}/src/asm/jump_i386_ms_pe_masm.asm"
           "${library_root}/src/asm/make_i386_ms_pe_masm.asm"
           "${library_root}/src/asm/ontop_i386_ms_pe_masm.asm"
         )
 
       else()
-        set(source_file_list
+        list(APPEND source_file_list
           "${library_root}/src/asm/jump_x86_64_ms_pe_masm.asm"
           "${library_root}/src/asm/make_x86_64_ms_pe_masm.asm"
           "${library_root}/src/asm/ontop_x86_64_ms_pe_masm.asm"
@@ -855,8 +903,11 @@ function(generateBoostContext)
     )
   endif()
 
+  # Add all boost library include paths for cross-library dependencies
+  file(GLOB boost_lib_dirs "${BOOST_ROOT}/libs/*/include")
   target_include_directories(thirdparty_boost_context SYSTEM PUBLIC
     "${library_root}/include"
+    ${boost_lib_dirs}
   )
 
   target_link_libraries(thirdparty_boost_context
@@ -872,6 +923,17 @@ function(generateBoostContext)
       thirdparty_boost_predef
       thirdparty_boost_smart_ptr
   )
+
+  # Ensure the fcontext.cpp file gets compiled with proper C++ settings
+  if(context_backend STREQUAL "fcontext")
+    # Force include of standard C++ library paths
+    if(PLATFORM_MACOS)
+      set_property(SOURCE "${library_root}/src/fcontext.cpp" PROPERTY COMPILE_FLAGS 
+        "-std=c++17 -stdlib=libc++ -isysroot ${CMAKE_OSX_SYSROOT}")
+    else()
+      set_property(SOURCE "${library_root}/src/fcontext.cpp" PROPERTY COMPILE_FLAGS "-std=c++17")
+    endif()
+  endif()
 
   target_compile_definitions(thirdparty_boost_context
     PRIVATE

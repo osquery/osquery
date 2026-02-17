@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <vector>
 
 #include <osquery/utils/system/system.h>
 
