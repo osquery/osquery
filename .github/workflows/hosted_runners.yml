@@ -11,8 +11,8 @@
 # jobs in another file inside the `needs` statement.
 #
 # This configuration file takes care of the Windows, macOS and Linux
-# builds on the x86 platform.
-name: build_x86
+# builds on x86_64 and aarch64
+name: build
 
 on:
   # Run this workflow once every day against the master branch
@@ -42,6 +42,7 @@ env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
   SUBMODULE_CACHE_VERSION: 3
+  OSQUERY_TOOLCHAIN_VERSION: 1.1.0
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -53,11 +54,12 @@ jobs:
   check_code_style:
     runs-on: ubuntu-22.04
 
-    container:
-      image: osquery/builder20.04:7e9ee0339
-      options: --user 1001
-
     steps:
+    - name: Install osquery-toolchain
+      run: |
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -140,15 +142,21 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    container:
-      image: osquery/builder20.04:7e9ee0339
-      options: --user 1001
-
     strategy:
       matrix:
         os: [ubuntu-22.04]
 
     steps:
+    - name: Install osquery-toolchain
+      run: |
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y cppcheck
+
     - name: Setup the build paths
       shell: bash
       id: build_paths
@@ -189,7 +197,6 @@ jobs:
 
     - name: Configure the project (Release)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
       run: |
         cmake -G "Unix Makefiles" \
           -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
@@ -208,6 +215,10 @@ jobs:
       id: release_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
+        # Create generated source files (if not exist) to avoid cppcheck errors
+        touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
+        touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_native_tables.cpp
+        touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_foreign_tables.cpp
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
 
     - name: Store the cppcheck log (Release)
@@ -253,16 +264,12 @@ jobs:
   build_linux:
     needs: [check_code_style, check_libraries_manifest]
 
-    runs-on: ${{ matrix.os }}
-
-    container:
-      image: osquery/builder20.04:7e9ee0339
-      options: --privileged --init -v /var/run/docker.sock:/var/run/docker.sock --pid=host --user 1001
-
     strategy:
       matrix:
         build_type: [Release, RelWithDebInfo, Debug]
-        os: [ubuntu-22.04]
+        os: [ubuntu-22.04, ubuntu-22.04-arm]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: Disk space information
@@ -274,27 +281,37 @@ jobs:
     - name: Make space -- uninstalling packages
       shell: bash
       run: |
-        run_on_host="sudo nsenter -t 1 -m -u -n -i"
-        packages_to_remove=$($run_on_host dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
+        packages_to_remove=$(dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
         \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
         \|^google-cloud-sdk\|^google-cloud-api\|^azure-cli\|^firefox\|^php\|^hhvm\|^snapd")
-        $run_on_host apt purge $packages_to_remove
-        $run_on_host apt autoremove -y
-        $run_on_host apt clean
+        sudo apt-get purge $packages_to_remove
+        sudo apt-get autoremove -y
+        sudo apt-get clean
 
     - name: Make space -- removing runtimes
       shell: bash
       run: |
-        run_on_host="sudo nsenter -t 1 -m -u -n -i"
-        $run_on_host rm -rf /usr/local/lib/android
-        $run_on_host rm -rf /usr/share/dotnet
-        $run_on_host rm -rf /opt/ghc /usr/local/.ghcup
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc /usr/local/.ghcup
 
     - name: Disk space information
       shell: bash
       run: |
         df -h
         free -m
+
+    - name: Install osquery-toolchain
+      run: |
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
+        pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
+
 
     # Due to how the RPM packaging tools work, we have to adhere to some
     # character count requirements in the build path vs source path.
@@ -389,7 +406,7 @@ jobs:
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
-        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
 
         key: |
           gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
@@ -488,6 +505,20 @@ jobs:
             --target package
         done
 
+    - name: Set architecture suffix
+      if: matrix.build_type == 'RelWithDebInfo'
+      id: arch
+      shell: bash
+      run: |
+        arch=$(uname -m)
+        if [ "$arch" == "x86_64" ]; then
+          echo "suffix=" >> $GITHUB_OUTPUT
+          echo "arch=x86_64" >> $GITHUB_OUTPUT
+        else
+          echo "suffix=_aarch64" >> $GITHUB_OUTPUT
+          echo "arch=aarch64" >> $GITHUB_OUTPUT
+        fi
+
     - name: Locate the packages
       if: matrix.build_type == 'RelWithDebInfo'
       id: packages
@@ -498,48 +529,48 @@ jobs:
         echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_${{ steps.arch.outputs.arch }}.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_package_data
+        name: linux_unsigned_release_package_data${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Store the unsigned release DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_deb
+        name: linux_unsigned_release_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
     - name: Store the unsigned debug DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_debug_deb
+        name: linux_unsigned_debug_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
     - name: Store the unsigned release RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_rpm
+        name: linux_unsigned_release_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
     - name: Store the unsigned debug RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_debug_rpm
+        name: linux_unsigned_debug_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
     - name: Store the unsigned release TGZ artifact
       if: matrix.build_type == 'RelWithDebInfo'
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v4
       with:
-        name: linux_unsigned_release_tgz
+        name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     # Before we terminate this job, delete the build folder. The cache
@@ -547,8 +578,6 @@ jobs:
     - name: Reclaim disk space
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
-
-
 
 
   # The macOS build will only start once we know that the code
