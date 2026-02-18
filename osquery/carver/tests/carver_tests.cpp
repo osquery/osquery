@@ -390,7 +390,7 @@ class TransientFailureCarver : public Carver {
     }
 
     if (params.doc().HasMember("carve_id")) {
-      response.add("session_id", "test_session");
+      response.addCopy("session_id", "test_session");
     }
 
     return Status::success();
