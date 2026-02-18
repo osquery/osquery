@@ -442,7 +442,7 @@ QueryData genWindowsSearch(QueryContext& context) {
 
       // property was requested by user
       if (!defaultWindowsPropertiesToOsqueryColumns.count(key)) {
-        additionalPropertiesJson.add(key, value);
+        additionalPropertiesJson.addCopy(key, value);
         continue;
       }
 

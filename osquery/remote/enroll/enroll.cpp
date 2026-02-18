@@ -139,9 +139,9 @@ void EnrollPlugin::genHostDetails(JSON& host_details) {
     if (!results.empty()) {
       JSON details;
       for (const auto& detail : results[0]) {
-        details.add(detail.first, detail.second);
+        details.addCopy(detail.first, detail.second);
       }
-      host_details.add(table, details.doc());
+      host_details.addCopy(table, details.doc());
     }
   }
 }

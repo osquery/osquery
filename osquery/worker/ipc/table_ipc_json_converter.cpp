@@ -43,7 +43,7 @@ Status TableIPCJSONConverter::queryDataToJSON(const QueryData& query_data,
     return status;
   }
 
-  json_helper.add("QueryData", query_data_doc.doc());
+  json_helper.addCopy("QueryData", query_data_doc.doc());
 
   return Status::success();
 }
@@ -94,9 +94,9 @@ Status TableIPCJSONConverter::logMessageToJSON(int priority,
                                                const std::string& message,
                                                JSON& json_helper) {
   json_helper = JSON::newObject();
-  json_helper.add("Priority", priority);
-  json_helper.add("LogType", log_type);
-  json_helper.add("Message", message);
+  json_helper.addCopy("Priority", priority);
+  json_helper.addCopy("LogType", log_type);
+  json_helper.addCopy("Message", message);
 
   return Status::success();
 }

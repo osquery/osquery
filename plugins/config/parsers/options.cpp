@@ -61,7 +61,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
       if (data_.doc().HasMember("options")) {
         doc.copyFrom(data_.doc()["options"], obj);
       }
-      doc.add("options", obj);
+      doc.addCopy("options", obj);
     }
 
     if (co->second.doc().IsObject()) {

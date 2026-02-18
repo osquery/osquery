@@ -128,7 +128,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(cv->second.doc(), obj);
-    doc.add(kParserKey, obj);
+    doc.addCopy(kParserKey, obj);
     data_ = std::move(doc);
   }
 

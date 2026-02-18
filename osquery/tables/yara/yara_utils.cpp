@@ -385,7 +385,7 @@ int YARACallback(YR_SCAN_CONTEXT* context,
 
 Status YARAConfigParserPlugin::setUp() {
   auto obj = data_.getObject();
-  data_.add("yara", obj);
+  data_.addCopy("yara", obj);
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
@@ -416,7 +416,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
     } else {
       auto obj = data_.getObject();
       data_.copyFrom(signatures, obj);
-      data_.add("signatures", obj);
+      data_.addCopy("signatures", obj);
 
       for (const auto& element : data_.doc()["signatures"].GetObject()) {
         std::string category = element.name.GetString();
@@ -461,7 +461,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
     if (file_paths.IsObject()) {
       auto obj = data_.getObject();
       data_.copyFrom(file_paths, obj);
-      data_.add("file_paths", obj);
+      data_.addCopy("file_paths", obj);
     } else {
       VLOG(1) << "YARA file_paths key is invalid";
     }

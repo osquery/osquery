@@ -110,11 +110,11 @@ std::pair<JSON, QueryDataTyped> getSerializedQueryData() {
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
   doc.copyFrom(r.first.doc(), arr1);
-  doc.push(arr1);
+  doc.pushCopy(arr1);
 
   auto arr2 = doc.getArray();
   doc.copyFrom(r.first.doc(), arr2);
-  doc.push(arr2);
+  doc.pushCopy(arr2);
 
   return std::make_pair(std::move(doc), q);
 }
@@ -133,8 +133,8 @@ std::pair<JSON, DiffResults> getSerializedDiffResults() {
   diff_results.removed = qd.second;
 
   JSON doc = JSON::newObject();
-  doc.add("removed", qd.first.doc());
-  doc.add("added", qd.first.doc());
+  doc.addCopy("removed", qd.first.doc());
+  doc.addCopy("added", qd.first.doc());
 
   return std::make_pair(std::move(doc), std::move(diff_results));
 }
@@ -155,14 +155,14 @@ std::pair<JSON, QueryLogItem> getSerializedQueryLogItem() {
 
   auto diff_doc = doc.getObject();
   diff_doc.Swap(dr.first.doc());
-  doc.add("diffResults", diff_doc);
+  doc.addCopy("diffResults", diff_doc);
   doc.addRef("name", "foobar");
   doc.addRef("hostIdentifier", "foobaz");
   doc.addRef("calendarTime", "Mon Aug 25 12:10:57 2014");
-  doc.add("unixTime", 1408993857);
-  doc.add("epoch", std::size_t{0});
-  doc.add("counter", std::size_t{0});
-  doc.add("numerics", FLAGS_logger_numerics);
+  doc.addCopy("unixTime", 1408993857);
+  doc.addCopy("epoch", std::size_t{0});
+  doc.addCopy("counter", std::size_t{0});
+  doc.addCopy("numerics", FLAGS_logger_numerics);
 
   return std::make_pair(std::move(doc), std::move(i));
 }
@@ -173,11 +173,11 @@ std::pair<JSON, QueryDataTyped> getSerializedQueryDataWithColumnOrder() {
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
   doc.copyFrom(r.first.doc(), arr1);
-  doc.push(arr1);
+  doc.pushCopy(arr1);
 
   auto arr2 = doc.getArray();
   doc.copyFrom(r.first.doc(), arr2);
-  doc.push(arr2);
+  doc.pushCopy(arr2);
 
   return std::make_pair(std::move(doc), q);
 }
