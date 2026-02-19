@@ -335,8 +335,8 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     params.addCopy("block_id", i);
     params.addRef("session_id", session_id);
     params.addRef("request_id", requestId_);
-    params.addRef("data",
-                  base64::encode(std::string(block.begin(), block.end())));
+    params.addCopy("data",
+                   base64::encode(std::string(block.begin(), block.end())));
 
     status = fireRequest(contRequest, params);
     if (!status.ok()) {
