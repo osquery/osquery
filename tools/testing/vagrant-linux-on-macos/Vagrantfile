@@ -32,17 +32,16 @@ Vagrant.configure("2") do |config|
         vb.cpus = 2
         vb.gui = false
         vb.customize ["modifyvm", :id, "--ostype", "Ubuntu_64"]
-        vb.customize ["modifyvm", :id, "--longmode", "on"]
       end
     end
   end
 
   centos_versions = [
-    { name: "centos6", version: "6", box: "generic/centos6", arm64_box: nil },
-    { name: "centos7", version: "7", box: "generic/centos7", arm64_box: nil },
-    { name: "centos8", version: "8", box: "generic/centos8", arm64_box: nil },
-    { name: "centos-stream-9", version: "stream-9", box: "bento/centos-stream-9", arm64_box: "bento/centos-stream-9" },
-    { name: "centos-stream-10", version: "stream-10", box: "bento/centos-stream-10", arm64_box: "bento/centos-stream-10" }
+    { name: "centos6", box: "generic/centos6"},
+    { name: "centos7", box: "generic/centos7"},
+    { name: "centos8", box: "generic/centos8"},
+    { name: "centos-stream-9", box: "bento/centos-stream-9", arm64_box: "bento/centos-stream-9" },
+    { name: "centos-stream-10", box: "bento/centos-stream-10", arm64_box: "bento/centos-stream-10" }
   ]
 
   centos_versions.each do |vm_config|
@@ -73,7 +72,7 @@ Vagrant.configure("2") do |config|
         vb.gui = false
         vb.customize ["modifyvm", :id, "--ostype", "RedHat_64"]
         vb.customize ["modifyvm", :id, "--ioapic", "on"]
-        vb.customize ["modifyvm", :id, "--paravirtprovider", "minimal"]
+        vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm"]
       end
     end
   end
