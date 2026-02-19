@@ -1,0 +1,80 @@
+Vagrant.configure("2") do |config|
+  config.vagrant.plugins = "vagrant-qemu"
+
+  ubuntu_versions = [
+    { name: "ubuntu16", version: "16.04", amd_arch: "unknown" },
+    { name: "ubuntu18", version: "18.04", amd_arch: "unknown" },
+    { name: "ubuntu20", version: "20.04", amd_arch: "amd64" },
+    { name: "ubuntu22", version: "22.04", amd_arch: "amd64" },
+    { name: "ubuntu24", version: "24.04", amd_arch: "amd64" }
+  ]
+
+  ubuntu_versions.each do |vm_config|
+    # ARM64 version
+    config.vm.define vm_config[:name] do |ubuntu|
+      ubuntu.vm.box = "cloud-image/ubuntu-#{vm_config[:version]}"
+      ubuntu.vm.box_architecture = "arm64"
+      ubuntu.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__auto: true
+      ubuntu.vm.provider "qemu" do |qe|
+        qe.memory = "1G"
+        qe.ssh_auto_correct = true
+        qe.qemu_dir = "/opt/homebrew/share/qemu"
+      end
+    end
+
+    # x86_64 version
+    config.vm.define "#{vm_config[:name]}-x86" do |ubuntu|
+      ubuntu.vm.box = "bento/ubuntu-#{vm_config[:version]}"
+      ubuntu.vm.box_architecture = vm_config[:amd_arch]
+      ubuntu.vm.synced_folder ".", "/vagrant"
+      ubuntu.vm.provider "virtualbox" do |vb|
+        vb.memory = "1024"
+        vb.cpus = 2
+        vb.gui = false
+        vb.customize ["modifyvm", :id, "--ostype", "Ubuntu_64"]
+        vb.customize ["modifyvm", :id, "--longmode", "on"]
+      end
+    end
+  end
+
+  centos_versions = [
+    { name: "centos6", version: "6", box: "generic/centos6", arm64_box: nil },
+    { name: "centos7", version: "7", box: "generic/centos7", arm64_box: nil },
+    { name: "centos8", version: "8", box: "generic/centos8", arm64_box: nil },
+    { name: "centos-stream-9", version: "stream-9", box: "bento/centos-stream-9", arm64_box: "bento/centos-stream-9" },
+    { name: "centos-stream-10", version: "stream-10", box: "bento/centos-stream-10", arm64_box: "bento/centos-stream-10" }
+  ]
+
+  centos_versions.each do |vm_config|
+    # ARM64 version (only for CentOS Stream 9+)
+    if vm_config[:arm64_box]
+      config.vm.define vm_config[:name] do |centos|
+        centos.vm.box = vm_config[:arm64_box]
+        centos.vm.box_architecture = "arm64"
+        centos.vm.synced_folder ".", "/vagrant"
+        centos.vm.provider "virtualbox" do |vb|
+          vb.memory = "1024"
+          vb.cpus = 2
+          vb.gui = false
+          vb.customize ["modifyvm", :id, "--ostype", "RedHat_64"]
+          vb.customize ["modifyvm", :id, "--ioapic", "on"]
+        end
+      end
+    end
+
+    # x86_64 version
+    config.vm.define "#{vm_config[:name]}-x86" do |centos|
+      centos.vm.box = vm_config[:box]
+      centos.vm.box_architecture = "amd64"
+      centos.vm.synced_folder ".", "/vagrant"
+      centos.vm.provider "virtualbox" do |vb|
+        vb.memory = "1024"
+        vb.cpus = 2
+        vb.gui = false
+        vb.customize ["modifyvm", :id, "--ostype", "RedHat_64"]
+        vb.customize ["modifyvm", :id, "--ioapic", "on"]
+        vb.customize ["modifyvm", :id, "--paravirtprovider", "minimal"]
+      end
+    end
+  end
+end
