@@ -139,7 +139,8 @@ class SQL : private only_movable {
 
   /**
    * @brief Get columns with constraints, 'SELECT [columns] ... where', results
-   * given a virtual table name, column names, multiple constraints.
+   * given a virtual table name, column names, multiple constraints. Rows are
+   * only returned if all constraints match (like AND).
    *
    * @param columns the columns to return
    * @param table The name of the virtual table.

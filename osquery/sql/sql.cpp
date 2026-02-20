@@ -124,8 +124,7 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
 
   if (columns.size() > 0) {
     auto colsUsed = UsedColumns(columns);
-    for (const auto& [key, val] : constraints) {
-      (void)val;
+    for (const auto& [key, _] : constraints) {
       colsUsed.insert(key);
     }
     ctx.colsUsed = colsUsed;

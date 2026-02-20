@@ -132,6 +132,16 @@ TEST_F(SQLTests, select_from_multiple_constraints) {
     auto results = SQL::selectFrom({}, "test", std::move(constraints));
     EXPECT_EQ(results.size(), 0U);
   }
+
+   // Conflicting constraints should return no rows (check AND)
+   {
+     ConstraintMap constraints;
+     constraints["test_int"].add(Constraint(EQUALS, "1"));
+     constraints["test_int"].add(Constraint(EQUALS, "0"));
+     EXPECT_EQ(constraints.size(), 1U);
+     auto results = SQL::selectFrom({}, "test", std::move(constraints));
+     EXPECT_EQ(results.size(), 0U);
+   }
 }
 
 TEST_F(SQLTests, test_raw_access_context) {
