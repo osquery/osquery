@@ -60,6 +60,64 @@ std::string SQL::getMessageString() const {
   return status_.toString();
 }
 
+// Return the expected byte length of a UTF-8 sequence given its lead byte,
+// or 0 if the byte is not a valid UTF-8 lead byte.
+static inline size_t utf8SequenceLength(unsigned char lead) {
+  if (lead < 0x80) {
+    return 1; // ASCII
+  } else if (lead < 0xC2) {
+    return 0; // continuation byte or overlong 2-byte (0xC0, 0xC1)
+  } else if (lead < 0xE0) {
+    return 2;
+  } else if (lead < 0xF0) {
+    return 3;
+  } else if (lead < 0xF5) {
+    return 4;
+  }
+  return 0; // 0xF5..0xFF are invalid
+}
+
+// Check whether a multi-byte UTF-8 sequence starting at data[i] is valid.
+// `len` is the expected sequence length from utf8SequenceLength (2, 3, or 4).
+// Returns true only if all continuation bytes are present and the sequence
+// is not overlong and does not encode a surrogate half.
+static inline bool isValidUtf8Sequence(const std::string& data,
+                                       size_t i,
+                                       size_t len) {
+  if (i + len > data.length()) {
+    return false; // not enough bytes remaining
+  }
+
+  // All continuation bytes must be 10xxxxxx (0x80..0xBF).
+  for (size_t j = 1; j < len; ++j) {
+    if (((unsigned char)data[i + j] & 0xC0) != 0x80) {
+      return false;
+    }
+  }
+
+  auto b0 = (unsigned char)data[i];
+  auto b1 = (unsigned char)data[i + 1];
+
+  // Reject overlong encodings and surrogate halves (RFC 3629).
+  if (len == 3) {
+    if (b0 == 0xE0 && b1 < 0xA0) {
+      return false; // overlong 3-byte
+    }
+    if (b0 == 0xED && b1 >= 0xA0) {
+      return false; // surrogate half U+D800..U+DFFF
+    }
+  } else if (len == 4) {
+    if (b0 == 0xF0 && b1 < 0x90) {
+      return false; // overlong 4-byte
+    }
+    if (b0 == 0xF4 && b1 >= 0x90) {
+      return false; // above U+10FFFF
+    }
+  }
+
+  return true;
+}
+
 static inline void escapeNonPrintableBytes(std::string& data) {
   std::string escaped;
   // clang-format off
@@ -71,13 +129,33 @@ static inline void escapeNonPrintableBytes(std::string& data) {
 
   bool needs_replacement = false;
   for (size_t i = 0; i < data.length(); i++) {
-    if (((unsigned char)data[i]) < 0x20 || ((unsigned char)data[i]) >= 0x80) {
+    auto byte = (unsigned char)data[i];
+
+    if (byte < 0x20) {
+      // Control characters are always escaped.
       needs_replacement = true;
       escaped += "\\x";
-      escaped += hex_chars[(((unsigned char)data[i])) >> 4];
-      escaped += hex_chars[((unsigned char)data[i] & 0x0F) >> 0];
-    } else {
+      escaped += hex_chars[byte >> 4];
+      escaped += hex_chars[byte & 0x0F];
+    } else if (byte < 0x80) {
+      // Printable ASCII passes through.
       escaped += data[i];
+    } else {
+      // Non-ASCII byte: check for valid UTF-8 multi-byte sequence.
+      size_t seq_len = utf8SequenceLength(byte);
+      if (seq_len >= 2 && isValidUtf8Sequence(data, i, seq_len)) {
+        // Valid UTF-8 sequence: copy all bytes through unchanged.
+        for (size_t j = 0; j < seq_len; ++j) {
+          escaped += data[i + j];
+        }
+        i += seq_len - 1; // -1 because the for loop increments
+      } else {
+        // Invalid or unexpected byte: escape it.
+        needs_replacement = true;
+        escaped += "\\x";
+        escaped += hex_chars[byte >> 4];
+        escaped += hex_chars[byte & 0x0F];
+      }
     }
   }
 
