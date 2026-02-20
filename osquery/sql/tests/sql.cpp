@@ -96,8 +96,7 @@ TEST_F(SQLTests, test_sql_escape) {
 
   input = "съешь же ещё этих мягких французских булок, да выпей чаю";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(input,
-            "съешь же ещё этих мягких французских булок, да выпей чаю");
+  EXPECT_EQ(input, "съешь же ещё этих мягких французских булок, да выпей чаю");
 
   input = "The quick brown fox jumps over the lazy dog.";
   escapeNonPrintableBytesEx(input);
@@ -133,8 +132,7 @@ TEST_F(SQLTests, test_sql_escape_utf8_passthrough) {
   // Mixed Cyrillic and ASCII (full sentence)
   input = "съешь же ещё этих мягких французских булок, да выпей чаю";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(input,
-            "съешь же ещё этих мягких французских булок, да выпей чаю");
+  EXPECT_EQ(input, "съешь же ещё этих мягких французских булок, да выпей чаю");
 
   // Plain ASCII should be unchanged
   input = "The quick brown fox jumps over the lazy dog.";
@@ -167,12 +165,18 @@ TEST_F(SQLTests, test_sql_escape_utf8_passthrough) {
   EXPECT_EQ(input, "hello 😀 world");
 
   // Overlong 2-byte encoding (0xC0 0x80 = overlong NUL) should be escaped
-  input = std::string("ab\xC0\x80" "cd", 6);
+  input = std::string(
+      "ab\xC0\x80"
+      "cd",
+      6);
   escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input, "ab\\xC0\\x80cd");
 
   // Invalid lead byte 0xFE should be escaped
-  input = std::string("ab\xFE" "cd", 5);
+  input = std::string(
+      "ab\xFE"
+      "cd",
+      5);
   escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input, "ab\\xFEcd");
 }
