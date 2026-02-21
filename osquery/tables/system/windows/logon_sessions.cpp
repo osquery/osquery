@@ -20,6 +20,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
@@ -49,12 +50,17 @@ QueryData queryLogonSessions(QueryContext& context) {
 
   QueryData results;
   if (status == kLsaStatusSuccess) {
+    auto sessions_guard =
+        scope_guard::create([&sessions]() { LsaFreeReturnBuffer(sessions); });
+
     for (ULONG i = 0; i < session_count; i++) {
       PSECURITY_LOGON_SESSION_DATA session_data = NULL;
       NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &session_data);
       if (status != kLsaStatusSuccess) {
         continue;
       }
+      auto session_data_guard = scope_guard::create(
+          [&session_data]() { LsaFreeReturnBuffer(session_data); });
 
       Row r;
       r["logon_id"] = INTEGER(session_data->LogonId.LowPart);
@@ -78,10 +84,7 @@ QueryData queryLogonSessions(QueryContext& context) {
       r["home_directory_drive"] =
           wstringToString(session_data->HomeDirectoryDrive.Buffer);
       results.push_back(std::move(r));
-
-      LsaFreeReturnBuffer(session_data);
     }
-    LsaFreeReturnBuffer(sessions);
   }
   return results;
 } // function queryLogonSessions
