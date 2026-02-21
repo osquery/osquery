@@ -78,7 +78,10 @@ QueryData queryLogonSessions(QueryContext& context) {
       r["home_directory_drive"] =
           wstringToString(session_data->HomeDirectoryDrive.Buffer);
       results.push_back(std::move(r));
+
+      LsaFreeReturnBuffer(session_data);
     }
+    LsaFreeReturnBuffer(sessions);
   }
   return results;
 } // function queryLogonSessions
