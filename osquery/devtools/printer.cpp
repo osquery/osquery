@@ -151,7 +151,7 @@ void jsonPrettyPrint(const QueryData& q) {
   for (const auto& row : q) {
     auto row_json = doc.getObject();
     if (serializeRow(row, ColumnNames{}, doc, row_json)) {
-      doc.push(row_json);
+      doc.pushCopy(row_json);
     }
   }
   std::string doc_string;

@@ -33,7 +33,7 @@ class MockTransport : public Transport {
   }
 
   Status sendRequest(const std::string& params, bool compress) override {
-    response_params_.add("foo", "baz");
+    response_params_.addCopy("foo", "baz");
     response_status_ = Status(0, "OK");
     return response_status_;
   }
@@ -90,7 +90,7 @@ TEST_F(RequestsTests, test_call) {
 TEST_F(RequestsTests, test_call_with_params) {
   Request<MockTransport, MockSerializer> req("foobar");
   JSON params;
-  params.add("foo", "bar");
+  params.addCopy("foo", "bar");
   auto s1 = req.call(params);
   EXPECT_TRUE(s1.ok());
 
@@ -99,7 +99,7 @@ TEST_F(RequestsTests, test_call_with_params) {
   EXPECT_TRUE(s2.ok());
 
   JSON expected;
-  expected.add("foo", "baz");
+  expected.addCopy("foo", "baz");
   EXPECT_EQ(recv.doc(), expected.doc());
 }
 
@@ -150,7 +150,7 @@ TEST_F(RequestsTests, test_compression) {
 
   // Our special 'copy' serializer copies input from the 'copy' key in params.
   JSON params;
-  params.add("copy", uncompressed);
+  params.addCopy("copy", uncompressed);
 
   // Similarly, the 'copy' transport copies the request params into the
   // response status.

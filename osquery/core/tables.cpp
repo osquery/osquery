@@ -68,21 +68,21 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
     auto child = doc.getObject();
     doc.addRef("name", constraint.first, child);
     constraint.second.serialize(doc, child);
-    doc.push(child, constraints);
+    doc.pushCopy(child, constraints);
   }
 
-  doc.add("constraints", constraints);
+  doc.addCopy("constraints", constraints);
 
   if (context.colsUsed) {
     auto colsUsed = doc.getArray();
     for (const auto& columnName : *context.colsUsed) {
       doc.pushCopy(columnName, colsUsed);
     }
-    doc.add("colsUsed", colsUsed);
+    doc.addCopy("colsUsed", colsUsed);
   }
 
   if (context.colsUsedBitset) {
-    doc.add("colsUsedBitset", context.colsUsedBitset->to_ullong());
+    doc.addCopy("colsUsedBitset", context.colsUsedBitset->to_ullong());
   }
 
   doc.toString(request["context"]);
@@ -492,11 +492,11 @@ void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();
   for (const auto& constraint : constraints_) {
     auto child = doc.getObject();
-    doc.add("op", static_cast<size_t>(constraint.op), child);
+    doc.addCopy("op", static_cast<size_t>(constraint.op), child);
     doc.addRef("expr", constraint.expr, child);
-    doc.push(child, expressions);
+    doc.pushCopy(child, expressions);
   }
-  doc.add("list", expressions, obj);
+  doc.addCopy("list", expressions, obj);
   doc.addCopy("affinity", columnTypeName(affinity), obj);
 }
 
@@ -633,21 +633,21 @@ void serializeQueryContextJSON(const QueryContext& context, JSON& json_helper) {
     auto child = json_helper.getObject();
     json_helper.addRef("name", constraint.first, child);
     constraint.second.serialize(json_helper, child);
-    json_helper.push(child, constraints);
+    json_helper.pushCopy(child, constraints);
   }
 
-  json_helper.add("constraints", constraints);
+  json_helper.addCopy("constraints", constraints);
 
   if (context.colsUsed) {
     auto cols_used = json_helper.getArray();
     for (const auto& column_name : *context.colsUsed) {
       json_helper.pushCopy(column_name, cols_used);
     }
-    json_helper.add("colsUsed", cols_used);
+    json_helper.addCopy("colsUsed", cols_used);
   }
 
   if (context.colsUsedBitset) {
-    json_helper.add("colsUsedBitset", context.colsUsedBitset->to_ullong());
+    json_helper.addCopy("colsUsedBitset", context.colsUsedBitset->to_ullong());
   }
 }
 

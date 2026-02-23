@@ -127,8 +127,8 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
   }
 
   JSON params;
-  params.add("node_key", getNodeKey("tls"));
-  params.add("log_type", log_type);
+  params.addCopy("node_key", getNodeKey("tls"));
+  params.addCopy("log_type", log_type);
 
   {
     // Read each logged line into JSON and populate a list of lines.
@@ -149,16 +149,16 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
                 return;
               }
               std::string().swap(item);
-              params.push(child.doc(), children.doc());
+              params.pushCopy(child.doc(), children.doc());
             }));
-    params.add("data", children.doc());
+    params.addCopy("data", children.doc());
   }
 
   // The response body is ignored (status is set appropriately by
   // TLSRequestHelper::go())
   std::string response;
   if (FLAGS_logger_tls_compress) {
-    params.add("_compress", true);
+    params.addCopy("_compress", true);
   }
   return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }

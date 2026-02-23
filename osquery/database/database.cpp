@@ -542,7 +542,7 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
     if (row.Parse(ss.str()).HasParseError()) {
       return Status(1, "Failed to serialize JSON");
     }
-    json.push(row);
+    json.pushCopy(row);
   }
 
   json.toString(out);

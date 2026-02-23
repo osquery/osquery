@@ -110,7 +110,7 @@ class Transport {
 
   template <typename T>
   void setOption(const std::string& name, const T& value) {
-    options_.add(name, value);
+    options_.addCopy(name, value);
   }
 
   /**
@@ -264,7 +264,7 @@ class Request {
 
   template <typename T>
   void setOption(const std::string& name, const T& value) {
-    options_.add(name, value);
+    options_.addCopy(name, value);
     transport_->setOption(name, value);
   }
 

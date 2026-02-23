@@ -326,81 +326,107 @@ void genMsixPrograms(const std::string& key,
     result["package_family_name"] =
         packageFamilyNameFromPackageFullName(regPackageFullName);
 
+    std::string filePath;
     for (const auto& aKey : appResults) {
       auto name = aKey.find("name");
+      if (name == aKey.end()) {
+        continue;
+      }
 
       if (name->second == "PackageRootFolder") {
         result["install_location"] = aKey.at("data");
-        std::string filePath =
-            result["install_location"] + "\\AppxManifest.xml";
-
-        // btime "Birth Time"
-        // When a file is first created, btime is set and does not change
-        // ::Warning:: not all filesystems support btime
-        // Older file systems such as ext3 or FAT32 will have this missing
-        WINDOWS_STAT file_stat;
-        auto rtn = platformStat(filePath.c_str(), &file_stat);
-        if (rtn.ok()) {
-          result["install_date"] = formatTimestampToDate(file_stat.btime);
+        filePath = result["install_location"] + "\\AppxManifest.xml";
+        break;
+      } else if (name->second == "Path") {
+        // Machine-wide provisioned packages may not be installed for any
+        // user yet. Their registry value stores the full manifest path
+        // rather than a directory, so we derive the install location from it.
+        // Non-bundle: ...\PackageName\AppxManifest.xml
+        // Bundle:     ...\PackageName\AppxMetadata\AppxBundleManifest.xml
+        filePath = aKey.at("data");
+        auto installDir = filePath;
+        auto pos = installDir.rfind('\\');
+        if (pos != std::string::npos) {
+          installDir = installDir.substr(0, pos);
         }
-
-        auto s = osquery::pathExists(filePath);
-        if (!s.ok()) {
-          // Skip this package, as we cannot find the manifest file
-          // We can extract some information from the registry key
-          // <PackageName>_<Version>_<Architecture>__<PublisherHash>
-          // Example:
-          // MSTeams_25060.205.3499.6849_arm64__8wekyb3d8bbwe
-          // But all proper MSIX packages have an AppxManifest.xml file
-          VLOG(1) << "Cannot find manifest file:'" + filePath + "'";
-          result.clear();
-          continue;
+        // For bundles, strip the extra AppxMetadata directory.
+        const std::string kAppxMetadataSuffix = "\\AppxMetadata";
+        auto suffixPos = installDir.rfind(kAppxMetadataSuffix);
+        if (suffixPos != std::string::npos &&
+            suffixPos == installDir.size() - kAppxMetadataSuffix.size()) {
+          installDir = installDir.substr(0, suffixPos);
         }
-
-        std::string xmlContent;
-        s = osquery::readFile(filePath, xmlContent);
-        if (!s.ok()) {
-          // Skip this package, as we cannot read the manifest file
-          VLOG(1) << "Cannot read manifest file:'" + filePath + "'";
-          result.clear();
-          continue;
-        }
-
-        // Find the Identity tag, extract attributes
-        std::string identityTag = findSelfClosingTag(xmlContent, "Identity");
-        if (!identityTag.empty()) {
-          auto attributes = parseAttributes(identityTag);
-          result["name"] = attributes["Name"];
-          result["publisher"] = attributes["Publisher"];
-          result["version"] = attributes["Version"];
-        }
-
-        // Find the Properties tag, extract child tags
-        std::string propertiesTag = getTagContent(xmlContent, "Properties");
-        if (!propertiesTag.empty()) {
-          auto displayName = getTagContent(propertiesTag, "DisplayName");
-          auto publisherDisplayName =
-              getTagContent(propertiesTag, "PublisherDisplayName");
-
-          // "ms-resource:" prefix means that the string is dynamically
-          // generated from a .pri file .pri file is a binary index of all
-          // localized and scaled resources compiled from .resw files or
-          // .resources at build time
-          if (!displayName.empty() &&
-              displayName.find("ms-resource") == std::string::npos) {
-            result["name"] = displayName;
-          }
-          if (!publisherDisplayName.empty() &&
-              publisherDisplayName.find("ms-resource") == std::string::npos) {
-            result["publisher"] = publisherDisplayName;
-          }
-        }
-
-        // Done processing this package registry entries
-        // No need to read anymore keys
-        continue;
+        // e.g. C:\...\Microsoft.Paint_11.0_neutral_~_8wekyb3d8bbwe
+        result["install_location"] = installDir;
+        break;
       }
-    } // end processing package registry entry
+    }
+
+    if (filePath.empty()) {
+      continue;
+    }
+
+    // btime "Birth Time"
+    // When a file is first created, btime is set and does not change
+    // ::Warning:: not all filesystems support btime
+    // Older file systems such as ext3 or FAT32 will have this missing
+    WINDOWS_STAT file_stat;
+    auto rtn = platformStat(filePath.c_str(), &file_stat);
+    if (rtn.ok()) {
+      result["install_date"] = formatTimestampToDate(file_stat.btime);
+    }
+
+    auto s = osquery::pathExists(filePath);
+    if (!s.ok()) {
+      // Skip this package, as we cannot find the manifest file
+      // We can extract some information from the registry key
+      // <PackageName>_<Version>_<Architecture>__<PublisherHash>
+      // Example:
+      // MSTeams_25060.205.3499.6849_arm64__8wekyb3d8bbwe
+      // But all proper MSIX packages have an AppxManifest.xml file
+      VLOG(1) << "Cannot find manifest file:'" + filePath + "'";
+      result.clear();
+      continue;
+    }
+
+    std::string xmlContent;
+    s = osquery::readFile(filePath, xmlContent);
+    if (!s.ok()) {
+      // Skip this package, as we cannot read the manifest file
+      VLOG(1) << "Cannot read manifest file:'" + filePath + "'";
+      result.clear();
+      continue;
+    }
+
+    // Find the Identity tag, extract attributes
+    std::string identityTag = findSelfClosingTag(xmlContent, "Identity");
+    if (!identityTag.empty()) {
+      auto attributes = parseAttributes(identityTag);
+      result["name"] = attributes["Name"];
+      result["publisher"] = attributes["Publisher"];
+      result["version"] = attributes["Version"];
+    }
+
+    // Find the Properties tag, extract child tags
+    std::string propertiesTag = getTagContent(xmlContent, "Properties");
+    if (!propertiesTag.empty()) {
+      auto displayName = getTagContent(propertiesTag, "DisplayName");
+      auto publisherDisplayName =
+          getTagContent(propertiesTag, "PublisherDisplayName");
+
+      // "ms-resource:" prefix means that the string is dynamically
+      // generated from a .pri file .pri file is a binary index of all
+      // localized and scaled resources compiled from .resw files or
+      // .resources at build time
+      if (!displayName.empty() &&
+          displayName.find("ms-resource") == std::string::npos) {
+        result["name"] = displayName;
+      }
+      if (!publisherDisplayName.empty() &&
+          publisherDisplayName.find("ms-resource") == std::string::npos) {
+        result["publisher"] = publisherDisplayName;
+      }
+    }
 
     if (!result.empty()) {
       auto packageKey = result["package_family_name"];
@@ -409,6 +435,8 @@ void genMsixPrograms(const std::string& key,
         packageKey = result["name"];
       }
 
+      // Deduplicate: per-user packages are processed first and take
+      // precedence over machine-wide provisioned entries.
       if (packageFamilyNameProcessed.find(packageKey) ==
           packageFamilyNameProcessed.end()) {
         packageFamilyNameProcessed.insert(packageKey);
@@ -450,6 +478,22 @@ QueryData genPrograms(QueryContext& context) {
 
   std::set<std::string> packageFamilyNameProcessed;
   for (const auto& k : userMsixKeys) {
+    genMsixPrograms(k, packageFamilyNameProcessed, results);
+  }
+
+  // Machine-wide provisioned MSIX packages (admin-provisioned and inbox).
+  // These are staged for all users but not yet registered per-user.
+  std::set<std::string> provisionedMsixKeys;
+  expandRegistryGlobs(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+      "Appx\\AppxAllUserStore\\Applications",
+      provisionedMsixKeys);
+  expandRegistryGlobs(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+      "Appx\\AppxAllUserStore\\InboxApplications",
+      provisionedMsixKeys);
+
+  for (const auto& k : provisionedMsixKeys) {
     genMsixPrograms(k, packageFamilyNameProcessed, results);
   }
 

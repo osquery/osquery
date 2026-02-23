@@ -299,12 +299,12 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
                                static_cast<double>(FLAGS_carver_block_size)));
   JSON startParams;
 
-  startParams.add("block_count", blkCount);
-  startParams.add("block_size", size_t(FLAGS_carver_block_size));
-  startParams.add("carve_size", pFile.size());
-  startParams.add("carve_id", carveGuid_);
-  startParams.add("request_id", requestId_);
-  startParams.add("node_key", getNodeKey("tls"));
+  startParams.addCopy("block_count", blkCount);
+  startParams.addCopy("block_size", size_t(FLAGS_carver_block_size));
+  startParams.addCopy("carve_size", pFile.size());
+  startParams.addCopy("carve_id", carveGuid_);
+  startParams.addCopy("request_id", requestId_);
+  startParams.addCopy("node_key", getNodeKey("tls"));
 
   JSON startRecv;
   Status status = fireRequest(startRequest, startParams, startRecv);
@@ -332,10 +332,11 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     }
 
     JSON params;
-    params.add("block_id", i);
-    params.add("session_id", session_id);
-    params.add("request_id", requestId_);
-    params.add("data", base64::encode(std::string(block.begin(), block.end())));
+    params.addCopy("block_id", i);
+    params.addRef("session_id", session_id);
+    params.addRef("request_id", requestId_);
+    params.addCopy("data",
+                   base64::encode(std::string(block.begin(), block.end())));
 
     status = fireRequest(contRequest, params);
     if (!status.ok()) {
