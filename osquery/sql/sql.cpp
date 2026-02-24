@@ -187,15 +187,27 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
                           const std::string& column,
                           ConstraintOperator op,
                           const std::string& expr) {
+  ConstraintMap constraints;
+  constraints[column].add(Constraint(op, expr));
+  return selectFrom(columns, table, std::move(constraints));
+}
+
+QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
+                          const std::string& table,
+                          ConstraintMap constraints) {
   PluginRequest request = {{"action", "generate"}};
-  // Create a fake content, there will be no caching.
+  // Create a fake context, there will be no caching.
   QueryContext ctx;
-  ctx.constraints[column].add(Constraint(op, expr));
+  ctx.constraints = std::move(constraints);
+
   if (columns.size() > 0) {
     auto colsUsed = UsedColumns(columns);
-    colsUsed.insert(column);
+    for (const auto& [key, _] : constraints) {
+      colsUsed.insert(key);
+    }
     ctx.colsUsed = colsUsed;
   }
+
   // We can't set colsUsedBitset here (because we don't know the column
   // indexes). The plugin that handles the request will figure it out from the
   // column names.
@@ -206,8 +218,13 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
   response.erase(
       std::remove_if(response.begin(),
                      response.end(),
-                     [&ctx, &column](const PluginRequest& row) -> bool {
-                       return !ctx.constraints[column].matches(row.at(column));
+                     [&ctx](const PluginRequest& row) -> bool {
+                       for (const auto& [key, constraint] : ctx.constraints) {
+                         if (!constraint.matches(row.at(key))) {
+                           return true;
+                         }
+                       }
+                       return false;
                      }),
       response.end());
   return response;
