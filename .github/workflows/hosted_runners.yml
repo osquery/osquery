@@ -42,7 +42,7 @@ env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
   SUBMODULE_CACHE_VERSION: 3
-  OSQUERY_TOOLCHAIN_VERSION: 1.1.0
+  OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
