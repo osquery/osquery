@@ -29,6 +29,8 @@ write SQL-based queries to explore operating system data.  With osquery, SQL tab
 abstract concepts such as running processes, loaded kernel modules, open network connections,
 browser plugins, hardware events or file hashes.
 
+On macOS, osquery can leverage the EndpointSecurity framework to provide comprehensive security event monitoring, including process activity, authentication events, file operations, network connections, and other security-relevant events.
+
 SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist
 and more are being written: [https://osquery.io/schema](https://osquery.io/schema/). To best
 understand the expressiveness that is afforded to you by osquery, consider the following SQL

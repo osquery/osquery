@@ -18,6 +18,7 @@ function(osqueryEventsTestsMain)
 
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryEventsTestsFseventstestsTest()
+    generateOsqueryEventsESCategoriesTestsTest()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -125,6 +126,27 @@ function(generateOsqueryEventsTestsFseventstestsTest)
     tests_helper
     thirdparty_googletest
   )
+endfunction()
+
+function(generateOsqueryEventsESCategoriesTestsTest)
+  add_osquery_executable(osquery_events_tests_es_categories-test darwin/es_event_categories_tests.cpp)
+
+  target_link_libraries(osquery_events_tests_es_categories-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
+    osquery_database
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_filesystem
+    osquery_utils
+    osquery_utils_conversions
+    specs_tables
+    tests_helper
+    thirdparty_googletest
+  )
+  
+  add_test(NAME osquery_events_tests_es_categories-test COMMAND osquery_events_tests_es_categories-test)
 endfunction()
 
 function(generateOsqueryEventsTestsWindowsusnjournalreadertestsTest)
