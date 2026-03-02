@@ -20,6 +20,7 @@
 namespace osquery {
 namespace tables {
 
+// Requires "Full Disk Access".
 static const std::string kKnownNetworksPlistPath =
     "/Library/Preferences/com.apple.wifi.known-networks.plist";
 
