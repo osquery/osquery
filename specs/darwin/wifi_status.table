@@ -1,5 +1,5 @@
 table_name("wifi_status")
-description("macOS current WiFi status.")
+description("macOS current WiFi status. This table requires Full Disk Access (FDA) permission to retrieve network_name.")
 schema([
     Column("interface", TEXT, "Name of the interface"),
     Column("ssid", TEXT, "SSID octets of the network"),
