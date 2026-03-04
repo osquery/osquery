@@ -448,7 +448,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
 
   // Scan process memory if pid or pids are specified
   if (!pids.empty()) {
-
 #ifdef WINDOWS
     // Enabling debug token privilege is required for scanning processes that
     // are not owned by the current user. We will attempt to enable the
@@ -466,7 +465,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
       }
     }
 #endif
-
     // Scan processes
     for (const auto& pid : pids) {
       for (const auto& sign : scanContext) {
@@ -482,7 +480,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
         }
       }
     }
-
 #ifdef WINDOWS
     // Reset debug token privilege to original state if it was changed for the
     // scan
@@ -495,7 +492,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
       }
     }
 #endif
-
   }
 
   // Rule string is hashed before adding to the cache. There are
