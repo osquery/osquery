@@ -349,6 +349,7 @@ function(generateOsqueryTablesSystemSystemtable)
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND platform_public_header_files
       darwin/asl_utils.h
+      darwin/block_devices.h
       darwin/firewall.h
       darwin/keychain.h
       darwin/packages.h
