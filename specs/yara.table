@@ -3,6 +3,8 @@ description("Triggers one-off YARA query for files at the specified path. Requir
 schema([
     Column("path", TEXT, "The path scanned",
         index=True, required=True),
+    Column("pid", INTEGER, "The pid scanned (process memory)",
+        index=True, required=True),
     Column("matches", TEXT, "List of YARA matches"),
     Column("count", INTEGER, "Number of YARA matches"),
     Column("sig_group", TEXT, "Signature group used",
