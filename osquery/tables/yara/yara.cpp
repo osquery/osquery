@@ -19,6 +19,10 @@
 #include <malloc.h>
 #endif
 
+#ifdef WINDOWS
+#include <osquery/tables/system/windows/token_privileges.h>
+#endif
+
 #include <osquery/core/flags.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
@@ -68,9 +72,7 @@ HIDDEN_FLAG(bool,
 namespace tables {
 
 using YaraRuleSet = std::set<std::string>;
-
 typedef enum { YC_NONE = 0, YC_GROUP, YC_FILE, YC_RULE, YC_URL } YaraRuleType;
-
 using YARAConfigParser = std::shared_ptr<YARAConfigParserPlugin>;
 
 using YaraScanContext = std::set<std::pair<YaraRuleType, std::string>>;
@@ -107,6 +109,39 @@ static YARAConfigParser getYaraParser(void) {
   }
 
   return yaraParser;
+}
+
+// Create an empty Row to be filled in by the YARA callback
+static Row makeYaraRow(YaraRuleType yr_type, const std::string& sigName) {
+  Row row;
+
+  row["count"] = INTEGER(0);
+  row["matches"] = SQL_TEXT("");
+  row["strings"] = SQL_TEXT("");
+  row["tags"] = SQL_TEXT("");
+  row["sig_group"] = SQL_TEXT("");
+  row["sigfile"] = SQL_TEXT("");
+  row["sigrule"] = SQL_TEXT("");
+  // This is a default value to be set by namespace handler as appropriate
+  row["pid_with_namespace"] = "0";
+
+  switch (yr_type) {
+  case YC_GROUP:
+    row["sig_group"] = SQL_TEXT(sigName);
+    break;
+  case YC_FILE:
+    row["sigfile"] = SQL_TEXT(sigName);
+    break;
+  case YC_RULE:
+    row["sigrule"] = SQL_TEXT(sigName);
+    break;
+  case YC_URL:
+    row["sigurl"] = SQL_TEXT(sigName);
+    break;
+  case YC_NONE:
+    break;
+  }
+  return row;
 }
 
 bool isRuleUrlAllowed(std::set<std::string> signature_set, std::string url) {
@@ -174,49 +209,41 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
   return Status::success();
 }
 
+// Scan file by path
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
                 QueryData& results,
                 YaraRuleType yr_type,
                 const std::string& sigfile) {
-  Row row;
-
-  // These are default values, to be updated in YARACallback.
-  row["count"] = INTEGER(0);
-  row["matches"] = SQL_TEXT("");
-  row["strings"] = SQL_TEXT("");
-  row["tags"] = SQL_TEXT("");
-  row["sig_group"] = SQL_TEXT("");
-  row["sigfile"] = SQL_TEXT("");
-  row["sigrule"] = SQL_TEXT("");
-  // This is a default value to be set by namespace handler as appropriate
-  row["pid_with_namespace"] = "0";
+  Row row = makeYaraRow(yr_type, sigfile);
 
   // This could use target_path instead to be consistent with yara_events.
   row["path"] = path;
-
-  switch (yr_type) {
-  case YC_GROUP:
-    row["sig_group"] = SQL_TEXT(sigfile);
-    break;
-  case YC_FILE:
-    row["sigfile"] = SQL_TEXT(sigfile);
-    break;
-  case YC_RULE:
-    row["sigrule"] = SQL_TEXT(sigfile);
-    break;
-  case YC_URL:
-    row["sigurl"] = SQL_TEXT(sigfile);
-    break;
-  case YC_NONE:
-    break;
-  }
 
   // Perform the scan, using the static YARA subscriber callback.
   int result = yr_rules_scan_file(
       rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&row, 0);
   if (result == ERROR_SUCCESS) {
     results.push_back(std::move(row));
+  }
+}
+
+// Scan process memory by pid
+void doYARAScan(YR_RULES* rules,
+                int pid,
+                QueryData& results,
+                YaraRuleType yr_type,
+                const std::string& sigfile) {
+  Row row = makeYaraRow(yr_type, sigfile);
+  row["pid"] = std::to_string(pid);
+
+  // Perform the scan, using the static YARA subscriber callback.
+  int result = yr_rules_scan_proc(
+      rules, pid, SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&row, 0);
+  if (result == ERROR_SUCCESS) {
+    results.push_back(std::move(row));
+  } else {
+    VLOG(1) << "YARA process scan failed with error code: " << result;
   }
 }
 
@@ -396,6 +423,8 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
 
   // Scan every path pair with the yara rules
   auto& rules = yaraParser->rules();
+
+  // Scan files
   for (const auto& path : paths) {
     for (const auto& sign : scanContext) {
       auto hash = hashStr(sign.second, sign.first);
@@ -412,6 +441,57 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
             std::chrono::milliseconds(FLAGS_yara_delay));
       }
     }
+  }
+
+  // Get all pids specified
+  auto pids = context.constraints["pid"].getAll<int>(EQUALS);
+
+  // Scan process memory if pid or pids are specified
+  if (!pids.empty()) {
+#ifdef WINDOWS
+    // Enabling debug token privilege is required for scanning processes that
+    // are not owned by the current user. We will attempt to enable the
+    // privilege before scanning and reset it back to the original state after
+    // scanning.
+    SeDebugPrivState original_priv_state = getDebugTokenPrivilegeState();
+    bool reset_priv_after_scan = false;
+    if (original_priv_state != SeDebugPrivState::Enabled) {
+      if (!setDebugTokenPrivilege(SeDebugPrivState::Enabled)) {
+        LOG(WARNING) << "Failed to set debug token privilege for process scan: "
+                     << GetLastError();
+      } else {
+        VLOG(1) << "Debug token privilege enabled for process scan";
+        reset_priv_after_scan = true;
+      }
+    }
+#endif
+    // Scan processes
+    for (const auto& pid : pids) {
+      for (const auto& sign : scanContext) {
+        auto hash = hashStr(sign.second, sign.first);
+        auto rules_it = rules.find(hash);
+        if (rules_it != rules.end()) {
+          doYARAScan(
+              rules_it->second.get(), pid, results, sign.first, sign.second);
+
+          // sleep between each file to help smooth out malloc spikes
+          std::this_thread::sleep_for(
+              std::chrono::milliseconds(FLAGS_yara_delay));
+        }
+      }
+    }
+#ifdef WINDOWS
+    // Reset debug token privilege to original state if it was changed for the
+    // scan
+    if (reset_priv_after_scan) {
+      if (!setDebugTokenPrivilege(original_priv_state)) {
+        LOG(WARNING)
+            << "Failed to reset debug token privilege after process scan";
+      } else {
+        VLOG(1) << "Debug token privilege reset after process scan";
+      }
+    }
+#endif
   }
 
   // Rule string is hashed before adding to the cache. There are
