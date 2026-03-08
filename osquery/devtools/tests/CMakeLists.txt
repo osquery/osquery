@@ -35,6 +35,7 @@ function(generateOsqueryDevtoolsTestsShelltestsTest)
   target_link_libraries(osquery_devtools_tests_shelltests-test PRIVATE
     osquery_cxx_settings
     osquery_core
+    osquery_core_sql
     osquery_database
     osquery_distributed
     osquery_events
@@ -43,8 +44,14 @@ function(generateOsqueryDevtoolsTestsShelltestsTest)
     osquery_filesystem
     osquery_registry
     osquery_remote_enroll_tlsenroll
+    osquery_sql
     osquery_devtools
+    plugins_config_filesystemconfig
     plugins_config_tlsconfig
+    plugins_database_rocksdbplugin
+    plugins_distributed_tls_distributedtls
+    plugins_logger_filesystemlogger
+    plugins_logger_tlslogger
     specs_tables
     thirdparty_googletest
   )
