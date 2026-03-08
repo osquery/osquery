@@ -81,26 +81,24 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
   reg_handle_t registry_handle(hkey, close_reg_handle);
 
   DWORD subkeys_count;
-  DWORD max_name_length;
+  DWORD max_subkey_length;
   DWORD ret_code;
 
+  // Note: max_subkey_length is at position 6 (lpcbMaxSubKeyLen).
+  // Position 9 would be lpcbMaxValueNameLen which has a different limit.
   ret_code = RegQueryInfoKeyW(registry_handle.get(),
                               nullptr,
                               nullptr,
                               nullptr,
                               &subkeys_count,
+                              &max_subkey_length,
                               nullptr,
                               nullptr,
                               nullptr,
-                              &max_name_length,
                               nullptr,
                               nullptr,
                               nullptr);
   if (ret_code != ERROR_SUCCESS) {
-    return std::nullopt;
-  }
-
-  if (max_name_length > 255) {
     return std::nullopt;
   }
 
@@ -109,7 +107,7 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
   }
 
   std::wstring key_name;
-  key_name.resize(max_name_length + 1);
+  key_name.resize(max_subkey_length + 1);
 
   std::vector<std::string> subkeys_names;
 
@@ -128,7 +126,7 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
       return std::nullopt;
     }
 
-    subkeys_names.emplace_back(wstringToString(key_name));
+    subkeys_names.emplace_back(wstringToString(key_name.c_str()));
   }
 
   return subkeys_names;
