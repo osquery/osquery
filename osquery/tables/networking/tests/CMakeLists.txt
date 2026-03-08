@@ -7,6 +7,7 @@
 
 function(osqueryTablesNetworkingTestsMain)
   generateOsqueryTablesNetworkingTestsNetworkingtablestestsTest()
+  generateOsqueryTablesNetworkingTestsCurltestsTest()
 
   if(DEFINED PLATFORM_MACOS)
     generateOsqueryTablesNetworkingTestsWifitestsTest()
@@ -96,6 +97,16 @@ function(generateOsqueryTablesNetworkingTestsWindowsFirewalltestsTest)
     osquery_utils
     osquery_utils_conversions
     thirdparty_boost
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryTablesNetworkingTestsCurltestsTest)
+  add_osquery_executable(osquery_tables_networking_tests_curltests-test curl_tests.cpp)
+
+  target_link_libraries(osquery_tables_networking_tests_curltests-test PRIVATE
+    osquery_cxx_settings
+    osquery_tables_networking
     thirdparty_googletest
   )
 endfunction()
