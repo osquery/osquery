@@ -74,6 +74,7 @@ SHELL_FLAG(string, connect, "", "Connect to an extension socket");
 
 /// One-shot query execution flags.
 SHELL_FLAG(string, query, "", "Execute a single SQL query and exit");
+SHELL_FLAG(string, query_file, "", "Execute SQL query from a file and exit");
 SHELL_FLAG(string, output, "", "Write results to a file instead of stdout");
 
 DECLARE_string(nullvalue);
@@ -803,14 +804,16 @@ static void set_table_name(struct callback_data* p, const char* zName) {
 
 static void pretty_print_if_needed(struct callback_data* pArg) {
   if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
+    FILE* out = (pArg->out != nullptr) ? pArg->out : stdout;
     if (osquery::FLAGS_json_pretty) {
-      osquery::jsonPrettyPrint(pArg->prettyPrint->results);
+      osquery::jsonPrettyPrint(pArg->prettyPrint->results, out);
     } else if (osquery::FLAGS_json) {
-      osquery::jsonPrint(pArg->prettyPrint->results);
+      osquery::jsonPrint(pArg->prettyPrint->results, out);
     } else {
       osquery::prettyPrint(pArg->prettyPrint->results,
                            pArg->prettyPrint->columns,
-                           pArg->prettyPrint->lengths);
+                           pArg->prettyPrint->lengths,
+                           out);
     }
     pArg->prettyPrint->results.clear();
     pArg->prettyPrint->columns.clear();
@@ -1902,6 +1905,30 @@ int launchIntoShell(int argc, char** argv) {
   } else if (!FLAGS_query.empty()) {
     // Run a single query from --query flag
     rc = runQuery(&data, FLAGS_query.c_str());
+    if (rc != 0) {
+      if (output_file != nullptr) {
+        fclose(output_file);
+      }
+      if (data.prettyPrint != nullptr) {
+        delete data.prettyPrint;
+      }
+      return rc;
+    }
+  } else if (!FLAGS_query_file.empty()) {
+    // Read query from file and execute
+    std::string query_content;
+    auto status = readFile(FLAGS_query_file, query_content);
+    if (!status.ok()) {
+      fprintf(stderr,
+              "Error reading query file '%s': %s\n",
+              FLAGS_query_file.c_str(),
+              status.getMessage().c_str());
+      if (output_file != nullptr) {
+        fclose(output_file);
+      }
+      return 1;
+    }
+    rc = runQuery(&data, query_content.c_str());
     if (rc != 0) {
       if (output_file != nullptr) {
         fclose(output_file);

@@ -23,6 +23,7 @@ namespace osquery {
 
 // Declare flags defined in shell.cpp so we can test them
 DECLARE_string(query);
+DECLARE_string(query_file);
 DECLARE_string(output);
 
 class ShellFlagsTests : public testing::Test {
@@ -30,32 +31,38 @@ class ShellFlagsTests : public testing::Test {
   void SetUp() override {
     // Save original flag values
     original_query_ = FLAGS_query;
+    original_query_file_ = FLAGS_query_file;
     original_output_ = FLAGS_output;
   }
 
   void TearDown() override {
     // Restore original flag values
     FLAGS_query = original_query_;
+    FLAGS_query_file = original_query_file_;
     FLAGS_output = original_output_;
 
     // Clean up any test files
-    if (!test_output_file_.empty() && fs::exists(test_output_file_)) {
-      fs::remove(test_output_file_);
+    for (const auto& file : test_files_) {
+      if (fs::exists(file)) {
+        fs::remove(file);
+      }
     }
   }
 
-  std::string createTempFilePath() {
+  std::string createTempFilePath(const std::string& suffix = ".txt") {
     auto temp_dir = fs::temp_directory_path();
-    test_output_file_ = (temp_dir / fs::unique_path("osquery_test_%%%%.txt"))
-                            .make_preferred()
-                            .string();
-    return test_output_file_;
+    auto path = (temp_dir / fs::unique_path("osquery_test_%%%%" + suffix))
+                    .make_preferred()
+                    .string();
+    test_files_.push_back(path);
+    return path;
   }
 
  private:
   std::string original_query_;
+  std::string original_query_file_;
   std::string original_output_;
-  std::string test_output_file_;
+  std::vector<std::string> test_files_;
 };
 
 TEST_F(ShellFlagsTests, test_query_flag_default_empty) {
@@ -111,6 +118,135 @@ TEST_F(ShellFlagsTests, test_output_flag_invalid_path_handling) {
 
   // Should fail to open
   EXPECT_EQ(f, nullptr);
+}
+
+TEST_F(ShellFlagsTests, test_query_file_flag_can_be_set) {
+  auto temp_path = createTempFilePath(".sql");
+  FLAGS_query_file = temp_path;
+  EXPECT_EQ(FLAGS_query_file, temp_path);
+
+  FLAGS_query_file = "";
+  EXPECT_TRUE(FLAGS_query_file.empty());
+}
+
+TEST_F(ShellFlagsTests, test_query_file_can_be_read) {
+  // Create a temp file with a SQL query
+  auto temp_path = createTempFilePath(".sql");
+
+  std::ofstream outfile(temp_path);
+  outfile << "SELECT * FROM osquery_info;";
+  outfile.close();
+
+  // Verify file exists and can be read
+  std::ifstream infile(temp_path);
+  std::stringstream buffer;
+  buffer << infile.rdbuf();
+  EXPECT_EQ(buffer.str(), "SELECT * FROM osquery_info;");
+}
+
+class PrinterOutputTests : public testing::Test {
+ protected:
+  void TearDown() override {
+    // Clean up any test files
+    for (const auto& file : test_files_) {
+      if (fs::exists(file)) {
+        fs::remove(file);
+      }
+    }
+  }
+
+  std::string createTempFilePath() {
+    auto temp_dir = fs::temp_directory_path();
+    auto path = (temp_dir / fs::unique_path("osquery_printer_%%%%.txt"))
+                    .make_preferred()
+                    .string();
+    test_files_.push_back(path);
+    return path;
+  }
+
+ private:
+  std::vector<std::string> test_files_;
+};
+
+TEST_F(PrinterOutputTests, test_json_print_to_file) {
+  auto temp_path = createTempFilePath();
+  FILE* f = fopen(temp_path.c_str(), "w");
+  ASSERT_NE(f, nullptr);
+
+  QueryData data = {
+      {{"name", "test"}, {"value", "123"}},
+  };
+
+  jsonPrint(data, f);
+  fclose(f);
+
+  // Verify JSON was written to file
+  std::ifstream infile(temp_path);
+  std::stringstream buffer;
+  buffer << infile.rdbuf();
+  std::string content = buffer.str();
+
+  EXPECT_NE(content.find("["), std::string::npos);
+  EXPECT_NE(content.find("]"), std::string::npos);
+  EXPECT_NE(content.find("test"), std::string::npos);
+  EXPECT_NE(content.find("123"), std::string::npos);
+}
+
+TEST_F(PrinterOutputTests, test_json_pretty_print_to_file) {
+  auto temp_path = createTempFilePath();
+  FILE* f = fopen(temp_path.c_str(), "w");
+  ASSERT_NE(f, nullptr);
+
+  QueryData data = {
+      {{"name", "test"}, {"value", "456"}},
+  };
+
+  jsonPrettyPrint(data, f);
+  fclose(f);
+
+  // Verify pretty JSON was written to file
+  std::ifstream infile(temp_path);
+  std::stringstream buffer;
+  buffer << infile.rdbuf();
+  std::string content = buffer.str();
+
+  EXPECT_NE(content.find("["), std::string::npos);
+  EXPECT_NE(content.find("]"), std::string::npos);
+  EXPECT_NE(content.find("test"), std::string::npos);
+  EXPECT_NE(content.find("456"), std::string::npos);
+}
+
+TEST_F(PrinterOutputTests, test_pretty_print_to_file) {
+  auto temp_path = createTempFilePath();
+  FILE* f = fopen(temp_path.c_str(), "w");
+  ASSERT_NE(f, nullptr);
+
+  QueryData data = {
+      {{"name", "Alice"}, {"age", "30"}},
+      {{"name", "Bob"}, {"age", "25"}},
+  };
+  std::vector<std::string> columns = {"name", "age"};
+  std::map<std::string, size_t> lengths;
+  for (const auto& row : data) {
+    computeRowLengths(row, lengths);
+  }
+
+  prettyPrint(data, columns, lengths, f);
+  fclose(f);
+
+  // Verify pretty table was written to file
+  std::ifstream infile(temp_path);
+  std::stringstream buffer;
+  buffer << infile.rdbuf();
+  std::string content = buffer.str();
+
+  EXPECT_NE(content.find("Alice"), std::string::npos);
+  EXPECT_NE(content.find("Bob"), std::string::npos);
+  EXPECT_NE(content.find("30"), std::string::npos);
+  EXPECT_NE(content.find("25"), std::string::npos);
+  // Should have table separators
+  EXPECT_NE(content.find("+"), std::string::npos);
+  EXPECT_NE(content.find("|"), std::string::npos);
 }
 
 } // namespace osquery
