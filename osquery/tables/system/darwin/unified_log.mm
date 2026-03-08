@@ -41,7 +41,8 @@ const std::map<std::string, std::string> kColumnToOSLogEntryProp = {
     {"sender", "sender"},
     {"tid", "threadIdentifier"},
     {"subsystem", "subsystem"},
-    {"category", "category"}};
+    {"category", "category"},
+    {"level", "level"}};
 
 const std::map<std::string, bool> kColumnIsNumeric = {{"timestamp", false},
                                                       {"message", false},
@@ -52,7 +53,15 @@ const std::map<std::string, bool> kColumnIsNumeric = {{"timestamp", false},
                                                       {"sender", false},
                                                       {"tid", true},
                                                       {"subsystem", false},
-                                                      {"category", false}};
+                                                      {"category", false},
+                                                      {"level", true}};
+
+const std::map<std::string, int> kLevelNameToValue = {{"undefined", 0},
+                                                      {"debug", 1},
+                                                      {"info", 2},
+                                                      {"default", 3},
+                                                      {"error", 4},
+                                                      {"fault", 5}};
 
 /**
  * @brief The backing store keys for saving the lst data extracted.
@@ -150,6 +159,14 @@ void addQueryOp(NSMutableArray* preds,
       valExp = [NSExpression
           expressionForConstantValue:
               [NSDate dateWithTimeIntervalSince1970:provided_timestamp]];
+    } else if (key == "level") {
+      // Convert level string name to numeric enum value
+      auto it = kLevelNameToValue.find(value);
+      if (it == kLevelNameToValue.end()) {
+        VLOG(1) << "Unknown log level: " << value;
+        return;
+      }
+      valExp = [NSExpression expressionWithFormat:@"%d", it->second];
     } else if (kColumnIsNumeric.at(key)) {
       valExp =
           [NSExpression expressionWithFormat:@"%lld", [valStr longLongValue]];
