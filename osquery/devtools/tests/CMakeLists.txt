@@ -7,6 +7,7 @@
 
 function(osqueryDevtoolsTestsMain)
   generateOsqueryDevtoolsTestsPrintertestsTest()
+  generateOsqueryDevtoolsTestsShelltestsTest()
 endfunction()
 
 function(generateOsqueryDevtoolsTestsPrintertestsTest)
@@ -14,6 +15,26 @@ function(generateOsqueryDevtoolsTestsPrintertestsTest)
 
   target_link_libraries(osquery_devtools_tests_printertests-test PRIVATE
     osquery_cxx_settings
+    osquery_database
+    osquery_distributed
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    osquery_devtools
+    plugins_config_tlsconfig
+    specs_tables
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryDevtoolsTestsShelltestsTest)
+  add_osquery_executable(osquery_devtools_tests_shelltests-test shell_tests.cpp)
+
+  target_link_libraries(osquery_devtools_tests_shelltests-test PRIVATE
+    osquery_cxx_settings
+    osquery_core
     osquery_database
     osquery_distributed
     osquery_events

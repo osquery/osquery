@@ -72,6 +72,10 @@ SHELL_FLAG(bool, L, false, "List all table names");
 SHELL_FLAG(string, A, "", "Select all from a table");
 SHELL_FLAG(string, connect, "", "Connect to an extension socket");
 
+/// One-shot query execution flags.
+SHELL_FLAG(string, query, "", "Execute a single SQL query and exit");
+SHELL_FLAG(string, output, "", "Write results to a file instead of stdout");
+
 DECLARE_string(nullvalue);
 DECLARE_string(extensions_socket);
 DECLARE_string(tls_hostname);
@@ -1848,6 +1852,19 @@ int launchIntoShell(int argc, char** argv) {
   signal(SIGINT, interrupt_handler);
 
   data.out = stdout;
+  FILE* output_file = nullptr;
+
+  // Handle --output flag: write results to a file instead of stdout.
+  if (!FLAGS_output.empty()) {
+    output_file = fopen(FLAGS_output.c_str(), "w");
+    if (output_file == nullptr) {
+      fprintf(stderr,
+              "Error: Cannot open output file '%s'\n",
+              FLAGS_output.c_str());
+      return 1;
+    }
+    data.out = output_file;
+  }
 
   // Set modes and settings from CLI flags.
   data.showHeader = static_cast<int>(FLAGS_header);
@@ -1882,6 +1899,18 @@ int launchIntoShell(int argc, char** argv) {
     delete[] cmd;
   } else if (!FLAGS_pack.empty()) {
     rc = runPack(&data);
+  } else if (!FLAGS_query.empty()) {
+    // Run a single query from --query flag
+    rc = runQuery(&data, FLAGS_query.c_str());
+    if (rc != 0) {
+      if (output_file != nullptr) {
+        fclose(output_file);
+      }
+      if (data.prettyPrint != nullptr) {
+        delete data.prettyPrint;
+      }
+      return rc;
+    }
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char* query = argv[1];
@@ -1891,6 +1920,9 @@ int launchIntoShell(int argc, char** argv) {
     } else {
       rc = runQuery(&data, query);
       if (rc != 0) {
+        if (output_file != nullptr) {
+          fclose(output_file);
+        }
         if (data.prettyPrint != nullptr) {
           delete data.prettyPrint;
         }
@@ -1925,6 +1957,10 @@ int launchIntoShell(int argc, char** argv) {
   }
 
   set_table_name(&data, nullptr);
+
+  if (output_file != nullptr) {
+    fclose(output_file);
+  }
 
   if (data.prettyPrint != nullptr) {
     delete data.prettyPrint;
