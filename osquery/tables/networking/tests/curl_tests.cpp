@@ -55,7 +55,8 @@ TEST_F(CurlTests, test_sanitize_http_header_value_removes_crlf) {
 TEST_F(CurlTests, test_sanitize_http_header_value_header_injection_attack) {
   // This is the actual attack vector from issue #8404
   // An attacker tries to inject headers via the user_agent field
-  std::string malicious_ua = "Satoki\r\nmaliciousheader: omg\r\nmaliciousheader2: omg";
+  std::string malicious_ua =
+      "Satoki\r\nmaliciousheader: omg\r\nmaliciousheader2: omg";
   std::string sanitized = sanitizeHttpHeaderValue(malicious_ua);
 
   // The sanitized string should have no newlines
