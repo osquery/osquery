@@ -25,13 +25,13 @@ schema([
   Column("predicate", TEXT, "predicate to search (see `log help predicates`), note that this is merged into the predicate created from the column constraints", additional=True, hidden=True)
 ])
 examples([
-  "select * from unified_log",
-  "select * from unified_log where process = 'osqueryd'",
-  "select * from unified_log where level = 'error'",
-  "select * from unified_log where level = 'fault' or level = 'error'",
-  "select * from unified_log where predicate = 'process = \"osqueryd\" OR process = \"Santa\"'",
-  "select * from unified_log where predicate = 'processImagePath = \"/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd\"'",
-  "select * from unified_log where max_rows = 1234",
+  "select * from unified_log where timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where process = 'osqueryd' AND timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where level = 'error' AND timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where (level = 'fault' or level = 'error') AND timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where predicate = 'process = \"osqueryd\" OR process = \"Santa\"' AND timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where predicate = 'processImagePath = \"/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd\"' AND timestamp > unixepoch('now', '-2 hours')",
+  "select * from unified_log where max_rows = 1234 AND timestamp > unixepoch('now', '-2 hours')",
   "select * from unified_log where timestamp > -1",
   "select * from unified_log where timestamp > -1 and max_rows = 500",
   "select * from unified_log where timestamp > -1 and timestamp > (select unix_time - 86400 from time)",
