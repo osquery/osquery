@@ -1747,7 +1747,19 @@ static int process_input(struct callback_data* p, FILE* in) {
 
   if (nSql != 0) {
     if (_all_whitespace(zSql) == 0) {
-      fprintf(stderr, "Error: incomplete SQL: %s\n", zSql);
+      // At EOF with non-whitespace SQL remaining - try to execute it.
+      // This allows piped input like "echo 'select 1' | osqueryd -S" to work
+      // without requiring a trailing semicolon.
+      p->cnt = 0;
+      rc = shell_exec(zSql, shell_callback, p, &zErrMsg);
+      if (rc != 0 || zErrMsg != nullptr) {
+        if (zErrMsg != nullptr) {
+          fprintf(stderr, "Error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+          zErrMsg = nullptr;
+        }
+        errCnt++;
+      }
     }
   }
   if (zSql != nullptr) {
