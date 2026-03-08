@@ -88,8 +88,12 @@ function(generateOsqueryTablesNetworking)
     ${platform_deps}
   )
 
+  set(public_header_files
+    curl.h
+  )
+
   if(DEFINED PLATFORM_POSIX)
-    set(public_header_files
+    list(APPEND public_header_files
       posix/interfaces.h
       posix/utils.h
     )
