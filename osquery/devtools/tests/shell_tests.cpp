@@ -16,6 +16,7 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/devtools/devtools.h>
+#include <osquery/filesystem/filesystem.h>
 
 namespace fs = boost::filesystem;
 
@@ -142,6 +143,48 @@ TEST_F(ShellFlagsTests, test_query_file_can_be_read) {
   std::stringstream buffer;
   buffer << infile.rdbuf();
   EXPECT_EQ(buffer.str(), "SELECT * FROM osquery_info;");
+}
+
+TEST_F(ShellFlagsTests, test_query_file_read_with_osquery_readFile) {
+  // Create a temp file with a SQL query
+  auto temp_path = createTempFilePath(".sql");
+  std::string query = "SELECT * FROM processes LIMIT 10;";
+
+  std::ofstream outfile(temp_path);
+  outfile << query;
+  outfile.close();
+
+  // Use osquery's readFile function (same as the actual implementation)
+  std::string content;
+  auto status = readFile(temp_path, content);
+  EXPECT_TRUE(status.ok()) << "readFile failed: " << status.getMessage();
+  EXPECT_EQ(content, query);
+}
+
+TEST_F(ShellFlagsTests, test_query_file_nonexistent_file) {
+  // Test reading a file that doesn't exist
+  std::string nonexistent_path = "/nonexistent_path_12345/query.sql";
+
+  std::string content;
+  auto status = readFile(nonexistent_path, content);
+  EXPECT_FALSE(status.ok()) << "readFile should fail for nonexistent file";
+}
+
+TEST_F(ShellFlagsTests, test_query_file_multiline_query) {
+  // Test reading a multi-line SQL query from file
+  auto temp_path = createTempFilePath(".sql");
+  std::string query = "SELECT\n  name,\n  pid\nFROM processes\nWHERE pid > 1;";
+
+  std::ofstream outfile(temp_path);
+  outfile << query;
+  outfile.close();
+
+  std::string content;
+  auto status = readFile(temp_path, content);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(content, query);
+  // Verify newlines are preserved
+  EXPECT_NE(content.find('\n'), std::string::npos);
 }
 
 class PrinterOutputTests : public testing::Test {
