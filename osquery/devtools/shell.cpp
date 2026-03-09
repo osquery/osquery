@@ -75,7 +75,7 @@ SHELL_FLAG(string, connect, "", "Connect to an extension socket");
 /// One-shot query execution flags.
 SHELL_FLAG(string, query, "", "Execute a single SQL query and exit");
 SHELL_FLAG(string, query_file, "", "Execute SQL query from a file and exit");
-SHELL_FLAG(string, output, "", "Write results to a file instead of stdout");
+SHELL_FLAG(string, output, "", "Write results to a file (omit or use '-' for stdout)");
 
 DECLARE_string(nullvalue);
 DECLARE_string(extensions_socket);
@@ -1870,7 +1870,8 @@ int launchIntoShell(int argc, char** argv) {
   FILE* output_file = nullptr;
 
   // Handle --output flag: write results to a file instead of stdout.
-  if (!FLAGS_output.empty()) {
+  // Use "-" to explicitly write to stdout.
+  if (!FLAGS_output.empty() && FLAGS_output != "-") {
     output_file = fopen(FLAGS_output.c_str(), "w");
     if (output_file == nullptr) {
       fprintf(stderr,
