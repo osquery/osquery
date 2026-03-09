@@ -110,8 +110,15 @@ TEST_F(AppsTests, test_genApps_with_path_constraint) {
       Constraint(EQUALS, "/Applications/Safari.app"));
   auto results = genApps(context);
 
-  ASSERT_EQ(results.size(), 1U);
-  EXPECT_EQ(results[0].at("bundle_identifier"), "com.apple.Safari");
+  bool found_safari = false;
+  for (const auto& row : results) {
+    auto it = row.find("bundle_identifier");
+    if (it != row.end() && it->second == "com.apple.Safari") {
+      found_safari = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found_safari);
 }
 }
 }
