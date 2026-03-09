@@ -106,7 +106,8 @@ TEST_F(AppsTests, test_genApps_with_path_constraint) {
   // Verify that the path constraint works. This should find the app
   // regardless of LaunchServices state, since the path is explicitly provided.
   QueryContext context;
-  context.constraints["path"].add(Constraint(EQUALS, "/Applications/Safari.app"));
+  context.constraints["path"].add(
+      Constraint(EQUALS, "/Applications/Safari.app"));
   auto results = genApps(context);
 
   bool found_safari = false;
