@@ -13,15 +13,30 @@
 namespace osquery {
 namespace tables {
 
-// The state of the SeDebugPrivilege for a token.
 enum class SeDebugPrivState { Enabled, Disabled };
 
-// Get the state of the SeDebugPrivilege for the current process token.
-SeDebugPrivState getDebugTokenPrivilegeState();
+// RAII guard that enables SeDebugPrivilege on construction and restores the
+// original state when it goes out of scope.
+class SeDebugPrivilegeGuard {
+ private:
+  SeDebugPrivState m_original_state = SeDebugPrivState::Disabled;
+  bool m_privilege_enabled = false;
+  bool m_needs_reset = false;
 
-// Enable or disable the SeDebugPrivilege for the current process token based on
-// the specified state. Returns true on success, false on failure.
-bool setDebugTokenPrivilege(SeDebugPrivState state);
+ public:
+  SeDebugPrivilegeGuard();
+  ~SeDebugPrivilegeGuard();
+
+  // Non-copyable, non-movable
+  SeDebugPrivilegeGuard(const SeDebugPrivilegeGuard&) = delete;
+  SeDebugPrivilegeGuard& operator=(const SeDebugPrivilegeGuard&) = delete;
+  SeDebugPrivilegeGuard(SeDebugPrivilegeGuard&&) = delete;
+  SeDebugPrivilegeGuard& operator=(SeDebugPrivilegeGuard&&) = delete;
+
+  // Returns true if the privilege was successfully enabled (or was already
+  // enabled).
+  bool privilegeEnabled() const;
+};
 
 } // namespace tables
 } // namespace osquery

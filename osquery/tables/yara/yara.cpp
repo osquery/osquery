@@ -122,8 +122,10 @@ static Row makeYaraRow(YaraRuleType yr_type, const std::string& sigName) {
   row["sig_group"] = SQL_TEXT("");
   row["sigfile"] = SQL_TEXT("");
   row["sigrule"] = SQL_TEXT("");
-  // This is a default value to be set by namespace handler as appropriate
+
+#ifdef LINUX
   row["pid_with_namespace"] = "0";
+#endif
 
   switch (yr_type) {
   case YC_GROUP:
@@ -210,11 +212,11 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
 }
 
 // Scan file by path
-void doYARAScan(YR_RULES* rules,
-                const std::string& path,
-                QueryData& results,
-                YaraRuleType yr_type,
-                const std::string& sigfile) {
+void doYARAScanPath(YR_RULES* rules,
+                    const std::string& path,
+                    QueryData& results,
+                    YaraRuleType yr_type,
+                    const std::string& sigfile) {
   Row row = makeYaraRow(yr_type, sigfile);
 
   // This could use target_path instead to be consistent with yara_events.
@@ -229,11 +231,11 @@ void doYARAScan(YR_RULES* rules,
 }
 
 // Scan process memory by pid
-void doYARAScan(YR_RULES* rules,
-                int pid,
-                QueryData& results,
-                YaraRuleType yr_type,
-                const std::string& sigfile) {
+void doYARAScanPid(YR_RULES* rules,
+                   int pid,
+                   QueryData& results,
+                   YaraRuleType yr_type,
+                   const std::string& sigfile) {
   Row row = makeYaraRow(yr_type, sigfile);
   row["pid"] = std::to_string(pid);
 
@@ -421,6 +423,14 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
         return status;
       }));
 
+  // Get all pids specified
+  auto pids = context.constraints["pid"].getAll<int>(EQUALS);
+
+  if (paths.empty() && pids.empty()) {
+    LOG(WARNING) << "Query must specify at least one path or pid for YARA scan";
+    return results;
+  }
+
   // Scan every path pair with the yara rules
   auto& rules = yaraParser->rules();
 
@@ -430,11 +440,11 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
       auto hash = hashStr(sign.second, sign.first);
       auto rules_it = rules.find(hash);
       if (rules_it != rules.end()) {
-        doYARAScan(rules_it->second.get(),
-                   path.c_str(),
-                   results,
-                   sign.first,
-                   sign.second);
+        doYARAScanPath(rules_it->second.get(),
+                       path.c_str(),
+                       results,
+                       sign.first,
+                       sign.second);
 
         // sleep between each file to help smooth out malloc spikes
         std::this_thread::sleep_for(
@@ -443,26 +453,16 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
     }
   }
 
-  // Get all pids specified
-  auto pids = context.constraints["pid"].getAll<int>(EQUALS);
-
   // Scan process memory if pid or pids are specified
   if (!pids.empty()) {
 #ifdef WINDOWS
     // Enabling debug token privilege is required for scanning processes that
-    // are not owned by the current user. We will attempt to enable the
-    // privilege before scanning and reset it back to the original state after
-    // scanning.
-    SeDebugPrivState original_priv_state = getDebugTokenPrivilegeState();
-    bool reset_priv_after_scan = false;
-    if (original_priv_state != SeDebugPrivState::Enabled) {
-      if (!setDebugTokenPrivilege(SeDebugPrivState::Enabled)) {
-        LOG(WARNING) << "Failed to set debug token privilege for process scan: "
-                     << GetLastError();
-      } else {
-        VLOG(1) << "Debug token privilege enabled for process scan";
-        reset_priv_after_scan = true;
-      }
+    // are not owned by the current user. This is an RAII guard and will
+    // reset the privilege to its original state after the scan is done.
+    SeDebugPrivilegeGuard debug_priv_guard;
+    if (!debug_priv_guard.privilegeEnabled()) {
+      VLOG(1) << "Debug token privilege not enabled for process scan. Some "
+                 "processes may fail to be scanned.";
     }
 #endif
     // Scan processes
@@ -471,7 +471,7 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
         auto hash = hashStr(sign.second, sign.first);
         auto rules_it = rules.find(hash);
         if (rules_it != rules.end()) {
-          doYARAScan(
+          doYARAScanPid(
               rules_it->second.get(), pid, results, sign.first, sign.second);
 
           // sleep between each file to help smooth out malloc spikes
@@ -480,18 +480,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
         }
       }
     }
-#ifdef WINDOWS
-    // Reset debug token privilege to original state if it was changed for the
-    // scan
-    if (reset_priv_after_scan) {
-      if (!setDebugTokenPrivilege(original_priv_state)) {
-        LOG(WARNING)
-            << "Failed to reset debug token privilege after process scan";
-      } else {
-        VLOG(1) << "Debug token privilege reset after process scan";
-      }
-    }
-#endif
   }
 
   // Rule string is hashed before adding to the cache. There are
