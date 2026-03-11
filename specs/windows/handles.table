@@ -1,0 +1,19 @@
+table_name("handles")
+description("Enumerate open handles for a specified process. Defaults to the osquery process if no pid constraint is provided.")
+schema([
+    Column("pid", BIGINT, "The process identifier that owns the handle.", additional=True, index=True, optimized=True),
+    Column("handle_value", BIGINT, "The handle value"),
+    Column("type", TEXT, "The type of object referenced by the handle."),
+    Column("access", TEXT, "The access permissions of the object referenced by the handle."),
+    Column("name", TEXT, "The value of the object referenced by the handle."),
+    Column("attributes", TEXT, "Object handle attributes."),
+    Column("handle_count", BIGINT, "Handle Count."),
+    Column("raw_pointer_count", BIGINT, "Raw Pointer/Reference Count. Meaning varies, consult Windows docs."),
+    Column("error_stage", TEXT, "Error Stage."),
+    Column("error_code", BIGINT, "Error Code.")
+])
+implementation("system/windows/handles@genHandles")
+attributes(cacheable=True)
+examples([
+  "select * from handles where pid = 1234",
+])

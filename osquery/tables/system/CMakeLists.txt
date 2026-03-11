@@ -238,6 +238,8 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/deviceguard_status.cpp
       windows/tpm_info.cpp
       windows/prefetch.cpp
+      windows/token_privileges.cpp
+      windows/handles.cpp
     )
   endif()
 
