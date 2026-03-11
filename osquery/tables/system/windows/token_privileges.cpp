@@ -29,8 +29,8 @@ static SeDebugPrivState getDebugTokenPrivilegeState() {
 
   // Open the current process's token with query access
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-    throw std::runtime_error("OpenProcessToken failed: " +
-                             std::to_string(GetLastError()));
+    return SeDebugPrivState::Disabled; // If we can't get the privileges, assume
+                                       // it's disabled
   }
 
   // Ensure the token handle is closed when we're done
