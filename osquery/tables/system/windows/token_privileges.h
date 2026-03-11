@@ -24,8 +24,8 @@ class SeDebugPrivilegeGuard {
   bool m_needs_reset = false;
 
  public:
-  SeDebugPrivilegeGuard();
-  ~SeDebugPrivilegeGuard();
+  SeDebugPrivilegeGuard() noexcept;
+  ~SeDebugPrivilegeGuard() noexcept;
 
   // Non-copyable, non-movable
   SeDebugPrivilegeGuard(const SeDebugPrivilegeGuard&) = delete;

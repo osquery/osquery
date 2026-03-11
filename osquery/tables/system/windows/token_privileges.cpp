@@ -7,7 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
+#include <osquery/core/shutdown.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/token_privileges.h>
 
@@ -24,13 +28,13 @@ struct HandleDeleter {
 using ScopedHandle =
     std::unique_ptr<std::remove_pointer_t<HANDLE>, HandleDeleter>;
 
-static SeDebugPrivState getDebugTokenPrivilegeState() {
+static SeDebugPrivState getDebugTokenPrivilegeState() noexcept {
   HANDLE hToken = NULL;
 
   // Open the current process's token with query access
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-    throw std::runtime_error("OpenProcessToken failed: " +
-                             std::to_string(GetLastError()));
+    return SeDebugPrivState::Disabled; // If we can't open the token, assume the
+                                       // privilege is disabled
   }
 
   // Ensure the token handle is closed when we're done
@@ -41,8 +45,12 @@ static SeDebugPrivState getDebugTokenPrivilegeState() {
   GetTokenInformation(hToken, TokenPrivileges, NULL, 0, &length);
 
   // Allocate buffer and call again to get the actual privileges
-  std::vector<BYTE> buffer(length);
-  auto* privileges = reinterpret_cast<TOKEN_PRIVILEGES*>(buffer.data());
+  auto buffer = std::unique_ptr<BYTE[]>(new (std::nothrow) BYTE[length]);
+  if (!buffer) {
+    return SeDebugPrivState::Disabled; // If we can't allocate the buffer,
+                                       // assume the privilege is disabled
+  }
+  auto* privileges = reinterpret_cast<TOKEN_PRIVILEGES*>(buffer.get());
   if (!GetTokenInformation(
           hToken, TokenPrivileges, privileges, length, &length)) {
     return SeDebugPrivState::Disabled; // If we can't get the privileges, assume
@@ -82,7 +90,7 @@ static SeDebugPrivState getDebugTokenPrivilegeState() {
                                      // disabled
 }
 
-static bool setDebugTokenPrivilege(SeDebugPrivState state) {
+static bool setDebugTokenPrivilege(SeDebugPrivState state) noexcept {
   HANDLE hToken = NULL;
   TOKEN_PRIVILEGES tp = {0};
   LUID val = {0};
@@ -120,7 +128,7 @@ static bool setDebugTokenPrivilege(SeDebugPrivState state) {
   return true;
 }
 
-SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() {
+SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() noexcept {
   // Get the original state of the debug privilege so we can restore it later.
   m_original_state = getDebugTokenPrivilegeState();
 
@@ -137,7 +145,7 @@ SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() {
   }
 }
 
-SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() {
+SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() noexcept {
   // Nothing to do if we never enabled the privilege or if we failed to enable
   // it
   if (!m_needs_reset) {
@@ -146,8 +154,10 @@ SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() {
 
   // TODO: Should this be an exit failure instead of just a log message?
   if (!setDebugTokenPrivilege(m_original_state)) {
-    LOG(ERROR) << "Failed to restore debug token privilege to original state: "
-               << GetLastError() << ". SeDebugPrivilege may remain elevated.";
+    requestShutdown(
+        EXIT_CATASTROPHIC,
+        "Failed to restore debug token privilege to original state. "
+        "Shutting down to prevent potential security risk.");
   }
 }
 
