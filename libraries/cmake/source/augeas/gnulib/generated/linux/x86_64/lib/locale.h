@@ -49,7 +49,7 @@
 #include <stddef.h>
 
 /* Mac OS X 10.5 defines the locale_t type in <xlocale.h>.  */
-#if 1
+#if HAVE_XLOCALE_H
 # include <xlocale.h>
 #endif
 
