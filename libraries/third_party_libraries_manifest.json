@@ -105,7 +105,7 @@
   "expat": {
     "product": "libexpat",
     "vendor": "libexpat_project",
-    "version": "2.7.1",
+    "version": "2.7.4",
     "commit": "f9a3eeb3e09fbea04b1c451ffc422ab2f1e45744",
     "ignored-cves": []
   },
