@@ -65,7 +65,7 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   JSON params;
   if (FLAGS_tls_node_api) {
     // The TLS node API morphs some verbs and variables.
-    params.add("_get", true);
+    params.addCopy("_get", true);
   }
 
   auto s = TLSRequestHelper::go<JSONSerializer>(

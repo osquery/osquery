@@ -158,9 +158,9 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_result) {
   doc.addRef("foo", "bar", row_obj);
 
   auto results_arr = doc.getArray();
-  doc.push(row_obj, results_arr);
-  doc.add("request", request_obj);
-  doc.add("results", results_arr);
+  doc.pushCopy(row_obj, results_arr);
+  doc.addCopy("request", request_obj);
+  doc.addCopy("results", results_arr);
 
   DistributedQueryResult r;
   auto s = deserializeDistributedQueryResult(doc.doc(), r);

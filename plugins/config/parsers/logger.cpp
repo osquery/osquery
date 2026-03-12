@@ -30,7 +30,7 @@ Status LoggerConfigParserPlugin::update(const std::string& /* source */,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(cv->second.doc(), obj);
-    doc.add(kLoggerKey, obj);
+    doc.addCopy(kLoggerKey, obj);
     data_ = std::move(doc);
   }
 

@@ -299,36 +299,24 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
                                static_cast<double>(FLAGS_carver_block_size)));
   JSON startParams;
 
-  startParams.add("block_count", blkCount);
-  startParams.add("block_size", size_t(FLAGS_carver_block_size));
-  startParams.add("carve_size", pFile.size());
-  startParams.add("carve_id", carveGuid_);
-  startParams.add("request_id", requestId_);
-  startParams.add("node_key", getNodeKey("tls"));
+  startParams.addCopy("block_count", blkCount);
+  startParams.addCopy("block_size", size_t(FLAGS_carver_block_size));
+  startParams.addCopy("carve_size", pFile.size());
+  startParams.addCopy("carve_id", carveGuid_);
+  startParams.addCopy("request_id", requestId_);
+  startParams.addCopy("node_key", getNodeKey("tls"));
 
-  auto status = startRequest.call(startParams);
+  JSON startRecv;
+  Status status = fireRequest(startRequest, startParams, startRecv);
   if (!status.ok()) {
     return status;
   }
 
   // The call succeeded, store the session id for future posts
-  JSON startRecv;
-  status = startRequest.getResponse(startRecv);
+  std::string session_id;
+  status = extractSessionId(startRecv, session_id);
   if (!status.ok()) {
     return status;
-  }
-
-  auto it = startRecv.doc().FindMember("session_id");
-  if (it == startRecv.doc().MemberEnd()) {
-    return Status(1, "No session_id received from remote endpoint");
-  }
-  if (!it->value.IsString()) {
-    return Status(1, "Invalid session_id received from remote endpoint");
-  }
-
-  std::string session_id = it->value.GetString();
-  if (session_id.empty()) {
-    return Status(1, "Empty session_id received from remote endpoint");
   }
 
   auto contUri = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
@@ -344,22 +332,82 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     }
 
     JSON params;
-    params.add("block_id", i);
-    params.add("session_id", session_id);
-    params.add("request_id", requestId_);
-    params.add("data", base64::encode(std::string(block.begin(), block.end())));
+    params.addCopy("block_id", i);
+    params.addRef("session_id", session_id);
+    params.addRef("request_id", requestId_);
+    params.addCopy("data",
+                   base64::encode(std::string(block.begin(), block.end())));
 
-    // TODO: Error sending files.
-    status = contRequest.call(params);
+    status = fireRequest(contRequest, params);
     if (!status.ok()) {
-      return Status::failure("Failed to post carved block: " +
-                             status.getMessage());
+      return status;
     }
   }
 
   updateCarveValue(carveGuid_, "status", kCarverStatusSuccess);
   return Status::success();
-};
+}
+
+Status Carver::fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params) {
+  JSON response;
+  return fireRequest(request, params, response);
+}
+
+Status Carver::fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params,
+                           JSON& response) {
+  Status status;
+  size_t attempts = 3;
+  for (size_t i = 1; i <= attempts; i++) {
+    status = sendRequest(request, params, response);
+    if (status.ok()) {
+      return status;
+    }
+
+    const auto& errMessage = "HTTP(S) request failed: " + status.getMessage();
+    if (i == attempts) {
+      VLOG(1) << errMessage << ", done retrying after " << i << " times";
+    } else {
+      auto sleep_time_seconds = i * i;
+      VLOG(1) << errMessage << ", retrying in " << sleep_time_seconds
+              << " seconds...";
+      if (waitTimeoutOrShutdown(std::chrono::seconds(sleep_time_seconds))) {
+        return Status::failure(errMessage + " (interrupted)");
+      }
+    }
+  }
+
+  return status;
+}
+
+Status Carver::sendRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params,
+                           JSON& response) {
+  auto status = request.call(params);
+  if (status.ok()) {
+    return request.getResponse(response);
+  }
+  return status;
+}
+
+Status Carver::extractSessionId(const JSON& response,
+                                std::string& session_id) const {
+  auto it = response.doc().FindMember("session_id");
+  if (it == response.doc().MemberEnd()) {
+    return Status(1, "No session_id received from remote endpoint");
+  }
+  if (!it->value.IsString()) {
+    return Status(1, "Invalid session_id received from remote endpoint");
+  }
+
+  session_id = it->value.GetString();
+  if (session_id.empty()) {
+    return Status(1, "Empty session_id received from remote endpoint");
+  }
+
+  return Status::success();
+}
 
 void scheduleCarves() {
   if (!FLAGS_disable_carver && kCarverPendingCarves &&

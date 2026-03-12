@@ -24,18 +24,18 @@ TEST_F(ConversionsTests, test_json_array) {
   {
     auto obj = doc.getObject();
     size_t value = 10;
-    doc.add("key", value, obj);
+    doc.addCopy("key", value, obj);
     int value2 = -10;
-    doc.add("key2", value2, obj);
+    doc.addCopy("key2", value2, obj);
     int64_t value3 = (uint64_t(1)) << 48;
-    doc.add("key3", value3, obj);
+    doc.addCopy("key3", value3, obj);
     double value4 = 3.14159265359;
-    doc.add("key4", value4, obj);
-    doc.push(obj);
+    doc.addCopy("key4", value4, obj);
+    doc.pushCopy(obj);
   }
 
   size_t value = 11;
-  doc.push(value);
+  doc.pushCopy(value);
 
   std::string result;
   EXPECT_TRUE(doc.toString(result));
@@ -65,7 +65,7 @@ TEST_F(ConversionsTests, test_json_object) {
 
   {
     size_t value = 10;
-    doc.add("key", value);
+    doc.addCopy("key", value);
   }
 
   std::string result;
@@ -113,7 +113,7 @@ TEST_F(ConversionsTests, test_json_add_object) {
 
   ASSERT_TRUE(doc.fromString(json));
   auto doc2 = JSON::newObject();
-  doc2.add("key2", doc.doc()["key2"]);
+  doc2.addCopy("key2", doc.doc()["key2"]);
   EXPECT_TRUE(doc2.doc().HasMember("key2"));
   EXPECT_TRUE(doc2.doc()["key2"].IsObject());
   EXPECT_TRUE(doc2.doc()["key2"].HasMember("key3"));
@@ -125,7 +125,7 @@ TEST_F(ConversionsTests, test_json_add_object) {
   auto doc4 = JSON::newArray();
   auto arr = doc4.getArray();
   doc4.copyFrom(doc.doc()["key2"]["key3"], arr);
-  doc4.push(arr);
+  doc4.pushCopy(arr);
 
   std::string expected = "[[3,2,1]]";
   std::string output;
@@ -158,7 +158,7 @@ TEST_F(ConversionsTests, test_json_strings_array) {
     auto arr = doc.getArray();
     std::string value("value");
     doc.pushCopy(value, arr);
-    doc.add("array", arr);
+    doc.addCopy("array", arr);
   }
 
   std::string result;
@@ -171,9 +171,9 @@ TEST_F(ConversionsTests, test_json_duplicate_keys) {
   auto doc = JSON::newObject();
 
   size_t value = 10;
-  doc.add("key", value);
+  doc.addCopy("key", value);
   value = 11;
-  doc.add("key", value);
+  doc.addCopy("key", value);
 
   std::string result;
   EXPECT_TRUE(doc.toString(result));
@@ -186,7 +186,7 @@ TEST_F(ConversionsTests, test_json_merge_object) {
   auto doc1 = JSON::newObject();
 
   size_t value = 10;
-  doc1.add("key", value);
+  doc1.addCopy("key", value);
   std::string value2 = "value";
   doc1.addRef("key2", value2);
 
@@ -195,11 +195,11 @@ TEST_F(ConversionsTests, test_json_merge_object) {
     doc1.addCopy("temp_key", temp_value);
 
     auto arr = doc1.getArray();
-    doc1.add("array", arr);
+    doc1.addCopy("array", arr);
   }
 
   auto doc2 = JSON::newObject();
-  doc2.add("new_key", size_t{10});
+  doc2.addCopy("new_key", size_t{10});
   doc2.addCopy("new_key1", "new_value");
 
   doc2.mergeObject(doc2.doc(), doc1.doc());
@@ -218,7 +218,7 @@ TEST_F(ConversionsTests, test_json_size_like) {
   doc.addRef("key", "10");
 
   int value = 10;
-  doc.add("key2", value);
+  doc.addCopy("key2", value);
 
   EXPECT_EQ(JSON::valueToSize(doc.doc()["key"]), size_t{10});
   EXPECT_EQ(JSON::valueToSize(doc.doc()["key2"]), size_t{10});
@@ -230,7 +230,7 @@ TEST_F(ConversionsTests, test_json_bool_like) {
   doc.addRef("true2", "T");
   doc.addRef("true3", "t");
   doc.addRef("true4", "TRUE");
-  doc.add("true5", 1);
+  doc.addCopy("true5", 1);
 
   EXPECT_TRUE(JSON::valueToBool(doc.doc()["true1"]));
   EXPECT_TRUE(JSON::valueToBool(doc.doc()["true2"]));
@@ -243,7 +243,7 @@ TEST_F(ConversionsTests, test_json_bool_like) {
   doc.addRef("false3", "F");
   doc.addRef("false4", "FALSE");
   doc.addRef("false5", "f");
-  doc.add("false6", 0);
+  doc.addCopy("false6", 0);
 
   EXPECT_FALSE(JSON::valueToBool(doc.doc()["false1"]));
   EXPECT_FALSE(JSON::valueToBool(doc.doc()["false2"]));

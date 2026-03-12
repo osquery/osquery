@@ -31,7 +31,7 @@ class TableIPCBase {
       return status;
     }
 
-    json_helper.add("Type", "QueryData");
+    json_helper.addCopy("Type", "QueryData");
 
     std::string json_string;
     status = json_helper.toString(json_string);
@@ -53,7 +53,7 @@ class TableIPCBase {
       return status;
     }
 
-    json_helper.add("Type", "Log");
+    json_helper.addCopy("Type", "Log");
 
     std::string json_string;
     status = json_helper.toString(json_string);
@@ -68,7 +68,7 @@ class TableIPCBase {
   Status sendJob(const QueryContext& context) {
     JSON json_helper;
     serializeQueryContextJSON(context, json_helper);
-    json_helper.add("Type", "Job");
+    json_helper.addCopy("Type", "Job");
 
     std::string json_string;
     auto status = json_helper.toString(json_string);

@@ -255,10 +255,10 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
     JSON status_json;
     status_json.addRef("hostIdentifier", item.identifier);
     status_json.addRef("calendarTime", item.calendar_time);
-    status_json.add("unixTime", item.time);
-    status_json.add("severity", (google::LogSeverity)item.severity);
+    status_json.addCopy("unixTime", item.time);
+    status_json.addCopy("severity", (google::LogSeverity)item.severity);
     status_json.addRef("filename", item.filename);
-    status_json.add("line", item.line);
+    status_json.addCopy("line", item.line);
     status_json.addRef("message", item.message);
     status_json.addRef("version", kVersion);
 
@@ -266,13 +266,13 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
       if (!FLAGS_decorations_top_level) {
         JSON decorations_json;
         for (const auto& decoration : decorations) {
-          decorations_json.add(decoration.first, decoration.second);
+          decorations_json.addCopy(decoration.first, decoration.second);
         }
 
-        status_json.add("decorations", decorations_json.doc());
+        status_json.addCopy("decorations", decorations_json.doc());
       } else {
         for (const auto& decoration : decorations) {
-          status_json.add(decoration.first, decoration.second);
+          status_json.addCopy(decoration.first, decoration.second);
         }
       }
     }

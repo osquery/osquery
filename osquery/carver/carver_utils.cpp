@@ -39,17 +39,17 @@ Status carvePaths(const std::set<std::string>& paths,
   carve_guid = createCarveGuid();
 
   JSON tree;
-  tree.add("carve_guid", carve_guid);
-  tree.add("time", getUnixTime());
-  tree.add("status", kCarverStatusScheduled);
-  tree.add("sha256", "");
-  tree.add("size", -1);
-  tree.add("request_id", request_id);
+  tree.addCopy("carve_guid", carve_guid);
+  tree.addCopy("time", getUnixTime());
+  tree.addCopy("status", kCarverStatusScheduled);
+  tree.addCopy("sha256", "");
+  tree.addCopy("size", -1);
+  tree.addCopy("request_id", request_id);
 
   if (paths.size() > 1) {
-    tree.add("path", osquery::join(paths, ","));
+    tree.addCopy("path", osquery::join(paths, ","));
   } else {
-    tree.add("path", *(paths.begin()));
+    tree.addCopy("path", *(paths.begin()));
   }
 
   std::string out;

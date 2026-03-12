@@ -18,7 +18,7 @@ class JSONSerializersTests : public testing::Test {};
 TEST_F(JSONSerializersTests, test_serialize) {
   auto json = JSONSerializer();
   JSON params;
-  params.add("foo", "bar");
+  params.addCopy("foo", "bar");
 
   std::string serialized;
   auto s = json.serialize(params, serialized);
@@ -33,7 +33,7 @@ TEST_F(JSONSerializersTests, test_deserialize) {
   auto s = json.deserialize(serialized, params);
 
   JSON expected;
-  expected.add("foo", "bar");
+  expected.addCopy("foo", "bar");
 
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(params.doc(), expected.doc());

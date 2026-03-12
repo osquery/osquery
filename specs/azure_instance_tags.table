@@ -8,5 +8,5 @@ schema([
 attributes(cacheable=True)
 implementation("cloud/azure_metadata@genAzureTags")
 examples([
-    "select * from ec2_instance_tags"
+    "select * from azure_instance_tags"
 ])

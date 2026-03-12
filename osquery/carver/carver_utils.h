@@ -66,7 +66,7 @@ void updateCarveValue(const std::string& guid,
     return;
   }
 
-  tree.add(key, value);
+  tree.addCopy(key, value);
 
   std::string out;
   s = tree.toString(out);

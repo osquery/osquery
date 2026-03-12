@@ -1,6 +1,6 @@
 [Unit]
-Description=The osquery Daemon
-After=network.service syslog.service
+Description=osquery daemon
+After=network.target syslog.service
 
 [Service]
 TimeoutStartSec=0

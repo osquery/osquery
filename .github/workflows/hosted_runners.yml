@@ -11,8 +11,8 @@
 # jobs in another file inside the `needs` statement.
 #
 # This configuration file takes care of the Windows, macOS and Linux
-# builds on the x86 platform.
-name: build_x86
+# builds on x86_64 and aarch64
+name: build
 
 on:
   # Run this workflow once every day against the master branch
@@ -42,6 +42,7 @@ env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
   SUBMODULE_CACHE_VERSION: 3
+  OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -56,8 +57,13 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
+<<<<<<< HEAD
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+=======
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+>>>>>>> origin/master
 
     - name: Setup the build paths
       shell: bash
@@ -148,8 +154,13 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
+<<<<<<< HEAD
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+=======
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+>>>>>>> origin/master
 
     - name: Install dependencies
       run: |
@@ -306,8 +317,13 @@ jobs:
 
     - name: Install osquery-toolchain
       run: |
+<<<<<<< HEAD
         wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
+=======
+        wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
+        sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
+>>>>>>> origin/master
 
     - name: Install dependencies
       run: |
@@ -508,8 +524,27 @@ jobs:
             --target package
         done
 
+<<<<<<< HEAD
     - name: Locate the packages (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
+=======
+    - name: Set architecture suffix
+      if: matrix.build_type == 'RelWithDebInfo'
+      id: arch
+      shell: bash
+      run: |
+        arch=$(uname -m)
+        if [ "$arch" == "x86_64" ]; then
+          echo "suffix=" >> $GITHUB_OUTPUT
+          echo "arch=x86_64" >> $GITHUB_OUTPUT
+        else
+          echo "suffix=_aarch64" >> $GITHUB_OUTPUT
+          echo "arch=aarch64" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Locate the packages
+      if: matrix.build_type == 'RelWithDebInfo'
+>>>>>>> origin/master
       id: packages
       shell: bash
       run: |
@@ -518,48 +553,84 @@ jobs:
         echo "REL_UNSIGNED_DEBUG_DEB_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*.ddeb)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-?.*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
-        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_x86_64.tar.gz)" >> $GITHUB_OUTPUT
+        echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_${{ steps.arch.outputs.arch }}.tar.gz)" >> $GITHUB_OUTPUT
 
+<<<<<<< HEAD
     - name: Store the unsigned release package data artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned release package data artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_release_package_data
+        name: linux_unsigned_release_package_data${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
+<<<<<<< HEAD
     - name: Store the unsigned release DEB artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned release DEB artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_release_deb
+        name: linux_unsigned_release_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
+<<<<<<< HEAD
     - name: Store the unsigned debug DEB artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned debug DEB artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_debug_deb
+        name: linux_unsigned_debug_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
+<<<<<<< HEAD
     - name: Store the unsigned release RPM artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned release RPM artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_release_rpm
+        name: linux_unsigned_release_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
+<<<<<<< HEAD
     - name: Store the unsigned debug RPM artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned debug RPM artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_debug_rpm
+        name: linux_unsigned_debug_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
+<<<<<<< HEAD
     - name: Store the unsigned release TGZ artifact (x86_64)
       if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v4.4.0
+=======
+    - name: Store the unsigned release TGZ artifact
+      if: matrix.build_type == 'RelWithDebInfo'
+      uses: actions/upload-artifact@v4
+>>>>>>> origin/master
       with:
-        name: linux_unsigned_release_tgz
+        name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     - name: Locate the packages (aarch64)

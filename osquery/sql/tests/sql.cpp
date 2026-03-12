@@ -48,74 +48,218 @@ class TestTablePlugin : public TablePlugin {
 
   TableRows generate(QueryContext& ctx) {
     TableRows results;
-    if (ctx.constraints["test_int"].existsAndMatches("1")) {
-      results.push_back(
-          make_table_row({{"test_int", "1"}, {"test_text", "0"}}));
-    } else {
-      results.push_back(
-          make_table_row({{"test_int", "0"}, {"test_text", "1"}}));
+
+    std::vector<std::map<std::string, std::string>> rows{
+        {{"test_int", "0"}, {"test_text", "1"}},
+        {{"test_int", "1"}, {"test_text", "0"}},
+        {{"test_int", "1"}, {"test_text", "2"}},
+    };
+
+    if (ctx.constraints.empty()) {
+      for (const auto& row : rows) {
+        results.push_back(make_table_row({{"test_int", row.at("test_int")},
+                                          {"test_text", row.at("test_text")}}));
+      }
+      return results;
     }
 
-    auto ints = ctx.constraints["test_int"].getAll<int>(EQUALS);
-    for (const auto& int_match : ints) {
-      results.push_back(make_table_row({{"test_int", INTEGER(int_match)}}));
-    }
+    auto rowMatches = [&](const std::map<std::string, std::string>& row) {
+      for (const auto& [column, constraintList] : ctx.constraints) {
+        if (!constraintList.existsAndMatches(row.at(column))) {
+          return false;
+        }
+      }
+      return true;
+    };
 
+    for (const auto& row : rows) {
+      if (rowMatches(row)) {
+        results.push_back(make_table_row({{"test_int", row.at("test_int")},
+                                          {"test_text", row.at("test_text")}}));
+      }
+    }
     return results;
   }
 };
+
+TEST_F(SQLTests, select_from_multiple_constraints) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("test", std::make_shared<TestTablePlugin>());
+
+  // No constraints should return all rows
+  {
+    ConstraintMap constraints;
+    EXPECT_EQ(constraints.size(), 0U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 3U);
+  }
+
+  // Single constraint on test_int should return only matching rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "1"));
+    EXPECT_EQ(constraints.size(), 1U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 2U);
+    EXPECT_EQ(results[0]["test_int"], "1");
+    EXPECT_EQ(results[0]["test_text"], "0");
+    EXPECT_EQ(results[1]["test_int"], "1");
+    EXPECT_EQ(results[1]["test_text"], "2");
+  }
+
+  // Multiple constraints should return only matching rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "1"));
+    constraints["test_text"].add(Constraint(EQUALS, "2"));
+    EXPECT_EQ(constraints.size(), 2U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0]["test_int"], "1");
+    EXPECT_EQ(results[0]["test_text"], "2");
+  }
+
+  // Non-matching constraints should return no rows
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "2"));
+    constraints["test_text"].add(Constraint(EQUALS, "3"));
+    EXPECT_EQ(constraints.size(), 2U);
+
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 0U);
+  }
+
+  // Conflicting constraints should return no rows (check AND)
+  {
+    ConstraintMap constraints;
+    constraints["test_int"].add(Constraint(EQUALS, "1"));
+    constraints["test_int"].add(Constraint(EQUALS, "0"));
+    EXPECT_EQ(constraints.size(), 1U);
+    auto results = SQL::selectFrom({}, "test", std::move(constraints));
+    EXPECT_EQ(results.size(), 0U);
+  }
+}
 
 TEST_F(SQLTests, test_raw_access_context) {
   auto tables = RegistryFactory::get().registry("table");
   tables->add("test", std::make_shared<TestTablePlugin>());
   auto results = SQL::selectAllFrom("test");
 
-  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(results.size(), 3U);
   EXPECT_EQ(results[0]["test_text"], "1");
+  EXPECT_EQ(results[1]["test_text"], "0");
+  EXPECT_EQ(results[2]["test_text"], "2");
 
   results = SQL::selectAllFrom("test", "test_int", EQUALS, "1");
   EXPECT_EQ(results.size(), 2U);
 
-  results = SQL::selectAllFrom("test", "test_int", EQUALS, "2");
+  results = SQL::selectAllFrom("test", "test_int", EQUALS, "0");
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(results[0]["test_int"], "2");
+  EXPECT_EQ(results[0]["test_int"], "0");
 }
 
 TEST_F(SQLTests, test_sql_escape) {
   std::string input = "しかたがない";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(input,
-            "\\xE3\\x81\\x97\\xE3\\x81\\x8B\\xE3\\x81\\x9F\\xE3\\x81\\x8C\\xE3"
-            "\\x81\\xAA\\xE3\\x81\\x84");
+  EXPECT_EQ(input, "しかたがない");
 
   input = "悪因悪果";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(input,
-            "\\xE6\\x82\\xAA\\xE5\\x9B\\xA0\\xE6\\x82\\xAA\\xE6\\x9E\\x9C");
+  EXPECT_EQ(input, "悪因悪果");
 
   input = "モンスターハンター";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(input,
-            "\\xE3\\x83\\xA2\\xE3\\x83\\xB3\\xE3\\x82\\xB9\\xE3\\x82\\xBF\\xE3"
-            "\\x83\\xBC\\xE3\\x83\\x8F\\xE3\\x83\\xB3\\xE3\\x82\\xBF\\xE3\\x83"
-            "\\xBC");
+  EXPECT_EQ(input, "モンスターハンター");
 
   input = "съешь же ещё этих мягких французских булок, да выпей чаю";
   escapeNonPrintableBytesEx(input);
-  EXPECT_EQ(
-      input,
-      "\\xD1\\x81\\xD1\\x8A\\xD0\\xB5\\xD1\\x88\\xD1\\x8C \\xD0\\xB6\\xD0\\xB5 "
-      "\\xD0\\xB5\\xD1\\x89\\xD1\\x91 \\xD1\\x8D\\xD1\\x82\\xD0\\xB8\\xD1\\x85 "
-      "\\xD0\\xBC\\xD1\\x8F\\xD0\\xB3\\xD0\\xBA\\xD0\\xB8\\xD1\\x85 "
-      "\\xD1\\x84\\xD1\\x80\\xD0\\xB0\\xD0\\xBD\\xD1\\x86\\xD1\\x83\\xD0\\xB7\\"
-      "xD1\\x81\\xD0\\xBA\\xD0\\xB8\\xD1\\x85 "
-      "\\xD0\\xB1\\xD1\\x83\\xD0\\xBB\\xD0\\xBE\\xD0\\xBA, "
-      "\\xD0\\xB4\\xD0\\xB0 \\xD0\\xB2\\xD1\\x8B\\xD0\\xBF\\xD0\\xB5\\xD0\\xB9 "
-      "\\xD1\\x87\\xD0\\xB0\\xD1\\x8E");
+  EXPECT_EQ(input, "съешь же ещё этих мягких французских булок, да выпей чаю");
 
   input = "The quick brown fox jumps over the lazy dog.";
   escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input, "The quick brown fox jumps over the lazy dog.");
+}
+
+TEST_F(SQLTests, test_sql_escape_utf8_passthrough) {
+  // Valid UTF-8 Cyrillic
+  std::string input = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯа";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯа");
+
+  // Valid UTF-8 Japanese
+  input = "しかたがない";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "しかたがない");
+
+  // Valid UTF-8 Chinese
+  input = "悪因悪果";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "悪因悪果");
+
+  // Valid UTF-8 Katakana
+  input = "モンスターハンター";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "モンスターハンター");
+
+  // Cyrillic mixed with ASCII (certificate DN-style)
+  input = "/O=АБ/CN=ВГ";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "/O=АБ/CN=ВГ");
+
+  // Mixed Cyrillic and ASCII (full sentence)
+  input = "съешь же ещё этих мягких французских булок, да выпей чаю";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "съешь же ещё этих мягких французских булок, да выпей чаю");
+
+  // Plain ASCII should be unchanged
+  input = "The quick brown fox jumps over the lazy dog.";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "The quick brown fox jumps over the lazy dog.");
+
+  // Empty string
+  input = "";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "");
+
+  // Control characters should be escaped
+  input = std::string("hello\x01world", 11);
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "hello\\x01world");
+
+  // Invalid UTF-8 continuation byte without lead byte should be escaped
+  input = std::string("test\x80tail", 9);
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "test\\x80tail");
+
+  // Incomplete UTF-8 sequence at end of string should be escaped
+  input = std::string("test\xD0", 5);
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "test\\xD0");
+
+  // Valid 4-byte UTF-8 (emoji: 😀 = F0 9F 98 80)
+  input = "hello 😀 world";
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "hello 😀 world");
+
+  // Overlong 2-byte encoding (0xC0 0x80 = overlong NUL) should be escaped
+  input = std::string(
+      "ab\xC0\x80"
+      "cd",
+      6);
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "ab\\xC0\\x80cd");
+
+  // Invalid lead byte 0xFE should be escaped
+  input = std::string(
+      "ab\xFE"
+      "cd",
+      5);
+  escapeNonPrintableBytesEx(input);
+  EXPECT_EQ(input, "ab\\xFEcd");
 }
 
 TEST_F(SQLTests, test_sql_base64_encode) {

@@ -777,7 +777,7 @@ Status Config::updateSource(const std::string& source,
       auto main_doc = JSON::newObject();
       auto queries_obj = main_doc.getObject();
       main_doc.copyFrom(schedule, queries_obj);
-      main_doc.add("queries", queries_obj);
+      main_doc.addCopy("queries", queries_obj);
       addPack("main", source, main_doc.doc());
     }
   }
@@ -1103,7 +1103,7 @@ void ConfigParserPlugin::reset() {
 
   for (auto& category : data_.doc().GetObject()) {
     auto obj = doc.getObject();
-    doc.add(category.name.GetString(), obj, doc.doc());
+    doc.addCopy(category.name.GetString(), obj, doc.doc());
   }
 
   data_ = std::move(doc);
@@ -1318,7 +1318,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
 Status ConfigParserPlugin::setUp() {
   for (const auto& key : keys()) {
     auto obj = data_.getObject();
-    data_.add(key, obj);
+    data_.addCopy(key, obj);
   }
   return Status::success();
 }
