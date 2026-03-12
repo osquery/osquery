@@ -57,13 +57,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-<<<<<<< HEAD
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
-=======
         wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
->>>>>>> origin/master
 
     - name: Setup the build paths
       shell: bash
@@ -154,13 +149,8 @@ jobs:
     steps:
     - name: Install osquery-toolchain
       run: |
-<<<<<<< HEAD
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
-=======
         wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
->>>>>>> origin/master
 
     - name: Install dependencies
       run: |
@@ -317,13 +307,8 @@ jobs:
 
     - name: Install osquery-toolchain
       run: |
-<<<<<<< HEAD
-        wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-$(uname -m).tar.xz 
-        sudo tar xvf osquery-toolchain-1.1.0-$(uname -m).tar.xz -C /usr/local
-=======
         wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
         sudo tar xvf osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz -C /usr/local
->>>>>>> origin/master
 
     - name: Install dependencies
       run: |
@@ -524,10 +509,6 @@ jobs:
             --target package
         done
 
-<<<<<<< HEAD
-    - name: Locate the packages (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-=======
     - name: Set architecture suffix
       if: matrix.build_type == 'RelWithDebInfo'
       id: arch
@@ -544,7 +525,6 @@ jobs:
 
     - name: Locate the packages
       if: matrix.build_type == 'RelWithDebInfo'
->>>>>>> origin/master
       id: packages
       shell: bash
       run: |
@@ -555,80 +535,44 @@ jobs:
         echo "REL_UNSIGNED_DEBUG_RPM_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/osquery-debuginfo-*.rpm)" >> $GITHUB_OUTPUT
         echo "REL_UNSIGNED_RELEASE_TGZ_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/*linux_${{ steps.arch.outputs.arch }}.tar.gz)" >> $GITHUB_OUTPUT
 
-<<<<<<< HEAD
-    - name: Store the unsigned release package data artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned release package data artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_release_package_data${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-<<<<<<< HEAD
-    - name: Store the unsigned release DEB artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned release DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_release_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_DEB_PATH }}
 
-<<<<<<< HEAD
-    - name: Store the unsigned debug DEB artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned debug DEB artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_debug_deb${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_DEB_PATH }}
 
-<<<<<<< HEAD
-    - name: Store the unsigned release RPM artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned release RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_release_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_RPM_PATH }}
 
-<<<<<<< HEAD
-    - name: Store the unsigned debug RPM artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned debug RPM artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_debug_rpm${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_DEBUG_RPM_PATH }}
 
-<<<<<<< HEAD
-    - name: Store the unsigned release TGZ artifact (x86_64)
-      if: matrix.build_type == 'RelWithDebInfo' && matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v4.4.0
-=======
     - name: Store the unsigned release TGZ artifact
       if: matrix.build_type == 'RelWithDebInfo'
       uses: actions/upload-artifact@v4
->>>>>>> origin/master
       with:
         name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
