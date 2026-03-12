@@ -31,14 +31,9 @@ function(generateOsqueryTablesEventsEventstable)
       linux/syslog_events.cpp
       linux/user_events.cpp
       linux/apparmor_events.cpp
+      linux/bpf_process_events.cpp
     )
 
-    if(OSQUERY_BUILD_BPF)
-      list(APPEND source_files
-        linux/bpf_process_events.cpp
-        linux/bpf_socket_events.cpp
-      )
-    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -104,12 +99,11 @@ function(generateOsqueryTablesEventsEventstable)
     set(platform_public_header_files
       linux/process_events.h
       linux/process_file_events.h
-      linux/bpf_process_events.h
-      linux/bpf_socket_events.h
       linux/selinux_events.h
       linux/seccomp_events.h
       linux/apparmor_events.h
       linux/socket_events.h
+      linux/bpf_process_events.h
     )
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
