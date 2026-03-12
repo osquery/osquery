@@ -65,6 +65,7 @@ function(libbpfMain)
 
   target_include_directories(thirdparty_libbpf PRIVATE
     "${library_root}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${OSQUERY_TOOLCHAIN_SYSROOT}/usr/include"
   )
 
