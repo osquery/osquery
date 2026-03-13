@@ -9,7 +9,6 @@
 
 #include <CoreWLAN/CoreWLAN.h>
 #include <Foundation/Foundation.h>
-#include <SystemConfiguration/SystemConfiguration.h>
 
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
@@ -23,46 +22,6 @@ namespace tables {
 // Requires "Full Disk Access".
 static const std::string kKnownNetworksPlistPath =
     "/Library/Preferences/com.apple.wifi.known-networks.plist";
-
-/**
- * @brief Try to get the current SSID from SCDynamicStore's AirPort state.
- *
- * On some macOS versions, the AirPort state in the SystemConfiguration dynamic
- * store may contain the SSID even when CoreWLAN redacts it due to Location
- * Services restrictions.
- *
- * @param interfaceName the network interface name (e.g., "en0").
- * @return the SSID string, or nil if not available.
- */
-static NSString* getSSIDFromDynamicStore(NSString* interfaceName) {
-  SCDynamicStoreRef store =
-      SCDynamicStoreCreate(nullptr, CFSTR("osquery"), nullptr, nullptr);
-  if (store == nullptr) {
-    return nil;
-  }
-
-  CFStringRef key = SCDynamicStoreKeyCreateNetworkInterfaceEntity(
-      nullptr,
-      kSCDynamicStoreDomainState,
-      (__bridge CFStringRef)interfaceName,
-      kSCEntNetAirPort);
-
-  NSDictionary* info =
-      (__bridge_transfer NSDictionary*)SCDynamicStoreCopyValue(store, key);
-  CFRelease(key);
-  CFRelease(store);
-
-  if (info == nil) {
-    return nil;
-  }
-
-  NSString* ssid = [info objectForKey:@"SSID_STR"];
-  if (ssid != nil && [ssid length] > 0) {
-    return ssid;
-  }
-
-  return nil;
-}
 
 /**
  * @brief Infer the current network name from the known-networks plist.
@@ -98,7 +57,13 @@ static NSString* inferNetworkNameFromKnownNetworks() {
     }
 
     NSDate* systemJoin = [networkInfo objectForKey:@"JoinedBySystemAt"];
+    if (systemJoin != nil && ![systemJoin isKindOfClass:[NSDate class]]) {
+      systemJoin = nil;
+    }
     NSDate* userJoin = [networkInfo objectForKey:@"JoinedByUserAt"];
+    if (userJoin != nil && ![userJoin isKindOfClass:[NSDate class]]) {
+      userJoin = nil;
+    }
 
     // Use the most recent of the two join timestamps.
     NSDate* latestJoin = nil;
@@ -134,53 +99,29 @@ QueryData genWifiStatus(QueryContext& context) {
     // Var to hold a map of interface names to network names.
     NSMutableDictionary* wifiNetworks = [NSMutableDictionary dictionary];
 
-    // Resolve network names using a cascade of methods, from fastest to
-    // slowest. On macOS 14.4+, CoreWLAN redacts the SSID unless the process
-    // has Location Services authorization, which launchd daemons cannot
-    // obtain. We try lightweight alternatives before the expensive system
-    // profiler fallback.
+    // To get the network name we may need to use the system profiler.
+    // Since this is a performance hit, only do it if we need to.
     if (context.isColumnUsed("network_name")) {
-      // Method 1: SCDynamicStore AirPort state (per-interface, fast).
-      // The SystemConfiguration dynamic store may expose the SSID even when
-      // CoreWLAN redacts it.
-      for (CWInterface* interface in interfaces) {
+      //
+      // Method 1: If there's only one interface (most common scenario),
+      // we'll attempt to extract the network name from the last joined of the
+      // known networks. This method is faster and more accurate than the system
+      // profiler method below. The system profiler method is returning
+      // <redacted> on several macOS versions.
+      //
+      if ([interfaces count] == 1) {
+        CWInterface* interface = interfaces[0];
         NSString* ifName = [interface interfaceName];
-        NSString* ssid = getSSIDFromDynamicStore(ifName);
-        if (ssid != nil) {
-          VLOG(1) << "network_name \"" << [ssid UTF8String] << "\" for \""
-                  << [ifName UTF8String]
-                  << "\" inferred from system configuration dynamic store";
-          wifiNetworks[ifName] = ssid;
-        }
-      }
-
-      // Method 2: Known-networks plist inference (heuristic, fast).
-      // Read the system's saved WiFi networks and pick the one with the most
-      // recent join timestamp. Only attempt for interfaces that appear
-      // connected (have an active channel) but whose name we haven't resolved.
-      {
-        NSString* inferredName = nil;
-        for (CWInterface* interface in interfaces) {
-          NSString* ifName = [interface interfaceName];
-          if ([wifiNetworks objectForKey:ifName] != nil) {
-            continue;
-          }
-          if ([interface wlanChannel] == nil) {
-            continue; // Not connected, skip inference.
-          }
-          if (inferredName == nil) {
-            inferredName = inferNetworkNameFromKnownNetworks();
-          }
+        // Interface must be connected.
+        if ([interface wlanChannel] != nil) {
+          NSString* inferredName = inferNetworkNameFromKnownNetworks();
           if (inferredName != nil) {
-            VLOG(1) << "network_name \"" << [inferredName UTF8String]
-                    << "\" for \"" << [ifName UTF8String]
-                    << "\" inferred from known networks";
             wifiNetworks[ifName] = inferredName;
           }
         }
       }
 
-      // Method 3: System profiler (slow, authoritative fallback).
+      // Method 2: System profiler (slow, authoritative fallback).
       // Only call if there are still connected interfaces without a name.
       //
       // On some versions of macOS the network name inferred from
@@ -215,9 +156,6 @@ QueryData genWifiStatus(QueryContext& context) {
               NSString* networkName = [[wifiInterface
                   objectForKey:@"spairport_current_network_information"]
                   objectForKey:@"_name"];
-              VLOG(1) << "network_name \"" << [networkName UTF8String]
-                      << "\" for \"" << [spIfName UTF8String]
-                      << "\" inferred from SPAirPortDataType";
               wifiNetworks[spIfName] = networkName;
             }
           }
