@@ -19,6 +19,73 @@
 namespace osquery {
 namespace tables {
 
+// Requires "Full Disk Access".
+static const std::string kKnownNetworksPlistPath =
+    "/Library/Preferences/com.apple.wifi.known-networks.plist";
+
+/**
+ * @brief Infer the current network name from the known-networks plist.
+ *
+ * Reads /Library/Preferences/com.apple.wifi.known-networks.plist (Big Sur+)
+ * and returns the network with the most recent join timestamp. This works as
+ * a heuristic for identifying the currently connected network without requiring
+ * Location Services, which osqueryd cannot obtain as a launchd daemon.
+ *
+ * @return the inferred network name, or nil if inference failed.
+ */
+static NSString* inferNetworkNameFromKnownNetworks() {
+  NSDictionary* plist = [NSDictionary
+      dictionaryWithContentsOfFile:@(kKnownNetworksPlistPath.c_str())];
+  if (plist == nil) {
+    VLOG(1) << "Could not read known-networks plist at "
+            << kKnownNetworksPlistPath;
+    return nil;
+  }
+
+  NSString* prefix = @"wifi.network.ssid.";
+  NSString* bestName = nil;
+  NSDate* bestDate = nil;
+
+  for (NSString* key in plist) {
+    if (![key hasPrefix:prefix]) {
+      continue;
+    }
+
+    NSDictionary* networkInfo = [plist objectForKey:key];
+    if (![networkInfo isKindOfClass:[NSDictionary class]]) {
+      continue;
+    }
+
+    NSDate* systemJoin = [networkInfo objectForKey:@"JoinedBySystemAt"];
+    if (systemJoin != nil && ![systemJoin isKindOfClass:[NSDate class]]) {
+      systemJoin = nil;
+    }
+    NSDate* userJoin = [networkInfo objectForKey:@"JoinedByUserAt"];
+    if (userJoin != nil && ![userJoin isKindOfClass:[NSDate class]]) {
+      userJoin = nil;
+    }
+
+    // Use the most recent of the two join timestamps.
+    NSDate* latestJoin = nil;
+    if (systemJoin != nil && userJoin != nil) {
+      latestJoin = [systemJoin laterDate:userJoin];
+    } else if (systemJoin != nil) {
+      latestJoin = systemJoin;
+    } else {
+      latestJoin = userJoin;
+    }
+
+    if (latestJoin != nil &&
+        (bestDate == nil ||
+         [latestJoin compare:bestDate] == NSOrderedDescending)) {
+      bestDate = latestJoin;
+      bestName = [key substringFromIndex:[prefix length]];
+    }
+  }
+
+  return bestName;
+}
+
 QueryData genWifiStatus(QueryContext& context) {
   QueryData results;
   @autoreleasepool {
@@ -32,33 +99,67 @@ QueryData genWifiStatus(QueryContext& context) {
     // Var to hold a map of interface names to network names.
     NSMutableDictionary* wifiNetworks = [NSMutableDictionary dictionary];
 
-    // To get the network name we need to use the system profiler.
+    // To get the network name we may need to use the system profiler.
     // Since this is a performance hit, only do it if we need to.
     if (context.isColumnUsed("network_name")) {
-      // Get Airport data from system profiler, in order to get the current
-      // network name for systems that don't return it via CWWiFiClient.
-      NSDictionary* __autoreleasing result;
-      Status status = getSystemProfilerReport("SPAirPortDataType", result);
-      if (!status.ok()) {
-        LOG(ERROR) << "failed to get SPAirPortDataType config: "
-                   << status.getMessage();
-        result = [NSDictionary dictionary];
+      //
+      // Method 1: If there's only one interface (most common scenario),
+      // we'll attempt to extract the network name from the last joined of the
+      // known networks. This method is faster and more accurate than the system
+      // profiler method below. The system profiler method is returning
+      // <redacted> on several macOS versions.
+      //
+      if ([interfaces count] == 1) {
+        CWInterface* interface = interfaces[0];
+        NSString* ifName = [interface interfaceName];
+        // Interface must be connected.
+        if ([interface wlanChannel] != nil) {
+          NSString* inferredName = inferNetworkNameFromKnownNetworks();
+          if (inferredName != nil) {
+            wifiNetworks[ifName] = inferredName;
+          }
+        }
       }
 
-      for (NSDictionary* item in [result objectForKey:@"_items"]) {
-        // Get the item's airport intefaces, which will usually include at least
-        // a wifi card and an Apple Wireless Direct Link (AWDL) interface.
-        NSArray* airportInterfaces =
-            [item objectForKey:@"spairport_airport_interfaces"];
-        // Get the wifi interface (the one starting with "en").
-        NSDictionary* wifiInterface = [[airportInterfaces
-            filteredArrayUsingPredicate:
-                [NSPredicate predicateWithFormat:@"_name BEGINSWITH %@", @"en"]]
-            lastObject];
-        // Add the network name to the map, indexed by interface name.
-        wifiNetworks[[wifiInterface objectForKey:@"_name"]] = [[wifiInterface
-            objectForKey:@"spairport_current_network_information"]
-            objectForKey:@"_name"];
+      // Method 2: System profiler (slow, authoritative fallback).
+      // Only call if there are still connected interfaces without a name.
+      //
+      // On some versions of macOS the network name inferred from
+      // SPAirPortDataType is "<redacted>".
+      {
+        BOOL needFallback = NO;
+        for (CWInterface* interface in interfaces) {
+          if ([interface wlanChannel] != nil &&
+              [wifiNetworks objectForKey:[interface interfaceName]] == nil) {
+            needFallback = YES;
+            break;
+          }
+        }
+        if (needFallback) {
+          NSDictionary* __autoreleasing result;
+          Status status = getSystemProfilerReport("SPAirPortDataType", result);
+          if (!status.ok()) {
+            LOG(ERROR) << "failed to get SPAirPortDataType config: "
+                       << status.getMessage();
+            result = [NSDictionary dictionary];
+          }
+          for (NSDictionary* item in [result objectForKey:@"_items"]) {
+            NSArray* airportInterfaces =
+                [item objectForKey:@"spairport_airport_interfaces"];
+            NSDictionary* wifiInterface = [[airportInterfaces
+                filteredArrayUsingPredicate:
+                    [NSPredicate predicateWithFormat:@"_name BEGINSWITH %@",
+                                                     @"en"]] lastObject];
+            NSString* spIfName = [wifiInterface objectForKey:@"_name"];
+            if (spIfName != nil &&
+                [wifiNetworks objectForKey:spIfName] == nil) {
+              NSString* networkName = [[wifiInterface
+                  objectForKey:@"spairport_current_network_information"]
+                  objectForKey:@"_name"];
+              wifiNetworks[spIfName] = networkName;
+            }
+          }
+        }
       }
     }
 
