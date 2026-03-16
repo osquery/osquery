@@ -99,5 +99,26 @@ TEST_F(AppsTests, test_sanity_check) {
 
   EXPECT_TRUE(found_safari);
 }
+
+QueryData genApps(QueryContext& context);
+
+TEST_F(AppsTests, test_genApps_with_path_constraint) {
+  // Verify that the path constraint works. This should find the app
+  // regardless of LaunchServices state, since the path is explicitly provided.
+  QueryContext context;
+  context.constraints["path"].add(
+      Constraint(EQUALS, "/Applications/Safari.app"));
+  auto results = genApps(context);
+
+  bool found_safari = false;
+  for (const auto& row : results) {
+    auto it = row.find("bundle_identifier");
+    if (it != row.end() && it->second == "com.apple.Safari") {
+      found_safari = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found_safari);
+}
 }
 }

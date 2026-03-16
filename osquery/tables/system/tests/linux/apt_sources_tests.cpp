@@ -205,6 +205,14 @@ Signed-By: /usr/share/keyrings/osquery-archive-keyring.gpg",
        "ftp://pkg.osquery.io",
        "pkg.osquery.io noble",
        "pkg.osquery.io_dists_noble"},
+      // URIs with underscores in domain and path (issue #8624)
+      {"Types: deb \n\
+URIs: http://example.test_server.com/test_repo/deb \n\
+Suites: noble \n\
+Components: main",
+       "http://example.test_server.com/test_repo/deb",
+       "example.test_server.com/test_repo/deb noble",
+       "example.test_server.com_test_repo_deb_dists_noble"},
   };
 
   for (const auto& test_case : test_cases) {
