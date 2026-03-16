@@ -28,7 +28,7 @@ struct HandleDeleter {
 using ScopedHandle =
     std::unique_ptr<std::remove_pointer_t<HANDLE>, HandleDeleter>;
 
-static SeDebugPrivState getDebugTokenPrivilegeState() noexcept {
+SeDebugPrivState getDebugTokenPrivilegeState() noexcept {
   HANDLE hToken = NULL;
 
   // Open the current process's token with query access
@@ -129,40 +129,39 @@ static bool setDebugTokenPrivilege(SeDebugPrivState state) noexcept {
 }
 
 SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() noexcept {
-  // Get the original state of the debug privilege so we can restore it later.
-  m_original_state = getDebugTokenPrivilegeState();
+  std::lock_guard<std::mutex> lock(s_mutex);
+  s_ref_count++;
 
-  // If the privilege is already enabled, we don't need to do anything.
-  if (m_original_state == SeDebugPrivState::Enabled) {
-    m_privilege_enabled = true;
+  if (s_ref_count > 1) {
     return;
   }
 
-  // Attempt to enable the privilege. If it fails, log a warning but continue on
-  m_privilege_enabled = setDebugTokenPrivilege(SeDebugPrivState::Enabled);
-  if (m_privilege_enabled) {
-    m_needs_reset = true;
+  s_original_state = getDebugTokenPrivilegeState();
+  if (s_original_state == SeDebugPrivState::Enabled) {
+    s_needs_reset = false;
+    return;
+  }
+
+  s_needs_reset = setDebugTokenPrivilege(SeDebugPrivState::Enabled);
+  if (!s_needs_reset) {
+    LOG(ERROR) << "Failed to enable debug token privilege. Handle enumeration "
+                  "may be incomplete for processes we don't own";
+    return;
   }
 }
 
 SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() noexcept {
-  // Nothing to do if we never enabled the privilege or if we failed to enable
-  // it
-  if (!m_needs_reset) {
-    return;
-  }
+  std::lock_guard<std::mutex> lock(s_mutex);
+  s_ref_count--;
 
-  // TODO: Should this be an exit failure instead of just a log message?
-  if (!setDebugTokenPrivilege(m_original_state)) {
-    requestShutdown(
-        EXIT_CATASTROPHIC,
-        "Failed to restore debug token privilege to original state. "
-        "Shutting down to prevent potential security risk.");
+  if (s_ref_count == 0 && s_needs_reset) {
+    setDebugTokenPrivilege(s_original_state);
   }
 }
 
-bool SeDebugPrivilegeGuard::privilegeEnabled() const {
-  return m_privilege_enabled;
+int SeDebugPrivilegeGuard::refCount() const {
+  std::lock_guard<std::mutex> lock(s_mutex);
+  return s_ref_count;
 }
 
 } // namespace tables

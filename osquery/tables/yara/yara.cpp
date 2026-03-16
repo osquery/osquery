@@ -460,10 +460,6 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
     // are not owned by the current user. This is an RAII guard and will
     // reset the privilege to its original state after the scan is done.
     SeDebugPrivilegeGuard debug_priv_guard;
-    if (!debug_priv_guard.privilegeEnabled()) {
-      VLOG(1) << "Debug token privilege not enabled for process scan. Some "
-                 "processes may fail to be scanned.";
-    }
 #endif
     // Scan processes
     for (const auto& pid : pids) {
