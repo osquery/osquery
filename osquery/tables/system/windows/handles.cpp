@@ -1266,29 +1266,12 @@ class HandleEnumeration {
 // If no pid constraint is provided, defaults to the current (osquery)
 // process.  Requires SeDebugPrivilege for cross-process enumeration.
 QueryData genHandles(QueryContext& context) {
-  std::set<int> pidlist;
-
   // Determine pid constraints, if any. If no PID constraints are provided,
   // we will default to enumerating handles for the current process.
-  if (context.constraints.count("pid") > 0 && context.constraints.at("pid").exists(EQUALS)) {
-    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
-      pidlist.insert(pid);
-    }
-  }
+  std::set<int> pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
 
-  if (pidlist.empty()) {
-    VLOG(1) << "No process ID constraint found, using current process ID: "
-            << GetCurrentProcessId();
-    pidlist.insert(GetCurrentProcessId());
-  }
-
-  // Construct the handle enumeration object which will manage the state of our
-  // enumeration and caching
+  // Acquire the debug token privilege guard
   SeDebugPrivilegeGuard debugPrivilegeGuard;
-  if (!debugPrivilegeGuard.privilegeEnabled()) {
-    VLOG(1) << "Failed to set debug token privilege. Handle enumeration may be "
-               "incomplete for processes we don't own";
-  }
 
   // Perform the enumeration and enrichment of handle records
   handles::HandleEnumeration handleEnumeration(pidlist);

@@ -1,7 +1,7 @@
 table_name("handles")
 description("Enumerate open handles for a specified process. Defaults to the osquery process if no pid constraint is provided.")
 schema([
-    Column("pid", BIGINT, "The process identifier that owns the handle.", additional=True, index=True, optimized=True),
+    Column("pid", BIGINT, "The process identifier that owns the handle.", required=True, index=True, optimized=True),
     Column("handle_value", BIGINT, "The handle value"),
     Column("type", TEXT, "The type of object referenced by the handle."),
     Column("access", TEXT, "The access permissions of the object referenced by the handle."),
