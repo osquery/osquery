@@ -7,30 +7,27 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
 #include <osquery/events/eventsubscriber.h>
-#include <osquery/events/linux/bpf/bpfeventpublisher.h>
+#include <osquery/events/linux/bpf/bpf_process_event_publisher.h>
 
 namespace osquery {
 
-class BPFProcessEventSubscriber final
-    : public EventSubscriber<BPFEventPublisher> {
+class BPFProcessEventSubscriber
+    : public EventSubscriber<BPFProcessEventPublisher> {
  public:
-  virtual ~BPFProcessEventSubscriber() override = default;
-  virtual Status init() override;
+  Status init() override;
 
-  Status eventCallback(const ECRef& event_context,
-                       const SCRef& subscription_context);
+  Status eventCallback(const ECRef& ec, const SCRef& sc);
 
-  static bool generateRow(Row& row, const ISystemStateTracker::Event& event);
-
+  static bool generateRow(Row& row, const BPFProcessEvent& event);
   static std::vector<Row> generateRowList(
-      const ISystemStateTracker::EventList& event_list);
+      const BPFProcessEventList& event_list);
 
-  static std::string generateCmdlineColumn(
-      const std::vector<std::string>& argv);
-
-  static std::string generateJsonCmdlineColumn(
-      const std::vector<std::string>& argv);
+ private:
+  static std::string generateCmdlineColumn(const std::string& args);
+  static std::string generateJsonCmdlineColumn(const std::string& args);
 };
 
 } // namespace osquery
