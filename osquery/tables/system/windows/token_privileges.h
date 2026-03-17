@@ -8,20 +8,22 @@
  */
 #pragma once
 
+#include <mutex>
 #include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {
 
-enum class SeDebugPrivState { Enabled, Disabled };
+enum class SeDebugPrivState { NotSet, Enabled, Disabled };
 
 // RAII guard that enables SeDebugPrivilege on construction and restores the
 // original state when it goes out of scope.
 class SeDebugPrivilegeGuard {
  private:
-  SeDebugPrivState m_original_state = SeDebugPrivState::Disabled;
-  bool m_privilege_enabled = false;
-  bool m_needs_reset = false;
+  inline static SeDebugPrivState s_original_state;
+  inline static std::mutex s_mutex;
+  inline static bool s_needs_reset;
+  inline static int s_ref_count;
 
  public:
   SeDebugPrivilegeGuard() noexcept;
@@ -33,10 +35,16 @@ class SeDebugPrivilegeGuard {
   SeDebugPrivilegeGuard(SeDebugPrivilegeGuard&&) = delete;
   SeDebugPrivilegeGuard& operator=(SeDebugPrivilegeGuard&&) = delete;
 
-  // Returns true if the privilege was successfully enabled (or was already
-  // enabled).
-  bool privilegeEnabled() const;
+  // For testing purposes, returns the number of active guards. The privilege
+  // should only be disabled when the ref count drops to 0.
+  int refCount() const;
 };
+
+// Helper function to get the current state of the SeDebugPrivilege.  Only the
+// getDebugTokenPrivilegeState function is exposed publicly since the
+// SeDebugPrivilegeGuard will handle setting and resetting the privilege as
+// needed.
+SeDebugPrivState getDebugTokenPrivilegeState() noexcept;
 
 } // namespace tables
 } // namespace osquery

@@ -229,6 +229,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_search.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/token_privileges.cpp
       windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
@@ -362,6 +363,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/programs.h
       windows/registry.h
       windows/certificates.h
+      windows/token_privileges.h
       windows/windows_eventlog.h
       windows/windows_update_history.h
       windows/security_profile_info_utils.h
