@@ -43,7 +43,8 @@ TEST_F(TokenPrivilegesTest, se_debug_privilege_guard) {
 
   guard1.reset(); // Destroy the last guard
 
-  // After all guards are destroyed, the privilege should be reset to its original state
+  // After all guards are destroyed, the privilege should be reset to its
+  // original state
   EXPECT_EQ(getDebugTokenPrivilegeState(), originalState);
 
 }
