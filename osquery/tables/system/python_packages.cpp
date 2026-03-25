@@ -43,6 +43,11 @@ const std::set<std::string> kPythonPath = {
     "/usr/lib/python%/dist-packages",
     "/usr/lib/python%/site-packages",
     "/Library/Python/%/site-packages",
+    // conda (system-level)
+    "/opt/conda/lib/python%/dist-packages",
+    "/opt/conda/lib/python%/site-packages",
+    "/opt/miniconda3/lib/python%/site-packages",
+    "/opt/anaconda3/lib/python%/site-packages",
 };
 
 // clang-format off
@@ -55,10 +60,40 @@ const std::set<std::string> kDarwinPythonPath = {
 const std::set<std::string> kUserDirectoryPaths = {
     ".pyenv/versions",
     ".local/lib/python%",
+    // asdf
+    ".asdf/installs/python",
+    // uv (uv tool install)
+    ".local/share/uv/tools",
+    // mise
+    ".local/share/mise/installs/python",
+    // pipx (v1.2+)
+    ".local/share/pipx/venvs",
+    // pipx legacy (pre-v1.2, macOS)
+    ".local/pipx/venvs",
+    // Poetry (Linux XDG)
+    ".cache/pypoetry/virtualenvs",
+    // conda/miniforge base envs
+    "miniforge3/lib/python%",
+    "miniconda3/lib/python%",
+    "anaconda3/lib/python%",
+    "mambaforge/lib/python%",
+    // conda/miniforge named envs
+    "miniforge3/envs",
+    "miniconda3/envs",
+    "anaconda3/envs",
+    "mambaforge/envs",
+    // virtualenvwrapper
+    ".virtualenvs",
+    // pew (Linux XDG)
+    ".local/share/virtualenvs",
 };
 
 const std::set<std::string> kDarwinUserDirectoryPaths = {
     "Library/Python",
+    // Poetry (macOS)
+    "Library/Caches/pypoetry/virtualenvs",
+    // pew (macOS)
+    "Library/Application Support/virtualenvs",
 };
 
 const std::string kWinPythonInstallKey =
