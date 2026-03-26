@@ -271,6 +271,15 @@ DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:\
 
 Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.Y.Z" is the client build version.
 
+After enrollment, all requests include an `Authorization` header using the `NodeKey` scheme:
+
+```
+Authorization: NodeKey <node_key>
+```
+
+This allows servers and intermediaries to identify and authenticate requests without parsing the request body. This behaviour can be disabled by passing `--notls_node_key_header`, which prevents the `node_key` from being sent as an `Authorization` header.
+
+
 ## Example projects
 
 [Doorman](https://github.com/mwielgoszewski/doorman) is a project that implements the TLS remote settings API. Doorman uses "tags", which can be applied to nodes, packs, and queries, in order to dynamically generate configurations for a unique set or all nodes being managed. Doorman also supports the distributed read and write API, allowing an administrator to schedule ad-hoc queries to be run immediately or in the future.

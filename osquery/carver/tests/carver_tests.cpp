@@ -384,6 +384,7 @@ class TransientFailureCarver : public Carver {
     std::string body;
     params.toString(body);
     request_bodies_.push_back(std::move(body));
+    captured_node_keys_.push_back(request.getOption("node_key"));
 
     if (fail_on_.count(call_count_)) {
       return Status::failure("Transient failure");
@@ -404,10 +405,15 @@ class TransientFailureCarver : public Carver {
     return request_bodies_;
   }
 
+  const std::vector<std::string>& capturedNodeKeys() const {
+    return captured_node_keys_;
+  }
+
  private:
   std::set<size_t> fail_on_;
   size_t call_count_;
   std::vector<std::string> request_bodies_;
+  std::vector<std::string> captured_node_keys_;
 };
 
 TEST_F(CarverTests, test_carve_retries) {
@@ -508,6 +514,37 @@ TEST_F(CarverTests, test_carve_block_failure) {
     ASSERT_TRUE(doc.fromString(bodies[i]).ok());
     EXPECT_EQ(std::string(doc.doc()["session_id"].GetString()), "test_session");
     EXPECT_EQ(doc.doc()["block_id"].GetUint(), 0U);
+  }
+}
+
+TEST_F(CarverTests, test_node_key_in_start_request) {
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+  TransientFailureCarver carve(getCarvePaths(), guid, requestId, {});
+
+  auto s = carve.carve();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  const auto& keys = carve.capturedNodeKeys();
+  // First request is always the start request
+  ASSERT_FALSE(keys.empty());
+  EXPECT_EQ(keys[0], "test_node_key");
+}
+
+TEST_F(CarverTests, test_node_key_in_continue_request) {
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+  TransientFailureCarver carve(getCarvePaths(), guid, requestId, {});
+
+  auto s = carve.carve();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  const auto& keys = carve.capturedNodeKeys();
+  // Requests after the first are block (continue) requests
+  ASSERT_GT(keys.size(), 1U) << "Expected at least one block request";
+  for (size_t i = 1; i < keys.size(); ++i) {
+    EXPECT_EQ(keys[i], "test_node_key")
+        << "Block request " << (i - 1) << " missing node_key option";
   }
 }
 } // namespace osquery
