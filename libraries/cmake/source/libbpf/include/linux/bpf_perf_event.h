@@ -11,8 +11,9 @@
 
 /*
  * Stub for <linux/bpf_perf_event.h> for toolchains that do not provide it.
- * bpf_user_pt_regs_t is defined in pt_regs_fix.h which is force-included
- * for all libbpf compilation units.
+ * On aarch64, struct pt_regs and bpf_user_pt_regs_t are defined in
+ * pt_regs_fix.h which is force-included for all libbpf compilation units.
+ * On x86/x86_64, bpf_user_pt_regs_t aliases struct pt_regs from asm/ptrace.h.
  */
 
 #include <linux/types.h>
