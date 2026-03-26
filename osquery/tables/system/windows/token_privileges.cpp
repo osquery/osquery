@@ -155,7 +155,11 @@ SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() noexcept {
   s_ref_count--;
 
   if (s_ref_count == 0 && s_needs_reset) {
-    setDebugTokenPrivilege(s_original_state);
+    if (!setDebugTokenPrivilege(s_original_state)) {
+      requestShutdown(
+          EXIT_FAILURE,
+          "Failed to reset debug token privilege to original state");
+    }
   }
 }
 
