@@ -3,17 +3,13 @@
 
 /* This header is force-included for all libbpf compilation units.
  *
- * It ensures bpf_user_pt_regs_t is fully defined before any source file
- * includes our bpf_perf_event.h stub (which uses it as a struct field).
- *
- * Include asm/ptrace.h now to get the complete struct definition.
- * When source files later include <linux/ptrace.h> -> <asm/ptrace.h>,
- * the header guards prevent any redefinition.
+ * It pre-declares bpf_user_pt_regs_t so that our bpf_perf_event.h stub can
+ * use it. The struct itself is completed by the #include <asm/ptrace.h> in
+ * bpf_perf_event.h, which fires after each source file's own standard library
+ * includes are already set up (avoiding conflicts with glibc internals).
  *
  * On x86/x86_64, asm/ptrace.h defines struct pt_regs.
  * On aarch64, asm/ptrace.h defines struct user_pt_regs. */
-#include <asm/ptrace.h>
-
 #ifndef bpf_user_pt_regs_t
 #if defined(__aarch64__)
 typedef struct user_pt_regs bpf_user_pt_regs_t;
