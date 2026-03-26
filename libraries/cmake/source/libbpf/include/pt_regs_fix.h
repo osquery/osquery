@@ -1,14 +1,19 @@
 #ifndef PT_REGS_FIX_H
 #define PT_REGS_FIX_H
 
-/* Define bpf_user_pt_regs_t for BPF/USDT usage when the toolchain's
- * linux/bpf_perf_event.h does not provide it.
+/* This header is force-included for all libbpf compilation units.
  *
- * On x86/x86_64, asm/ptrace.h defines struct pt_regs in userspace and
- * bpf_user_pt_regs_t aliases it.
+ * It ensures bpf_user_pt_regs_t is fully defined before any source file
+ * includes our bpf_perf_event.h stub (which uses it as a struct field).
  *
- * On aarch64, the kernel exports struct user_pt_regs (not struct pt_regs)
- * to userspace via asm/ptrace.h, so bpf_user_pt_regs_t aliases that instead. */
+ * Include asm/ptrace.h now to get the complete struct definition.
+ * When source files later include <linux/ptrace.h> -> <asm/ptrace.h>,
+ * the header guards prevent any redefinition.
+ *
+ * On x86/x86_64, asm/ptrace.h defines struct pt_regs.
+ * On aarch64, asm/ptrace.h defines struct user_pt_regs. */
+#include <asm/ptrace.h>
+
 #ifndef bpf_user_pt_regs_t
 #if defined(__aarch64__)
 typedef struct user_pt_regs bpf_user_pt_regs_t;
