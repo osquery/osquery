@@ -77,6 +77,19 @@ function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_d
 
   find_package(Git REQUIRED)
 
+  # Reset the submodule to a clean state before patching, in case a previous
+  # build was interrupted after applying patches but before the cleanup reset.
+  # This makes the patching step idempotent.
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" reset --hard HEAD
+    RESULT_VARIABLE process_exit_code
+    WORKING_DIRECTORY "${source_dir}"
+  )
+
+  if(NOT ${process_exit_code} EQUAL 0)
+    message(FATAL_ERROR "Failed to git reset the following submodule before patching: \"${source_dir}\"")
+  endif()
+
   # We patch the submodule before moving it to the binary folder
   # because if git apply working directory is inside a repository or submodule
   # and it's not its root directory, patching will fail silently.
