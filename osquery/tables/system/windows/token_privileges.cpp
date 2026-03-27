@@ -156,6 +156,8 @@ SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() noexcept {
 
   if (s_ref_count == 0 && s_needs_reset) {
     if (!setDebugTokenPrivilege(s_original_state)) {
+      lock.unlock(); // Unlock before logging and requesting shutdown to avoid
+                     // deadlock
       requestShutdown(
           EXIT_FAILURE,
           "Failed to reset debug token privilege to original state");

@@ -178,9 +178,6 @@ TEST_F(YARATest, test_process_scan_true) {
 TEST_F(YARATest, test_process_scan_false) {
   Row r = scanProcess(processScanFalse);
   // Should have 0 count
-  for (auto& [key, value] : r) {
-    std::cerr << key << ": " << value << std::endl;
-  }
   EXPECT_TRUE(r["count"] == "0");
 }
 
