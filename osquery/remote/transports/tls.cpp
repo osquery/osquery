@@ -66,12 +66,6 @@ CLI_FLAG(bool,
          false,
          "Enable gzip compression for HTTP responses");
 
-/// Send the node_key as an Authorization header on all TLS requests.
-CLI_FLAG(bool,
-         tls_node_key_header,
-         true,
-         "Send node key as 'Authorization: NodeKey <key>' header on TLS "
-         "requests. Disable if intermediaries log Authorization headers.");
 
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
@@ -106,12 +100,10 @@ void TLSTransport::decorateRequest(http::Request& r) {
   r << http::Request::Header("Accept", serializer_->getContentType());
   r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
 
-  if (FLAGS_tls_node_key_header) {
-    auto node_key = getOption("node_key");
-    if (!node_key.empty()) {
-      r << http::Request::Header(kAuthorizationHeader,
-                                 kNodeKeyAuthScheme + " " + node_key);
-    }
+  auto node_key = getOption("node_key");
+  if (!node_key.empty()) {
+    r << http::Request::Header(kAuthorizationHeader,
+                               kNodeKeyAuthScheme + " " + node_key);
   }
 }
 

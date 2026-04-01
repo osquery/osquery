@@ -277,7 +277,7 @@ After enrollment, all requests include an `Authorization` header using the `Node
 Authorization: NodeKey <node_key>
 ```
 
-This allows servers and intermediaries to identify and authenticate requests without parsing the request body. This behaviour can be disabled by passing `--notls_node_key_header`, which prevents the `node_key` from being sent as an `Authorization` header.
+This allows servers and intermediaries to identify and authenticate requests without parsing the request body.
 
 
 ## Example projects

@@ -153,7 +153,6 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_gzip_with_params);
   FRIEND_TEST(TLSTransportsTests, test_node_key_header_set);
   FRIEND_TEST(TLSTransportsTests, test_node_key_header_not_set);
-  FRIEND_TEST(TLSTransportsTests, test_node_key_header_flag_disabled);
 
   friend class TestDistributedPlugin;
 };
