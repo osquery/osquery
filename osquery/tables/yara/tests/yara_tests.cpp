@@ -47,21 +47,18 @@ rule process_scan_false {
 
 class YARATest : public testing::Test {
  protected:
-  void SetUp() override {}
+  void SetUp() override {
+    int result = yr_initialize();
+    if (result != ERROR_SUCCESS) {
+      FAIL() << "Failed to initialize YARA with error code: " << result;
+    }
+  }
 
   void TearDown() override {
     yr_finalize();
   }
 
   Row scanFile(const std::string& ruleContent) {
-    int result = yr_initialize();
-    bool init_succeeded = result == ERROR_SUCCESS;
-    EXPECT_TRUE(init_succeeded);
-
-    if (!init_succeeded) {
-      return {};
-    }
-
     const auto rule_file = fs::temp_directory_path() /
                            fs::unique_path("osquery.tests.yara.%%%%.%%%%.sig");
     writeTextFile(rule_file.string(), ruleContent);
@@ -88,12 +85,12 @@ class YARATest : public testing::Test {
 
     auto rules_handle = compiler_result.take();
 
-    result = yr_rules_scan_file(rules_handle.get(),
-                                file_to_scan.string().c_str(),
-                                SCAN_FLAGS_FAST_MODE,
-                                YARACallback,
-                                (void*)&r,
-                                0);
+    int result = yr_rules_scan_file(rules_handle.get(),
+                                    file_to_scan.string().c_str(),
+                                    SCAN_FLAGS_FAST_MODE,
+                                    YARACallback,
+                                    (void*)&r,
+                                    0);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
     fs::remove_all(rule_file);
@@ -102,14 +99,6 @@ class YARATest : public testing::Test {
   }
 
   Row scanString(const std::string& rule_defs) {
-    int result = yr_initialize();
-    bool init_succeeded = result == ERROR_SUCCESS;
-    EXPECT_TRUE(init_succeeded);
-
-    if (!init_succeeded) {
-      return {};
-    }
-
     auto compiler_result = compileFromString(rule_defs);
     EXPECT_TRUE(compiler_result.isValue())
         << compiler_result.getError().getMessage();
@@ -131,12 +120,12 @@ class YARATest : public testing::Test {
     }
 
     auto rules_handle = compiler_result.take();
-    result = yr_rules_scan_file(rules_handle.get(),
-                                file_to_scan.string().c_str(),
-                                SCAN_FLAGS_FAST_MODE,
-                                YARACallback,
-                                (void*)&r,
-                                0);
+    int result = yr_rules_scan_file(rules_handle.get(),
+                                    file_to_scan.string().c_str(),
+                                    SCAN_FLAGS_FAST_MODE,
+                                    YARACallback,
+                                    (void*)&r,
+                                    0);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
     fs::remove_all(file_to_scan);
@@ -144,14 +133,6 @@ class YARATest : public testing::Test {
   }
 
   Row scanProcess(const std::string& rule_defs) {
-    int result = yr_initialize();
-    bool init_succeeded = result == ERROR_SUCCESS;
-    EXPECT_TRUE(init_succeeded);
-
-    if (!init_succeeded) {
-      return {};
-    }
-
     auto compiler_result = compileFromString(rule_defs);
     EXPECT_TRUE(compiler_result.isValue())
         << compiler_result.getError().getMessage();
@@ -165,12 +146,12 @@ class YARATest : public testing::Test {
     r["matches"] = "";
 
     auto rules_handle = compiler_result.take();
-    result = yr_rules_scan_proc(rules_handle.get(),
-                                platformGetPid(),
-                                SCAN_FLAGS_FAST_MODE,
-                                YARACallback,
-                                (void*)&r,
-                                0);
+    int result = yr_rules_scan_proc(rules_handle.get(),
+                                    platformGetPid(),
+                                    SCAN_FLAGS_FAST_MODE,
+                                    YARACallback,
+                                    (void*)&r,
+                                    0);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
     return r;
   }
@@ -197,9 +178,6 @@ TEST_F(YARATest, test_process_scan_true) {
 TEST_F(YARATest, test_process_scan_false) {
   Row r = scanProcess(processScanFalse);
   // Should have 0 count
-  for (auto& [key, value] : r) {
-    std::cerr << key << ": " << value << std::endl;
-  }
   EXPECT_TRUE(r["count"] == "0");
 }
 
@@ -233,9 +211,6 @@ TEST_F(YARATest, test_match_string_false) {
 }
 
 TEST_F(YARATest, test_rule_compilation_failures) {
-  int result = yr_initialize();
-  EXPECT_TRUE(result == ERROR_SUCCESS);
-
   /* This comes from a regression where Yara internal functions
      like strlcpy are incorrectly called, causing a segfault;
      strlcpy is used to copy the error message. */

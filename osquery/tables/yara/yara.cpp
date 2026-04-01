@@ -457,8 +457,10 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
   if (!pids.empty()) {
 #ifdef WINDOWS
     // Enabling debug token privilege is required for scanning processes that
-    // are not owned by the current user. This is an RAII guard and will
-    // reset the privilege to its original state after the scan is done.
+    // are not owned by the current user.
+    // It looks like yara internally enables SeDebugPrivilege, but it does not
+    // reset it when the scan is done.  This guard and will ensure that the
+    // privilege is reset to its original state after the scan is done.
     SeDebugPrivilegeGuard debug_priv_guard;
 #endif
     // Scan processes
