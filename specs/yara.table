@@ -1,8 +1,10 @@
 table_name("yara")
-description("Triggers one-off YARA query for files at the specified path. Requires one of `sig_group`, `sigfile`, or `sigrule`.")
+description("Triggers one-off YARA query for files or processes at the specified path or pid. Additionally requires one of `sig_group`, `sigfile`, or `sigrule`.")
 schema([
     Column("path", TEXT, "The path scanned",
-        index=True, required=True),
+        index=True),
+    Column("pid", INTEGER, "The pid scanned (process memory)",
+        index=True),
     Column("matches", TEXT, "List of YARA matches"),
     Column("count", INTEGER, "Number of YARA matches"),
     Column("sig_group", TEXT, "Signature group used",
