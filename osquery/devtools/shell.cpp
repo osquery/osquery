@@ -46,6 +46,7 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
+#include <osquery/utils/scope_guard.h>
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
 extern int sqlite3WhereTrace;
@@ -1885,6 +1886,14 @@ int launchIntoShell(int argc, char** argv) {
     data.out = output_file;
   }
 
+  auto pretty_print_guard =
+      scope_guard::create([&data]() { delete data.prettyPrint; });
+  auto output_file_guard = scope_guard::create([&output_file]() {
+    if (output_file != nullptr) {
+      fclose(output_file);
+    }
+  });
+
   // Set modes and settings from CLI flags.
   data.showHeader = static_cast<int>(FLAGS_header);
   if (FLAGS_list) {
@@ -1972,13 +1981,6 @@ int launchIntoShell(int argc, char** argv) {
 
   set_table_name(&data, nullptr);
 
-  if (output_file != nullptr) {
-    fclose(output_file);
-  }
-
-  if (data.prettyPrint != nullptr) {
-    delete data.prettyPrint;
-  }
   return rc;
 }
 } // namespace osquery
