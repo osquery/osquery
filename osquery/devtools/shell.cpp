@@ -1921,15 +1921,6 @@ int launchIntoShell(int argc, char** argv) {
   } else if (!FLAGS_query.empty()) {
     // Run a single query from --query flag
     rc = runQuery(&data, FLAGS_query.c_str());
-    if (rc != 0) {
-      if (output_file != nullptr) {
-        fclose(output_file);
-      }
-      if (data.prettyPrint != nullptr) {
-        delete data.prettyPrint;
-      }
-      return rc;
-    }
   } else if (!FLAGS_query_file.empty()) {
     // Read query from file and execute
     std::string query_content;
@@ -1939,20 +1930,9 @@ int launchIntoShell(int argc, char** argv) {
               "Error reading query file '%s': %s\n",
               FLAGS_query_file.c_str(),
               status.getMessage().c_str());
-      if (output_file != nullptr) {
-        fclose(output_file);
-      }
-      return 1;
-    }
-    rc = runQuery(&data, query_content.c_str());
-    if (rc != 0) {
-      if (output_file != nullptr) {
-        fclose(output_file);
-      }
-      if (data.prettyPrint != nullptr) {
-        delete data.prettyPrint;
-      }
-      return rc;
+      rc = 1;
+    } else {
+      rc = runQuery(&data, query_content.c_str());
     }
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
@@ -1962,15 +1942,6 @@ int launchIntoShell(int argc, char** argv) {
       rc = (rc == 2) ? 0 : rc;
     } else {
       rc = runQuery(&data, query);
-      if (rc != 0) {
-        if (output_file != nullptr) {
-          fclose(output_file);
-        }
-        if (data.prettyPrint != nullptr) {
-          delete data.prettyPrint;
-        }
-        return rc;
-      }
     }
   } else {
     // Run commands received from standard input
