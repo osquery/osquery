@@ -1858,6 +1858,9 @@ int launchIntoShell(int argc, char** argv) {
   struct callback_data data {};
   main_init(&data);
 
+  auto pretty_print_guard =
+      scope_guard::create([&data]() { delete data.prettyPrint; });
+
 #if defined(SQLITE_ENABLE_WHERETRACE)
   sqlite3WhereTrace = 0xffffffff;
 #endif
@@ -1886,8 +1889,6 @@ int launchIntoShell(int argc, char** argv) {
     data.out = output_file;
   }
 
-  auto pretty_print_guard =
-      scope_guard::create([&data]() { delete data.prettyPrint; });
   auto output_file_guard = scope_guard::create([&output_file]() {
     if (output_file != nullptr) {
       fclose(output_file);
