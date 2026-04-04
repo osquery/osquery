@@ -11,6 +11,13 @@
 
 namespace osquery {
 
+namespace {
+
+// Make sure we have an upper limit so we don't risk infinite loops
+const std::size_t kMaxSystemdUnitCount{1000U};
+
+} // namespace
+
 Status ListUnitsMethodHandler::parseReply(
     Output& output, const UniqueDbusMessage& reply) const {
   output = {};
@@ -28,10 +35,7 @@ Status ListUnitsMethodHandler::parseReply(
   DBusMessageIter array_it{};
   dbus_message_iter_recurse(&message_it, &array_it);
 
-  // The D-Bus reply is a finite, in-memory message buffer that was fully
-  // received before parseReply is called. The iterator will always reach
-  // the end of the buffer, so no artificial limit is needed.
-  do {
+  for (std::size_t i{0U}; i < kMaxSystemdUnitCount; ++i) {
     Unit unit = {};
     auto status = readUnitInformation(unit, array_it);
     if (!status.ok()) {
@@ -44,7 +48,7 @@ Status ListUnitsMethodHandler::parseReply(
     }
 
     dbus_message_iter_next(&array_it);
-  } while (true);
+  }
 
   return Status::success();
 }
