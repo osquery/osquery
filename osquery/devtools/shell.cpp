@@ -1856,10 +1856,9 @@ int runPack(struct callback_data* data) {
 
 int launchIntoShell(int argc, char** argv) {
   struct callback_data data {};
-  main_init(&data);
-
   auto pretty_print_guard =
       scope_guard::create([&data]() { delete data.prettyPrint; });
+  main_init(&data);
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
   sqlite3WhereTrace = 0xffffffff;
