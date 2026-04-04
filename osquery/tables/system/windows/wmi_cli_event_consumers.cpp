@@ -8,6 +8,7 @@
  */
 
 #include <sstream>
+#include <vector>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
@@ -17,26 +18,36 @@
 namespace osquery {
 namespace tables {
 
+namespace {
+const std::vector<std::pair<std::wstring, std::string>> kWmiNamespaces = {
+    {L"ROOT\\Subscription", "ROOT\\Subscription"},
+    {L"ROOT\\default", "ROOT\\default"},
+};
+} // namespace
+
 QueryData genWmiCliConsumers(QueryContext& context) {
   QueryData results_data;
   std::stringstream ss;
   ss << "SELECT * FROM CommandLineEventConsumer";
 
-  BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
-  const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
-  ::SysFreeString(bstr);
+  for (const auto& ns : kWmiNamespaces) {
+    BSTR bstr = ::SysAllocString(ns.first.c_str());
+    const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
+    ::SysFreeString(bstr);
 
-  if (request && request->getStatus().ok()) {
-    const auto& results = request->results();
-    for (const auto& result : results) {
-      Row r;
+    if (request && request->getStatus().ok()) {
+      const auto& results = request->results();
+      for (const auto& result : results) {
+        Row r;
 
-      result.GetString("CommandLineTemplate", r["command_line_template"]);
-      result.GetString("ExecutablePath", r["executable_path"]);
-      result.GetString("Name", r["name"]);
-      result.GetString("__CLASS", r["class"]);
-      result.GetString("__RELPATH", r["relative_path"]);
-      results_data.push_back(r);
+        r["namespace"] = ns.second;
+        result.GetString("CommandLineTemplate", r["command_line_template"]);
+        result.GetString("ExecutablePath", r["executable_path"]);
+        result.GetString("Name", r["name"]);
+        result.GetString("__CLASS", r["class"]);
+        result.GetString("__RELPATH", r["relative_path"]);
+        results_data.push_back(r);
+      }
     }
   }
 
