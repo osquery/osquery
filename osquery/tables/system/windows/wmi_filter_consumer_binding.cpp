@@ -19,9 +19,9 @@ namespace osquery {
 namespace tables {
 
 namespace {
-const std::vector<std::pair<std::wstring, std::string>> kWmiNamespaces = {
-    {L"ROOT\\Subscription", "ROOT\\Subscription"},
-    {L"ROOT\\default", "ROOT\\default"},
+const std::vector<std::wstring> kWmiNamespaces = {
+    L"ROOT\\Subscription",
+    L"ROOT\\default",
 };
 } // namespace
 
@@ -31,7 +31,7 @@ QueryData genFilterConsumer(QueryContext& context) {
   ss << "SELECT * FROM __FilterToConsumerBinding";
 
   for (const auto& ns : kWmiNamespaces) {
-    BSTR bstr = ::SysAllocString(ns.first.c_str());
+    BSTR bstr = ::SysAllocString(ns.c_str());
     const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
     ::SysFreeString(bstr);
 
@@ -40,7 +40,7 @@ QueryData genFilterConsumer(QueryContext& context) {
       for (const auto& result : results) {
         Row r;
 
-        r["namespace"] = ns.second;
+        r["namespace"] = std::string(ns.begin(), ns.end());
         result.GetString("Consumer", r["consumer"]);
         result.GetString("Filter", r["filter"]);
         result.GetString("__CLASS", r["class"]);
