@@ -23,27 +23,26 @@ class patches : public testing::Test {
 };
 
 TEST_F(patches, test_sanity) {
-  // 1. Query data
   auto const data = execute_query("select * from patches");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"csname", NormalType}
-  //      {"hotfix_id", NormalType}
-  //      {"caption", NormalType}
-  //      {"description", NormalType}
-  //      {"fix_comments", NormalType}
-  //      {"installed_by", NormalType}
-  //      {"install_date", NormalType}
-  //      {"installed_on", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+
+  // The system might not have any patches installed
+  if (data.size() > 0) {
+    ValidationMap row_map = {
+        {"csname", NormalType},
+        {"hotfix_id", NormalType},
+        {"caption", NormalType},
+        {"description", NormalType},
+        {"fix_comments", NormalType},
+        {"installed_by", NormalType},
+        // install_date is deprecated and always empty
+        {"install_date", NormalType},
+        {"installed_on", NormalType},
+        // installed_on_unix is a unix timestamp parsed from installed_on
+        {"installed_on_unix", IntOrEmpty},
+    };
+
+    validate_rows(data, row_map);
+  }
 }
 
 } // namespace table_tests
