@@ -34,8 +34,7 @@ TEST_F(patches, test_sanity) {
         {"description", NormalType},
         {"fix_comments", NormalType},
         {"installed_by", NormalType},
-        // install_date is deprecated and always empty
-        {"install_date", NormalType},
+        // install_date is deprecated/hidden, not included in SELECT *
         {"installed_on", NormalType},
         // installed_on_unix is a unix timestamp parsed from installed_on
         {"installed_on_unix", IntOrEmpty},
