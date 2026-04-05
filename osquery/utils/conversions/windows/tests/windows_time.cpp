@@ -49,15 +49,14 @@ TEST_F(ConversionsTests, test_fattime_to_unixtime) {
 }
 
 TEST_F(ConversionsTests, test_big_endian_filetime_to_unixtime) {
-  // This hex value "01cb26040e6178d4" represents 2010-06-25 in FILETIME
-  // FILETIME value: 129238813173184724 (decimal)
-  // which is 2010-06-25 00:01:57 UTC
-  std::string hex_filetime = "01cb26040e6178d4";
+  // Use a known FILETIME value for Jan 1, 2010 00:00:00 UTC
+  // Unix timestamp: 1262304000
+  // FILETIME = (1262304000 + 11644473600) * 10000000 = 129067776000000000
+  // Hex: 0x01CAAC18BF63C000
+  std::string hex_filetime = "01caac18bf63c000";
 
   auto converted = bigEndianFiletimeToUnixTime(hex_filetime);
-  // Verify it's in the expected range (June 2010)
-  EXPECT_GT(converted, 1277424000); // 2010-06-25 00:00:00
-  EXPECT_LT(converted, 1277510400); // 2010-06-26 00:00:00
+  EXPECT_EQ(converted, 1262304000);
 }
 
 TEST_F(ConversionsTests, test_big_endian_filetime_invalid) {
