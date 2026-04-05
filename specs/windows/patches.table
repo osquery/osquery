@@ -7,7 +7,7 @@ schema([
   Column("description", TEXT, "Fuller description of the patch."),
   Column("fix_comments", TEXT, "Additional comments about the patch."),
   Column("installed_by", TEXT, "The system context in which the patch as installed."),
-  Column("install_date", TEXT, "Deprecated, always empty. Use installed_on instead.", hidden=True),
+  Column("install_date", TEXT, "Deprecated, always empty. Use installed_on or installed_on_unix instead.", hidden=True),
   Column("installed_on", TEXT, "The date when the patch was installed. (String format varies, may be a hex FILETIME on older Windows versions like Vista/2008.)"),
   Column("installed_on_unix", BIGINT, "Unix timestamp of when the patch was installed."),
 ])
