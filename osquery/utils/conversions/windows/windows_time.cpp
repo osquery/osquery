@@ -94,4 +94,71 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   return epoch;
 }
 
+LONGLONG bigEndianFiletimeToUnixTime(const std::string& time_data) {
+  if (time_data.length() != 16) {
+    LOG(WARNING) << "bigEndianFiletimeToUnixTime expects 16 hex characters, "
+                    "got length: "
+                 << time_data.length();
+    return 0LL;
+  }
+
+  auto filetime_long = tryTo<unsigned long long>(time_data, 16);
+  if (filetime_long.isError()) {
+    LOG(WARNING) << "Failed to parse hex FILETIME string: " << time_data;
+    return 0LL;
+  }
+
+  FILETIME ft;
+  ULARGE_INTEGER uli;
+  uli.QuadPart = filetime_long.get();
+  ft.dwHighDateTime = uli.HighPart;
+  ft.dwLowDateTime = uli.LowPart;
+
+  return filetimeToUnixtime(ft);
+}
+
+LONGLONG parseDateToUnixTime(const std::string& date_str) {
+  if (date_str.empty()) {
+    return 0LL;
+  }
+
+  int a = 0, b = 0, c = 0;
+  int year = 0, month = 0, day = 0;
+
+  // Try slash-separated format: M/D/YYYY (US locale, most common)
+  if (sscanf(date_str.c_str(), "%d/%d/%d", &a, &b, &c) == 3) {
+    month = a;
+    day = b;
+    year = c;
+  }
+  // Try dash-separated format
+  else if (sscanf(date_str.c_str(), "%d-%d-%d", &a, &b, &c) == 3) {
+    // If first number looks like a year (>31), assume ISO format YYYY-MM-DD
+    if (a > 31) {
+      year = a;
+      month = b;
+      day = c;
+    } else {
+      // Otherwise assume D-M-YYYY
+      day = a;
+      month = b;
+      year = c;
+    }
+  } else {
+    return 0LL;
+  }
+
+  // Validate parsed values
+  if (year >= 1970 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 &&
+      day <= 31) {
+    struct tm timestamp = {0};
+    timestamp.tm_year = year - 1900;
+    timestamp.tm_mon = month - 1;
+    timestamp.tm_mday = day;
+    return static_cast<LONGLONG>(_mkgmtime(&timestamp));
+  }
+
+  return 0LL;
+}
+
 } // namespace osquery
