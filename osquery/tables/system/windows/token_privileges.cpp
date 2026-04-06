@@ -43,6 +43,10 @@ SeDebugPrivState getDebugTokenPrivilegeState() noexcept {
   // First call to get required buffer size
   DWORD length = 0;
   GetTokenInformation(hToken, TokenPrivileges, NULL, 0, &length);
+  if (length == 0) {
+    return SeDebugPrivState::Disabled; // If we can't get the required buffer
+                                       // size, assume the privilege is disabled
+  }
 
   // Allocate buffer and call again to get the actual privileges
   auto buffer = std::unique_ptr<BYTE[]>(new (std::nothrow) BYTE[length]);
@@ -129,7 +133,7 @@ static bool setDebugTokenPrivilege(SeDebugPrivState state) noexcept {
 }
 
 SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() noexcept {
-  std::lock_guard<std::mutex> lock(s_mutex);
+  std::unique_lock<std::mutex> lock(s_mutex);
   s_ref_count++;
 
   if (s_ref_count > 1) {
@@ -151,16 +155,22 @@ SeDebugPrivilegeGuard::SeDebugPrivilegeGuard() noexcept {
 }
 
 SeDebugPrivilegeGuard::~SeDebugPrivilegeGuard() noexcept {
-  std::lock_guard<std::mutex> lock(s_mutex);
+  std::unique_lock<std::mutex> lock(s_mutex);
   s_ref_count--;
 
   if (s_ref_count == 0 && s_needs_reset) {
-    setDebugTokenPrivilege(s_original_state);
+    if (!setDebugTokenPrivilege(s_original_state)) {
+      lock.unlock(); // Unlock before logging and requesting shutdown to avoid
+                     // deadlock
+      requestShutdown(
+          EXIT_FAILURE,
+          "Failed to reset debug token privilege to original state");
+    }
   }
 }
 
 int SeDebugPrivilegeGuard::refCount() const {
-  std::lock_guard<std::mutex> lock(s_mutex);
+  std::unique_lock<std::mutex> lock(s_mutex);
   return s_ref_count;
 }
 
