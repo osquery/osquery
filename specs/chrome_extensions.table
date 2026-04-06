@@ -8,7 +8,7 @@ schema([
     Column("profile_path", TEXT, "The profile path"),
     Column("referenced_identifier", TEXT, "Extension identifier, as specified by the preferences file. Empty if the extension is not in the profile."),
     Column("identifier", TEXT, "Extension identifier, computed from its manifest. Empty in case of error."),
-    Column("version", TEXT, "Extension-supplied version"),
+    Column("version", TEXT, "Extension-supplied version", collate="version"),
     Column("description", TEXT, "Extension-optional description"),
     Column("default_locale", TEXT, "Default locale supported by extension", aliases=["locale"]),
     Column("current_locale", TEXT, "Current locale supported by extension"),

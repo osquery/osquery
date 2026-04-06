@@ -6,7 +6,7 @@ schema([
 	Column("path", TEXT, "Path of the executable file for the crashed process"),
 	Column("pid", BIGINT, "Process ID of the crashed process"),
 	Column("tid", BIGINT, "Thread ID of the crashed thread"),
-	Column("version", TEXT, "File version info of the crashed process"),
+	Column("version", TEXT, "File version info of the crashed process", collate="version"),
 	Column("process_uptime", BIGINT, "Uptime of the process in seconds"),
 	Column("stack_trace", TEXT, "Multiple stack frames from the stack trace"),
 	Column("exception_code", TEXT, "The Windows exception code"),
