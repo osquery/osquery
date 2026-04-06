@@ -11,6 +11,7 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 
+#include <cctype>
 #include <string>
 #include <time.h>
 namespace osquery {
@@ -100,6 +101,17 @@ LONGLONG bigEndianFiletimeToUnixTime(const std::string& time_data) {
                     "got length: "
                  << time_data.length();
     return 0LL;
+  }
+
+  // Validate all characters are hex digits before parsing, since tryTo
+  // may partially parse invalid strings on some platforms
+  for (char c : time_data) {
+    if (!std::isxdigit(static_cast<unsigned char>(c))) {
+      LOG(WARNING) << "bigEndianFiletimeToUnixTime got invalid hex character "
+                      "in: "
+                   << time_data;
+      return 0LL;
+    }
   }
 
   auto filetime_long = tryTo<unsigned long long>(time_data, 16);
