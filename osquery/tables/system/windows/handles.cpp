@@ -161,7 +161,8 @@ extern "C" LONG NTAPI RtlCompareUnicodeString(PCUNICODE_STRING String1,
                                               PCUNICODE_STRING String2,
                                               BOOLEAN CaseInSensitive);
 
-extern "C" NTSTATUS NTAPI RtlGetVersion(PRTL_OSVERSIONINFOW lpVersionInformation);
+extern "C" NTSTATUS NTAPI
+RtlGetVersion(PRTL_OSVERSIONINFOW lpVersionInformation);
 
 extern "C" NTSTATUS NTAPI NtCreateThreadEx(PHANDLE ThreadHandle,
                                            ACCESS_MASK DesiredAccess,
@@ -214,11 +215,7 @@ enum class ErrorStage {
   ObjectNameMapping = 6
 };
 
-enum class MappingTechniqueResult {
-  Success,
-  FailedInvalidHandle,
-  FailedOther
-};
+enum class MappingTechniqueResult { Success, FailedInvalidHandle, FailedOther };
 
 std::string_view ErrorStageString(ErrorStage stage) {
   switch (stage) {
@@ -267,14 +264,15 @@ constexpr MappedValue File[] = {{FILE_READ_DATA, "READ_DATA"},
                                 {FILE_READ_ATTRIBUTES, "READ_ATTRIBUTES"},
                                 {FILE_WRITE_ATTRIBUTES, "WRITE_ATTRIBUTES"}};
 
-constexpr MappedValue Directory[] = {{FILE_READ_DATA, "LIST_DIRECTORY"},
-                                     {FILE_WRITE_DATA, "ADD_FILE"},
-                                     {FILE_APPEND_DATA, "ADD_SUBDIRECTORY"},
-                                     {FILE_READ_EA, "READ_EA"},
-                                     {FILE_WRITE_EA, "WRITE_EA"},
-                                     {FILE_EXECUTE, "TRAVERSE"},
-                                     {FILE_READ_ATTRIBUTES, "READ_ATTRIBUTES"},
-                                     {FILE_WRITE_ATTRIBUTES, "WRITE_ATTRIBUTES"}};
+constexpr MappedValue Directory[] = {
+    {FILE_READ_DATA, "LIST_DIRECTORY"},
+    {FILE_WRITE_DATA, "ADD_FILE"},
+    {FILE_APPEND_DATA, "ADD_SUBDIRECTORY"},
+    {FILE_READ_EA, "READ_EA"},
+    {FILE_WRITE_EA, "WRITE_EA"},
+    {FILE_EXECUTE, "TRAVERSE"},
+    {FILE_READ_ATTRIBUTES, "READ_ATTRIBUTES"},
+    {FILE_WRITE_ATTRIBUTES, "WRITE_ATTRIBUTES"}};
 
 constexpr MappedValue Key[] = {{KEY_QUERY_VALUE, "QUERY_VALUE"},
                                {KEY_SET_VALUE, "SET_VALUE"},
@@ -283,16 +281,17 @@ constexpr MappedValue Key[] = {{KEY_QUERY_VALUE, "QUERY_VALUE"},
                                {KEY_NOTIFY, "NOTIFY"},
                                {KEY_CREATE_LINK, "CREATE_LINK"}};
 
-constexpr MappedValue Attributes[] = {{OBJ_INHERIT, "INHERIT"},
-                                      {OBJ_PERMANENT, "PERMANENT"},
-                                      {OBJ_EXCLUSIVE, "EXCLUSIVE"},
-                                      {OBJ_CASE_INSENSITIVE, "CASE_INSENSITIVE"},
-                                      {OBJ_OPENIF, "OPENIF"},
-                                      {OBJ_OPENLINK, "OPENLINK"},
-                                      {OBJ_KERNEL_HANDLE, "KERNEL_HANDLE"},
-                                      {OBJ_FORCE_ACCESS_CHECK, "FORCE_ACCESS_CHECK"},
-                                      {OBJ_IGNORE_IMPERSONATED_DEVICEMAP, "IGNORE_IMPERSONATED_DEVICEMAP"},
-                                      {OBJ_DONT_REPARSE, "DONT_REPARSE"}};
+constexpr MappedValue Attributes[] = {
+    {OBJ_INHERIT, "INHERIT"},
+    {OBJ_PERMANENT, "PERMANENT"},
+    {OBJ_EXCLUSIVE, "EXCLUSIVE"},
+    {OBJ_CASE_INSENSITIVE, "CASE_INSENSITIVE"},
+    {OBJ_OPENIF, "OPENIF"},
+    {OBJ_OPENLINK, "OPENLINK"},
+    {OBJ_KERNEL_HANDLE, "KERNEL_HANDLE"},
+    {OBJ_FORCE_ACCESS_CHECK, "FORCE_ACCESS_CHECK"},
+    {OBJ_IGNORE_IMPERSONATED_DEVICEMAP, "IGNORE_IMPERSONATED_DEVICEMAP"},
+    {OBJ_DONT_REPARSE, "DONT_REPARSE"}};
 } // namespace mappings
 
 struct KeyHash {
@@ -300,15 +299,16 @@ struct KeyHash {
     return std::hash<ULONG>()(key.first) ^ std::hash<std::string>()(key.second);
   }
 };
-using GrantedAccessCache = std::unordered_map<std::pair<ULONG, std::string>, std::string, KeyHash>;
+using GrantedAccessCache =
+    std::unordered_map<std::pair<ULONG, std::string>, std::string, KeyHash>;
 using HandleAttributesCache = std::unordered_map<ULONG, std::string>;
 using ObjectNameCache = std::unordered_map<std::wstring, std::string>;
 using HandleTypeMap = std::unordered_map<ULONG, std::string>;
 
-// Cache for handle enumeration that allows us to avoid expensive operations like string
-// conversions and access mask decoding when possible.  During enumeration we could possibly
-// encounter larger numbers of handles, and would have serious performance issues if we did
-// did not have this cache in place.
+// Cache for handle enumeration that allows us to avoid expensive operations
+// like string conversions and access mask decoding when possible.  During
+// enumeration we could possibly encounter larger numbers of handles, and would
+// have serious performance issues if we did did not have this cache in place.
 //
 class HandleRecordCache {
  private:
@@ -329,9 +329,9 @@ class HandleRecordCache {
 
   // ObjectName comes in as a unicode string, but we will cache
   // it as an std::string for use in our final output.  The function
-  // is overloaded to allow callers to pass in either a PUNICODE_STRING (default)
-  // or a std::wstring in cases where we are storing special sentinel values like
-  // "Unknown" for objects we failed to query the name of.
+  // is overloaded to allow callers to pass in either a PUNICODE_STRING
+  // (default) or a std::wstring in cases where we are storing special sentinel
+  // values like "Unknown" for objects we failed to query the name of.
   //
   const std::string* GetObjectName(PUNICODE_STRING us) {
     return GetObjectName(FromPUnicodeString(us));
@@ -349,14 +349,16 @@ class HandleRecordCache {
     }
 
     std::string converted = wstringToString(lookup.c_str());
-    auto [insertIt, _] = m_objectNameCache.try_emplace(std::move(lookup), std::move(converted));
+    auto [insertIt, _] =
+        m_objectNameCache.try_emplace(std::move(lookup), std::move(converted));
     return &(insertIt->second);
   }
 
-  // During Enumeration we collect granted access as a raw mask, but we want to convert it
-  // to a string for our final output.  This function is used to cache the results of
-  // that conversion.  We are returning the result as an std::string instead of a pointer
-  // because this function is only called at row generation time, and will be copied regardless
+  // During Enumeration we collect granted access as a raw mask, but we want to
+  // convert it to a string for our final output.  This function is used to
+  // cache the results of that conversion.  We are returning the result as an
+  // std::string instead of a pointer because this function is only called at
+  // row generation time, and will be copied regardless
   //
   std::string& GetGrantedAccessString(ULONG grantedAccess,
                                       const std::string& type) {
@@ -409,7 +411,8 @@ class HandleRecordCache {
         }
       }
 
-      auto [it, _] = m_grantedAccessCache.try_emplace({grantedAccess, type}, std::move(accessRights));
+      auto [it, _] = m_grantedAccessCache.try_emplace({grantedAccess, type},
+                                                      std::move(accessRights));
       return it->second;
     }
   }
@@ -479,9 +482,10 @@ class HandleRecordCache {
   }
 };
 
-// Represents a single handle record for enumeration and eventual conversion to a Row for output.
-// This class also contains an error state that allows us to capture and log errors that occur during enumeration
-// while still returning partial results for handles that we were able to query successfully.
+// Represents a single handle record for enumeration and eventual conversion to
+// a Row for output. This class also contains an error state that allows us to
+// capture and log errors that occur during enumeration while still returning
+// partial results for handles that we were able to query successfully.
 //
 class HandleRecord {
  private:
@@ -509,7 +513,9 @@ class HandleRecord {
   USHORT m_ObjectTypeIndex = 0;
 
  public:
-  HandleRecord(PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry, HandleRecordCache& cache) : m_cache(cache) {
+  HandleRecord(PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry,
+               HandleRecordCache& cache)
+      : m_cache(cache) {
     m_ProcessId = static_cast<DWORD>(entry->UniqueProcessId);
     m_HandleValue = reinterpret_cast<HANDLE>(entry->HandleValue);
     m_GrantedAccess = entry->GrantedAccess;
@@ -560,8 +566,8 @@ class HandleRecord {
   }
 
   const std::string& Type() {
-    // If we don't have a valid type, attempt to look it up in the cache using the ObjectTypeIndex.
-    // If we find a match, cache it and return it
+    // If we don't have a valid type, attempt to look it up in the cache using
+    // the ObjectTypeIndex. If we find a match, cache it and return it
     std::string* typeName = m_cache.GetCachedHandleType(m_ObjectTypeIndex);
     if (typeName) {
       return *typeName;
@@ -591,7 +597,9 @@ class HandleRecord {
     return m_HandleCount;
   }
 
-  void SetError(ErrorStage errorStage, DWORD errorStatus, bool logError = false) {
+  void SetError(ErrorStage errorStage,
+                DWORD errorStatus,
+                bool logError = false) {
     m_errorStage = errorStage;
     m_errorStatus = errorStatus;
 
@@ -675,8 +683,11 @@ QueryObjectNameThreadFunc(LPVOID lpParam) {
     return ERROR_INVALID_PARAMETER;
   }
   ULONG retLen = 0;
-  params->ntStatus =
-      NtQueryObject(params->hObject, ObjectNameInformation, &params->nameBuffer, sizeof(params->nameBuffer), &retLen);
+  params->ntStatus = NtQueryObject(params->hObject,
+                                   ObjectNameInformation,
+                                   &params->nameBuffer,
+                                   sizeof(params->nameBuffer),
+                                   &retLen);
 
   // the real result of the query is in params->ntStatus
   return ERROR_SUCCESS;
@@ -696,8 +707,11 @@ GetObjectTypeEnumeration(HandleRecordCache& cache) {
     return STATUS_NOT_SUPPORTED;
   }
 
-  ntStatus = NtQueryObject(
-      nullptr, ObjectAllTypesInformation, localBuffer.data(), static_cast<ULONG>(localBuffer.size()), &retLen);
+  ntStatus = NtQueryObject(nullptr,
+                           ObjectAllTypesInformation,
+                           localBuffer.data(),
+                           static_cast<ULONG>(localBuffer.size()),
+                           &retLen);
 
   if (STATUS_INFO_LENGTH_MISMATCH == ntStatus) {
     // We assume that even if an active system is creating/destroying object
@@ -709,8 +723,11 @@ GetObjectTypeEnumeration(HandleRecordCache& cache) {
       return STATUS_BUFFER_TOO_SMALL;
     }
     localBuffer.resize(newSize);
-    ntStatus =
-        NtQueryObject(nullptr, ObjectAllTypesInformation, localBuffer.data(), static_cast<ULONG>(newSize), &retLen);
+    ntStatus = NtQueryObject(nullptr,
+                             ObjectAllTypesInformation,
+                             localBuffer.data(),
+                             static_cast<ULONG>(newSize),
+                             &retLen);
   }
 
   if (!NT_SUCCESS(ntStatus)) {
@@ -747,21 +764,24 @@ GetObjectTypeEnumeration(HandleRecordCache& cache) {
   return STATUS_SUCCESS;
 }
 
-
-
 // Attempt to resolve a File object's name by creating a section, mapping a
 // view, and querying the mapped filename.  On success the result is written
 // directly into params.nameBuffer / params.ntStatus so the caller's existing
 // result-handling logic works unchanged.
-MappingTechniqueResult
-GetFileObjectNameViaMappingTechnique(HANDLE hFile, QUERY_OBJECT_NAME_PARAMS& params) {
+MappingTechniqueResult GetFileObjectNameViaMappingTechnique(
+    HANDLE hFile, QUERY_OBJECT_NAME_PARAMS& params) {
   HANDLE hSection = NULL;
   PVOID pBaseAddress = NULL;
   SIZE_T viewSize = 1;
   NTSTATUS ntStatus;
 
-  ntStatus = NtCreateSection(
-      &hSection, SECTION_MAP_READ | SECTION_QUERY, NULL, NULL, PAGE_READONLY, SEC_COMMIT, hFile);
+  ntStatus = NtCreateSection(&hSection,
+                             SECTION_MAP_READ | SECTION_QUERY,
+                             NULL,
+                             NULL,
+                             PAGE_READONLY,
+                             SEC_COMMIT,
+                             hFile);
   if (!NT_SUCCESS(ntStatus)) {
     if (STATUS_INVALID_HANDLE == ntStatus) {
       return MappingTechniqueResult::FailedInvalidHandle;
@@ -769,19 +789,31 @@ GetFileObjectNameViaMappingTechnique(HANDLE hFile, QUERY_OBJECT_NAME_PARAMS& par
     return MappingTechniqueResult::FailedOther;
   }
 
-  ntStatus = NtMapViewOfSection(
-      hSection, GetCurrentProcess(), &pBaseAddress, 0, 0, NULL, &viewSize, 2 /* ViewUnmap */, 0, PAGE_READONLY);
+  ntStatus = NtMapViewOfSection(hSection,
+                                GetCurrentProcess(),
+                                &pBaseAddress,
+                                0,
+                                0,
+                                NULL,
+                                &viewSize,
+                                2 /* ViewUnmap */,
+                                0,
+                                PAGE_READONLY);
   CloseHandle(hSection);
   if (!NT_SUCCESS(ntStatus)) {
     return MappingTechniqueResult::FailedOther;
   }
 
   SIZE_T retLen = 0;
-  params.ntStatus = NtQueryVirtualMemory(
-      GetCurrentProcess(), pBaseAddress, MemoryMappedFilenameInformation, &params.nameBuffer,
-      sizeof(params.nameBuffer), &retLen);
+  params.ntStatus = NtQueryVirtualMemory(GetCurrentProcess(),
+                                         pBaseAddress,
+                                         MemoryMappedFilenameInformation,
+                                         &params.nameBuffer,
+                                         sizeof(params.nameBuffer),
+                                         &retLen);
 
-  // Regardless of whether the Query succeeded or not, we need to unmap the view of the section.
+  // Regardless of whether the Query succeeded or not, we need to unmap the view
+  // of the section.
   NtUnmapViewOfSection(GetCurrentProcess(), pBaseAddress);
 
   if (!NT_SUCCESS(params.ntStatus)) {
@@ -924,7 +956,7 @@ void ResolveObjectName(HandleRecord& record,
   // return.
   if (!FLAGS_allow_handle_threads) {
     // Mapping technique failed and thread fallback is disabled (the default).
-    // NtQueryObject risks blocking indefinitely.  Record the mapping error 
+    // NtQueryObject risks blocking indefinitely.  Record the mapping error
     // and leave the name unresolved.
     record.SetError(ErrorStage::ObjectNameMapping,
                     RtlNtStatusToDosError(params.ntStatus),
@@ -932,10 +964,12 @@ void ResolveObjectName(HandleRecord& record,
     return;
   }
 
-  // This thread technique is believed to be as safe as we can make it given present Windows
-  // behaviors.  We use  NtCreateThreadEx(...,THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH, ...)
-  // to attempt to ensure no per thread locking, ref counting, or allocations are caused in user mode 
-  // that might not get an opportunity to be cleaned if we have to use NtTerminateThread().
+  // This thread technique is believed to be as safe as we can make it given
+  // present Windows behaviors.  We use
+  // NtCreateThreadEx(...,THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH, ...) to
+  // attempt to ensure no per thread locking, ref counting, or allocations are
+  // caused in user mode that might not get an opportunity to be cleaned if we
+  // have to use NtTerminateThread().
 
   // Thread fallback poses a risk because we may need TerminateThread`
   // if `NtQueryObject` blocks on synchronous File handles.
