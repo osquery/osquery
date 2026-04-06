@@ -1,7 +1,7 @@
 table_name("docker_info")
 description("Docker system information.")
 schema([
-    Column("id", TEXT, "Docker system ID"),
+    Column("id", TEXT, "Docker system ID", collate="nocase"),
     Column("containers", INTEGER, "Total number of containers"),
     Column("containers_running", INTEGER, "Number of containers currently running"),
     Column("containers_paused", INTEGER, "Number of containers in paused state"),

@@ -2,7 +2,7 @@ table_name("vscode_extensions")
 description("Lists all vscode extensions.")
 schema([
     Column("name", TEXT, "Extension Name"),
-    Column("uuid", TEXT, "Extension UUID"),
+    Column("uuid", TEXT, "Extension UUID", collate="nocase"),
     Column("version", TEXT, "Extension version"),
     Column("path", TEXT, "Extension path"),
     Column("publisher", TEXT, "Publisher Name"),

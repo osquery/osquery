@@ -6,7 +6,7 @@ schema([
     Column("release", TEXT, "Package release", index=True),
     Column("source", TEXT, "Source RPM package name (optional)"),
     Column("size", BIGINT, "Package size in bytes"),
-    Column("sha1", TEXT, "SHA1 hash of the package contents"),
+    Column("sha1", TEXT, "SHA1 hash of the package contents", collate="nocase"),
     Column("arch", TEXT, "Architecture(s) supported", index=True),
     Column("epoch", INTEGER, "Package epoch value", index=True),
     Column("install_time", INTEGER, "When the package was installed"),

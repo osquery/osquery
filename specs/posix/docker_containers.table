@@ -1,10 +1,10 @@
 table_name("docker_containers")
 description("Docker containers information.")
 schema([
-    Column("id", TEXT, "Container ID", index=True),
+    Column("id", TEXT, "Container ID", index=True, collate="nocase"),
     Column("name", TEXT, "Container name", index=True),
     Column("image", TEXT, "Docker image (name) used to launch this container"),
-    Column("image_id", TEXT, "Docker image ID"),
+    Column("image_id", TEXT, "Docker image ID", collate="nocase"),
     Column("command", TEXT, "Command with arguments"),
     Column("created", BIGINT, "Time of creation as UNIX time"),
     Column("state", TEXT, "Container state (created, restarting, running, removing, paused, exited, dead)"),

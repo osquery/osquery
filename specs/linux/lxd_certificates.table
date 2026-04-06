@@ -3,7 +3,7 @@ description("LXD certificates information.")
 schema([
     Column("name", TEXT, "Name of the certificate"),
     Column("type", TEXT, "Type of the certificate"),
-    Column("fingerprint", TEXT, "SHA256 hash of the certificate"),
+    Column("fingerprint", TEXT, "SHA256 hash of the certificate", collate="nocase"),
     Column("certificate", TEXT, "Certificate content")
 ])
 implementation("applications/lxd@genLxdCerts")

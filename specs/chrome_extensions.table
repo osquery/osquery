@@ -20,7 +20,7 @@ schema([
     Column("permissions_json", TEXT, "The JSON-encoded permissions required by the extension", hidden=True),
     Column("optional_permissions", TEXT, "The permissions optionally required by the extensions"),
     Column("optional_permissions_json", TEXT, "The JSON-encoded permissions optionally required by the extensions", hidden=True),
-    Column("manifest_hash", TEXT, "The SHA256 hash of the manifest.json file"),
+    Column("manifest_hash", TEXT, "The SHA256 hash of the manifest.json file", collate="nocase"),
     Column("referenced", BIGINT, "1 if this extension is referenced by the Preferences file of the profile"),
     Column("from_webstore", TEXT, "True if this extension was installed from the web store"),
     Column("state", TEXT, "1 if this extension is enabled"),
