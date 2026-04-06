@@ -1237,8 +1237,6 @@ jobs:
         echo "Binary dir size: $bindir_size MBs"
 
     - name: Run the tests
-      # arm64 tests can't be run on x64 machine
-      if: matrix.bitness != 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: cmd
       run: |
