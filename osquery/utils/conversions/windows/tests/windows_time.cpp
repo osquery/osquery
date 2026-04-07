@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -49,14 +51,18 @@ TEST_F(ConversionsTests, test_fattime_to_unixtime) {
 }
 
 TEST_F(ConversionsTests, test_big_endian_filetime_to_unixtime) {
-  // Use a known FILETIME value for Jan 1, 2010 00:00:00 UTC
-  // Unix timestamp: 1262304000
-  // FILETIME = (1262304000 + 11644473600) * 10000000 = 129067776000000000
-  // Hex: 0x01CAAC18BF63C000
-  std::string hex_filetime = "01caac18bf63c000";
+  // Build the hex string from a known Unix time to avoid manual calculation errors
+  time_t expected_time = 1262304000; // Jan 1, 2010 00:00:00 UTC
+  LONGLONG filetime_val =
+      Int32x32To64(expected_time, 10000000) + 116444736000000000LL;
+
+  // Convert to 16-character big-endian hex string
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0') << std::setw(16) << filetime_val;
+  std::string hex_filetime = oss.str();
 
   auto converted = bigEndianFiletimeToUnixTime(hex_filetime);
-  EXPECT_EQ(converted, 1262304000);
+  EXPECT_EQ(converted, expected_time);
 }
 
 TEST_F(ConversionsTests, test_big_endian_filetime_invalid) {
