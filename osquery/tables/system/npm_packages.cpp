@@ -40,7 +40,22 @@ const std::set<std::string> kNodeModulesPath = {
     "/home/%/.npm-global/lib",
     "/home/%/.nvm/versions/node/%/lib",
     "/Users/%/.npm-global/lib",
-    "/Users/%/.nvm/versions/node/%/lib"
+    "/Users/%/.nvm/versions/node/%/lib",
+    // asdf nodejs
+    "/home/%/.asdf/installs/nodejs/%/lib",
+    "/Users/%/.asdf/installs/nodejs/%/lib",
+    // fnm (Linux)
+    "/home/%/.local/share/fnm/node-versions/%/installation/lib",
+    // fnm (macOS default)
+    "/Users/%/Library/Application Support/fnm/node-versions/%/installation/lib",
+    // fnm (macOS XDG_DATA_HOME)
+    "/Users/%/.local/share/fnm/node-versions/%/installation/lib",
+    // mise nodejs
+    "/home/%/.local/share/mise/installs/node/%/lib",
+    "/Users/%/.local/share/mise/installs/node/%/lib",
+    // Volta
+    "/home/%/.volta/tools/image/node/%/lib",
+    "/Users/%/.volta/tools/image/node/%/lib"
 #endif
 };
 
