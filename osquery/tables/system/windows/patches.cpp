@@ -32,7 +32,7 @@ QueryData genInstalledPatches(QueryContext& context) {
       item.GetString("Description", r["description"]);
       item.GetString("FixComments", r["fix_comments"]);
       item.GetString("InstalledBy", r["installed_by"]);
-      r["install_date"] = "";
+      r["install_date"] = ""; // Deprecated
 
       std::string installedOn;
       item.GetString("InstalledOn", installedOn);
