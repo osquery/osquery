@@ -46,6 +46,7 @@
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
+#include <osquery/utils/scope_guard.h>
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
 extern int sqlite3WhereTrace;
@@ -71,6 +72,14 @@ SHELL_FLAG(string, pack, "", "Run all queries in a pack");
 SHELL_FLAG(bool, L, false, "List all table names");
 SHELL_FLAG(string, A, "", "Select all from a table");
 SHELL_FLAG(string, connect, "", "Connect to an extension socket");
+
+/// One-shot query execution flags.
+SHELL_FLAG(string, query, "", "Execute a single SQL query and exit");
+SHELL_FLAG(string, query_file, "", "Execute SQL query from a file and exit");
+SHELL_FLAG(string,
+           output,
+           "",
+           "Write results to a file (omit or use '-' for stdout)");
 
 DECLARE_string(nullvalue);
 DECLARE_string(extensions_socket);
@@ -799,14 +808,16 @@ static void set_table_name(struct callback_data* p, const char* zName) {
 
 static void pretty_print_if_needed(struct callback_data* pArg) {
   if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
+    FILE* out = (pArg->out != nullptr) ? pArg->out : stdout;
     if (osquery::FLAGS_json_pretty) {
-      osquery::jsonPrettyPrint(pArg->prettyPrint->results);
+      osquery::jsonPrettyPrint(pArg->prettyPrint->results, out);
     } else if (osquery::FLAGS_json) {
-      osquery::jsonPrint(pArg->prettyPrint->results);
+      osquery::jsonPrint(pArg->prettyPrint->results, out);
     } else {
       osquery::prettyPrint(pArg->prettyPrint->results,
                            pArg->prettyPrint->columns,
-                           pArg->prettyPrint->lengths);
+                           pArg->prettyPrint->lengths,
+                           out);
     }
     pArg->prettyPrint->results.clear();
     pArg->prettyPrint->columns.clear();
@@ -1740,7 +1751,19 @@ static int process_input(struct callback_data* p, FILE* in) {
 
   if (nSql != 0) {
     if (_all_whitespace(zSql) == 0) {
-      fprintf(stderr, "Error: incomplete SQL: %s\n", zSql);
+      // At EOF with non-whitespace SQL remaining - try to execute it.
+      // This allows piped input like "echo 'select 1' | osqueryd -S" to work
+      // without requiring a trailing semicolon.
+      p->cnt = 0;
+      rc = shell_exec(zSql, shell_callback, p, &zErrMsg);
+      if (rc != 0 || zErrMsg != nullptr) {
+        if (zErrMsg != nullptr) {
+          fprintf(stderr, "Error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+          zErrMsg = nullptr;
+        }
+        errCnt++;
+      }
     }
   }
   if (zSql != nullptr) {
@@ -1833,6 +1856,8 @@ int runPack(struct callback_data* data) {
 
 int launchIntoShell(int argc, char** argv) {
   struct callback_data data {};
+  auto pretty_print_guard =
+      scope_guard::create([&data]() { delete data.prettyPrint; });
   main_init(&data);
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
@@ -1848,6 +1873,26 @@ int launchIntoShell(int argc, char** argv) {
   signal(SIGINT, interrupt_handler);
 
   data.out = stdout;
+  FILE* output_file = nullptr;
+
+  // Handle --output flag: write results to a file instead of stdout.
+  // Use "-" to explicitly write to stdout.
+  if (!FLAGS_output.empty() && FLAGS_output != "-") {
+    output_file = fopen(FLAGS_output.c_str(), "w");
+    if (output_file == nullptr) {
+      fprintf(stderr,
+              "Error: Cannot open output file '%s'\n",
+              FLAGS_output.c_str());
+      return 1;
+    }
+    data.out = output_file;
+  }
+
+  auto output_file_guard = scope_guard::create([&output_file]() {
+    if (output_file != nullptr) {
+      fclose(output_file);
+    }
+  });
 
   // Set modes and settings from CLI flags.
   data.showHeader = static_cast<int>(FLAGS_header);
@@ -1882,6 +1927,22 @@ int launchIntoShell(int argc, char** argv) {
     delete[] cmd;
   } else if (!FLAGS_pack.empty()) {
     rc = runPack(&data);
+  } else if (!FLAGS_query.empty()) {
+    // Run a single query from --query flag
+    rc = runQuery(&data, FLAGS_query.c_str());
+  } else if (!FLAGS_query_file.empty()) {
+    // Read query from file and execute
+    std::string query_content;
+    auto status = readFile(FLAGS_query_file, query_content);
+    if (!status.ok()) {
+      fprintf(stderr,
+              "Error reading query file '%s': %s\n",
+              FLAGS_query_file.c_str(),
+              status.getMessage().c_str());
+      rc = 1;
+    } else {
+      rc = runQuery(&data, query_content.c_str());
+    }
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char* query = argv[1];
@@ -1890,12 +1951,6 @@ int launchIntoShell(int argc, char** argv) {
       rc = (rc == 2) ? 0 : rc;
     } else {
       rc = runQuery(&data, query);
-      if (rc != 0) {
-        if (data.prettyPrint != nullptr) {
-          delete data.prettyPrint;
-        }
-        return rc;
-      }
     }
   } else {
     // Run commands received from standard input
@@ -1926,9 +1981,6 @@ int launchIntoShell(int argc, char** argv) {
 
   set_table_name(&data, nullptr);
 
-  if (data.prettyPrint != nullptr) {
-    delete data.prettyPrint;
-  }
   return rc;
 }
 } // namespace osquery
