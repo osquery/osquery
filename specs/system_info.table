@@ -2,7 +2,7 @@ table_name("system_info")
 description("System information for identification.")
 schema([
     Column("hostname", TEXT, "Network hostname including domain"),
-    Column("uuid", TEXT, "Unique ID provided by the system"),
+    Column("uuid", TEXT, "Unique ID provided by the system", collate="nocase"),
     Column("cpu_type", TEXT, "CPU type"),
     Column("cpu_subtype", TEXT, "CPU subtype"),
     Column("cpu_brand", TEXT, "CPU brand string, contains vendor and model"),

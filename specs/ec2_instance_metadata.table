@@ -8,7 +8,7 @@ schema([
     Column("availability_zone", TEXT, "Availability zone in which this instance launched"),
     Column("local_hostname", TEXT, "Private IPv4 DNS hostname of the first interface of this instance"),
     Column("local_ipv4", TEXT, "Private IPv4 address of the first interface of this instance"),
-    Column("mac", TEXT, "MAC address for the first network interface of this EC2 instance"),
+    Column("mac", TEXT, "MAC address for the first network interface of this EC2 instance", collate="nocase"),
     Column("security_groups", TEXT, "Comma separated list of security group names"),
     Column("iam_arn", TEXT, "If there is an IAM role associated with the instance, contains instance profile ARN"),
     Column("ami_id", TEXT, "AMI ID used to launch this EC2 instance"),
