@@ -46,19 +46,6 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data);
 LONGLONG parseFatTime(const std::string& dos_data);
 
 /**
- * @brief Windows helper function for converting a big-endian hex FILETIME
- * string to Unix epoch.
- *
- * Note: This function does NOT handle the hex FILETIME format returned by
- * Vista/Server 2008 for Win32_QuickFixEngineering.InstalledOn, as osquery
- * no longer supports those Windows versions.
- *
- * @param time_data A 16-character hex string representing a FILETIME
- * @returns The unix epoch timestamp, or 0 if parsing fails
- */
-LONGLONG bigEndianFiletimeToUnixTime(const std::string& time_data);
-
-/**
  * @brief Windows helper function for parsing locale-specific date strings
  * to Unix epoch. Handles common formats seen in WMI string properties:
  * - M/D/YYYY or MM/DD/YYYY (US locale, with slashes)

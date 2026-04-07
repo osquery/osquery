@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -48,30 +46,6 @@ TEST_F(ConversionsTests, test_fattime_to_unixtime) {
 
   auto converted = parseFatTime(fattime);
   EXPECT_EQ(converted, 1409788800);
-}
-
-TEST_F(ConversionsTests, test_big_endian_filetime_to_unixtime) {
-  // Build the hex string from a known Unix time to avoid manual calculation errors
-  time_t expected_time = 1262304000; // Jan 1, 2010 00:00:00 UTC
-  LONGLONG filetime_val =
-      Int32x32To64(expected_time, 10000000) + 116444736000000000LL;
-
-  // Convert to 16-character big-endian hex string
-  std::ostringstream oss;
-  oss << std::hex << std::setfill('0') << std::setw(16) << filetime_val;
-  std::string hex_filetime = oss.str();
-
-  auto converted = bigEndianFiletimeToUnixTime(hex_filetime);
-  EXPECT_EQ(converted, expected_time);
-}
-
-TEST_F(ConversionsTests, test_big_endian_filetime_invalid) {
-  // Too short
-  EXPECT_EQ(bigEndianFiletimeToUnixTime("01cb2604"), 0);
-  // Too long
-  EXPECT_EQ(bigEndianFiletimeToUnixTime("01cb26040e6178d4abcd"), 0);
-  // Invalid hex
-  EXPECT_EQ(bigEndianFiletimeToUnixTime("01cb26040e6178zz"), 0);
 }
 
 TEST_F(ConversionsTests, test_parse_date_us_format) {

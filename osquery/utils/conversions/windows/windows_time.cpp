@@ -11,7 +11,6 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 
-#include <cctype>
 #include <string>
 #include <time.h>
 namespace osquery {
@@ -93,40 +92,6 @@ LONGLONG parseFatTime(const std::string& fat_data) {
 
   time_t epoch = _mkgmtime(&fat_timestamp);
   return epoch;
-}
-
-LONGLONG bigEndianFiletimeToUnixTime(const std::string& time_data) {
-  if (time_data.length() != 16) {
-    LOG(WARNING) << "bigEndianFiletimeToUnixTime expects 16 hex characters, "
-                    "got length: "
-                 << time_data.length();
-    return 0LL;
-  }
-
-  // Validate all characters are hex digits before parsing, since tryTo
-  // may partially parse invalid strings on some platforms
-  for (char c : time_data) {
-    if (!std::isxdigit(static_cast<unsigned char>(c))) {
-      LOG(WARNING) << "bigEndianFiletimeToUnixTime got invalid hex character "
-                      "in: "
-                   << time_data;
-      return 0LL;
-    }
-  }
-
-  auto filetime_long = tryTo<unsigned long long>(time_data, 16);
-  if (filetime_long.isError()) {
-    LOG(WARNING) << "Failed to parse hex FILETIME string: " << time_data;
-    return 0LL;
-  }
-
-  FILETIME ft;
-  ULARGE_INTEGER uli;
-  uli.QuadPart = filetime_long.get();
-  ft.dwHighDateTime = uli.HighPart;
-  ft.dwLowDateTime = uli.LowPart;
-
-  return filetimeToUnixtime(ft);
 }
 
 LONGLONG parseDateToUnixTime(const std::string& date_str) {
