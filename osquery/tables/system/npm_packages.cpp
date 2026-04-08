@@ -18,6 +18,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
@@ -218,11 +219,7 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
       context.constraints.at("max_depth").exists(EQUALS)) {
     auto max_depth_set = context.constraints["max_depth"].getAll(EQUALS);
     if (!max_depth_set.empty()) {
-      try {
-        max_depth = std::stoi(*max_depth_set.begin());
-      } catch (const std::exception&) {
-        // Keep default on parse failure
-      }
+      max_depth = tryTo<int>(*max_depth_set.begin()).takeOr(kDefaultMaxDepth);
     }
   }
 
