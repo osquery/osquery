@@ -31,7 +31,6 @@ function(generateOsqueryTablesEventsEventstable)
       linux/syslog_events.cpp
       linux/user_events.cpp
       linux/apparmor_events.cpp
-      linux/bpf_process_events.cpp
     )
 
 
@@ -103,7 +102,6 @@ function(generateOsqueryTablesEventsEventstable)
       linux/seccomp_events.h
       linux/apparmor_events.h
       linux/socket_events.h
-      linux/bpf_process_events.h
     )
 
     generateIncludeNamespace(osquery_tables_events_eventstable "osquery/tables/events" "FULL_PATH" ${platform_public_header_files})
