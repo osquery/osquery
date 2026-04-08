@@ -66,7 +66,6 @@ CLI_FLAG(bool,
          false,
          "Enable gzip compression for HTTP responses");
 
-
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
