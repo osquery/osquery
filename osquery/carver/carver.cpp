@@ -291,6 +291,12 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startUri = TLSRequestHelper::makeURI(FLAGS_carver_start_endpoint);
   Request<TLSTransport, JSONSerializer> startRequest(startUri);
   startRequest.setOption("hostname", FLAGS_tls_hostname);
+  auto node_key = getNodeKey("tls");
+  if (!node_key.empty()) {
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    startRequest.setOption("node_key", node_key);
+  }
 
   // Perform the start request to get the session id
   PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
@@ -304,7 +310,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   startParams.addCopy("carve_size", pFile.size());
   startParams.addCopy("carve_id", carveGuid_);
   startParams.addCopy("request_id", requestId_);
-  startParams.addCopy("node_key", getNodeKey("tls"));
+  startParams.addCopy("node_key", node_key);
 
   JSON startRecv;
   Status status = fireRequest(startRequest, startParams, startRecv);
@@ -322,6 +328,11 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto contUri = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
   Request<TLSTransport, JSONSerializer> contRequest(contUri);
   contRequest.setOption("hostname", FLAGS_tls_hostname);
+  if (!node_key.empty()) {
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    contRequest.setOption("node_key", node_key);
+  }
   for (size_t i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);
     auto r = pFile.read(block.data(), FLAGS_carver_block_size);
