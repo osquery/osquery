@@ -211,14 +211,6 @@ QueryData genCerts(QueryContext& context) {
     // Query system trusted anchor certificates via SecTrustCopyAnchorCertificates.
     // This covers certs from SystemRootCertificates.keychain and X509Anchors
     // that are not in the domain search lists above.
-    // Deduplicate against certs already found by tracking SHA1 hashes.
-    std::set<std::string> seen_hashes;
-    for (const auto& r : results) {
-      if (r.count("sha1")) {
-        seen_hashes.insert(r.at("sha1"));
-      }
-    }
-
     CFArrayRef anchors = nullptr;
     if (SecTrustCopyAnchorCertificates(&anchors) == errSecSuccess &&
         anchors != nullptr) {
@@ -231,15 +223,7 @@ QueryData genCerts(QueryContext& context) {
           continue;
         }
 
-        // Generate cert data to check for duplicates.
-        QueryData anchor_results;
-        genKeychainCertificate(cert, anchor_results);
-        for (auto& r : anchor_results) {
-          if (r.count("sha1") && seen_hashes.count(r.at("sha1")) == 0) {
-            seen_hashes.insert(r.at("sha1"));
-            results.push_back(std::move(r));
-          }
-        }
+        genKeychainCertificate(cert, results);
       }
       CFRelease(anchors);
     }
