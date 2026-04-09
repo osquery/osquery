@@ -8,7 +8,6 @@
  */
 
 #include <sstream>
-#include <vector>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
@@ -18,22 +17,13 @@
 namespace osquery {
 namespace tables {
 
-namespace {
-const std::vector<std::wstring> kWmiNamespaces = {
-    L"ROOT\\Subscription",
-    L"ROOT\\default",
-};
-} // namespace
-
 QueryData genWmiFilters(QueryContext& context) {
   QueryData results_data;
   std::stringstream ss;
   ss << "SELECT * FROM __EventFilter";
 
-  for (const auto& ns : kWmiNamespaces) {
-    BSTR bstr = ::SysAllocString(ns.c_str());
-    const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
-    ::SysFreeString(bstr);
+  for (const auto& ns : kWmiEventNamespaces) {
+    const auto request = WmiRequest::CreateWmiRequest(ss.str(), ns);
 
     if (request && request->getStatus().ok()) {
       const auto& results = request->results();
