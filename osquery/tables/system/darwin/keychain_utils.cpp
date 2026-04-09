@@ -114,6 +114,96 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
   return keychain_items;
 }
 
+CFArrayRef CreateAllKeychainCertificates() {
+  // Build a comprehensive search list from all keychain domains without
+  // calling SecKeychainOpen. SecKeychainCopyDomainSearchList returns refs
+  // to keychains already known to the system for each domain.
+  CFMutableArrayRef all_keychains =
+      CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
+
+  SecPreferencesDomain domains[] = {
+      kSecPreferencesDomainUser,
+      kSecPreferencesDomainSystem,
+      kSecPreferencesDomainCommon,
+      kSecPreferencesDomainDynamic,
+  };
+
+  for (auto domain : domains) {
+    CFArrayRef domain_list = nullptr;
+    OSStatus status;
+    OSQUERY_USE_DEPRECATED(
+        status = SecKeychainCopyDomainSearchList(domain, &domain_list));
+    if (status == errSecSuccess && domain_list != nullptr) {
+      auto count = CFArrayGetCount(domain_list);
+      for (CFIndex i = 0; i < count; i++) {
+        CFArrayAppendValue(all_keychains,
+                           CFArrayGetValueAtIndex(domain_list, i));
+      }
+      CFRelease(domain_list);
+    }
+  }
+
+  CFMutableDictionaryRef query;
+  query = CFDictionaryCreateMutable(nullptr,
+                                    0,
+                                    &kCFTypeDictionaryKeyCallBacks,
+                                    &kCFTypeDictionaryValueCallBacks);
+  CFDictionaryAddValue(query, kSecClass, kSecClassCertificate);
+  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
+  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
+  // Note: kSecAttrCanVerify is intentionally omitted. It is a legacy
+  // attribute not supported by the Data Protection keychain on macOS 26+.
+
+  if (CFArrayGetCount(all_keychains) > 0) {
+    CFDictionaryAddValue(query, kSecMatchSearchList, all_keychains);
+  }
+
+  CFArrayRef items = nullptr;
+  auto status = SecItemCopyMatching(query, (CFTypeRef*)&items);
+  CFRelease(query);
+  CFRelease(all_keychains);
+
+  if (status != errSecSuccess) {
+    return nullptr;
+  }
+
+  return items;
+}
+
+std::set<std::string> getDefaultKeychainPaths() {
+  std::set<std::string> paths;
+
+  CFArrayRef search_list = nullptr;
+  OSStatus status;
+  OSQUERY_USE_DEPRECATED(status = SecKeychainCopySearchList(&search_list));
+  if (status != errSecSuccess || search_list == nullptr) {
+    return paths;
+  }
+
+  auto count = CFArrayGetCount(search_list);
+  for (CFIndex i = 0; i < count; i++) {
+    auto keychain = (SecKeychainRef)CFArrayGetValueAtIndex(search_list, i);
+    UInt32 path_size = 1024;
+    char keychain_path[1024] = {0};
+    OSQUERY_USE_DEPRECATED(
+        status = SecKeychainGetPath(keychain, &path_size, keychain_path));
+    if (status == errSecSuccess && path_size > 0 && keychain_path[0] != 0) {
+      boost::system::error_code ec;
+      auto canonical = boost::filesystem::canonical(
+          boost::filesystem::path(keychain_path), ec);
+      if (!ec.failed()) {
+        paths.insert(canonical.string());
+      } else {
+        // If canonical resolution fails, use the raw path.
+        paths.insert(std::string(keychain_path));
+      }
+    }
+  }
+
+  CFRelease(search_list);
+  return paths;
+}
+
 std::set<std::string> getKeychainPaths() {
   std::set<std::string> keychain_paths;
 
