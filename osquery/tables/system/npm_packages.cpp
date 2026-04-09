@@ -215,16 +215,13 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
 
   // Read max_depth constraint, default to kDefaultMaxDepth (100)
   int max_depth = kDefaultMaxDepth;
-  if (context.constraints.count("max_depth") > 0 &&
-      context.constraints.at("max_depth").exists(EQUALS)) {
-    auto max_depth_set = context.constraints["max_depth"].getAll(EQUALS);
-    if (!max_depth_set.empty()) {
-      max_depth = tryTo<int>(*max_depth_set.begin()).takeOr(kDefaultMaxDepth);
-    }
+  if (context.hasConstraint("max_depth", EQUALS)) {
+    max_depth =
+        tryTo<int>(*context.constraints["max_depth"].getAll(EQUALS).begin())
+            .takeOr(kDefaultMaxDepth);
   }
 
-  if (context.constraints.count("directory") > 0 &&
-      context.constraints.at("directory").exists(EQUALS)) {
+  if (context.hasConstraint("directory", EQUALS)) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
     for (const auto& path : kNodeModulesPath) {
