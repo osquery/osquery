@@ -208,9 +208,10 @@ QueryData genCerts(QueryContext& context) {
       CFRelease(certs);
     }
 
-    // Query system trusted anchor certificates via SecTrustCopyAnchorCertificates.
-    // This covers certs from SystemRootCertificates.keychain and X509Anchors
-    // that are not in the domain search lists above.
+    // Query system trusted anchor certificates via
+    // SecTrustCopyAnchorCertificates. This covers certs from
+    // SystemRootCertificates.keychain and X509Anchors that are not in the
+    // domain search lists above.
     CFArrayRef anchors = nullptr;
     if (SecTrustCopyAnchorCertificates(&anchors) == errSecSuccess &&
         anchors != nullptr) {

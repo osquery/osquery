@@ -136,8 +136,8 @@ CFArrayRef CreateAllKeychainCertificates() {
     if (status == errSecSuccess && domain_list != nullptr) {
       auto count = CFArrayGetCount(domain_list);
       for (CFIndex i = 0; i < count; i++) {
-        CFArrayAppendValue(
-            all_keychains, CFArrayGetValueAtIndex(domain_list, i));
+        CFArrayAppendValue(all_keychains,
+                           CFArrayGetValueAtIndex(domain_list, i));
       }
       CFRelease(domain_list);
     }
@@ -182,8 +182,7 @@ std::set<std::string> getDefaultKeychainPaths() {
 
   auto count = CFArrayGetCount(search_list);
   for (CFIndex i = 0; i < count; i++) {
-    auto keychain =
-        (SecKeychainRef)CFArrayGetValueAtIndex(search_list, i);
+    auto keychain = (SecKeychainRef)CFArrayGetValueAtIndex(search_list, i);
     UInt32 path_size = 1024;
     char keychain_path[1024] = {0};
     OSQUERY_USE_DEPRECATED(
