@@ -8,7 +8,9 @@ schema([
     Column("license", TEXT, "License under which package is launched"),
     Column("homepage", TEXT, "Package supplied homepage"),
     Column("path", TEXT, "Path at which this module resides"),
-    Column("directory", TEXT, "Directory where node_modules are located", index=True, optimized=True)
+    Column("directory", TEXT, "Directory where node_modules are located", index=True, optimized=True),
+    Column("depth", INTEGER, "Nesting depth of the package (0 = direct dependency)"),
+    Column("max_depth", INTEGER, "Maximum depth to search for nested packages (default 100, -1 = unlimited)", additional=True, hidden=True),
 ])
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
@@ -18,6 +20,8 @@ implementation("npm_packages@genNodePackages")
 examples([
   "select * from npm_packages",
   "select * from npm_packages where directory = '/home/user/my_project'",
+  "select * from npm_packages where directory = '/home/user/my_project' and max_depth = 0",
+  "select name, version, depth from npm_packages where depth > 0",
 ])
 fuzz_paths([
     "/usr/lib/node_modules/",
