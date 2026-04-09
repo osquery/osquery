@@ -4,7 +4,7 @@ Vagrant.configure("2") do |config|
   config.ssh.connect_timeout = 5
 
   ubuntu_versions = [
-    { name: "ubuntu16", box: "bento/ubuntu-16.04", arm_box: "cloud-image/ubuntu-16.04", amd_arch: "unknown" },
+    { name: "ubuntu16", box: "bento/ubuntu-16.04", arm_box: nil , amd_arch: "unknown" }, # could not find working ubuntu 16.04 for arm64
     { name: "ubuntu18", box: "bento/ubuntu-18.04", arm_box: "cloud-image/ubuntu-18.04", amd_arch: "unknown" },
     { name: "ubuntu20", box: "bento/ubuntu-20.04", arm_box: "cloud-image/ubuntu-20.04", amd_arch: "amd64" },
     { name: "ubuntu22", box: "bento/ubuntu-22.04", arm_box: "cloud-image/ubuntu-22.04", amd_arch: "amd64" },
@@ -13,15 +13,17 @@ Vagrant.configure("2") do |config|
 
   ubuntu_versions.each do |vm_config|
     # ARM64 version
-    config.vm.define "#{vm_config[:name]}-arm" do |ubuntu|
-      ubuntu.vm.box = vm_config[:arm_box]
-      ubuntu.vm.box_architecture = "arm64"
-      ubuntu.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__auto: true
-      ubuntu.vm.provider "qemu" do |qe|
-        qe.memory = "2G"
-        qe.smp = 2
-        qe.ssh_auto_correct = true
-        qe.qemu_dir = "/opt/homebrew/share/qemu"
+    if vm_config[:arm_box]
+      config.vm.define "#{vm_config[:name]}-arm" do |ubuntu|
+        ubuntu.vm.box = vm_config[:arm_box]
+        ubuntu.vm.box_architecture = "arm64"
+        ubuntu.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__auto: true
+        ubuntu.vm.provider "qemu" do |qe|
+          qe.memory = "2G"
+          qe.smp = 2
+          qe.ssh_auto_correct = true
+          qe.qemu_dir = "/opt/homebrew/share/qemu"
+        end
       end
     end
 
