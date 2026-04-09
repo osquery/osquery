@@ -78,14 +78,14 @@ std::string getKeychainPath(const SecKeychainItemRef& item);
 CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
                                const CFTypeRef& item_type);
 
-// Query all certificates from the default keychain search list without
-// explicitly opening any keychain file. This avoids SecKeychainOpen which
-// can trigger securityd write operations that corrupt the keychain database
-// on unclean shutdown (macOS 26+).
+/// Query all certificates from the default keychain search list without
+/// explicitly opening any keychain file. This avoids SecKeychainOpen which
+/// can trigger securityd write operations that corrupt the keychain database
+/// on unclean shutdown (macOS 26+).
 CFArrayRef CreateAllKeychainCertificates();
 
-// Return the canonical file paths of keychains in the user's default search
-// list. Uses SecKeychainCopySearchList (read-only, does not open keychains).
+/// Return the canonical file paths of keychains in the user's default search
+/// list. Uses SecKeychainCopySearchList (read-only, does not open keychains).
 std::set<std::string> getDefaultKeychainPaths();
 
 std::set<std::string> getKeychainPaths();

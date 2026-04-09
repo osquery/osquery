@@ -115,6 +115,34 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
 }
 
 CFArrayRef CreateAllKeychainCertificates() {
+  // Build a comprehensive search list from all keychain domains without
+  // calling SecKeychainOpen. SecKeychainCopyDomainSearchList returns refs
+  // to keychains already known to the system for each domain.
+  CFMutableArrayRef all_keychains =
+      CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
+
+  SecPreferencesDomain domains[] = {
+      kSecPreferencesDomainUser,
+      kSecPreferencesDomainSystem,
+      kSecPreferencesDomainCommon,
+      kSecPreferencesDomainDynamic,
+  };
+
+  for (auto domain : domains) {
+    CFArrayRef domain_list = nullptr;
+    OSStatus status;
+    OSQUERY_USE_DEPRECATED(
+        status = SecKeychainCopyDomainSearchList(domain, &domain_list));
+    if (status == errSecSuccess && domain_list != nullptr) {
+      auto count = CFArrayGetCount(domain_list);
+      for (CFIndex i = 0; i < count; i++) {
+        CFArrayAppendValue(
+            all_keychains, CFArrayGetValueAtIndex(domain_list, i));
+      }
+      CFRelease(domain_list);
+    }
+  }
+
   CFMutableDictionaryRef query;
   query = CFDictionaryCreateMutable(nullptr,
                                     0,
@@ -122,15 +150,18 @@ CFArrayRef CreateAllKeychainCertificates() {
                                     &kCFTypeDictionaryValueCallBacks);
   CFDictionaryAddValue(query, kSecClass, kSecClassCertificate);
   CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
-  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
   CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
-  // Intentionally omit kSecMatchSearchList so that SecItemCopyMatching
-  // searches the default keychain search list without calling SecKeychainOpen
-  // on any keychain file.
+  // Note: kSecAttrCanVerify is intentionally omitted. It is a legacy
+  // attribute not supported by the Data Protection keychain on macOS 26+.
+
+  if (CFArrayGetCount(all_keychains) > 0) {
+    CFDictionaryAddValue(query, kSecMatchSearchList, all_keychains);
+  }
 
   CFArrayRef items = nullptr;
   auto status = SecItemCopyMatching(query, (CFTypeRef*)&items);
   CFRelease(query);
+  CFRelease(all_keychains);
 
   if (status != errSecSuccess) {
     return nullptr;
