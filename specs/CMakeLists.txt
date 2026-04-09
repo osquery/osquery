@@ -312,7 +312,7 @@ function(generateNativeTables)
     "windows/tpm_info.table:windows"
     "windows/security_profile_info.table:windows"
     "windows/windows_search.table:windows"
-    "windows/handles.table:windows"
+    "windows/process_open_handles.table:windows"
   )
 
   if(OSQUERY_BUILD_BPF)

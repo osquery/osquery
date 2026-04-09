@@ -240,7 +240,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/tpm_info.cpp
       windows/prefetch.cpp
       windows/token_privileges.cpp
-      windows/handles.cpp
+      windows/process_open_handles.cpp
     )
   endif()
 

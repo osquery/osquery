@@ -31,8 +31,8 @@ namespace osquery {
 
 HIDDEN_FLAG(bool,
             allow_handle_threads,
-            false,
-            "Allow handles table to use blockable threads as a fallback"
+            true,
+            "Disable using blockable threads in process_open_handles"
             " when the system handle information query fails");
 
 namespace tables {
@@ -220,7 +220,7 @@ enum class MappingTechniqueResult { Success, FailedInvalidHandle, FailedOther };
 std::string_view ErrorStageString(ErrorStage stage) {
   switch (stage) {
   case ErrorStage::None:
-    return "None";
+    return "";
   case ErrorStage::ProcessOpening:
     return "ProcessOpening";
   case ErrorStage::HandleDuplication:
@@ -319,6 +319,9 @@ class HandleRecordCache {
 
   std::wstring FromPUnicodeString(PUNICODE_STRING us) {
     if (!us || !us->Buffer || us->Length == 0) {
+      return L"";
+    }
+    if (us->Length > us->MaximumLength) {
       return L"";
     }
     return std::wstring(us->Buffer, us->Length / sizeof(WCHAR));
@@ -421,9 +424,10 @@ class HandleRecordCache {
   // decoding handle attributes for use in our final output.
   //
   std::string& GetHandleAttributesString(ULONG handleAttributes) {
-    static std::string none = "None";
+    static std::string emptyString = "";
+
     if (0 == handleAttributes) {
-      return none;
+      return emptyString;
     }
 
     auto it = m_handleAttributesCache.find(handleAttributes);
@@ -440,7 +444,7 @@ class HandleRecordCache {
       }
 
       if (attributes.empty()) {
-        return none;
+        return emptyString;
       }
 
       std::string attributesStr;
@@ -585,8 +589,8 @@ class HandleRecord {
   }
 
   const std::string& Name() {
-    static std::string unknown = "Unknown";
-    return m_ObjectName ? *m_ObjectName : unknown;
+    static std::string emptyString = "";
+    return m_ObjectName ? *m_ObjectName : emptyString;
   }
 
   ULONG RawPointerCount() const {
@@ -623,12 +627,12 @@ class HandleRecord {
   Row ToRow() {
     Row row;
     row["pid"] = INTEGER(Pid());
-    row["handle_value"] = INTEGER(reinterpret_cast<uintptr_t>(Handle()));
+    row["value"] = INTEGER(reinterpret_cast<uintptr_t>(Handle()));
     row["type"] = Type();
     row["access"] = Access();
     row["name"] = Name();
     row["attributes"] = Attributes();
-    row["handle_count"] = INTEGER(HandleCount());
+    row["count"] = INTEGER(HandleCount());
     row["raw_pointer_count"] = INTEGER(RawPointerCount());
     row["error_stage"] = ErrorStageString(GetErrorStage());
     row["error_code"] = INTEGER(GetErrorCode());
@@ -893,20 +897,10 @@ void ResolveObjectName(HandleRecord& record,
 
   // Consolidates the name-result recording logic used by all exit paths below.
   auto updateRecordWithNameResult = [&record, &params]() -> void {
-    switch (params.ntStatus) {
-    case STATUS_SUCCESS:
-      if (params.nameBuffer.usName.Length > 0) {
-        record.SetObjectName(&params.nameBuffer.usName);
-      } else {
-        record.SetObjectName(L"None");
-      }
-      break;
-    case STATUS_UNSUCCESSFUL:
-      record.SetObjectName(L"<query would block, synch file handle>");
-      break;
-    default:
-      record.SetObjectName(L"<failed resolving>");
-      break;
+    if (NT_SUCCESS(params.ntStatus) && (params.nameBuffer.usName.Length > 0)) {
+      record.SetObjectName(&params.nameBuffer.usName);
+    } else {
+      record.SetObjectName(L"");
     }
 
     if (!NT_SUCCESS(params.ntStatus) &&
@@ -945,10 +939,6 @@ void ResolveObjectName(HandleRecord& record,
     updateRecordWithNameResult();
     return;
   }
-
-  VLOG(1) << "Mapping technique failed with error 0x" << std::hex
-          << params.ntStatus << std::dec << " for PID: " << record.Pid()
-          << " | Handle : 0x" << std::hex << record.Handle() << std::dec;
 
   // Mapping technique failed, we will continue with the thread fallback only if
   // the user has explicitly accepted the risk of potential hangs by enabling
@@ -1013,15 +1003,10 @@ void ResolveObjectName(HandleRecord& record,
     break;
   case WAIT_TIMEOUT:
     record.SetError(ErrorStage::ObjectNameQuerying, ERROR_TIMEOUT, true);
-    VLOG(1) << "Querying object timed out for PID: " << record.Pid()
-            << " | Handle : 0x" << std::hex << record.Handle() << std::dec;
     break;
   default:
     DWORD lastError = GetLastError();
     record.SetError(ErrorStage::ObjectNameQuerying, lastError, true);
-    VLOG(1) << "Error waiting for thread for PID: " << record.Pid()
-            << " | Handle : 0x" << std::hex << record.Handle() << std::dec
-            << " | Error: " << lastError;
     break;
   }
 
@@ -1079,9 +1064,6 @@ void EnrichHandleRecord(
   if (!NT_SUCCESS(ntStatus)) {
     record.SetError(
         ErrorStage::HandleDuplication, RtlNtStatusToDosError(ntStatus), true);
-    VLOG(1) << "Error (0x" << std::hex << ntStatus << std::dec
-            << ") duplicating handle for PID: " << record.Pid()
-            << " | Handle: 0x" << std::hex << record.Handle() << std::dec;
     return;
   }
 
@@ -1102,9 +1084,6 @@ void EnrichHandleRecord(
     record.SetError(ErrorStage::ObjectBasicInfoQuerying,
                     RtlNtStatusToDosError(ntStatus),
                     true);
-    VLOG(1) << "Error (0x" << std::hex << ntStatus << std::dec
-            << ") querying basic info for PID: " << record.Pid()
-            << " | Handle: 0x" << std::hex << record.Handle() << std::dec;
     return;
   }
 
@@ -1136,9 +1115,6 @@ void EnrichHandleRecord(
     // mapping against the cache
     record.SetError(ErrorStage::ObjectTypeInfoQuerying,
                     RtlNtStatusToDosError(ntStatus));
-    VLOG(1) << "Error (0x" << std::hex << ntStatus << std::dec
-            << ") querying type info for PID: " << record.Pid()
-            << " | Handle: 0x" << std::hex << record.Handle() << std::dec;
     return;
   }
   record.SetObjectTypeName(&objTypeInfo.TypeInfo.TypeName);
@@ -1159,6 +1135,7 @@ class HandleEnumeration {
   HandleRecordCache m_cache;
   std::set<int> m_pidlist;
   std::vector<HandleRecordPtr> handleRecords;
+  int32_t failedHandleThreadCount = 0;
 
   HandleEnumeration(const std::set<int>& pidlist) : m_pidlist(pidlist) {}
 
@@ -1191,8 +1168,6 @@ class HandleEnumeration {
     // 1. Acquire the type enumeration if supported.
     ntStatus = GetObjectTypeEnumeration(m_cache);
     if (STATUS_SUCCESS != ntStatus && STATUS_NOT_SUPPORTED != ntStatus) {
-      VLOG(1) << "Failed to query object type enumeration: 0x" << std::hex
-              << ntStatus << std::dec;
       return ntStatus;
     }
 
@@ -1219,8 +1194,6 @@ class HandleEnumeration {
     }
 
     if (STATUS_SUCCESS != ntStatus) {
-      VLOG(1) << "Failed to query system handle information: 0x" << std::hex
-              << ntStatus << std::dec;
       return ntStatus;
     }
 
@@ -1253,8 +1226,6 @@ class HandleEnumeration {
     ntStatus = GetHandleAndTypeEnumeration();
     if (STATUS_SUCCESS != ntStatus) {
       DWORD dwStatus = RtlNtStatusToDosError(ntStatus);
-      VLOG(1) << "Failed to query system handle information / type mapping: 0x"
-              << std::hex << dwStatus << std::dec;
       return dwStatus;
     }
 
@@ -1289,6 +1260,17 @@ class HandleEnumeration {
                          objBasicInfo,
                          objTypeInfo,
                          params);
+
+      // The combination of ErrorStage::ObjectNameQuerying and ERROR_TIMEOUT is
+      // an indication that we had to fall back to the thread technique for
+      // querying the object name and that it timed out, which likely means we
+      // were dealing with a synchronous File handle (console, pipe, etc.) that
+      // NtQueryObject blocked on.
+      if (handleIter->GetErrorStage() == ErrorStage::ObjectNameQuerying) {
+        if (handleIter->GetErrorCode() == ERROR_TIMEOUT) {
+          failedHandleThreadCount++;
+        }
+      }
     }
     return ERROR_SUCCESS;
   }
@@ -1299,10 +1281,15 @@ class HandleEnumeration {
 // osquery table entry point for the "handles" table.
 // If no pid constraint is provided, defaults to the current (osquery)
 // process.  Requires SeDebugPrivilege for cross-process enumeration.
-QueryData genHandles(QueryContext& context) {
-  // Determine pid constraints, if any. If no PID constraints are provided,
-  // we will default to enumerating handles for the current process.
+QueryData genProcessOpenHandles(QueryContext& context) {
+  // Determine pid constraints, pid is a required column
   std::set<int> pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
+
+  if (pidlist.empty()) {
+    // If no pid constraints are provided, default to the current process
+    VLOG(1) << "No pid constraint provided for handles table";
+    return QueryData();
+  }
 
   // Acquire the debug token privilege guard
   SeDebugPrivilegeGuard debugPrivilegeGuard;
@@ -1312,6 +1299,15 @@ QueryData genHandles(QueryContext& context) {
   if (ERROR_SUCCESS != handleEnumeration.EnumerateAllHandles()) {
     VLOG(1) << "Failed to enumerate all handles.";
     return QueryData();
+  }
+
+  if (handleEnumeration.failedHandleThreadCount > 0) {
+    VLOG(1) << handleEnumeration.failedHandleThreadCount
+            << " handle enumeration thread(s) timed out."
+            << " Occasional occurrences are considered normal due to the "
+               "nature of the technique,"
+            << " however a large number of timeouts could indicate an issue."
+            << RLOG(8818);
   }
 
   // Convert the resulting handle records to rows for output
