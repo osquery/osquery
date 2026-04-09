@@ -103,5 +103,43 @@ TEST_F(CACertsTests, test_certificate_properties) {
   getCertificateAttributes(x_cert, is_ca, is_self_signed);
   EXPECT_TRUE(is_ca);
 }
+
+TEST(KeychainUtilsTests, test_getDefaultKeychainPaths_returns_nonempty) {
+  auto paths = getDefaultKeychainPaths();
+  // A standard macOS installation always has at least one keychain in the
+  // default search list (e.g. System.keychain or login.keychain-db).
+  EXPECT_FALSE(paths.empty());
+
+  bool found_system = false;
+  for (const auto& p : paths) {
+    if (p.find("System.keychain") != std::string::npos) {
+      found_system = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found_system)
+      << "System.keychain should be in the default search list";
+}
+
+TEST(KeychainUtilsTests, test_CreateAllKeychainCertificates_returns_results) {
+  CFArrayRef certs = CreateAllKeychainCertificates();
+  ASSERT_NE(certs, nullptr);
+  EXPECT_GT(CFArrayGetCount(certs), 0);
+
+  bool found_path = false;
+  auto count = CFArrayGetCount(certs);
+  for (CFIndex i = 0; i < count && !found_path; i++) {
+    auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+    auto path = getKeychainPath((SecKeychainItemRef)cert);
+    if (!path.empty()) {
+      found_path = true;
+    }
+  }
+  EXPECT_TRUE(found_path)
+      << "At least one certificate should have a keychain path";
+
+  CFRelease(certs);
+}
+
 } // namespace tables
 } // namespace osquery

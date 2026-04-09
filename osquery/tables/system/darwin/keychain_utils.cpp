@@ -114,6 +114,66 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
   return keychain_items;
 }
 
+CFArrayRef CreateAllKeychainCertificates() {
+  CFMutableDictionaryRef query;
+  query = CFDictionaryCreateMutable(nullptr,
+                                    0,
+                                    &kCFTypeDictionaryKeyCallBacks,
+                                    &kCFTypeDictionaryValueCallBacks);
+  CFDictionaryAddValue(query, kSecClass, kSecClassCertificate);
+  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
+  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
+  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
+  // Intentionally omit kSecMatchSearchList so that SecItemCopyMatching
+  // searches the default keychain search list without calling SecKeychainOpen
+  // on any keychain file.
+
+  CFArrayRef items = nullptr;
+  auto status = SecItemCopyMatching(query, (CFTypeRef*)&items);
+  CFRelease(query);
+
+  if (status != errSecSuccess) {
+    return nullptr;
+  }
+
+  return items;
+}
+
+std::set<std::string> getDefaultKeychainPaths() {
+  std::set<std::string> paths;
+
+  CFArrayRef search_list = nullptr;
+  OSStatus status;
+  OSQUERY_USE_DEPRECATED(status = SecKeychainCopySearchList(&search_list));
+  if (status != errSecSuccess || search_list == nullptr) {
+    return paths;
+  }
+
+  auto count = CFArrayGetCount(search_list);
+  for (CFIndex i = 0; i < count; i++) {
+    auto keychain =
+        (SecKeychainRef)CFArrayGetValueAtIndex(search_list, i);
+    UInt32 path_size = 1024;
+    char keychain_path[1024] = {0};
+    OSQUERY_USE_DEPRECATED(
+        status = SecKeychainGetPath(keychain, &path_size, keychain_path));
+    if (status == errSecSuccess && path_size > 0 && keychain_path[0] != 0) {
+      boost::system::error_code ec;
+      auto canonical = boost::filesystem::canonical(
+          boost::filesystem::path(keychain_path), ec);
+      if (!ec.failed()) {
+        paths.insert(canonical.string());
+      } else {
+        // If canonical resolution fails, use the raw path.
+        paths.insert(std::string(keychain_path));
+      }
+    }
+  }
+
+  CFRelease(search_list);
+  return paths;
+}
+
 std::set<std::string> getKeychainPaths() {
   std::set<std::string> keychain_paths;
 

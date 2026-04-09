@@ -142,11 +142,7 @@ QueryData genCerts(QueryContext& context) {
   // Lock keychain access to 1 table/thread at a time.
   std::unique_lock<decltype(keychainMutex)> lock(keychainMutex);
 
-  // Allow the caller to set both an explicit keychain search path
-  // and certificate files on disk.
-  std::set<std::string> keychain_paths;
-
-  // Expand paths
+  // Expand paths from query constraints.
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
       "path",
@@ -165,15 +161,15 @@ QueryData genCerts(QueryContext& context) {
       }));
 
   @autoreleasepool {
-    // Map of path to hash and keychain reference. This ensures we don't open
-    // the same keychain multiple times when the table's path constraint is
-    // used.
-    std::map<std::string,
-             std::tuple<boost::filesystem::path, std::string, SecKeychainRef>>
-        opened_keychains;
+    // Determine which paths are in the default keychain search list (Tier 1,
+    // safe) vs non-standard paths that need SecKeychainOpen (Tier 2, legacy).
+    auto default_kc_paths = getDefaultKeychainPaths();
+
+    std::set<std::string> standard_paths;
+    std::set<std::string> nonstandard_paths;
+
     if (!paths.empty()) {
       for (const auto& path : paths) {
-        // Check whether path is valid
         boost::system::error_code ec;
         auto source =
             boost::filesystem::canonical(boost::filesystem::path(path), ec);
@@ -182,125 +178,155 @@ QueryData genCerts(QueryContext& context) {
           continue;
         }
 
-        // Check cache
-        bool err = false;
-        std::string hash;
-        bool hit =
-            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
-        if (err) {
-          TLOG << "Could not read the file at " << path << "" << ec.message();
-          continue;
-        }
-        if (hit) {
-          continue;
-        }
-
-        SecKeychainRef keychain = nullptr;
-        SecKeychainStatus keychain_status;
-        OSStatus status;
-        OSQUERY_USE_DEPRECATED(status =
-                                   SecKeychainOpen(path.c_str(), &keychain));
-        bool genFileCert = false;
-        if (status != errSecSuccess || keychain == nullptr) {
-          genFileCert = true;
+        if (default_kc_paths.count(source.string()) > 0) {
+          standard_paths.insert(source.string());
         } else {
-          OSQUERY_USE_DEPRECATED(
-              status = SecKeychainGetStatus(keychain, &keychain_status));
-          if (status != errSecSuccess) {
-            genFileCert = true;
-          }
-        }
-        if (genFileCert) {
-          if (keychain != nullptr) {
-            CFRelease(keychain);
-          }
-          QueryData new_results;
-          genFileCertificate(path, new_results);
-          // Write new results to the cache.
-          keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
-          results.insert(results.end(), new_results.begin(), new_results.end());
-        } else {
-          // This path will be re-accessed later.
-          keychain_paths.insert(path);
-          opened_keychains.insert(
-              {path, std::make_tuple(source, hash, keychain)});
+          nonstandard_paths.insert(path);
         }
       }
     } else {
-      keychain_paths = getKeychainPaths();
+      // No path constraints: enumerate all default keychain directories.
+      auto kc_dirs = getKeychainPaths();
+      auto expanded = expandPaths(kc_dirs);
+      for (const auto& p : expanded) {
+        boost::system::error_code ec;
+        auto source =
+            boost::filesystem::canonical(boost::filesystem::path(p), ec);
+        if (!ec.failed() && is_regular_file(source, ec) && !ec.failed()) {
+          if (default_kc_paths.count(source.string()) > 0) {
+            standard_paths.insert(source.string());
+          } else {
+            nonstandard_paths.insert(p);
+          }
+        }
+      }
     }
 
-    // Since we are used a cache for each keychain file, we must process
-    // certificates one keychain file at a time.
-    std::set<std::string> expanded_paths = expandPaths(keychain_paths);
-    for (const auto& path : expanded_paths) {
-      SecKeychainRef keychain = nullptr;
+    // --- Tier 1: Safe path using SecItemCopyMatching without SecKeychainOpen.
+    // Check per-path cache for standard paths first.
+    // Map of cache-miss paths to their file hashes.
+    std::map<std::string, std::string> cache_miss_hashes;
+
+    for (const auto& spath : standard_paths) {
+      boost::filesystem::path source(spath);
+      bool err = false;
       std::string hash;
-      boost::filesystem::path source;
-      auto it = opened_keychains.find(path);
-      if (it != opened_keychains.end()) {
-        source = std::get<0>(it->second);
-        hash = std::get<1>(it->second);
-        keychain = std::get<2>(it->second);
-      } else {
-        // Check whether path is valid
-        boost::system::error_code ec;
-        source =
-            boost::filesystem::canonical(boost::filesystem::path(path), ec);
-        if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
-          // File does not exist or user does not have access. Don't log here to
-          // reduce noise.
-          continue;
-        }
+      bool hit =
+          keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
+      if (err) {
+        TLOG << "Could not read the file at " << spath;
+        continue;
+      }
+      if (!hit) {
+        cache_miss_hashes[spath] = hash;
+      }
+    }
 
-        // Check cache
-        bool err = false;
-        bool hit =
-            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
-        if (err) {
-          TLOG << "Could not read the file at " << source.string() << ""
-               << ec.message();
-          continue;
-        }
-        if (hit) {
-          continue;
-        }
+    if (!cache_miss_hashes.empty()) {
+      CFArrayRef certs = CreateAllKeychainCertificates();
+      if (certs != nullptr && CFGetTypeID(certs) == CFArrayGetTypeID()) {
+        // Partition results by keychain path.
+        std::map<std::string, QueryData> partitioned;
+        auto count = CFArrayGetCount(certs);
+        for (CFIndex i = 0; i < count; i++) {
+          auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+          auto cert_path = getKeychainPath((SecKeychainItemRef)cert);
 
-        // Cache miss. We need to generate new results.
-        OSStatus status;
-        OSQUERY_USE_DEPRECATED(status =
-                                   SecKeychainOpen(source.c_str(), &keychain));
-        if (status != errSecSuccess || keychain == nullptr) {
-          if (keychain != nullptr) {
-            CFRelease(keychain);
+          if (cache_miss_hashes.count(cert_path) > 0) {
+            genKeychainCertificate(cert, partitioned[cert_path]);
           }
-          // Cache an empty result to prevent the above API call in the future.
-          keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
-          continue;
+        }
+
+        // Write each partition to cache and append to results.
+        for (auto& [path, new_results] : partitioned) {
+          keychainCache.Write(boost::filesystem::path(path),
+                              KEYCHAIN_TABLE,
+                              cache_miss_hashes[path],
+                              new_results);
+          results.insert(
+              results.end(), new_results.begin(), new_results.end());
+          cache_miss_hashes.erase(path);
+        }
+
+        CFRelease(certs);
+      }
+
+      // Any remaining cache-miss paths had no certificates; cache empty.
+      for (const auto& [path, hash] : cache_miss_hashes) {
+        keychainCache.Write(
+            boost::filesystem::path(path), KEYCHAIN_TABLE, hash, {});
+      }
+    }
+
+    // --- Tier 2: Legacy path for non-standard keychains and cert files.
+    // Uses SecKeychainOpen as a fallback (risk accepted for non-standard paths).
+    std::set<std::string> expanded_nonstandard = expandPaths(nonstandard_paths);
+    for (const auto& path : expanded_nonstandard) {
+      boost::system::error_code ec;
+      auto source =
+          boost::filesystem::canonical(boost::filesystem::path(path), ec);
+      if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
+        continue;
+      }
+
+      bool err = false;
+      std::string hash;
+      bool hit =
+          keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
+      if (err || hit) {
+        continue;
+      }
+
+      // Try opening as a keychain database first.
+      SecKeychainRef keychain = nullptr;
+      SecKeychainStatus keychain_status;
+      OSStatus status;
+      OSQUERY_USE_DEPRECATED(status =
+                                 SecKeychainOpen(path.c_str(), &keychain));
+
+      bool use_file_cert = false;
+      if (status != errSecSuccess || keychain == nullptr) {
+        use_file_cert = true;
+      } else {
+        OSQUERY_USE_DEPRECATED(
+            status = SecKeychainGetStatus(keychain, &keychain_status));
+        if (status != errSecSuccess) {
+          use_file_cert = true;
         }
       }
 
-      auto keychains = CFArrayCreateMutable(nullptr, 1, &kCFTypeArrayCallBacks);
-      CFArrayAppendValue(keychains, keychain);
-      QueryData new_results;
-      // Keychains/certificate stores belonging to the OS.
-      CFArrayRef certs = CreateKeychainItems(keychains, kSecClassCertificate);
-      CFRelease(keychains);
-      // Must have returned an array of matching certificates.
-      if (certs != nullptr) {
-        if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
-          auto certificate_count = CFArrayGetCount(certs);
-          for (CFIndex i = 0; i < certificate_count; i++) {
-            auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-            genKeychainCertificate(cert, new_results);
-          }
+      if (use_file_cert) {
+        if (keychain != nullptr) {
+          CFRelease(keychain);
         }
-        CFRelease(certs);
+        QueryData new_results;
+        genFileCertificate(path, new_results);
         keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
         results.insert(results.end(), new_results.begin(), new_results.end());
       } else {
-        // Cache an empty result to prevent the above API call in the future.
-        keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
+        auto keychains =
+            CFArrayCreateMutable(nullptr, 1, &kCFTypeArrayCallBacks);
+        CFArrayAppendValue(keychains, keychain);
+        QueryData new_results;
+        CFArrayRef items =
+            CreateKeychainItems(keychains, kSecClassCertificate);
+        CFRelease(keychains);
+        if (items != nullptr) {
+          if (CFGetTypeID(items) == CFArrayGetTypeID()) {
+            auto cert_count = CFArrayGetCount(items);
+            for (CFIndex i = 0; i < cert_count; i++) {
+              auto cert =
+                  (SecCertificateRef)CFArrayGetValueAtIndex(items, i);
+              genKeychainCertificate(cert, new_results);
+            }
+          }
+          CFRelease(items);
+          keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
+          results.insert(
+              results.end(), new_results.begin(), new_results.end());
+        } else {
+          keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
+        }
       }
     }
   }
