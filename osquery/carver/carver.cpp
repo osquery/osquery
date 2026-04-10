@@ -259,6 +259,15 @@ std::set<fs::path> Carver::carveAll() {
     }
     Status s = blockwiseCopy(src, dst);
     if (s.ok()) {
+      PlatformTime srcTimes;
+      if (src.getFileTimes(srcTimes)) {
+        if (!dst.setFileTimes(srcTimes)) {
+          VLOG(1) << "Failed to preserve timestamps for carved file: "
+                  << dstPath;
+        }
+      } else {
+        VLOG(1) << "Failed to read source file timestamps: " << srcPath;
+      }
       carvedFiles.insert(dstPath);
     } else {
       VLOG(1) << "Failed to copy file from " << srcPath << " to " << dstPath
