@@ -197,6 +197,10 @@ PrefetchFileInfo parseFileInfo(
   std::vector<std::string> filenames;
   auto next = (PWCHAR)(&data[0] + offset);
   while (*next != L'\0') {
+    // Check for underflow before subtraction
+    if (total_length > size) {
+      break;
+    }
     auto length = wcsnlen_s(next, (size - total_length) / sizeof(WCHAR));
     if (length == 0 || length == (size - total_length) / sizeof(WCHAR)) {
       // A null wide character was not found.
@@ -205,6 +209,10 @@ PrefetchFileInfo parseFileInfo(
 
     auto filename = wstringToString(next);
     filenames.emplace_back(std::move(filename));
+    // Check for overflow in (length + 1) * sizeof(WCHAR)
+    if (length > (SIZE_MAX - sizeof(WCHAR)) / sizeof(WCHAR)) {
+      break;
+    }
     total_length += (length + 1) * sizeof(WCHAR);
     if (total_length >= size) {
       break;
@@ -272,6 +280,10 @@ PrefetchVolumeInfo parseVolumeInfo(
           (PDIRECTORY_STRING)(&data[0] + volume_offset + dir_offset);
       dir_offset += sizeof(DIRECTORY_STRING);
 
+      // Check for underflow before subtraction
+      if (dir_offset > volume_size) {
+        break;
+      }
       auto length = wcsnlen_s(prefetch_directory->Directory,
                               (volume_size - dir_offset) / sizeof(WCHAR));
       if (length == 0 || length == (volume_size - dir_offset) / sizeof(WCHAR)) {
@@ -281,6 +293,10 @@ PrefetchVolumeInfo parseVolumeInfo(
 
       auto filename = wstringToString(prefetch_directory->Directory);
       directories.emplace_back(std::move(filename));
+      // Check for overflow in (length + 1) * sizeof(WCHAR)
+      if (length > (SIZE_MAX - sizeof(WCHAR)) / sizeof(WCHAR)) {
+        break;
+      }
       dir_offset += (length + 1) * sizeof(WCHAR);
     }
   }

@@ -375,6 +375,10 @@ kern_return_t SMCHelper::call(uint32_t selector,
 }
 
 inline uint32_t strtoul(const char *str, size_t size, size_t base) {
+  // Prevent shift overflow: uint32_t is 4 bytes, so size > 4 would overflow
+  if (size > 4) {
+    return 0;
+  }
   uint32_t total = 0;
   for (size_t i = 0; i < size; i++) {
     total += (unsigned char)(str[i]) << (size - 1 - i) * 8;
@@ -383,6 +387,10 @@ inline uint32_t strtoul(const char *str, size_t size, size_t base) {
 }
 
 inline uint64_t strtoull(const char* str, size_t size, size_t base) {
+  // Prevent shift overflow: uint64_t is 8 bytes, so size > 8 would overflow
+  if (size > 8) {
+    return 0;
+  }
   uint64_t total = 0;
   for (size_t i = 0; i < size; i++) {
     total += static_cast<uint64_t>(static_cast<unsigned char>(str[i]))
@@ -444,7 +452,7 @@ double getConvertedValue(const std::string& smcType,
                  << ", fractional: " << fractionalBits << ")";
       return -1.0;
     }
-    int divisor = 1 << fractionalBits;
+    int divisor = 1U << fractionalBits;
     // Get the integer value represented by the decoded hex string, and divide
     // by the divisor to get the float value.
     int intVal = strtoul(val.c_str(), size, 16);
