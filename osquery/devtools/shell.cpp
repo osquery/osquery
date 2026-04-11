@@ -308,10 +308,10 @@ static void disconnect_socket() {
   print_bold("\n");
 
   std::string backup_prompt(mainPrompt + strlen("[*]"));
-  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, backup_prompt.c_str());
+  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, "%s", backup_prompt.c_str());
   backup_prompt = continuePrompt + strlen("[*]");
   sqlite3_snprintf(
-      sizeof(continuePrompt), continuePrompt, backup_prompt.c_str());
+      sizeof(continuePrompt), continuePrompt, "%s", backup_prompt.c_str());
 }
 
 /*
