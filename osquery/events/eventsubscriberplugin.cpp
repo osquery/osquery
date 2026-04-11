@@ -461,7 +461,7 @@ Status EventSubscriberPlugin::generateEventDataIndex(
         continue;
       }
 
-      event_time = boost::lexical_cast<EventTime>(row.at("time"));
+      event_time = tryTo<EventTime>(row.at("time")).takeOr(0);
     }
 
     auto it = event_index.find(event_time);
