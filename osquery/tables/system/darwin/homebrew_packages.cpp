@@ -50,7 +50,10 @@ std::vector<std::string> getHomebrewAppInfoPlistPaths(const std::string& root) {
 
 std::string getHomebrewNameFromInfoPlistPath(const std::string& path) {
   auto bits = osquery::split(path, "/");
-  return bits[bits.size() - 1];
+  if (bits.empty()) {
+    return "";
+  }
+  return bits.back();
 }
 
 // Homebrew formulas are under a path like

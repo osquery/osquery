@@ -88,7 +88,10 @@ QueryData genShims(QueryContext& context) {
     QueryData regResults;
     std::string subkey = rKey.at("path");
     auto toks = split(rKey.at("path"), "\\");
-    auto executable = toks[toks.size() - 1];
+    if (toks.empty()) {
+      continue;
+    }
+    auto executable = toks.back();
     queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
       Row r;
