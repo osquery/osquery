@@ -146,6 +146,9 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   }
 
   auto table = (char *)malloc(table_size);
+  if (table == nullptr) {
+    return;
+  }
   if (sysctl(mib, sizeof(mib) / sizeof(int), table, &table_size, nullptr, 0) <
       0) {
     free(table);
