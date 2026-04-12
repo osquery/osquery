@@ -178,7 +178,23 @@ static void getParentDirectory(sqlite3_context* context,
     sqlite3_result_null(context);
     return;
   }
+  if (last_slash_pos == 0) {
+    // Special case: root path (e.g., "/file")
+    // Parent directory is "/" which needs 1 byte
+    char* result = reinterpret_cast<char*>(malloc(1));
+    if (result == nullptr) {
+      sqlite3_result_error_nomem(context);
+      return;
+    }
+    memcpy(result, path, 1);
+    sqlite3_result_text(context, result, 1, free);
+    return;
+  }
   char* result = reinterpret_cast<char*>(malloc(last_slash_pos));
+  if (result == nullptr) {
+    sqlite3_result_error_nomem(context);
+    return;
+  }
   memcpy(result, path, last_slash_pos);
   sqlite3_result_text(context, result, last_slash_pos, free);
 }

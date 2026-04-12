@@ -38,6 +38,9 @@ std::string getSysctlString(const std::string& name) {
 
   if (len > 0) {
     char* value = (char*)malloc(len);
+    if (value == nullptr) {
+      return ret;
+    }
     if (!sysctlbyname(name.c_str(), value, &len, NULL, 0)) {
       ret = value;
     }
