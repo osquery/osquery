@@ -20,6 +20,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -756,7 +757,11 @@ QueryData genFanSpeedSensors(QueryContext &context) {
   }
 
   // Get attributes for each fan.
-  int numFans = std::stoi(smcRow["value"]);
+  auto numFansExp = tryTo<int>(smcRow["value"]);
+  if (numFansExp.isError()) {
+    return results;
+  }
+  int numFans = numFansExp.get();
   for (int fanIdx = 0; fanIdx < numFans; fanIdx++) {
     Row r;
     r["fan"] = std::to_string(fanIdx);

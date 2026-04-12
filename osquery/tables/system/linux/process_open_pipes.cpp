@@ -12,6 +12,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <regex>
 
 namespace osquery {
@@ -53,10 +54,9 @@ bool isUnconnectedPipe(ino_t inode, const InodeToPipesMap& pipe_partners) {
 int parseInode(const std::string& pipe_str) {
   std::smatch match;
   if (std::regex_search(pipe_str, match, std::regex("\\d+"))) {
-    return std::stoul(match[0]);
-  } else {
-    return 0;
+    return static_cast<int>(tryTo<unsigned long>(match[0].str()).takeOr(0ul));
   }
+  return 0;
 }
 
 std::string getMode(const std::string& pid, const std::string& fd) {
@@ -101,8 +101,13 @@ std::unique_ptr<pipe_info> getNamedPipeInfo(
       !S_ISFIFO(file_stat.st_mode)) { // not a pipe
     return nullptr;
   }
-  return createPipeInfoStruct(std::stoi(process),
-                              std::stoi(desc.first),
+  auto pidExp = tryTo<pid_t>(process);
+  auto fdExp = tryTo<int>(desc.first);
+  if (pidExp.isError() || fdExp.isError()) {
+    return nullptr;
+  }
+  return createPipeInfoStruct(pidExp.get(),
+                              fdExp.get(),
                               getMode(process, desc.first),
                               file_stat.st_ino,
                               "named");
@@ -112,8 +117,13 @@ std::unique_ptr<pipe_info> getPipeInfo(
     const std::string& process,
     const std::pair<std::string, std::string>& desc) {
   if (desc.second.find("pipe:") != std::string::npos) { // found unnamed pipe
-    return createPipeInfoStruct(std::stoi(process),
-                                std::stoi(desc.first),
+    auto pidExp = tryTo<pid_t>(process);
+    auto fdExp = tryTo<int>(desc.first);
+    if (pidExp.isError() || fdExp.isError()) {
+      return nullptr;
+    }
+    return createPipeInfoStruct(pidExp.get(),
+                                fdExp.get(),
                                 getMode(process, desc.first),
                                 parseInode(desc.second),
                                 "anonymous");
@@ -173,7 +183,11 @@ void genResults(const std::string& process,
                 const PidToPipesMap& pipe_desc,
                 const InodeToPipesMap& pipe_partners,
                 QueryData& results) {
-  auto pipe_desc_iter = pipe_desc.find((std::stoi(process)));
+  auto pidExp = tryTo<pid_t>(process);
+  if (pidExp.isError()) {
+    return;
+  }
+  auto pipe_desc_iter = pipe_desc.find(pidExp.get());
   if (pipe_desc_iter == pipe_desc.end()) {
     return;
   }

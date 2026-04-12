@@ -13,6 +13,7 @@
 #include <osquery/core/tables.h>
 
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <osquery/tables/system/windows/registry.h>
 
@@ -62,8 +63,12 @@ QueryData genShims(QueryContext& context) {
       }
       if (aKey.at("name") == "DatabaseInstallTimeStamp") {
         // take this crazy windows timestamp to a unix timestamp
-        sdb.installTimestamp = std::stoull(aKey.at("data"));
-        sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
+        auto timestampExp = tryTo<unsigned long long>(aKey.at("data"));
+        if (!timestampExp.isError()) {
+          sdb.installTimestamp = timestampExp.get();
+          sdb.installTimestamp =
+              (sdb.installTimestamp / 10000000) - 11644473600;
+        }
       }
       if (aKey.at("name") == "DatabasePath") {
         sdb.path = aKey.at("data");

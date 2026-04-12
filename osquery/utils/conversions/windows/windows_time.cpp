@@ -68,16 +68,26 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   std::string fat_date_data = fat_data.substr(0, 4);
   std::string fat_time_data = fat_data.substr(4, 4);
 
-  auto fat_date = std::stoi(fat_date_data.substr(2, 2), nullptr, 16) << 8;
-  fat_date |= std::stoi(fat_date_data.substr(0, 2), nullptr, 16);
+  auto fat_date_high = tryTo<int>(fat_date_data.substr(2, 2), 16);
+  auto fat_date_low = tryTo<int>(fat_date_data.substr(0, 2), 16);
+  if (fat_date_high.isError() || fat_date_low.isError()) {
+    LOG(WARNING) << "Failed to parse FAT date: " << fat_date_data;
+    return 0ll;
+  }
+  auto fat_date = (fat_date_high.get() << 8) | fat_date_low.get();
 
   // Year is stored as number of years after 1980. Ex: 2020 is stored as 40
   int fat_year = ((fat_date & 0xfe00) >> 9) + 1980;
   int fat_month = (fat_date & 0x1e0) >> 5;
   int fat_day = fat_date & 0x1f;
 
-  auto fat_time = std::stoi(fat_time_data.substr(2, 2), nullptr, 16) << 8;
-  fat_time |= std::stoi(fat_time_data.substr(0, 2), nullptr, 16);
+  auto fat_time_high = tryTo<int>(fat_time_data.substr(2, 2), 16);
+  auto fat_time_low = tryTo<int>(fat_time_data.substr(0, 2), 16);
+  if (fat_time_high.isError() || fat_time_low.isError()) {
+    LOG(WARNING) << "Failed to parse FAT time: " << fat_time_data;
+    return 0ll;
+  }
+  auto fat_time = (fat_time_high.get() << 8) | fat_time_low.get();
   int fat_sec = (fat_time & 0x1f) * 2;
   int fat_min = (fat_time & 0x7e0) >> 5;
   int fat_hour = (fat_time & 0xf800) >> 11;

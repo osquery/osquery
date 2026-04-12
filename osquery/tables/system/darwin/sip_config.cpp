@@ -12,6 +12,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -103,10 +104,12 @@ QueryData genSIPConfig(QueryContext& context) {
   }
 
   // bail out if running on OS X < 10.11
-  if (os_version.front().at("major") == "10" &&
-      std::stoi(os_version.front().at("minor")) < 11) {
-    VLOG(1) << "Not running on OS X 10.11 or higher";
-    return {};
+  if (os_version.front().at("major") == "10") {
+    auto minorExp = tryTo<int>(os_version.front().at("minor"));
+    if (minorExp.isError() || minorExp.get() < 11) {
+      VLOG(1) << "Not running on OS X 10.11 or higher";
+      return {};
+    }
   }
 
   QueryData results;
