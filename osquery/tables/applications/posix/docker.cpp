@@ -27,6 +27,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 
@@ -809,13 +810,13 @@ long diffNanos(const std::string& iso1, const std::string& iso2) {
     return 0L;
   }
 
-  try {
-    return std::stol(iso1.substr(pos1 + 1), nullptr, 10) -
-           std::stol(iso2.substr(pos2 + 1), nullptr, 10);
-  } catch (std::out_of_range& e) {
+  auto nano1Exp = tryTo<long>(iso1.substr(pos1 + 1), 10);
+  auto nano2Exp = tryTo<long>(iso2.substr(pos2 + 1), 10);
+  if (nano1Exp.isError() || nano2Exp.isError()) {
     VLOG(1) << "Failed to parse nano seconds in: " << iso1 << " and " << iso2;
     return 0L;
   }
+  return nano1Exp.get() - nano2Exp.get();
 }
 
 /**

@@ -27,6 +27,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/json/json.h>
@@ -367,7 +368,7 @@ QueryData genWindowsSearch(QueryContext& context) {
     auto maxResultsConstraint =
         context.constraints["max_results"].getAll(EQUALS);
     auto maxResultsStr = SQL_TEXT(*maxResultsConstraint.begin());
-    maxResults = std::stol(maxResultsStr);
+    maxResults = tryTo<long>(maxResultsStr).takeOr(100L);
   }
 
   class windowsToOsqueryColumn {

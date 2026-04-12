@@ -211,7 +211,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
     // Optionally allow the caller to request a max number of keys.
     size_t max = 0;
     if (request.count("max") > 0) {
-      max = std::stoul(request.at("max"));
+      max = tryTo<size_t>(request.at("max")).takeOr(0ull);
     }
     auto status = this->scan(domain, keys, request.at("prefix"), max);
     for (const auto& k : keys) {
@@ -318,7 +318,11 @@ Status getDatabaseValue(const std::string& domain,
   std::string result;
   auto s = getDatabaseValue(domain, key, result);
   if (s.ok()) {
-    value = std::stoi(result);
+    auto valueExp = tryTo<int>(result);
+    if (valueExp.isError()) {
+      return Status(1, "Failed to convert database value to int");
+    }
+    value = valueExp.get();
   }
   return s;
 }

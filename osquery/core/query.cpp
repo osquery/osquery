@@ -16,6 +16,7 @@
 #include <osquery/core/query.h>
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 
 #include <osquery/utils/json/json.h>
 
@@ -33,13 +34,12 @@ FLAG(bool,
 FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
 
 uint64_t Query::getPreviousEpoch() const {
-  uint64_t epoch = 0;
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_ + "epoch", raw);
   if (status.ok()) {
-    epoch = std::stoull(raw);
+    return tryTo<uint64_t>(raw).takeOr(0ull);
   }
-  return epoch;
+  return 0;
 }
 
 uint64_t Query::getQueryCounter(bool is_reset,
@@ -59,7 +59,10 @@ uint64_t Query::getQueryCounter(bool is_reset,
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_ + "counter", raw);
   if (status.ok()) {
-    counter = std::stoull(raw) + 1;
+    auto counterExp = tryTo<uint64_t>(raw);
+    if (!counterExp.isError()) {
+      counter = counterExp.get() + 1;
+    }
   }
   return counter;
 }

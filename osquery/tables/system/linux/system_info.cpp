@@ -21,6 +21,7 @@
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/linux/smbios_utils.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -86,11 +87,16 @@ QueryData genSystemInfo(QueryContext& context) {
       } else if (line.find("siblings") == 0) {
         auto details = osquery::split(line, ":");
         if (details.size() == 2) {
-          unsigned int logical_cores_per_socket = std::stoi(details[1]);
-          r["cpu_sockets"] =
-              (logical_cores > 0 && logical_cores_per_socket > 0)
-                  ? INTEGER(logical_cores / logical_cores_per_socket)
-                  : "-1";
+          auto coresExp = tryTo<unsigned int>(details[1]);
+          if (coresExp.isError()) {
+            r["cpu_sockets"] = "-1";
+          } else {
+            unsigned int logical_cores_per_socket = coresExp.get();
+            r["cpu_sockets"] =
+                (logical_cores > 0 && logical_cores_per_socket > 0)
+                    ? INTEGER(logical_cores / logical_cores_per_socket)
+                    : "-1";
+          }
         }
       }
 
