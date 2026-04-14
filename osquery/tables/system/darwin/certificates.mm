@@ -189,7 +189,7 @@ QueryData genCerts(QueryContext& context) {
     // with a search list built from SecKeychainCopyDomainSearchList. This
     // avoids SecKeychainOpen which corrupts the login keychain on macOS 26+.
     CFArrayRef certs = CreateAllKeychainCertificates();
-    if (certs != nullptr && CFGetTypeID(certs) == CFArrayGetTypeID()) {
+    if (certs != nullptr) {
       auto count = CFArrayGetCount(certs);
       for (CFIndex i = 0; i < count; i++) {
         auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
