@@ -141,8 +141,8 @@ CFArrayRef CreateAllKeychainCertificates() {
       }
       CFRelease(domain_list);
     } else {
-      VLOG(1) << "SecKeychainCopyDomainSearchList failed for domain "
-              << domain << " with status " << status;
+      VLOG(1) << "SecKeychainCopyDomainSearchList failed for domain " << domain
+              << " with status " << status;
     }
   }
 

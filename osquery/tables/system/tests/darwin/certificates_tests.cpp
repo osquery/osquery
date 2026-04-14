@@ -118,9 +118,8 @@ TEST(KeychainUtilsTests, test_CreateAllKeychainCertificates_includes_system) {
       found_system = true;
     }
   }
-  EXPECT_TRUE(found_system)
-      << "System.keychain certs should be returned by "
-         "CreateAllKeychainCertificates";
+  EXPECT_TRUE(found_system) << "System.keychain certs should be returned by "
+                               "CreateAllKeychainCertificates";
 
   CFRelease(certs);
 }
