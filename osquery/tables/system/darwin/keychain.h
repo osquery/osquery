@@ -84,10 +84,6 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
 /// on unclean shutdown (macOS 26+).
 CFArrayRef CreateAllKeychainCertificates();
 
-/// Return the canonical file paths of keychains in the user's default search
-/// list. Uses SecKeychainCopySearchList (read-only, does not open keychains).
-std::set<std::string> getDefaultKeychainPaths();
-
 std::set<std::string> getKeychainPaths();
 } // namespace tables
 } // namespace osquery

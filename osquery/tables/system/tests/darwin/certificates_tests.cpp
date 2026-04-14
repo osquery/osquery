@@ -104,22 +104,25 @@ TEST_F(CACertsTests, test_certificate_properties) {
   EXPECT_TRUE(is_ca);
 }
 
-TEST(KeychainUtilsTests, test_getDefaultKeychainPaths_returns_nonempty) {
-  auto paths = getDefaultKeychainPaths();
-  // A standard macOS installation always has at least one keychain in the
-  // default search list (e.g. System.keychain or login.keychain-db).
-  EXPECT_FALSE(paths.empty());
+TEST(KeychainUtilsTests, test_CreateAllKeychainCertificates_includes_system) {
+  CFArrayRef certs = CreateAllKeychainCertificates();
+  ASSERT_NE(certs, nullptr);
 
-  // Verify that the System keychain is present.
+  // Verify that at least one certificate comes from System.keychain.
   bool found_system = false;
-  for (const auto& p : paths) {
-    if (p.find("System.keychain") != std::string::npos) {
+  auto count = CFArrayGetCount(certs);
+  for (CFIndex i = 0; i < count && !found_system; i++) {
+    auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+    auto path = getKeychainPath((SecKeychainItemRef)cert);
+    if (path.find("System.keychain") != std::string::npos) {
       found_system = true;
-      break;
     }
   }
   EXPECT_TRUE(found_system)
-      << "System.keychain should be in the default search list";
+      << "System.keychain certs should be returned by "
+         "CreateAllKeychainCertificates";
+
+  CFRelease(certs);
 }
 
 TEST(KeychainUtilsTests, test_CreateAllKeychainCertificates_returns_results) {

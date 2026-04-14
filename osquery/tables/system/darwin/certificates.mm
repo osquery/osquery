@@ -168,7 +168,6 @@ QueryData genCerts(QueryContext& context) {
 
     // Collect the set of valid path constraints for filtering.
     std::set<std::string> filter_paths;
-    std::set<std::string> cert_file_paths;
     if (!paths.empty()) {
       for (const auto& path : paths) {
         boost::system::error_code ec;
@@ -225,6 +224,9 @@ QueryData genCerts(QueryContext& context) {
         }
 
         genKeychainCertificate(cert, results);
+        if (!cert_path.empty()) {
+          satisfied_paths.insert(cert_path);
+        }
       }
       CFRelease(anchors);
     }
