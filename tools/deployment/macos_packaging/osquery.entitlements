@@ -4,6 +4,8 @@
 <dict>
     <key>com.apple.developer.endpoint-security.client</key>
     <true/>
+    <key>com.apple.developer.networking.wifi-info</key>
+    <true/>
     <key>com.apple.application-identifier</key>
     <string>3522FA9PXF.io.osquery.agent</string>
 </dict>
