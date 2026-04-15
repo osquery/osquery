@@ -180,8 +180,7 @@ CFArrayRef CreateAllKeychainCertificates() {
           }
           SecKeychainRef keychain = nullptr;
           OSStatus ks;
-          OSQUERY_USE_DEPRECATED(
-              ks = SecKeychainOpen(file.c_str(), &keychain));
+          OSQUERY_USE_DEPRECATED(ks = SecKeychainOpen(file.c_str(), &keychain));
           if (ks == errSecSuccess && keychain != nullptr) {
             CFArrayAppendValue(all_keychains, keychain);
             existing_paths.insert(file);
