@@ -22,19 +22,40 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
+const std::string kLegacyGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
+const std::string kGkeStatusPath =
+    "/var/db/SystemPolicyConfiguration/SystemPolicy-prefs.plist";
 
-const std::string kGkeBundlePath = "/var/db/gke.bundle/Contents/version.plist";
+const std::string kLegacyGkeBundlePath =
+    "/var/db/gke.bundle/Contents/version.plist";
+const std::string kGkeBundlePath =
+    "/var/db/SystemPolicyConfiguration/gke.bundle/Contents/version.plist";
 
 const std::string kGkeOpaquePath =
     "/var/db/gkopaque.bundle/Contents/version.plist";
 
-const std::string kPolicyDb = "/var/db/SystemPolicy";
+const std::string kLegacyPolicyDb = "/var/db/SystemPolicy";
+const std::string kPolicyDb = "/var/db/SystemPolicyConfiguration/SystemPolicy";
 
-bool isGateKeeperDevIdEnabled() {
+static bool getMajorOSVersion(int& version) {
+  auto os_version = SQL::selectAllFrom("os_version");
+  if (os_version.size() != 1) {
+    return false;
+  }
+
+  try {
+    version = std::stoi(os_version.front().at("major"));
+    return true;
+  } catch (const std::exception&) {
+  }
+
+  return false;
+}
+
+bool isGateKeeperDevIdEnabled(int os_version) {
   sqlite3* db = nullptr;
   auto rc = sqlite3_open_v2(
-      kPolicyDb.c_str(),
+      (os_version < 15) ? kLegacyPolicyDb.c_str() : kPolicyDb.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
@@ -77,7 +98,17 @@ bool isGateKeeperDevIdEnabled() {
 QueryData genGateKeeper(QueryContext& context) {
   Row r;
 
-  auto gke_status = SQL::selectAllFrom("plist", "path", EQUALS, kGkeStatusPath);
+  int os_version;
+  if (getMajorOSVersion(os_version) == false) {
+    LOG(WARNING) << "Could not determine OS version";
+    return {};
+  }
+
+  auto gke_status = SQL::selectAllFrom(
+      "plist",
+      "path",
+      EQUALS,
+      (os_version < 15) ? kLegacyGkeStatusPath : kGkeStatusPath);
 
   if (gke_status.empty()) {
     // The absence of the file indicates that Gatekeeper is fully enabled
@@ -92,14 +123,18 @@ QueryData genGateKeeper(QueryContext& context) {
     if (row.at("key") == "enabled" && row.at("value") == "yes") {
       r["assessments_enabled"] = INTEGER(1);
       r["dev_id_enabled"] =
-          isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
+          isGateKeeperDevIdEnabled(os_version) ? INTEGER(1) : INTEGER(0);
     } else {
       r["assessments_enabled"] = INTEGER(0);
       r["dev_id_enabled"] = INTEGER(0);
     }
   }
 
-  auto gke_bundle = SQL::selectAllFrom("plist", "path", EQUALS, kGkeBundlePath);
+  auto gke_bundle = SQL::selectAllFrom(
+      "plist",
+      "path",
+      EQUALS,
+      os_version < 15 ? kLegacyGkeBundlePath : kGkeBundlePath);
 
   if (gke_bundle.empty()) {
     r["version"] = std::string();
@@ -150,10 +185,16 @@ void genGateKeeperApprovedAppRow(sqlite3_stmt* const stmt, Row& r) {
 QueryData genGateKeeperApprovedApps(QueryContext& context) {
   QueryData results;
 
+  int os_version;
+  if (getMajorOSVersion(os_version) == false) {
+    LOG(WARNING) << "Could not determine OS version";
+    return {};
+  }
+
   sqlite3* db = nullptr;
 
   auto rc = sqlite3_open_v2(
-      kPolicyDb.c_str(),
+      (os_version < 15) ? kLegacyPolicyDb.c_str() : kPolicyDb.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
