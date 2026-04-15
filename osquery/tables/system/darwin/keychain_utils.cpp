@@ -146,6 +146,54 @@ CFArrayRef CreateAllKeychainCertificates() {
     }
   }
 
+  // When running as root, the User domain only returns root's keychains.
+  // Enumerate user home directories to find login keychains for all users,
+  // matching the old getKeychainPaths() behavior.
+  // We track paths already in the search list to avoid duplicates.
+  std::set<std::string> existing_paths;
+  for (CFIndex i = 0; i < CFArrayGetCount(all_keychains); i++) {
+    auto kc = (SecKeychainRef)CFArrayGetValueAtIndex(all_keychains, i);
+    UInt32 path_size = 1024;
+    char kc_path[1024] = {0};
+    OSStatus ps;
+    OSQUERY_USE_DEPRECATED(ps = SecKeychainGetPath(kc, &path_size, kc_path));
+    if (ps == errSecSuccess && path_size > 0 && kc_path[0] != 0) {
+      existing_paths.insert(std::string(kc_path));
+    }
+  }
+
+  try {
+    auto homes = getHomeDirectories();
+    for (const auto& dir : homes) {
+      for (const auto& keychains_dir : kUserKeychainPaths) {
+        auto kc_dir = (dir / keychains_dir).string();
+        if (!isDirectory(kc_dir).ok()) {
+          continue;
+        }
+        std::vector<std::string> files;
+        if (!listFilesInDirectory(kc_dir, files).ok()) {
+          continue;
+        }
+        for (const auto& file : files) {
+          if (existing_paths.count(file) > 0) {
+            continue;
+          }
+          SecKeychainRef keychain = nullptr;
+          OSStatus ks;
+          OSQUERY_USE_DEPRECATED(
+              ks = SecKeychainOpen(file.c_str(), &keychain));
+          if (ks == errSecSuccess && keychain != nullptr) {
+            CFArrayAppendValue(all_keychains, keychain);
+            existing_paths.insert(file);
+            CFRelease(keychain);
+          }
+        }
+      }
+    }
+  } catch (const std::exception& e) {
+    VLOG(1) << "Failed to enumerate user home directories: " << e.what();
+  }
+
   CFMutableDictionaryRef query;
   query = CFDictionaryCreateMutable(nullptr,
                                     0,
