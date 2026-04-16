@@ -999,8 +999,9 @@ void ResolveObjectName(HandleRecord& record,
     // because the alternative (NtQueryObject blocking forever) is worse.
     // WaitForSingleObject ensures the thread has fully exited before we
     // return (and the params struct on our stack goes out of scope).
-    // The user is aware of this risk when they enable the handle threads
-    // fallback via FLAGS_allow_handle_threads.
+    // This is enabled by default, but can be disabled if needed by setting
+    // the allow_handle_threads flag to false, which will cause us to log
+    // an error and return without attempting the thread fallback.
     TerminateThread(hThread, ERROR_CANCELLED);
     WaitForSingleObject(hThread, INFINITE);
   }
