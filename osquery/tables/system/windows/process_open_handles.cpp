@@ -20,6 +20,7 @@
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/sql.h>
 #include <osquery/tables/system/windows/token_privileges.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 // Link against ntdll.lib directly to access NT Native API functions
@@ -363,102 +364,87 @@ class HandleRecordCache {
   // std::string instead of a pointer because this function is only called at
   // row generation time, and will be copied regardless
   //
-  std::string& GetGrantedAccessString(ULONG grantedAccess,
-                                      const std::string& type) {
+  const std::string& GetGrantedAccessString(ULONG grantedAccess,
+                                            const std::string& type) {
     auto it = m_grantedAccessCache.find({grantedAccess, type});
     if (it != m_grantedAccessCache.end()) {
       return it->second;
-    } else {
-      std::vector<std::string_view> rights;
-      auto check_mask = [&](const mappings::MappedValue& mapping) {
-        if (grantedAccess & mapping.mask)
-          rights.push_back(mapping.name);
-      };
-
-      // Handle Generic Rights
-      for (const auto& mapping : mappings::Generic) {
-        check_mask(mapping);
-      }
-
-      // Handle Standard Rights (Common to most objects)
-      for (const auto& mapping : mappings::Standard) {
-        check_mask(mapping);
-      }
-
-      // Handle Type-Specific Rights
-      if (type == "File") {
-        for (const auto& mapping : mappings::File) {
-          check_mask(mapping);
-        }
-      } else if (type == "Directory") {
-        for (const auto& mapping : mappings::Directory) {
-          check_mask(mapping);
-        }
-      } else if (type == "Key") {
-        for (const auto& mapping : mappings::Key) {
-          check_mask(mapping);
-        }
-      }
-
-      // Combine results
-      if (rights.empty()) {
-        static std::string noAccess = "NO_ACCESS";
-        return noAccess;
-      }
-
-      std::string accessRights;
-      for (size_t i = 0; i < rights.size(); i++) {
-        accessRights.append(rights[i]);
-        if (i != rights.size() - 1) {
-          accessRights.append("|");
-        }
-      }
-
-      auto [it, _] = m_grantedAccessCache.try_emplace({grantedAccess, type},
-                                                      std::move(accessRights));
-      return it->second;
     }
+
+    std::vector<std::string> rights;
+    auto check_mask = [&](const mappings::MappedValue& mapping) {
+      if (grantedAccess & mapping.mask)
+        rights.emplace_back(mapping.name.data(), mapping.name.size());
+    };
+
+    // Handle Generic Rights
+    for (const auto& mapping : mappings::Generic) {
+      check_mask(mapping);
+    }
+
+    // Handle Standard Rights (Common to most objects)
+    for (const auto& mapping : mappings::Standard) {
+      check_mask(mapping);
+    }
+
+    // Handle Type-Specific Rights
+    if (type == "File") {
+      for (const auto& mapping : mappings::File) {
+        check_mask(mapping);
+      }
+    } else if (type == "Directory") {
+      for (const auto& mapping : mappings::Directory) {
+        check_mask(mapping);
+      }
+    } else if (type == "Key") {
+      for (const auto& mapping : mappings::Key) {
+        check_mask(mapping);
+      }
+    }
+
+    // Combine results
+    if (rights.empty()) {
+      std::string noAccess = "NO_ACCESS";
+      auto emplace_result = m_grantedAccessCache.try_emplace(
+          {grantedAccess, type}, std::move(noAccess));
+      return emplace_result.first->second;
+    }
+
+    std::string accessRights = osquery::join(rights, "|");
+
+    auto emplace_result = m_grantedAccessCache.try_emplace(
+        {grantedAccess, type}, std::move(accessRights));
+    return emplace_result.first->second;
   }
 
   // Similar to GetGrantedAccessString, we want to cache the results of
   // decoding handle attributes for use in our final output.
   //
   std::string& GetHandleAttributesString(ULONG handleAttributes) {
-    static std::string emptyString = "";
-
-    if (0 == handleAttributes) {
-      return emptyString;
-    }
-
     auto it = m_handleAttributesCache.find(handleAttributes);
     if (it != m_handleAttributesCache.end()) {
       return it->second;
-    } else {
-      std::vector<std::string_view> attributes;
-      auto check_mask = [&](const mappings::MappedValue& mapping) {
-        if (handleAttributes & mapping.mask)
-          attributes.push_back(mapping.name);
-      };
-      for (const auto& mapping : mappings::Attributes) {
-        check_mask(mapping);
-      }
-
-      if (attributes.empty()) {
-        return emptyString;
-      }
-
-      std::string attributesStr;
-      for (size_t i = 0; i < attributes.size(); i++) {
-        attributesStr.append(attributes[i]);
-        if (i != attributes.size() - 1) {
-          attributesStr.append(",");
-        }
-      }
-
-      auto [it, _] = m_handleAttributesCache.try_emplace(
-          handleAttributes, std::move(attributesStr));
-      return it->second;
     }
+    std::vector<std::string> attributes;
+    auto check_mask = [&](const mappings::MappedValue& mapping) {
+      if (handleAttributes & mapping.mask)
+        attributes.emplace_back(mapping.name.data(), mapping.name.size());
+    };
+    for (const auto& mapping : mappings::Attributes) {
+      check_mask(mapping);
+    }
+
+    if (attributes.empty()) {
+      std::string emptyString = "";
+      auto emplace_result = m_handleAttributesCache.try_emplace(
+          handleAttributes, std::move(emptyString));
+      return emplace_result.first->second;
+    }
+
+    std::string attributesStr = osquery::join(attributes, ",");
+    auto emplace_result = m_handleAttributesCache.try_emplace(
+        handleAttributes, std::move(attributesStr));
+    return emplace_result.first->second;
   }
 
   void CacheHandleType(ULONG typeIndex, const std::wstring& typeName) {
@@ -752,10 +738,7 @@ GetObjectTypeEnumeration(HandleRecordCache& cache) {
   // the next entry starts at the next pointer-aligned address.
   POBJECT_TYPE_INFORMATION typeIter = &pTypes->Types[0];
   for (ULONG i = 0; i < pTypes->NumberOfTypes; i++) {
-    cache.CacheHandleType(
-        typeIter->TypeIndex,
-        std::wstring(typeIter->TypeName.Buffer,
-                     typeIter->TypeName.Length / sizeof(WCHAR)));
+    cache.CacheHandleType(typeIter->TypeIndex, &typeIter->TypeName);
 
     // advance our iterator, accounting for the trailing serialized string
     // buffer and alignment
