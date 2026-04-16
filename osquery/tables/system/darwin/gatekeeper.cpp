@@ -16,6 +16,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sqlite_util.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
 
@@ -43,10 +44,10 @@ static bool getMajorOSVersion(int& version) {
     return false;
   }
 
-  try {
-    version = std::stoi(os_version.front().at("major"));
+  auto major_version = tryTo<int>(os_version.front().at("major"));
+  if (major_version) {
+    version = major_version.take();
     return true;
-  } catch (const std::exception&) {
   }
 
   return false;
