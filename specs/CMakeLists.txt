@@ -75,6 +75,7 @@ function(generateNativeTables)
     utility/osquery_schedule.table
     utility/time.table
     yara.table
+    yara_process_scan.table
     yara_events.table
     ycloud_instance_metadata.table
   )

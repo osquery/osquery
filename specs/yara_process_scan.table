@@ -1,7 +1,7 @@
-table_name("yara")
-description("Triggers one-off YARA query for files or processes at the specified path. Additionally requires one of `sig_group`, `sigfile`, or `sigrule`.")
+table_name("yara_process_scan")
+description("Triggers one-off YARA query for process memory of the specified pid. Additionally requires one of `sig_group`, `sigfile`, or `sigrule`.")
 schema([
-    Column("path", TEXT, "The path scanned",
+    Column("pid", INTEGER, "The pid scanned (process memory)",
         index=True, required=True),
     Column("matches", TEXT, "List of YARA matches"),
     Column("count", INTEGER, "Number of YARA matches"),
@@ -19,10 +19,10 @@ schema([
 extended_schema(LINUX, [
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
 ])
-implementation("yara@genYaraFileScan")
+implementation("yara@genYaraProcessScan")
 examples([
-  "select * from yara where path = '/etc/passwd'",
-  "select * from yara where path LIKE '/etc/%'",
-  "select * from yara where path = '/etc/passwd' and sigfile = '/etc/osquery/yara/test.yara'",
-  "select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }'",
+  "select * from yara where pid = 1234",
+  "select * from yara where pid in (select pid from processes)",
+  "select * from yara where pid = 1234 and sigfile = '/etc/osquery/yara/test.yara'",
+  "select * from yara where pid = 1234 and sigrule = 'rule always_true { condition: true }'",
 ])
