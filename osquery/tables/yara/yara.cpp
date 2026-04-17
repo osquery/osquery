@@ -470,13 +470,9 @@ QueryData genYaraFileScanImpl(QueryContext& context, Logger& logger) {
 
   // Scan every path pair with the yara rules
   auto& rules = state.yaraParser->rules();
-  logger.log(google::GLOG_WARNING,
-             "YARA file scan initialized with " + std::to_string(rules.size()) +
-                 " rules");
 
   // Scan files
   for (const auto& path : paths) {
-    logger.log(google::GLOG_WARNING, "Scanning file: " + path);
     for (const auto& sign : state.scanContext) {
       auto hash = hashStr(sign.second, sign.first);
       auto rules_it = rules.find(hash);
