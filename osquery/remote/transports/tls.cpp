@@ -9,6 +9,8 @@
 
 #include "tls.h"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -223,6 +225,22 @@ void printRawStderr(const std::string& s) {
   fprintf(stderr, "%s\n", s.c_str());
 }
 
+/// Cap on dumped response-body length when --tls_dump is enabled.
+constexpr std::size_t kMaxDumpLen = 200;
+
+std::pair<std::string, bool> truncateAndDetectHTML(const std::string& body,
+                                                   std::size_t max_len) {
+  std::string truncated =
+      body.size() > max_len ? body.substr(0, max_len) + "..." : body;
+  std::string lowered = truncated;
+  std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](char c) {
+    return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  });
+  bool isHTML = lowered.find("<html") != std::string::npos ||
+                lowered.find("<!doctype") != std::string::npos;
+  return {std::move(truncated), isHTML};
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status::failure(
@@ -242,7 +260,14 @@ Status TLSTransport::sendRequest() {
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
       // Not using VLOG to avoid logging whole body to logging destination.
-      printRawStderr(response_body);
+      auto [snippet, isHTML] =
+          truncateAndDetectHTML(response_body, kMaxDumpLen);
+      if (isHTML) {
+        printRawStderr("server returned HTML instead of JSON, body: " +
+                       snippet);
+      } else {
+        printRawStderr(snippet);
+      }
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
@@ -293,7 +318,14 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
       // Not using VLOG to avoid logging whole body to logging destination.
-      printRawStderr(response_body);
+      auto [snippet, isHTML] =
+          truncateAndDetectHTML(response_body, kMaxDumpLen);
+      if (isHTML) {
+        printRawStderr("server returned HTML instead of JSON, body: " +
+                       snippet);
+      } else {
+        printRawStderr(snippet);
+      }
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);

@@ -48,6 +48,23 @@ enum HTTPVerb {
 };
 
 /**
+ * @brief Truncate a response body for debug logging and detect whether it
+ * looks like HTML.
+ *
+ * When an HTML payload is returned instead of the expected JSON payload,
+ * dumping the full body to stderr floods logs with unreadable markup. 
+ * This helper caps the snippet length and flags HTML bodies so the caller 
+ * can prefix a hint.
+ *
+ * @param body the raw response body
+ * @param max_len maximum number of bytes to retain; longer bodies are
+ *     truncated and suffixed with "..."
+ * @return pair of (truncated snippet, isHTML)
+ */
+std::pair<std::string, bool> truncateAndDetectHTML(const std::string& body,
+                                                   std::size_t max_len);
+
+/**
  * @brief HTTPS (TLS) transport.
  */
 class TLSTransport : public Transport {

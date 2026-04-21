@@ -310,4 +310,74 @@ TEST_F(TLSTransportsTests, test_node_key_header_not_set) {
   EXPECT_TRUE(std::string(r[kAuthorizationHeader]).empty());
 }
 
+TEST(TruncateAndDetectHTMLTests, detects_doctype_html_prefix) {
+  std::string body =
+      "<!DOCTYPE html><html><head><title>403 Forbidden</title></head>"
+      "<body><h1>403 Forbidden</h1></body></html>";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_TRUE(isHTML);
+  EXPECT_EQ(snippet, body);
+}
+
+TEST(TruncateAndDetectHTMLTests, detects_uppercase_html_tag) {
+  std::string body = "<HTML><HEAD><TITLE>Error</TITLE></HEAD></HTML>";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_TRUE(isHTML);
+  EXPECT_EQ(snippet, body);
+}
+
+TEST(TruncateAndDetectHTMLTests, truncates_long_html) {
+  std::string body =
+      "<!DOCTYPE html><html><body>" + std::string(500, 'A') + "</body></html>";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_TRUE(isHTML);
+  EXPECT_EQ(snippet.size(), 203u); // 200 + "..."
+  EXPECT_EQ(snippet.substr(snippet.size() - 3), "...");
+}
+
+TEST(TruncateAndDetectHTMLTests, truncates_long_plain_text) {
+  std::string body(250, 'a');
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_FALSE(isHTML);
+  EXPECT_EQ(snippet, std::string(200, 'a') + "...");
+}
+
+TEST(TruncateAndDetectHTMLTests, passes_through_short_plain_text) {
+  std::string body = "Connection refused";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_FALSE(isHTML);
+  EXPECT_EQ(snippet, body);
+}
+
+TEST(TruncateAndDetectHTMLTests, passes_through_short_json) {
+  std::string body = R"({"ok":true})";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_FALSE(isHTML);
+  EXPECT_EQ(snippet, body);
+}
+
+TEST(TruncateAndDetectHTMLTests, handles_empty_body) {
+  auto [snippet, isHTML] = truncateAndDetectHTML("", 200);
+  EXPECT_FALSE(isHTML);
+  EXPECT_TRUE(snippet.empty());
+}
+
+TEST(TruncateAndDetectHTMLTests, exact_max_len_not_truncated) {
+  std::string body(200, 'x');
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_FALSE(isHTML);
+  EXPECT_EQ(snippet, body);
+  EXPECT_EQ(snippet.size(), 200u);
+}
+
+TEST(TruncateAndDetectHTMLTests, html_marker_past_cap_not_detected) {
+  // If the HTML marker only appears past max_len, the truncated snippet
+  // won't contain it, so we won't flag. This is acceptable: the first 200
+  // bytes don't look like HTML to an operator either.
+  std::string body(300, ' ');
+  body += "<html>";
+  auto [snippet, isHTML] = truncateAndDetectHTML(body, 200);
+  EXPECT_FALSE(isHTML);
+}
+
 } // namespace osquery
