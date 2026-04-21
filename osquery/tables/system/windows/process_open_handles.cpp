@@ -33,7 +33,7 @@ namespace osquery {
 HIDDEN_FLAG(bool,
             allow_handle_threads,
             true,
-            "Disable using blockable threads in process_open_handles"
+            "Allow using blockable threads in process_open_handles"
             " when the system handle information query fails");
 
 namespace tables {
@@ -403,15 +403,10 @@ class HandleRecordCache {
     }
 
     // Combine results
-    if (rights.empty()) {
-      std::string noAccess = "NO_ACCESS";
-      auto emplace_result = m_grantedAccessCache.try_emplace(
-          {grantedAccess, type}, std::move(noAccess));
-      return emplace_result.first->second;
+    std::string accessRights = "NO_ACCESS";
+    if (!rights.empty()) {
+      accessRights = osquery::join(rights, "|");
     }
-
-    std::string accessRights = osquery::join(rights, "|");
-
     auto emplace_result = m_grantedAccessCache.try_emplace(
         {grantedAccess, type}, std::move(accessRights));
     return emplace_result.first->second;
@@ -434,14 +429,11 @@ class HandleRecordCache {
       check_mask(mapping);
     }
 
-    if (attributes.empty()) {
-      std::string emptyString = "";
-      auto emplace_result = m_handleAttributesCache.try_emplace(
-          handleAttributes, std::move(emptyString));
-      return emplace_result.first->second;
+    std::string attributesStr = "";
+    if (!attributes.empty()) {
+      attributesStr = osquery::join(attributes, ",");
     }
 
-    std::string attributesStr = osquery::join(attributes, ",");
     auto emplace_result = m_handleAttributesCache.try_emplace(
         handleAttributes, std::move(attributesStr));
     return emplace_result.first->second;
@@ -897,7 +889,7 @@ void ResolveObjectName(HandleRecord& record,
   // For File object types the NtQueryObject call could block
   // indefinitely (sync consoles, pipes, etc.)  We first attempt the
   // non-blocking mapping technique (section + mapped filename query).
-  // If the mapping technique fails and the caller opted in via
+  // If the mapping technique fails and the caller has not disabled
   // FLAGS_allow_handle_threads, we fall back to a thread with a timeout.
   if (0 != RtlCompareUnicodeString(&objectTypeName, &fileTypeName, FALSE)) {
     params.ntStatus = NtQueryObject(params.hObject,
@@ -923,12 +915,11 @@ void ResolveObjectName(HandleRecord& record,
     return;
   }
 
-  // Mapping technique failed, we will continue with the thread fallback only if
-  // the user has explicitly accepted the risk of potential hangs by enabling
-  // FLAGS_allow_handle_threads. Otherwise we will record the mapping error and
-  // return.
+  // Mapping technique failed, we will continue with the thread fallback unless
+  // FLAGS_allow_handle_threads is explicitly disabled. Otherwise we will
+  // record the mapping error and return.
   if (!FLAGS_allow_handle_threads) {
-    // Mapping technique failed and thread fallback is disabled (the default).
+    // Mapping technique failed and thread fallback is disabled.
     // NtQueryObject risks blocking indefinitely.  Record the mapping error
     // and leave the name unresolved.
     record.SetError(ErrorStage::ObjectNameMapping,
@@ -950,8 +941,7 @@ void ResolveObjectName(HandleRecord& record,
   // 1) creating a minimal worker (`SKIP_THREAD_ATTACH`),
   // 2) bounding wait time (500ms),
   // 3) forcing thread exit only on timeout/failure.
-  // 4) thread fallback is excplicitly opt-in via FLAGS_allow_handle_threads
-  // (default is disabled)
+  // 4) thread fallback can be disabled via FLAGS_allow_handle_threads
   HANDLE hThread = NULL;
   NTSTATUS ntThreadStatus =
       NtCreateThreadEx(&hThread,
