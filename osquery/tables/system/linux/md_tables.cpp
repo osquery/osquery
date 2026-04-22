@@ -146,7 +146,17 @@ std::string MD::getDevName(int major, int minor) {
     const char* devMajor = udev_device_get_property_value(device, "MAJOR");
     const char* devMinor = udev_device_get_property_value(device, "MINOR");
 
-    if (std::stoi(devMajor) == major && std::stoi(devMinor) == minor) {
+    if (devMajor == nullptr || devMinor == nullptr) {
+      return false;
+    }
+
+    auto majorExp = tryTo<int>(devMajor);
+    auto minorExp = tryTo<int>(devMinor);
+    if (majorExp.isError() || minorExp.isError()) {
+      return false;
+    }
+
+    if (majorExp.get() == major && minorExp.get() == minor) {
       devName = udev_device_get_property_value(device, "DEVNAME");
       return true;
     }
@@ -426,7 +436,12 @@ MDDrive parseMDDrive(const std::string& name) {
   }
 
   // No need to check name length since we know it is at least 2 characters.
-  drive.pos = std::stoi(name.substr(start + 1, end - start - 1));
+  auto posExp = tryTo<int>(name.substr(start + 1, end - start - 1));
+  if (posExp.isError()) {
+    LOG(WARNING) << "Could not parse drive position from: " << name;
+    return drive;
+  }
+  drive.pos = posExp.get();
 
   return drive;
 }

@@ -110,11 +110,13 @@ struct SequentialContext {
 void SequentialContext::load() {
   std::string str;
   auto s = getDatabaseValue(kPersistentSettings, kUALtimestampKey, str);
-  if (s.ok())
-    timestamp = std::stod(str);
+  if (s.ok()) {
+    timestamp = tryTo<double>(str).takeOr(0.0);
+  }
   s = getDatabaseValue(kPersistentSettings, kUALcountKey, str);
-  if (s.ok())
-    count = std::stoi(str);
+  if (s.ok()) {
+    count = tryTo<int>(str).takeOr(0);
+  }
 }
 
 void SequentialContext::save() {
