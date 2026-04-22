@@ -78,6 +78,13 @@ std::string getKeychainPath(const SecKeychainItemRef& item);
 CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
                                const CFTypeRef& item_type);
 
+/// Returns true if the given keychain file path resides on the Signed System
+/// Volume (under /System/Library/Keychains) and is therefore read-only and
+/// safe to open via SecKeychainOpen. On macOS 26+, opening a live non-SSV
+/// keychain file can corrupt it, so callers should copy the file to a private
+/// temp location and open the copy instead.
+bool isSSVProtectedPath(const std::string& path);
+
 std::set<std::string> getKeychainPaths();
 } // namespace tables
 } // namespace osquery

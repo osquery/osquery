@@ -114,6 +114,21 @@ CFArrayRef CreateKeychainItems(CFMutableArrayRef keychains,
   return keychain_items;
 }
 
+bool isSSVProtectedPath(const std::string& path) {
+  // The Signed System Volume mounts /System/Library read-only, so keychain
+  // files under /System/Library/Keychains cannot be modified and are safe to
+  // open via the legacy SecKeychainOpen API.
+  static const std::string kSSVPrefix = "/System/Library/Keychains";
+  if (path.size() < kSSVPrefix.size()) {
+    return false;
+  }
+  if (path.compare(0, kSSVPrefix.size(), kSSVPrefix) != 0) {
+    return false;
+  }
+  // Ensure it's either exactly the prefix or a path component boundary.
+  return path.size() == kSSVPrefix.size() || path[kSSVPrefix.size()] == '/';
+}
+
 std::set<std::string> getKeychainPaths() {
   std::set<std::string> keychain_paths;
 
