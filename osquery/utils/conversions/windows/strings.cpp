@@ -26,6 +26,10 @@ struct utf_converter {
   std::wstring from_bytes(const std::string& str) {
     std::wstring result;
     if (str.length() > 0) {
+      // Check for overflow before multiplication
+      if (str.length() > SIZE_MAX / 2) {
+        return result;
+      }
       result.resize(str.length() * 2);
       auto count = MultiByteToWideChar(
           CP_UTF8, 0, str.c_str(), -1, &result[0], str.length() * 2);
@@ -38,6 +42,10 @@ struct utf_converter {
   std::string to_bytes(const std::wstring& str) {
     std::string result;
     if (str.length() > 0) {
+      // Check for overflow before multiplication
+      if (str.length() > SIZE_MAX / 4) {
+        return result;
+      }
       result.resize(str.length() * 4);
       auto count = WideCharToMultiByte(CP_UTF8,
                                        0,
