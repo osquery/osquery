@@ -22,8 +22,7 @@ namespace tables {
 
 // Get all Office applications and get all installed versions
 constexpr auto kOfficePath = "\\Software\\Microsoft\\Office\\%\\%\\File MRU";
-constexpr auto kOffice365Path =
-    "\\Software\\Microsoft\\Office\\%\\%\\User MRU";
+constexpr auto kOffice365Path = "\\Software\\Microsoft\\Office\\%\\%\\User MRU";
 
 // Parse all the office MRU entries.
 void parseOfficeData(QueryData& results,
