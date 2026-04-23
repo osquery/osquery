@@ -30,34 +30,34 @@ void parseEslData(const std::string& content,
                   const std::string& path,
                   QueryData& results);
 
-class SecureBootCertificatesTests : public testing::Test {};
+class SecurebootCertificatesTests : public testing::Test {};
 
 // ---------------------------------------------------------------------------
 // readLE32 tests
 // ---------------------------------------------------------------------------
 
-TEST_F(SecureBootCertificatesTests, readLE32_zero) {
+TEST_F(SecurebootCertificatesTests, readLE32_zero) {
   const uint8_t buf[] = {0x00, 0x00, 0x00, 0x00};
   EXPECT_EQ(readLE32(buf), 0U);
 }
 
-TEST_F(SecureBootCertificatesTests, readLE32_one) {
+TEST_F(SecurebootCertificatesTests, readLE32_one) {
   const uint8_t buf[] = {0x01, 0x00, 0x00, 0x00};
   EXPECT_EQ(readLE32(buf), 1U);
 }
 
-TEST_F(SecureBootCertificatesTests, readLE32_max) {
+TEST_F(SecurebootCertificatesTests, readLE32_max) {
   const uint8_t buf[] = {0xff, 0xff, 0xff, 0xff};
   EXPECT_EQ(readLE32(buf), 0xFFFFFFFFU);
 }
 
-TEST_F(SecureBootCertificatesTests, readLE32_mixed) {
+TEST_F(SecurebootCertificatesTests, readLE32_mixed) {
   // 0x01 | (0x02 << 8) | (0x03 << 16) | (0x04 << 24) = 0x04030201
   const uint8_t buf[] = {0x01, 0x02, 0x03, 0x04};
   EXPECT_EQ(readLE32(buf), 0x04030201U);
 }
 
-TEST_F(SecureBootCertificatesTests, readLE32_high_byte) {
+TEST_F(SecurebootCertificatesTests, readLE32_high_byte) {
   const uint8_t buf[] = {0x00, 0x00, 0x00, 0x80};
   EXPECT_EQ(readLE32(buf), 0x80000000U);
 }
@@ -67,13 +67,13 @@ TEST_F(SecureBootCertificatesTests, readLE32_high_byte) {
 // ---------------------------------------------------------------------------
 
 // Content shorter than the minimum (4 attribute bytes + 28 ESL header).
-TEST_F(SecureBootCertificatesTests, parseEslData_too_short_empty) {
+TEST_F(SecurebootCertificatesTests, parseEslData_too_short_empty) {
   QueryData results;
   parseEslData("", "db", "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
-TEST_F(SecureBootCertificatesTests, parseEslData_too_short_partial) {
+TEST_F(SecurebootCertificatesTests, parseEslData_too_short_partial) {
   // Exactly 31 bytes — one byte less than 4 + 28.
   const std::string content(31, '\x00');
   QueryData results;
@@ -140,7 +140,7 @@ static std::string buildEslBlob(uint8_t guid_first_byte,
 }
 
 // ESL with a non-X.509 GUID — must be skipped entirely.
-TEST_F(SecureBootCertificatesTests, parseEslData_non_x509_guid_skipped) {
+TEST_F(SecurebootCertificatesTests, parseEslData_non_x509_guid_skipped) {
   // Any first byte that is NOT 0xa1 selects a non-X509 entry type.
   const std::string blob = buildEslBlob(0x26U, 20U, 0U, std::vector<uint8_t>(20, 0xAA));
   QueryData results;
@@ -149,7 +149,7 @@ TEST_F(SecureBootCertificatesTests, parseEslData_non_x509_guid_skipped) {
 }
 
 // ESL with X.509 GUID but sig_size <= 16 (too small for owner GUID) — skipped.
-TEST_F(SecureBootCertificatesTests, parseEslData_sig_size_too_small) {
+TEST_F(SecurebootCertificatesTests, parseEslData_sig_size_too_small) {
   // sig_size = 16 means zero cert bytes after the 16-byte owner GUID → skip.
   const std::string blob = buildEslBlob(0xa1U, 16U, 0U, std::vector<uint8_t>(16, 0x00));
   QueryData results;
@@ -158,7 +158,7 @@ TEST_F(SecureBootCertificatesTests, parseEslData_sig_size_too_small) {
 }
 
 // ESL header with sig_list_size == 0 — must break immediately.
-TEST_F(SecureBootCertificatesTests, parseEslData_zero_sig_list_size) {
+TEST_F(SecurebootCertificatesTests, parseEslData_zero_sig_list_size) {
   // Construct a blob where the sig_list_size field in the header is 0.
   std::string blob(4 + 28, '\x00');
   uint8_t* data = reinterpret_cast<uint8_t*>(&blob[0]);
@@ -172,7 +172,7 @@ TEST_F(SecureBootCertificatesTests, parseEslData_zero_sig_list_size) {
 }
 
 // sig_list_size extends beyond buffer — must break.
-TEST_F(SecureBootCertificatesTests, parseEslData_oversized_sig_list_size) {
+TEST_F(SecurebootCertificatesTests, parseEslData_oversized_sig_list_size) {
   std::string blob(4 + 28, '\x00');
   uint8_t* data = reinterpret_cast<uint8_t*>(&blob[0]);
   data[0] = 0x07;
@@ -310,7 +310,7 @@ static std::string buildX509EslBlob(const std::vector<uint8_t>& der_cert,
 // parseEslData end-to-end test with a real self-signed DER certificate.
 // ---------------------------------------------------------------------------
 
-TEST_F(SecureBootCertificatesTests, parseEslData_valid_x509_cert_one_row) {
+TEST_F(SecurebootCertificatesTests, parseEslData_valid_x509_cert_one_row) {
   const auto der_cert = makeSelfSignedDerCert();
   ASSERT_FALSE(der_cert.empty()) << "Failed to generate test certificate";
 
@@ -329,18 +329,20 @@ TEST_F(SecureBootCertificatesTests, parseEslData_valid_x509_cert_one_row) {
   EXPECT_FALSE(row.at("sha1").empty());
   EXPECT_FALSE(row.at("serial").empty());
   EXPECT_EQ(row.at("self_signed"), "1");
-  EXPECT_EQ(row.at("key_algorithm"), "RSA");
+  EXPECT_EQ(row.at("key_algorithm"), "rsaEncryption");
   EXPECT_EQ(row.at("key_strength"), "2048");
 }
 
 // Two concatenated ESL entries in the same blob → two rows.
-TEST_F(SecureBootCertificatesTests, parseEslData_two_entries_two_rows) {
+TEST_F(SecurebootCertificatesTests, parseEslData_two_entries_two_rows) {
   const auto der_cert = makeSelfSignedDerCert();
   ASSERT_FALSE(der_cert.empty()) << "Failed to generate test certificate";
 
   const std::string single = buildX509EslBlob(der_cert, "db");
-  // Concatenate two copies of the same ESL entry.
-  const std::string blob = single + single;
+  // Concatenate two ESL entries: the first blob (with its 4 attr bytes) followed
+  // by a second ESL entry (without attr bytes, since a real EFI variable has
+  // only one set of attribute bytes at the start).
+  const std::string blob = single + single.substr(4);
 
   QueryData results;
   parseEslData(blob, "dbx", "/sys/firmware/efi/efivars/dbx-test", results);
@@ -351,7 +353,7 @@ TEST_F(SecureBootCertificatesTests, parseEslData_two_entries_two_rows) {
 }
 
 // Store name and path are propagated correctly into rows.
-TEST_F(SecureBootCertificatesTests, parseEslData_store_and_path_set) {
+TEST_F(SecurebootCertificatesTests, parseEslData_store_and_path_set) {
   const auto der_cert = makeSelfSignedDerCert();
   ASSERT_FALSE(der_cert.empty());
 
