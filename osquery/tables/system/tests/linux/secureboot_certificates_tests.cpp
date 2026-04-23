@@ -59,10 +59,8 @@ static std::string buildEslBlob(uint8_t guid_first_byte,
                                 const std::vector<uint8_t>& sig_payload) {
   // sig_header_size should be 0 for these tests.
   const uint32_t sigs_area_size =
-      sig_payload.empty() ? 0U
-                          : static_cast<uint32_t>(sig_payload.size());
-  const uint32_t sig_list_size =
-      28U + sig_header_size + sigs_area_size;
+      sig_payload.empty() ? 0U : static_cast<uint32_t>(sig_payload.size());
+  const uint32_t sig_list_size = 28U + sig_header_size + sigs_area_size;
 
   std::string blob(4 + sig_list_size, '\x00');
   uint8_t* data = reinterpret_cast<uint8_t*>(&blob[0]);
@@ -100,9 +98,8 @@ static std::string buildEslBlob(uint8_t guid_first_byte,
 
   // Copy signature payload (owner GUID + cert bytes) after the header.
   if (!sig_payload.empty()) {
-    std::memcpy(esl + 28 + sig_header_size,
-                sig_payload.data(),
-                sig_payload.size());
+    std::memcpy(
+        esl + 28 + sig_header_size, sig_payload.data(), sig_payload.size());
   }
 
   return blob;
@@ -111,7 +108,8 @@ static std::string buildEslBlob(uint8_t guid_first_byte,
 // ESL with a non-X.509 GUID — must be skipped entirely.
 TEST_F(SecurebootCertificatesTests, parseEslData_non_x509_guid_skipped) {
   // Any first byte that is NOT 0xa1 selects a non-X509 entry type.
-  const std::string blob = buildEslBlob(0x26U, 20U, 0U, std::vector<uint8_t>(20, 0xAA));
+  const std::string blob =
+      buildEslBlob(0x26U, 20U, 0U, std::vector<uint8_t>(20, 0xAA));
   QueryData results;
   parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
@@ -120,7 +118,8 @@ TEST_F(SecurebootCertificatesTests, parseEslData_non_x509_guid_skipped) {
 // ESL with X.509 GUID but sig_size <= 16 (too small for owner GUID) — skipped.
 TEST_F(SecurebootCertificatesTests, parseEslData_sig_size_too_small) {
   // sig_size = 16 means zero cert bytes after the 16-byte owner GUID → skip.
-  const std::string blob = buildEslBlob(0xa1U, 16U, 0U, std::vector<uint8_t>(16, 0x00));
+  const std::string blob =
+      buildEslBlob(0xa1U, 16U, 0U, std::vector<uint8_t>(16, 0x00));
   QueryData results;
   parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
@@ -197,14 +196,14 @@ static std::vector<uint8_t> makeSelfSignedDerCert() {
 
   // Subject and issuer: CN=osquery-test-cert
   X509_NAME* name = X509_get_subject_name(cert);
-  X509_NAME_add_entry_by_txt(name,
-                             "CN",
-                             MBSTRING_ASC,
-                             reinterpret_cast<const unsigned char*>(
-                                 "osquery-test-cert"),
-                             -1,
-                             -1,
-                             0);
+  X509_NAME_add_entry_by_txt(
+      name,
+      "CN",
+      MBSTRING_ASC,
+      reinterpret_cast<const unsigned char*>("osquery-test-cert"),
+      -1,
+      -1,
+      0);
   X509_set_issuer_name(cert, name);
 
   // Self-sign with SHA-256.
@@ -231,12 +230,12 @@ static std::vector<uint8_t> makeSelfSignedDerCert() {
   return der;
 }
 
-// Build an ESL blob containing a single X.509 entry wrapping the given DER cert.
+// Build an ESL blob containing a single X.509 entry wrapping the given DER
+// cert.
 static std::string buildX509EslBlob(const std::vector<uint8_t>& der_cert,
                                     const std::string& store) {
   // sig_size = 16 (owner GUID) + cert bytes.
-  const uint32_t sig_size =
-      static_cast<uint32_t>(16U + der_cert.size());
+  const uint32_t sig_size = static_cast<uint32_t>(16U + der_cert.size());
   // sig_list_size = 28 (ESL header) + sig_size.
   const uint32_t sig_list_size = 28U + sig_size;
 
@@ -308,9 +307,9 @@ TEST_F(SecurebootCertificatesTests, parseEslData_two_entries_two_rows) {
   ASSERT_FALSE(der_cert.empty()) << "Failed to generate test certificate";
 
   const std::string single = buildX509EslBlob(der_cert, "db");
-  // Concatenate two ESL entries: the first blob (with its 4 attr bytes) followed
-  // by a second ESL entry (without attr bytes, since a real EFI variable has
-  // only one set of attribute bytes at the start).
+  // Concatenate two ESL entries: the first blob (with its 4 attr bytes)
+  // followed by a second ESL entry (without attr bytes, since a real EFI
+  // variable has only one set of attribute bytes at the start).
   const std::string blob = single + single.substr(4);
 
   QueryData results;

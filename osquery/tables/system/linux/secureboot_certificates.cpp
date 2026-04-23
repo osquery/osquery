@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-namespace osquery{
-namespace tables{
+namespace osquery {
+namespace tables {
 
 namespace {
 // The first 4 bytes of an efivars file are EFI variable attributes, not data.
@@ -79,7 +79,7 @@ struct EfiCertInfo {
 } // namespace
 
 boost::optional<EfiCertInfo> parseDerCertificate(const uint8_t* data,
-                                                  std::size_t len) {
+                                                 std::size_t len) {
   const uint8_t* ptr = data;
   UniqueX509 cert(d2i_X509(nullptr, &ptr, static_cast<long>(len)), X509_free);
   if (!cert) {
@@ -178,14 +178,16 @@ void parseEslData(const std::string& content,
       break;
     }
 
-    const uint32_t sig_list_size = boost::endian::load_little_u32(&data[head + 16]);
-    const uint32_t sig_header_size = boost::endian::load_little_u32(&data[head + 20]);
+    const uint32_t sig_list_size =
+        boost::endian::load_little_u32(&data[head + 16]);
+    const uint32_t sig_header_size =
+        boost::endian::load_little_u32(&data[head + 20]);
     const uint32_t sig_size = boost::endian::load_little_u32(&data[head + 24]);
 
     // Validate sizes before advancing
     if (sig_list_size == 0 || head + sig_list_size > total) {
-      VLOG(1) << "secureboot_certificates: Invalid sig_list_size at offset " << head
-              << " in " << path;
+      VLOG(1) << "secureboot_certificates: Invalid sig_list_size at offset "
+              << head << " in " << path;
       break;
     }
 
@@ -226,7 +228,8 @@ void parseEslData(const std::string& content,
 
       auto opt_cert_info = parseDerCertificate(&data[cert_offset], cert_size);
       if (!opt_cert_info.has_value()) {
-        VLOG(1) << "secureboot_certificates: Failed to parse DER certificate at offset "
+        VLOG(1) << "secureboot_certificates: Failed to parse DER certificate "
+                   "at offset "
                 << cert_offset << " in " << path;
         continue;
       }
@@ -287,5 +290,5 @@ QueryData genSecureBootCertificates(QueryContext& context) {
   return results;
 }
 
-} // namespace osquery
 } // namespace tables
+} // namespace osquery

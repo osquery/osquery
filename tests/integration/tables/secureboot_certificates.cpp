@@ -26,8 +26,7 @@ class SecurebootCertificates : public testing::Test {
 };
 
 TEST_F(SecurebootCertificates, test_sanity) {
-  auto const data =
-      execute_query("SELECT * FROM secureboot_certificates");
+  auto const data = execute_query("SELECT * FROM secureboot_certificates");
 
   if (boost::filesystem::exists("/sys/firmware/efi/efivars")) {
     EXPECT_GT(data.size(), 0U);
