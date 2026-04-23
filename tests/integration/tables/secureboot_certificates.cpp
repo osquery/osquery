@@ -44,7 +44,7 @@ TEST_F(SecurebootCertificates, test_sanity) {
       {"not_valid_after", NonNegativeInt},
       {"sha1", NonEmptyString},
       {"serial", NonEmptyString},
-      {"store", SpecificValuesCheck({"db", "dbx"})},
+      {"revoked", Bool},
       {"path", FileOnDisk},
       {"is_ca", Bool},
       {"self_signed", Bool},

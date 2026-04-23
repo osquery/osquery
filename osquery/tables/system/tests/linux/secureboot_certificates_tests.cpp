@@ -25,7 +25,7 @@ namespace tables {
 
 // Forward-declare internal functions exposed for testing.
 void parseEslData(const std::string& content,
-                  const std::string& store,
+                  bool revoked,
                   const std::string& path,
                   QueryData& results);
 
@@ -38,7 +38,7 @@ class SecurebootCertificatesTests : public testing::Test {};
 // Content shorter than the minimum (4 attribute bytes + 28 ESL header).
 TEST_F(SecurebootCertificatesTests, parseEslData_too_short_empty) {
   QueryData results;
-  parseEslData("", "db", "/fake/path", results);
+  parseEslData("", false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -46,7 +46,7 @@ TEST_F(SecurebootCertificatesTests, parseEslData_too_short_partial) {
   // Exactly 31 bytes — one byte less than 4 + 28.
   const std::string content(31, '\x00');
   QueryData results;
-  parseEslData(content, "db", "/fake/path", results);
+  parseEslData(content, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -113,7 +113,7 @@ TEST_F(SecurebootCertificatesTests, parseEslData_non_x509_guid_skipped) {
   // Any first byte that is NOT 0xa1 selects a non-X509 entry type.
   const std::string blob = buildEslBlob(0x26U, 20U, 0U, std::vector<uint8_t>(20, 0xAA));
   QueryData results;
-  parseEslData(blob, "db", "/fake/path", results);
+  parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -122,7 +122,7 @@ TEST_F(SecurebootCertificatesTests, parseEslData_sig_size_too_small) {
   // sig_size = 16 means zero cert bytes after the 16-byte owner GUID → skip.
   const std::string blob = buildEslBlob(0xa1U, 16U, 0U, std::vector<uint8_t>(16, 0x00));
   QueryData results;
-  parseEslData(blob, "db", "/fake/path", results);
+  parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -136,7 +136,7 @@ TEST_F(SecurebootCertificatesTests, parseEslData_zero_sig_list_size) {
   // sig_list_size at offsets 20-23 (relative to blob start: 4+16=20) is 0.
   // All zeros → sig_list_size == 0 → parser breaks.
   QueryData results;
-  parseEslData(blob, "db", "/fake/path", results);
+  parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -152,7 +152,7 @@ TEST_F(SecurebootCertificatesTests, parseEslData_oversized_sig_list_size) {
   data[4 + 18] = 0xFF;
   data[4 + 19] = 0xFF;
   QueryData results;
-  parseEslData(blob, "db", "/fake/path", results);
+  parseEslData(blob, false, "/fake/path", results);
   EXPECT_TRUE(results.empty());
 }
 
@@ -286,13 +286,13 @@ TEST_F(SecurebootCertificatesTests, parseEslData_valid_x509_cert_one_row) {
   const std::string blob = buildX509EslBlob(der_cert, "db");
 
   QueryData results;
-  parseEslData(blob, "db", "/sys/firmware/efi/efivars/db-test", results);
+  parseEslData(blob, false, "/sys/firmware/efi/efivars/db-test", results);
 
   ASSERT_EQ(results.size(), 1U);
 
   const auto& row = results[0];
 
-  EXPECT_EQ(row.at("store"), "db");
+  EXPECT_EQ(row.at("revoked"), "0");
   EXPECT_EQ(row.at("path"), "/sys/firmware/efi/efivars/db-test");
   EXPECT_EQ(row.at("common_name"), "osquery-test-cert");
   EXPECT_FALSE(row.at("sha1").empty());
@@ -314,25 +314,25 @@ TEST_F(SecurebootCertificatesTests, parseEslData_two_entries_two_rows) {
   const std::string blob = single + single.substr(4);
 
   QueryData results;
-  parseEslData(blob, "dbx", "/sys/firmware/efi/efivars/dbx-test", results);
+  parseEslData(blob, true, "/sys/firmware/efi/efivars/dbx-test", results);
 
   ASSERT_EQ(results.size(), 2U);
-  EXPECT_EQ(results[0].at("store"), "dbx");
-  EXPECT_EQ(results[1].at("store"), "dbx");
+  EXPECT_EQ(results[0].at("revoked"), "1");
+  EXPECT_EQ(results[1].at("revoked"), "1");
 }
 
-// Store name and path are propagated correctly into rows.
-TEST_F(SecurebootCertificatesTests, parseEslData_store_and_path_set) {
+// revoked flag and path are propagated correctly into rows.
+TEST_F(SecurebootCertificatesTests, parseEslData_revoked_and_path_set) {
   const auto der_cert = makeSelfSignedDerCert();
   ASSERT_FALSE(der_cert.empty());
 
   const std::string blob = buildX509EslBlob(der_cert, "dbx");
 
   QueryData results;
-  parseEslData(blob, "dbx", "/sys/firmware/efi/efivars/dbx-abcdef", results);
+  parseEslData(blob, true, "/sys/firmware/efi/efivars/dbx-abcdef", results);
 
   ASSERT_EQ(results.size(), 1U);
-  EXPECT_EQ(results[0].at("store"), "dbx");
+  EXPECT_EQ(results[0].at("revoked"), "1");
   EXPECT_EQ(results[0].at("path"), "/sys/firmware/efi/efivars/dbx-abcdef");
 }
 

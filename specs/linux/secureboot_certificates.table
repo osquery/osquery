@@ -8,8 +8,8 @@ schema([
     Column("not_valid_after", DATETIME, "Certificate expiration date"),
     Column("sha1", TEXT, "SHA1 hash of the raw certificate contents", collate="nocase"),
     Column("serial", TEXT, "Certificate serial number", collate="nocase"),
-    Column("store", TEXT, "EFI variable store name (db or dbx)"),
-    Column("path", TEXT, "Path to the EFI variable file", additional=True),
+    Column("revoked", INTEGER, "1 if the certificate is in the dbx revocation list, 0 if it is in the db allowlist"),
+    Column("path", TEXT, "Path to the EFI variable file"),
     Column("is_ca", INTEGER, "1 if the certificate is a CA, 0 otherwise"),
     Column("self_signed", INTEGER, "1 if the certificate is self-signed, 0 otherwise"),
     Column("key_usage", TEXT, "Certificate key usage extension string"),
@@ -24,6 +24,6 @@ fuzz_paths([
   "/sys/firmware/efi/efivars/",
 ])
 examples([
-  "select common_name, subject, issuer, datetime(not_valid_before, 'unixepoch') as issue_date, datetime(not_valid_after, 'unixepoch') as expiry_date from secureboot_certificates where store = 'db'",
-  "select * from secureboot_certificates where store = 'dbx'",
+  "select common_name, subject, issuer, datetime(not_valid_before, 'unixepoch') as issue_date, datetime(not_valid_after, 'unixepoch') as expiry_date from secureboot_certificates where revoked = 0",
+  "select * from secureboot_certificates where revoked = 1",
 ])

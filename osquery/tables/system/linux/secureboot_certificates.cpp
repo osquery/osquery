@@ -161,7 +161,7 @@ boost::optional<EfiCertInfo> parseDerCertificate(const uint8_t* data,
 // Parse a sequence of concatenated EFI_SIGNATURE_LIST structures and add any
 // X.509 certificates found to results.
 void parseEslData(const std::string& content,
-                  const std::string& store,
+                  bool revoked,
                   const std::string& path,
                   QueryData& results) {
   if (content.size() < kEfiVarAttributeSize + kMinEslSize) {
@@ -241,7 +241,7 @@ void parseEslData(const std::string& content,
       row["not_valid_after"] = INTEGER(cert_info.not_valid_after);
       row["sha1"] = SQL_TEXT(cert_info.sha1);
       row["serial"] = SQL_TEXT(cert_info.serial);
-      row["store"] = SQL_TEXT(store);
+      row["revoked"] = INTEGER(revoked ? 1 : 0);
       row["path"] = SQL_TEXT(path);
       row["is_ca"] = INTEGER(cert_info.is_ca ? 1 : 0);
       row["self_signed"] = INTEGER(cert_info.is_self_signed ? 1 : 0);
@@ -280,7 +280,7 @@ QueryData genSecureBootCertificates(QueryContext& context) {
         continue;
       }
 
-      parseEslData(content, store_name, efi_path, results);
+      parseEslData(content, store_name == "dbx", efi_path, results);
     }
   }
 
