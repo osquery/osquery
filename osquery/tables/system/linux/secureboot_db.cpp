@@ -164,17 +164,18 @@ boost::optional<EfiCertInfo> parseDerCertificate(const uint8_t* data,
 
 // Parse a sequence of concatenated EFI_SIGNATURE_LIST structures and add any
 // X.509 certificates found to results.
-void parseEslData(const std::vector<uint8_t>& data,
+void parseEslData(const std::string& content,
                   const std::string& store,
                   const std::string& path,
                   QueryData& results) {
-  if (data.size() < kMinEslSize) {
+  if (content.size() < kEfiVarAttributeSize + kMinEslSize) {
     VLOG(1) << "secureboot_db: ESL data too short in " << path;
     return;
   }
 
-  std::size_t head = 0;
-  const std::size_t total = data.size();
+  const uint8_t* data = reinterpret_cast<const uint8_t*>(content.data());
+  std::size_t head = kEfiVarAttributeSize;
+  const std::size_t total = content.size();
 
   while (head < total) {
     if (head + kEslHeaderSize > total) {
@@ -285,11 +286,7 @@ QueryData genSecureBootDb(QueryContext& context) {
         continue;
       }
 
-      // Strip the 4-byte EFI variable attributes prefix before parsing.
-      std::vector<uint8_t> esl_data(
-          content.begin() + kEfiVarAttributeSize, content.end());
-
-      parseEslData(esl_data, store_name, efi_path, results);
+      parseEslData(content, store_name, efi_path, results);
     }
   }
 
