@@ -18,7 +18,6 @@
 #include <boost/optional.hpp>
 
 #include <cstdint>
-#include <fstream>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -276,23 +275,19 @@ QueryData genSecureBootDb(QueryContext& context) {
     }
 
     for (const auto& efi_path : matching_paths) {
-      std::ifstream file(efi_path, std::ios::binary);
-      if (!file.is_open()) {
+      std::string content;
+      if (!readFile(efi_path, content).ok()) {
         VLOG(1) << "secureboot_db: Cannot open " << efi_path;
         continue;
       }
 
-      std::vector<uint8_t> raw_data(
-          (std::istreambuf_iterator<char>(file)),
-          std::istreambuf_iterator<char>());
-
-      if (raw_data.size() <= kEfiVarAttributeSize) {
+      if (content.size() <= kEfiVarAttributeSize) {
         continue;
       }
 
       // Strip the 4-byte EFI variable attributes prefix before parsing.
       std::vector<uint8_t> esl_data(
-          raw_data.begin() + kEfiVarAttributeSize, raw_data.end());
+          content.begin() + kEfiVarAttributeSize, content.end());
 
       parseEslData(esl_data, store_name, efi_path, results);
     }
