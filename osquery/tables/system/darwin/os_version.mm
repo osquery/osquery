@@ -15,10 +15,12 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tables/system/darwin/os_version.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/split.h>
 
 #import <CoreFoundation/CoreFoundation.h>
+#import <Foundation/Foundation.h>
 
 namespace osquery {
 namespace tables {
@@ -108,7 +110,7 @@ QueryData genOSVersion(QueryContext& context) {
   r["platform_like"] = "darwin";
 
   // Determine architecture
-  struct utsname uname_buf {};
+  struct utsname uname_buf{};
 
   if (uname(&uname_buf) == 0) {
     r["arch"] = SQL_TEXT(uname_buf.machine);
@@ -186,5 +188,16 @@ QueryData genOSVersion(QueryContext& context) {
   results.push_back(r);
   return results;
 }
+
+bool isOperatingSystemAtLeastVersion(int majorVersion,
+                                     int minorVersion,
+                                     int patchVersion) {
+  NSProcessInfo* processInfo = [NSProcessInfo processInfo];
+  NSOperatingSystemVersion min_version = {
+      majorVersion, minorVersion, patchVersion};
+
+  return [processInfo isOperatingSystemAtLeastVersion:(min_version)];
+}
+
 } // namespace tables
 } // namespace osquery

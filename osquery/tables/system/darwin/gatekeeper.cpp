@@ -16,6 +16,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sqlite_util.h>
+#include <osquery/tables/system/darwin/os_version.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
@@ -23,11 +24,12 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kLegacyGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
+const std::string kGkeStatusPathBeforeSequoia =
+    "/var/db/SystemPolicy-prefs.plist";
 const std::string kGkeStatusPath =
     "/var/db/SystemPolicyConfiguration/SystemPolicy-prefs.plist";
 
-const std::string kLegacyGkeBundlePath =
+const std::string kGkeBundlePathBeforeSequoia =
     "/var/db/gke.bundle/Contents/version.plist";
 const std::string kGkeBundlePath =
     "/var/db/SystemPolicyConfiguration/gke.bundle/Contents/version.plist";
@@ -35,28 +37,13 @@ const std::string kGkeBundlePath =
 const std::string kGkeOpaquePath =
     "/var/db/gkopaque.bundle/Contents/version.plist";
 
-const std::string kLegacyPolicyDb = "/var/db/SystemPolicy";
+const std::string kPolicyDbBeforeSequoia = "/var/db/SystemPolicy";
 const std::string kPolicyDb = "/var/db/SystemPolicyConfiguration/SystemPolicy";
 
-static bool getMajorOSVersion(int& version) {
-  auto os_version = SQL::selectAllFrom("os_version");
-  if (os_version.size() != 1) {
-    return false;
-  }
-
-  auto major_version = tryTo<int>(os_version.front().at("major"));
-  if (major_version) {
-    version = major_version.take();
-    return true;
-  }
-
-  return false;
-}
-
-bool isGateKeeperDevIdEnabled(int os_version) {
+bool isGateKeeperDevIdEnabled(bool is_sequoia_or_newer) {
   sqlite3* db = nullptr;
   auto rc = sqlite3_open_v2(
-      (os_version < 15) ? kLegacyPolicyDb.c_str() : kPolicyDb.c_str(),
+      is_sequoia_or_newer ? kPolicyDb.c_str() : kPolicyDbBeforeSequoia.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
@@ -99,17 +86,13 @@ bool isGateKeeperDevIdEnabled(int os_version) {
 QueryData genGateKeeper(QueryContext& context) {
   Row r;
 
-  int os_version;
-  if (getMajorOSVersion(os_version) == false) {
-    LOG(WARNING) << "Could not determine OS version";
-    return {};
-  }
+  bool is_sequoia_or_newer = isOperatingSystemAtLeastVersion(15, 0, 0);
 
   auto gke_status = SQL::selectAllFrom(
       "plist",
       "path",
       EQUALS,
-      (os_version < 15) ? kLegacyGkeStatusPath : kGkeStatusPath);
+      is_sequoia_or_newer ? kGkeStatusPath : kGkeStatusPathBeforeSequoia);
 
   if (gke_status.empty()) {
     // The absence of the file indicates that Gatekeeper is fully enabled
@@ -123,8 +106,9 @@ QueryData genGateKeeper(QueryContext& context) {
     }
     if (row.at("key") == "enabled" && row.at("value") == "yes") {
       r["assessments_enabled"] = INTEGER(1);
-      r["dev_id_enabled"] =
-          isGateKeeperDevIdEnabled(os_version) ? INTEGER(1) : INTEGER(0);
+      r["dev_id_enabled"] = isGateKeeperDevIdEnabled(is_sequoia_or_newer)
+                                ? INTEGER(1)
+                                : INTEGER(0);
     } else {
       r["assessments_enabled"] = INTEGER(0);
       r["dev_id_enabled"] = INTEGER(0);
@@ -135,7 +119,7 @@ QueryData genGateKeeper(QueryContext& context) {
       "plist",
       "path",
       EQUALS,
-      os_version < 15 ? kLegacyGkeBundlePath : kGkeBundlePath);
+      is_sequoia_or_newer ? kGkeBundlePath : kGkeBundlePathBeforeSequoia);
 
   if (gke_bundle.empty()) {
     r["version"] = std::string();
@@ -186,16 +170,12 @@ void genGateKeeperApprovedAppRow(sqlite3_stmt* const stmt, Row& r) {
 QueryData genGateKeeperApprovedApps(QueryContext& context) {
   QueryData results;
 
-  int os_version;
-  if (getMajorOSVersion(os_version) == false) {
-    LOG(WARNING) << "Could not determine OS version";
-    return {};
-  }
+  bool is_sequoia_or_newer = isOperatingSystemAtLeastVersion(15, 0, 0);
 
   sqlite3* db = nullptr;
 
   auto rc = sqlite3_open_v2(
-      (os_version < 15) ? kLegacyPolicyDb.c_str() : kPolicyDb.c_str(),
+      is_sequoia_or_newer ? kPolicyDb.c_str() : kPolicyDbBeforeSequoia.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
