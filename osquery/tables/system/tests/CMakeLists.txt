@@ -37,6 +37,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/portage_tests.cpp
     linux/processes_tests.cpp
     linux/rpm_packages_tests.cpp
+    linux/secureboot_certificates_tests.cpp
     linux/selinux_settings_tests.cpp
     linux/yum_sources_tests.cpp
   )
@@ -55,6 +56,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     osquery_utils_conversions
     tests_helper
     thirdparty_googletest
+    thirdparty_openssl
   )
 endfunction()
 

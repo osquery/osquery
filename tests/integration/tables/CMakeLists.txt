@@ -180,6 +180,7 @@ function(generateTestsIntegrationTablesTestsTest)
       process_open_pipes.cpp
       rpm_package_files.cpp
       rpm_packages.cpp
+      secureboot_certificates.cpp
       selinux_events.cpp
       shadow.cpp
       shared_memory.cpp

@@ -75,6 +75,8 @@ struct EfiCertInfo {
   std::string key_strength;
 };
 
+} // namespace
+
 uint32_t readLE32(const uint8_t* buf) {
   return static_cast<uint32_t>(buf[0]) |
          (static_cast<uint32_t>(buf[1]) << 8U) |
@@ -262,8 +264,6 @@ void parseEslData(const std::string& content,
     head += sig_list_size;
   }
 }
-
-} // namespace
 
 QueryData genSecureBootCertificates(QueryContext& context) {
   QueryData results;
