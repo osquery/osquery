@@ -169,7 +169,7 @@ void parseEslData(const std::string& content,
                   const std::string& path,
                   QueryData& results) {
   if (content.size() < kEfiVarAttributeSize + kMinEslSize) {
-    VLOG(1) << "secureboot_db: ESL data too short in " << path;
+    VLOG(1) << "secureboot_certificates: ESL data too short in " << path;
     return;
   }
 
@@ -188,7 +188,7 @@ void parseEslData(const std::string& content,
 
     // Validate sizes before advancing
     if (sig_list_size == 0 || head + sig_list_size > total) {
-      VLOG(1) << "secureboot_db: Invalid sig_list_size at offset " << head
+      VLOG(1) << "secureboot_certificates: Invalid sig_list_size at offset " << head
               << " in " << path;
       break;
     }
@@ -230,7 +230,7 @@ void parseEslData(const std::string& content,
 
       auto opt_cert_info = parseDerCertificate(&data[cert_offset], cert_size);
       if (!opt_cert_info.has_value()) {
-        VLOG(1) << "secureboot_db: Failed to parse DER certificate at offset "
+        VLOG(1) << "secureboot_certificates: Failed to parse DER certificate at offset "
                 << cert_offset << " in " << path;
         continue;
       }
@@ -265,7 +265,7 @@ void parseEslData(const std::string& content,
 
 } // namespace
 
-QueryData genSecureBootDb(QueryContext& context) {
+QueryData genSecureBootCertificates(QueryContext& context) {
   QueryData results;
 
   for (const auto& [glob_pattern, store_name] : kEfiDbGlobs) {
@@ -278,7 +278,7 @@ QueryData genSecureBootDb(QueryContext& context) {
     for (const auto& efi_path : matching_paths) {
       std::string content;
       if (!readFile(efi_path, content).ok()) {
-        VLOG(1) << "secureboot_db: Cannot open " << efi_path;
+        VLOG(1) << "secureboot_certificates: Cannot open " << efi_path;
         continue;
       }
 

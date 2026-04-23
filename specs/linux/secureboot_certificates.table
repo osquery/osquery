@@ -1,4 +1,4 @@
-table_name("secureboot_db")
+table_name("secureboot_certificates")
 description("X.509 certificates from UEFI Secure Boot signature databases (db and dbx EFI variables). Useful for monitoring CA expiry and adoption of updated certificates (e.g. Microsoft UEFI CA 2023).")
 schema([
     Column("common_name", TEXT, "Certificate CommonName"),
@@ -19,11 +19,11 @@ schema([
     Column("key_algorithm", TEXT, "Public key algorithm"),
     Column("key_strength", TEXT, "Public key size in bits"),
 ])
-implementation("secureboot_db@genSecureBootDb")
+implementation("secureboot_certificates@genSecureBootCertificates")
 fuzz_paths([
   "/sys/firmware/efi/efivars/",
 ])
 examples([
-  "select common_name, subject, issuer, datetime(not_valid_before, 'unixepoch') as issue_date, datetime(not_valid_after, 'unixepoch') as expiry_date from secureboot_db where store = 'db'",
-  "select * from secureboot_db where store = 'dbx'",
+  "select common_name, subject, issuer, datetime(not_valid_before, 'unixepoch') as issue_date, datetime(not_valid_after, 'unixepoch') as expiry_date from secureboot_certificates where store = 'db'",
+  "select * from secureboot_certificates where store = 'dbx'",
 ])
