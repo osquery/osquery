@@ -263,6 +263,46 @@ function(add_osquery_library)
   endforeach()
 
   add_library(${osquery_lib_name} ${osquery_lib_args})
+
+  # Apply precompiled headers to every real (compiled) osquery library.
+  # INTERFACE and IMPORTED targets are excluded because they have no compile
+  # step of their own.  UNKNOWN is also excluded (foreign imported libs).
+  #
+  # We compile separate PCH artifacts for CXX and OBJCXX via
+  # $<COMPILE_LANGUAGE:> generator expressions so that .mm translation units
+  # get an Objective-C++-aware PCH rather than the C++-only one, avoiding
+  # the Clang "Objective-C was disabled in PCH file" mismatch.
+  if(NOT "INTERFACE" IN_LIST osquery_lib_ARGN AND
+     NOT "IMPORTED"  IN_LIST osquery_lib_ARGN AND
+     NOT "UNKNOWN"   IN_LIST osquery_lib_ARGN)
+    osqueryPCHFile(_osquery_pch)
+    if(DEFINED PLATFORM_MACOS)
+      # On macOS, flags.cmake adds "-x objective-c++ -fobjc-arc" to
+      # cxx_settings, which is inherited by every CXX compilation. Clang then
+      # compiles .cpp files as OBJCXX even though CMake declared them as CXX.
+      # If a CXX PCH is present it is compiled as "c++-header" (no ObjC), but
+      # the consuming translation unit is now ObjC++ -> error:
+      #   "Objective-C was disabled in PCH file but is currently enabled"
+      #
+      # Fix: override LANGUAGE to OBJCXX for all .cpp/.cc sources so CMake
+      # routes them through the OBJCXX PCH, then only register the OBJCXX PCH
+      # (no CXX PCH is generated at all, so there is nothing to mismatch).
+      foreach(_src ${osquery_lib_args})
+        if(_src MATCHES "\\.(cpp|cc)$")
+          set_source_files_properties("${_src}"
+            TARGET_DIRECTORY ${osquery_lib_name}
+            PROPERTIES LANGUAGE OBJCXX)
+        endif()
+      endforeach()
+      target_precompile_headers(${osquery_lib_name} PRIVATE
+        "$<$<COMPILE_LANGUAGE:OBJCXX>:${_osquery_pch}>"
+      )
+    else()
+      target_precompile_headers(${osquery_lib_name} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${_osquery_pch}>"
+      )
+    endif()
+  endif()
 endfunction()
 
 # This function modifies an existing cache variable but without changing its description
