@@ -141,46 +141,23 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //  osqueryd: (Security) [com.apple.securityd:security_exception]
 // CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
 static bool isLegacyKeychainFile(const std::string& path) {
-  std::array<char, 16> header{};
   std::ifstream in(path, std::ios::binary);
   if (!in.is_open()) {
     return false;
   }
-  in.read(header.data(), header.size());
+  std::string header(16, '\0');
+  in.read(header.data(), 16);
   std::streamsize read = in.gcount();
 
-  static constexpr char kCssmMagic[4] = {'k', 'y', 'c', 'h'};
-  if (read >= 4 &&
-      std::memcmp(header.data(), kCssmMagic, sizeof(kCssmMagic)) == 0) {
+  if (read >= 4 && header.compare(0, 4, "kych", 4) == 0) {
     return true;
   }
 
   // "SQLite format 3" + trailing null byte, 16 bytes total.
-  static constexpr char kSqliteMagic[16] = {'S',
-                                            'Q',
-                                            'L',
-                                            'i',
-                                            't',
-                                            'e',
-                                            ' ',
-                                            'f',
-                                            'o',
-                                            'r',
-                                            'm',
-                                            'a',
-                                            't',
-                                            ' ',
-                                            '3',
-                                            '\0'};
-  if (read == static_cast<std::streamsize>(header.size()) &&
-      std::memcmp(header.data(), kSqliteMagic, sizeof(kSqliteMagic)) == 0) {
+  static const std::string kSqliteMagic("SQLite format 3\0", 16);
+  if (read == 16 && header == kSqliteMagic) {
     std::string name = boost::filesystem::path(path).filename().string();
-    auto ends_with = [&](const char* suffix) {
-      size_t len = std::strlen(suffix);
-      return name.size() >= len &&
-             name.compare(name.size() - len, len, suffix) == 0;
-    };
-    return ends_with(".keychain-db") && !ends_with("keychain-2.db");
+    return boost::algorithm::ends_with(name, ".keychain-db");
   }
 
   return false;
