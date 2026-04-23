@@ -189,6 +189,7 @@ function(generateNativeTables)
     "linux/seccomp_events.table:linux"
     "linux/selinux_events.table:linux"
     "linux/selinux_settings.table:linux"
+    "linux/secureboot_db.table:linux"
     "linux/shadow.table:linux"
     "linux/shared_memory.table:linux"
     "linux/syslog_events.table:linux"
