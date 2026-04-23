@@ -1,4 +1,4 @@
-table_name("yara")
+table_name("yara_file", aliases=["yara"])
 description("Triggers one-off YARA query for files or processes at the specified path. Additionally requires one of `sig_group`, `sigfile`, or `sigrule`.")
 schema([
     Column("path", TEXT, "The path scanned",
@@ -21,8 +21,7 @@ extended_schema(LINUX, [
 ])
 implementation("yara@genYaraFileScan")
 examples([
-  "select * from yara where path = '/etc/passwd'",
-  "select * from yara where path LIKE '/etc/%'",
+  "select * from yara where path LIKE '/etc/%' and sigurl = 'https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar'",
   "select * from yara where path = '/etc/passwd' and sigfile = '/etc/osquery/yara/test.yara'",
   "select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }'",
 ])

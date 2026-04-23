@@ -395,7 +395,7 @@ class YaraState {
     // must be specified with the query
     if (scanContext.empty()) {
       initStatus = Status::failure(
-          "Query must specify sig_group, sigfile, or sigrule for scan");
+          "Query must specify sig_group, sigfile, sigrule, or sigurl for scan");
       return;
     }
   }
@@ -435,7 +435,7 @@ QueryData genYaraFileScanImpl(QueryContext& context, Logger& logger) {
   YaraState state(context, logger);
 
   if (!state.initStatus.ok()) {
-    state.logger.log(google::GLOG_WARNING, state.initStatus.toString());
+    state.logger.log(google::GLOG_ERROR, state.initStatus.toString());
     return results;
   }
 
@@ -496,7 +496,7 @@ QueryData genYaraProcessScanImpl(QueryContext& context, Logger& logger) {
   YaraState state(context, logger);
 
   if (!state.initStatus.ok()) {
-    logger.log(google::GLOG_WARNING, state.initStatus.toString());
+    logger.log(google::GLOG_ERROR, state.initStatus.toString());
     return results;
   }
 

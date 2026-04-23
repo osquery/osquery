@@ -1,4 +1,4 @@
-table_name("yara_process_scan")
+table_name("yara_process")
 description("Triggers one-off YARA query for process memory of the specified pid. Additionally requires one of `sig_group`, `sigfile`, or `sigrule`.")
 schema([
     Column("pid", INTEGER, "The pid scanned (process memory)",
@@ -21,8 +21,7 @@ extended_schema(LINUX, [
 ])
 implementation("yara@genYaraProcessScan")
 examples([
-  "select * from yara where pid = 1234",
-  "select * from yara where pid in (select pid from processes)",
+  "select * from yara where pid in (select pid from processes) and sigurl = 'https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar'",
   "select * from yara where pid = 1234 and sigfile = '/etc/osquery/yara/test.yara'",
   "select * from yara where pid = 1234 and sigrule = 'rule always_true { condition: true }'",
 ])
