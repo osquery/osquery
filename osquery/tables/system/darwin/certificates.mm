@@ -211,20 +211,17 @@ static bool copyAndOpenKeychain(const std::string& original_path,
     return false;
   }
 
-  const char* env_tmpdir = std::getenv("TMPDIR");
-  std::string dir_tmpl =
-      (env_tmpdir != nullptr && env_tmpdir[0] != '\0') ? env_tmpdir : "/tmp";
-  if (dir_tmpl.back() != '/') {
-    dir_tmpl.push_back('/');
-  }
-  dir_tmpl += "osquery-kc-XXXXXX";
-
-  std::vector<char> dir_buf(dir_tmpl.begin(), dir_tmpl.end());
-  dir_buf.push_back('\0');
-  if (mkdtemp(dir_buf.data()) == nullptr) {
+  boost::system::error_code ec;
+  boost::filesystem::path tmp_root = boost::filesystem::temp_directory_path(ec);
+  if (ec) {
     return false;
   }
-  std::string temp_dir(dir_buf.data());
+  std::string dir_tmpl = (tmp_root / "osquery-kc-XXXXXX").string();
+
+  if (mkdtemp(dir_tmpl.data()) == nullptr) {
+    return false;
+  }
+  std::string temp_dir(dir_tmpl);
   std::string temp_path = temp_dir + "/" + filename;
 
   // COPYFILE_CLONE: atomic APFS clonefile snapshot when possible, copying
