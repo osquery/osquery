@@ -29,13 +29,14 @@ TEST_F(SecurebootCertificates, test_sanity) {
   auto const data =
       execute_query("SELECT * FROM secureboot_certificates");
 
-  if (!boost::filesystem::exists("/sys/firmware/efi/efivars")) {
+  if (boost::filesystem::exists("/sys/firmware/efi/efivars")) {
+    EXPECT_GT(data.size(), 0U);
+  } else {
     // No EFI variables available — query must succeed and return no rows.
     EXPECT_TRUE(data.empty());
     return;
   }
 
-  // At least one certificate was found: validate all columns.
   ValidationMap row_map = {
       {"common_name", NonEmptyString},
       {"subject", NonEmptyString},
