@@ -22,10 +22,10 @@
 #include <string>
 #include <vector>
 
-namespace osquery::tables {
+namespace osquery{
+namespace tables{
 
 namespace {
-
 // The first 4 bytes of an efivars file are EFI variable attributes, not data.
 static constexpr std::size_t kEfiVarAttributeSize = 4U;
 
@@ -293,4 +293,5 @@ QueryData genSecureBootDb(QueryContext& context) {
   return results;
 }
 
-} // namespace osquery::tables
+} // namespace osquery
+} // namespace tables
