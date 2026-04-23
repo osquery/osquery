@@ -133,10 +133,13 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //      end with ".keychain-db" and not with "keychain-2.db" to
 //      disambiguate. Covers login.keychain-db, metadata.keychain-db.
 //
-// We use this to prevent securityd logging the following messages when SecKeychainOpen
-// attempts to parse files that are not supported keychain formats:
-//  osqueryd: (Security) [com.apple.securityd:integrity] dbBlobVersion() failed for a CssmError: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
-//  osqueryd: (Security) [com.apple.securityd:security_exception] CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
+// We use this to prevent securityd logging the following messages when
+// SecKeychainOpen attempts to parse files that are not supported keychain
+// formats:
+//  osqueryd: (Security) [com.apple.securityd:integrity] dbBlobVersion() failed
+//  for a CssmError: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
+//  osqueryd: (Security) [com.apple.securityd:security_exception]
+// CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
 static bool isLegacyKeychainFile(const std::string& path) {
   std::array<char, 16> header{};
   std::ifstream in(path, std::ios::binary);
