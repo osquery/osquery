@@ -118,7 +118,7 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
   CFRelease(der_encoded_data);
 }
 
-// True iff the file at `path` looks like a container SecKeychainOpen can
+// True if the file at `path` looks like a container SecKeychainOpen can
 // parse. Positive identification by leading bytes, so unknown files under
 // the keychain directories are skipped by default and any new file type
 // with a legacy-keychain magic is auto-accepted.
