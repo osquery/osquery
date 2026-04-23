@@ -15,6 +15,7 @@
 
 #include <openssl/x509.h>
 
+#include <boost/endian/conversion.hpp>
 #include <boost/optional.hpp>
 
 #include <cstdint>
@@ -76,13 +77,6 @@ struct EfiCertInfo {
 };
 
 } // namespace
-
-uint32_t readLE32(const uint8_t* buf) {
-  return static_cast<uint32_t>(buf[0]) |
-         (static_cast<uint32_t>(buf[1]) << 8U) |
-         (static_cast<uint32_t>(buf[2]) << 16U) |
-         (static_cast<uint32_t>(buf[3]) << 24U);
-}
 
 boost::optional<EfiCertInfo> parseDerCertificate(const uint8_t* data,
                                                   std::size_t len) {
@@ -184,9 +178,9 @@ void parseEslData(const std::string& content,
       break;
     }
 
-    const uint32_t sig_list_size = readLE32(&data[head + 16]);
-    const uint32_t sig_header_size = readLE32(&data[head + 20]);
-    const uint32_t sig_size = readLE32(&data[head + 24]);
+    const uint32_t sig_list_size = boost::endian::load_little_u32(&data[head + 16]);
+    const uint32_t sig_header_size = boost::endian::load_little_u32(&data[head + 20]);
+    const uint32_t sig_size = boost::endian::load_little_u32(&data[head + 24]);
 
     // Validate sizes before advancing
     if (sig_list_size == 0 || head + sig_list_size > total) {

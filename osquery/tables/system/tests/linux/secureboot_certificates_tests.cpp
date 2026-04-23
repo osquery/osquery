@@ -24,43 +24,12 @@ namespace osquery {
 namespace tables {
 
 // Forward-declare internal functions exposed for testing.
-uint32_t readLE32(const uint8_t* buf);
 void parseEslData(const std::string& content,
                   const std::string& store,
                   const std::string& path,
                   QueryData& results);
 
 class SecurebootCertificatesTests : public testing::Test {};
-
-// ---------------------------------------------------------------------------
-// readLE32 tests
-// ---------------------------------------------------------------------------
-
-TEST_F(SecurebootCertificatesTests, readLE32_zero) {
-  const uint8_t buf[] = {0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(readLE32(buf), 0U);
-}
-
-TEST_F(SecurebootCertificatesTests, readLE32_one) {
-  const uint8_t buf[] = {0x01, 0x00, 0x00, 0x00};
-  EXPECT_EQ(readLE32(buf), 1U);
-}
-
-TEST_F(SecurebootCertificatesTests, readLE32_max) {
-  const uint8_t buf[] = {0xff, 0xff, 0xff, 0xff};
-  EXPECT_EQ(readLE32(buf), 0xFFFFFFFFU);
-}
-
-TEST_F(SecurebootCertificatesTests, readLE32_mixed) {
-  // 0x01 | (0x02 << 8) | (0x03 << 16) | (0x04 << 24) = 0x04030201
-  const uint8_t buf[] = {0x01, 0x02, 0x03, 0x04};
-  EXPECT_EQ(readLE32(buf), 0x04030201U);
-}
-
-TEST_F(SecurebootCertificatesTests, readLE32_high_byte) {
-  const uint8_t buf[] = {0x00, 0x00, 0x00, 0x80};
-  EXPECT_EQ(readLE32(buf), 0x80000000U);
-}
 
 // ---------------------------------------------------------------------------
 // parseEslData edge-case tests (no real certificate needed)
