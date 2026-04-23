@@ -374,7 +374,7 @@ QueryData genCerts(QueryContext& context) {
           // /System/Library/Keychains/*
           //
           // SSV-protected keychains are on a read-only volume; opening them
-          // directly via the legacy API cannot corrupt them.
+          // directly via the legacy API does not seem to corrupt them.
           SecKeychainStatus keychain_status;
           OSStatus status;
           OSQUERY_USE_DEPRECATED(status =
