@@ -131,8 +131,7 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //   2. SQLite-backed legacy keychain — "SQLite format 3\0" at offset 0.
 //      SQLite magic alone is ambiguous: Data Protection Keychain databases
 //      (keychain-2.db) share it. We additionally require the basename to
-//      end with ".keychain-db" and not with "keychain-2.db" to
-//      disambiguate. Covers login.keychain-db, metadata.keychain-db.
+//      end with ".keychain-db". Covers login.keychain-db, metadata.keychain-db.
 //
 // We use this to prevent securityd logging the following messages when
 // SecKeychainOpen attempts to parse files that are not supported keychain
@@ -158,6 +157,9 @@ static bool isLegacyKeychainFile(const std::string& path) {
   static const std::string kSqliteMagic("SQLite format 3\0", 16);
   if (read == 16 && header == kSqliteMagic) {
     std::string name = boost::filesystem::path(path).filename().string();
+    // NOTE: We don't want to process files that end with "keychain-2.db"
+    // because they are "Data Protection Keychain" databases that fail to parse
+    // with SecKeychainOpen.
     return boost::algorithm::ends_with(name, ".keychain-db");
   }
 
@@ -177,22 +179,9 @@ class OpenedKeychain {
       : ref_(other.ref_), temp_dir_(std::move(other.temp_dir_)) {
     other.ref_ = nullptr;
   }
-  OpenedKeychain& operator=(OpenedKeychain&& other) noexcept {
-    if (this != &other) {
-      reset();
-      ref_ = other.ref_;
-      temp_dir_ = std::move(other.temp_dir_);
-      other.ref_ = nullptr;
-    }
-    return *this;
-  }
-  OpenedKeychain(const OpenedKeychain&) = delete;
-  OpenedKeychain& operator=(const OpenedKeychain&) = delete;
-
   ~OpenedKeychain() {
     reset();
   }
-
   SecKeychainRef get() const {
     return ref_;
   }
