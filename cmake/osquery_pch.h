@@ -20,7 +20,19 @@
 
 #pragma once
 
+// On Windows/MSVC, _USE_MATH_DEFINES must be set before the first inclusion
+// of <cmath> (or any header that pulls it in transitively) to expose M_PI and
+// related constants.  Because the PCH is force-included before every
+// translation unit's own #defines, this define must live here rather than in
+// individual source files.
+#ifdef _WIN32
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
+#endif
+
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <map>
 #include <memory>
