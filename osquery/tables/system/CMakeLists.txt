@@ -79,6 +79,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/secureboot.cpp
+      linux/secureboot_certificates.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
