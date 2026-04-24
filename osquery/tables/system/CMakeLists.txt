@@ -354,6 +354,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain.h
       darwin/packages.h
       darwin/smbios_utils.h
+      darwin/os_version.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
