@@ -94,4 +94,48 @@ LONGLONG parseFatTime(const std::string& fat_data) {
   return epoch;
 }
 
+LONGLONG parseDateToUnixTime(const std::string& date_str) {
+  if (date_str.empty()) {
+    return 0LL;
+  }
+
+  int a = 0, b = 0, c = 0;
+  int year = 0, month = 0, day = 0;
+
+  // Try slash-separated format: M/D/YYYY (US locale, most common)
+  if (sscanf(date_str.c_str(), "%d/%d/%d", &a, &b, &c) == 3) {
+    month = a;
+    day = b;
+    year = c;
+  }
+  // Try dash-separated format
+  else if (sscanf(date_str.c_str(), "%d-%d-%d", &a, &b, &c) == 3) {
+    // If first number looks like a year (>31), assume ISO format YYYY-MM-DD
+    if (a > 31) {
+      year = a;
+      month = b;
+      day = c;
+    } else {
+      // Otherwise assume D-M-YYYY
+      day = a;
+      month = b;
+      year = c;
+    }
+  } else {
+    return 0LL;
+  }
+
+  // Validate parsed values
+  if (year >= 1970 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 &&
+      day <= 31) {
+    struct tm timestamp = {0};
+    timestamp.tm_year = year - 1900;
+    timestamp.tm_mon = month - 1;
+    timestamp.tm_mday = day;
+    return static_cast<LONGLONG>(_mkgmtime(&timestamp));
+  }
+
+  return 0LL;
+}
+
 } // namespace osquery
