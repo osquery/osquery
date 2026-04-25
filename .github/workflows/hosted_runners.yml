@@ -309,7 +309,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
