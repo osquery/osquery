@@ -40,7 +40,7 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
+  PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
   SUBMODULE_CACHE_VERSION: 3
   OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
