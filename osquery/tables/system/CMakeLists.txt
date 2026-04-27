@@ -61,6 +61,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/certificates.cpp
       linux/disk_encryption.cpp
       linux/extended_attributes.cpp
+      linux/gpu_metrics.cpp
       linux/groups.cpp
       linux/intel_me.cpp
       linux/kernel_info.cpp
@@ -125,6 +126,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/event_taps.mm
       darwin/extended_attributes.cpp
       darwin/firewall.mm
+      darwin/gpu_metrics.mm
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
       darwin/ibridge.cpp
@@ -190,6 +192,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/disk_info.cpp
       windows/dns_cache.cpp
       windows/drivers.cpp
+      windows/gpu_metrics.cpp
       windows/groups.cpp
       windows/ie_extensions.cpp
       windows/intel_me.cpp
