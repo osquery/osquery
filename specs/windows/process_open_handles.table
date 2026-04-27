@@ -1,5 +1,5 @@
 table_name("process_open_handles")
-description("Enumerate open handles for a specified process. Defaults to the osquery process if no pid constraint is provided.")
+description("Enumerate open handles for a specified process.")
 schema([
     Column("pid", BIGINT, "The process identifier that owns the handle.", required=True, index=True, optimized=True),
     Column("value", BIGINT, "The handle value"),

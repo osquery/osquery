@@ -1253,14 +1253,12 @@ class HandleEnumeration {
 } // namespace handles
 
 // osquery table entry point for the "handles" table.
-// If no pid constraint is provided, defaults to the current (osquery)
-// process.  Requires SeDebugPrivilege for cross-process enumeration.
+// Requires SeDebugPrivilege for cross-process enumeration.
 QueryData genProcessOpenHandles(QueryContext& context) {
   // Determine pid constraints, pid is a required column
   std::set<int> pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
 
   if (pidlist.empty()) {
-    // If no pid constraints are provided, default to the current process
     VLOG(1) << "No pid constraint provided for handles table";
     return QueryData();
   }
