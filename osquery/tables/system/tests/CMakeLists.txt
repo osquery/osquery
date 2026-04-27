@@ -88,6 +88,7 @@ endfunction()
 
 function(generateOsqueryTablesSystemTestsSystemtablestestsTest)
   add_osquery_executable(osquery_tables_system_tests_systemtablestests-test
+    gpu_metrics_tests.cpp
     npm_packages_tests.cpp
     system_tables_tests.cpp
   )
