@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <future>
+#include <set>
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
@@ -296,6 +297,33 @@ TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
 
   EXPECT_LT(utime2 - utime1, 10000U);
   EXPECT_LT(systime2 - systime1, 10000U);
+}
+
+TEST_F(SystemsTablesTests, test_gpu_metrics) {
+  SQL results("select * from gpu_metrics");
+
+  // The table must not crash. GPUs may not be present in all environments.
+  if (results.rows().empty()) {
+    return;
+  }
+
+  // Every row must have a non-negative gpu_index.
+  for (const auto& row : results.rows()) {
+    ASSERT_EQ(row.count("gpu_index"), 1U);
+    int idx = std::stoi(row.at("gpu_index"));
+    EXPECT_GE(idx, 0);
+
+    // device_name must be present and non-empty when a GPU is detected.
+    ASSERT_EQ(row.count("device_name"), 1U);
+    EXPECT_FALSE(row.at("device_name").empty());
+  }
+
+  // gpu_index values must be unique.
+  std::set<std::string> seen_indices;
+  for (const auto& row : results.rows()) {
+    auto inserted = seen_indices.insert(row.at("gpu_index")).second;
+    EXPECT_TRUE(inserted) << "Duplicate gpu_index: " << row.at("gpu_index");
+  }
 }
 
 TEST_F(SystemsTablesTests, test_win_crashes_parsing) {
