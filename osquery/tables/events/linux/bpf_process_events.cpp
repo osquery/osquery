@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/events/linux/bpf/bpf_process_event_publisher.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
@@ -14,6 +15,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 namespace osquery {
 
@@ -34,53 +37,39 @@ Status BPFProcessEventSubscriber::eventCallback(const ECRef& event_context,
   return Status::success();
 }
 
-bool BPFProcessEventSubscriber::generateRow(
-    Row& row, const ISystemStateTracker::Event& event) {
+bool BPFProcessEventSubscriber::generateRow(Row& row,
+                                            const BPFProcessEvent& event) {
   row = {};
 
-  if (event.type != ISystemStateTracker::Event::Type::Exec) {
+  // Filter out failed exec syscalls (negative exit codes indicate errors)
+  auto signed_exit_code = static_cast<std::int64_t>(event.exit_code);
+  if (signed_exit_code < 0) {
     return false;
   }
 
-  auto signed_exit_code = static_cast<std::int64_t>(event.bpf_header.exit_code);
-  if (signed_exit_code >= -EHWPOISON && signed_exit_code <= -EPERM) {
-    return false;
-  }
-
-  row["ntime"] = SQL_TEXT(event.bpf_header.timestamp);
-  row["tid"] = INTEGER(event.bpf_header.thread_id);
-  row["pid"] = INTEGER(event.bpf_header.process_id);
-  row["uid"] = INTEGER(event.bpf_header.user_id);
-  row["gid"] = INTEGER(event.bpf_header.group_id);
-  row["cid"] = INTEGER(event.bpf_header.cgroup_id);
-  row["exit_code"] = SQL_TEXT(std::to_string(event.bpf_header.exit_code));
-  row["probe_error"] = INTEGER(event.bpf_header.probe_error);
-  row["syscall"] = SQL_TEXT("exec");
-  row["parent"] = INTEGER(event.parent_process_id);
-  row["path"] = SQL_TEXT(event.binary_path);
+  row["ntime"] = SQL_TEXT(event.timestamp);
+  row["tid"] = INTEGER(event.tid);
+  row["pid"] = INTEGER(event.pid);
+  row["parent"] = INTEGER(event.ppid);
+  row["uid"] = INTEGER(event.uid);
+  row["gid"] = INTEGER(event.gid);
+  row["cid"] = INTEGER(event.cgroup_id);
+  row["exit_code"] = SQL_TEXT(std::to_string(event.exit_code));
+  row["probe_error"] = INTEGER(event.probe_error);
+  row["syscall"] = SQL_TEXT("execve");
+  row["path"] = SQL_TEXT(event.path);
   row["cwd"] = SQL_TEXT(event.cwd);
-  row["duration"] = INTEGER(event.bpf_header.duration);
+  row["duration"] = INTEGER(event.duration);
 
-  if (!std::holds_alternative<ISystemStateTracker::Event::ExecData>(
-          event.data)) {
-    VLOG(1) << "Missing ExecData in Exec event";
-
-    row["cmdline"] = "";
-    row["json_cmdline"] = "[]";
-
-  } else {
-    const auto& exec_data =
-        std::get<ISystemStateTracker::Event::ExecData>(event.data);
-
-    row["cmdline"] = generateCmdlineColumn(exec_data.argv);
-    row["json_cmdline"] = generateJsonCmdlineColumn(exec_data.argv);
-  }
+  // Generate cmdline columns
+  row["cmdline"] = generateCmdlineColumn(event.args);
+  row["json_cmdline"] = generateJsonCmdlineColumn(event.args);
 
   return true;
 }
 
 std::vector<Row> BPFProcessEventSubscriber::generateRowList(
-    const ISystemStateTracker::EventList& event_list) {
+    const BPFProcessEventList& event_list) {
   std::vector<Row> row_list;
 
   for (const auto& event : event_list) {
@@ -94,58 +83,42 @@ std::vector<Row> BPFProcessEventSubscriber::generateRowList(
 }
 
 std::string BPFProcessEventSubscriber::generateCmdlineColumn(
-    const std::vector<std::string>& argv) {
-  std::string output;
-
-  for (auto param_it = argv.begin(); param_it != argv.end(); ++param_it) {
-    const auto& arg = *param_it;
-
-    // clang-format off
-    auto whitespace_it = std::find_if(
-      arg.begin(),
-      arg.end(),
-      
-      [](const char &c) -> bool {
-        return std::isspace(c);
-      }
-    );
-    // clang-format on
-
-    if (whitespace_it != arg.end()) {
-      output += '\'';
-    }
-
-    output += arg;
-
-    if (whitespace_it != arg.end()) {
-      output += '\'';
-    }
-
-    if (std::next(param_it, 1) != argv.end()) {
-      output += ' ';
-    }
-  }
-
-  return output;
+    const std::string& args) {
+  // Args are already space-separated from BPF program
+  // Just clean up any trailing spaces
+  std::string result = args;
+  boost::trim(result);
+  return result;
 }
 
 std::string BPFProcessEventSubscriber::generateJsonCmdlineColumn(
-    const std::vector<std::string>& argv) {
-  rapidjson::Document document;
-  document.SetArray();
+    const std::string& args) {
+  // Parse space-separated args into JSON array
+  std::vector<std::string> argv;
+  boost::split(argv, args, boost::is_any_of(" "), boost::token_compress_on);
 
-  auto& allocator = document.GetAllocator();
+  // Remove empty strings
+  argv.erase(std::remove_if(argv.begin(),
+                            argv.end(),
+                            [](const std::string& s) { return s.empty(); }),
+             argv.end());
+
+  // Create JSON array
+  rapidjson::Document doc;
+  doc.SetArray();
+  auto& allocator = doc.GetAllocator();
+
   for (const auto& arg : argv) {
-    rapidjson::Value value = {};
-    value.SetString(arg, allocator);
-
-    document.PushBack(value, allocator);
+    rapidjson::Value val;
+    val.SetString(arg.c_str(), arg.length(), allocator);
+    doc.PushBack(val, allocator);
   }
 
+  // Serialize to string
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  doc.Accept(writer);
 
-  document.Accept(writer);
   return buffer.GetString();
 }
 
