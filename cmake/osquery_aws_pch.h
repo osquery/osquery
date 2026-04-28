@@ -22,7 +22,13 @@
 
 #pragma once
 
+#include <utility>
+
 #include <aws/core/AmazonSerializableWebServiceRequest.h>
 #include <aws/core/AmazonWebServiceRequest.h>
+#include <aws/core/AmazonWebServiceResult.h>
+#include <aws/core/utils/json/JsonSerializer.h>
 #include <aws/core/utils/memory/AWSMemory.h>
+#include <aws/core/utils/memory/stl/AWSMap.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
+#include <aws/core/utils/memory/stl/AWSVector.h>
