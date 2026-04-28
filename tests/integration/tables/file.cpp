@@ -140,15 +140,9 @@ boost::optional<std::size_t> getRowIndexForFileName(
 }
 } // namespace
 
-TEST_F(FileTests, test_sanity) {
-  std::string path_constraint =
-      (directory / boost::filesystem::path("%.txt")).string();
-  std::string link_constraint =
-      (directory / boost::filesystem::path("%.lnk")).string();
-  QueryData data =
-      execute_query("select * from file where path like \"" + path_constraint +
-                    "\" OR path like \"" + link_constraint + "\"");
-
+static void test_sanity_common(const QueryData& data,
+                               const boost::filesystem::path& directory,
+                               const std::string& path_constraint) {
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     EXPECT_EQ(data.size(), kFileNameList.size() * 2);
   } else {
@@ -243,6 +237,29 @@ TEST_F(FileTests, test_sanity) {
     validate_container_rows(
         "file", row_map, "path like \"" + path_constraint + "\"");
   }
+}
+
+TEST_F(FileTests, test_sanity_path) {
+  std::string path_constraint =
+      (directory / boost::filesystem::path("%.txt")).string();
+  std::string link_constraint =
+      (directory / boost::filesystem::path("%.lnk")).string();
+  QueryData data =
+      execute_query("select * from file where path like \"" + path_constraint +
+                    "\" OR path like \"" + link_constraint + "\"");
+
+  test_sanity_common(data, directory, path_constraint);
+}
+
+TEST_F(FileTests, test_sanity_directory) {
+  std::string path_constraint =
+      (directory / boost::filesystem::path("%.txt")).string();
+
+  QueryData data = execute_query(
+      "select * from file where directory = \"" + directory.string() +
+      "\" AND (filename like \"%.txt\" or filename like \"%.lnk\")");
+
+  test_sanity_common(data, directory, path_constraint);
 }
 
 TEST_F(FileTests, test_nested_directory_traversal) {

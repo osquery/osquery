@@ -7,10 +7,21 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <array>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <unistd.h>
+
+#include <copyfile.h>
+
 #include <openssl/opensslv.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
 
 #include <osquery/core/core.h>
 #include <osquery/filesystem/filesystem.h>
@@ -89,6 +100,7 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
 }
 
 void genKeychainCertificate(const SecCertificateRef& SecCert,
+                            const std::string& path,
                             QueryData& results) {
   auto der_encoded_data = SecCertificateCopyData(SecCert);
   if (der_encoded_data == nullptr) {
@@ -100,12 +112,161 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
   auto cert = d2i_X509(nullptr, &der_bytes, length);
 
   if (cert != nullptr) {
-    auto path = getKeychainPath((SecKeychainItemRef)SecCert);
     genCertificate(cert, path, results);
     X509_free(cert);
   }
 
   CFRelease(der_encoded_data);
+}
+
+// True if the file at `path` looks like a container SecKeychainOpen can
+// parse. Positive identification by leading bytes, so unknown files under
+// the keychain directories are skipped by default and any new file type
+// with a legacy-keychain magic is auto-accepted.
+//
+// Two legacy keychain formats are accepted by SecKeychainOpen:
+//   1. CSSM "Mac OS X Keychain File" — 4-byte "kych" magic at offset 0.
+//      Covers System.keychain, apsd.keychain, SystemRootCertificates.keychain,
+//      X509Anchors, etc. Magic bytes are a bulletproof positive signal.
+//   2. SQLite-backed legacy keychain — "SQLite format 3\0" at offset 0.
+//      SQLite magic alone is ambiguous: Data Protection Keychain databases
+//      (keychain-2.db) share it. We additionally require the basename to
+//      end with ".keychain-db". Covers login.keychain-db, metadata.keychain-db.
+//
+// We use this to prevent securityd logging the following messages when
+// SecKeychainOpen attempts to parse files that are not supported keychain
+// formats:
+//  osqueryd: (Security) [com.apple.securityd:integrity] dbBlobVersion() failed
+//  for a CssmError: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
+//  osqueryd: (Security) [com.apple.securityd:security_exception]
+// CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
+static bool isLegacyKeychainFile(const std::string& path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in.is_open()) {
+    return false;
+  }
+  std::string header(16, '\0');
+  in.read(header.data(), 16);
+  std::streamsize read = in.gcount();
+
+  if (read >= 4 && header.compare(0, 4, "kych", 4) == 0) {
+    return true;
+  }
+
+  // "SQLite format 3" + trailing null byte, 16 bytes total.
+  static const std::string kSqliteMagic("SQLite format 3\0", 16);
+  if (read == 16 && header == kSqliteMagic) {
+    std::string name = boost::filesystem::path(path).filename().string();
+    // NOTE: We don't want to process files that end with "keychain-2.db"
+    // because they are "Data Protection Keychain" databases that fail to parse
+    // with SecKeychainOpen.
+    return boost::algorithm::ends_with(name, ".keychain-db");
+  }
+
+  return false;
+}
+
+// RAII over an opened SecKeychainRef plus, optionally, the temp directory
+// holding the disposable copy it was opened from. Empty temp_dir => opened
+// in place (SSV). Move-only; cleanup runs on scope exit or exception.
+class OpenedKeychain {
+ public:
+  OpenedKeychain() = default;
+  OpenedKeychain(SecKeychainRef ref, std::string temp_dir)
+      : ref_(ref), temp_dir_(std::move(temp_dir)) {}
+
+  OpenedKeychain(OpenedKeychain&& other) noexcept
+      : ref_(other.ref_), temp_dir_(std::move(other.temp_dir_)) {
+    other.ref_ = nullptr;
+  }
+  ~OpenedKeychain() {
+    reset();
+  }
+  SecKeychainRef get() const {
+    return ref_;
+  }
+  explicit operator bool() const {
+    return ref_ != nullptr;
+  }
+
+ private:
+  void reset() {
+    // Release the ref before unlinking so Security.framework holds no handle
+    // on a file that's about to disappear.
+    if (ref_ != nullptr) {
+      CFRelease(ref_);
+      ref_ = nullptr;
+    }
+    if (!temp_dir_.empty()) {
+      boost::system::error_code ec;
+      boost::filesystem::remove_all(temp_dir_, ec);
+      temp_dir_.clear();
+    }
+  }
+
+  SecKeychainRef ref_{nullptr};
+  std::string temp_dir_;
+};
+
+// Open a keychain for reading. SSV-protected paths are opened in place (the
+// read-only volume makes direct opens safe). Non-SSV paths (/Library/Keychains
+// and ~/Library/Keychains) are cloned into a private temp directory first,
+// because on macOS 26+ SecKeychainOpen on the live user file can corrupt it.
+//
+// The clone uses copyfile(3) with COPYFILE_CLONE: an atomic APFS clonefile(2)
+// snapshot when supported (immune to concurrent writes by securityd) that
+// also carries ACLs and extended attributes Security.framework's integrity
+// checks may consult. On non-APFS volumes copyfile falls back to a regular
+// copy that still preserves ACLs/xattrs.
+static OpenedKeychain openKeychainForPath(const std::string& original_path) {
+  std::string path_to_open = original_path;
+  std::string temp_dir;
+
+  if (!isSSVProtectedPath(original_path)) {
+    boost::filesystem::path orig(original_path);
+    std::string filename = orig.filename().string();
+    if (filename.empty()) {
+      return {};
+    }
+
+    boost::system::error_code ec;
+    boost::filesystem::path tmp_root =
+        boost::filesystem::temp_directory_path(ec);
+    if (ec) {
+      return {};
+    }
+
+    std::string dir_tmpl = (tmp_root / "osquery-kc-XXXXXX").string();
+    if (mkdtemp(dir_tmpl.data()) == nullptr) {
+      return {};
+    }
+    temp_dir = dir_tmpl;
+    path_to_open = temp_dir + "/" + filename;
+
+    if (copyfile(original_path.c_str(),
+                 path_to_open.c_str(),
+                 nullptr,
+                 COPYFILE_CLONE) != 0) {
+      boost::system::error_code rm_ec;
+      boost::filesystem::remove_all(temp_dir, rm_ec);
+      return {};
+    }
+  }
+
+  SecKeychainRef ref = nullptr;
+  OSStatus status;
+  OSQUERY_USE_DEPRECATED(status = SecKeychainOpen(path_to_open.c_str(), &ref));
+  if (status != errSecSuccess || ref == nullptr) {
+    if (ref != nullptr) {
+      CFRelease(ref);
+    }
+    if (!temp_dir.empty()) {
+      boost::system::error_code ec;
+      boost::filesystem::remove_all(temp_dir, ec);
+    }
+    return {};
+  }
+  return OpenedKeychain{ref, std::move(temp_dir)};
 }
 
 void genFileCertificate(const std::string& path, QueryData& results) {
@@ -164,135 +325,86 @@ QueryData genCerts(QueryContext& context) {
         return status;
       }));
 
+  // Owns every keychain opened during this invocation (ref + any temp copy).
+  // Destructors run on scope exit or exception; refs are released before
+  // temp dirs are unlinked.
+  std::vector<OpenedKeychain> owned;
+
   @autoreleasepool {
-    // Map of path to hash and keychain reference. This ensures we don't open
-    // the same keychain multiple times when the table's path constraint is
-    // used.
-    std::map<std::string,
-             std::tuple<boost::filesystem::path, std::string, SecKeychainRef>>
-        opened_keychains;
     if (!paths.empty()) {
       for (const auto& path : paths) {
-        // Check whether path is valid
-        boost::system::error_code ec;
-        auto source =
-            boost::filesystem::canonical(boost::filesystem::path(path), ec);
-        if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
-          TLOG << "Could not access file " << path << " " << ec.message();
-          continue;
-        }
-
-        // Check cache
-        bool err = false;
-        std::string hash;
-        bool hit =
-            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
-        if (err) {
-          TLOG << "Could not read the file at " << path << "" << ec.message();
-          continue;
-        }
-        if (hit) {
-          continue;
-        }
-
-        SecKeychainRef keychain = nullptr;
-        SecKeychainStatus keychain_status;
-        OSStatus status;
-        OSQUERY_USE_DEPRECATED(status =
-                                   SecKeychainOpen(path.c_str(), &keychain));
-        bool genFileCert = false;
-        if (status != errSecSuccess || keychain == nullptr) {
-          genFileCert = true;
-        } else {
-          OSQUERY_USE_DEPRECATED(
-              status = SecKeychainGetStatus(keychain, &keychain_status));
-          if (status != errSecSuccess) {
-            genFileCert = true;
-          }
-        }
-        if (genFileCert) {
-          if (keychain != nullptr) {
-            CFRelease(keychain);
-          }
-          QueryData new_results;
-          genFileCertificate(path, new_results);
-          // Write new results to the cache.
-          keychainCache.Write(source, KEYCHAIN_TABLE, hash, new_results);
-          results.insert(results.end(), new_results.begin(), new_results.end());
-        } else {
-          // This path will be re-accessed later.
+        if (isLegacyKeychainFile(path)) {
           keychain_paths.insert(path);
-          opened_keychains.insert(
-              {path, std::make_tuple(source, hash, keychain)});
+          continue;
         }
+        // Not a legacy keychain container; try parsing as a DER/PEM cert.
+        QueryData new_results;
+        genFileCertificate(path, new_results);
+        // DER/PEM certificates won't be cached so they will be parsed every
+        // time the user queries.
+        results.insert(results.end(), new_results.begin(), new_results.end());
       }
     } else {
       keychain_paths = getKeychainPaths();
     }
 
-    // Since we are used a cache for each keychain file, we must process
-    // certificates one keychain file at a time.
+    // Since we use a cache per keychain file, we must process certificates
+    // one keychain file at a time.
     std::set<std::string> expanded_paths = expandPaths(keychain_paths);
     for (const auto& path : expanded_paths) {
-      SecKeychainRef keychain = nullptr;
-      std::string hash;
-      boost::filesystem::path source;
-      auto it = opened_keychains.find(path);
-      if (it != opened_keychains.end()) {
-        source = std::get<0>(it->second);
-        hash = std::get<1>(it->second);
-        keychain = std::get<2>(it->second);
-      } else {
-        // Check whether path is valid
-        boost::system::error_code ec;
-        source =
-            boost::filesystem::canonical(boost::filesystem::path(path), ec);
-        if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
-          // File does not exist or user does not have access. Don't log here to
-          // reduce noise.
-          continue;
-        }
-
-        // Check cache
-        bool err = false;
-        bool hit =
-            keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
-        if (err) {
-          TLOG << "Could not read the file at " << source.string() << ""
-               << ec.message();
-          continue;
-        }
-        if (hit) {
-          continue;
-        }
-
-        // Cache miss. We need to generate new results.
-        OSStatus status;
-        OSQUERY_USE_DEPRECATED(status =
-                                   SecKeychainOpen(source.c_str(), &keychain));
-        if (status != errSecSuccess || keychain == nullptr) {
-          if (keychain != nullptr) {
-            CFRelease(keychain);
-          }
-          // Cache an empty result to prevent the above API call in the future.
-          keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
-          continue;
-        }
+      boost::system::error_code ec;
+      auto source =
+          boost::filesystem::canonical(boost::filesystem::path(path), ec);
+      if (ec.failed() || !is_regular_file(source, ec) || ec.failed()) {
+        // File does not exist or user does not have access. Don't log here
+        // to reduce noise.
+        continue;
       }
+
+      // Skip anything that isn't a legacy keychain container. Feeding
+      // non-keychains to SecKeychainOpen/SecItemCopyMatching produces
+      // CSSMERR_DL_DATABASE_CORRUPT / dbBlobVersion() errors in the
+      // unified log when Security.framework tries to parse the blob.
+      if (!isLegacyKeychainFile(source.string())) {
+        continue;
+      }
+
+      // Check cache
+      bool err = false;
+      std::string hash;
+      bool hit = keychainCache.Read(source, KEYCHAIN_TABLE, hash, results, err);
+      if (err) {
+        TLOG << "Could not read the file at " << source.string() << ""
+             << ec.message();
+        continue;
+      }
+      if (hit) {
+        continue;
+      }
+
+      // Cache miss: open the keychain (SSV in place, non-SSV via temp copy).
+      auto opened = openKeychainForPath(source.string());
+      if (!opened) {
+        // Cache an empty result to prevent the above API call in the future.
+        keychainCache.Write(source, KEYCHAIN_TABLE, hash, {});
+        continue;
+      }
+      SecKeychainRef keychain = opened.get();
+      owned.push_back(std::move(opened));
 
       auto keychains = CFArrayCreateMutable(nullptr, 1, &kCFTypeArrayCallBacks);
       CFArrayAppendValue(keychains, keychain);
       QueryData new_results;
-      // Keychains/certificate stores belonging to the OS.
+      // Query certificates in this one keychain via SecItemCopyMatching.
       CFArrayRef certs = CreateKeychainItems(keychains, kSecClassCertificate);
       CFRelease(keychains);
-      // Must have returned an array of matching certificates.
       if (certs != nullptr) {
         if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
           auto certificate_count = CFArrayGetCount(certs);
           for (CFIndex i = 0; i < certificate_count; i++) {
             auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-            genKeychainCertificate(cert, new_results);
+            // Attribute the row to the original path, not the temp copy.
+            genKeychainCertificate(cert, source.string(), new_results);
           }
         }
         CFRelease(certs);
