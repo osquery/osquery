@@ -185,10 +185,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -409,10 +409,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
 
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -662,10 +662,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
@@ -1033,10 +1033,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
 
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
 
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
