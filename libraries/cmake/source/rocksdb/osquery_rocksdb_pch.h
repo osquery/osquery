@@ -9,16 +9,7 @@
 
 // Precompiled header for the RocksDB third-party target.
 //
-// Headers were identified as the most expensive in ClangBuildAnalyzer output
-// across the 303-file thirdparty_rocksdb build:
-//
-//   rocksdb/options.h          ~43 s  (242/303 inclusions, 0.18 s avg)
-//   dbformat.h                 ~59 s  (163/303 inclusions, 0.36 s avg)
-//   memtable.h                 ~32 s  ( 88/303 inclusions, 0.36 s avg)
-//   memtable_list.h            ~55 s  ( 82/303 inclusions, 0.68 s avg)
-//   column_family.h            ~61 s  ( 81/303 inclusions, 0.75 s avg)
-//   db_impl.h                  ~63 s  ( 59/303 inclusions, 1.06 s avg)
-//   version_set.h              ~28 s  ( 77/303 inclusions, 0.37 s avg)
+// Headers were identified as the most expensive by ClangBuildAnalyzer.
 //
 // Include paths are resolved relative to the two PRIVATE include directories
 // set on thirdparty_rocksdb:
