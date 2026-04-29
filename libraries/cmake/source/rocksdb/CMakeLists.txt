@@ -479,6 +479,26 @@ function(rocksdbMain)
     "${library_root}/include"
   )
 
+  # Add a precompiled header for RocksDB. The PCH is compiled once and shared
+  # across all 303 source files, saving re-parsing of the most expensive
+  # internal headers on every cold build.
+  if(NOT PLATFORM_WINDOWS)
+    target_precompile_headers(thirdparty_rocksdb PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/osquery_rocksdb_pch.h"
+    )
+  endif()
+
+  # Enable unity builds for cold build speed. Batches 16 .cc files per unity
+  # compilation unit, reducing process spawn overhead and header re-parsing
+  # for non-PCH headers. Disable for incremental/warm builds where per-file
+  # ccache granularity is more efficient.
+  if(OSQUERY_ENABLE_UNITY_BUILD)
+    set_target_properties(thirdparty_rocksdb PROPERTIES
+      UNITY_BUILD ON
+      UNITY_BUILD_BATCH_SIZE 16
+    )
+  endif()
+
   if(PLATFORM_WINDOWS)
     # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
     # Status::NotSupported(), so that the caller can use a different way to

@@ -72,6 +72,11 @@ option(OSQUERY_NO_DEBUG_SYMBOLS "Whether to build without debug symbols or not, 
 option(OSQUERY_BUILD_TESTS "Whether to enable and build tests or not")
 option(OSQUERY_BUILD_ROOT_TESTS "Whether to enable and build tests that require root access")
 
+# Enable unity builds for the large AWS EC2 target (~1685 source files).
+# Speeds up cold builds significantly by batching TUs. Disable for warm ccache
+# builds since fine-grained ccache is more efficient than unity batches.
+option(OSQUERY_ENABLE_UNITY_BUILD "Enable CMake UNITY_BUILD on large third-party targets (e.g. aws-cpp-sdk-ec2) to speed up cold builds")
+
 # Sanitizers
 option(OSQUERY_ENABLE_ADDRESS_SANITIZER "Whether to enable Address Sanitizer")
 
