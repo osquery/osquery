@@ -1,11 +1,19 @@
 table_name("gpu_metrics")
-description("Information about GPU devices on the system.")
+description("Information about GPU devices on the system, including inventory and runtime telemetry where supported.")
 schema([
   Column("gpu_index", INTEGER, "The index of the GPU, starting from 0."),
   Column("pci_bus", TEXT, "The PCI bus address of the GPU (e.g., 0000:01:00.0)."),
   Column("vendor_name", TEXT, "The vendor name of the GPU."),
   Column("device_name", TEXT, "The model/device name of the GPU."),
+  Column("total_cores", INTEGER, "The total number of GPU cores where available."),
   Column("driver_version", TEXT, "The installed driver version for the GPU.", collate="version"),
-  Column("vram_total_bytes", BIGINT, "Total video RAM in bytes."),
+  Column("vram_total_bytes", BIGINT, "Total video RAM in bytes. NULL if not available."),
+  Column("allocated_vram", BIGINT, "Darwin only: allocated GPU memory in bytes from IOAccelerator. NULL on unsupported platforms."),
+  Column("in_use_vram", BIGINT, "Darwin only: in-use GPU memory in bytes from IOAccelerator. NULL on unsupported platforms."),
+  Column("gpu_utilization_pct", DOUBLE, "GPU engine utilization as a percentage (0-100). NULL if not supported by the platform or driver."),
+  Column("temperature_gpu_celsius", DOUBLE, "GPU core temperature in degrees Celsius. NULL if not supported."),
+  Column("power_draw_watts", DOUBLE, "Current GPU power draw in Watts. NULL if not supported."),
+  Column("power_limit_watts", DOUBLE, "Configured GPU power limit in Watts. NULL if not supported."),
+  Column("fan_speed_pct", DOUBLE, "GPU fan speed as a percentage of maximum (0-100). NULL if not supported or no dedicated fan."),
 ])
 implementation("gpu_metrics@genGpuMetrics")

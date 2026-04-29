@@ -7,7 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <dirent.h>
 #include <fstream>
+#include <optional>
 #include <string>
 
 #include <boost/algorithm/string.hpp>
@@ -85,6 +87,108 @@ bool isDisplayClass(const std::string& pci_class_attr) {
   std::string high = pci_class_attr.substr(0, 2);
   boost::algorithm::to_lower(high);
   return high == kPCIDisplayClass;
+}
+
+// Returns the path to the first hwmon directory under {pci_syspath}/hwmon/,
+// or empty string if none found.
+std::string findHwmonPath(const std::string& pci_syspath) {
+  const std::string hwmon_base = pci_syspath + "/hwmon";
+  DIR* dir = opendir(hwmon_base.c_str());
+  if (dir == nullptr) {
+    return "";
+  }
+
+  std::string result;
+  struct dirent* entry = nullptr;
+  while ((entry = readdir(dir)) != nullptr) {
+    const std::string name(entry->d_name);
+    // hwmon subdirectories are named "hwmonN" where N is one or more digits.
+    if (name.size() > 5 && name.rfind("hwmon", 0) == 0) {
+      result = hwmon_base + "/" + name;
+      break;
+    }
+  }
+  closedir(dir);
+  return result;
+}
+
+struct HwmonData {
+  std::optional<double> temp_celsius;
+  std::optional<double> power_draw_watts;
+  std::optional<double> power_limit_watts;
+  std::optional<double> fan_speed_pct;
+};
+
+// Read hardware-monitor telemetry from the kernel hwmon interface for the
+// given PCI device syspath. Works for AMD (amdgpu) and NVIDIA (nouveau/nvidia)
+// drivers that expose standard hwmon attributes.
+HwmonData readHwmonData(const std::string& pci_syspath) {
+  HwmonData data;
+  const std::string hwmon_path = findHwmonPath(pci_syspath);
+  if (hwmon_path.empty()) {
+    return data;
+  }
+
+  // Temperature: temp1_input is in millidegrees Celsius.
+  const std::string temp = readSysfsAttr(hwmon_path, "temp1_input");
+  if (!temp.empty()) {
+    try {
+      data.temp_celsius = std::stod(temp) / 1000.0;
+    } catch (...) {
+    }
+  }
+
+  // Power draw: prefer time-averaged value, fall back to instantaneous.
+  for (const auto* power_file : {"power1_average", "power1_input"}) {
+    const std::string power = readSysfsAttr(hwmon_path, power_file);
+    if (!power.empty()) {
+      try {
+        // Kernel reports in microwatts.
+        data.power_draw_watts = std::stod(power) / 1000000.0;
+      } catch (...) {
+      }
+      break;
+    }
+  }
+
+  // Power limit (cap): in microwatts.
+  const std::string power_cap = readSysfsAttr(hwmon_path, "power1_cap");
+  if (!power_cap.empty()) {
+    try {
+      data.power_limit_watts = std::stod(power_cap) / 1000000.0;
+    } catch (...) {
+    }
+  }
+
+  // Fan speed: derive percentage from RPM / max_RPM.
+  const std::string fan_input = readSysfsAttr(hwmon_path, "fan1_input");
+  const std::string fan_max = readSysfsAttr(hwmon_path, "fan1_max");
+  if (!fan_input.empty() && !fan_max.empty()) {
+    try {
+      const double input = std::stod(fan_input);
+      const double max_rpm = std::stod(fan_max);
+      if (max_rpm > 0.0) {
+        data.fan_speed_pct = (input / max_rpm) * 100.0;
+      }
+    } catch (...) {
+    }
+  }
+
+  return data;
+}
+
+// Read GPU engine busy percentage from sysfs. AMD (amdgpu) exposes this as
+// gpu_busy_percent directly on the PCI device node.
+std::optional<double> readGpuBusyPercent(const std::string& pci_syspath) {
+  const std::string raw = readSysfsAttr(pci_syspath, "gpu_busy_percent");
+  if (raw.empty()) {
+    return std::nullopt;
+  }
+  try {
+    return std::stod(raw);
+  } catch (...) {
+    return std::nullopt;
+  }
 }
 
 } // namespace
@@ -166,8 +270,6 @@ QueryData genGpuMetrics(QueryContext& context) {
         UdevEventPublisher::getValue(device.get(), kGpuPCISubsysID),
         pcidb);
     if (status.ok()) {
-      // extractVendorModelFromPciDBIfPresent populates "vendor" and "model";
-      // map them to our column names.
       auto it_vendor = r.find("vendor");
       if (it_vendor != r.end() && !it_vendor->second.empty()) {
         r["vendor_name"] = it_vendor->second;
@@ -180,12 +282,14 @@ QueryData genGpuMetrics(QueryContext& context) {
       }
     }
     // Remove pci.ids helper columns that may have been inserted.
-    r.erase("vendor_id");
-    r.erase("model_id");
-    r.erase("subsystem_vendor_id");
-    r.erase("subsystem_model_id");
-    r.erase("subsystem_vendor");
-    r.erase("subsystem_model");
+    for (const auto* key : {"vendor_id",
+                            "model_id",
+                            "subsystem_vendor_id",
+                            "subsystem_model_id",
+                            "subsystem_vendor",
+                            "subsystem_model"}) {
+      r.erase(key);
+    }
 
     // Driver version: for NVIDIA read the module version file.
     std::string driver =
@@ -200,12 +304,35 @@ QueryData genGpuMetrics(QueryContext& context) {
       }
     }
 
-    // VRAM: AMD exposes mem_info_vram_total in sysfs.
     const char* syspath_c = udev_device_get_syspath(device.get());
     if (syspath_c != nullptr) {
-      long long vram = readVramBytes(std::string(syspath_c));
+      const std::string syspath(syspath_c);
+
+      // VRAM: AMD exposes mem_info_vram_total in sysfs.
+      const long long vram = readVramBytes(syspath);
       if (vram > 0) {
         r["vram_total_bytes"] = BIGINT(vram);
+      }
+
+      // GPU utilization: AMD exposes gpu_busy_percent.
+      const auto busy = readGpuBusyPercent(syspath);
+      if (busy.has_value()) {
+        r["gpu_utilization_pct"] = DOUBLE(*busy);
+      }
+
+      // Hardware-monitor telemetry (temperature, power, fan).
+      const HwmonData hwmon = readHwmonData(syspath);
+      if (hwmon.temp_celsius.has_value()) {
+        r["temperature_gpu_celsius"] = DOUBLE(*hwmon.temp_celsius);
+      }
+      if (hwmon.power_draw_watts.has_value()) {
+        r["power_draw_watts"] = DOUBLE(*hwmon.power_draw_watts);
+      }
+      if (hwmon.power_limit_watts.has_value()) {
+        r["power_limit_watts"] = DOUBLE(*hwmon.power_limit_watts);
+      }
+      if (hwmon.fan_speed_pct.has_value()) {
+        r["fan_speed_pct"] = DOUBLE(*hwmon.fan_speed_pct);
       }
     }
 
@@ -217,3 +344,4 @@ QueryData genGpuMetrics(QueryContext& context) {
 
 } // namespace tables
 } // namespace osquery
+
