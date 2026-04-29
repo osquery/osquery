@@ -482,11 +482,9 @@ function(rocksdbMain)
   # Add a precompiled header for RocksDB. The PCH is compiled once and shared
   # across all 303 source files, saving re-parsing of the most expensive
   # internal headers on every cold build.
-  if(NOT PLATFORM_WINDOWS)
-    target_precompile_headers(thirdparty_rocksdb PRIVATE
-      "${CMAKE_CURRENT_SOURCE_DIR}/osquery_rocksdb_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_rocksdb PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/osquery_rocksdb_pch.h"
+  )
 
   # Enable unity builds for cold build speed. Batches 16 .cc files per unity
   # compilation unit, reducing process spawn overhead and header re-parsing
