@@ -9,12 +9,7 @@
 
 // Precompiled header for the AWS SDK third-party targets.
 //
-// These headers were identified as the most expensive in ClangBuildAnalyzer:
-//   AWSString.h            ~503 s total (1984 inclusions, 274 ms avg)
-//   AWSMemory.h            ~344 s total (1984 inclusions, 173 ms avg)
-//   AmazonWebServiceRequest.h       ~340 s total (527 inclusions, 646 ms avg)
-//   AmazonSerializableWebServiceRequest.h  ~340 s total (524 inclusions, 649 ms
-//   avg)
+// These headers were identified as the most expensive in ClangBuildAnalyzer.
 //
 // Applied to thirdparty_aws-cpp-sdk-core and reused by all other SDK targets.
 // All include paths below are available via the INTERFACE include directories
