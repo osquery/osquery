@@ -399,10 +399,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
         key: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
         restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+          ccache_${{ matrix.os }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
@@ -591,10 +591,11 @@ jobs:
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
     - name: Save the cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -675,10 +676,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
         key: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
         restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+          ccache_${{ matrix.os }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
@@ -868,10 +869,11 @@ jobs:
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
     - name: Save the cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -1246,16 +1248,16 @@ jobs:
 
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
-    - name: Update the cache (sccache)
-      uses: actions/cache@v4
+    - name: Restore the cache (sccache)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
 
         key: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
         restore-keys: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}
 
     - name: Build the project
       shell: cmd
@@ -1276,6 +1278,13 @@ jobs:
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --show-stats
         sccache.exe --stop-server
+
+    - name: Save the cache (sccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
     - name: Disk space information
       id: disk_space_info_post_build
