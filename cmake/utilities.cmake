@@ -270,19 +270,14 @@ function(add_osquery_library)
   #
   # We compile separate PCH artifacts for CXX and OBJCXX via
   # $<COMPILE_LANGUAGE:> generator expressions so that .mm translation units
-  # get an Objective-C++-aware PCH rather than the C++-only one, avoiding
-  # the Clang "Objective-C was disabled in PCH file" mismatch.
+  # get an Objective-C++-aware PCH while regular .cpp files keep the C++ PCH.
   if(NOT "INTERFACE" IN_LIST osquery_lib_ARGN AND
      NOT "IMPORTED"  IN_LIST osquery_lib_ARGN AND
      NOT "UNKNOWN"   IN_LIST osquery_lib_ARGN)
-    osqueryPCHFile(_osquery_pch)
+    set(_osquery_pch "${CMAKE_SOURCE_DIR}/cmake/osquery_pch.h")
     if(DEFINED PLATFORM_MACOS)
-      # On macOS, flags.cmake adds "-x objective-c++ -fobjc-arc" to cxx_settings.
-      # This causes ALL .cpp files to compile as OBJCXX despite CMake declaring
-      # them as CXX. We must compile the PCH as OBJCXX too, so register only
-      # the OBJCXX PCH (not CXX) to avoid "Objective-C was disabled in PCH file"
-      # errors. This preserves ccache since we never change LANGUAGE properties.
       target_precompile_headers(${osquery_lib_name} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${_osquery_pch}>"
         "$<$<COMPILE_LANGUAGE:OBJCXX>:${_osquery_pch}>"
       )
     else()

@@ -12,7 +12,6 @@ cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
 # utilities.cmake is a dependency of toolchain.cmake.
 include(cmake/utilities.cmake)
 include(cmake/toolchain.cmake)
-include(cmake/pch.cmake)
 
 project(osquery)
 

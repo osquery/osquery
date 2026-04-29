@@ -146,7 +146,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/nvram.cpp
       darwin/os_version.mm
       darwin/packages.mm
-      darwin/password_policy.cpp
+      darwin/password_policy.mm
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp

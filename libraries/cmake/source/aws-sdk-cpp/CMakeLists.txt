@@ -1768,17 +1768,9 @@ function(generateAwsCppSdkEc2)
     )
   endif()
 
-  # Share the PCH from thirdparty_aws-cpp-sdk-core by registering the same
-  # headers directly (REUSE_FROM doesn't work with generator expressions).
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-ec2 PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-ec2 PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-ec2 REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
 endfunction()
 
 function(generateAwsCppSdkSts)
@@ -1866,17 +1858,9 @@ function(generateAwsCppSdkSts)
     )
   endif()
 
-  # Share the PCH from thirdparty_aws-cpp-sdk-core by registering the same
-  # headers directly (REUSE_FROM doesn't work with generator expressions).
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-sts PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-sts PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-sts REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
 endfunction()
 
 function(generateAwsCppSdkS3)
@@ -2276,17 +2260,9 @@ function(generateAwsCppSdkS3)
     )
   endif()
 
-  # Share the PCH from thirdparty_aws-cpp-sdk-core by registering the same
-  # headers directly (REUSE_FROM doesn't work with generator expressions).
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-s3 PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-s3 PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-s3 REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
 endfunction()
 
 function(generateAwsCppSdkKinesis)
@@ -2420,17 +2396,9 @@ function(generateAwsCppSdkKinesis)
     )
   endif()
 
-  # Share the PCH from thirdparty_aws-cpp-sdk-core by registering the same
-  # headers directly (REUSE_FROM doesn't work with generator expressions).
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-kinesis PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-kinesis PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-kinesis REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
 endfunction()
 
 function(generateAwsCppSdkFirehose)
@@ -2603,17 +2571,9 @@ function(generateAwsCppSdkFirehose)
     )
   endif()
 
-  # Share the PCH from thirdparty_aws-cpp-sdk-core by registering the same
-  # headers directly (REUSE_FROM doesn't work with generator expressions).
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-firehose PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-firehose PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-firehose REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
 endfunction()
 
 function(generateAwsCppSdkCore)
@@ -2836,22 +2796,9 @@ function(generateAwsCppSdkCore)
     )
   endif()
 
-  # Precompiled header: the four most expensive AWS headers each account for
-  # 300-500 cumulative seconds of parse time across the SDK's own TUs.
-  # On macOS, flags.cmake injects "-x objective-c++ -fobjc-arc" into CXX_FLAGS
-  # for ALL targets (via thirdparty_cxx_settings), causing .cpp files to
-  # compile as OBJCXX despite CMake declaring them as CXX. Register only the
-  # OBJCXX PCH (not CXX) to avoid "Objective-C was disabled in PCH file" errors.
-  # This preserves ccache since we never change LANGUAGE properties.
-  if(DEFINED PLATFORM_MACOS)
-    target_precompile_headers(thirdparty_aws-cpp-sdk-core PRIVATE
-      "$<$<COMPILE_LANGUAGE:OBJCXX>:${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h>"
-    )
-  else()
-    target_precompile_headers(thirdparty_aws-cpp-sdk-core PRIVATE
-      "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
-    )
-  endif()
+  target_precompile_headers(thirdparty_aws-cpp-sdk-core PRIVATE
+    "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
+  )
 endfunction()
 
 function(generateAwsCrtCpp)
