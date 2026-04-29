@@ -333,6 +333,8 @@ function(rocksdbMain)
       set_source_files_properties("${crc32_impl}" PROPERTIES
         COMPILE_FLAGS
           "-msse4.2 -mpclmul"
+        SKIP_PRECOMPILE_HEADERS
+          ON
       )
     endif()
 
