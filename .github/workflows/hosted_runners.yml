@@ -179,13 +179,19 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}
         fetch-depth: 0
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
 
         restore-keys: |
           gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
@@ -403,13 +409,19 @@ jobs:
         restore-keys: |
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
 
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
 
         restore-keys: |
           gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
@@ -656,13 +668,19 @@ jobs:
         restore-keys: |
           ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
 
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
 
         restore-keys: |
           gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
@@ -1027,13 +1045,23 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: powershell
+      run: |
+        $inputStr = (git -C "${{ steps.build_paths.outputs.REL_SOURCE }}" submodule status --recursive) -join "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($inputStr)
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $hash = [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-","").ToLower()
+        echo "VALUE=$hash" >> $env:GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
 
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
+          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
 
         restore-keys: |
           gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
