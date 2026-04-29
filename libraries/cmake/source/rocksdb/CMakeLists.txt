@@ -486,17 +486,6 @@ function(rocksdbMain)
     "${CMAKE_CURRENT_SOURCE_DIR}/osquery_rocksdb_pch.h"
   )
 
-  # Enable unity builds for cold build speed. Batches 16 .cc files per unity
-  # compilation unit, reducing process spawn overhead and header re-parsing
-  # for non-PCH headers. Disable for incremental/warm builds where per-file
-  # ccache granularity is more efficient.
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_rocksdb PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 16
-    )
-  endif()
-
   if(PLATFORM_WINDOWS)
     # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return
     # Status::NotSupported(), so that the caller can use a different way to

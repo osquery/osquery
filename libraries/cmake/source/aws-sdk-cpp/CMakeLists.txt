@@ -1772,18 +1772,6 @@ function(generateAwsCppSdkEc2)
     thirdparty_aws-cpp-sdk-core
   )
 
-  # EC2 has ~1685 source files. Unity builds batch multiple TUs into one
-  # compilation unit, cutting cold-build time by reducing per-file header
-  # re-parsing and process spawn overhead. Each batch of 32 files shares one
-  # compilation, producing ~53 unity TUs for good parallelism on -j10 builds.
-  # This is opt-in via the OSQUERY_ENABLE_UNITY_BUILD option so that warm
-  # ccache builds (which benefit from fine-grained caching) are not affected.
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_aws-cpp-sdk-ec2 PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 32
-    )
-  endif()
 endfunction()
 
 function(generateAwsCppSdkSts)
@@ -1875,12 +1863,6 @@ function(generateAwsCppSdkSts)
     thirdparty_aws-cpp-sdk-core
   )
 
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_aws-cpp-sdk-sts PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 16
-    )
-  endif()
 endfunction()
 
 function(generateAwsCppSdkS3)
@@ -2284,12 +2266,6 @@ function(generateAwsCppSdkS3)
     thirdparty_aws-cpp-sdk-core
   )
 
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_aws-cpp-sdk-s3 PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 32
-    )
-  endif()
 endfunction()
 
 function(generateAwsCppSdkKinesis)
@@ -2427,12 +2403,6 @@ function(generateAwsCppSdkKinesis)
     thirdparty_aws-cpp-sdk-core
   )
 
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_aws-cpp-sdk-kinesis PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 16
-    )
-  endif()
 endfunction()
 
 function(generateAwsCppSdkFirehose)
@@ -2609,12 +2579,6 @@ function(generateAwsCppSdkFirehose)
     thirdparty_aws-cpp-sdk-core
   )
 
-  if(OSQUERY_ENABLE_UNITY_BUILD)
-    set_target_properties(thirdparty_aws-cpp-sdk-firehose PROPERTIES
-      UNITY_BUILD ON
-      UNITY_BUILD_BATCH_SIZE 16
-    )
-  endif()
 endfunction()
 
 function(generateAwsCppSdkCore)
