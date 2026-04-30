@@ -317,12 +317,6 @@ function(generateNativeTables)
     "windows/process_open_handles.table:windows"
   )
 
-  if(OSQUERY_BUILD_BPF)
-    list(APPEND platform_dependent_spec_files
-      "linux/bpf_process_events.table:linux"
-      "linux/bpf_socket_events.table:linux"
-    )
-  endif()
 
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files
