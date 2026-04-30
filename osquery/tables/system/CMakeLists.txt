@@ -306,6 +306,7 @@ function(generateOsqueryTablesSystemSystemtable)
       osquery_utils_plist
       osquery_utils_system_profiler
       thirdparty_openssl
+      IOReport
     )
 
     target_link_options(osquery_tables_system_systemtable PRIVATE
