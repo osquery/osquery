@@ -16,13 +16,13 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux (Ubuntu 18)
+## Linux (Ubuntu 24)
 
 The initial directory is assumed to be `/home/<user>`.
 
 ```bash
 # Install the prerequisites
-sudo apt install --no-install-recommends git python3 bison flex make
+sudo apt install --no-install-recommends git python3 bison flex make cmake ccache
 
 # Optional: install python tests prerequisites
 sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
@@ -31,15 +31,10 @@ pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
 # Optional: install RPM packaging prerequisites
 sudo apt install --no-install-recommends rpm binutils
 
-# Download and install the osquery toolchain
-export ARCH=$(uname -m) # There is toolchain support for x86_64 and aarch64.
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-${ARCH}.tar.xz
-sudo tar xvf osquery-toolchain-1.1.0-${ARCH}.tar.xz -C /usr/local
-
-# Download and install a newer CMake.
-# Afterward, verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`.
-wget https://cmake.org/files/v3.21/cmake-3.21.4-linux-${ARCH}.tar.gz
-sudo tar xvf cmake-3.21.4-linux-${ARCH}.tar.gz -C /usr/local --strip 1
+# Download and install the osquery toolchain for the architecture in use.
+export ARCH=$(uname -m)
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.3.0/osquery-toolchain-1.3.0-${ARCH}.tar.xz
+sudo tar xvf osquery-toolchain-1.3.0-${ARCH}.tar.xz -C /usr/local
 
 # Download source
 git clone https://github.com/osquery/osquery
