@@ -44,7 +44,24 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   )
 
   if(NOT ${process_exit_code} EQUAL 0)
-    message(FATAL_ERROR "Failed to update the following git submodule: \"${submodule_path}\"")
+    message(WARNING "Shallow submodule update failed for: \"${submodule_path}\". Attempting to delete and retry shallow update.")
+    file(REMOVE_RECURSE "${submodule_path}")
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"
+      RESULT_VARIABLE process_exit_code_retry
+      WORKING_DIRECTORY "${working_directory}"
+    )
+    if(NOT ${process_exit_code_retry} EQUAL 0)
+      message(WARNING "Second shallow submodule update failed for: \"${submodule_path}\". Retrying with full fetch.")
+      execute_process(
+        COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} "${submodule_path}"
+        RESULT_VARIABLE process_exit_code_full
+        WORKING_DIRECTORY "${working_directory}"
+      )
+      if(NOT ${process_exit_code_full} EQUAL 0)
+        message(FATAL_ERROR "Failed to update the following git submodule (even after full fetch): \"${submodule_path}\"")
+      endif()
+    endif()
   endif()
 endfunction()
 
