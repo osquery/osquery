@@ -12,6 +12,13 @@ if(OSQUERY_ENABLE_CCACHE)
     message(STATUS "Found ccache: ${ccache_command}")
     set(CMAKE_CXX_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
     set(CMAKE_C_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
+
+    # On macOS, .mm (Objective-C++) files are compiled as OBJCXX. Without this,
+    # ccache is not invoked for those translation units and they never get cached.
+    if(DEFINED PLATFORM_MACOS)
+      set(CMAKE_OBJCXX_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
+      set(CMAKE_OBJC_COMPILER_LAUNCHER "${ccache_command}" CACHE FILEPATH "")
+    endif()
   else()
     message(STATUS "Not found: ccache. Install it and put it into the PATH if you want to speed up partial builds.")
   endif()
