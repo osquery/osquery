@@ -778,6 +778,10 @@ function(generateBoostContext)
     set(source_file_list)
     set(asm_source_file_list)
 
+    list(APPEND source_file_list
+      "${library_root}/src/fcontext.cpp"
+    )
+
     if(PLATFORM_LINUX)
       if(TARGET_PROCESSOR STREQUAL "x86_64")
         list(APPEND asm_source_file_list
