@@ -464,6 +464,12 @@ function(rocksdbMain)
       ${library_list}
   )
 
+  # Force C++11 for rocksdb - override any newer versions from inherited settings (this version of rocksdb breaks with newer c++)
+  set_target_properties(thirdparty_rocksdb PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
+  )
+  
   target_include_directories(thirdparty_rocksdb PRIVATE
     "${library_root}"
     "${library_root}/include"
