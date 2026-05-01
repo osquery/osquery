@@ -1085,7 +1085,6 @@ jobs:
                               osquery `
                               pywin32
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install sccache
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1099,21 +1098,6 @@ jobs:
         7z x -o${{ steps.build_paths.outputs.INSTALL }}\sccache -y $archive_name
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\sccache" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    # TODO: Implement a cache so we don't keep hitting the server at each run
-    - name: Install Ninja
-      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
-      shell: powershell
-      run: |
-        $long_version = "1.10.0"
-
-        $archive_name = "ninja-win.zip"
-        $url = $("https://github.com/ninja-build/ninja/releases/download/v" + $long_version + "/" + $archive_name)
-
-        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
-        7z x -o${{ steps.build_paths.outputs.INSTALL }}\ninja -y $archive_name
-
-        echo "${{ steps.build_paths.outputs.INSTALL }}\ninja" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Configure the project
       shell: cmd
