@@ -1,8 +1,8 @@
 diff --git a/src/linenoise.cpp b/src/linenoise.cpp
-index 8ee8984..b5f079e 100644
+index 8ee8984..10194fe 100644
 --- a/src/linenoise.cpp
 +++ b/src/linenoise.cpp
-@@ -130,8 +130,6 @@ using std::vector;
+@@ -133,8 +133,6 @@ using std::vector;
  using std::unique_ptr;
  using namespace linenoise_ng;
  
@@ -10,3 +10,4 @@ index 8ee8984..b5f079e 100644
 -
  static ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
                                          size_t& dstCount, const char* src) {
+   const UTF8* sourceStart = reinterpret_cast<const UTF8*>(src);
