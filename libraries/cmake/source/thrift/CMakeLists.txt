@@ -83,17 +83,7 @@ function(thriftMain)
     "${library_root}/src/thrift/transport/TWebSocketServer.h"
   )
 
-  if(PLATFORM_POSIX)
-    set(tsocket_pool_compile_options "-include;random_shuffle.h")
-
-  elseif(PLATFORM_WINDOWS)
-    set(tsocket_pool_compile_options "/FIrandom_shuffle.h")
-  endif()
-
-  set_source_files_properties("${library_root}/src/thrift/transport/TSocketPool.cpp" PROPERTIES
-    COMPILE_OPTIONS
-      "${tsocket_pool_compile_options}"
-  )
+  # No longer need to include random_shuffle.h for C++20 and later
 
   if(PLATFORM_WINDOWS)
     target_sources(thirdparty_thrift_thrift PRIVATE
