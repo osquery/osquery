@@ -9,14 +9,6 @@ option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to 
 option(OSQUERY_DISABLE_SHALLOW_CLONE "Set this option to ON to do a full git clone. For Development only" OFF)
 
 function(initializeGitSubmodule submodule_path no_recursive shallow)
-  file(GLOB submodule_folder_contents "${submodule_path}/*")
-
-  list(LENGTH submodule_folder_contents submodule_folder_file_count)
-  if(NOT ${submodule_folder_file_count} EQUAL 0)
-    set(initializeGitSubmodule_IsAlreadyCloned TRUE PARENT_SCOPE)
-    return()
-  endif()
-
   find_package(Git REQUIRED)
 
   if(no_recursive)
@@ -54,8 +46,6 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   if(NOT ${process_exit_code} EQUAL 0)
     message(FATAL_ERROR "Failed to update the following git submodule: \"${submodule_path}\"")
   endif()
-
-  set(initializeGitSubmodule_IsAlreadyCloned FALSE PARENT_SCOPE)
 endfunction()
 
 function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_dir)

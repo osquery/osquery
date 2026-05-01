@@ -779,10 +779,7 @@ function(generateBoostContext)
   message(STATUS "osquery: boost::context is using the ${context_backend} backend")
 
   if(context_backend STREQUAL "fcontext")
-    set(source_file_list
-      "${library_root}/src/fcontext.cpp"
-    )
-
+    set(source_file_list)
     set(asm_source_file_list)
 
     if(PLATFORM_LINUX)
@@ -834,11 +831,11 @@ function(generateBoostContext)
       endif()
     endif()
 
-    list(APPEND source_file_list ${asm_source_file_list})
-
-    if(source_file_list STREQUAL "")
+    if(asm_source_file_list STREQUAL "")
       message(FATAL_ERROR "Unsupported platform and/or architecture")
     endif()
+
+    list(APPEND source_file_list ${asm_source_file_list})
 
     foreach(asm_source_file ${asm_source_file_list})
       if(DEFINED PLATFORM_POSIX)
