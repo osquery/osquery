@@ -39,12 +39,6 @@ function(boostMain)
     thirdparty_boost_scope_exit
     thirdparty_boost_circular_buffer
   )
-
-  # Force C++11 for boost (header-only, propagates to users)
-  set_target_properties(thirdparty_boost PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED ON
-  )
 endfunction()
 
 function(importBoostInterfaceLibrary folder_name)
