@@ -345,10 +345,6 @@ function(generateBoostAtomic)
   endif()
 
   if(PLATFORM_WINDOWS)
-    target_sources(thirdparty_boost_atomic PRIVATE
-      "${library_root}/src/wait_ops_windows.cpp"
-    )
-
     target_compile_definitions(thirdparty_boost_atomic PUBLIC
       BOOST_USE_WINDOWS_H
     )
