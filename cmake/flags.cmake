@@ -344,8 +344,8 @@ function(setupBuildFlags)
 
     set(windows_common_defines
       "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>"
-      _WIN32_WINNT=_WIN32_WINNT_WIN8
-      NTDDI_VERSION=NTDDI_WIN8
+      _WIN32_WINNT=_WIN32_WINNT_WIN10
+      NTDDI_VERSION=NTDDI_WIN10_TH2
       # VS2022 warns about this; the AWS SDK uses this non standard extension.
       # Updating the SDK and switching to C++20 should fix this.
       _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
