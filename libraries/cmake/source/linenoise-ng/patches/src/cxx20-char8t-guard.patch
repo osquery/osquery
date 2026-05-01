@@ -1,12 +1,11 @@
 diff --git a/src/linenoise.cpp b/src/linenoise.cpp
 index 8ee8984..b5f079e 100644
---- a/src/linenoise.cpp
+++ b/src/linenoise.cpp
 +++ b/src/linenoise.cpp
 @@ -133,7 +133,9 @@ using std::vector;
  using std::unique_ptr;
  using namespace linenoise_ng;
  
--typedef unsigned char char8_t;
  
  static ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
                                          size_t& dstCount, const char* src) {
