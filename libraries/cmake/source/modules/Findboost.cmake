@@ -72,6 +72,7 @@ importSourceSubmodule(
     "src/libs/ratio"
     "src/libs/rational"
     "src/libs/regex"
+    "src/libs/scope"
     "src/libs/scope_exit"
     "src/libs/serialization"
     "src/libs/smart_ptr"
