@@ -33,7 +33,7 @@ namespace osquery {
 namespace {
 
 class UniquePath final {
-public:
+ public:
   UniquePath(UniquePath&& other) noexcept : path(std::move(other.path)) {}
   UniquePath& operator=(UniquePath&& other) noexcept {
     if (this != &other) {
