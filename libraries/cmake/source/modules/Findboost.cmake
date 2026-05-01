@@ -89,4 +89,7 @@ importSourceSubmodule(
     "src/libs/uuid"
     "src/libs/variant"
     "src/libs/winapi"
+
+  PATCH
+    "src"
 )
