@@ -23,8 +23,12 @@ function(setupBuildFlags)
   add_library(cxx_settings INTERFACE)
   add_library(c_settings INTERFACE)
 
-  target_compile_features(cxx_settings INTERFACE cxx_std_20)
-  target_compile_features(c_settings INTERFACE c_std_17)
+  set(CMAKE_C_STANDARD 17)
+  set(CMAKE_C_STANDARD_REQUIRED ON)
+
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
 
   if(DEFINED PLATFORM_POSIX)
 
