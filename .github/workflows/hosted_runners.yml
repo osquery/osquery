@@ -1246,6 +1246,13 @@ jobs:
         @echo on
         ctest --build-nocmake -C Release -V
 
+    - name: Upload test logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4.4.0
+      with:
+        name: windows${{ matrix.bitness }}_test_logs
+        path: ${{ steps.build_paths.outputs.BINARY }}/Testing/Temporary/LastTest.log
+
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
