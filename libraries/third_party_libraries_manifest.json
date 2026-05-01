@@ -75,7 +75,7 @@
     "product": "boost",
     "vendor": "boost",
     "version": "1.91.0",
-    "commit": "9d3f9bcd7d416880d4631d7d39cceeb4e8f25da0",
+    "commit": "1a80576db6b70828803819fb6925132193bc5d0e",
     "ignored-cves": []
   },
   "bzip2": {
@@ -90,9 +90,7 @@
     "vendor": "d-bus_project",
     "version": "1.12.24",
     "commit": "5ff925648e88ba29cef7d708bc2bbc5d6de5fc48",
-    "ignored-cves": [
-      "CVE-2023-34969"
-    ]
+    "ignored-cves": ["CVE-2023-34969"]
   },
   "expat": {
     "product": "libexpat",
@@ -137,19 +135,14 @@
     "vendor": "libcap_project",
     "version": "2.59",
     "commit": "9eb56596eef5e55a596aa97ecaf8466ea559d05c",
-    "ignored-cves": [
-      "CVE-2023-2603"
-    ]
+    "ignored-cves": ["CVE-2023-2603"]
   },
   "libcryptsetup": {
     "product": "cryptsetup",
     "vendor": "cryptsetup_project",
     "version": "1.7.5",
     "commit": "0ba577666c62bb3c82e90f3c8dd01f3f81a26cf4",
-    "ignored-cves": [
-      "CVE-2016-4484",
-      "CVE-2021-4122"
-    ]
+    "ignored-cves": ["CVE-2016-4484", "CVE-2021-4122"]
   },
   "libdevmapper": {
     "product": "lvm2",
@@ -163,9 +156,7 @@
     "vendor": "debian",
     "version": "1.21.7",
     "commit": "e61f582015a9c67bbb3791cb93a864cfeb9c7151",
-    "ignored-cves": [
-      "CVE-2022-1664"
-    ]
+    "ignored-cves": ["CVE-2022-1664"]
   },
   "libgcrypt": {
     "product": "libgcrypt",
@@ -267,9 +258,7 @@
     "vendor": "sqlite",
     "version": "3.42.0",
     "commit": "3341b40a45585b7854b20a8acff944c7668cf7e8",
-    "ignored-cves": [
-      "CVE-2023-7104"
-    ]
+    "ignored-cves": ["CVE-2023-7104"]
   },
   "thrift": {
     "product": "thrift",
@@ -310,9 +299,7 @@
     "vendor": "facebook",
     "version": "1.4.0",
     "commit": "83b51e9f886be7c2a4d477b6e7bc6db831791d8d",
-    "ignored-cves": [
-      "CVE-2021-24031"
-    ]
+    "ignored-cves": ["CVE-2021-24031"]
   },
   "lz4": {
     "product": "lz4",
