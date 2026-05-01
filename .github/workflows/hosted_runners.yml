@@ -41,7 +41,6 @@ concurrency:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
-  SUBMODULE_CACHE_VERSION: 3
   OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
 # If the initial code sanity checks are passing, then one job
@@ -189,12 +188,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -419,12 +416,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
-
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -678,12 +673,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
@@ -1059,12 +1052,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
-
         key: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ steps.submodule_hash.outputs.VALUE }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ runner.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
