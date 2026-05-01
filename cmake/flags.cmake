@@ -24,15 +24,7 @@ function(setupBuildFlags)
   add_library(c_settings INTERFACE)
 
   target_compile_features(cxx_settings INTERFACE cxx_std_20)
-
-  # There's no specific C standard conformance level on MSVC
-  # and recent versions of CMake add a /std:c1x flag to the command line
-  # which makes librdkafka compilation fail due to _Thread_local not being defined,
-  # even if it's a C11 keyword.
-  # For some reason the compiler does not complain about the incorrect flag.
-  if(NOT DEFINED PLATFORM_WINDOWS)
-    target_compile_features(c_settings INTERFACE c_std_17)
-  endif()
+  target_compile_features(c_settings INTERFACE c_std_17)
 
   if(DEFINED PLATFORM_POSIX)
 
