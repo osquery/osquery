@@ -22,6 +22,7 @@ target_link_libraries(external_options INTERFACE
   osquery_cxx_settings
   osquery_sdk_pluginsdk
   osquery_extensions_implthrift
+  thirdparty_boost_context
 )
 
 function(subdirlist output path)
