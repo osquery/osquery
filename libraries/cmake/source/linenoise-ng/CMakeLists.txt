@@ -15,6 +15,9 @@ function(linenoisengMain)
     "${library_root}/src/wcwidth.cpp"
   )
 
+  # Force C++14 for linenoise-ng only (it breaks on newer standards and needs patching)
+  set_target_properties(thirdparty_linenoise-ng PROPERTIES CXX_STANDARD 14)
+
   target_link_libraries(thirdparty_linenoise-ng PRIVATE
     thirdparty_cxx_settings
   )
