@@ -16,6 +16,7 @@ function(boostMain)
   generateBoostContainer()
   generateBoostRandom()
   generateBoostThread()
+  generateBoostCharconv()
   generateBoostLocale()
   generateBoostFilesystem()
   generateBoostContext()
@@ -70,7 +71,7 @@ function(importBoostInterfaceLibraries)
     "config:"
     "throw_exception:assert,config"
     "static_assert:config"
-    "core:assert,config"
+    "core:assert,config,throw_exception"
     "assert:config"
     "array:assert,config,core,static_assert,throw_exception"
     "bind:config,core"
@@ -83,7 +84,7 @@ function(importBoostInterfaceLibraries)
     "exception:assert,config,core,smart_ptr,throw_exception,tuple,type_traits"
     "integer:assert,config,core,static_assert,throw_exception"
     "detail:config,core,preprocessor,static_assert,type_traits"
-    "container_hash:assert,config,core,detail,integer,static_assert,type_traits"
+    "container_hash:assert,config,core,describe,detail,integer,mp11,static_assert,type_traits"
     "type_index:config,container_hash,core,preprocessor,smart_ptr,static_assert,throw_exception,type_traits"
     "typeof:config,preprocessor,type_traits"
     "function:assert,bind,config,core,integer,preprocessor,throw_exception,type_index,type_traits,typeof"
@@ -118,9 +119,11 @@ function(importBoostInterfaceLibraries)
     "spirit:array,assert,config,core,endian,function,function_types,fusion,integer,io,iterator,move,mpl,optional,phoenix,pool,preprocessor,proto,range,regex,smart_ptr,static_assert,thread,throw_exception,type_traits,typeof,unordered,utility,variant"
     "coroutine2:assert,config,context"
     "asio:array,assert,bind,chrono,config,core,coroutine2,date_time,function,regex,smart_ptr,system,throw_exception,type_traits,utility,thirdparty_openssl"
-    "beast:asio,assert,bind,config,container,core,endian,intrusive,logic,mp11,optional,smart_ptr,static_assert,system,throw_exception,type_traits,utility,winapi,thirdparty_openssl"
+    "beast:asio,assert,bind,config,container,core,endian,intrusive,logic,mp11,optional,smart_ptr,static_assert,static_string,system,throw_exception,type_traits,utility,winapi,thirdparty_openssl"
     "logic:config,core"
     "mp11:"
+    "static_string:assert,config,core,throw_exception,type_traits"
+    "describe:config,core,mp11,type_traits"
     "format:assert,config,core,optional,smart_ptr,throw_exception,utility"
     "property_tree:any,assert,bind,config,core,format,iterator,mpl,multi_index,optional,range,serialization,static_assert,throw_exception,type_traits"
     "any:config,core,static_assert,throw_exception,type_index,type_traits"
@@ -129,6 +132,7 @@ function(importBoostInterfaceLibraries)
     "uuid:assert,config,container_hash,core,io,move,numeric_conversion,predef,random,serialization,static_assert,throw_exception,tti,type_traits,winapi"
     "tti:config,function_types,mpl,preprocessor,type_traits"
     "dynamic_bitset:assert,config,container_hash,core,integer,move,static_assert,throw_exception"
+    "scope:assert,config,core,move,throw_exception,type_traits"
     "scope_exit:config,function,preprocessor,type_traits,typeof"
     "circular_buffer:assert,concept_check,config,core,move,static_assert,throw_exception,type_traits"
   )
@@ -659,6 +663,7 @@ function(generateBoostLocale)
 
     PUBLIC
       thirdparty_boost_assert
+      thirdparty_boost_charconv
       thirdparty_boost_config
       thirdparty_boost_function
       thirdparty_boost_iterator
@@ -667,6 +672,38 @@ function(generateBoostLocale)
       thirdparty_boost_type_traits
       thirdparty_boost_thread
       thirdparty_boost_unordered
+  )
+endfunction()
+
+function(generateBoostCharconv)
+  set(library_root "${BOOST_ROOT}/libs/charconv")
+
+  add_library(thirdparty_boost_charconv STATIC EXCLUDE_FROM_ALL
+    "${library_root}/src/from_chars.cpp"
+    "${library_root}/src/to_chars.cpp"
+  )
+
+  target_include_directories(thirdparty_boost_charconv SYSTEM PUBLIC
+    "${library_root}/include"
+  )
+
+  target_link_libraries(thirdparty_boost_charconv
+    PRIVATE
+      thirdparty_cxx_settings
+
+    PUBLIC
+      thirdparty_boost_assert
+      thirdparty_boost_config
+      thirdparty_boost_core
+  )
+
+  target_compile_definitions(thirdparty_boost_charconv
+    PUBLIC
+      BOOST_CHARCONV_NO_LIB
+      BOOST_CHARCONV_STATIC_LINK
+
+    PRIVATE
+      BOOST_CHARCONV_SOURCE
   )
 endfunction()
 
@@ -701,6 +738,7 @@ function(generateBoostFilesystem)
       thirdparty_boost_detail
       thirdparty_boost_io
       thirdparty_boost_iterator
+      thirdparty_boost_scope
       thirdparty_boost_smart_ptr
       thirdparty_boost_system
       thirdparty_boost_type_traits
@@ -741,16 +779,22 @@ function(generateBoostContext)
   message(STATUS "osquery: boost::context is using the ${context_backend} backend")
 
   if(context_backend STREQUAL "fcontext")
+    set(source_file_list
+      "${library_root}/src/fcontext.cpp"
+    )
+
+    set(asm_source_file_list)
+
     if(PLATFORM_LINUX)
       if(TARGET_PROCESSOR STREQUAL "x86_64")
-        set(source_file_list
+        list(APPEND asm_source_file_list
           "${library_root}/src/asm/jump_x86_64_sysv_elf_gas.S"
           "${library_root}/src/asm/make_x86_64_sysv_elf_gas.S"
           "${library_root}/src/asm/ontop_x86_64_sysv_elf_gas.S"
         )
 
       elseif(TARGET_PROCESSOR STREQUAL "aarch64")
-        set(source_file_list
+        list(APPEND asm_source_file_list
           "${library_root}/src/asm/jump_arm64_aapcs_elf_gas.S"
           "${library_root}/src/asm/make_arm64_aapcs_elf_gas.S"
           "${library_root}/src/asm/ontop_arm64_aapcs_elf_gas.S"
@@ -759,30 +803,30 @@ function(generateBoostContext)
 
     elseif(PLATFORM_MACOS)
       if(TARGET_PROCESSOR STREQUAL "x86_64")
-        set(source_file_list
+        list(APPEND asm_source_file_list
           "${library_root}/src/asm/jump_x86_64_sysv_macho_gas.S"
           "${library_root}/src/asm/make_x86_64_sysv_macho_gas.S"
           "${library_root}/src/asm/ontop_x86_64_sysv_macho_gas.S"
         )
 
       elseif(TARGET_PROCESSOR STREQUAL "aarch64")
-        set(source_file_list
-        "${library_root}/src/asm/jump_arm64_aapcs_macho_gas.S"
-        "${library_root}/src/asm/make_arm64_aapcs_macho_gas.S"
-        "${library_root}/src/asm/ontop_arm64_aapcs_macho_gas.S"
-      )
+        list(APPEND asm_source_file_list
+          "${library_root}/src/asm/jump_arm64_aapcs_macho_gas.S"
+          "${library_root}/src/asm/make_arm64_aapcs_macho_gas.S"
+          "${library_root}/src/asm/ontop_arm64_aapcs_macho_gas.S"
+        )
       endif()
 
     elseif(PLATFORM_WINDOWS AND TARGET_PROCESSOR STREQUAL "x86_64")
       if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(source_file_list
+        list(APPEND asm_source_file_list
           "${library_root}/src/asm/jump_i386_ms_pe_masm.asm"
           "${library_root}/src/asm/make_i386_ms_pe_masm.asm"
           "${library_root}/src/asm/ontop_i386_ms_pe_masm.asm"
         )
 
       else()
-        set(source_file_list
+        list(APPEND asm_source_file_list
           "${library_root}/src/asm/jump_x86_64_ms_pe_masm.asm"
           "${library_root}/src/asm/make_x86_64_ms_pe_masm.asm"
           "${library_root}/src/asm/ontop_x86_64_ms_pe_masm.asm"
@@ -790,11 +834,13 @@ function(generateBoostContext)
       endif()
     endif()
 
+    list(APPEND source_file_list ${asm_source_file_list})
+
     if(source_file_list STREQUAL "")
       message(FATAL_ERROR "Unsupported platform and/or architecture")
     endif()
 
-    foreach(asm_source_file ${source_file_list})
+    foreach(asm_source_file ${asm_source_file_list})
       if(DEFINED PLATFORM_POSIX)
         set_property(SOURCE "${asm_source_file}" PROPERTY LANGUAGE ASM)
       endif()

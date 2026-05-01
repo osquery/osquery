@@ -7,6 +7,21 @@
 
 cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
 
+# Local macOS builds can otherwise pick up a stale CommandLineTools SDK that
+# does not match the active Xcode toolchain selected via xcode-select.
+if(APPLE AND (NOT DEFINED CMAKE_OSX_SYSROOT OR CMAKE_OSX_SYSROOT STREQUAL "") AND EXISTS "/usr/bin/xcrun")
+  execute_process(
+    COMMAND /usr/bin/xcrun --sdk macosx --show-sdk-path
+    OUTPUT_VARIABLE osquery_macos_sdk_path
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE osquery_macos_sdk_result
+  )
+
+  if(osquery_macos_sdk_result EQUAL 0 AND EXISTS "${osquery_macos_sdk_path}")
+    set(CMAKE_OSX_SYSROOT "${osquery_macos_sdk_path}" CACHE PATH "macOS SDK path" FORCE)
+  endif()
+endif()
+
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
 # utilities.cmake is a dependency of toolchain.cmake.
