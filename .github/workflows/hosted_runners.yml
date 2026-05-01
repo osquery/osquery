@@ -41,7 +41,6 @@ concurrency:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
-  SUBMODULE_CACHE_VERSION: 3
   OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
 # If the initial code sanity checks are passing, then one job
@@ -179,16 +178,20 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}
         fetch-depth: 0
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -403,16 +406,20 @@ jobs:
         restore-keys: |
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
-
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -656,16 +663,20 @@ jobs:
         restore-keys: |
           ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-
         key: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
@@ -673,10 +684,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
         key: |
-          downloads_${{ matrix.os }}_${{ matrix.architecture }}_${{ github.sha }}
+          downloads_${{ runner.os }}_${{ github.sha }}
 
         restore-keys: |
-          downloads_${{ matrix.os }}_${{ matrix.architecture }}
+          downloads_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -1027,16 +1038,24 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: powershell
+      run: |
+        $inputStr = (git -C "${{ steps.build_paths.outputs.REL_SOURCE }}" submodule status --recursive) -join "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($inputStr)
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $hash = [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-","").ToLower()
+        echo "VALUE=$hash" >> $env:GITHUB_OUTPUT
+
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
-
         key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
+          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+          gitmodules_${{ runner.os }}
 
     - name: Update the cache (downloads)
       uses: actions/cache@v4
@@ -1044,10 +1063,10 @@ jobs:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
 
         key: |
-          downloads_${{ matrix.os }}_${{ github.sha }}
+          downloads_${{ runner.os }}_${{ github.sha }}
 
         restore-keys: |
-          downloads_${{ matrix.os }}
+          downloads_${{ runner.os }}
 
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
@@ -1085,7 +1104,6 @@ jobs:
                               osquery `
                               pywin32
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install CMake
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1103,7 +1121,6 @@ jobs:
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\$folder_name\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install sccache
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1118,7 +1135,6 @@ jobs:
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\sccache" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install Ninja
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
