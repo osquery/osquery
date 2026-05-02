@@ -40,6 +40,32 @@ static void fetchMethodResultLong(std::string& result,
   }
 }
 
+static std::string fetchProtectorTypes(const WmiRequest& req,
+                                       const WmiResultItem& object) {
+  std::string protectorTypes = "";
+
+  for (int i = 1; i <= 10; i++) {
+    WmiMethodArgs args;
+    WmiResultItem out;
+    std::vector<std::string> protectorIds;
+
+    args.Put("KeyProtectorType", std::to_string(i));
+    auto status = req.ExecMethod(object, "GetKeyProtectors", args, out);
+    if (status.ok()) {
+      status = out.GetVectorOfStrings("VolumeKeyProtectorID", protectorIds);
+      if (status.ok()) {
+        if (protectorIds.size() > 0) {
+          protectorTypes = protectorTypes + std::to_string(i) + ", ";
+        }
+      }
+    }
+  }
+  if (protectorTypes.length() > 0) {
+    protectorTypes = protectorTypes.substr(0, protectorTypes.length() - 2);
+  }
+  return protectorTypes;
+}
+
 QueryData genBitlockerInfo(QueryContext& context) {
   Row r;
   QueryData results;
@@ -82,6 +108,8 @@ QueryData genBitlockerInfo(QueryContext& context) {
       emethod_str = "UNKNOWN";
     }
     r["encryption_method"] = emethod_str;
+
+    r["protector_types"] = fetchProtectorTypes(*wmiSystemReq, data);
 
     fetchMethodResultLong(
         r["version"], *wmiSystemReq, data, "GetVersion", "Version");
