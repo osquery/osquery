@@ -184,12 +184,11 @@ jobs:
       run: |
         echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-        key: |
-          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
           gitmodules_${{ runner.os }}
 
@@ -259,7 +258,12 @@ jobs:
         name: cppcheck-debug
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
 
-
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
   # The Linux build will only start once we know that the code
@@ -412,10 +416,10 @@ jobs:
       run: |
         echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v4
       with:
-        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: |
           gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: |
@@ -586,6 +590,14 @@ jobs:
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+
 
   # The macOS build will only start once we know that the code
   # has been properly formatted
@@ -678,16 +690,12 @@ jobs:
         restore-keys: |
           gitmodules_${{ runner.os }}
 
-    - name: Update the cache (downloads)
-      uses: actions/cache@v4
+    - name: Restore cache (downloads)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-
-        key: |
-          downloads_${{ runner.os }}_${{ github.sha }}
-
-        restore-keys: |
-          downloads_${{ runner.os }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+        restore-keys: downloads_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -844,6 +852,19 @@ jobs:
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (downloads)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
@@ -1048,8 +1069,8 @@ jobs:
         $hash = [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-","").ToLower()
         echo "VALUE=$hash" >> $env:GITHUB_OUTPUT
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: |
@@ -1057,16 +1078,12 @@ jobs:
         restore-keys: |
           gitmodules_${{ runner.os }}
 
-    - name: Update the cache (downloads)
-      uses: actions/cache@v4
+    - name: Restore cache (downloads)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-
-        key: |
-          downloads_${{ runner.os }}_${{ github.sha }}
-
-        restore-keys: |
-          downloads_${{ runner.os }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+        restore-keys: downloads_${{ runner.os }}
 
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
@@ -1356,6 +1373,20 @@ jobs:
       run: |
         rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (downloads)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+        
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
   mergeable:
