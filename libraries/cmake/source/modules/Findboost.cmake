@@ -16,6 +16,7 @@ importSourceSubmodule(
     "src"
 
   SHALLOW_SUBMODULES
+    "src/libs/charconv"
     "src/libs/algorithm"
     "src/libs/align"
     "src/libs/any"
@@ -37,6 +38,7 @@ importSourceSubmodule(
     "src/libs/coroutine2"
     "src/libs/date_time"
     "src/libs/detail"
+    "src/libs/describe"
     "src/libs/dynamic_bitset"
     "src/libs/endian"
     "src/libs/exception"
@@ -70,6 +72,7 @@ importSourceSubmodule(
     "src/libs/ratio"
     "src/libs/rational"
     "src/libs/regex"
+    "src/libs/scope"
     "src/libs/scope_exit"
     "src/libs/serialization"
     "src/libs/smart_ptr"

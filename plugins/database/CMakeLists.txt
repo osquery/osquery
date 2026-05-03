@@ -20,6 +20,12 @@ function(generatePluginsDatabaseRocksdbplugin)
     rocksdb.cpp
   )
 
+  # Use C++17 for rocksdb plugin to avoid C++20 strict type checking issues with incomplete types in rocksdb headers
+  set_target_properties(plugins_database_rocksdbplugin PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+  )
+
   enableLinkWholeArchive(plugins_database_rocksdbplugin)
 
   target_link_libraries(plugins_database_rocksdbplugin PUBLIC
