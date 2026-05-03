@@ -5,8 +5,23 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
+function(initializeBoostSubmodules)
+  # Initialize git submodules required by osquery
+  # static_string is a dependency of beast, which is used by HTTP client
+  if(EXISTS "${BOOST_ROOT}/.gitmodules")
+    execute_process(
+      COMMAND git submodule update --init -- libs/static_string
+      WORKING_DIRECTORY "${BOOST_ROOT}"
+      OUTPUT_QUIET
+      ERROR_QUIET
+    )
+  endif()
+endfunction()
+
 function(boostMain)
   set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+  initializeBoostSubmodules()
 
   importBoostInterfaceLibraries()
 
