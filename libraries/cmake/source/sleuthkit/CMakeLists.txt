@@ -119,6 +119,11 @@ function(sleuthkitMain)
     thirdparty_cxx_settings
   )
 
+  # Use C++17 for hashdb to allow const string literal assignments
+  set_target_properties(thirdparty_sleuthkit_hashdb_cpp PROPERTIES
+    CXX_STANDARD 17
+  )
+
   add_library(thirdparty_sleuthkit_hashdb
     "${library_root}/tsk/hashdb/encase.c"
     "${library_root}/tsk/hashdb/hashkeeper.c"
