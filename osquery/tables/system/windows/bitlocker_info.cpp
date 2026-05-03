@@ -13,6 +13,7 @@
 #include <osquery/sql/sql.h>
 
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
@@ -42,7 +43,7 @@ static void fetchMethodResultLong(std::string& result,
 
 static std::string fetchProtectorTypes(const WmiRequest& req,
                                        const WmiResultItem& object) {
-  std::string protectorTypes = "";
+  std::vector<std::string> protectorTypes;
 
   for (int i = 1; i <= 10; i++) {
     WmiMethodArgs args;
@@ -55,15 +56,12 @@ static std::string fetchProtectorTypes(const WmiRequest& req,
       status = out.GetVectorOfStrings("VolumeKeyProtectorID", protectorIds);
       if (status.ok()) {
         if (protectorIds.size() > 0) {
-          protectorTypes = protectorTypes + std::to_string(i) + ", ";
+          protectorTypes.push_back(std::to_string(i));
         }
       }
     }
   }
-  if (protectorTypes.length() > 0) {
-    protectorTypes = protectorTypes.substr(0, protectorTypes.length() - 2);
-  }
-  return protectorTypes;
+  return osquery::join(protectorTypes, ",");
 }
 
 QueryData genBitlockerInfo(QueryContext& context) {
