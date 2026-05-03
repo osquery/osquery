@@ -587,6 +587,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      MACOS_DEPLOYMENT_TARGET: "13.3"
+
     strategy:
       matrix:
         build_type: [Release, Debug]
@@ -718,25 +721,6 @@ jobs:
           "${{ steps.build_paths.outputs.INSTALL }}" \
           "3.21.4"
 
-    - name: Select the Xcode version
-      shell: bash
-      id: xcode_selector
-      run: |
-        if [[ "${{ matrix.os }}" == "macos-14" ]]; then
-          xcode_path="/Applications/Xcode_15.4.app/Contents/Developer"
-        elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
-          xcode_path="/Applications/Xcode_16.app/Contents/Developer"
-        else
-          echo "Invalid matrix.os: ${{ matrix.os }}"
-          exit 1
-        fi
-
-        echo "PATH=${path}" >> $GITHUB_OUTPUT
-
-        sudo xcode-select -s "${xcode_path}"
-
-        echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
-
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
     # disable them when running a Debug build
@@ -764,7 +748,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang \
           -DCMAKE_CXX_COMPILER=clang++ \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
