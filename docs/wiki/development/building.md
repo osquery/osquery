@@ -40,9 +40,9 @@ sudo tar xvf osquery-toolchain-1.3.0-${ARCH}.tar.xz -C /usr/local
 git clone https://github.com/osquery/osquery
 cd osquery
 
-# Build osquery
+# Build osquery with a semver
 mkdir build; cd build
-cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
+=cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DOSQUERY_VERSION=5.22.1 ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
