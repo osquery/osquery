@@ -27,7 +27,7 @@ const std::string kNodeKeyAuthScheme = "NodeKey";
 
 const std::string kTLSCiphers =
     "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
-    "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!CBC:!SHA:!DSS";
+    "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!CBC:!SHA:!DSS:!kDHE:!kRSA";
 
 /// Path to optional TLS client secret key, used for enrollment/requests.
 DECLARE_string(tls_client_key);
