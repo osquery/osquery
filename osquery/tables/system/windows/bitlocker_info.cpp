@@ -41,23 +41,50 @@ static void fetchMethodResultLong(std::string& result,
   }
 }
 
-static std::string fetchProtectorTypes(const WmiRequest& req,
-                                       const WmiResultItem& object) {
-  std::vector<std::string> protectorTypes;
+static std::string getProtectorType(const WmiRequest& req,
+                                    const WmiResultItem& object,
+                                    std::string protectorId) {
+  WmiMethodArgs args;
+  WmiResultItem out;
+  long protectorType;
 
-  for (int i = 1; i <= 10; i++) {
-    WmiMethodArgs args;
-    WmiResultItem out;
-    std::vector<std::string> protectorIds;
+  std::map<long, std::string> types;
 
-    args.Put("KeyProtectorType", std::to_string(i));
-    auto status = req.ExecMethod(object, "GetKeyProtectors", args, out);
+  types[1] = "TPM";
+  types[2] = "EXTERNAL_KEY";
+  types[3] = "NUMERIC_PASSWORD";
+  types[4] = "TPM_AND_PIN";
+  types[5] = "TPM_AND_STARTUP_KEY";
+  types[6] = "TPM_AND_PIN_AND_STARTUP_KEY";
+  types[7] = "PUBLIC_KEY";
+  types[8] = "PASSPHRASE";
+  types[9] = "TPM_CERTIFICATE";
+  types[10] = "SID";
+
+  args.Put("VolumeKeyProtectorID", protectorId);
+  auto status = req.ExecMethod(object, "GetKeyProtectorType", args, out);
+  if (status.ok()) {
+    status = out.GetLong("KeyProtectorType", protectorType);
     if (status.ok()) {
-      status = out.GetVectorOfStrings("VolumeKeyProtectorID", protectorIds);
-      if (status.ok()) {
-        if (protectorIds.size() > 0) {
-          protectorTypes.push_back(std::to_string(i));
-        }
+      return types[protectorType];
+    }
+  }
+  return "UNKNOWN";
+}
+
+static std::string getProtectorTypes(const WmiRequest& req,
+                                     const WmiResultItem& object) {
+  std::vector<std::string> protectorTypes;
+  WmiMethodArgs args;
+  WmiResultItem out;
+  std::vector<std::string> protectorIds;
+
+  auto status = req.ExecMethod(object, "GetKeyProtectors", args, out);
+  if (status.ok()) {
+    status = out.GetVectorOfStrings("VolumeKeyProtectorID", protectorIds);
+    if (status.ok()) {
+      for (auto& protectorId : protectorIds) {
+        protectorTypes.push_back(getProtectorType(req, object, protectorId));
       }
     }
   }
@@ -107,7 +134,7 @@ QueryData genBitlockerInfo(QueryContext& context) {
     }
     r["encryption_method"] = emethod_str;
 
-    r["protector_types"] = fetchProtectorTypes(*wmiSystemReq, data);
+    r["protector_types"] = getProtectorTypes(*wmiSystemReq, data);
 
     fetchMethodResultLong(
         r["version"], *wmiSystemReq, data, "GetVersion", "Version");
