@@ -42,7 +42,7 @@ cd osquery
 
 # Build osquery with a semver
 mkdir build; cd build
-=cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DOSQUERY_VERSION=5.22.1 ..
+cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain -DOSQUERY_VERSION=5.22.1 ..
 cmake --build . -j10 # where 10 is the number of parallel build jobs
 ```
 
