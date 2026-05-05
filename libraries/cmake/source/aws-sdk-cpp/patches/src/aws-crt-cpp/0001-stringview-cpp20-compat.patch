@@ -1,0 +1,26 @@
+diff --git a/include/aws/crt/StringView.h b/include/aws/crt/StringView.h
+index original..patched 100644
+--- a/include/aws/crt/StringView.h
++++ b/include/aws/crt/StringView.h
+@@ -845,16 +845,15 @@ namespace std
+ {
+     template <class CharT, class Traits> struct hash<Aws::Crt::basic_string_view<CharT, Traits>>
+     {
+-        size_t operator()(const Aws::Crt::basic_string_view<CharT, Traits> &val) const noexcept;
++        size_t operator()(const Aws::Crt::basic_string_view<CharT, Traits> &val) const noexcept
++        {
++            auto str = std::basic_string<CharT, Traits>(val.data(), val.size());
++            return std::hash<std::basic_string<CharT, Traits>>()(str);
++        }
+     };
+-
+-    template <class CharT, class Traits>
+-    size_t hash<Aws::Crt::basic_string_view<CharT, Traits>>::operator()(
+-        const Aws::Crt::basic_string_view<CharT, Traits> &val) const noexcept
+-    {
+-        auto str = std::basic_string<CharT, Traits>(val.data(), val.size());
+-        return std::hash<std::basic_string<CharT, Traits>>()(str);
+-    }
+ } // namespace std
+ 
+ #endif // AWS_CRT_STRING_VIEW_H
