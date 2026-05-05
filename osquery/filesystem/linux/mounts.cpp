@@ -57,14 +57,14 @@ Status getMountedFilesystems(MountedFilesystems& mounted_fs_info) {
 
   for (;;) {
     mntent ent = {};
+    errno = 0;
     if (getmntent_r(mount_data.get(),
                     &ent,
                     string_buffer.data(),
                     string_buffer.size()) == nullptr) {
-      if (errno != ENOENT) {
+      if (errno != 0) {
         LOG(ERROR) << "getmntent_r failed with errno " << std::to_string(errno);
       }
-
       break;
     }
 
