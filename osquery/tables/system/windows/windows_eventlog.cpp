@@ -35,7 +35,9 @@ namespace tables {
 const std::string kEventLogXmlPrefix = "<QueryList><Query Id=\"0\">";
 const std::string kEventLogXmlSuffix = "</Query></QueryList>";
 
-Status parseWelXml(QueryContext& context, const std::string& xml_event, Row& row) {
+Status parseWelXml(QueryContext& context,
+                   const std::string& xml_event,
+                   Row& row) {
   pt::ptree propTree;
   WELEvent windows_event;
   auto xml_status = parseWindowsEventLogXML(propTree, xml_event);
@@ -148,7 +150,8 @@ void renderQueryResults(QueryContext& context,
         Row row;
         std::wstringstream xml_event;
         xml_event << renderedContent.data();
-        auto status = parseWelXml(context, wstringToString(xml_event.str()), row);
+        auto status =
+            parseWelXml(context, wstringToString(xml_event.str()), row);
         if (status.ok()) {
           yield(TableRowHolder(new DynamicTableRow(std::move(row))));
         }

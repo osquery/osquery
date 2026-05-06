@@ -49,8 +49,8 @@ QueryData genTpmInfo(QueryContext& context) {
     const auto& error = exp_wmi_request.getError();
 
     LOG(ERROR) << "tpm_info: The following WMI query could not be constructed: "
-               << wstringToString(class_namespace) << ":" << kWin32TpmQuery << ". "
-               << error.getMessage();
+               << wstringToString(class_namespace) << ":" << kWin32TpmQuery
+               << ". " << error.getMessage();
 
     return {};
   }

@@ -16,16 +16,16 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
-#include <osquery/utils/system/system.h>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/system/system.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace fs = boost::filesystem;

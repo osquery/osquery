@@ -25,7 +25,9 @@ namespace tables {
  * This function takes the windows events rendered in xml format and
  * generates the table row for the query.
  */
-Status parseWelXml(QueryContext& context, const std::string& xml_event, Row& row);
+Status parseWelXml(QueryContext& context,
+                   const std::string& xml_event,
+                   Row& row);
 
 /*
  * @brief Helper function to generate the xfilter string from constraints
