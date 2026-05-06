@@ -2694,6 +2694,10 @@ function(generateAwsCppSdkCore)
       "${library_root}/source/platform/windows/Time.cpp"
       "${library_root}/source/utils/crypto/bcrypt/CryptoImpl.cpp"
     )
+    set_source_files_properties(
+      "${library_root}/source/utils/crypto/bcrypt/CryptoImpl.cpp"
+        PROPERTIES COMPILE_FLAGS "/Zc:__cplusplus"
+    )
   endif()
 
   target_include_directories(thirdparty_aws-cpp-sdk-core PRIVATE
@@ -2773,6 +2777,11 @@ function(generateAwsCppSdkCore)
       USE_WINDOWS_DLL_SEMANTICS
       PLATFORM_WINDOWS
       ENABLE_BCRYPT_ENCRYPTION
+      _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+    )
+    target_compile_options(thirdparty_aws-cpp-sdk-core PRIVATE
+      /FIcodecvt
+      /FIlocale
     )
   endif()
 endfunction()
@@ -2793,7 +2802,7 @@ function(generateAwsCrtCpp)
     generateS2n()
   endif()
 
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-crt-cpp")
+  set(library_root "${OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR}")
 
   if(PLATFORM_LINUX)
     set(config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/aws-crt-cpp/linux/${TARGET_PROCESSOR}")
@@ -2804,6 +2813,12 @@ function(generateAwsCrtCpp)
   elseif(PLATFORM_WINDOWS)
     set(config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/aws-crt-cpp/windows/${TARGET_PROCESSOR}")
   endif()
+
+  # Define the OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR variable if not already set
+  if(NOT DEFINED OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR)
+    set(OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-crt-cpp")
+  endif()
+  set(library_root "${OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR}")
 
   add_library(thirdparty_aws-crt-cpp EXCLUDE_FROM_ALL
     "${library_root}/source/Api.cpp"
@@ -2834,6 +2849,13 @@ function(generateAwsCrtCpp)
     "${library_root}/source/UUID.cpp"
   )
 
+  if (MSVC)
+    set_target_properties(thirdparty_aws-crt-cpp PROPERTIES
+      COMPILE_PDB_NAME thirdparty_aws-crt-cpp
+      COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb/$<CONFIG>
+    )
+  endif()
+
   target_include_directories(thirdparty_aws-crt-cpp PRIVATE
     "${library_root}/include"
     "${config_path}"
@@ -2862,6 +2884,12 @@ function(generateAwsCrtCpp)
   target_compile_definitions(thirdparty_aws-crt-cpp PRIVATE
     CJSON_HIDE_SYMBOLS
   )
+
+  if(MSVC)
+    target_compile_options(thirdparty_aws-crt-cpp PRIVATE
+      /FIstring
+    )
+  endif()
 
   if(PLATFORM_LINUX)
     target_compile_definitions(thirdparty_aws-crt-cpp PRIVATE
