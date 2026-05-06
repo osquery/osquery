@@ -76,10 +76,8 @@ TEST_F(WindowsEventsTests, test_recorded_events) {
       write_xml(buffer, event_sample_opt.value());
 
       // Attempt to parse the event sample
-      auto wide_chars_buffer = stringToWstring(buffer.str());
-
       boost::property_tree::ptree event_object = {};
-      auto status = parseWindowsEventLogXML(event_object, wide_chars_buffer);
+      auto status = parseWindowsEventLogXML(event_object, buffer.str());
 
       ASSERT_TRUE(status.ok())
           << "Failed to parse the following event sample: " << event_sample_path

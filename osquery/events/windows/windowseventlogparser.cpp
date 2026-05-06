@@ -74,11 +74,11 @@ static inline pt::ptree parseChildNodeToJSONPtree(
 }
 
 Status parseWindowsEventLogXML(pt::ptree& event_object,
-                               const std::wstring& xml_event) {
+                               const std::string& xml_event) {
   event_object = {};
 
   try {
-    auto converted_xml_event = wstringToString(xml_event);
+    auto converted_xml_event = xml_event;
     std::stringstream stream(std::move(converted_xml_event));
 
     pt::ptree output;

@@ -7,20 +7,19 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/system/system.h>
+#include <fstream>
 
 #include <Wintrust.h>
 #include <wincrypt.h>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
-
 #include <boost/filesystem.hpp>
 
+#include <osquery/utils/system/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-
 #include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
 #include <osquery/utils/conversions/join.h>
