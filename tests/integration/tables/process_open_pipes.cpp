@@ -57,11 +57,12 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void runForever() {
     while (true) {
+      pause();
     }
   }
 
-  void signal_parent() {
-    char buf = '1';
+  void signal_parent(bool success) {
+    char buf = success ? '1' : '0';
     write(fd_signal_[1], &buf, 1);
   }
 
@@ -98,15 +99,16 @@ class ProcessOpenPipesTest : public testing::Test {
 
     int fd = setup_writer();
     if (fd == -1) {
-      signal_parent();
+      signal_parent(false);
       return;
     }
 
     if (write(fd, buf.c_str(), buf.length()) == -1) {
-      signal_parent();
+      signal_parent(false);
       return;
     }
 
+    signal_parent(true);
     runForever();
   }
 
@@ -115,16 +117,16 @@ class ProcessOpenPipesTest : public testing::Test {
 
     int fd = setup_reader();
     if (fd == -1) {
-      signal_parent();
+      signal_parent(false);
       return;
     }
 
     if (read(fd, buf.data(), 10) == -1) {
-      signal_parent();
+      signal_parent(false);
       return;
     }
 
-    signal_parent();
+    signal_parent(true);
     runForever();
   }
 
@@ -140,16 +142,20 @@ class ProcessOpenPipesTest : public testing::Test {
       } else {
         do_writer();
       }
-      break;
+      _exit(1);
     default: // parent
       break;
     }
     return ret;
   }
 
-  void wait_child_signal() {
+  bool wait_child_signal() {
     char buf;
-    read(fd_signal_[0], &buf, 1);
+    if (read(fd_signal_[0], &buf, 1) != 1) {
+      return false;
+    }
+
+    return buf == '1';
   }
 
   void do_query(int writer_pid, int reader_pid) {
@@ -173,10 +179,15 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   void kill_children(int writer_pid, int reader_pid) {
-    kill(writer_pid, SIGKILL);
-    kill(reader_pid, SIGKILL);
-    waitpid(writer_pid, nullptr, 0);
-    waitpid(reader_pid, nullptr, 0);
+    if (writer_pid > 0) {
+      kill(writer_pid, SIGKILL);
+      waitpid(writer_pid, nullptr, 0);
+    }
+
+    if (reader_pid > 0) {
+      kill(reader_pid, SIGKILL);
+      waitpid(reader_pid, nullptr, 0);
+    }
   }
 
   void do_children() {
@@ -188,11 +199,20 @@ class ProcessOpenPipesTest : public testing::Test {
 
     int reader_pid = create_child("reader");
     if (reader_pid <= 0) {
-      LOG(ERROR) << "Error creating writer child";
+      LOG(ERROR) << "Error creating reader child";
+      kill_children(writer_pid, reader_pid);
       return;
     }
 
-    wait_child_signal();
+    const bool writer_ready = wait_child_signal();
+    const bool reader_ready = wait_child_signal();
+
+    if (!writer_ready || !reader_ready) {
+      kill_children(writer_pid, reader_pid);
+      FAIL() << "One or more child processes failed to initialize the test pipe";
+      return;
+    }
+
     do_query(writer_pid, reader_pid);
     kill_children(writer_pid, reader_pid);
   }
