@@ -209,7 +209,8 @@ class ProcessOpenPipesTest : public testing::Test {
 
     if (!writer_ready || !reader_ready) {
       kill_children(writer_pid, reader_pid);
-      FAIL() << "One or more child processes failed to initialize the test pipe";
+      FAIL()
+          << "One or more child processes failed to initialize the test pipe";
       return;
     }
 
