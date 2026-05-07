@@ -2661,6 +2661,13 @@ function(generateAwsCppSdkCore)
     "${library_root}/source/utils/xml/XmlSerializer.cpp"
   )
 
+  if(PLATFORM_WINDOWS) # TODO try updating the standard when updating the library
+    set_target_properties(thirdparty_aws-cpp-sdk-core PROPERTIES
+      CXX_STANDARD 17
+      CXX_STANDARD_REQUIRED ON
+    )
+  endif()
+
   if(PLATFORM_POSIX)
     target_sources(thirdparty_aws-cpp-sdk-core PRIVATE
       "${library_root}/source/net/linux-shared/Net.cpp"
