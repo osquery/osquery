@@ -537,6 +537,7 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
   for (const auto& t : tree) {
     std::stringstream ss;
     pt::write_json(ss, t.second);
+    ss.flush(); // flush is needed to ensure all writes make into into str()
 
     rj::Document row;
     if (row.Parse(ss.str()).HasParseError()) {
