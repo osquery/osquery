@@ -1,0 +1,6 @@
+#!/bin/sh
+case "$1" in
+  remove|purge)
+    rm -f /etc/init.d/osqueryd
+    ;;
+esac

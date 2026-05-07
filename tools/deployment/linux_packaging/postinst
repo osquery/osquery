@@ -10,12 +10,18 @@
 # Handle the cases we want to hook or silently claim success.
 case "$1" in
   configure|2)
-    : # Fall through to systemctl handle.
+    : # Fall through to install-time setup.
     ;;
   *)
     exit 0
     ;;
 esac
+
+# Install the SysV init script only when the system uses init.d
+if [ -d /etc/init.d ] && [ -f /usr/share/osquery/initd/osqueryd ]; then
+  cp /usr/share/osquery/initd/osqueryd /etc/init.d/osqueryd
+  chmod 0755 /etc/init.d/osqueryd
+fi
 
 # If we have a systemd, daemon-reload away now
 if [ -x /bin/systemctl ] && pidof systemd ; then
