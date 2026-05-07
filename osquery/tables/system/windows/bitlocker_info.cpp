@@ -48,25 +48,33 @@ static std::string getProtectorType(const WmiRequest& req,
   WmiResultItem out;
   long protectorType;
 
-  std::map<long, std::string> types;
-
-  types[1] = "TPM";
-  types[2] = "EXTERNAL_KEY";
-  types[3] = "NUMERIC_PASSWORD";
-  types[4] = "TPM_AND_PIN";
-  types[5] = "TPM_AND_STARTUP_KEY";
-  types[6] = "TPM_AND_PIN_AND_STARTUP_KEY";
-  types[7] = "PUBLIC_KEY";
-  types[8] = "PASSPHRASE";
-  types[9] = "TPM_CERTIFICATE";
-  types[10] = "SID";
-
   args.Put("VolumeKeyProtectorID", protectorId);
   auto status = req.ExecMethod(object, "GetKeyProtectorType", args, out);
   if (status.ok()) {
     status = out.GetLong("KeyProtectorType", protectorType);
     if (status.ok()) {
-      return types[protectorType];
+      switch (protectorType) {
+      case 1:
+        return "TPM";
+      case 2:
+        return "EXTERNAL_KEY";
+      case 3:
+        return "NUMERIC_PASSWORD";
+      case 4:
+        return "TPM_AND_PIN";
+      case 5:
+        return "TPM_AND_STARTUP_KEY";
+      case 6:
+        return "TPM_AND_PIN_AND_STARTUP_KEY";
+      case 7:
+        return "PUBLIC_KEY";
+      case 8:
+        return "PASSPHRASE";
+      case 9:
+        return "TPM_CERTIFICATE";
+      case 10:
+        return "SID";
+      }
     }
   }
   return "UNKNOWN";
