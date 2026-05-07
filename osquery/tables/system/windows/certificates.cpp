@@ -9,8 +9,16 @@
 
 #include <fstream>
 
+
+// Include windows.h before other headers like wincrypt.h.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 #include <Wintrust.h>
 #include <wincrypt.h>
+
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
