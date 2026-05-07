@@ -209,7 +209,13 @@ Status parseWindowsEventLogPTree(WELEvent& windows_event,
         "Invalid Windows event object: the EventData output is empty");
   }
 
-  output.data.pop_back();
+  if (output.data.back() == '\n') {
+    output.data.pop_back();
+  }
+
+  if (!output.data.empty() && output.data.back() == '\r') {
+    output.data.pop_back();
+  }
 
   windows_event = std::move(output);
   return Status::success();

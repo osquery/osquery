@@ -115,6 +115,9 @@ TEST_F(RegistryTablesTest, test_registry_or_clause) {
   EXPECT_TRUE(result2.rows().size() > 0);
   EXPECT_TRUE(combinedResults.rows().size() ==
               result1.rows().size() + result2.rows().size());
+  std::sort(result1.rows().begin(), result1.rows().end());
+  std::sort(result2.rows().begin(), result2.rows().end());
+  std::sort(combinedResults.rows().begin(), combinedResults.rows().end());
   EXPECT_TRUE(std::includes(combinedResults.rows().begin(),
                             combinedResults.rows().end(),
                             result1.rows().begin(),
