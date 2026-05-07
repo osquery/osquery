@@ -192,7 +192,7 @@ Status parseWindowsEventLogPTree(WELEvent& windows_event,
   try {
     std::stringstream stream;
     pt::write_json(stream, property_list.get_child("Event"), false);
-    stream.flush(); // flush is needed to ensure all writes make into into str()
+
     output.data = stream.str();
 
   } catch (const pt::json_parser::json_parser_error& e) {

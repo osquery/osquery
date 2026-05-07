@@ -169,7 +169,6 @@ void readAslRow(aslmsg row, Row& r) {
   // Join up the extras and add them to the Extra column
   std::stringstream ss;
   pt::write_json(ss, extras, false);
-  ss.flush(); // flush is needed to ensure all writes make into into str()
   r[kExtraColumnKey] = ss.str();
 }
 

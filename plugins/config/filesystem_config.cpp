@@ -101,7 +101,6 @@ Status FilesystemConfigPlugin::genPack(const std::string& name,
     // configuration packs, ready to parse as a string.
     std::ostringstream output;
     pt::write_json(output, multi_pack, false);
-    output.flush(); // flush is needed to ensure all writes make into into str()
     pack = output.str();
     if (pack.empty()) {
       return Status(1, "Multi-pack content empty");

@@ -971,7 +971,6 @@ Status getExtensionFromSnapshot(
   // unnecessary whitespace
   std::stringstream stream;
   pt::write_json(stream, parsed_manifest, false);
-  stream.flush(); // flush is needed to ensure all writes make into into str()
   output.manifest_json = stream.str();
 
   // Attempt to compute the real extension identifier
@@ -1057,7 +1056,6 @@ Status getExtensionProperties(ChromeProfile::Extension::Properties& properties,
       // Also provide the json-encoded value
       std::stringstream stream;
       pt::write_json(stream, node, false);
-      stream.flush(); // flush is needed to ensure all writes make into into str()
 
       list_value = stream.str();
       properties.insert({property.name + "_json", std::move(list_value)});

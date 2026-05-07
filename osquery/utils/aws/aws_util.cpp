@@ -725,7 +725,6 @@ Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   std::ostringstream output;
   try {
     pt::write_json(output, params, false);
-    output.flush(); // flush is needed to ensure all writes make into into str()
   } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, std::string("JSON serialization exception: ") + e.what());
   }
