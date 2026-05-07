@@ -290,7 +290,7 @@ Status NTFSEventPublisher::getPathFromParentFRN(
     char drive_letter,
     const std::string& basename,
     const USNFileReferenceNumber& ref) {
-  const auto& it = parent_frn_cache.find(ref);
+  auto it = parent_frn_cache.find(ref);
 
   if (it == parent_frn_cache.end()) {
     Status status = getPathFromReferenceNumber(path, drive_letter, ref);

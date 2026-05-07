@@ -83,8 +83,6 @@ function(thriftMain)
     "${library_root}/src/thrift/transport/TWebSocketServer.h"
   )
 
-  # No longer need to include random_shuffle.h for C++20 and later
-
   if(PLATFORM_WINDOWS)
     target_sources(thirdparty_thrift_thrift PRIVATE
       "${library_root}/src/thrift/windows/GetTimeOfDay.cpp"

@@ -44,7 +44,7 @@ class UniquePath final {
   static UniquePath create() {
     auto path = boost::filesystem::temp_directory_path() /
                 boost::filesystem::unique_path();
-    return UniquePath(std::move(path.string()));
+    return UniquePath(path.string());
   }
 
   ~UniquePath() {
