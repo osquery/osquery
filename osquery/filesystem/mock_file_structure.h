@@ -20,4 +20,7 @@ extern const std::string kTopLevelMockFolderName;
 // generate a small directory structure for testing
 boost::filesystem::path createMockFileStructure();
 
+// delete the mock file structure created by createMockFileStructure
+void deleteMockFileStructure(const boost::filesystem::path& path);
+
 } // namespace
