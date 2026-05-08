@@ -2809,7 +2809,7 @@ function(generateAwsCrtCpp)
     generateS2n()
   endif()
 
-  set(library_root "${OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR}")
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-sdk-cpp/aws-crt-cpp")
 
   if(PLATFORM_LINUX)
     set(config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/aws-crt-cpp/linux/${TARGET_PROCESSOR}")
@@ -2820,12 +2820,6 @@ function(generateAwsCrtCpp)
   elseif(PLATFORM_WINDOWS)
     set(config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/aws-crt-cpp/windows/${TARGET_PROCESSOR}")
   endif()
-
-  # Define the OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR variable if not already set
-  if(NOT DEFINED OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR)
-    set(OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-crt-cpp")
-  endif()
-  set(library_root "${OSQUERY_aws-sdk-cpp_src_aws-crt-cpp_ROOT_DIR}")
 
   add_library(thirdparty_aws-crt-cpp EXCLUDE_FROM_ALL
     "${library_root}/source/Api.cpp"

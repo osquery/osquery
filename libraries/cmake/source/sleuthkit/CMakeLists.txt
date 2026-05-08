@@ -122,6 +122,7 @@ function(sleuthkitMain)
   # Use C++17 for hashdb to allow const string literal assignments
   set_target_properties(thirdparty_sleuthkit_hashdb_cpp PROPERTIES
     CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
   )
 
   add_library(thirdparty_sleuthkit_hashdb

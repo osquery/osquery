@@ -10,13 +10,14 @@
 // Sanity check integration test for process_open_pipes
 // Spec file: specs/linux/process_open_pipes.table
 
-#include <osquery/logger/logger.h>
-#include <osquery/tests/integration/tables/helper.h>
-
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+
+#include <osquery/logger/logger.h>
+#include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 namespace table_tests {
@@ -67,7 +68,6 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   int setup_writer() {
-    close(fd_signal_[0]);
     if (test_type_ == "named_pipe") {
       int fd = open(pipe_path_.c_str(), O_WRONLY);
       if (fd == -1) {
@@ -81,7 +81,6 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   int setup_reader() {
-    close(fd_signal_[0]);
     if (test_type_ == "named_pipe") {
       int fd = open(pipe_path_.c_str(), O_RDONLY);
       if (fd == -1) {
@@ -137,6 +136,7 @@ class ProcessOpenPipesTest : public testing::Test {
       LOG(ERROR) << "Error in fork()";
       break;
     case 0: // child
+      close(fd_signal_[0]); // child only writes to signal pipe, close read end
       if (child_type == "reader") {
         do_reader();
       } else {
@@ -203,6 +203,9 @@ class ProcessOpenPipesTest : public testing::Test {
       kill_children(writer_pid, reader_pid);
       return;
     }
+
+    // Parent only reads, close the write end.
+    close(fd_signal_[1]);
 
     const bool writer_ready = wait_child_signal();
     const bool reader_ready = wait_child_signal();

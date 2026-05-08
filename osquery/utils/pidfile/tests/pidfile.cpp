@@ -34,13 +34,6 @@ namespace {
 
 class UniquePath final {
  public:
-  UniquePath(UniquePath&& other) noexcept : path(std::move(other.path)) {}
-  UniquePath& operator=(UniquePath&& other) noexcept {
-    if (this != &other) {
-      path = std::move(other.path);
-    }
-    return *this;
-  }
   static UniquePath create() {
     auto path = boost::filesystem::temp_directory_path() /
                 boost::filesystem::unique_path();

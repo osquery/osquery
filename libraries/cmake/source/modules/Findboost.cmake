@@ -16,6 +16,7 @@ importSourceSubmodule(
     "src"
 
   SHALLOW_SUBMODULES
+    "src/libs/static_string"
     "src/libs/charconv"
     "src/libs/algorithm"
     "src/libs/align"
