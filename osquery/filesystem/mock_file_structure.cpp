@@ -56,7 +56,8 @@ void deleteMockFileStructure(const fs::path& path) {
   // On Windows, door.txt has restricted permissions (0550),
   // so we need to make it writable before deletion
   boost::system::error_code ec;
-  fs::permissions(path / "door.txt", fs::perms::all, fs::perm_options::replace, ec);
+  fs::permissions(
+      path / "door.txt", fs::perms::all, fs::perm_options::replace, ec);
 #endif
   fs::remove_all(path);
 }
