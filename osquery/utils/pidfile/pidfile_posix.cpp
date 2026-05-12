@@ -140,7 +140,7 @@ boost::optional<Pidfile::Error> Pidfile::writeFile(
 
 Expected<std::string, Pidfile::Error> Pidfile::readFile(
     FileHandle file_handle) noexcept {
-  struct stat file_stats{};
+  struct stat file_stats {};
   if (fstat(file_handle, &file_stats) != 0) {
     return createError(Pidfile::Error::IOError);
   }
