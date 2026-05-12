@@ -13,6 +13,7 @@
 #include <osquery/sql/sql.h>
 
 #include "osquery/core/windows/wmi.h"
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
@@ -38,6 +39,64 @@ static void fetchMethodResultLong(std::string& result,
   } else {
     result = INTEGER(-1);
   }
+}
+
+static std::string getProtectorType(const WmiRequest& req,
+                                    const WmiResultItem& object,
+                                    std::string protectorId) {
+  WmiMethodArgs args;
+  WmiResultItem out;
+  long protectorType;
+
+  args.Put("VolumeKeyProtectorID", protectorId);
+  auto status = req.ExecMethod(object, "GetKeyProtectorType", args, out);
+  if (status.ok()) {
+    status = out.GetLong("KeyProtectorType", protectorType);
+    if (status.ok()) {
+      switch (protectorType) {
+      case 1:
+        return "TPM";
+      case 2:
+        return "EXTERNAL_KEY";
+      case 3:
+        return "NUMERIC_PASSWORD";
+      case 4:
+        return "TPM_AND_PIN";
+      case 5:
+        return "TPM_AND_STARTUP_KEY";
+      case 6:
+        return "TPM_AND_PIN_AND_STARTUP_KEY";
+      case 7:
+        return "PUBLIC_KEY";
+      case 8:
+        return "PASSPHRASE";
+      case 9:
+        return "TPM_CERTIFICATE";
+      case 10:
+        return "SID";
+      }
+    }
+  }
+  return "UNKNOWN";
+}
+
+static std::string getProtectorTypes(const WmiRequest& req,
+                                     const WmiResultItem& object) {
+  std::vector<std::string> protectorTypes;
+  WmiMethodArgs args;
+  WmiResultItem out;
+  std::vector<std::string> protectorIds;
+
+  auto status = req.ExecMethod(object, "GetKeyProtectors", args, out);
+  if (status.ok()) {
+    status = out.GetVectorOfStrings("VolumeKeyProtectorID", protectorIds);
+    if (status.ok()) {
+      for (auto& protectorId : protectorIds) {
+        protectorTypes.push_back(getProtectorType(req, object, protectorId));
+      }
+    }
+  }
+  return osquery::join(protectorTypes, ",");
 }
 
 QueryData genBitlockerInfo(QueryContext& context) {
@@ -82,6 +141,8 @@ QueryData genBitlockerInfo(QueryContext& context) {
       emethod_str = "UNKNOWN";
     }
     r["encryption_method"] = emethod_str;
+
+    r["protector_types"] = getProtectorTypes(*wmiSystemReq, data);
 
     fetchMethodResultLong(
         r["version"], *wmiSystemReq, data, "GetVersion", "Version");
