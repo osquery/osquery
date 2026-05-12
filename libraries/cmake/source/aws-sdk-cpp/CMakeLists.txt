@@ -2809,7 +2809,7 @@ function(generateAwsCrtCpp)
     generateS2n()
   endif()
 
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-sdk-cpp/aws-crt-cpp")
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-crt-cpp")
 
   if(PLATFORM_LINUX)
     set(config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/aws-crt-cpp/linux/${TARGET_PROCESSOR}")
