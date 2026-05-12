@@ -1,31 +1,40 @@
-
-# Copyright (c) 2014-present, The osquery authors
+# FreeBSD: use system aws-sdk-cpp from devel/aws-sdk-cpp
 #
-# This source code is licensed as defined by the LICENSE file found in the
-# root directory of this source tree.
-#
-# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+# osquery's downstream CMake files link against per-service targets like
+# thirdparty_aws-cpp-sdk-ec2, thirdparty_aws-cpp-sdk-sts, etc., plus an
+# umbrella thirdparty_aws-sdk-cpp.  Create all of them as INTERFACE
+# targets wrapping system shared libraries.  Each system lib is wrapped
+# in an IMPORTED target so osquery's add_real_target_dependencies() walker
+# (which calls get_target_property TYPE on each INTERFACE_LINK_LIBRARIES
+# entry) sees a real target, not an absolute path.
 
-include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
-
-importSourceSubmodule(
-  NAME
-    "aws-sdk-cpp"
-
-  NO_RECURSIVE
-
-  SHALLOW_SUBMODULES
-    "src/aws-c-auth"
-    "src/aws-c-cal"
-    "src/aws-c-common"
-    "src/aws-c-compression"
-    "src/aws-c-event-stream"
-    "src/aws-checksums"
-    "src/aws-c-http"
-    "src/aws-c-io"
-    "src/aws-c-mqtt"
-    "src/aws-crt-cpp"
-    "src/aws-c-s3"
-    "src/aws-sdk-cpp"
-    "src/s2n"
+set(_aws_services
+  core
+  ec2
+  sts
+  kinesis
+  firehose
 )
+
+set(_aws_link_targets)
+foreach(svc ${_aws_services})
+  find_library(_aws_${svc}_LIB aws-cpp-sdk-${svc} REQUIRED)
+  set(_imp_target thirdparty_aws-cpp-sdk-${svc}_imp)
+  if(NOT TARGET ${_imp_target})
+    add_library(${_imp_target} SHARED IMPORTED GLOBAL)
+    set_target_properties(${_imp_target} PROPERTIES
+      IMPORTED_LOCATION "${_aws_${svc}_LIB}"
+    )
+  endif()
+  if(NOT TARGET thirdparty_aws-cpp-sdk-${svc})
+    add_library(thirdparty_aws-cpp-sdk-${svc} INTERFACE)
+    target_link_libraries(thirdparty_aws-cpp-sdk-${svc} INTERFACE ${_imp_target})
+    target_include_directories(thirdparty_aws-cpp-sdk-${svc} SYSTEM INTERFACE /usr/local/include)
+  endif()
+  list(APPEND _aws_link_targets thirdparty_aws-cpp-sdk-${svc})
+endforeach()
+
+if(NOT TARGET thirdparty_aws-sdk-cpp)
+  add_library(thirdparty_aws-sdk-cpp INTERFACE)
+  target_link_libraries(thirdparty_aws-sdk-cpp INTERFACE ${_aws_link_targets})
+endif()

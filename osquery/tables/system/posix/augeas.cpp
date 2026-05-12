@@ -32,6 +32,11 @@ FLAG(string,
      augeas_lenses,
      "/private/var/osquery/lenses",
      "Directory that contains augeas lenses files");
+#elif defined(__FreeBSD__)
+FLAG(string,
+     augeas_lenses,
+     "/usr/local/share/augeas/lenses/dist",
+     "Directory that contains augeas lenses files");
 #else
 FLAG(string,
      augeas_lenses,

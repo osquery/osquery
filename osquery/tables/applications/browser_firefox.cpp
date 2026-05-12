@@ -37,6 +37,8 @@ const std::vector<std::string> kFirefoxPaths = {
 #elif defined(WIN32)
 const std::vector<std::string> kFirefoxPaths = {
     "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"};
+#elif defined(__FreeBSD__)
+const std::vector<std::string> kFirefoxPaths = {"/.mozilla/firefox/"};
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"

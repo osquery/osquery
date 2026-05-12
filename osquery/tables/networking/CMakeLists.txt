@@ -61,6 +61,12 @@ function(generateOsqueryTablesNetworking)
       windows/process_open_sockets.cpp
       windows/routes.cpp
     )
+
+  elseif(DEFINED PLATFORM_FREEBSD)
+    list(APPEND source_files
+      freebsd/routes.cpp
+      freebsd/process_open_sockets.cpp
+    )
   endif()
 
   add_osquery_library(osquery_tables_networking EXCLUDE_FROM_ALL
