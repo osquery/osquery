@@ -1767,6 +1767,11 @@ function(generateAwsCppSdkEc2)
       ws2_32
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-ec2 REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
+
 endfunction()
 
 function(generateAwsCppSdkSts)
@@ -1853,6 +1858,11 @@ function(generateAwsCppSdkSts)
       ws2_32
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-sts REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
+
 endfunction()
 
 function(generateAwsCppSdkS3)
@@ -2251,6 +2261,11 @@ function(generateAwsCppSdkS3)
       ws2_32
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-s3 REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
+
 endfunction()
 
 function(generateAwsCppSdkKinesis)
@@ -2383,6 +2398,11 @@ function(generateAwsCppSdkKinesis)
       ws2_32
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-kinesis REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
+
 endfunction()
 
 function(generateAwsCppSdkFirehose)
@@ -2554,6 +2574,11 @@ function(generateAwsCppSdkFirehose)
       ws2_32
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-firehose REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
+  )
+
 endfunction()
 
 function(generateAwsCppSdkCore)
@@ -2775,6 +2800,10 @@ function(generateAwsCppSdkCore)
       ENABLE_BCRYPT_ENCRYPTION
     )
   endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-core PRIVATE
+    "${CMAKE_SOURCE_DIR}/cmake/osquery_aws_pch.h"
+  )
 endfunction()
 
 function(generateAwsCrtCpp)
