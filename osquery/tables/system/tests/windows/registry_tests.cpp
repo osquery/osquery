@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
