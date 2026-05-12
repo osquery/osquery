@@ -156,6 +156,6 @@ void systemLog(const std::string& line);
  * prefix. We want to use the old format without it for now.
  */
 void googleLogCustomPrefix(std::ostream& s,
-                           const LogMessageInfo& l,
+                           const google::LogMessageInfo& l,
                            void* data);
 } // namespace osquery

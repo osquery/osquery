@@ -12,7 +12,7 @@
 	url = https://github.com/systemd/systemd
 [submodule "libraries/cmake/source/linenoise-ng/src"]
 	path = libraries/cmake/source/linenoise-ng/src
-	url = https://github.com/arangodb/linenoise-ng
+	url = https://github.com/ocochard/linenoise-ng
 [submodule "libraries/cmake/source/lzma/src"]
 	path = libraries/cmake/source/lzma/src
 	url = https://github.com/tukaani-project/xz

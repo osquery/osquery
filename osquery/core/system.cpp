@@ -368,7 +368,11 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
     group_size_ = getgroups(group_size_, original_groups_);
   }
 
+#ifdef __FreeBSD__
+  setgroups(1, &gid);
+#else
   syscall(SYS_setgroups, 1, &gid);
+#endif
 
   if (!setThreadEffective(uid, gid)) {
     (void)setegid(getgid());
@@ -384,7 +388,11 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 
 void DropPrivileges::restoreGroups() {
   if (group_size_ > 0) {
+#ifdef __FreeBSD__
+    setgroups(group_size_, original_groups_);
+#else
     syscall(SYS_setgroups, group_size_, original_groups_);
+#endif
     group_size_ = 0;
     free(original_groups_);
   }

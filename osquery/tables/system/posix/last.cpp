@@ -22,8 +22,10 @@ std::string typeNameForType(const utmpx& ut) {
   switch (ut.ut_type) {
   case EMPTY:
     return "empty";
+#ifndef __FreeBSD__
   case RUN_LVL:
     return "run-level";
+#endif
   case BOOT_TIME:
     return "boot-time";
   case NEW_TIME:
