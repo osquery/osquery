@@ -91,7 +91,7 @@ endfunction()
 
 # Marks the specified target to enable link whole archive
 function(enableLinkWholeArchive target_name)
-  if(DEFINED PLATFORM_LINUX)
+  if(DEFINED PLATFORM_LINUX OR DEFINED PLATFORM_FREEBSD)
     set(new_project_target_link_options
       "SHELL:-Wl,--whole-archive $<TARGET_FILE:${target_name}> -Wl,--no-whole-archive"
     )

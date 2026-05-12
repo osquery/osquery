@@ -375,6 +375,21 @@ function(generateInstallDirectives)
         WORLD_READ             WORLD_EXECUTE 
     )
 
+  elseif(PLATFORM_FREEBSD)
+    install(
+      TARGETS osqueryd
+      DESTINATION "bin"
+    )
+
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink osqueryd osqueryi
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    install(
+      FILES "${CMAKE_CURRENT_BINARY_DIR}/osqueryi"
+      DESTINATION "bin"
+    )
   else()
     message(FATAL_ERROR "Unsupported platform")
   endif()

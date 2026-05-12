@@ -217,6 +217,27 @@ function(setupBuildFlags)
         ${osquery_linux_common_link_options}
       )
 
+    elseif(DEFINED PLATFORM_FREEBSD)
+      set(osquery_freebsd_common_defines
+        FREEBSD=1
+        BSD=1
+        OSQUERY_FREEBSD=1
+        OSQUERY_BUILD_DISTRO="freebsd"
+        OSQUERY_BUILD_PLATFORM="freebsd"
+      )
+
+      set(freebsd_cxx_link_options
+        -pthread
+      )
+
+      list(APPEND osquery_defines
+        ${osquery_freebsd_common_defines}
+      )
+
+      target_link_options(cxx_settings INTERFACE
+        ${freebsd_cxx_link_options}
+      )
+
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
         -x objective-c++
