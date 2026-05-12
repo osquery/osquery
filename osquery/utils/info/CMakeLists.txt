@@ -24,6 +24,9 @@ function(generateOsqueryUtilsInfo)
 
   elseif(PLATFORM_WINDOWS)
     set(firmware_impl_file "firmware/windows.cpp")
+
+  elseif(PLATFORM_FREEBSD)
+    set(firmware_impl_file "firmware/freebsd.cpp")
   endif()
 
   if(NOT firmware_impl_file STREQUAL "")

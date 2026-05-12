@@ -174,6 +174,24 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/xprotect.cpp
     )
 
+  elseif(DEFINED PLATFORM_FREEBSD)
+    list(APPEND source_files
+      freebsd/pci_devices.cpp
+      freebsd/usb_devices.cpp
+      freebsd/os_version.cpp
+      freebsd/system_info.cpp
+      freebsd/users.cpp
+      freebsd/processes.cpp
+      freebsd/kernel_info.cpp
+      freebsd/stubs.cpp
+      freebsd/mounts.cpp
+      freebsd/shadow.cpp
+      freebsd/arp_cache.cpp
+      freebsd/process_open_files.cpp
+      freebsd/block_devices.cpp
+      freebsd/platform_info.cpp
+    )
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/appcompat_shims.cpp
@@ -308,6 +326,14 @@ function(generateOsqueryTablesSystemSystemtable)
     target_link_options(osquery_tables_system_systemtable PRIVATE
       -Wno-c99-extensions
       -Wno-undeclared-selector
+    )
+
+  elseif(DEFINED PLATFORM_FREEBSD)
+    target_link_libraries(osquery_tables_system_systemtable PUBLIC
+      devinfo
+      geom
+      procstat
+      usb
     )
   endif()
 
