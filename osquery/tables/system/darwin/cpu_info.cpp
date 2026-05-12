@@ -181,7 +181,8 @@ std::optional<std::pair<std::string, std::string>> getHybridCoresNumber() {
 
   std::pair<std::string, std::string> hybrid_cores_counts{};
 
-  while ((device_ptr = UniqueIoService(IOIteratorNext(device_it))).get()) {
+  while ((device_ptr = UniqueIoService(IOIteratorNext(device_it_ptr.get())))
+             .get()) {
     io_name_t buf;
     kr = IORegistryEntryGetName(device_ptr.get(), buf);
 
