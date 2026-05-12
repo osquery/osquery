@@ -43,6 +43,15 @@ function(generateOsqueryEvents)
       darwin/scnetwork.cpp
     )
 
+  elseif(DEFINED PLATFORM_FREEBSD)
+    list(APPEND source_files
+      audit_flags.cpp
+      file_events_flags.cpp
+      freebsd/devd.cpp
+      freebsd/inotify.cpp
+      freebsd/openbsm.cpp
+    )
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/evtsubscription.cpp
@@ -94,6 +103,11 @@ function(generateOsqueryEvents)
     )
 
 
+  elseif(DEFINED PLATFORM_FREEBSD)
+    target_link_libraries(osquery_events PUBLIC
+      bsm
+    )
+
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC
       plugins_config_parsers
@@ -138,6 +152,13 @@ function(generateOsqueryEvents)
       darwin/iokit.h
       darwin/openbsm.h
       darwin/scnetwork.h
+    )
+
+  elseif(DEFINED PLATFORM_FREEBSD)
+    set(platform_public_header_files
+      freebsd/devd.h
+      freebsd/inotify.h
+      freebsd/openbsm.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
