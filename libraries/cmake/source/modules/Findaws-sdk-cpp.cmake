@@ -28,6 +28,4 @@ importSourceSubmodule(
     "src/aws-c-s3"
     "src/aws-sdk-cpp"
     "src/s2n"
-
-    PATCH "src"
 )
