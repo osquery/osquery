@@ -211,9 +211,13 @@ class ProcessOpenPipesTest : public testing::Test {
     const bool reader_ready = wait_child_signal();
 
     if (!writer_ready || !reader_ready) {
+      if (!writer_ready) {
+        FAIL() << "Writer child process failed to initialize the test pipe";
+      }
+      if (!reader_ready) {
+        FAIL() << "Reader child process failed to initialize the test pipe";
+      }
       kill_children(writer_pid, reader_pid);
-      FAIL()
-          << "One or more child processes failed to initialize the test pipe";
       return;
     }
 
