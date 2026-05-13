@@ -7,9 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cctype>
 #include <csignal>
 #include <ctime>
 
+#include <algorithm>
+#include <boost/algorithm/string/find.hpp>
 #include <thread>
 
 #include <osquery/config/tests/test_utils.h>
@@ -65,10 +68,10 @@ Status TLSServerRunner::startAndSetScript(const std::string& port,
 
   args.push_back(port);
 
-  const auto cmd = osquery::join(args, " ");
+  const std::string cmd = osquery::join(args, " ");
   server_ = PlatformProcess::launchTestPythonScript(cmd);
   if (server_ == nullptr) {
-    return Status::failure("Cannot create test python script: " + cmd);
+    return Status::failure("Cannot create test python script");
   }
   return Status::success();
 }
@@ -80,7 +83,7 @@ Status TLSServerRunner::getListeningPortPid(const std::string& port,
 
   std::string q = "select pid from listening_ports where port = '" + port + "'";
 
-  auto caching = FLAGS_disable_caching;
+  bool caching = FLAGS_disable_caching;
   FLAGS_disable_caching = true;
   auto results = SQL(q);
   FLAGS_disable_caching = caching;
@@ -92,6 +95,14 @@ Status TLSServerRunner::getListeningPortPid(const std::string& port,
   pid = first_row.at("pid");
   return Status::success();
 }
+
+namespace {
+bool isTimeoutError(const Status& status) {
+  const std::string& error_message = status.getMessage();
+  return boost::ifind_first(error_message, "timed out") ||
+         boost::ifind_first(error_message, "timeout");
+}
+} // namespace
 
 bool TLSServerRunner::start(const std::string& server_cert,
                             bool verify_client_cert,
@@ -107,7 +118,7 @@ bool TLSServerRunner::start(const std::string& server_cert,
   bool started = false;
   const size_t max_retry = 3;
   size_t retry = 0;
-  while (retry < max_retry) {
+  while (retry++ < max_retry) {
     // Pick a port in an ephemeral range at random.
     self.port_ = std::to_string(std::rand() % 10000 + 20000);
 
@@ -156,7 +167,6 @@ bool TLSServerRunner::start(const std::string& server_cert,
 
     self.stop();
     sleepFor(1000);
-    ++retry;
   }
 
   if (!started) {
@@ -188,7 +198,7 @@ bool TLSServerRunner::start(const std::string& server_cert,
                         .make_preferred()
                         .string());
 
-  while (retry < max_retry) {
+  while (retry++ < max_retry) {
     std::string ping_server_uri =
         "https://localhost:" + std::string(self.port_);
 
@@ -200,11 +210,9 @@ bool TLSServerRunner::start(const std::string& server_cert,
        but we assume that if it's not a timeout,
        then the server is ready enough. */
     if (!status.ok()) {
-      if (status.getMessage().find("Operation timed out") !=
-          std::string::npos) {
+      if (isTimeoutError(status)) {
         LOG(WARNING) << "Python HTTP Server not ready yet";
         sleepFor(5000);
-        ++retry;
         continue;
       } else {
         /* We still log this failure to see what was the issue,
@@ -252,9 +260,13 @@ void TLSServerRunner::setClientConfig() {
                         .make_preferred()
                         .string());
 
+  self.tls_client_cert_ = Flag::getValue("tls_client_cert");
+
   Flag::updateValue(
       "tls_client_cert",
       (getTestConfigDirectory() / "test_client.pem").make_preferred().string());
+
+  self.tls_client_key_ = Flag::getValue("tls_client_key");
 
   Flag::updateValue(
       "tls_client_key",
@@ -267,6 +279,8 @@ void TLSServerRunner::unsetClientConfig() {
   Flag::updateValue("enroll_tls_endpoint", self.enroll_tls_endpoint_);
   Flag::updateValue("tls_server_certs", self.tls_server_certs_);
   Flag::updateValue("enroll_secret_path", self.enroll_secret_path_);
+  Flag::updateValue("tls_client_cert", self.tls_client_cert_);
+  Flag::updateValue("tls_client_key", self.tls_client_key_);
 }
 
 void TLSServerRunner::stop() {
