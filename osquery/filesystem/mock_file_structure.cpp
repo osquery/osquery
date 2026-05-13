@@ -20,8 +20,7 @@ namespace fs = boost::filesystem;
 
 fs::path createMockFileStructure() {
   const auto root_dir =
-      fs::temp_directory_path() /
-      fs::unique_path("osquery.tests.%%%%.%%%%");
+      fs::temp_directory_path() / fs::unique_path("osquery.tests.%%%%.%%%%");
   fs::create_directories(root_dir / kTopLevelMockFolderName / "/");
   fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel1");
   fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel2");
@@ -45,10 +44,19 @@ fs::path createMockFileStructure() {
   writeTextFile(root_dir / "root2.txt", "l1");
 #else
   boost::system::error_code ec;
-  fs::create_symlink(
-      root_dir / "root.txt", root_dir / "root2.txt", ec);
+  fs::create_symlink(root_dir / "root.txt", root_dir / "root2.txt", ec);
 #endif
   return root_dir;
+}
+
+void deleteMockFileStructure(const fs::path& path) {
+#ifdef WIN32
+  // On Windows, door.txt has restricted permissions (0550),
+  // so we need to make it writable before deletion
+  boost::system::error_code ec;
+  fs::permissions(path / "door.txt", fs::perms::owner_all, ec);
+#endif
+  fs::remove_all(path);
 }
 
 } // namespace osquery

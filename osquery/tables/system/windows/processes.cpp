@@ -525,9 +525,9 @@ void genProcRssInfo(HANDLE& proc, DynamicTableRowHolder& r) {
 
 PS_PROTECTED_TYPE getProcessProtectedType(HANDLE& proc,
                                           const unsigned long pid) {
-  PS_PROTECTION psp{0};
-  unsigned long len{0};
-  PROCESS_EXTENDED_BASIC_INFORMATION pebi{0};
+  PS_PROTECTION psp = {};
+  unsigned long len = 0;
+  PROCESS_EXTENDED_BASIC_INFORMATION pebi = {};
   NTSTATUS status = NtQueryInformationProcess(
       proc, ProcessProtectionInformation, &psp, sizeof(psp), &len);
   if (NT_SUCCESS(status)) {

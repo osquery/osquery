@@ -66,8 +66,10 @@ FLAG(uint32,
      1800,
      "Interval in seconds between users cache updates");
 
+namespace {
 auto close_reg_handle = [](HKEY handle) { RegCloseKey(handle); };
 using reg_handle_t = std::unique_ptr<HKEY__, decltype(close_reg_handle)>;
+} // namespace
 
 std::optional<std::vector<std::string>> getRoamingProfileSids() {
   HKEY hkey;

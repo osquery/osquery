@@ -81,5 +81,7 @@ class TLSServerRunner : private boost::noncopyable {
   std::string enroll_tls_endpoint_;
   std::string tls_server_certs_;
   std::string enroll_secret_path_;
+  std::string tls_client_cert_;
+  std::string tls_client_key_;
 };
 } // namespace osquery

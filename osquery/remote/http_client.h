@@ -28,10 +28,10 @@
 // clang-format off
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
-#include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/steady_timer.hpp>
 // clang-format on
 
 #include <boost/beast/core.hpp>
@@ -344,7 +344,7 @@ class Client {
   boost::asio::io_context ioc_;
   boost::asio::ip::tcp::resolver r_;
   boost::asio::ip::tcp::socket sock_;
-  boost::asio::deadline_timer timer_;
+  boost::asio::steady_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost::system::error_code ec_;
   bool new_client_options_{true};
@@ -495,7 +495,7 @@ class HTTP_Response<T>::Iterator {
     return (iter_ != it.iter_);
   }
 
-  auto operator-> () {
+  auto operator->() {
     return std::make_shared<std::pair<std::string, std::string>>(
         std::string(iter_->name_string()), std::string(iter_->value()));
   }

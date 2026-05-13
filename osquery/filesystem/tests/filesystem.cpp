@@ -97,7 +97,7 @@ class FilesystemTests : public testing::Test {
   }
 
   void TearDown() override {
-    fs::remove_all(fake_directory_);
+    deleteMockFileStructure(fake_directory_);
     fs::remove_all(test_working_dir_);
   }
 

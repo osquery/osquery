@@ -10,13 +10,14 @@
 // Sanity check integration test for process_open_pipes
 // Spec file: specs/linux/process_open_pipes.table
 
-#include <osquery/logger/logger.h>
-#include <osquery/tests/integration/tables/helper.h>
-
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+
+#include <osquery/logger/logger.h>
+#include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
 namespace table_tests {
@@ -57,74 +58,44 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void runForever() {
     while (true) {
+      pause();
     }
   }
 
-  void signal_parent() {
-    char buf = '1';
+  void signal_parent(bool success) {
+    char buf = success ? '1' : '0';
     write(fd_signal_[1], &buf, 1);
   }
 
-  int setup_writer() {
-    close(fd_signal_[0]);
+  void do_writer() {
     if (test_type_ == "named_pipe") {
       int fd = open(pipe_path_.c_str(), O_WRONLY);
       if (fd == -1) {
-        LOG(ERROR) << "Error in opening named pipe";
+        LOG(ERROR) << "Writer: Error opening named pipe";
+        signal_parent(false);
+        return;
       }
-      return fd;
-    } else { // unnamed_pipe
+    } else { // unnamed_pipe, close read end
       close(fd_[0]);
-      return fd_[1];
-    }
-  }
-
-  int setup_reader() {
-    close(fd_signal_[0]);
-    if (test_type_ == "named_pipe") {
-      int fd = open(pipe_path_.c_str(), O_RDONLY);
-      if (fd == -1) {
-        LOG(ERROR) << "Error in opening named pipe";
-      }
-      return fd;
-    } else { // unnamed_pipe
-      close(fd_[1]);
-      return fd_[0];
-    }
-  }
-
-  void do_writer() {
-    std::string buf = "test";
-
-    int fd = setup_writer();
-    if (fd == -1) {
-      signal_parent();
-      return;
     }
 
-    if (write(fd, buf.c_str(), buf.length()) == -1) {
-      signal_parent();
-      return;
-    }
-
+    signal_parent(true);
     runForever();
   }
 
   void do_reader() {
-    std::array<char, 10> buf;
-
-    int fd = setup_reader();
-    if (fd == -1) {
-      signal_parent();
-      return;
+    if (test_type_ == "named_pipe") {
+      int fd = open(pipe_path_.c_str(), O_RDONLY);
+      if (fd == -1) {
+        LOG(ERROR) << "Reader: Error opening named pipe";
+        signal_parent(false);
+        return;
+      }
+    } else { // unnamed_pipe, close write end
+      close(fd_[1]);
     }
 
-    if (read(fd, buf.data(), 10) == -1) {
-      signal_parent();
-      return;
-    }
-
-    signal_parent();
+    signal_parent(true);
     runForever();
   }
 
@@ -135,21 +106,26 @@ class ProcessOpenPipesTest : public testing::Test {
       LOG(ERROR) << "Error in fork()";
       break;
     case 0: // child
+      close(fd_signal_[0]); // child only writes to signal pipe, close read end
       if (child_type == "reader") {
         do_reader();
       } else {
         do_writer();
       }
-      break;
+      _exit(1);
     default: // parent
       break;
     }
     return ret;
   }
 
-  void wait_child_signal() {
+  bool wait_child_signal() {
     char buf;
-    read(fd_signal_[0], &buf, 1);
+    if (read(fd_signal_[0], &buf, 1) != 1) {
+      return false;
+    }
+
+    return buf == '1';
   }
 
   void do_query(int writer_pid, int reader_pid) {
@@ -173,26 +149,40 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   void kill_children(int writer_pid, int reader_pid) {
-    kill(writer_pid, SIGKILL);
-    kill(reader_pid, SIGKILL);
-    waitpid(writer_pid, nullptr, 0);
-    waitpid(reader_pid, nullptr, 0);
+    if (writer_pid > 0) {
+      kill(writer_pid, SIGKILL);
+      waitpid(writer_pid, nullptr, 0);
+    }
+
+    if (reader_pid > 0) {
+      kill(reader_pid, SIGKILL);
+      waitpid(reader_pid, nullptr, 0);
+    }
   }
 
   void do_children() {
+    int reader_pid = create_child("reader");
+    if (reader_pid <= 0) {
+      LOG(ERROR) << "Error creating reader child";
+      return;
+    }
+
     int writer_pid = create_child("writer");
     if (writer_pid <= 0) {
       LOG(ERROR) << "Error creating writer child";
+      kill_children(writer_pid, reader_pid);
       return;
     }
 
-    int reader_pid = create_child("reader");
-    if (reader_pid <= 0) {
-      LOG(ERROR) << "Error creating writer child";
+    // Parent only reads, close the write end.
+    close(fd_signal_[1]);
+
+    if (!(wait_child_signal() && wait_child_signal())) {
+      FAIL() << "Child processes failed to initialize";
+      kill_children(writer_pid, reader_pid);
       return;
     }
 
-    wait_child_signal();
     do_query(writer_pid, reader_pid);
     kill_children(writer_pid, reader_pid);
   }
@@ -225,9 +215,12 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 };
 
-TEST_F(ProcessOpenPipesTest, test_sanity) {
+TEST_F(ProcessOpenPipesTest, test_named_pipe) {
   test_named_pipe();
   ASSERT_GT(test_result_, 0);
+}
+
+TEST_F(ProcessOpenPipesTest, test_unnamed_pipe) {
   test_unnamed_pipe();
   ASSERT_GT(test_result_, 0);
 }
