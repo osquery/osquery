@@ -7,7 +7,7 @@ schema([
   Column("description", TEXT, "Fuller description of the patch."),
   Column("fix_comments", TEXT, "Additional comments about the patch."),
   Column("installed_by", TEXT, "The system context in which the patch as installed."),
-  Column("install_date", TEXT, "Indicates when the patch was installed. Lack of a value does not indicate that the patch was not installed."),
+  Column("install_date", TEXT, "Indicates when the patch was installed. Lack of a value indicates that the patch was not installed."),
   Column("installed_on", TEXT, "The date when the patch was installed."),
 ])
 implementation("system/windows/patches@genInstalledPatches")
