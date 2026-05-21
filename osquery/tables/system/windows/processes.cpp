@@ -35,6 +35,7 @@
 
 #include <osquery/core/windows/wmi.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/tables/system/windows/processes.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
@@ -60,6 +61,12 @@ const std::map<unsigned long, std::string> kMemoryConstants = {
 };
 
 const unsigned long kMaxPathSize = 0x1000;
+
+SIZE_T clampPebReadLength(USHORT peb_length, SIZE_T dest_size) {
+  return (static_cast<SIZE_T>(peb_length) > dest_size)
+             ? dest_size
+             : static_cast<SIZE_T>(peb_length);
+}
 
 // See the Process Hacker implementation for more details on the hard coded 60
 // https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h#L160
@@ -325,10 +332,15 @@ Status getProcessCommandLineLegacy(HANDLE proc,
   SIZE_T bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   SecureZeroMemory(command_line.data(), kMaxPathSize);
+  // upp.CommandLine.Length is sourced from the target process's PEB and a
+  // local attacker can set it to up to 65535 bytes; clamp to the buffer
+  // size to prevent a heap OOB write via ReadProcessMemory.
+  SIZE_T command_line_bytes = clampPebReadLength(
+      upp.CommandLine.Length, command_line.size() * sizeof(wchar_t));
   if (!ReadProcessMemory(proc,
                          upp.CommandLine.Buffer,
                          command_line.data(),
-                         upp.CommandLine.Length,
+                         command_line_bytes,
                          &bytes_read)) {
     return Status::failure("Failed to read command line for " +
                            std::to_string(pid));
@@ -382,10 +394,16 @@ Status getProcessCurrentDirectory(HANDLE proc,
   SIZE_T bytes_read = 0;
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
   SecureZeroMemory(current_directory.data(), kMaxPathSize);
+  // upp.CurrentDirectoryPath.Length is sourced from the target process's PEB
+  // and a local attacker can set it to up to 65535 bytes; clamp to the
+  // buffer size to prevent a heap OOB write via ReadProcessMemory.
+  SIZE_T current_directory_bytes =
+      clampPebReadLength(upp.CurrentDirectoryPath.Length,
+                         current_directory.size() * sizeof(wchar_t));
   if (!ReadProcessMemory(proc,
                          upp.CurrentDirectoryPath.Buffer,
                          current_directory.data(),
-                         upp.CurrentDirectoryPath.Length,
+                         current_directory_bytes,
                          &bytes_read)) {
     return Status::failure("Failed to read current working directory for " +
                            std::to_string(pid));
