@@ -291,7 +291,7 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
                          publisher_info_ptr->rgValue[0].pbData,
                          publisher_info_ptr->rgValue[0].cbData,
                          0,
-                         publisher_info_ptr,
+                         publisher_info_blob_ptr,
                          &publisher_info_size)) {
     return Status(1, "Failed to decode the publisher information");
   }
