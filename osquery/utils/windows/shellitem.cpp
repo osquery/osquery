@@ -79,110 +79,126 @@ std::string guidParseBytes(std::string_view guid_le_bytes) {
   return std::string(buf);
 }
 
-ShellFileEntryData fileEntry(const std::string& shell_data) {
-  size_t offset;
-  std::string extension_sig;
-  size_t entry_offset = 0;
-  // Find "0400EFBE" offset
-  if (shell_data.find("0400EFBE") != std::string::npos) {
-    offset = shell_data.find("0400EFBE");
-    extension_sig = shell_data.substr(offset, 8);
-    entry_offset = offset - 8;
-  }
+ShellFileEntryData fileEntry(const BinaryReader& shell_data) {
   ShellFileEntryData file_entry;
 
-  if (entry_offset <= 0) {
-    LOG(WARNING)
-        << "Could not find supported file entry extension in shell data: "
-        << shell_data;
+  // Old: find("0400EFBE") in hex. In bytes: find the 4-byte sequence
+  // 04 00 EF BE.
+  static constexpr std::string_view kExtSig("\x04\x00\xEF\xBE", 4);
+  std::size_t ext_pos = shell_data.find(kExtSig);
+  if (ext_pos == BinaryReader::npos || ext_pos < 4) {
+    LOG(WARNING) << "Could not find supported file entry extension";
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
+  file_entry.extension_sig = "0400EFBE"; // preserve old string form
+  std::size_t entry_offset = ext_pos - 4;
 
-  std::string version = shell_data.substr(entry_offset + 4, 4);
-  version = swapEndianess(version);
-  file_entry.version = tryTo<int>(version, 16).takeOr(0);
-  if (file_entry.version < 7) {
-    LOG(WARNING) << "Shellitem format unsupported. Expecting version 7 or "
-                    "higher: "
-                 << shell_data;
+  // Old: version at substr(entry_offset + 4, 4) → entry_offset + 2 bytes;
+  // uint16 LE.
+  auto version = shell_data.u16_le(entry_offset + 2);
+  if (!version || *version < 7) {
+    LOG(WARNING) << "Shellitem format unsupported (version < 7)";
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.extension_sig = extension_sig;
+  file_entry.version = static_cast<int>(*version);
 
-  // Shell data may contain Users Files folder signature, modified time is at
-  // offset 0x18
-  std::string timestamp = "";
-  if (shell_data.find("43465346") != std::string::npos) {
-    timestamp = shell_data.substr(36, 8);
-    file_entry.dos_modified =
-        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  // Old: timestamp at substr(36, 8) if "43465346" found, else substr(16, 8).
+  // In bytes: 18 vs 8. The hex strings 43 46 53 46 → bytes 0x43 0x46 0x53 0x46.
+  static constexpr std::string_view kCfsf("\x43\x46\x53\x46", 4);
+  std::size_t modified_offset =
+      shell_data.find(kCfsf) != BinaryReader::npos ? 18 : 8;
+  auto modified_bytes = shell_data.bytes(modified_offset, 4);
+  if (modified_bytes) {
+    // parseFatTime takes a hex string; format the 4 bytes back to hex.
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(modified_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_modified = (ts == "00000000") ? 0LL : parseFatTime(ts);
   } else {
-    timestamp = shell_data.substr(16, 8);
-    file_entry.dos_modified =
-        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+    file_entry.dos_modified = 0LL;
   }
-  timestamp = shell_data.substr(entry_offset + 16, 8);
-  file_entry.dos_created =
-      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
-  timestamp = shell_data.substr(entry_offset + 24, 8);
-  file_entry.dos_accessed =
-      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
-  file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
-  std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
-  std::string mft_entry = ntfs_data.substr(0, 12);
-  mft_entry = swapEndianess(mft_entry);
 
-  if (mft_entry == "000000000000") {
+  // Old: substr(entry_offset + 16, 8) → entry_offset + 8 bytes.
+  auto created_bytes = shell_data.bytes(entry_offset + 8, 4);
+  if (created_bytes) {
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(created_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_created = (ts == "00000000") ? 0LL : parseFatTime(ts);
+  } else {
+    file_entry.dos_created = 0LL;
+  }
+
+  // Old: substr(entry_offset + 24, 8) → entry_offset + 12 bytes.
+  auto accessed_bytes = shell_data.bytes(entry_offset + 12, 4);
+  if (accessed_bytes) {
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(accessed_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_accessed = (ts == "00000000") ? 0LL : parseFatTime(ts);
+  } else {
+    file_entry.dos_accessed = 0LL;
+  }
+
+  // Old: substr(entry_offset + 32, 4) → entry_offset + 16 bytes; 2 bytes.
+  auto identifier_bytes = shell_data.bytes(entry_offset + 16, 2);
+  if (identifier_bytes) {
+    char hex[5];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(identifier_bytes->data());
+    std::snprintf(hex, sizeof(hex), "%02X%02X", p[0], p[1]);
+    file_entry.identifier = std::string(hex);
+  }
+
+  // Old: ntfs_data = substr(entry_offset + 40, 16) → entry_offset + 20 bytes;
+  // 16 hex chars → 8 bytes. mft_entry = first 12 hex chars (6 bytes), little-endian.
+  // mft_sequence = next 4 hex chars (2 bytes), little-endian.
+  auto mft_entry_bytes = shell_data.bytes(entry_offset + 20, 6);
+  if (mft_entry_bytes) {
+    // Little-endian 48-bit value.
+    long long v = 0;
+    const auto* p = reinterpret_cast<const std::uint8_t*>(mft_entry_bytes->data());
+    for (int i = 5; i >= 0; --i) {
+      v = (v << 8) | p[i];
+    }
+    file_entry.mft_entry = v;
+  } else {
     file_entry.mft_entry = 0LL;
-  } else {
-    file_entry.mft_entry = tryTo<long long>(mft_entry, 16).takeOr(0ll);
   }
 
-  std::string mft_sequence = ntfs_data.substr(12, 4);
-  mft_sequence = swapEndianess(mft_sequence);
-  if (mft_sequence == "0000") {
-    file_entry.mft_sequence = 0;
-  } else {
-    file_entry.mft_sequence = tryTo<int>(mft_sequence, 16).takeOr(0);
-  }
+  auto mft_seq = shell_data.u16_le(entry_offset + 26);
+  file_entry.mft_sequence = mft_seq ? static_cast<int>(*mft_seq) : 0;
 
-  std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  string_size = swapEndianess(string_size);
-  file_entry.string_size = tryTo<int>(string_size, 16).takeOr(0);
-  int name_offset = 0;
+  // Old: string_size at substr(entry_offset + 72, 4) → entry_offset + 36;
+  // uint16 LE.
+  auto string_size = shell_data.u16_le(entry_offset + 36);
+  file_entry.string_size = string_size ? static_cast<int>(*string_size) : 0;
+
+  std::size_t name_offset = 0;
   if (file_entry.version >= 9) {
-    name_offset = 92;
+    name_offset = 46; // old: 92 hex chars
   } else if (file_entry.version == 8) {
-    name_offset = 84;
-  } else if (file_entry.version == 7) {
-    name_offset = 72;
+    name_offset = 42; // old: 84
+  } else { // version == 7
+    name_offset = 36; // old: 72
   }
-  std::string entry_name = shell_data.substr(entry_offset + name_offset);
-
-  // path name ends with 0000 (end of string)
-  size_t name_end = entry_name.find("0000");
-  std::string shell_name = entry_name.substr(0, name_end);
-  // Path is in unicode, extra 00
-  boost::erase_all(shell_name, "00");
-
-  // verify the hex string length is even. This fixes issues with 10 base
-  // hex values Example 70006900700000... (pip)
-  if (shell_name.length() % 2 != 0) {
-    shell_name += "0";
-  }
-  std::string name;
-  // Convert hex path to readable string
-  try {
-    name = boost::algorithm::unhex(shell_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_name;
+  auto name_tail = shell_data.bytes_from(entry_offset + name_offset);
+  if (!name_tail) {
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.path = name;
+  // Old: find("0000") in the hex tail → first \0\0 in bytes.
+  std::size_t end = name_tail->find(std::string_view("\0\0", 2));
+  std::string_view utf16 =
+      end == std::string_view::npos ? *name_tail : name_tail->substr(0, end);
+  file_entry.path = stripNullBytes(utf16);
   return file_entry;
 }
 

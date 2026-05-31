@@ -127,7 +127,7 @@ void parseShellData(const std::string& shell_data,
   } else if ((sig == "31" || sig == "30" || sig == "32" || sig == "35" ||
               sig == "B1") &&
              extension_sig == "0400EFBE") { // Directory/File Entry
-    file_entry = fileEntry(shell_data);
+    file_entry = fileEntry(reader);
   } else if ((sig == "2F" || sig == "23" || sig == "25" || sig == "29" ||
               sig == "2A" || sig == "2E") &&
              (extension_sig == "" || extension_sig == "2600EFBE" ||
@@ -209,7 +209,7 @@ void parseShellData(const std::string& shell_data,
     return;
   } else if (sig == "74" && shell_data.find("43465346") !=
                                 std::string::npos) { // User File View
-    file_entry = fileEntry(shell_data);
+    file_entry = fileEntry(reader);
   } else if (sig == "00") { // Variable shell item, can contain a variety of
                             // shell item formats
     if (shell_data.find("EEBBFE23") != std::string::npos) {

@@ -36,7 +36,7 @@ struct ShellFileEntryData {
  *
  * @returns The file entry data structure
  */
-ShellFileEntryData fileEntry(const std::string& shell_data);
+ShellFileEntryData fileEntry(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing Windows Property lists

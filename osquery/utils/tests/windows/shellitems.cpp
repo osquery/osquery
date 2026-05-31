@@ -29,17 +29,18 @@ std::string hex_to_bytes(const std::string& hex) {
 class ShellitemTests : public testing::Test {};
 
 TEST_F(ShellitemTests, test_shellitem_fileentry) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "56003100000000000000000010006F73717565727900400009000400EFBE000000000000"
       "00002E00000000000000000000000000000000000000000000000000000000006F007300"
-      "71007500650072007900000016000000";
-  auto file_entry = fileEntry(data);
-  ASSERT_TRUE(file_entry.path == "osquery");
-  ASSERT_TRUE(file_entry.mft_entry == 0LL);
-  ASSERT_TRUE(file_entry.dos_created == 0LL);
-  ASSERT_TRUE(file_entry.dos_modified == 0LL);
-  ASSERT_TRUE(file_entry.dos_accessed == 0LL);
-  ASSERT_TRUE(file_entry.mft_sequence == 0LL);
+      "71007500650072007900000016000000");
+  BinaryReader r(bytes);
+  auto file_entry = fileEntry(r);
+  EXPECT_EQ(file_entry.path, "osquery");
+  EXPECT_EQ(file_entry.mft_entry, 0LL);
+  EXPECT_EQ(file_entry.dos_created, 0LL);
+  EXPECT_EQ(file_entry.dos_modified, 0LL);
+  EXPECT_EQ(file_entry.dos_accessed, 0LL);
+  EXPECT_EQ(file_entry.mft_sequence, 0);
 }
 
 TEST_F(ShellitemTests, test_shellitem_ftpserver) {
