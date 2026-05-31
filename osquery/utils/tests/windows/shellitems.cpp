@@ -175,10 +175,10 @@ TEST_F(ShellitemTests, test_shellitem_controlpanelcategoryitem) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_controlpanelitem) {
-  std::string data =
-      "1E007180000000000000000000006ABE817B2BCE7646A29EEB907A5126C50000";
-  auto name = controlPanelItem(data);
-  ASSERT_TRUE(name == "7B81BE6A-CE2B-4676-A29E-EB907A5126C5");
+  auto bytes = hex_to_bytes(
+      "1E007180000000000000000000006ABE817B2BCE7646A29EEB907A5126C50000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(controlPanelItem(r), "7B81BE6A-CE2B-4676-A29E-EB907A5126C5");
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableftp) {
@@ -190,10 +190,10 @@ TEST_F(ShellitemTests, test_shellitem_variableftp) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableguid) {
-  std::string data =
-      "200000001A00EEBBFE23000010003ACCBFB42CDB4C42B0297FE99A87C64100000000";
-  auto name = variableGuid(data);
-  ASSERT_TRUE(name == "B4BFCC3A-DB2C-424C-B029-7FE99A87C641");
+  auto bytes = hex_to_bytes(
+      "200000001A00EEBBFE23000010003ACCBFB42CDB4C42B0297FE99A87C64100000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(variableGuid(r), "B4BFCC3A-DB2C-424C-B029-7FE99A87C641");
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {

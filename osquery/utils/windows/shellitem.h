@@ -87,7 +87,7 @@ std::string controlPanelCategoryItem(const std::string& shell_data);
  *
  * @returns The control panel name
  */
-std::string controlPanelItem(const std::string& shell_data);
+std::string controlPanelItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing ftp shell items
@@ -122,7 +122,7 @@ std::string propertyViewDrive(const std::string& shell_data);
  *
  * @returns The GUID name or GUID
  */
-std::string variableGuid(const std::string& shell_data);
+std::string variableGuid(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing variable FTP data

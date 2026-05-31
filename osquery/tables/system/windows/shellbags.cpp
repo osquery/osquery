@@ -179,7 +179,7 @@ void parseShellData(const std::string& shell_data,
     results.push_back(r);
     return;
   } else if (sig == "71") { // Control Panel
-    std::string control_guid = controlPanelItem(shell_data);
+    std::string control_guid = controlPanelItem(reader);
     std::string guid_name = guidLookup(control_guid);
 
     build_shellbag.push_back(guid_name);
@@ -210,7 +210,7 @@ void parseShellData(const std::string& shell_data,
   } else if (sig == "00") { // Variable shell item, can contain a variety of
                             // shell item formats
     if (shell_data.find("EEBBFE23") != std::string::npos) {
-      std::string guid_string = variableGuid(shell_data);
+      std::string guid_string = variableGuid(reader);
       std::string guid_name = guidLookup(guid_string);
       build_shellbag.push_back(guid_name);
       std::string full_path = osquery::join(build_shellbag, "\\");

@@ -336,10 +336,13 @@ std::string controlPanelCategoryItem(const std::string& shell_data) {
   }
 }
 
-std::string controlPanelItem(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(28, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string controlPanelItem(const BinaryReader& shell_data) {
+  // GUID at hex offset 28 → byte offset 14.
+  auto guid_bytes = shell_data.bytes(14, 16);
+  if (!guid_bytes) {
+    return "";
+  }
+  return guidParseBytes(*guid_bytes);
 }
 
 std::vector<std::string> ftpItem(const std::string& shell_data) {
@@ -460,10 +463,13 @@ std::string variableFtp(const std::string& shell_data) {
   return name;
 }
 
-std::string variableGuid(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(28, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string variableGuid(const BinaryReader& shell_data) {
+  // GUID at hex offset 28 → byte offset 14.
+  auto guid_bytes = shell_data.bytes(14, 16);
+  if (!guid_bytes) {
+    return "";
+  }
+  return guidParseBytes(*guid_bytes);
 }
 
 std::string mtpFolder(const std::string& shell_data) {
