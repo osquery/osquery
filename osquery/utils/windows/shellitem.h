@@ -94,7 +94,7 @@ std::string controlPanelItem(const BinaryReader& shell_data);
  *
  * @returns The ftp hostname
  */
-std::vector<std::string> ftpItem(const std::string& shell_data);
+std::vector<std::string> ftpItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing little endian guid data

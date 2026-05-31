@@ -43,13 +43,15 @@ TEST_F(ShellitemTests, test_shellitem_fileentry) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_ftpserver) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "560061034C00030100000400000012122B8B7BFBD601FFFFFFFF00000000000000000000"
       "000015000000140000007370656564746573742E74656C65322E6E657400040000000000"
-      "00000400000000000000667470000000";
-  std::vector<std::string> ftp_data = ftpItem(data);
-  ASSERT_TRUE(ftp_data[1] == "speedtest.tele2.net");
-  ASSERT_TRUE(ftp_data[0] == "12122B8B7BFBD601");
+      "00000400000000000000667470000000");
+  BinaryReader r(bytes);
+  auto out = ftpItem(r);
+  ASSERT_EQ(out.size(), 2u);
+  EXPECT_EQ(out[0], "12122B8B7BFBD601");
+  EXPECT_EQ(out[1], "speedtest.tele2.net");
 }
 
 TEST_F(ShellitemTests, test_shellitem_zipcontent) {

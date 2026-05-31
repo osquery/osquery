@@ -199,7 +199,7 @@ void parseShellData(const std::string& shell_data,
     results.push_back(r);
     return;
   } else if (sig == "61") { // FTP/URI
-    std::vector<std::string> ftp_data = ftpItem(shell_data);
+    std::vector<std::string> ftp_data = ftpItem(reader);
     long long unix_time = littleEndianToUnixTime(ftp_data[0]);
     build_shellbag.push_back(ftp_data[1]);
     std::string full_path = osquery::join(build_shellbag, "\\");

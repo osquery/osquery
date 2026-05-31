@@ -339,76 +339,93 @@ std::string controlPanelItem(const BinaryReader& shell_data) {
   return guidParseBytes(*guid_bytes);
 }
 
-std::vector<std::string> ftpItem(const std::string& shell_data) {
+std::vector<std::string> ftpItem(const BinaryReader& shell_data) {
   std::vector<std::string> ftp_data;
-  std::string unicode = shell_data.substr(6, 2);
-  std::string uri_size = shell_data.substr(8, 4);
-  if (uri_size == "0000") {
+
+  auto unicode = shell_data.u8(3);  // hex offset 6 → byte 3
+  auto uri_size_lo = shell_data.u8(4);
+  auto uri_size_hi = shell_data.u8(5);
+  if (!unicode || !uri_size_lo || !uri_size_hi) {
+    ftp_data.push_back("0000000000000000");
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
+  bool uri_size_zero = (*uri_size_lo == 0 && *uri_size_hi == 0);
+
+  if (uri_size_zero) {
     ftp_data.push_back("0000000000000000");
   } else {
-    if (shell_data.size() < 92) {
-      LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+    if (shell_data.size() < 46) { // old: shell_data.size() < 92 hex chars
+      LOG(WARNING) << "Unexpected ShellItem URI size";
       ftp_data.push_back("0000000000000000");
       ftp_data.push_back("[UNKNOWN NAME]");
       return ftp_data;
     }
-    std::string access_time =
-        shell_data.substr(28, 16); // shell data contains connection time
-    ftp_data.push_back(access_time);
+    // Old: substr(28, 16) → hex offset 28 → byte 14, 16 hex chars → 8 bytes.
+    // Return as hex string for downstream littleEndianToUnixTime compatibility.
+    auto ts_bytes = shell_data.bytes(14, 8);
+    if (!ts_bytes) {
+      ftp_data.push_back("0000000000000000");
+    } else {
+      // littleEndianToUnixTime expects a hex string of 16 chars.
+      char hex[17];
+      const auto* p = reinterpret_cast<const std::uint8_t*>(ts_bytes->data());
+      std::snprintf(hex, sizeof(hex),
+                    "%02X%02X%02X%02X%02X%02X%02X%02X",
+                    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+      ftp_data.emplace_back(hex);
+    }
   }
 
-  if (uri_size == "0000" && unicode == "80") {
-    // find end of string
-    size_t offset = shell_data.find("0000", 16);
-    size_t hostname_size = offset - 12;
-    std::string ftp_hostname = shell_data.substr(12, hostname_size);
-    std::string name;
-    boost::erase_all(ftp_hostname, "00");
-    try {
-      name = boost::algorithm::unhex(ftp_hostname);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING)
-          << "Failed to decode ShellItem URI/FTP hex values to string: "
-          << shell_data;
+  if (uri_size_zero && *unicode == 0x80) {
+    // Old: find("0000", 16) starting at hex offset 16 → byte offset 8.
+    // In byte space: find "\0\0" at or after byte offset 8.
+    auto tail = shell_data.bytes_from(8);
+    if (!tail) {
       ftp_data.push_back("[UNKNOWN NAME]");
       return ftp_data;
     }
-    ftp_data.push_back(name);
+    std::size_t end = tail->find(std::string_view("\0\0", 2));
+    if (end == std::string_view::npos) {
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    // Old: hostname starts at hex offset 12 (byte 6); end position above
+    // is relative to byte 8, so subtract that anchor.
+    std::size_t hostname_byte_end = 8 + end;
+    auto hostname_bytes = shell_data.bytes(6, hostname_byte_end - 6);
+    if (!hostname_bytes) {
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    ftp_data.push_back(stripNullBytes(*hostname_bytes));
     return ftp_data;
   }
 
-  if (shell_data.size() < 92) {
-    LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+  if (shell_data.size() < 46) {
+    LOG(WARNING) << "Unexpected ShellItem URI size";
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  int hostname_size = 0;
-  std::string name_size = shell_data.substr(84, 8);
-  name_size = swapEndianess(name_size);
-  // find end of string
-  if (unicode == "80") {
-    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 4;
-  } else {
-    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 2;
-  }
-  if (hostname_size == 0) {
-    LOG(WARNING) << "Unexepcted hostname size: " << shell_data;
+  // Old: substr(84, 8) → hex offset 84 → byte 42; uint32 LE.
+  auto name_chars = shell_data.u32_le(42);
+  if (!name_chars || *name_chars == 0) {
+    LOG(WARNING) << "Unexpected hostname size";
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  std::string ftp_hostname = shell_data.substr(92, hostname_size);
-  std::string name;
-  boost::erase_all(ftp_hostname, "00");
-
-  try {
-    name = boost::algorithm::unhex(ftp_hostname);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem URI/FTP hex values to string: "
-                 << shell_data;
+  // Old: hostname_size = chars * 4 (UTF-16) or chars * 2 (ASCII) hex chars.
+  // In bytes: chars * 2 (UTF-16) or chars * 1 (ASCII).
+  std::size_t hostname_bytes_len =
+      (*unicode == 0x80) ? static_cast<std::size_t>(*name_chars) * 2
+                         : static_cast<std::size_t>(*name_chars);
+  // Old: substr(92, hostname_size) → byte offset 46.
+  auto hostname_bytes = shell_data.bytes(46, hostname_bytes_len);
+  if (!hostname_bytes) {
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  ftp_data.push_back(name);
+  ftp_data.push_back(stripNullBytes(*hostname_bytes));
   return ftp_data;
 }
 
