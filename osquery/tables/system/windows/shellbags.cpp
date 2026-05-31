@@ -97,7 +97,7 @@ void parseShellData(const std::string& shell_data,
   if (shell_data.length() > 200 && extension_sig == "" &&
       (shell_data.substr(80, 2) == "2F" ||
        shell_data.substr(76, 2) == "2F")) { // Zip contents
-    std::string path = zipContentItem(shell_data);
+    std::string path = zipContentItem(reader);
     build_shellbag.push_back(path);
     std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;

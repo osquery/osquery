@@ -58,7 +58,7 @@ std::string networkShareItem(const BinaryReader& shell_data);
  *
  * @returns The zip content name
  */
-std::string zipContentItem(const std::string& shell_data);
+std::string zipContentItem(const BinaryReader& shell_data);
 
 /**
  * @brief Parse a root-folder GUID from a shell item byte view.

@@ -249,44 +249,36 @@ std::string networkShareItem(const BinaryReader& shell_data) {
   return std::string(path);
 }
 
-std::string zipContentItem(const std::string& shell_data) {
-  std::string path_size_string = shell_data.substr(168, 4);
-  path_size_string = swapEndianess(path_size_string);
-  int path_size = tryTo<int>(path_size_string, 16).takeOr(0);
-
-  std::string path = shell_data.substr(184, path_size * 4);
-  // Path is in unicode, extra 00
-  boost::erase_all(path, "00");
-
-  try {
-    path = boost::algorithm::unhex(path);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << path;
+std::string zipContentItem(const BinaryReader& shell_data) {
+  // Old: substr(168, 4) → hex offset 168 → byte offset 84; uint16 LE length.
+  auto path_size_chars = shell_data.u16_le(84);
+  if (!path_size_chars) {
     return "[ZIP PATH DECODE ERROR]";
   }
-  // Zip folders can go down a max of two directories
-  std::string second_path_size_string = shell_data.substr(176, 4);
-  second_path_size_string = swapEndianess(second_path_size_string);
-  int second_path_size = tryTo<int>(second_path_size_string, 16).takeOr(0);
-
-  if (second_path_size != 0) {
-    path += "/";
-    std::string second_path =
-        shell_data.substr((184 + (path_size * 4) + 4), second_path_size * 4);
-    boost::erase_all(second_path, "00");
-
-    try {
-      second_path = boost::algorithm::unhex(second_path);
-      path += second_path;
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                   << second_path;
-      path += "[ZIP PATH DECODE ERROR]";
-      return path;
-    }
+  // Old: substr(184, path_size * 4) → byte offset 92; size_chars * 2 bytes.
+  auto path_bytes = shell_data.bytes(
+      92, static_cast<std::size_t>(*path_size_chars) * 2);
+  if (!path_bytes) {
+    return "[ZIP PATH DECODE ERROR]";
   }
-  return path;
+  std::string result = stripNullBytes(*path_bytes);
+
+  // Optional second path. Old: substr(176, 4) → byte offset 88.
+  auto second_size_chars = shell_data.u16_le(88);
+  if (second_size_chars && *second_size_chars != 0) {
+    // Old: substr(184 + path_size*4 + 4, second_path_size * 4)
+    //       → byte offset 92 + path_size_chars*2 + 2.
+    std::size_t second_offset =
+        92 + static_cast<std::size_t>(*path_size_chars) * 2 + 2;
+    auto second_bytes = shell_data.bytes(
+        second_offset, static_cast<std::size_t>(*second_size_chars) * 2);
+    if (!second_bytes) {
+      return result + "/[ZIP PATH DECODE ERROR]";
+    }
+    result += "/";
+    result += stripNullBytes(*second_bytes);
+  }
+  return result;
 }
 
 std::string rootFolderItem(const BinaryReader& shell_data) {
