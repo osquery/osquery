@@ -11,6 +11,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
+#include <osquery/tables/system/windows/shellbags.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
