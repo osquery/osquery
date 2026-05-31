@@ -109,11 +109,11 @@ TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_empty_input_does_not_crash) {
   });
 }
 
-TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_short_drive_letter_does_not_crash) {
-  // sig=2F drive letter, byte at hex 6 = 0x80 → enters the GUID
-  // sub-branch. parseShellData reads substr(8, 32) (returns empty on
-  // this short input), then guidParse internally does substr(8, 4) on
-  // that empty string and throws on master.
+TEST_F(ParseShellDataTests, ghsa_h348_short_drive_letter_does_not_crash) {
+  // sig=2F drive letter, byte at hex 6 = 0x80 → GUID sub-branch.
+  // Before T7, parseShellData read substr(8, 32) (empty on this short
+  // input) and guidParse threw on substr(8, 4) of empty. Now: reader
+  // short-circuits at bytes(4, 16) → "[UNKNOWN DRIVE NAME]".
   EXPECT_NO_THROW({
     auto r = run("00002F80");
     ASSERT_EQ(r.rows.size(), 1u);

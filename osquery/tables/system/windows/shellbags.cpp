@@ -132,20 +132,25 @@ void parseShellData(const std::string& shell_data,
               sig == "2A" || sig == "2E") &&
              (extension_sig == "" || extension_sig == "2600EFBE" ||
               extension_sig == "2500EFBE")) { // Drive Letter
-    if (shell_data.substr(6, 2) == "80" &&
+    auto byte_at_3 = reader.u8(3); // hex offset 6 == byte offset 3
+    if (byte_at_3 && *byte_at_3 == 0x80 &&
         (extension_sig == "2600EFBE" || extension_sig == "2500EFBE" ||
-         extension_sig == "")) { // Check if GUID exists
-      std::string guid_little = shell_data.substr(8, 32);
-      std::string guid_string = guidParse(guid_little);
-      std::string guid_name = guidLookup(guid_string);
-
+         extension_sig == "")) { // GUID present
+      auto guid_bytes = reader.bytes(4, 16); // hex offset 8 == byte offset 4
+      if (!guid_bytes) {
+        build_shellbag.push_back("[UNKNOWN DRIVE NAME]");
+        r["path"] = osquery::join(build_shellbag, "\\");
+        results.push_back(r);
+        return;
+      }
+      std::string guid_name = guidLookup(guidParseBytes(*guid_bytes));
       build_shellbag.push_back(guid_name);
-      std::string full_path = osquery::join(build_shellbag, "\\");
-      r["path"] = full_path;
+      r["path"] = osquery::join(build_shellbag, "\\");
       results.push_back(r);
       return;
     } else if (shell_data.find("5C007500730062002300") != std::string::npos &&
-               extension_sig == "") { // Check for \usb#
+               extension_sig == "") { // \usb#
+      // mtpRoot is still hex-based until T10; pass the hex form.
       std::string name = mtpRoot(shell_data);
       build_shellbag.push_back(name);
       std::string full_path = osquery::join(build_shellbag, "\\");
@@ -157,18 +162,17 @@ void parseShellData(const std::string& shell_data,
     // Drive letter should have ":\"
     if (shell_data.find("3A5C") == std::string::npos) {
       build_shellbag.push_back("[UNKNOWN DRIVE NAME]");
-      std::string full_path = osquery::join(build_shellbag, "\\");
-      r["path"] = full_path;
+      r["path"] = osquery::join(build_shellbag, "\\");
       results.push_back(r);
       return;
     }
     std::string drive_name = driveLetterItem(reader);
     // osquery::join adds "\" to entries, remove drive "\"
-    drive_name.pop_back();
+    if (!drive_name.empty()) {
+      drive_name.pop_back();
+    }
     build_shellbag.push_back(drive_name);
-    std::string full_path = osquery::join(build_shellbag, "\\");
-
-    r["path"] = full_path + "\\";
+    r["path"] = osquery::join(build_shellbag, "\\") + "\\";
     results.push_back(r);
     return;
   } else if (sig == "01") { // Control Panel Category
