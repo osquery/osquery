@@ -8,11 +8,23 @@
  */
 
 #include <gtest/gtest.h>
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/windows/shellitem.h>
 
+#include <boost/algorithm/hex.hpp>
+
+#include <iterator>
 #include <string>
 
 namespace osquery {
+
+namespace {
+std::string hex_to_bytes(const std::string& hex) {
+  std::string out;
+  boost::algorithm::unhex(hex, std::back_inserter(out));
+  return out;
+}
+} // namespace
 
 class ShellitemTests : public testing::Test {};
 
@@ -97,11 +109,12 @@ TEST_F(ShellitemTests, test_shellitem_mtpdevice) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_rootentry) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "3A001F44471A0359723FA74489C55595FE6B30EE260001002600EFBE100000002A4B9884"
-      "B387D50168891281D387D501BF5E6881D387D50114000000";
-  auto name = rootFolderItem(data);
-  ASSERT_TRUE(name == "59031A47-3F72-44A7-89C5-5595FE6B30EE");
+      "B387D50168891281D387D501BF5E6881D387D50114000000");
+  BinaryReader r(bytes);
+  auto name = rootFolderItem(r);
+  ASSERT_EQ(name, "59031A47-3F72-44A7-89C5-5595FE6B30EE");
 }
 
 TEST_F(ShellitemTests, test_shellitem_driveletterentry) {

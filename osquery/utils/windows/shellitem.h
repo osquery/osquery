@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/system/system.h>
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace osquery {
@@ -59,11 +61,12 @@ std::string networkShareItem(const std::string& shell_data);
 std::string zipContentItem(const std::string& shell_data);
 
 /**
- * @brief Windows helper function for parsing root folder shell items
+ * @brief Parse a root-folder GUID from a shell item byte view.
  *
- * @returns The root folder name
+ * @returns The GUID string (e.g. "59031A47-3F72-44A7-89C5-5595FE6B30EE"),
+ *          or "[UNKNOWN ROOT FOLDER]" if the data is too short.
  */
-std::string rootFolderItem(const std::string& shell_data);
+std::string rootFolderItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing drive letter shell items
@@ -99,6 +102,13 @@ std::vector<std::string> ftpItem(const std::string& shell_data);
  * @returns GUID string in the proper order
  */
 std::string guidParse(const std::string& guid_little);
+
+/**
+ * @brief Format 16 little-endian GUID bytes as a hyphenated GUID string.
+ *
+ * @returns The GUID string, or "" if the slice is shorter than 16 bytes.
+ */
+std::string guidParseBytes(std::string_view guid_le_bytes);
 
 /**
  * @brief Windows helper function for parsing user property drive data

@@ -12,10 +12,14 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/windows/registry.h>
 #include <osquery/tables/system/windows/shellbags.h>
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
 
+#include <boost/algorithm/hex.hpp>
+
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -55,6 +59,18 @@ void parseShellData(const std::string& shell_data,
   Row r;
   r["sid"] = sid;
   r["source"] = source;
+
+  // Unhex the registry value once. Anything malformed (odd length, invalid
+  // hex chars) is treated as an empty buffer; downstream bounds checks turn
+  // every offset into a deterministic fallback string.
+  std::string shell_bytes;
+  try {
+    shell_bytes = boost::algorithm::unhex(shell_data);
+  } catch (const boost::algorithm::hex_decode_error&) {
+    // Leave shell_bytes empty.
+  }
+  BinaryReader reader(shell_bytes);
+
   std::string extension_sig = "";
   // "0400EFBE", "2600EFBE", "2500EFBE" are the primary shell extensions needed
   // to build directory paths
@@ -66,7 +82,17 @@ void parseShellData(const std::string& shell_data,
     extension_sig = "2500EFBE";
   }
 
-  std::string sig = shell_data.substr(4, 2);
+  // Safe sig extraction. Hex offset 4 → byte offset 2.
+  auto sig_byte = reader.u8(2);
+  if (!sig_byte) {
+    build_shellbag.push_back("[MALFORMED SHELL DATA]");
+    r["path"] = osquery::join(build_shellbag, "\\");
+    results.push_back(r);
+    return;
+  }
+  char sig_hex[3];
+  std::snprintf(sig_hex, sizeof(sig_hex), "%02X", *sig_byte);
+  std::string sig(sig_hex);
   ShellFileEntryData file_entry;
   if (shell_data.length() > 200 && extension_sig == "" &&
       (shell_data.substr(80, 2) == "2F" ||
@@ -81,7 +107,8 @@ void parseShellData(const std::string& shell_data,
              shell_data.find("31535053") == std::string::npos) { // Root Folder
     std::string name;
     std::string full_path;
-    if (shell_data.substr(8, 2) == "2F") { // User Property View Drive
+    auto byte_at_4 = reader.u8(4); // hex offset 8 == byte offset 4
+    if (byte_at_4 && *byte_at_4 == 0x2F) { // User Property View Drive
       name = propertyViewDrive(shell_data);
       // osquery::join adds "\" to entries, remove drive "\"
       name.pop_back();
@@ -89,7 +116,7 @@ void parseShellData(const std::string& shell_data,
       full_path = osquery::join(build_shellbag, "\\");
       full_path += "\\";
     } else {
-      std::string root_name = rootFolderItem(shell_data);
+      std::string root_name = rootFolderItem(reader);
       name = guidLookup(root_name);
       build_shellbag.push_back(name);
       full_path = osquery::join(build_shellbag, "\\");

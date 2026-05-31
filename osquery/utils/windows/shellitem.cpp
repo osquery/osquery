@@ -8,6 +8,7 @@
  */
 
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
@@ -16,7 +17,10 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <cstdio>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
@@ -57,6 +61,24 @@ std::string guidParse(const std::string& guid_little) {
   std::string guid_string =
       guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
   return guid_string;
+}
+
+std::string guidParseBytes(std::string_view guid_le_bytes) {
+  if (guid_le_bytes.size() < 16) {
+    return "";
+  }
+  // GUID layout: little-endian {uint32, uint16, uint16}, then big-endian 8 bytes
+  // formatted as XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.
+  const auto* p = reinterpret_cast<const std::uint8_t*>(guid_le_bytes.data());
+  char buf[37];
+  std::snprintf(buf, sizeof(buf),
+                "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+                p[3], p[2], p[1], p[0],
+                p[5], p[4],
+                p[7], p[6],
+                p[8], p[9],
+                p[10], p[11], p[12], p[13], p[14], p[15]);
+  return std::string(buf);
 }
 
 ShellFileEntryData fileEntry(const std::string& shell_data) {
@@ -259,10 +281,15 @@ std::string zipContentItem(const std::string& shell_data) {
   return path;
 }
 
-std::string rootFolderItem(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(8, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string rootFolderItem(const BinaryReader& shell_data) {
+  // The GUID lives at byte offset 4 (after sig byte at offset 2 and an
+  // intermediate byte). Old code read 32 hex chars at hex offset 8, which
+  // corresponds to 16 bytes at byte offset 4.
+  auto guid_bytes = shell_data.bytes(4, 16);
+  if (!guid_bytes) {
+    return "[UNKNOWN ROOT FOLDER]";
+  }
+  return guidParseBytes(*guid_bytes);
 }
 
 std::string driveLetterItem(const std::string& shell_data) {
