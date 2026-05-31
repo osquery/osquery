@@ -11,6 +11,12 @@
 
 #include <gtest/gtest.h>
 
+#ifdef WIN32
+#include <sys/utime.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include <osquery/carver/carver.h>
 #include <osquery/carver/carver_utils.h>
 #include <osquery/core/core.h>
@@ -49,6 +55,7 @@ class FakeCarver : public Carver {
   FRIEND_TEST(CarverTests, test_carve_files_locally);
   FRIEND_TEST(CarverTests, test_carve_start);
   FRIEND_TEST(CarverTests, test_carve_files_not_exists);
+  FRIEND_TEST(CarverTests, test_carve_preserves_timestamps);
 };
 
 class FakeCarverRunner : public CarverRunner<FakeCarver> {
@@ -131,6 +138,74 @@ TEST_F(CarverTests, test_carve_files_locally) {
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
   EXPECT_GT(tar.size(), 0U);
+}
+
+TEST_F(CarverTests, test_carve_preserves_timestamps) {
+  // Verify that carving preserves the original file's atime and mtime.
+  // This is a regression test: the copy to the staging directory must not
+  // replace the file's timestamps with the time of the carve operation.
+
+  const auto srcPath = getFilesToCarveDir() / "timestamped.txt";
+  ASSERT_TRUE(writeTextFile(srcPath, "timestamp preservation test").ok());
+
+  // Set a known, old timestamp so we can tell it apart from "now".
+  // atime = 2020-09-13, mtime = 2017-07-14 (both in the past).
+  const time_t expected_atime = 1600000000;
+  const time_t expected_mtime = 1500000000;
+
+#ifdef WIN32
+  struct __utimbuf64 times;
+  times.actime = expected_atime;
+  times.modtime = expected_mtime;
+  ASSERT_EQ(_wutime64(srcPath.wstring().c_str(), &times), 0)
+      << "Failed to set file timestamps";
+#else
+  struct timeval times[2];
+  times[0].tv_sec = expected_atime;
+  times[0].tv_usec = 0;
+  times[1].tv_sec = expected_mtime;
+  times[1].tv_usec = 0;
+  ASSERT_EQ(utimes(srcPath.string().c_str(), times), 0)
+      << "Failed to set file timestamps";
+#endif
+
+  const std::set<std::string> pathsToCarve = {srcPath.string()};
+  auto guid = createCarveGuid();
+  std::string requestId = createCarveGuid();
+  FakeCarver carve(pathsToCarve, guid, requestId);
+
+  ASSERT_TRUE(carve.createPaths().ok());
+  const auto carvedFiles = carve.carveAll();
+  ASSERT_EQ(carvedFiles.size(), 1U);
+
+  const auto& dstPath = *carvedFiles.begin();
+
+  PlatformFile dstFile(dstPath, PF_OPEN_EXISTING | PF_READ);
+  ASSERT_TRUE(dstFile.isValid());
+
+  PlatformTime dstTimes;
+  ASSERT_TRUE(dstFile.getFileTimes(dstTimes));
+
+  // PlatformTime.times[0] = atime, times[1] = mtime (struct timeval on POSIX,
+  // FILETIME on Windows). Compare the seconds component.
+#ifdef WIN32
+  // Convert FILETIME to Unix time for comparison.
+  auto filetimeToUnix = [](const FILETIME& ft) -> time_t {
+    ULARGE_INTEGER ull;
+    ull.LowPart = ft.dwLowDateTime;
+    ull.HighPart = ft.dwHighDateTime;
+    return static_cast<time_t>((ull.QuadPart / 10000000ULL) - 11644473600ULL);
+  };
+  EXPECT_EQ(filetimeToUnix(dstTimes.times[0]), expected_atime)
+      << "Carved file atime does not match original";
+  EXPECT_EQ(filetimeToUnix(dstTimes.times[1]), expected_mtime)
+      << "Carved file mtime does not match original";
+#else
+  EXPECT_EQ(dstTimes.times[0].tv_sec, expected_atime)
+      << "Carved file atime does not match original";
+  EXPECT_EQ(dstTimes.times[1].tv_sec, expected_mtime)
+      << "Carved file mtime does not match original";
+#endif
 }
 
 TEST_F(CarverTests, test_carve) {

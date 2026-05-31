@@ -79,6 +79,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/secureboot.cpp
+      linux/secureboot_certificates.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -239,6 +240,8 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/deviceguard_status.cpp
       windows/tpm_info.cpp
       windows/prefetch.cpp
+      windows/token_privileges.cpp
+      windows/process_open_handles.cpp
     )
   endif()
 
@@ -354,6 +357,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain.h
       darwin/packages.h
       darwin/smbios_utils.h
+      darwin/os_version.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)

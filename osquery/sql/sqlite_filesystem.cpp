@@ -178,9 +178,7 @@ static void getParentDirectory(sqlite3_context* context,
     sqlite3_result_null(context);
     return;
   }
-  char* result = reinterpret_cast<char*>(malloc(last_slash_pos));
-  memcpy(result, path, last_slash_pos);
-  sqlite3_result_text(context, result, last_slash_pos, free);
+  sqlite3_result_text(context, path, last_slash_pos, SQLITE_TRANSIENT);
 }
 
 void registerFilesystemExtensions(sqlite3* db) {

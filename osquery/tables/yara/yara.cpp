@@ -332,67 +332,110 @@ Status getYaraRules(YARAConfigParser parser,
   return Status::success();
 }
 
-QueryData genYaraImpl(QueryContext& context, Logger& logger) {
-  QueryData results;
+class YaraState {
+ public:
   YaraScanContext scanContext;
+  YARAConfigParser yaraParser;
+  Status initStatus;
+  Logger& logger;
 
-  // Initialize yara library
-  auto init_status = yaraInitialize();
-  if (!init_status.ok()) {
-    logger.log(google::GLOG_WARNING, init_status.toString());
-    return results;
-  }
+  YaraState(QueryContext& context, Logger& logger) : logger(logger) {
+    initStatus = yaraInitialize();
+    if (!initStatus.ok()) {
+      return;
+    }
 
-  auto yaraParser = getYaraParser();
-  if (isNull(yaraParser)) {
-    return results;
-  }
+    yaraParser = getYaraParser();
+    if (isNull(yaraParser)) {
+      initStatus = Status::failure("YARA config parser plugin not found");
+      return;
+    }
+    // The query must specify one of sig_groups, sigfile, or sigrule
+    // for scan. The signature rules are compiled and added to the
+    // scan context.
+    if (context.hasConstraint("sig_group", EQUALS)) {
+      auto groups = context.constraints["sig_group"].getAll(EQUALS);
+      for (const auto& group : groups) {
+        scanContext.insert(std::make_pair(YC_GROUP, group));
+      }
+    }
 
-  // The query must specify one of sig_groups, sigfile, or sigrule
-  // for scan. The signature rules are compiled and added to the
-  // scan context.
-  if (context.hasConstraint("sig_group", EQUALS)) {
-    auto groups = context.constraints["sig_group"].getAll(EQUALS);
-    for (const auto& group : groups) {
-      scanContext.insert(std::make_pair(YC_GROUP, group));
+    // Compile signature file if query has sigfile constraint and
+    // add them to the scan context
+    if (context.hasConstraint("sigfile", EQUALS)) {
+      auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
+      auto status = getYaraRules(yaraParser, sigfiles, YC_FILE, scanContext);
+      if (!status.ok()) {
+        initStatus = Status::failure("YARA config parser plugin not found");
+        return;
+      }
+    }
+
+    // Compile signature string if query has sigrule constraint and
+    // add them to the scan context
+    if (context.hasConstraint("sigrule", EQUALS)) {
+      auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
+      auto status = getYaraRules(yaraParser, sigrules, YC_RULE, scanContext);
+      if (!status.ok()) {
+        initStatus = Status::failure("YARA config parser plugin not found");
+        return;
+      }
+    }
+
+    if (context.hasConstraint("sigurl", EQUALS)) {
+      auto sigurls = context.constraints["sigurl"].getAll(EQUALS);
+      auto status = getYaraRules(yaraParser, sigurls, YC_URL, scanContext);
+      if (!status.ok()) {
+        initStatus = Status::failure("YARA config parser plugin not found");
+        return;
+      }
+    }
+
+    // scan context is empty. One of sig_group, sigfile, or sigrule
+    // must be specified with the query
+    if (scanContext.empty()) {
+      initStatus = Status::failure(
+          "Query must specify sig_group, sigfile, sigrule, or sigurl for scan");
+      return;
     }
   }
 
-  // Compile signature file if query has sigfile constraint and
-  // add them to the scan context
-  if (context.hasConstraint("sigfile", EQUALS)) {
-    auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
-    auto status = getYaraRules(yaraParser, sigfiles, YC_FILE, scanContext);
-    if (!status.ok()) {
-      logger.log(google::GLOG_WARNING, status.toString());
-      return results;
+  ~YaraState() {
+    // Rule string is hashed before adding to the cache. There are
+    // possibilities of collision when arbitrary queries are executed
+    // with distributed API. Clear the hash string from the cache
+    // Also cleanup the cache block if rules are downloaded from url
+    auto& rules = yaraParser->rules();
+    for (const auto& sign : scanContext) {
+      if (sign.first == YC_RULE || sign.first == YC_URL) {
+        auto hash = hashStr(sign.second, sign.first);
+        auto it = rules.find(hash);
+        if (it != rules.end()) {
+          rules.erase(hash);
+        }
+      }
     }
-  }
 
-  // Compile signature string if query has sigrule constraint and
-  // add them to the scan context
-  if (context.hasConstraint("sigrule", EQUALS)) {
-    auto sigrules = context.constraints["sigrule"].getAll(EQUALS);
-    auto status = getYaraRules(yaraParser, sigrules, YC_RULE, scanContext);
-    if (!status.ok()) {
-      logger.log(google::GLOG_WARNING, status.toString());
-      return results;
+    // Clean-up after finish scanning; If yr_initialize is called
+    // more than once it will decrease the reference counter and return
+    auto fini_status = yaraFinalize();
+    if (!fini_status.ok()) {
+      logger.log(google::GLOG_WARNING, fini_status.toString());
     }
-  }
 
-  if (context.hasConstraint("sigurl", EQUALS)) {
-    auto sigurls = context.constraints["sigurl"].getAll(EQUALS);
-    auto status = getYaraRules(yaraParser, sigurls, YC_URL, scanContext);
-    if (!status.ok()) {
-      logger.log(google::GLOG_WARNING, status.toString());
-      return results;
-    }
+#ifdef OSQUERY_LINUX
+    // Attempt to release some unused memory kept by malloc internal caching
+    releaseRetainedMemory();
+#endif
   }
+};
 
-  // scan context is empty. One of sig_group, sigfile, or sigrule
-  // must be specified with the query
-  if (scanContext.empty()) {
-    VLOG(1) << "Query must specify sig_group, sigfile, or sigrule for scan";
+QueryData genYaraFileScanImpl(QueryContext& context, Logger& logger) {
+  QueryData results;
+  YaraState state(context, logger);
+
+  if (!state.initStatus.ok()) {
+    state.logger.log(google::GLOG_ERROR, state.initStatus.toString());
     return results;
   }
 
@@ -423,20 +466,12 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
         return status;
       }));
 
-  // Get all pids specified
-  auto pids = context.constraints["pid"].getAll<int>(EQUALS);
-
-  if (paths.empty() && pids.empty()) {
-    LOG(WARNING) << "Query must specify at least one path or pid for YARA scan";
-    return results;
-  }
-
   // Scan every path pair with the yara rules
-  auto& rules = yaraParser->rules();
+  auto& rules = state.yaraParser->rules();
 
   // Scan files
   for (const auto& path : paths) {
-    for (const auto& sign : scanContext) {
+    for (const auto& sign : state.scanContext) {
       auto hash = hashStr(sign.second, sign.first);
       auto rules_it = rules.find(hash);
       if (rules_it != rules.end()) {
@@ -453,6 +488,21 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
     }
   }
 
+  return results;
+}
+
+QueryData genYaraProcessScanImpl(QueryContext& context, Logger& logger) {
+  QueryData results;
+  YaraState state(context, logger);
+
+  if (!state.initStatus.ok()) {
+    logger.log(google::GLOG_ERROR, state.initStatus.toString());
+    return results;
+  }
+
+  // Get all pids specified
+  auto pids = context.constraints["pid"].getAll<int>(EQUALS);
+
   // Scan process memory if pid or pids are specified
   if (!pids.empty()) {
 #ifdef WINDOWS
@@ -463,9 +513,12 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
     // privilege is reset to its original state after the scan is done.
     SeDebugPrivilegeGuard debug_priv_guard;
 #endif
+    // Scan every path pair with the yara rules
+    auto& rules = state.yaraParser->rules();
+
     // Scan processes
     for (const auto& pid : pids) {
-      for (const auto& sign : scanContext) {
+      for (const auto& sign : state.scanContext) {
         auto hash = hashStr(sign.second, sign.first);
         auto rules_it = rules.find(hash);
         if (rules_it != rules.end()) {
@@ -479,42 +532,24 @@ QueryData genYaraImpl(QueryContext& context, Logger& logger) {
       }
     }
   }
-
-  // Rule string is hashed before adding to the cache. There are
-  // possibilities of collision when arbitrary queries are executed
-  // with distributed API. Clear the hash string from the cache
-  // Also cleanup the cache block if rules are downloaded from url
-  for (const auto& sign : scanContext) {
-    if (sign.first == YC_RULE || sign.first == YC_URL) {
-      auto hash = hashStr(sign.second, sign.first);
-      auto it = rules.find(hash);
-      if (it != rules.end()) {
-        rules.erase(hash);
-      }
-    }
-  }
-
-  // Clean-up after finish scanning; If yr_initialize is called
-  // more than once it will decrease the reference counter and return
-  auto fini_status = yaraFinalize();
-  if (!fini_status.ok()) {
-    logger.log(google::GLOG_WARNING, fini_status.toString());
-  }
-
-#ifdef OSQUERY_LINUX
-  // Attempt to release some unused memory kept by malloc internal caching
-  releaseRetainedMemory();
-#endif
-
   return results;
 }
 
-QueryData genYara(QueryContext& context) {
+QueryData genYaraFileScan(QueryContext& context) {
   if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(context, "yara", genYaraImpl);
+    return generateInNamespace(context, "yara", genYaraFileScanImpl);
   } else {
     GLOGLogger logger;
-    return genYaraImpl(context, logger);
+    return genYaraFileScanImpl(context, logger);
+  }
+}
+
+QueryData genYaraProcessScan(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "yara", genYaraProcessScanImpl);
+  } else {
+    GLOGLogger logger;
+    return genYaraProcessScanImpl(context, logger);
   }
 }
 

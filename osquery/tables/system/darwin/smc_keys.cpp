@@ -20,6 +20,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -375,7 +376,7 @@ kern_return_t SMCHelper::call(uint32_t selector,
 }
 
 inline uint32_t strtoul(const char *str, size_t size, size_t base) {
-  // Prevent shift overflow: uint32_t is 4 bytes, so size > 4 would overflow
+  // Security fix: Prevent shift overflow for sizes > 4 bytes (32-bit limit)
   if (size > 4) {
     return 0;
   }
@@ -387,7 +388,7 @@ inline uint32_t strtoul(const char *str, size_t size, size_t base) {
 }
 
 inline uint64_t strtoull(const char* str, size_t size, size_t base) {
-  // Prevent shift overflow: uint64_t is 8 bytes, so size > 8 would overflow
+  // Security fix: Prevent shift overflow for sizes > 8 bytes (64-bit limit)
   if (size > 8) {
     return 0;
   }
@@ -452,7 +453,13 @@ double getConvertedValue(const std::string& smcType,
                  << ", fractional: " << fractionalBits << ")";
       return -1.0;
     }
-    int divisor = 1U << fractionalBits;
+    // Security fix: Prevent signed shift overflow
+    if (fractionalBits >= 31) {
+      LOG(ERROR) << "Invalid fractional bits for SMC type: " << type
+                 << " (fractional: " << fractionalBits << ")";
+      return -1.0;
+    }
+    int divisor = 1 << fractionalBits;
     // Get the integer value represented by the decoded hex string, and divide
     // by the divisor to get the float value.
     int intVal = strtoul(val.c_str(), size, 16);
@@ -494,6 +501,11 @@ bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
   memset(&out, 0, sizeof(SMCKeyData_t));
   memset(val, 0, sizeof(SMCValue_t));
 
+  // Security fix: Validate key size to prevent heap overread
+  if (key.size() < 4) {
+    return false;
+  }
+
   in.key = strtoul(key.c_str(), 4, 16);
   memcpy(val->key.bytes, key.c_str(), 4);
   in.data8 = SMCCMDType::READ_KEYINFO;
@@ -523,7 +535,9 @@ bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
 size_t SMCHelper::getKeysCount() const {
   SMCValue_t val;
   read("#KEY", &val);
-  return ((int)val.bytes.bytes[2] << 8) + ((unsigned)val.bytes.bytes[3] & 0xff);
+  // Security fix: Cast to unsigned char before shift to prevent signed overflow
+  return ((unsigned char)val.bytes.bytes[2] << 8) +
+         ((unsigned char)val.bytes.bytes[3] & 0xff);
 }
 
 std::vector<std::string> SMCHelper::getKeys() const {
@@ -764,7 +778,12 @@ QueryData genFanSpeedSensors(QueryContext &context) {
   }
 
   // Get attributes for each fan.
-  int numFans = std::stoi(smcRow["value"]);
+  // Security fix: Use tryTo to safely convert string to int
+  auto numFansExp = tryTo<int>(smcRow["value"]);
+  if (numFansExp.isError()) {
+    return results;
+  }
+  int numFans = numFansExp.take();
   for (int fanIdx = 0; fanIdx < numFans; fanIdx++) {
     Row r;
     r["fan"] = std::to_string(fanIdx);

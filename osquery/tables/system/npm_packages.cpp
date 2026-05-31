@@ -11,10 +11,14 @@
 
 #include <stdlib.h>
 #include <string>
+#include <sys/stat.h>
+#include <unordered_set>
+#include <utility>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
@@ -63,6 +67,33 @@ const std::vector<std::string> kPackageKeys{
     "name", "version", "description", "homepage"};
 
 const std::string kWinNodeInstallKey = "SOFTWARE\\Node.js\\InstallPath";
+
+const int kDefaultMaxDepth = 100;
+
+/**
+ * @brief Check if a directory has already been visited using inode tracking.
+ *
+ * This prevents infinite loops from symlinks pointing back up the directory
+ * tree. Uses platformLstat which doesn't follow symlinks.
+ *
+ * @param visited_inos Set of already-visited inodes
+ * @param path Directory path to check
+ * @return true if already visited, false if new
+ */
+static bool isDirVisited(std::unordered_set<int>& visited_inos,
+                         const std::string& path) {
+  if (path.empty()) {
+    return true;
+  }
+
+  struct stat d_stat;
+  if (!platformLstat(path, d_stat).ok()) {
+    return false;
+  }
+
+  auto [_, inserted] = visited_inos.emplace(d_stat.st_ino);
+  return !inserted;
+}
 
 void genNodePackage(const std::string& file, Row& r, Logger& logger) {
   std::string json;
@@ -122,30 +153,60 @@ void genNodePackage(const std::string& file, Row& r, Logger& logger) {
 
 void genNodeSiteDirectories(const std::string& site,
                             QueryData& results,
-                            Logger& logger) {
-  std::vector<std::string> manifest_paths;
+                            Logger& logger,
+                            int max_depth) {
+  // Queue of (directory_to_search, current_depth) pairs
+  std::vector<std::pair<std::string, int>> dirs_to_search;
+  std::unordered_set<int> visited_inos;
 
-  // Search for direct packages: node_modules/package/package.json
-  boost::filesystem::path pattern1("node_modules/%/package.json");
-  resolveFilePattern(site / pattern1, manifest_paths);
+  dirs_to_search.emplace_back(site, 0);
 
-  // Search for nested packages: node_modules/@scope/package/package.json
-  boost::filesystem::path pattern2("node_modules/@%/%/package.json");
-  resolveFilePattern(site / pattern2, manifest_paths);
+  while (!dirs_to_search.empty()) {
+    auto [current_dir, depth] = dirs_to_search.back();
+    dirs_to_search.pop_back();
 
-  for (const auto& path : manifest_paths) {
-    Row r;
-    genNodePackage(path, r, logger);
-    r["directory"] = site;
-    r["path"] = path;
-    r["pid_with_namespace"] = "0";
-    results.push_back(r);
+    // Skip if we've visited this directory already (symlink loop protection)
+    if (isDirVisited(visited_inos, current_dir)) {
+      continue;
+    }
+
+    std::vector<std::string> manifest_paths;
+
+    // Search for direct packages: node_modules/package/package.json
+    fs::path pattern1("node_modules/%/package.json");
+    resolveFilePattern(current_dir / pattern1, manifest_paths);
+
+    // Search for scoped packages: node_modules/@scope/package/package.json
+    fs::path pattern2("node_modules/@%/%/package.json");
+    resolveFilePattern(current_dir / pattern2, manifest_paths);
+
+    for (const auto& path : manifest_paths) {
+      Row r;
+      genNodePackage(path, r, logger);
+      r["directory"] = site;
+      r["path"] = path;
+      r["depth"] = INTEGER(depth);
+      r["max_depth"] = INTEGER(max_depth);
+      r["pid_with_namespace"] = "0";
+      results.push_back(r);
+
+      // Queue nested node_modules for searching if not at max depth
+      if (max_depth == -1 || depth < max_depth) {
+        fs::path pkg_dir = fs::path(path).parent_path();
+        fs::path nested_modules = pkg_dir / "node_modules";
+        boost::system::error_code ec;
+        if (fs::is_directory(nested_modules, ec)) {
+          dirs_to_search.emplace_back(pkg_dir.string(), depth + 1);
+        }
+      }
+    }
   }
 }
 
 void genWinNodePackages(const std::string& keyGlob,
                         QueryData& results,
-                        Logger& logger) {
+                        Logger& logger,
+                        int max_depth) {
 #ifdef WIN32
   std::set<std::string> installPathKeys;
   expandRegistryGlobs(keyGlob, installPathKeys);
@@ -156,7 +217,7 @@ void genWinNodePackages(const std::string& keyGlob,
       if (p.at("name") != "(Default)") {
         continue;
       }
-      genNodeSiteDirectories(p.at("data"), results, logger);
+      genNodeSiteDirectories(p.at("data"), results, logger, max_depth);
     }
     nodeInstallLocation.clear();
   }
@@ -166,8 +227,16 @@ void genWinNodePackages(const std::string& keyGlob,
 QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::set<std::string> paths;
-  if (context.constraints.count("directory") > 0 &&
-      context.constraints.at("directory").exists(EQUALS)) {
+
+  // Read max_depth constraint, default to kDefaultMaxDepth (100)
+  int max_depth = kDefaultMaxDepth;
+  if (context.hasConstraint("max_depth", EQUALS)) {
+    max_depth =
+        tryTo<int>(*context.constraints["max_depth"].getAll(EQUALS).begin())
+            .takeOr(kDefaultMaxDepth);
+  }
+
+  if (context.hasConstraint("directory", EQUALS)) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
     for (const auto& path : kNodeModulesPath) {
@@ -180,15 +249,15 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
     if (isPlatform(PlatformType::TYPE_WINDOWS)) {
       // Enumerate any system installed npm packages
       auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinNodeInstallKey;
-      genWinNodePackages(installPathKey, results, logger);
+      genWinNodePackages(installPathKey, results, logger, max_depth);
 
       // Enumerate any user installed npm packages
       installPathKey = "HKEY_USERS\\%\\" + kWinNodeInstallKey;
-      genWinNodePackages(installPathKey, results, logger);
+      genWinNodePackages(installPathKey, results, logger, max_depth);
     }
   }
   for (const auto& key : paths) {
-    genNodeSiteDirectories(key, results, logger);
+    genNodeSiteDirectories(key, results, logger, max_depth);
   }
 
   return results;

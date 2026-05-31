@@ -2,10 +2,10 @@
 
 YARA is a tool that allows you to find textual or binary patterns inside of files.
 
-There are two YARA-related tables in osquery, which serve very different purposes. The first table, called
+There are three YARA-related tables in osquery, which serve very different purposes. The first table, called
 `yara_events`, uses osquery's [Events framework](../development/pubsub-framework.md) to monitor for filesystem changes
-and will execute YARA when a file change event fires. The second table, just called `yara`, is a table for performing an
-on-demand YARA scan.
+and will execute YARA when a file change event fires. The remaining tables `yara_file` and `yara_process`, are tables for performing
+on-demand YARA scans.
 
 In this document, "signature file" is intended to be synonymous with "YARA rule file" (plain-text files commonly
 distributed with a `.yar` or `.yara` filename extension, although any extension is allowed).
@@ -94,13 +94,16 @@ and a couple of queries examples:
 
 ```sh
 # This is valid
-SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar';
+SELECT * FROM yara_file WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar';
 
 # This too
-SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/CVE_Rules/CVE-2010-0805.yar';
+SELECT * FROM yara_file WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/CVE_Rules/CVE-2010-0805.yar';
 
-# This is not allowed
-SELECT * FROM yara WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar';
+# Process scan example
+SELECT * FROM yara_process WHERE pid=1234 AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/CVE_Rules/CVE-2010-0805.yar'
+
+# This is not allowed (not defined in yara config)
+SELECT * FROM yara_file WHERE path="/usr/bin/ls" AND sigurl='https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar';
 
 YARA signature url https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar not allowed
 Failed to get YARA rule url: https://raw.githubusercontent.com/Yara-Rules/rules/devel/malware/APT_APT3102.yar
@@ -164,7 +167,7 @@ As you can see, even though no matches were found, a row is still created and st
 
 ## On-demand YARA scanning
 
-The [`yara`](https://osquery.io/schema/current/#yara) table is used for on-demand scanning. With this table
+The [`yara_file`](https://osquery.io/schema/current/#yara_file) table is used for on-demand scanning. With this table
 you can arbitrarily YARA scan any available file on the filesystem with any available signature files or
 signature group from the configuration. In order to scan, the table must be given a constraint which says
 where to scan and what to scan with.
@@ -179,17 +182,17 @@ file on the filesystem, not a relative path. The signature file will be compiled
 of this one query and removed afterwards. The `sig_group` constraint must consist of a named signature
 grouping from your configuration file.
 
-Here are some examples of the `yara` table in action:
+Here are some examples of the `yara_file` table in action:
 
 ```sql
-osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_1";
+osquery> SELECT * FROM yara_file WHERE path="/bin/ls" AND sig_group="sig_group_1";
 +---------+-------------+-------+-------------+---------+---------+---------+
 | path    | matches     | count | sig_group   | sigfile | strings | tags    |
 +---------+-------------+-------+-------------+---------+---------+---------+
 | /bin/ls | always_true | 1     | sig_group_1 |         |         |         |
 +---------+-------------+-------+-------------+---------+---------+---------+
 
-osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_2";
+osquery> SELECT * FROM yara_file WHERE path="/bin/ls" AND sig_group="sig_group_2";
 +---------+---------+-------+-------------+---------+---------+---------+
 | path    | matches | count | sig_group   | sigfile | strings | tags    |
 +---------+---------+-------+-------------+---------+---------+---------+
@@ -200,7 +203,7 @@ osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_2";
 As you can see in these examples, we scan the same file with two different signature groups and get different results.
 
 ```sql
-osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sig_group="sig_group_1";
+osquery> SELECT * FROM yara_file WHERE path LIKE "/bin/%sh" AND sig_group="sig_group_1";
 +-----------+-------------+-------+-------------+---------+----------+----------+
 | path      | matches     | count | sig_group   | sigfile | strings  | tags     |
 +-----------+-------------+-------+-------------+---------+----------+----------+
@@ -216,7 +219,7 @@ osquery> SELECT * FROM yara WHERE path LIKE "/bin/%sh" AND sig_group="sig_group_
 The above illustrates using the `path LIKE` constraint to scan `/bin/%sh` with a signature group.
 
 ```sql
-osquery> select * from yara where path LIKE 'C:\tmp\%' and sigfile = "C:\tmp\test.yar.txt";
+osquery> select * from yara_file where path LIKE 'C:\tmp\%' and sigfile = "C:\tmp\test.yar.txt";
 +------------------------------+-------------+-------+-----------+---------------------+-----------------+------+
 | path                         | matches     | count | sig_group | sigfile             | strings         | tags |
 +------------------------------+-------------+-------+-----------+---------------------+-----------------+------+
@@ -230,6 +233,60 @@ contains the string its rule is searching for, it has also returned itself as a 
 
 **Tip:** you can specify `AND count > 0` in your query to return only positive YARA results.
 
+### Scanning process memory with yara_process
+
+The `yara_process` table scans the memory of a running process rather than a file on disk. It is useful for detecting in-memory artifacts — packed, injected, or fileless payloads — that would not appear in a file-based scan.
+
+The `pid` constraint is required and must be a single process id. Unlike `yara_file`'s `path`, `pid` does not support `LIKE` or wildcard matching; to scan multiple processes, use a subquery against the `processes` table and let osquery evaluate the `pid IN (...)` set.
+
+Scan a single process with a named signature group:
+
+```sql
+osquery> SELECT * FROM yara_process WHERE pid = 1234 AND sig_group = "sig_group_1";
++------+-------------+-------+-------------+---------+---------+------+
+| pid  | matches     | count | sig_group   | sigfile | strings | tags |
++------+-------------+-------+-------------+---------+---------+------+
+| 1234 | always_true | 1     | sig_group_1 |         |         |      |
++------+-------------+-------+-------------+---------+---------+------+
+```
+
+Scan every running process with a signature file on disk, returning only positive matches:
+
+```sql
+osquery> SELECT yp.pid, p.name, yp.matches, yp.count
+    ...> FROM yara_process yp
+    ...> JOIN processes p USING (pid)
+    ...> WHERE yp.pid IN (SELECT pid FROM processes)
+    ...>   AND yp.sigfile = '/etc/osquery/yara/suspicious.yar'
+    ...>   AND yp.count > 0;
+```
+
+Scan a single process with an inline rule:
+
+```sql
+osquery> SELECT * FROM yara_process WHERE pid = 1234
+    ...>   AND sigrule = 'rule has_mz { strings: $mz = "MZ" condition: $mz }';
+```
+
+Scan a process using a signature fetched from a configured `signature_urls` entry:
+
+```sql
+osquery> SELECT * FROM yara_process WHERE pid = 1234
+    ...>   AND sigurl = 'https://raw.githubusercontent.com/Yara-Rules/rules/master/cve_rules/CVE-2010-0805.yar';
+```
+
+On Linux, the hidden `pid_with_namespace` column (set to `1`) can be used to scan processes inside PID namespaces (e.g. containers) from a host-level osqueryd:
+
+```sql
+osquery> SELECT * FROM yara_process WHERE pid = 4321 AND pid_with_namespace = 1 AND sig_group = "sig_group_1";
+```
+
+**Notes on process scanning:**
+
+- Reading another process's memory requires sufficient privileges (typically root on Linux/macOS, or an elevated session with `SeDebugPrivilege` on Windows). Scans of protected or kernel-adjacent processes may fail or return no data.
+- Process memory scans are more expensive than file scans — avoid scheduling them against `SELECT pid FROM processes` at a high cadence on production hosts.
+- A process's memory is a moving target; a match reflects the state observed at scan time and may not be reproducible a moment later.
+
 ### Inline YARA rules with sigrule
 
 Above, we documented how to query the `yara` table using YARA signatures specified in a local file or retrieved from a
@@ -241,14 +298,14 @@ YARA rules take the form of `'rule rulename { condition: [whatever] }'` and foll
 For example:
 
 ```sql
-osquery> select * from yara where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }';
+osquery> select * from yara_file where path = '/etc/passwd' and sigrule = 'rule always_true { condition: true }';
 ```
 
 YARA rules don't have a line-terminating character. To enter a multi-line YARA rule, use newlines. This
 even works in `osqueryi`:
 
 ```sql
-osquery> select * from yara where path LIKE 'C:\tmp\%' and sigrule = 'rule hello_world {
+osquery> select * from yara_file where path LIKE 'C:\tmp\%' and sigrule = 'rule hello_world {
     ...> strings:
     ...> $a = "Hello world"
     ...> condition: $a

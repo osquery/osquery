@@ -181,6 +181,7 @@ function(generateTestsIntegrationTablesTestsTest)
       rpm_package_files.cpp
       deb_package_files.cpp
       rpm_packages.cpp
+      secureboot_certificates.cpp
       selinux_events.cpp
       shadow.cpp
       shared_memory.cpp

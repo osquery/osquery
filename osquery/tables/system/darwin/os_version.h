@@ -7,19 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#pragma once
-
-#include <string>
-#include <unordered_map>
-
-#include <ebpfpub/ifunctiontracer.h>
-
 namespace osquery {
+namespace tables {
 
-using ParameterListMap =
-    std::unordered_map<std::string,
-                       tob::ebpfpub::IFunctionTracer::ParameterList>;
-
-extern const ParameterListMap kParameterListMap;
-
+bool isOperatingSystemAtLeastVersion(int majorVersion,
+                                     int minorVersion,
+                                     int patchVersion);
+} // namespace tables
 } // namespace osquery

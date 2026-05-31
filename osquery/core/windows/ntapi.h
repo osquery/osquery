@@ -10,45 +10,71 @@
 #pragma once
 
 #include <osquery/utils/system/system.h>
+#include <winternl.h>
 namespace osquery {
 
-#define NTSTATUS ULONG
+#ifndef STATUS_SUCCESS
 #define STATUS_SUCCESS 0L
+#endif
 
+#ifndef STATUS_UNSUCCESSFUL
+#define STATUS_UNSUCCESSFUL 0xC0000001L
+#endif
+
+#ifndef STATUS_INFO_LENGTH_MISMATCH
+#define STATUS_INFO_LENGTH_MISMATCH 0xC0000004L
+#endif
+
+#ifndef STATUS_ACCESS_DENIED
+#define STATUS_ACCESS_DENIED 0xC0000022L
+#endif
+
+#ifndef STATUS_BUFFER_TOO_SMALL
+#define STATUS_BUFFER_TOO_SMALL 0xC0000023L
+#endif
+
+#ifndef STATUS_NOT_SUPPORTED
+#define STATUS_NOT_SUPPORTED 0xC00000BBL
+#endif
+
+#ifndef STATUS_INTEGER_OVERFLOW
+#define STATUS_INTEGER_OVERFLOW 0xC0000095L
+#endif
+
+#ifndef STATUS_INVALID_HANDLE
+#define STATUS_INVALID_HANDLE 0xC0000008L
+#endif
+
+#ifndef STATUS_RETRY
+#define STATUS_RETRY 0xC000022DL
+#endif
+
+#ifndef OBJ_CASE_INSENSITIVE
 #define OBJ_CASE_INSENSITIVE 64L
+#endif
+
 #define DIRECTORY_QUERY 0x0001
 #define SYMBOLIC_LINK_QUERY 0x0001
 
-typedef enum _SYSTEM_INFORMATION_CLASS {
-  SystemProcessorInformation,
-  SystemPerformanceInformation,
-  SystemTimeOfDayInformation,
-  SystemPathInformation,
-  SystemProcessInformation
-} SYSTEM_INFORMATION_CLASS;
+// OBJECT_INFORMATION_CLASS is defined in winternl.h but is
+// missing the following values
+#ifndef ObjectNameInformation
+#define ObjectNameInformation ((OBJECT_INFORMATION_CLASS)1)
+#endif
 
-typedef enum _OBJECT_INFORMATION_CLASS {
-  ObjectBasicInformation,
-  ObjectNameInformation,
-  ObjectTypeInformation,
-  ObjectAllTypesInformation,
-  ObjectHandleInformation
-} OBJECT_INFORMATION_CLASS;
+#ifndef ObjectAllTypesInformation
+#define ObjectAllTypesInformation ((OBJECT_INFORMATION_CLASS)3)
+#endif
 
-typedef struct _UNICODE_STRING {
-  USHORT Length;
-  USHORT MaximumLength;
-  PWCHAR Buffer;
-} UNICODE_STRING, *PUNICODE_STRING;
+#ifndef ObjectHandleInformation
+#define ObjectHandleInformation ((OBJECT_INFORMATION_CLASS)4)
+#endif
 
-typedef struct _OBJECT_ATTRIBUTES {
-  ULONG Length;
-  PVOID RootDirectory;
-  PUNICODE_STRING ObjectName;
-  ULONG Attributes;
-  PVOID SecurityDescriptor;
-  PVOID SecurityQualityOfService;
-} OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
+// SystemExtendedHandleInformation is defined in winternl.h but is missing the
+// following values
+#ifndef SystemExtendedHandleInformation
+#define SystemExtendedHandleInformation ((SYSTEM_INFORMATION_CLASS)64)
+#endif
 
 typedef NTSTATUS(WINAPI* ZwQueryObject)(HANDLE h,
                                         OBJECT_INFORMATION_CLASS oic,

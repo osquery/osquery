@@ -252,6 +252,15 @@ std::set<fs::path> Carver::carveAll() {
       }
     }
 
+    // Capture source timestamps before reading the file, since read() updates
+    // atime on Linux when the filesystem is mounted with strict atime
+    // semantics.
+    PlatformTime srcTimes;
+    bool hasSrcTimes = src.getFileTimes(srcTimes);
+    if (!hasSrcTimes) {
+      VLOG(1) << "Failed to read source file timestamps: " << srcPath;
+    }
+
     PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
     if (!dst.isValid()) {
       VLOG(1) << "Destination temporary file is invalid: " << dstPath;
@@ -259,6 +268,12 @@ std::set<fs::path> Carver::carveAll() {
     }
     Status s = blockwiseCopy(src, dst);
     if (s.ok()) {
+      if (hasSrcTimes) {
+        if (!dst.setFileTimes(srcTimes)) {
+          VLOG(1) << "Failed to preserve timestamps for carved file: "
+                  << dstPath;
+        }
+      }
       carvedFiles.insert(dstPath);
     } else {
       VLOG(1) << "Failed to copy file from " << srcPath << " to " << dstPath

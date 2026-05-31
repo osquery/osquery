@@ -84,7 +84,7 @@ Status parseAptSourceLine(const std::string& input_line,
 
   apt_source.base_uri = tokens[offset];
   // Cannot have trailing slashes
-  while (apt_source.base_uri.back() == '/') {
+  while (!apt_source.base_uri.empty() && apt_source.base_uri.back() == '/') {
     apt_source.base_uri.pop_back();
   }
 
@@ -264,7 +264,7 @@ Status parseDeb822Block(const std::string& input_block,
           continue;
         }
         // Cannot have trailing slashes
-        while (uri.back() == '/') {
+        while (!uri.empty() && uri.back() == '/') {
           uri.pop_back();
         }
         uris.push_back(uri);

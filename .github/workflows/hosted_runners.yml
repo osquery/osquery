@@ -40,7 +40,7 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
+  PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
   SUBMODULE_CACHE_VERSION: 3
   OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
@@ -309,7 +309,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
