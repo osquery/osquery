@@ -109,7 +109,7 @@ void parseShellData(const std::string& shell_data,
     std::string full_path;
     auto byte_at_4 = reader.u8(4); // hex offset 8 == byte offset 4
     if (byte_at_4 && *byte_at_4 == 0x2F) { // User Property View Drive
-      name = propertyViewDrive(shell_data);
+      name = propertyViewDrive(reader);
       // osquery::join adds "\" to entries, remove drive "\"
       name.pop_back();
       build_shellbag.push_back(name);

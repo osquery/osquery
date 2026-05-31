@@ -412,17 +412,14 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   return ftp_data;
 }
 
-std::string propertyViewDrive(const std::string& shell_data) {
-  std::string drive_hex = shell_data.substr(26, 6);
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(drive_hex);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string propertyViewDrive(const BinaryReader& shell_data) {
+  // Old code: boost::unhex(substr(26, 6)) — hex offset 26 → byte offset 13,
+  // 6 hex chars → 3 bytes.
+  auto drive = shell_data.bytes(13, 3);
+  if (!drive) {
     return "[UNKNOWN USER PROPERTY DRIVE NAME]";
   }
-  return name;
+  return std::string(*drive);
 }
 
 std::string variableFtp(const std::string& shell_data) {

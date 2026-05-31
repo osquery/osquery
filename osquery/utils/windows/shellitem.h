@@ -115,7 +115,7 @@ std::string guidParseBytes(std::string_view guid_le_bytes);
  *
  * @returns The drive name
  */
-std::string propertyViewDrive(const std::string& shell_data);
+std::string propertyViewDrive(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing user variable GUID data

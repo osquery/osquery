@@ -197,12 +197,12 @@ TEST_F(ShellitemTests, test_shellitem_variableguid) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "55001F002F0010B7A6F519002F443A5C0000000000000000000000000000000000000000"
       "0000000000000000000000000000000000741A595E96DFD3488D671733BCEE28BA772CFB"
-      "F52F0E164AA3813E560C68BC830000";
-  auto name = propertyViewDrive(data);
-  ASSERT_TRUE(name == "D:\\");
+      "F52F0E164AA3813E560C68BC830000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(propertyViewDrive(r), "D:\\");
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertystore) {
