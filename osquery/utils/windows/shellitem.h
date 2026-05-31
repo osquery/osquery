@@ -51,7 +51,7 @@ std::string propertyStore(const std::string& shell_data,
  *
  * @returns The network share name
  */
-std::string networkShareItem(const std::string& shell_data);
+std::string networkShareItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing zip content shell items

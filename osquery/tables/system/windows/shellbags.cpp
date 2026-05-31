@@ -193,7 +193,7 @@ void parseShellData(const std::string& shell_data,
     return;
   } else if (sig == "C3" || sig == "41" || sig == "42" || sig == "46" ||
              sig == "47" || sig == "4C") { // Network share
-    std::string network_share = networkShareItem(shell_data);
+    std::string network_share = networkShareItem(reader);
     build_shellbag.push_back(network_share);
     std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;

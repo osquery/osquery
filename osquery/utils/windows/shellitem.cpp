@@ -23,8 +23,6 @@
 #include <string_view>
 #include <vector>
 
-const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
-
 // Property set GUIDs associated with name entries
 const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "01A3057A-74D6-4E80-BEA7-DC4C212CE50A",
@@ -221,24 +219,34 @@ std::string propertyStore(const std::string& shell_data,
   return guid_string;
 }
 
-std::string networkShareItem(const std::string& shell_data) {
-  for (const auto& net_id : kNetworkShareIds) {
-    if (net_id == shell_data.substr(4, 2)) {
-      // Network path ends with "00"
-      std::string network_path =
-          shell_data.substr(10, shell_data.find("00", 10) - 10);
-      std::string name;
-      try {
-        name = boost::algorithm::unhex(network_path);
-      } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                     << shell_data;
-        return "[UNKNOWN NETWORK SHELL ITEM]";
-      }
-      return name;
-    }
+namespace {
+constexpr std::uint8_t kNetworkShareIdBytes[] = {0x41, 0x42, 0x46, 0x47, 0x4C, 0xC3};
+} // namespace
+
+std::string networkShareItem(const BinaryReader& shell_data) {
+  // Old code: shell_data.substr(4, 2) compared against kNetworkShareIds.
+  // hex offset 4 → byte offset 2.
+  auto id = shell_data.u8(2);
+  if (!id) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
   }
-  return "[UNKNOWN NETWORK SHELL ITEM]";
+  bool match = false;
+  for (auto v : kNetworkShareIdBytes) {
+    if (v == *id) { match = true; break; }
+  }
+  if (!match) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
+  // Old code: substr(10, find("00", 10) - 10) — read from byte offset 5
+  // until the next 0x00 byte.
+  auto path_start = shell_data.bytes_from(5);
+  if (!path_start) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
+  std::size_t end = path_start->find('\0');
+  std::string_view path =
+      end == std::string_view::npos ? *path_start : path_start->substr(0, end);
+  return std::string(path);
 }
 
 std::string zipContentItem(const std::string& shell_data) {
