@@ -87,5 +87,42 @@ TEST_F(ParseShellDataTests, variable_guid_dispatches) {
             std::string::npos);
 }
 
+// GHSA-h348-cc3h-grw6: a 3-byte REG_BINARY value whose third byte is 0x1F
+// would crash the old parser when rootFolderItem did substr(8, 32) on a
+// 6-character hex string. Disabled until the byte-parser rewrite lands;
+// re-enable in the Task that deletes the old rootFolderItem.
+TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_3byte_sig1F_does_not_crash) {
+  // 3 bytes = 6 hex chars: "00001F"
+  EXPECT_NO_THROW({
+    auto r = run("00001F");
+    ASSERT_EQ(r.rows.size(), 1u);
+    EXPECT_NE(r.rows[0]["path"].find("[MALFORMED"), std::string::npos);
+  });
+}
+
+TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_empty_input_does_not_crash) {
+  EXPECT_NO_THROW({
+    auto r = run("");
+    ASSERT_EQ(r.rows.size(), 1u);
+  });
+}
+
+TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_short_drive_letter_does_not_crash) {
+  // sig=2F drive letter, but only 4 bytes total — driveLetterItem reads
+  // substr(6, 6) which would throw on master.
+  EXPECT_NO_THROW({
+    auto r = run("00002F00");
+    ASSERT_EQ(r.rows.size(), 1u);
+  });
+}
+
+TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_short_control_panel_does_not_crash) {
+  // sig=01, but no panel_id byte present.
+  EXPECT_NO_THROW({
+    auto r = run("000001");
+    ASSERT_EQ(r.rows.size(), 1u);
+  });
+}
+
 } // namespace tables
 } // namespace osquery
