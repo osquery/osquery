@@ -40,28 +40,7 @@ const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "EF6B490D-5CD8-437A-AFFC-DA8B60EE4A3C",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
-std::string guidParse(const std::string& guid_little) {
-  std::vector<std::string> guids;
-  guids.push_back(guid_little.substr(0, 8));
-  guids.push_back(guid_little.substr(8, 4));
-  guids.push_back(guid_little.substr(12, 4));
-
-  std::string guid_4 = guid_little.substr(16, 4);
-  std::string guid_5 = guid_little.substr(20, 12);
-
-  // The first 16 GUID characters are in litte endian format
-  for (auto& guid : guids) {
-    std::reverse(guid.begin(), guid.end());
-    for (std::size_t i = 0; i < guid.length(); i += 2) {
-      std::swap(guid[i], guid[i + 1]);
-    }
-  }
-  std::string guid_string =
-      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
-  return guid_string;
-}
-
-std::string guidParseBytes(std::string_view guid_le_bytes) {
+std::string guidParse(std::string_view guid_le_bytes) {
   if (guid_le_bytes.size() < 16) {
     return "";
   }
@@ -212,7 +191,7 @@ std::string propertyStore(const BinaryReader& shell_data,
     if (!guid_bytes) {
       continue;
     }
-    guid_string = guidParseBytes(*guid_bytes);
+    guid_string = guidParse(*guid_bytes);
 
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
@@ -306,7 +285,7 @@ std::string rootFolderItem(const BinaryReader& shell_data) {
   if (!guid_bytes) {
     return "[UNKNOWN ROOT FOLDER]";
   }
-  return guidParseBytes(*guid_bytes);
+  return guidParse(*guid_bytes);
 }
 
 std::string driveLetterItem(const BinaryReader& shell_data) {
@@ -353,7 +332,7 @@ std::string controlPanelItem(const BinaryReader& shell_data) {
   if (!guid_bytes) {
     return "";
   }
-  return guidParseBytes(*guid_bytes);
+  return guidParse(*guid_bytes);
 }
 
 std::vector<std::string> ftpItem(const BinaryReader& shell_data) {
@@ -480,7 +459,7 @@ std::string variableGuid(const BinaryReader& shell_data) {
   if (!guid_bytes) {
     return "";
   }
-  return guidParseBytes(*guid_bytes);
+  return guidParse(*guid_bytes);
 }
 
 std::string mtpFolder(const BinaryReader& shell_data) {

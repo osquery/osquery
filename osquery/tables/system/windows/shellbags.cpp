@@ -154,7 +154,7 @@ void handleDriveLetter(const BinaryReader& reader,
       results.push_back(r);
       return;
     }
-    std::string guid_name = guidLookup(guidParseBytes(*guid_bytes));
+    std::string guid_name = guidLookup(guidParse(*guid_bytes));
     build_shellbag.push_back(guid_name);
     r["path"] = osquery::join(build_shellbag, "\\");
     results.push_back(r);
@@ -337,7 +337,7 @@ void handleFallback(const BinaryReader& reader,
         results.push_back(r);
         return;
       }
-      std::string guid_string = guidParseBytes(*guid_bytes);
+      std::string guid_string = guidParse(*guid_bytes);
       std::string guid_name = guidLookup(guid_string);
       build_shellbag.push_back(guid_name);
       r["path"] = osquery::join(build_shellbag, "\\");

@@ -97,18 +97,11 @@ std::string controlPanelItem(const BinaryReader& shell_data);
 std::vector<std::string> ftpItem(const BinaryReader& shell_data);
 
 /**
- * @brief Windows helper function for parsing little endian guid data
- *
- * @returns GUID string in the proper order
- */
-std::string guidParse(const std::string& guid_little);
-
-/**
  * @brief Format 16 little-endian GUID bytes as a hyphenated GUID string.
  *
  * @returns The GUID string, or "" if the slice is shorter than 16 bytes.
  */
-std::string guidParseBytes(std::string_view guid_le_bytes);
+std::string guidParse(std::string_view guid_le_bytes);
 
 /**
  * @brief Windows helper function for parsing user property drive data
