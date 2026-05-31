@@ -120,7 +120,7 @@ TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_short_drive_letter_does_not_crash
   });
 }
 
-TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_short_control_panel_does_not_crash) {
+TEST_F(ParseShellDataTests, ghsa_h348_short_control_panel_does_not_crash) {
   // sig=01, but no panel_id byte present.
   EXPECT_NO_THROW({
     auto r = run("000001");

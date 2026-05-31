@@ -162,7 +162,7 @@ void parseShellData(const std::string& shell_data,
       results.push_back(r);
       return;
     }
-    std::string drive_name = driveLetterItem(shell_data);
+    std::string drive_name = driveLetterItem(reader);
     // osquery::join adds "\" to entries, remove drive "\"
     drive_name.pop_back();
     build_shellbag.push_back(drive_name);
@@ -172,7 +172,7 @@ void parseShellData(const std::string& shell_data,
     results.push_back(r);
     return;
   } else if (sig == "01") { // Control Panel Category
-    std::string panel = controlPanelCategoryItem(shell_data);
+    std::string panel = controlPanelCategoryItem(reader);
     build_shellbag.push_back(panel);
     std::string full_path = osquery::join(build_shellbag, "\\");
     r["path"] = full_path;

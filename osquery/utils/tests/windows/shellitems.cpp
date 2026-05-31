@@ -118,9 +118,9 @@ TEST_F(ShellitemTests, test_shellitem_rootentry) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_driveletterentry) {
-  std::string data = "19002F433A5C000000000000000000000000000000000000000000";
-  auto name = driveLetterItem(data);
-  ASSERT_TRUE(name == "C:\\");
+  auto bytes = hex_to_bytes("19002F433A5C000000000000000000000000000000000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(driveLetterItem(r), "C:\\");
 }
 
 TEST_F(ShellitemTests, test_shellitem_mtpfolder) {
@@ -169,9 +169,9 @@ TEST_F(ShellitemTests, test_shellitem_mtproot) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_controlpanelcategoryitem) {
-  std::string data = "0C0001008421DE39050000000000";
-  auto name = controlPanelCategoryItem(data);
-  ASSERT_TRUE(name == "System and Security");
+  auto bytes = hex_to_bytes("0C0001008421DE39050000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(controlPanelCategoryItem(r), "System and Security");
 }
 
 TEST_F(ShellitemTests, test_shellitem_controlpanelitem) {

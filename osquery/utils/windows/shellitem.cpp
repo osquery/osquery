@@ -292,47 +292,41 @@ std::string rootFolderItem(const BinaryReader& shell_data) {
   return guidParseBytes(*guid_bytes);
 }
 
-std::string driveLetterItem(const std::string& shell_data) {
-  std::string volume;
-  try {
-    volume = boost::algorithm::unhex(shell_data.substr(6, 6));
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode Shellbag hex values to string: "
-                 << shell_data;
+std::string driveLetterItem(const BinaryReader& shell_data) {
+  // Old code: boost::unhex(substr(6, 6)) — hex offset 6 → byte offset 3,
+  // 6 hex chars → 3 bytes. The 3-byte ASCII slice IS the drive name.
+  auto volume = shell_data.bytes(3, 3);
+  if (!volume) {
     return "[UNKNOWN DRIVE VOLUME]";
   }
-  return volume;
+  return std::string(*volume);
 }
 
-std::string controlPanelCategoryItem(const std::string& shell_data) {
-  std::string panel_id = shell_data.substr(16, 2);
-  if (panel_id == "00") {
-    return "All Control Panel Items";
-  } else if (panel_id == "01") {
-    return "Appearance and Personalization";
-  } else if (panel_id == "02") {
-    return "Hardware and Sound";
-  } else if (panel_id == "03") {
-    return "Network and Internet";
-  } else if (panel_id == "04") {
-    return "Sound, Speech, and Audio Devices";
-  } else if (panel_id == "05") {
-    return "System and Security";
-  } else if (panel_id == "06") {
-    return "Clock, Language, and Region";
-  } else if (panel_id == "07") {
-    return "Ease of Access";
-  } else if (panel_id == "08") {
-    return "Programs";
-  } else if (panel_id == "09") {
-    return "User Accounts";
-  } else if (panel_id == "10") {
-    return "Security Center";
-  } else if (panel_id == "11") {
-    return "Mobile PC";
-  } else {
-    LOG(WARNING) << "Unknown panel category: " << shell_data;
+std::string controlPanelCategoryItem(const BinaryReader& shell_data) {
+  // Old code read substr(16, 2) — hex offset 16 → byte offset 8.
+  auto panel_id = shell_data.u8(8);
+  if (!panel_id) {
     return "[UNKNOWN PANEL CATEGORY]";
+  }
+  switch (*panel_id) {
+    case 0x00: return "All Control Panel Items";
+    case 0x01: return "Appearance and Personalization";
+    case 0x02: return "Hardware and Sound";
+    case 0x03: return "Network and Internet";
+    case 0x04: return "Sound, Speech, and Audio Devices";
+    case 0x05: return "System and Security";
+    case 0x06: return "Clock, Language, and Region";
+    case 0x07: return "Ease of Access";
+    case 0x08: return "Programs";
+    case 0x09: return "User Accounts";
+    // NB: 0x10 / 0x11 in the old code were the *hex string* "10" / "11",
+    // which compares against the decimal 0x10/0x11 here — preserve as-is.
+    case 0x10: return "Security Center";
+    case 0x11: return "Mobile PC";
+    default:
+      LOG(WARNING) << "Unknown panel category byte: "
+                   << static_cast<int>(*panel_id);
+      return "[UNKNOWN PANEL CATEGORY]";
   }
 }
 

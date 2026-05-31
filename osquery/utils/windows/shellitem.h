@@ -73,14 +73,14 @@ std::string rootFolderItem(const BinaryReader& shell_data);
  *
  * @returns The drive name
  */
-std::string driveLetterItem(const std::string& shell_data);
+std::string driveLetterItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing conrol panel category shell items
  *
  * @returns The control panel category name
  */
-std::string controlPanelCategoryItem(const std::string& shell_data);
+std::string controlPanelCategoryItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing conrol panel shell items
