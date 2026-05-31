@@ -182,11 +182,11 @@ TEST_F(ShellitemTests, test_shellitem_controlpanelitem) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableftp) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "3E0000000000050003001000000000700A00000000000018389483FBD601550700000000"
-      "000075706C6F61640000750070006C006F0061006400000000000000";
-  auto name = variableFtp(data);
-  ASSERT_TRUE(name == "upload");
+      "000075706C6F61640000750070006C006F0061006400000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(variableFtp(r), "upload");
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableguid) {

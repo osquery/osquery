@@ -422,36 +422,22 @@ std::string propertyViewDrive(const BinaryReader& shell_data) {
   return std::string(*drive);
 }
 
-std::string variableFtp(const std::string& shell_data) {
-  // Short FTP name starts at string offset 76
-  if (shell_data.length() < 76) {
-    LOG(WARNING) << "FTP Variable name smaller than 76 chars: " << shell_data;
+std::string variableFtp(const BinaryReader& shell_data) {
+  // Old: shell_data.substr(76) — name starts at hex offset 76 → byte 38.
+  auto name_start = shell_data.bytes_from(38);
+  if (!name_start) {
     return "[UNKNOWN VARIABLE FTP NAME]";
   }
-  std::string name_start = shell_data.substr(76);
-  // Short name should end with 0000
-  size_t offset = name_start.find("0000");
-
-  if (offset == std::string::npos) {
-    LOG(WARNING) << "Could not identify Variable FTP name: " << shell_data;
+  // Old: find("0000") inside the suffix. In bytes: 0x00 0x00.
+  std::size_t pos = name_start->find(std::string_view("\0\0", 2));
+  if (pos == std::string_view::npos) {
     return "[UNKNOWN VARIABLE FTP NAME]";
   }
-  std::string long_name = name_start.substr(offset);
-  boost::erase_all(long_name, "00");
-  // Check to make sure name is even, fixes issues with 10 base characters
-  // Ex: p is 70
-  if (long_name.length() % 2 != 0) {
-    long_name += "0";
-  }
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(long_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
-    return "[UNKNOWN VARIABLE FTP NAME]";
-  }
-  return name;
+  // Old behavior: take everything *from* the 0000 onward (yes, including the
+  // null terminator's neighbors). Then strip "00" hex pairs and unhex.
+  // Reproduce in byte space:
+  std::string_view from_terminator = name_start->substr(pos);
+  return stripNullBytes(from_terminator);
 }
 
 std::string variableGuid(const BinaryReader& shell_data) {

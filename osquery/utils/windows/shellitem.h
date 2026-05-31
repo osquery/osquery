@@ -129,7 +129,7 @@ std::string variableGuid(const BinaryReader& shell_data);
  *
  * @returns The ftp string
  */
-std::string variableFtp(const std::string& shell_data);
+std::string variableFtp(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP device data

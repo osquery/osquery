@@ -222,7 +222,7 @@ void parseShellData(const std::string& shell_data,
       return;
     } else if (shell_data.substr(12, 8) == "05000000" ||
                shell_data.substr(12, 8) == "05000300") {
-      std::string ftp_name = variableFtp(shell_data);
+      std::string ftp_name = variableFtp(reader);
       build_shellbag.push_back(ftp_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
