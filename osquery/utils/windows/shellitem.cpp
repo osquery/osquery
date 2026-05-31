@@ -471,52 +471,47 @@ std::string variableGuid(const BinaryReader& shell_data) {
   return guidParseBytes(*guid_bytes);
 }
 
-std::string mtpFolder(const std::string& shell_data) {
-  std::string name_size = shell_data.substr(124, 8);
-  name_size = swapEndianess(name_size);
-  int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(148, size * 4);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpFolder(const BinaryReader& shell_data) {
+  // Old: substr(124, 8) at hex offset 124 → byte offset 62; uint32 LE.
+  auto length_chars = shell_data.u32_le(62);
+  if (!length_chars) {
     return "[UNKNOWN MTP FOLDER NAME]";
   }
-  return name;
+  // Old: substr(148, size * 4) → byte offset 74.
+  auto utf16 = shell_data.bytes(74, static_cast<std::size_t>(*length_chars) * 2);
+  if (!utf16) {
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
+  return stripNullBytes(*utf16);
 }
 
-std::string mtpDevice(const std::string& shell_data) {
-  std::string name_size = shell_data.substr(76, 8);
-  name_size = swapEndianess(name_size);
-  int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(108, size * 4);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpDevice(const BinaryReader& shell_data) {
+  // Old: substr(76, 8) → 8 hex chars at hex offset 76 → 4 bytes at byte
+  // offset 38, interpreted as little-endian uint32 length-in-UTF16-chars.
+  auto length_chars = shell_data.u32_le(38);
+  if (!length_chars) {
     return "[UNKNOWN MTP DEVICE NAME]";
   }
-  return name;
+  // Old: substr(108, size * 4). hex offset 108 → byte offset 54.
+  // size * 4 hex chars → size * 2 bytes (UTF-16LE).
+  auto utf16 = shell_data.bytes(54, static_cast<std::size_t>(*length_chars) * 2);
+  if (!utf16) {
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
+  return stripNullBytes(*utf16);
 }
 
-std::string mtpRoot(const std::string& shell_data) {
-  size_t name_end = shell_data.find("000000", 80);
-  std::string path_name = shell_data.substr(80, name_end - 80);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpRoot(const BinaryReader& shell_data) {
+  // Old: find("000000", 80) starting at hex offset 80 (byte offset 40),
+  // then substr(80, end - 80). In byte space: scan from byte offset 40
+  // for three consecutive 0x00 bytes; take the slice.
+  auto tail = shell_data.bytes_from(40);
+  if (!tail) {
     return "[UNKNOWN MTP ROOT NAME]";
   }
-  return name;
+  std::size_t end = tail->find(std::string_view("\0\0\0", 3));
+  std::string_view utf16 =
+      end == std::string_view::npos ? *tail : tail->substr(0, end);
+  return stripNullBytes(utf16);
 }
 } // namespace osquery

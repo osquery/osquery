@@ -136,19 +136,19 @@ std::string variableFtp(const std::string& shell_data);
  *
  * @returns The MTP device name
  */
-std::string mtpDevice(const std::string& shell_data);
+std::string mtpDevice(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP folder name data
  *
  * @returns The MTP folder name
  */
-std::string mtpFolder(const std::string& shell_data);
+std::string mtpFolder(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP root name data
  *
  * @returns The MTP root name
  */
-std::string mtpRoot(const std::string& shell_data);
+std::string mtpRoot(const BinaryReader& shell_data);
 } // namespace osquery

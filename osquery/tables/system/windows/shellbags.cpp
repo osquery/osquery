@@ -150,8 +150,7 @@ void parseShellData(const std::string& shell_data,
       return;
     } else if (shell_data.find("5C007500730062002300") != std::string::npos &&
                extension_sig == "") { // \usb#
-      // mtpRoot is still hex-based until T10; pass the hex form.
-      std::string name = mtpRoot(shell_data);
+      std::string name = mtpRoot(reader);
       build_shellbag.push_back(name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
@@ -258,14 +257,14 @@ void parseShellData(const std::string& shell_data,
       return;
     } else if (shell_data.find("0505203110") !=
                std::string::npos) { // MTP Device
-      std::string name = mtpDevice(shell_data);
+      std::string name = mtpDevice(reader);
       build_shellbag.push_back(name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
       results.push_back(r);
       return;
     } else if (shell_data.find("06201907") != std::string::npos) { // MTP Folder
-      std::string name = mtpFolder(shell_data);
+      std::string name = mtpFolder(reader);
       build_shellbag.push_back(name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
