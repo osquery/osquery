@@ -241,15 +241,16 @@ void parseShellData(const std::string& shell_data,
         results.push_back(r);
         return;
       }
-      std::vector<size_t> wps_list;
+      std::vector<std::size_t> wps_list;
       // check if Windows Property Store version 1SPS is in shellbag data,
       // there could be multiple
-      size_t wps = shell_data.find("31535053");
-      while (wps != std::string::npos) {
+      static constexpr std::string_view kWps("\x31\x53\x50\x53", 4);
+      std::size_t wps = reader.find(kWps);
+      while (wps != BinaryReader::npos) {
         wps_list.push_back(wps);
-        wps = shell_data.find("31535053", wps + 1);
+        wps = reader.find(kWps, wps + 1);
       }
-      std::string property_name = propertyStore(shell_data, wps_list);
+      std::string property_name = propertyStore(reader, wps_list);
       build_shellbag.push_back(property_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
@@ -281,8 +282,14 @@ void parseShellData(const std::string& shell_data,
     if (shell_data.find("31535053") != std::string::npos) {
       if (shell_data.find("D5DFA323") !=
           std::string::npos) { // User Property View
-        std::string property_guid = shell_data.substr(226, 32);
-        std::string guid_string = guidParse(property_guid);
+        auto guid_bytes = reader.bytes(113, 16); // hex offset 226 → byte 113
+        if (!guid_bytes) {
+          build_shellbag.push_back("[USER PROPERTY VIEW]");
+          r["path"] = osquery::join(build_shellbag, "\\");
+          results.push_back(r);
+          return;
+        }
+        std::string guid_string = guidParseBytes(*guid_bytes);
 
         std::string guid_name = guidLookup(guid_string);
         build_shellbag.push_back(guid_name);
@@ -303,15 +310,16 @@ void parseShellData(const std::string& shell_data,
         results.push_back(r);
         return;
       }
-      std::vector<size_t> wps_list;
+      std::vector<std::size_t> wps_list;
       // check if Windows Property Store version 1SPS is in shellbag data, there
       // could be multiple
-      size_t wps = shell_data.find("31535053");
-      while (wps != std::string::npos) {
+      static constexpr std::string_view kWps("\x31\x53\x50\x53", 4);
+      std::size_t wps = reader.find(kWps);
+      while (wps != BinaryReader::npos) {
         wps_list.push_back(wps);
-        wps = shell_data.find("31535053", wps + 1);
+        wps = reader.find(kWps, wps + 1);
       }
-      std::string property_name = propertyStore(shell_data, wps_list);
+      std::string property_name = propertyStore(reader, wps_list);
       build_shellbag.push_back(property_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;

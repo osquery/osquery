@@ -203,33 +203,34 @@ ShellFileEntryData fileEntry(const BinaryReader& shell_data) {
 }
 
 // returns property store name or GUID/id if name not found
-std::string propertyStore(const std::string& shell_data,
-                          const std::vector<size_t>& wps_list) {
+std::string propertyStore(const BinaryReader& shell_data,
+                          const std::vector<std::size_t>& byte_offsets) {
   std::string guid_string;
-  for (const auto& offsets : wps_list) {
-    std::string guid_little = shell_data.substr(offsets + 8, 32);
-    guid_string = guidParse(guid_little);
-    // If GUID property set is found get the property set name
+  for (auto offset : byte_offsets) {
+    // Old: substr(offsets + 8, 32) → offsets + 4 bytes, 16 bytes.
+    auto guid_bytes = shell_data.bytes(offset + 4, 16);
+    if (!guid_bytes) {
+      continue;
+    }
+    guid_string = guidParseBytes(*guid_bytes);
+
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
         continue;
       }
-      std::string name_size = shell_data.substr(offsets + 48, 8);
-      name_size = swapEndianess(name_size);
-      int size = tryTo<int>(name_size, 16).takeOr(0);
-      std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
-      boost::erase_all(string_hex, "00");
-      std::string name;
-      // Convert hex path to readable string
-      try {
-        name = boost::algorithm::unhex(string_hex);
-      } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING)
-            << "Failed to decode Windows Property List hex values to string: "
-            << shell_data;
+      // Old: substr(offsets + 48, 8) → offsets + 24 bytes; uint32 LE.
+      auto name_chars = shell_data.u32_le(offset + 24);
+      if (!name_chars) {
         return guid_string;
       }
-      return name;
+      // Old: substr(offsets + 74, (size + 1) * 4) — 74 is the odd offset.
+      // → offsets + 37 bytes. (size + 1) * 4 hex chars → (size + 1) * 2 bytes.
+      auto utf16 = shell_data.bytes(
+          offset + 37, (static_cast<std::size_t>(*name_chars) + 1) * 2);
+      if (!utf16) {
+        return guid_string;
+      }
+      return stripNullBytes(*utf16);
     }
   }
   return guid_string;

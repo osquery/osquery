@@ -43,8 +43,8 @@ ShellFileEntryData fileEntry(const BinaryReader& shell_data);
  *
  * @returns The Windows Property List GUID name or GUID value
  */
-std::string propertyStore(const std::string& shell_data,
-                          const std::vector<size_t>& wps_list);
+std::string propertyStore(const BinaryReader& shell_data,
+                          const std::vector<std::size_t>& byte_offsets);
 
 /**
  * @brief Windows helper function for parsing netshare shell items

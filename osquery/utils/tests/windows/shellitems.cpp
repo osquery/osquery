@@ -209,7 +209,7 @@ TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertystore) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "100100000A01BBAF933BFC000400000000002D000000315350537343E50ABE43AD4F85E4"
       "69DC8633986E110000000B000000000B000000FFFF000000000000450000003153505330"
       "F125B7EF471A10A5F102608C9EEBAC290000000A000000001F0000000C00000076006D00"
@@ -217,15 +217,16 @@ TEST_F(ShellitemTests, test_shellitem_propertystore) {
       "3D95D211B5D600C04FD918D03D0000001F000000001F0000001600000056004D00770061"
       "00720065002000530068006100720065006400200046006F006C00640065007200730000"
       "00000000002D000000315350533AA4BDDEB337834391E74498DA2995AB11000000030000"
-      "00001300000000000000000000000000000000000000";
-  std::vector<size_t> wps_list;
-  size_t wps = data.find("31535053");
-  while (wps != std::string::npos) {
+      "00001300000000000000000000000000000000000000");
+  BinaryReader r(bytes);
+  std::vector<std::size_t> wps_list;
+  static constexpr std::string_view kWps("\x31\x53\x50\x53", 4);
+  std::size_t wps = r.find(kWps);
+  while (wps != BinaryReader::npos) {
     wps_list.push_back(wps);
-    wps = data.find("31535053", wps + 1);
+    wps = r.find(kWps, wps + 1);
   }
-  auto name = propertyStore(data, wps_list);
-  ASSERT_TRUE(name == "vmware-host");
+  EXPECT_EQ(propertyStore(r, wps_list), "vmware-host");
 }
 
 TEST_F(ShellitemTests, test_shellitem_networkshare) {
