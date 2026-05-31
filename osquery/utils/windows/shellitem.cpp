@@ -9,13 +9,8 @@
 
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/binary_reader.h>
-#include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
-
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include <cstdio>
 #include <cstdint>

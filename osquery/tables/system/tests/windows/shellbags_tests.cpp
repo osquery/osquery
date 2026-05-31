@@ -102,7 +102,7 @@ TEST_F(ParseShellDataTests, ghsa_h348_3byte_sig1F_does_not_crash) {
   });
 }
 
-TEST_F(ParseShellDataTests, DISABLED_ghsa_h348_empty_input_does_not_crash) {
+TEST_F(ParseShellDataTests, ghsa_h348_empty_input_does_not_crash) {
   EXPECT_NO_THROW({
     auto r = run("");
     ASSERT_EQ(r.rows.size(), 1u);
