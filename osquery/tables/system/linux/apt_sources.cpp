@@ -254,8 +254,16 @@ Status parseDeb822Block(const std::string& input_block,
       }
     }
 
-    if (key == "enabled" && value != "on") {
-      return Status::success();
+    if (key == "enabled") {
+      std::string lower_value = value;
+      std::transform(lower_value.begin(),
+                     lower_value.end(),
+                     lower_value.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (lower_value == "no" || lower_value == "false" ||
+          lower_value == "off") {
+        return Status::success();
+      }
     }
 
     if (key == "uris") {
