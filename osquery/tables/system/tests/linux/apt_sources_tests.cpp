@@ -249,8 +249,37 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
 
   s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: off",
                        apt_sourecs);
-  EXPECT_TRUE(s.ok()) << "disabled source";
+  EXPECT_TRUE(s.ok()) << "disabled source (off)";
   EXPECT_EQ(apt_sourecs.size(), 0);
+
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: no",
+                       apt_sourecs);
+  EXPECT_TRUE(s.ok()) << "disabled source (no)";
+  EXPECT_EQ(apt_sourecs.size(), 0);
+
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: false",
+                       apt_sourecs);
+  EXPECT_TRUE(s.ok()) << "disabled source (false)";
+  EXPECT_EQ(apt_sourecs.size(), 0);
+
+  // Case-insensitive: one example to verify tolower applies
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: No",
+                       apt_sourecs);
+  EXPECT_TRUE(s.ok()) << "disabled source (No, mixed case)";
+  EXPECT_EQ(apt_sourecs.size(), 0);
+
+  // Affirmative values that were previously broken (bug fix)
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: yes",
+                       apt_sourecs);
+  EXPECT_TRUE(s.ok()) << "enabled source (yes)";
+  EXPECT_EQ(apt_sourecs.size(), 1);
+  apt_sourecs.clear();
+
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: true",
+                       apt_sourecs);
+  EXPECT_TRUE(s.ok()) << "enabled source (true)";
+  EXPECT_EQ(apt_sourecs.size(), 1);
+  apt_sourecs.clear();
 }
 
 } // namespace tables
