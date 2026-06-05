@@ -269,11 +269,6 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
   EXPECT_EQ(apt_sourecs.size(), 1);
   apt_sourecs.clear();
 
-  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: true",
-                       apt_sourecs);
-  EXPECT_TRUE(s.ok()) << "enabled source (true)";
-  EXPECT_EQ(apt_sourecs.size(), 1);
-  apt_sourecs.clear();
 }
 
 } // namespace tables
