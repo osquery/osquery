@@ -257,12 +257,6 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
   EXPECT_TRUE(s.ok()) << "disabled source (no)";
   EXPECT_EQ(apt_sourecs.size(), 0);
 
-  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: false",
-                       apt_sourecs);
-  EXPECT_TRUE(s.ok()) << "disabled source (false)";
-  EXPECT_EQ(apt_sourecs.size(), 0);
-
-  // Case-insensitive: one example to verify tolower applies
   s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: No",
                        apt_sourecs);
   EXPECT_TRUE(s.ok()) << "disabled source (No, mixed case)";

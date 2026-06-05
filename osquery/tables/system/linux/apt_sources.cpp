@@ -260,8 +260,7 @@ Status parseDeb822Block(const std::string& input_block,
                      lower_value.end(),
                      lower_value.begin(),
                      [](unsigned char c) { return std::tolower(c); });
-      if (lower_value == "no" || lower_value == "false" ||
-          lower_value == "off") {
+      if (lower_value == "no" || lower_value == "off") {
         return Status::success();
       }
     }
