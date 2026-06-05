@@ -268,7 +268,6 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
   EXPECT_TRUE(s.ok()) << "enabled source (yes)";
   EXPECT_EQ(apt_sourecs.size(), 1);
   apt_sourecs.clear();
-
 }
 
 } // namespace tables
