@@ -113,15 +113,26 @@ QueryData genBitlockerInfo(QueryContext& context) {
   }
   const std::vector<WmiResultItem>& wmiResults = wmiSystemReq->results();
   for (const auto& data : wmiResults) {
-    long status = 0;
-    long emethod;
+    long conversionStatus = 0;
+    long emethod = 0;
     data.GetString("DeviceID", r["device_id"]);
     data.GetString("DriveLetter", r["drive_letter"]);
     data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
-    data.GetLong("ConversionStatus", status);
-    r["conversion_status"] = INTEGER(status);
-    data.GetLong("ProtectionStatus", status);
-    r["protection_status"] = INTEGER(status);
+    data.GetLong("ConversionStatus", conversionStatus);
+    r["conversion_status"] = INTEGER(conversionStatus);
+
+    // ProtectionStatus is exposed both as a cached property on
+    // Win32_EncryptableVolume and as the WMI method GetProtectionStatus().
+    // The cached property can be stale — observed on Win11 26100 where drives
+    // that manage-bde reports as "Protection Off, Method=None, Fully Decrypted"
+    // still surface ProtectionStatus=1. Calling the method forces a fresh
+    // evaluation and matches manage-bde / Get-BitLockerVolume output.
+    fetchMethodResultLong(r["protection_status"],
+                          *wmiSystemReq,
+                          data,
+                          "GetProtectionStatus",
+                          "ProtectionStatus");
+
     data.GetLong("EncryptionMethod", emethod);
     std::string emethod_str;
     std::map<long, std::string> methods;
