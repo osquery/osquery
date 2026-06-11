@@ -758,17 +758,12 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
-        cmake_osx_sysroot=$(xcrun --sdk macosx --show-sdk-path)
-        echo "Using -DCMAKE_OSX_SYSROOT: $cmake_osx_sysroot"
         cmake -G "Unix Makefiles" \
-          -DCMAKE_C_COMPILER=clang \
-          -DCMAKE_CXX_COMPILER=clang++ \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
-          -DCMAKE_OSX_SYSROOT=${cmake_osx_sysroot} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
     - name: Build the project
