@@ -192,6 +192,7 @@ endfunction()
 function(generateOsqueryTablesSystemWindowsTests)
   add_osquery_executable(osquery_tables_system_windows_tests-test
     windows/certificates_tests.cpp
+    windows/processes_tests.cpp
     windows/programs_tests.cpp
     windows/registry_tests.cpp
     windows/token_privileges_tests.cpp
