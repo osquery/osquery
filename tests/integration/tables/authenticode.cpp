@@ -29,9 +29,14 @@ TEST_F(authenticode, test_sanity) {
   // also guards against regression of GHSA-hr28-jvpx-68cx, where the wrong
   // output buffer was passed to CryptDecodeObject and the program name was
   // silently always empty.
-  auto const data = execute_query(
-      "select * from authenticode "
-      "where path = 'C:\\Windows\\System32\\notepad.exe'");
+  auto windir = getEnvVar("WINDIR");
+  EXPECT_TRUE(windir);
+  std::stringstream ss;
+  ss << "select * from authenticode "
+        "where path = '"
+     << windir << "\\System32\\notepad.exe'";
+
+  auto const data = execute_query(ss.str());
 
   ASSERT_EQ(data.size(), 1ul);
 
