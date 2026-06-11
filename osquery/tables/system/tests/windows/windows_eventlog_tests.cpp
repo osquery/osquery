@@ -50,7 +50,7 @@ TEST_F(WindowsEventLogTests, parse_wel_xml) {
   context.constraints["timestamp"].add(Constraint(EQUALS, "43200000"));
 
   Row row;
-  parseWelXml(context, stringToWstring(xml_event), row);
+  parseWelXml(context, xml_event, row);
 
   /* NOTE: The escaping of the backslash doesn't match the original xml event
      because JSON is also escaping the backslash, so there are two levels. */
@@ -99,7 +99,7 @@ TEST_F(WindowsEventLogTests, parse_wel_xml_fails) {
   QueryContext context;
 
   Row row;
-  ASSERT_NO_THROW(parseWelXml(context, stringToWstring(xml_event), row));
+  ASSERT_NO_THROW(parseWelXml(context, xml_event, row));
   EXPECT_TRUE(row.empty());
 }
 

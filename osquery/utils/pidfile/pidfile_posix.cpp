@@ -153,7 +153,7 @@ Expected<std::string, Pidfile::Error> Pidfile::readFile(
   auto remaining_bytes = buffer.size();
 
   for (int retry = 0; retry < 5 && remaining_bytes > 0; ++retry) {
-    auto buffer_ptr = buffer.data() + buffer.size() - remaining_bytes;
+    char* buffer_ptr = &buffer[0] + buffer.size() - remaining_bytes;
 
     auto bytes_read = ::read(file_handle, buffer_ptr, remaining_bytes);
     if (bytes_read == -1) {

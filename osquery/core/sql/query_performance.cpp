@@ -8,10 +8,13 @@
  */
 
 #include "query_performance.h"
-#include "boost/lexical_cast.hpp"
+
+#include <string>
+#include <vector>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <string>
+#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 

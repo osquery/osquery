@@ -415,8 +415,7 @@ bool Client::initHTTPRequest(Request& req) {
 
 Response Client::sendHTTPRequest(Request& req) {
   if (client_options_.timeout_) {
-    timer_.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
+    timer_.expires_after(std::chrono::seconds(client_options_.timeout_));
   }
 
   size_t redirect_attempts = 0;

@@ -1,3 +1,8 @@
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(DEFINED PLATFORM_POSIX)
   include(CheckPIESupported)
@@ -22,17 +27,6 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 function(setupBuildFlags)
   add_library(cxx_settings INTERFACE)
   add_library(c_settings INTERFACE)
-
-  target_compile_features(cxx_settings INTERFACE cxx_std_17)
-
-  # There's no specific C11 conformance on MSVC
-  # and recent versions of CMake add the /std:c11 flag to the command line
-  # which makes librdkafka compilation fail due to _Thread_local not being defined,
-  # even if it's a C11 keyword.
-  # For some reason the compiler does not complain about the incorrect flag.
-  if(NOT DEFINED PLATFORM_WINDOWS)
-    target_compile_features(c_settings INTERFACE c_std_11)
-  endif()
 
   if(DEFINED PLATFORM_POSIX)
 
@@ -350,8 +344,8 @@ function(setupBuildFlags)
 
     set(windows_common_defines
       "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>"
-      _WIN32_WINNT=_WIN32_WINNT_WIN7
-      NTDDI_VERSION=NTDDI_WIN7
+      _WIN32_WINNT=_WIN32_WINNT_WIN10
+      NTDDI_VERSION=NTDDI_WIN10_TH2
       # VS2022 warns about this; the AWS SDK uses this non standard extension.
       # Updating the SDK and switching to C++20 should fix this.
       _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING

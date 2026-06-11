@@ -18,6 +18,8 @@
 #include <osquery/utils/conversions/windows/strings.h>
 #endif
 
+#include <fstream>
+
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/fileops.h>

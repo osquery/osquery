@@ -113,7 +113,7 @@ LONGLONG cimDatetimeToUnixtime(const std::string& src) {
   }
 
   // Convert this CIM Datetime to a FILETIME BSTR
-  BSTR bstrFileTime{L""};
+  BSTR bstrFileTime{nullptr};
   auto const bstrFileTimeManager =
       scope_guard::create([&bstrFileTime]() { SysFreeString(bstrFileTime); });
   // VARIANT_FALSE means we fetch the time in UTC
