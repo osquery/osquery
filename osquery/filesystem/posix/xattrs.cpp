@@ -15,7 +15,20 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef __FreeBSD__
+// FreeBSD has no <sys/xattr.h>; extended attributes are accessed via
+// <sys/extattr.h> with a different API.  Provide minimal stubs so the
+// translation unit compiles; callers handle empty results gracefully.
+#include <sys/extattr.h>
+static inline ssize_t flistxattr(int, char*, size_t) {
+  return 0;
+}
+static inline ssize_t fgetxattr(int, const char*, void*, size_t) {
+  return 0;
+}
+#else
 #include <sys/xattr.h>
+#endif
 
 namespace osquery {
 #if defined(__APPLE__)

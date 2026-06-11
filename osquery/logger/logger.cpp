@@ -562,7 +562,7 @@ void systemLog(const std::string& line) {
 }
 
 void googleLogCustomPrefix(std::ostream& s,
-                           const LogMessageInfo& l,
+                           const google::LogMessageInfo& l,
                            void* data) {
   s << l.severity[0] << std::setw(2) << (l.time.month() + 1) << std::setw(2)
     << l.time.day() << ' ' << std::setw(2) << l.time.hour() << ':'

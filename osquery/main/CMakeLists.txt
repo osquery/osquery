@@ -64,7 +64,7 @@ function(generateOsqueryMain)
     plugins_logger_stdout
     plugins_logger_syslog
     plugins_logger_tlslogger
-    plugins_logger_kafkaproducer
+    $<$<NOT:$<BOOL:${PLATFORM_FREEBSD}>>:plugins_logger_kafkaproducer>
     plugins_numericmonitoring_filesystem
     plugins_remote_enroll_tlsenroll
     specs_tables

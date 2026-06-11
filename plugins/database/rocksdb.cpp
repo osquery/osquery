@@ -168,13 +168,18 @@ Status RocksDBDatabasePlugin::setUp() {
   close();
 
   // Attempt to create a RocksDB instance and handles.
+  // Modern rocksdb requires std::unique_ptr<DB>* for the dbptr argument.
+  std::unique_ptr<rocksdb::DB> db_uptr;
   auto s =
-      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_uptr);
+  db_ = db_uptr.release();
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+    s = rocksdb::DB::Open(
+        options_, path_, column_families_, &handles_, &db_uptr);
+    db_ = db_uptr.release();
   }
 
   if (!s.ok() || db_ == nullptr) {

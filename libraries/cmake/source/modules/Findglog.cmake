@@ -1,15 +1,11 @@
-# Copyright (c) 2014-present, The osquery authors
-#
-# This source code is licensed as defined by the LICENSE file found in the
-# root directory of this source tree.
-#
-# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
-
-include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
-
-importSourceSubmodule(
-  NAME "glog"
-
-  SHALLOW_SUBMODULES
-    "src"
+# FreeBSD: use system glog from devel/glog
+include("${CMAKE_CURRENT_LIST_DIR}/freebsd_system_libs.cmake")
+freebsd_use_system_lib(glog
+  LIBS glog
+  INCLUDES /usr/local/include
+  DEFINITIONS
+    GLOG_USE_GLOG_EXPORT
+    GOOGLE_GLOG_DLL_DECL=
+    GLOG_NO_SYMBOLIZE_DETECTION
+    GLOG_CUSTOM_PREFIX_SUPPORT
 )

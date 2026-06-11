@@ -1,92 +1,20 @@
-# Copyright (c) 2014-present, The osquery authors
-#
-# This source code is licensed as defined by the LICENSE file found in the
-# root directory of this source tree.
-#
-# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
-
-include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
-
-importSourceSubmodule(
-  NAME "boost"
-
-  NO_RECURSIVE
-
-  SUBMODULES
-    "src"
-
-  SHALLOW_SUBMODULES
-    "src/libs/algorithm"
-    "src/libs/align"
-    "src/libs/any"
-    "src/libs/array"
-    "src/libs/asio"
-    "src/libs/assert"
-    "src/libs/atomic"
-    "src/libs/beast"
-    "src/libs/bind"
-    "src/libs/chrono"
-    "src/libs/circular_buffer"
-    "src/libs/concept_check"
-    "src/libs/config"
-    "src/libs/container"
-    "src/libs/container_hash"
-    "src/libs/context"
-    "src/libs/conversion"
-    "src/libs/core"
-    "src/libs/coroutine2"
-    "src/libs/date_time"
-    "src/libs/detail"
-    "src/libs/dynamic_bitset"
-    "src/libs/endian"
-    "src/libs/exception"
-    "src/libs/filesystem"
-    "src/libs/foreach"
-    "src/libs/format"
-    "src/libs/function"
-    "src/libs/function_types"
-    "src/libs/fusion"
-    "src/libs/integer"
-    "src/libs/intrusive"
-    "src/libs/io"
-    "src/libs/iterator"
-    "src/libs/lexical_cast"
-    "src/libs/locale"
-    "src/libs/logic"
-    "src/libs/move"
-    "src/libs/mp11"
-    "src/libs/mpl"
-    "src/libs/multi_index"
-    "src/libs/numeric/conversion"
-    "src/libs/optional"
-    "src/libs/phoenix"
-    "src/libs/pool"
-    "src/libs/predef"
-    "src/libs/preprocessor"
-    "src/libs/property_tree"
-    "src/libs/proto"
-    "src/libs/random"
-    "src/libs/range"
-    "src/libs/ratio"
-    "src/libs/rational"
-    "src/libs/regex"
-    "src/libs/scope_exit"
-    "src/libs/serialization"
-    "src/libs/smart_ptr"
-    "src/libs/spirit"
-    "src/libs/static_assert"
-    "src/libs/system"
-    "src/libs/thread"
-    "src/libs/throw_exception"
-    "src/libs/tokenizer"
-    "src/libs/tti"
-    "src/libs/tuple"
-    "src/libs/type_index"
-    "src/libs/typeof"
-    "src/libs/type_traits"
-    "src/libs/unordered"
-    "src/libs/utility"
-    "src/libs/uuid"
-    "src/libs/variant"
-    "src/libs/winapi"
+# FreeBSD: use system boost from devel/boost-libs
+include("${CMAKE_CURRENT_LIST_DIR}/freebsd_system_libs.cmake")
+freebsd_use_system_lib(boost
+  LIBS
+    boost_filesystem
+    boost_thread
+    boost_locale
+    boost_atomic
+    boost_chrono
+    boost_container
+    boost_random
+    boost_context
+    boost_coroutine
+    boost_serialization
+    boost_date_time
+    boost_regex
+    boost_program_options
+    boost_iostreams
+  INCLUDES /usr/local/include
 )
