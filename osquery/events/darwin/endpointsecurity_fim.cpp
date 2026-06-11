@@ -14,6 +14,7 @@
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_event_categories.h>
 #include <osquery/events/darwin/es_utils.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
@@ -246,7 +247,7 @@ void EndpointSecurityFileEventPublisher::handleMessage(
     ec->global_seq_num = message->global_seq_num;
   }
 
-  getProcessProperties(message->process, ec);
+  getBaseProcessProperties(message->process, ec);
 
   switch (message->event_type) {
   case ES_EVENT_TYPE_NOTIFY_CREATE: {
