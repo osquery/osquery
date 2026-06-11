@@ -309,7 +309,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic ccache
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
@@ -392,16 +392,17 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore the cache (ccache)
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
         key: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
         restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+          ccache_${{ matrix.os }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
@@ -419,6 +420,10 @@ jobs:
       run: |
         git submodule sync --recursive
 
+    - name: Configure ccache
+      run: |
+        echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
@@ -434,6 +439,12 @@ jobs:
           -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
+    - name: Zero ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: |
+        ccache --zero-stats
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
@@ -442,6 +453,12 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Print ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: |
+        ccache -s
 
     - name: Disk space information
       shell: bash
@@ -573,6 +590,13 @@ jobs:
         name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
+    - name: Save the cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
@@ -645,16 +669,17 @@ jobs:
         echo "Cores: $(sysctl -n hw.logicalcpu)"
         vm_stat
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore the cache (ccache)
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
         key: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+          ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
         restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+          ccache_${{ matrix.os }}
 
     - name: Update the cache (git submodules)
       uses: actions/cache@v4
@@ -750,6 +775,10 @@ jobs:
           echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
+    - name: Configure ccache
+      run: |
+        echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+
     - name: Configure the project
       shell: bash
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -771,6 +800,12 @@ jobs:
           -DCMAKE_OSX_SYSROOT=${cmake_osx_sysroot} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
+    - name: Zero ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: |
+        ccache --zero-stats
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
@@ -779,6 +814,12 @@ jobs:
 
       run: |
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Print ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: |
+        ccache -s
 
     - name: Disk space information
       shell: bash
@@ -826,6 +867,13 @@ jobs:
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
+
+    - name: Save the cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -1200,16 +1248,16 @@ jobs:
 
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
-    - name: Update the cache (sccache)
-      uses: actions/cache@v4
+    - name: Restore the cache (sccache)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
 
         key: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
         restore-keys: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
+          sccache_${{ matrix.os }}_${{ matrix.bitness }}
 
     - name: Build the project
       shell: cmd
@@ -1223,10 +1271,20 @@ jobs:
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
+        sccache.exe --zero-stats
+
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+        sccache.exe --show-stats
         sccache.exe --stop-server
+
+    - name: Save the cache (sccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
     - name: Disk space information
       id: disk_space_info_post_build
