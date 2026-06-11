@@ -56,6 +56,14 @@ using unique_certcontext =
 using unique_hcryptmsg =
     CustomUniquePtr<HCRYPTMSG, decltype(&CryptMsgClose), CryptMsgClose>;
 
+void OpusInfoDeleter(PSPC_SP_OPUS_INFO p) {
+  LocalFree(p);
+}
+
+using unique_opus_info = CustomUniquePtr<PSPC_SP_OPUS_INFO,
+                                         decltype(&OpusInfoDeleter),
+                                         OpusInfoDeleter>;
+
 struct SignatureInformation final {
   enum class Result { Valid, Trusted, Invalid, Missing, Distrusted, Untrusted };
 
@@ -269,32 +277,19 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
     return Status(1, "The publisher information could not be found");
   }
 
-  DWORD publisher_info_size;
-  if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-                         SPC_SP_OPUS_INFO_OBJID,
-                         publisher_info_ptr->rgValue[0].pbData,
-                         publisher_info_ptr->rgValue[0].cbData,
-                         0,
-                         nullptr,
-                         &publisher_info_size)) {
-    return Status(1, "Failed to access the publisher information");
-  }
-
-  std::vector<std::uint8_t> publisher_info_blob_buffer(
-      static_cast<std::size_t>(publisher_info_size));
-
-  PSPC_SP_OPUS_INFO publisher_info_blob_ptr =
-      reinterpret_cast<PSPC_SP_OPUS_INFO>(publisher_info_blob_buffer.data());
-
-  if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-                         SPC_SP_OPUS_INFO_OBJID,
-                         publisher_info_ptr->rgValue[0].pbData,
-                         publisher_info_ptr->rgValue[0].cbData,
-                         0,
-                         publisher_info_ptr,
-                         &publisher_info_size)) {
+  PSPC_SP_OPUS_INFO publisher_info_blob_ptr = nullptr;
+  DWORD publisher_info_size = 0;
+  if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                           SPC_SP_OPUS_INFO_OBJID,
+                           publisher_info_ptr->rgValue[0].pbData,
+                           publisher_info_ptr->rgValue[0].cbData,
+                           CRYPT_DECODE_ALLOC_FLAG,
+                           nullptr,
+                           &publisher_info_blob_ptr,
+                           &publisher_info_size)) {
     return Status(1, "Failed to decode the publisher information");
   }
+  unique_opus_info::type publisher_info_blob_owner(publisher_info_blob_ptr);
 
   if (publisher_info_blob_ptr->pwszProgramName != nullptr) {
     signature_info.original_program_name =
