@@ -332,9 +332,10 @@ Status getProcessCommandLineLegacy(HANDLE proc,
   SIZE_T bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   // upp.CommandLine.Length is sourced from the target process's PEB and a
-  // local attacker can set it to up to 65535 bytes; clamp to the buffer
-  // size minus space for null terminator to prevent a heap OOB read via
-  // wstringToString.
+  // local attacker can set it to up to 65535 bytes; clamp to the destination
+  // buffer size (minus space for a null terminator) to prevent a heap buffer
+  // overflow in ReadProcessMemory and to keep wstringToString from scanning
+  // past the end of the buffer.
   SIZE_T command_line_bytes = clampPebReadLength(
       upp.CommandLine.Length, (command_line.size() - 1) * sizeof(wchar_t));
   if (!ReadProcessMemory(proc,
@@ -397,8 +398,9 @@ Status getProcessCurrentDirectory(HANDLE proc,
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
   // upp.CurrentDirectoryPath.Length is sourced from the target process's PEB
   // and a local attacker can set it to up to 65535 bytes; clamp to the
-  // buffer size minus space for null terminator to prevent a heap OOB read
-  // via wstringToString.
+  // destination buffer size (minus space for a null terminator) to prevent a
+  // heap buffer overflow in ReadProcessMemory and to keep wstringToString from
+  // scanning past the end of the buffer.
   SIZE_T current_directory_bytes =
       clampPebReadLength(upp.CurrentDirectoryPath.Length,
                          (current_directory.size() - 1) * sizeof(wchar_t));
