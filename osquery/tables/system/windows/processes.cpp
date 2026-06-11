@@ -333,9 +333,10 @@ Status getProcessCommandLineLegacy(HANDLE proc,
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
   // upp.CommandLine.Length is sourced from the target process's PEB and a
   // local attacker can set it to up to 65535 bytes; clamp to the buffer
-  // size to prevent a heap OOB write via ReadProcessMemory.
+  // size minus space for null terminator to prevent a heap OOB read via
+  // wstringToString.
   SIZE_T command_line_bytes = clampPebReadLength(
-      upp.CommandLine.Length, command_line.size() * sizeof(wchar_t));
+      upp.CommandLine.Length, (command_line.size() - 1) * sizeof(wchar_t));
   if (!ReadProcessMemory(proc,
                          upp.CommandLine.Buffer,
                          command_line.data(),
@@ -344,6 +345,8 @@ Status getProcessCommandLineLegacy(HANDLE proc,
     return Status::failure("Failed to read command line for " +
                            std::to_string(pid));
   }
+  // Explicitly null-terminate based on bytes actually read
+  command_line[bytes_read / sizeof(wchar_t)] = L'\0';
   out = wstringToString(command_line.data());
   return Status::success();
 }
@@ -394,10 +397,11 @@ Status getProcessCurrentDirectory(HANDLE proc,
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
   // upp.CurrentDirectoryPath.Length is sourced from the target process's PEB
   // and a local attacker can set it to up to 65535 bytes; clamp to the
-  // buffer size to prevent a heap OOB write via ReadProcessMemory.
+  // buffer size minus space for null terminator to prevent a heap OOB read
+  // via wstringToString.
   SIZE_T current_directory_bytes =
       clampPebReadLength(upp.CurrentDirectoryPath.Length,
-                         current_directory.size() * sizeof(wchar_t));
+                         (current_directory.size() - 1) * sizeof(wchar_t));
   if (!ReadProcessMemory(proc,
                          upp.CurrentDirectoryPath.Buffer,
                          current_directory.data(),
@@ -406,6 +410,8 @@ Status getProcessCurrentDirectory(HANDLE proc,
     return Status::failure("Failed to read current working directory for " +
                            std::to_string(pid));
   }
+  // Explicitly null-terminate based on bytes actually read
+  current_directory[bytes_read / sizeof(wchar_t)] = L'\0';
   out = wstringToString(current_directory.data());
   return Status::success();
 }
