@@ -331,7 +331,6 @@ Status getProcessCommandLineLegacy(HANDLE proc,
 
   SIZE_T bytes_read = 0;
   std::vector<wchar_t> command_line(kMaxPathSize, 0x0);
-  SecureZeroMemory(command_line.data(), kMaxPathSize);
   // upp.CommandLine.Length is sourced from the target process's PEB and a
   // local attacker can set it to up to 65535 bytes; clamp to the buffer
   // size to prevent a heap OOB write via ReadProcessMemory.
@@ -393,7 +392,6 @@ Status getProcessCurrentDirectory(HANDLE proc,
 
   SIZE_T bytes_read = 0;
   std::vector<wchar_t> current_directory(kMaxPathSize, 0x0);
-  SecureZeroMemory(current_directory.data(), kMaxPathSize);
   // upp.CurrentDirectoryPath.Length is sourced from the target process's PEB
   // and a local attacker can set it to up to 65535 bytes; clamp to the
   // buffer size to prevent a heap OOB write via ReadProcessMemory.
@@ -417,7 +415,6 @@ void getProcessPathInfo(HANDLE& proc,
                         DynamicTableRowHolder& r) {
   auto out = kMaxPathSize;
   std::vector<WCHAR> path(kMaxPathSize, 0x0);
-  SecureZeroMemory(path.data(), kMaxPathSize);
   auto ret = QueryFullProcessImageNameW(proc, 0, path.data(), &out);
   if (ret != TRUE) {
     ret = QueryFullProcessImageNameW(
