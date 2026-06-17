@@ -801,10 +801,11 @@ TEST_F(FileOpsTests, test_create_private_dir) {
 #ifdef WIN32
   {
     // Retrieve the directory's DACL
+    auto wpath = dir_path.wstring();
     PACL dacl = nullptr;
     PSECURITY_DESCRIPTOR sd = nullptr;
     ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
-              ::GetNamedSecurityInfoW(dir_path.wstring().c_str(),
+              ::GetNamedSecurityInfoW(wpath.c_str(),
                                       SE_FILE_OBJECT,
                                       DACL_SECURITY_INFORMATION,
                                       nullptr,
