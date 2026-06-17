@@ -1475,8 +1475,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 Status platformCreatePrivateDir(const fs::path& path) {
   // Build a security descriptor that grants full access only to the creating
-  // user (Creator Owner). We create without the Protected flag initially to
-  // allow deletion, then immediately add the protected flag.
+  // user (Creator Owner).
   // "D:(A;OICI;FA;;;CO)" = allow file-all-access to Creator Owner,
   // with Object Inherit + Container Inherit so that files and subdirectories
   // created inside also receive owner-only permissions.
@@ -1498,11 +1497,24 @@ Status platformCreatePrivateDir(const fs::path& path) {
                            path.string());
   }
 
-  // Now add the protected flag to prevent inheritance from parent
+  // Retrieve the DACL we just created and mark it as protected
+  PACL dacl = nullptr;
+  PSECURITY_DESCRIPTOR current_sd = nullptr;
+  if (::GetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
+                               SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                               nullptr, nullptr, &dacl, nullptr,
+                               &current_sd) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to get directory DACL");
+  }
+  auto current_sd_guard = scope_guard::create([&current_sd] { ::LocalFree(current_sd); });
+
+  // Reapply the DACL with the protected flag
   if (::SetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
                                SE_FILE_OBJECT,
-                               PROTECTED_DACL_SECURITY_INFORMATION, nullptr,
-                               nullptr, nullptr, nullptr) != ERROR_SUCCESS) {
+                               DACL_SECURITY_INFORMATION |
+                                   PROTECTED_DACL_SECURITY_INFORMATION,
+                               nullptr, nullptr, dacl, nullptr) != ERROR_SUCCESS) {
     ::RemoveDirectoryW(wpath.c_str());
     return Status::failure("Failed to protect directory DACL");
   }
