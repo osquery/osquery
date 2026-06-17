@@ -1474,46 +1474,37 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 Status platformCreatePrivateDir(const fs::path& path) {
-  // Create the directory first without special permissions
-  auto wpath = stringToWstring(path.string());
-  if (!::CreateDirectoryW(wpath.c_str(), nullptr)) {
-    return Status::failure("Failed to create private directory: " +
-                           path.string());
-  }
-
-  // Now apply restrictive permissions: owner-only access
+  // Build a security descriptor that grants full access only to the creating
+  // user (Creator Owner). We create without the Protected flag initially to
+  // allow deletion, then immediately add the protected flag.
   // "D:(A;OICI;FA;;;CO)" = allow file-all-access to Creator Owner,
   // with Object Inherit + Container Inherit so that files and subdirectories
   // created inside also receive owner-only permissions.
   PSECURITY_DESCRIPTOR sd = nullptr;
   if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
           L"D:(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
-    // Clean up the created directory if we can't set permissions
-    ::RemoveDirectoryW(wpath.c_str());
     return Status::failure("Failed to create security descriptor");
   }
   auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
 
-  // Get the DACL from the security descriptor and apply it
-  PACL dacl = nullptr;
-  BOOL dacl_present = FALSE;
-  BOOL dacl_defaulted = FALSE;
-  if (!::GetSecurityDescriptorDacl(sd, &dacl_present, &dacl, &dacl_defaulted)) {
-    ::RemoveDirectoryW(wpath.c_str());
-    return Status::failure("Failed to get DACL from security descriptor");
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(sa);
+  sa.lpSecurityDescriptor = sd;
+  sa.bInheritHandle = FALSE;
+
+  auto wpath = stringToWstring(path.string());
+  if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
   }
 
-  if (!dacl_present || !dacl) {
+  // Now add the protected flag to prevent inheritance from parent
+  if (::SetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
+                               SE_FILE_OBJECT,
+                               PROTECTED_DACL_SECURITY_INFORMATION, nullptr,
+                               nullptr, nullptr, nullptr) != ERROR_SUCCESS) {
     ::RemoveDirectoryW(wpath.c_str());
-    return Status::failure("Security descriptor missing DACL");
-  }
-
-  // Apply the DACL to the directory
-  if (::SetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()), SE_FILE_OBJECT,
-                               DACL_SECURITY_INFORMATION, nullptr, nullptr,
-                               dacl, nullptr) != ERROR_SUCCESS) {
-    ::RemoveDirectoryW(wpath.c_str());
-    return Status::failure("Failed to set directory permissions");
+    return Status::failure("Failed to protect directory DACL");
   }
 
   return Status::success();
