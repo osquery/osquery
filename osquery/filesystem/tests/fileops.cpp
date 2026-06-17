@@ -815,6 +815,10 @@ TEST_F(FileOpsTests, test_create_private_dir) {
                                       &sd));
     auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
 
+    // Verify we got valid security descriptor and DACL
+    ASSERT_TRUE(sd != nullptr);
+    ASSERT_TRUE(dacl != nullptr);
+
     // The DACL must be protected so no ACEs are inherited from the parent
     // temp directory and accidentally widen access.
     SECURITY_DESCRIPTOR_CONTROL ctrl{};
