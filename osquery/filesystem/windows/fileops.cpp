@@ -1474,31 +1474,48 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 Status platformCreatePrivateDir(const fs::path& path) {
-  // Build a security descriptor that grants full access only to the creating
-  // user (Creator Owner). Notably, we do NOT use the Protected flag (P) because
-  // it can prevent the owner from deleting the directory in some edge cases.
-  // The lack of inheritance is implicitly protected by starting with a new
-  // descriptor that only contains our explicit ACE.
+  // Create the directory first without special permissions
+  auto wpath = stringToWstring(path.string());
+  if (!::CreateDirectoryW(wpath.c_str(), nullptr)) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+
+  // Now apply restrictive permissions: owner-only access
   // "D:(A;OICI;FA;;;CO)" = allow file-all-access to Creator Owner,
   // with Object Inherit + Container Inherit so that files and subdirectories
   // created inside also receive owner-only permissions.
   PSECURITY_DESCRIPTOR sd = nullptr;
   if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
           L"D:(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+    // Clean up the created directory if we can't set permissions
+    ::RemoveDirectoryW(wpath.c_str());
     return Status::failure("Failed to create security descriptor");
   }
   auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
 
-  SECURITY_ATTRIBUTES sa;
-  sa.nLength = sizeof(sa);
-  sa.lpSecurityDescriptor = sd;
-  sa.bInheritHandle = FALSE;
-
-  auto wpath = stringToWstring(path.string());
-  if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
-    return Status::failure("Failed to create private directory: " +
-                           path.string());
+  // Get the DACL from the security descriptor and apply it
+  PACL dacl = nullptr;
+  BOOL dacl_present = FALSE;
+  BOOL dacl_defaulted = FALSE;
+  if (!::GetSecurityDescriptorDacl(sd, &dacl_present, &dacl, &dacl_defaulted)) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to get DACL from security descriptor");
   }
+
+  if (!dacl_present || !dacl) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Security descriptor missing DACL");
+  }
+
+  // Apply the DACL to the directory
+  if (::SetNamedSecurityInfoW(wpath.c_str(), SE_FILE_OBJECT,
+                               DACL_SECURITY_INFORMATION, nullptr, nullptr,
+                               dacl, nullptr) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to set directory permissions");
+  }
+
   return Status::success();
 }
 
