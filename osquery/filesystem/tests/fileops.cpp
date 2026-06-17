@@ -863,11 +863,18 @@ TEST_F(FileOpsTests, test_create_private_dir) {
     std::cerr << "GetEffectiveRightsFromAclW passed" << std::endl;
     EXPECT_EQ(0u, world_access);
     std::cerr << "Windows security checks completed" << std::endl;
+    std::cerr.flush();
   }
 #endif
 
   // Should fail when the directory already exists
+  std::cerr << "About to call platformCreatePrivateDir second time" << std::endl;
+  std::cerr.flush();
   s = platformCreatePrivateDir(dir_path);
+  std::cerr << "Second platformCreatePrivateDir call returned, status: " << s.ok() << std::endl;
+  std::cerr.flush();
   EXPECT_FALSE(s.ok());
+  std::cerr << "EXPECT_FALSE passed, test complete" << std::endl;
+  std::cerr.flush();
 }
 } // namespace osquery
