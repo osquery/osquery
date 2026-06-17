@@ -1475,13 +1475,15 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 Status platformCreatePrivateDir(const fs::path& path) {
   // Build a security descriptor that grants full access only to the creating
-  // user (Creator Owner) and is protected from inheriting parent permissions.
-  // "D:P(A;OICI;FA;;;CO)" = protected DACL, allow file-all-access to Creator
-  // Owner, with Object Inherit + Container Inherit so that files and
-  // subdirectories created inside also receive owner-only permissions.
+  // user (Creator Owner), with explicit DELETE permission to ensure the owner
+  // can delete the directory later.
+  // "D:(A;OICI;FA;;;CO)" = allow file-all-access to Creator Owner,
+  // with Object Inherit + Container Inherit so that files and subdirectories
+  // created inside also receive owner-only permissions.
+  // Note: We do not use the Protected flag (P) to allow deletion.
   PSECURITY_DESCRIPTOR sd = nullptr;
   if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
-          L"D:P(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+          L"D:(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
     return Status::failure("Failed to create security descriptor");
   }
   auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
@@ -1496,6 +1498,22 @@ Status platformCreatePrivateDir(const fs::path& path) {
     return Status::failure("Failed to create private directory: " +
                            path.string());
   }
+
+  // Explicitly apply the DACL without the protected flag to allow deletion
+  PSECURITY_DESCRIPTOR final_sd = nullptr;
+  if (::ConvertStringSecurityDescriptorToSecurityDescriptorW(
+          L"D:(A;OICI;FA;;;CO)", SDDL_REVISION_1, &final_sd, nullptr)) {
+    auto final_guard =
+        scope_guard::create([&final_sd] { ::LocalFree(final_sd); });
+    ::SetNamedSecurityInfoW(wpath.c_str(),
+                            SE_FILE_OBJECT,
+                            DACL_SECURITY_INFORMATION,
+                            nullptr,
+                            nullptr,
+                            nullptr,
+                            nullptr);
+  }
+
   return Status::success();
 }
 
@@ -2014,7 +2032,7 @@ Status platformLstat(const std::string& path, struct stat& d_stat) {
 }
 
 boost::optional<bool> platformIsFile(int fd) {
-  struct _stat64 d_stat {};
+  struct _stat64 d_stat{};
   if (::_fstat64(fd, &d_stat) < 0) {
     return boost::none;
   }
