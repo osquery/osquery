@@ -779,15 +779,28 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
 }
 
 TEST_F(FileOpsTests, test_create_private_dir) {
+  std::cerr << "test_create_private_dir starting" << std::endl;
+  std::cerr.flush();
   const auto dir_path = fs::temp_directory_path() /
                         fs::unique_path("osquery.private-dir-test.%%%%.%%%%");
+  std::cerr << "Temp dir path: " << dir_path.string() << std::endl;
+  std::cerr.flush();
   auto const cleanup =
       scope_guard::create([&dir_path]() { fs::remove_all(dir_path); });
 
   // Should create successfully and produce a real directory
+  std::cerr << "About to call platformCreatePrivateDir" << std::endl;
+  std::cerr.flush();
   auto s = platformCreatePrivateDir(dir_path);
+  std::cerr << "Created dir, status: " << s.ok()
+            << ", message: " << s.getMessage() << std::endl;
+  std::cerr.flush();
   ASSERT_TRUE(s.ok()) << s.getMessage();
+  std::cerr << "ASSERT_TRUE(s.ok()) passed" << std::endl;
+  std::cerr.flush();
   EXPECT_TRUE(fs::is_directory(dir_path));
+  std::cerr << "Dir exists check passed" << std::endl;
+  std::cerr.flush();
 
   // On POSIX, verify the mode is exactly 0700 (owner rwx, no group/other bits)
 #ifdef OSQUERY_POSIX
@@ -800,22 +813,27 @@ TEST_F(FileOpsTests, test_create_private_dir) {
 
 #ifdef WIN32
   {
+    std::cerr << "Starting Windows security checks" << std::endl;
     // Retrieve the directory's DACL
     auto wpath = dir_path.wstring();
+    std::cerr << "Got wpath" << std::endl;
     PACL dacl = nullptr;
     PSECURITY_DESCRIPTOR sd = nullptr;
-    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
-              ::GetNamedSecurityInfoW(wpath.c_str(),
-                                      SE_FILE_OBJECT,
-                                      DACL_SECURITY_INFORMATION,
-                                      nullptr,
-                                      nullptr,
-                                      &dacl,
-                                      nullptr,
-                                      &sd));
+    DWORD result = ::GetNamedSecurityInfoW(wpath.c_str(),
+                                           SE_FILE_OBJECT,
+                                           DACL_SECURITY_INFORMATION,
+                                           nullptr,
+                                           nullptr,
+                                           &dacl,
+                                           nullptr,
+                                           &sd);
+    std::cerr << "GetNamedSecurityInfoW returned: " << result << std::endl;
+    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS), result);
     auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
 
     // Verify we got valid security descriptor and DACL
+    std::cerr << "Checking sd != null: " << (sd != nullptr) << std::endl;
+    std::cerr << "Checking dacl != null: " << (dacl != nullptr) << std::endl;
     ASSERT_TRUE(sd != nullptr);
     ASSERT_TRUE(dacl != nullptr);
 
@@ -823,21 +841,28 @@ TEST_F(FileOpsTests, test_create_private_dir) {
     // temp directory and accidentally widen access.
     SECURITY_DESCRIPTOR_CONTROL ctrl{};
     DWORD revision = 0;
+    std::cerr << "About to call GetSecurityDescriptorControl" << std::endl;
     ASSERT_TRUE(::GetSecurityDescriptorControl(sd, &ctrl, &revision));
+    std::cerr << "GetSecurityDescriptorControl passed" << std::endl;
     EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
 
     // The Everyone (World) SID must have zero effective rights.
     unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
     std::vector<char> world_buf(world_sid_size);
     PSID world_sid = reinterpret_cast<PSID>(world_buf.data());
+    std::cerr << "About to call CreateWellKnownSid" << std::endl;
     ASSERT_TRUE(
         ::CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &world_sid_size));
+    std::cerr << "CreateWellKnownSid passed" << std::endl;
     TRUSTEE_W trustee{};
     ::BuildTrusteeWithSidW(&trustee, world_sid);
     ACCESS_MASK world_access = 0;
+    std::cerr << "About to call GetEffectiveRightsFromAclW" << std::endl;
     ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
               ::GetEffectiveRightsFromAclW(dacl, &trustee, &world_access));
+    std::cerr << "GetEffectiveRightsFromAclW passed" << std::endl;
     EXPECT_EQ(0u, world_access);
+    std::cerr << "Windows security checks completed" << std::endl;
   }
 #endif
 
