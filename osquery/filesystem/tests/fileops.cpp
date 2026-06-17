@@ -727,7 +727,8 @@ TEST_F(FileOpsTests, test_glob) {
   {
     std::vector<fs::path> expected{fake_directory_ / "deep1/",
                                    fake_directory_ / "root.txt"};
-    auto result = platformGlob((fake_directory_ / "{deep,root}{1,.txt}").string());
+    auto result =
+        platformGlob((fake_directory_ / "{deep,root}{1,.txt}").string());
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
@@ -745,8 +746,8 @@ TEST_F(FileOpsTests, test_glob) {
                                    fake_directory_ / "deep11/deep2/",
                                    fake_directory_ / "deep11/level1.txt",
                                    fake_directory_ / "deep11/not_bash"};
-    auto result =
-        platformGlob((fake_directory_ / "*/{deep2,level1,not_bash}{,.txt}").string());
+    auto result = platformGlob(
+        (fake_directory_ / "*/{deep2,level1,not_bash}{,.txt}").string());
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 }
@@ -789,52 +790,53 @@ TEST_F(FileOpsTests, test_create_private_dir) {
   EXPECT_TRUE(fs::is_directory(dir_path));
 
   // On POSIX, verify the mode is exactly 0700 (owner rwx, no group/other bits)
-  if (isPlatform(PlatformType::TYPE_POSIX)) {
-    struct stat sb;
-    ASSERT_EQ(0, ::stat(dir_path.c_str(), &sb));
-    EXPECT_EQ(static_cast<mode_t>(S_IRWXU), sb.st_mode & 0777);
-  }
-
-#ifdef WIN32
-  {
-    // Retrieve the directory's DACL
-    PACL dacl = nullptr;
-    PSECURITY_DESCRIPTOR sd = nullptr;
-    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
-              ::GetNamedSecurityInfoW(dir_path.wstring().c_str(),
-                                      SE_FILE_OBJECT,
-                                      DACL_SECURITY_INFORMATION,
-                                      nullptr,
-                                      nullptr,
-                                      &dacl,
-                                      nullptr,
-                                      &sd));
-    auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
-
-    // The DACL must be protected so no ACEs are inherited from the parent
-    // temp directory and accidentally widen access.
-    SECURITY_DESCRIPTOR_CONTROL ctrl{};
-    DWORD revision = 0;
-    ASSERT_TRUE(::GetSecurityDescriptorControl(sd, &ctrl, &revision));
-    EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
-
-    // The Everyone (World) SID must have zero effective rights.
-    unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
-    std::vector<char> world_buf(world_sid_size);
-    PSID world_sid = reinterpret_cast<PSID>(world_buf.data());
-    ASSERT_TRUE(
-        ::CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &world_sid_size));
-    TRUSTEE_W trustee{};
-    ::BuildTrusteeWithSidW(&trustee, world_sid);
-    ACCESS_MASK world_access = 0;
-    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
-              ::GetEffectiveRightsFromAclW(dacl, &trustee, &world_access));
-    EXPECT_EQ(0u, world_access);
-  }
+#ifdef OSQUERY_POSIX
+  struct stat sb;
+  ASSERT_EQ(0, ::stat(dir_path.c_str(), &sb));
+  EXPECT_EQ(static_cast<mode_t>(S_IRWXU), sb.st_mode & 0777);
+}
 #endif
 
-  // Should fail when the directory already exists
-  s = platformCreatePrivateDir(dir_path);
-  EXPECT_FALSE(s.ok());
+#ifdef WIN32
+{
+  // Retrieve the directory's DACL
+  PACL dacl = nullptr;
+  PSECURITY_DESCRIPTOR sd = nullptr;
+  ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+            ::GetNamedSecurityInfoW(dir_path.wstring().c_str(),
+                                    SE_FILE_OBJECT,
+                                    DACL_SECURITY_INFORMATION,
+                                    nullptr,
+                                    nullptr,
+                                    &dacl,
+                                    nullptr,
+                                    &sd));
+  auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
+
+  // The DACL must be protected so no ACEs are inherited from the parent
+  // temp directory and accidentally widen access.
+  SECURITY_DESCRIPTOR_CONTROL ctrl{};
+  DWORD revision = 0;
+  ASSERT_TRUE(::GetSecurityDescriptorControl(sd, &ctrl, &revision));
+  EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
+
+  // The Everyone (World) SID must have zero effective rights.
+  unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
+  std::vector<char> world_buf(world_sid_size);
+  PSID world_sid = reinterpret_cast<PSID>(world_buf.data());
+  ASSERT_TRUE(
+      ::CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &world_sid_size));
+  TRUSTEE_W trustee{};
+  ::BuildTrusteeWithSidW(&trustee, world_sid);
+  ACCESS_MASK world_access = 0;
+  ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+            ::GetEffectiveRightsFromAclW(dacl, &trustee, &world_access));
+  EXPECT_EQ(0u, world_access);
+}
+#endif
+
+// Should fail when the directory already exists
+s = platformCreatePrivateDir(dir_path);
+EXPECT_FALSE(s.ok());
 }
 } // namespace osquery
