@@ -353,6 +353,19 @@ bool platformChmod(const std::string& path, mode_t perms);
 bool platformSetSafeDbPerms(const std::string& path);
 
 /**
+ * @brief Creates a directory with only owner-accessible permissions.
+ *
+ * Unlike creating a directory and then restricting it with platformChmod,
+ * this function sets owner-only permissions (equivalent to mode 0700 on
+ * POSIX) atomically at directory creation time, eliminating the race window
+ * where the directory is briefly world-readable or world-writable.
+ *
+ * @param path The path of the directory to create.
+ * @return Status indicating success or failure.
+ */
+Status platformCreatePrivateDir(const boost::filesystem::path& path);
+
+/**
  * @brief Multi-platform implementation of glob.
  * @note glob support is not 100% congruent with Linux glob. There are slight
  *       differences in how GLOB_TILDE and GLOB_BRACE are implemented.

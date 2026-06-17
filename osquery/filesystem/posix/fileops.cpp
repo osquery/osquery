@@ -280,6 +280,17 @@ bool platformChmod(const std::string& path, mode_t perms) {
   return (::chmod(path.c_str(), perms) == 0);
 }
 
+Status platformCreatePrivateDir(const fs::path& path) {
+  // Use mkdir directly with S_IRWXU (0700) so the directory is created with
+  // owner-only permissions in a single atomic syscall, avoiding the race
+  // window that exists when creating a directory and then chmod-ing it.
+  if (::mkdir(path.c_str(), S_IRWXU) != 0) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+  return Status::success();
+}
+
 std::vector<std::string> platformGlob(const std::string& find_path) {
   std::vector<std::string> results;
 

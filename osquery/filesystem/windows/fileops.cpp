@@ -12,6 +12,7 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 #include <AclAPI.h>
@@ -1470,6 +1471,32 @@ bool platformChmod(const std::string& path, mode_t perms) {
     return false;
   }
   return true;
+}
+
+Status platformCreatePrivateDir(const fs::path& path) {
+  // Build a security descriptor that grants full access only to the creating
+  // user (Creator Owner) and is protected from inheriting parent permissions.
+  // "D:P(A;OICI;FA;;;CO)" = protected DACL, allow file-all-access to Creator
+  // Owner, with Object Inherit + Container Inherit so that files and
+  // subdirectories created inside also receive owner-only permissions.
+  PSECURITY_DESCRIPTOR sd = nullptr;
+  if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
+          L"D:P(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+    return Status::failure("Failed to create security descriptor");
+  }
+  auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
+
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(sa);
+  sa.lpSecurityDescriptor = sd;
+  sa.bInheritHandle = FALSE;
+
+  auto wpath = stringToWstring(path.string());
+  if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+  return Status::success();
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {

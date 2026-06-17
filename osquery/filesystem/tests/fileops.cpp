@@ -14,6 +14,10 @@
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/scope_guard.h>
 
+#ifdef WIN32
+#include <AclAPI.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -771,5 +775,66 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
     EXPECT_EQ(-1, platformAccess(path, mode));
   }
   EXPECT_EQ(boost::none, platformFopen(path, "r"));
+}
+
+TEST_F(FileOpsTests, test_create_private_dir) {
+  const auto dir_path = fs::temp_directory_path() /
+                        fs::unique_path("osquery.private-dir-test.%%%%.%%%%");
+  auto const cleanup =
+      scope_guard::create([&dir_path]() { fs::remove_all(dir_path); });
+
+  // Should create successfully and produce a real directory
+  auto s = platformCreatePrivateDir(dir_path);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+  EXPECT_TRUE(fs::is_directory(dir_path));
+
+  // On POSIX, verify the mode is exactly 0700 (owner rwx, no group/other bits)
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    struct stat sb;
+    ASSERT_EQ(0, ::stat(dir_path.c_str(), &sb));
+    EXPECT_EQ(static_cast<mode_t>(S_IRWXU), sb.st_mode & 0777);
+  }
+
+#ifdef WIN32
+  {
+    // Retrieve the directory's DACL
+    PACL dacl = nullptr;
+    PSECURITY_DESCRIPTOR sd = nullptr;
+    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+              ::GetNamedSecurityInfoW(dir_path.wstring().c_str(),
+                                      SE_FILE_OBJECT,
+                                      DACL_SECURITY_INFORMATION,
+                                      nullptr,
+                                      nullptr,
+                                      &dacl,
+                                      nullptr,
+                                      &sd));
+    auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
+
+    // The DACL must be protected so no ACEs are inherited from the parent
+    // temp directory and accidentally widen access.
+    SECURITY_DESCRIPTOR_CONTROL ctrl{};
+    DWORD revision = 0;
+    ASSERT_TRUE(::GetSecurityDescriptorControl(sd, &ctrl, &revision));
+    EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
+
+    // The Everyone (World) SID must have zero effective rights.
+    unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
+    std::vector<char> world_buf(world_sid_size);
+    PSID world_sid = reinterpret_cast<PSID>(world_buf.data());
+    ASSERT_TRUE(
+        ::CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &world_sid_size));
+    TRUSTEE_W trustee{};
+    ::BuildTrusteeWithSidW(&trustee, world_sid);
+    ACCESS_MASK world_access = 0;
+    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+              ::GetEffectiveRightsFromAclW(dacl, &trustee, &world_access));
+    EXPECT_EQ(0u, world_access);
+  }
+#endif
+
+  // Should fail when the directory already exists
+  s = platformCreatePrivateDir(dir_path);
+  EXPECT_FALSE(s.ok());
 }
 } // namespace osquery
