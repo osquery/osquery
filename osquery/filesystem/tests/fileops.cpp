@@ -819,6 +819,13 @@ TEST_F(FileOpsTests, test_create_private_dir) {
     ASSERT_TRUE(sd != nullptr);
     ASSERT_TRUE(dacl != nullptr);
 
+    // The DACL must be protected so no ACEs are inherited from the parent
+    // temp directory and accidentally widen access.
+    SECURITY_DESCRIPTOR_CONTROL ctrl{};
+    DWORD revision = 0;
+    ASSERT_TRUE(::GetSecurityDescriptorControl(sd, &ctrl, &revision));
+    EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
+
     // The Everyone (World) SID must have zero effective rights.
     unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
     std::vector<char> world_buf(world_sid_size);
