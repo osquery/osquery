@@ -1497,24 +1497,33 @@ Status platformCreatePrivateDir(const fs::path& path) {
                            path.string());
   }
 
-  // Retrieve the DACL we just created and mark it as protected
+  // Retrieve the DACL we just created and mark it as protected (this seems to
+  // be necessary to allow deleting the directory when we are finished)
   PACL dacl = nullptr;
   PSECURITY_DESCRIPTOR current_sd = nullptr;
   if (::GetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
-                               SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
-                               nullptr, nullptr, &dacl, nullptr,
-                               &current_sd) != ERROR_SUCCESS) {
+                              SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION,
+                              nullptr,
+                              nullptr,
+                              &dacl,
+                              nullptr,
+                              &current_sd) != ERROR_SUCCESS) {
     ::RemoveDirectoryW(wpath.c_str());
     return Status::failure("Failed to get directory DACL");
   }
-  auto current_sd_guard = scope_guard::create([&current_sd] { ::LocalFree(current_sd); });
+  auto current_sd_guard =
+      scope_guard::create([&current_sd] { ::LocalFree(current_sd); });
 
   // Reapply the DACL with the protected flag
-  if (::SetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
-                               SE_FILE_OBJECT,
-                               DACL_SECURITY_INFORMATION |
-                                   PROTECTED_DACL_SECURITY_INFORMATION,
-                               nullptr, nullptr, dacl, nullptr) != ERROR_SUCCESS) {
+  if (::SetNamedSecurityInfoW(
+          const_cast<LPWSTR>(wpath.c_str()),
+          SE_FILE_OBJECT,
+          DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+          nullptr,
+          nullptr,
+          dacl,
+          nullptr) != ERROR_SUCCESS) {
     ::RemoveDirectoryW(wpath.c_str());
     return Status::failure("Failed to protect directory DACL");
   }
