@@ -786,7 +786,13 @@ TEST_F(FileOpsTests, test_create_private_dir) {
   std::cerr << "Temp dir path: " << dir_path.string() << std::endl;
   std::cerr.flush();
   auto const cleanup =
-      scope_guard::create([&dir_path]() { fs::remove_all(dir_path); });
+      scope_guard::create([&dir_path]() { 
+        std::cerr << "Cleanup guard running, about to remove_all" << std::endl;
+        std::cerr.flush();
+        fs::remove_all(dir_path);
+        std::cerr << "Cleanup guard completed" << std::endl;
+        std::cerr.flush();
+      });
 
   // Should create successfully and produce a real directory
   std::cerr << "About to call platformCreatePrivateDir" << std::endl;
