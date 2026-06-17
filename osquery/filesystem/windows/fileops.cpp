@@ -1509,7 +1509,7 @@ Status platformCreatePrivateDir(const fs::path& path) {
   }
 
   // Apply the DACL to the directory
-  if (::SetNamedSecurityInfoW(wpath.c_str(), SE_FILE_OBJECT,
+  if (::SetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()), SE_FILE_OBJECT,
                                DACL_SECURITY_INFORMATION, nullptr, nullptr,
                                dacl, nullptr) != ERROR_SUCCESS) {
     ::RemoveDirectoryW(wpath.c_str());
