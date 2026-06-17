@@ -11,6 +11,7 @@
 // Spec file: specs/windows/authenticode.table
 
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
