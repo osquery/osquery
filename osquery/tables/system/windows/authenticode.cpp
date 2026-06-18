@@ -22,10 +22,10 @@
 #include <iomanip>
 // clang-format on
 
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-#include <osquery/core/tables.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -275,6 +275,11 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
 
   if (publisher_info_ptr == nullptr) {
     return Status(1, "The publisher information could not be found");
+  }
+
+  if (publisher_info_ptr->cValue == 0 ||
+      publisher_info_ptr->rgValue == nullptr) {
+    return Status(1, "The publisher information is empty");
   }
 
   PSPC_SP_OPUS_INFO publisher_info_blob_ptr = nullptr;
@@ -531,5 +536,5 @@ QueryData genAuthenticode(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

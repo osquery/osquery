@@ -10,6 +10,8 @@
 // Sanity check integration test for authenticode
 // Spec file: specs/windows/authenticode.table
 
+#include <sstream>
+
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/system/env.h>
 
@@ -31,11 +33,11 @@ TEST_F(authenticode, test_sanity) {
   // output buffer was passed to CryptDecodeObject and the program name was
   // silently always empty.
   auto windir = getEnvVar("WINDIR");
-  EXPECT_TRUE(windir);
+  ASSERT_TRUE(windir);
   std::stringstream ss;
   ss << "select * from authenticode "
         "where path = '"
-     << windir << "\\System32\\notepad.exe'";
+     << *windir << "\\System32\\notepad.exe'";
 
   auto const data = execute_query(ss.str());
 
