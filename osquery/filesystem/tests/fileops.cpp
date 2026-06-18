@@ -827,17 +827,33 @@ TEST_F(FileOpsTests, test_create_private_dir) {
     EXPECT_TRUE(ctrl & SE_DACL_PROTECTED);
 
     // The Everyone (World) SID must have zero effective rights.
-    unsigned long world_sid_size = SECURITY_MAX_SID_SIZE;
-    std::vector<char> world_buf(world_sid_size);
-    PSID world_sid = reinterpret_cast<PSID>(world_buf.data());
-    ASSERT_TRUE(
-        ::CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &world_sid_size));
-    TRUSTEE_W trustee{};
-    ::BuildTrusteeWithSidW(&trustee, world_sid);
-    ACCESS_MASK world_access = 0;
-    ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
-              ::GetEffectiveRightsFromAclW(dacl, &trustee, &world_access));
-    EXPECT_EQ(0u, world_access);
+    {
+      unsigned long sid_size = SECURITY_MAX_SID_SIZE;
+      std::vector<char> sid_buf(sid_size);
+      PSID sid = reinterpret_cast<PSID>(sid_buf.data());
+      ASSERT_TRUE(::CreateWellKnownSid(WinWorldSid, nullptr, sid, &sid_size));
+      TRUSTEE_W trustee{};
+      ::BuildTrusteeWithSidW(&trustee, sid);
+      ACCESS_MASK access = 0;
+      ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+                ::GetEffectiveRightsFromAclW(dacl, &trustee, &access));
+      EXPECT_EQ(0u, access);
+    }
+
+    // The Authenticated Users group must also have zero effective rights.
+    {
+      unsigned long sid_size = SECURITY_MAX_SID_SIZE;
+      std::vector<char> sid_buf(sid_size);
+      PSID sid = reinterpret_cast<PSID>(sid_buf.data());
+      ASSERT_TRUE(::CreateWellKnownSid(
+          WinAuthenticatedUserSid, nullptr, sid, &sid_size));
+      TRUSTEE_W trustee{};
+      ::BuildTrusteeWithSidW(&trustee, sid);
+      ACCESS_MASK access = 0;
+      ASSERT_EQ(static_cast<DWORD>(ERROR_SUCCESS),
+                ::GetEffectiveRightsFromAclW(dacl, &trustee, &access));
+      EXPECT_EQ(0u, access);
+    }
   }
 #endif
 

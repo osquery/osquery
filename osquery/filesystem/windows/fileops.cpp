@@ -1491,7 +1491,7 @@ Status platformCreatePrivateDir(const fs::path& path) {
   sa.lpSecurityDescriptor = sd;
   sa.bInheritHandle = FALSE;
 
-  auto wpath = stringToWstring(path.string());
+  auto wpath = path.wstring();
   if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
     return Status::failure("Failed to create private directory: " +
                            path.string());
