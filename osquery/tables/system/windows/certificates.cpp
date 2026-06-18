@@ -439,6 +439,23 @@ void addCertRow(PCCERT_CONTEXT certContext,
                            subjSize);
   r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
 
+  // CERT_X500_NAME_STR preserves the attribute keys (OIDs) in the distinguished
+  // name, e.g. "CN=Example, O=Example Inc, C=US", to align the subject2 column
+  // with the key/value formatting used by the Darwin and Linux implementations.
+  auto subjectX500Size = CertNameToStr(certContext->dwCertEncodingType,
+                                       &(certContext->pCertInfo->Subject),
+                                       CERT_X500_NAME_STR,
+                                       nullptr,
+                                       0);
+  certBuff.resize(subjectX500Size, 0);
+  std::fill(certBuff.begin(), certBuff.end(), 0);
+  subjectX500Size = CertNameToStr(certContext->dwCertEncodingType,
+                                  &(certContext->pCertInfo->Subject),
+                                  CERT_X500_NAME_STR,
+                                  certBuff.data(),
+                                  subjectX500Size);
+  r["subject2"] = subjectX500Size == 0 ? "" : wstringToString(certBuff.data());
+
   auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
                                   &(certContext->pCertInfo->Issuer),
                                   CERT_SIMPLE_NAME_STR,
@@ -452,6 +469,21 @@ void addCertRow(PCCERT_CONTEXT certContext,
                              certBuff.data(),
                              issuerSize);
   r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
+
+  // See the subject2 comment above for why CERT_X500_NAME_STR is used here.
+  auto issuerX500Size = CertNameToStr(certContext->dwCertEncodingType,
+                                      &(certContext->pCertInfo->Issuer),
+                                      CERT_X500_NAME_STR,
+                                      nullptr,
+                                      0);
+  certBuff.resize(issuerX500Size, 0);
+  std::fill(certBuff.begin(), certBuff.end(), 0);
+  issuerX500Size = CertNameToStr(certContext->dwCertEncodingType,
+                                 &(certContext->pCertInfo->Issuer),
+                                 CERT_X500_NAME_STR,
+                                 certBuff.data(),
+                                 issuerX500Size);
+  r["issuer2"] = issuerX500Size == 0 ? "" : wstringToString(certBuff.data());
 
   // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
   r["ca"] = INTEGER(-1);
