@@ -210,6 +210,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/registry.cpp
       windows/scheduled_tasks.cpp
       windows/secureboot.cpp
+      windows/secureboot_certificates.cpp
       windows/security_profile_info_utils.cpp
       windows/security_profile_info.cpp
       windows/services.cpp
@@ -242,6 +243,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/prefetch.cpp
       windows/token_privileges.cpp
       windows/process_open_handles.cpp
+      windows/wincert_utils.cpp
     )
   endif()
 
@@ -370,6 +372,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_update_history.h
       windows/security_profile_info_utils.h
       windows/startup_items.h
+      windows/wincert_utils.h
     )
   endif()
 

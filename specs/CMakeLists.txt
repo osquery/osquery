@@ -257,6 +257,7 @@ function(generateNativeTables)
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
     "secureboot.table:linux,macos,windows"
+    "secureboot_certificates.table:linux,windows"
     "sleuthkit/device_file.table:linux,macos,windows"
     "sleuthkit/device_hash.table:linux,macos,windows"
     "sleuthkit/device_partitions.table:linux,macos,windows"

@@ -1,5 +1,6 @@
 table_name("secureboot_certificates")
 description("X.509 certificates from UEFI Secure Boot signature databases (db and dbx EFI variables). Useful for monitoring CA expiry and adoption of updated certificates (e.g. Microsoft UEFI CA 2023).")
+platforms(["linux", "windows"])
 schema([
     Column("common_name", TEXT, "Certificate CommonName"),
     Column("subject", TEXT, "Certificate subject distinguished name"),
@@ -9,7 +10,7 @@ schema([
     Column("sha1", TEXT, "SHA1 hash of the raw certificate contents", collate="nocase"),
     Column("serial", TEXT, "Certificate serial number", collate="nocase"),
     Column("revoked", INTEGER, "1 if the certificate is in the dbx revocation list, 0 if it is in the db allowlist"),
-    Column("path", TEXT, "Path to the EFI variable file"),
+    Column("path", TEXT, "Path to the EFI variable file or EFI variable name"),
     Column("is_ca", INTEGER, "1 if the certificate is a CA, 0 otherwise"),
     Column("self_signed", INTEGER, "1 if the certificate is self-signed, 0 otherwise"),
     Column("key_usage", TEXT, "Certificate key usage extension string"),

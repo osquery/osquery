@@ -194,6 +194,7 @@ function(generateOsqueryTablesSystemWindowsTests)
     windows/certificates_tests.cpp
     windows/programs_tests.cpp
     windows/registry_tests.cpp
+    windows/secureboot_certificates_tests.cpp
     windows/token_privileges_tests.cpp
     windows/windows_eventlog_tests.cpp
     windows/windows_optional_features_tests.cpp
