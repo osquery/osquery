@@ -1475,13 +1475,14 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 Status platformCreatePrivateDir(const fs::path& path) {
   // Build a security descriptor that grants full access only to the creating
-  // user (Creator Owner).
-  // "D:(A;OICI;FA;;;CO)" = allow file-all-access to Creator Owner,
-  // with Object Inherit + Container Inherit so that files and subdirectories
-  // created inside also receive owner-only permissions.
+  // user (Creator Owner) and protects the DACL from inheriting ACEs from the
+  // parent directory.
+  // "D:P(A;OICI;FA;;;CO)" = protected DACL; allow file-all-access to Creator
+  // Owner, with Object Inherit + Container Inherit so that files and
+  // subdirectories created inside also receive owner-only permissions.
   PSECURITY_DESCRIPTOR sd = nullptr;
   if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
-          L"D:(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+          L"D:P(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
     return Status::failure("Failed to create security descriptor");
   }
   auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
