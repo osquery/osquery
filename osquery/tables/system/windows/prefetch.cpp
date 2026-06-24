@@ -53,6 +53,7 @@ struct PrefetchFileInfo {
   LONGLONG last_run_time;
   std::string run_times;
   size_t run_count;
+  std::string executable_path;
 };
 
 struct PrefetchVolumeInfo {
@@ -109,6 +110,9 @@ typedef struct _PREFETCH_FILE_INFORMATION {
       FILETIME OtherRunTimes[7];
       DWORD Reserved2[2];
       DWORD RunCount;
+      DWORD Reserved3[2];
+      DWORD HashStringOffset;
+      DWORD HashStringSize;
     } v30v2, v31; // v31 does not seem to have substantial differences.
   } ext;
 } PREFETCH_FILE_INFORMATION, *PPREFETCH_FILE_INFORMATION;
@@ -132,6 +136,22 @@ typedef struct _DIRECTORY_STRING {
 #pragma pack(pop)
 
 } // namespace
+
+std::string parseExecutablePath(const std::vector<UCHAR>& data,
+                                DWORD hash_string_offset,
+                                DWORD hash_string_size) {
+  if (hash_string_offset == 0 ||
+      hash_string_offset + hash_string_size > data.size()) {
+    return {};
+  }
+  auto path_wstr = (PWCHAR)(&data[0] + hash_string_offset);
+  auto max_wchars = hash_string_size / sizeof(WCHAR);
+  auto path_len = wcsnlen_s(path_wstr, max_wchars);
+  if (path_len == 0 || path_len >= max_wchars) {
+    return {};
+  }
+  return wstringToString(path_wstr);
+}
 
 PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
@@ -167,7 +187,10 @@ PrefetchFileInfo parseFileInfo(
       }
     }
     result.run_times = osquery::join(run_times, ",");
-
+    result.executable_path =
+        parseExecutablePath(data,
+                            prefetch_file_info->ext.v30v2.HashStringOffset,
+                            prefetch_file_info->ext.v30v2.HashStringSize);
     break;
   case kPrefetchVersionWindows8:
     last_run_time = prefetch_file_info->ext.v26.LastRunTime;
@@ -323,6 +346,7 @@ void parsePrefetchData(RowYield& yield,
   auto r = make_table_row();
   r["path"] = file_path;
   r["filename"] = SQL_TEXT(header.filename);
+  r["executable_path"] = SQL_TEXT(file_info.executable_path);
   r["hash"] = header.prefetch_hash;
   r["size"] = INTEGER(header.file_size);
   r["accessed_files_count"] = INTEGER(file_info.files_count);

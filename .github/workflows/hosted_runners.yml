@@ -40,7 +40,7 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
+  PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
   SUBMODULE_CACHE_VERSION: 3
   OSQUERY_TOOLCHAIN_VERSION: 1.3.0
 
@@ -594,7 +594,10 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-14, macos-15]
+        os: [macos-26, macos-15]
+
+    env:
+      MACOS_DEPLOYMENT_TARGET: 10.15
 
     steps:
     - name: Select the build job count
@@ -805,7 +808,7 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release' && matrix.os == 'macos-14'
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
@@ -822,7 +825,7 @@ jobs:
   build_universal_macos_artifacts:
     needs: build_macos
 
-    runs-on: macos-14
+    runs-on: macos-26
 
     steps:
       - name: Clone the osquery repository
