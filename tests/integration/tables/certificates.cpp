@@ -46,7 +46,9 @@ TEST_F(certificates, test_sanity) {
   ValidationMap row_map = {
       {"common_name", NormalType},
       {"subject", NormalType},
+      {"subject2", NormalType},
       {"issuer", NormalType},
+      {"issuer2", NormalType},
       {"ca", IntType},
       {"self_signed", IntType},
       {"not_valid_before", NormalType},
