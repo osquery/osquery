@@ -281,13 +281,21 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 Status platformCreatePrivateDir(const fs::path& path) {
-  // Use mkdir directly with S_IRWXU (0700) so the directory is created with
-  // owner-only permissions in a single atomic syscall, avoiding the race
-  // window that exists when creating a directory and then chmod-ing it.
+  // Create the directory with no group/other permissions to avoid a window where
+  // it is accessible by other users.
   if (::mkdir(path.c_str(), S_IRWXU) != 0) {
     return Status::failure("Failed to create private directory: " +
                            path.string());
   }
+
+  // mkdir is affected by umask; ensure the owner retains full rwx. This does not
+  // widen access for group/other because those bits are not set.
+  if (::chmod(path.c_str(), S_IRWXU) != 0) {
+    ::rmdir(path.c_str());
+    return Status::failure("Failed to set private directory permissions: " +
+                           path.string());
+  }
+
   return Status::success();
 }
 

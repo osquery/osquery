@@ -356,8 +356,8 @@ bool platformSetSafeDbPerms(const std::string& path);
  * @brief Creates a directory with only owner-accessible permissions.
  *
  * Unlike creating a directory and then restricting it with platformChmod,
- * this function sets owner-only permissions (equivalent to mode 0700 on
- * POSIX) atomically at directory creation time, eliminating the race window
+ * this function ensures the directory is created without any group/other access
+ * (i.e., mode 0700 on POSIX, subject to umask), eliminating the race window
  * where the directory is briefly world-readable or world-writable.
  *
  * @param path The path of the directory to create.
