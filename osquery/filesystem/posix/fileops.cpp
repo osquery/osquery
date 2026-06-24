@@ -390,7 +390,7 @@ Status platformLstat(const std::string& path, struct stat& d_stat) {
 }
 
 boost::optional<bool> platformIsFile(int fd) {
-  struct stat d_stat{};
+  struct stat d_stat {};
   if (::fstat(fd, &d_stat) < 0) {
     return boost::none;
   }
