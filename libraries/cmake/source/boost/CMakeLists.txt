@@ -585,6 +585,8 @@ function(generateBoostThread)
       Threads::Threads
     )
   endif()
+
+  target_compile_features(thirdparty_boost_thread PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostLocale)
@@ -722,6 +724,8 @@ function(generateBoostFilesystem)
       thirdparty_boost_winapi
     )
   endif()
+
+  target_compile_features(thirdparty_boost_filesystem PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostContext)
