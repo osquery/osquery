@@ -281,15 +281,15 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 Status platformCreatePrivateDir(const fs::path& path) {
-  // Create the directory with no group/other permissions to avoid a window where
-  // it is accessible by other users.
+  // Create the directory with no group/other permissions to avoid a window
+  // where it is accessible by other users.
   if (::mkdir(path.c_str(), S_IRWXU) != 0) {
     return Status::failure("Failed to create private directory: " +
                            path.string());
   }
 
-  // mkdir is affected by umask; ensure the owner retains full rwx. This does not
-  // widen access for group/other because those bits are not set.
+  // mkdir is affected by umask; ensure the owner retains full rwx. This does
+  // not widen access for group/other because those bits are not set.
   if (::chmod(path.c_str(), S_IRWXU) != 0) {
     ::rmdir(path.c_str());
     return Status::failure("Failed to set private directory permissions: " +
@@ -390,7 +390,7 @@ Status platformLstat(const std::string& path, struct stat& d_stat) {
 }
 
 boost::optional<bool> platformIsFile(int fd) {
-  struct stat d_stat {};
+  struct stat d_stat{};
   if (::fstat(fd, &d_stat) < 0) {
     return boost::none;
   }
