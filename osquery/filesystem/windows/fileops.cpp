@@ -12,6 +12,7 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 #include <AclAPI.h>
@@ -1470,6 +1471,65 @@ bool platformChmod(const std::string& path, mode_t perms) {
     return false;
   }
   return true;
+}
+
+Status platformCreatePrivateDir(const fs::path& path) {
+  // Build a security descriptor that grants full access only to the creating
+  // user (Creator Owner) and protects the DACL from inheriting ACEs from the
+  // parent directory.
+  // "D:P(A;OICI;FA;;;CO)" = protected DACL; allow file-all-access to Creator
+  // Owner, with Object Inherit + Container Inherit so that files and
+  // subdirectories created inside also receive owner-only permissions.
+  PSECURITY_DESCRIPTOR sd = nullptr;
+  if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
+          L"D:P(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+    return Status::failure("Failed to create security descriptor");
+  }
+  auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
+
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(sa);
+  sa.lpSecurityDescriptor = sd;
+  sa.bInheritHandle = FALSE;
+
+  auto wpath = path.wstring();
+  if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+
+  // Retrieve the DACL we just created and mark it as protected (this seems to
+  // be necessary to allow deleting the directory when we are finished)
+  PACL dacl = nullptr;
+  PSECURITY_DESCRIPTOR current_sd = nullptr;
+  if (::GetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
+                              SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION,
+                              nullptr,
+                              nullptr,
+                              &dacl,
+                              nullptr,
+                              &current_sd) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to get directory DACL");
+  }
+  auto current_sd_guard =
+      scope_guard::create([&current_sd] { ::LocalFree(current_sd); });
+
+  // Reapply the DACL with the protected flag
+  if (::SetNamedSecurityInfoW(
+          const_cast<LPWSTR>(wpath.c_str()),
+          SE_FILE_OBJECT,
+          DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+          nullptr,
+          nullptr,
+          dacl,
+          nullptr) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to protect directory DACL");
+  }
+
+  return Status::success();
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
