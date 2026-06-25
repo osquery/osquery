@@ -150,10 +150,11 @@ function(importBoostInterfaceLibraries)
 
   # Clang 16+ rejects static_cast<T>(expr) as a non-type template argument for
   # enum types, even in C++17 mode. Force-include a header that pre-defines the
-  # include guard for boost/mpl/aux_/static_cast.hpp and replaces the macro
-  # with a C-style cast, which is the fix Boost applied in 1.82. Also silence
-  # the related enum-constexpr-conversion warning.
+  # include guard for boost/mpl/aux_/static_cast.hpp and replaces the macro with
+  # a constexpr wrapper that returns T, matching the fix Boost applied in 1.82.
+  # Also silence the related enum-constexpr-conversion warning.
   if(PLATFORM_MACOS)
+    # This workaround can hopefully be removed when Boost is updated
     get_filename_component(boost_cmake_dir "${BOOST_ROOT}" DIRECTORY)
     target_compile_options(thirdparty_boost_mpl INTERFACE
       -Wno-enum-constexpr-conversion
