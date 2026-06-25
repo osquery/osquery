@@ -153,7 +153,7 @@ function(importBoostInterfaceLibraries)
   # include guard for boost/mpl/aux_/static_cast.hpp and replaces the macro
   # with a C-style cast, which is the fix Boost applied in 1.82. Also silence
   # the related enum-constexpr-conversion warning.
-  if(PLATFORM_MACOS OR PLATFORM_LINUX)
+  if(PLATFORM_MACOS)
     get_filename_component(boost_cmake_dir "${BOOST_ROOT}" DIRECTORY)
     target_compile_options(thirdparty_boost_mpl INTERFACE
       -Wno-enum-constexpr-conversion
