@@ -98,6 +98,12 @@ void TLSTransport::decorateRequest(http::Request& r) {
   r << http::Request::Header("Content-Type", serializer_->getContentType());
   r << http::Request::Header("Accept", serializer_->getContentType());
   r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
+
+  auto node_key = getOption("node_key");
+  if (!node_key.empty()) {
+    r << http::Request::Header(kAuthorizationHeader,
+                               kNodeKeyAuthScheme + " " + node_key);
+  }
 }
 
 http::Client::Options TLSTransport::getOptions() {

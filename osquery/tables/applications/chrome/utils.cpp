@@ -502,10 +502,10 @@ bool captureProfileSnapshotExtensionsFromPath(
 
     if (!status.ok()) {
       if (!isBuiltInChromeExtension(extension_path)) {
-        LOG(INFO) << "Failed to read the following manifest.json file: "
-                  << manifest_path.string()
-                  << ". The extension was referenced by the following profile: "
-                  << profile_path.value;
+        VLOG(1) << "Failed to read the following manifest.json file: "
+                << manifest_path.string()
+                << ". The extension was referenced by the following profile: "
+                << profile_path.value;
       }
 
       continue;
@@ -571,11 +571,10 @@ bool captureProfileSnapshotExtensionsFromPath(
 
       if (!status.ok()) {
         if (!isBuiltInChromeExtension(referenced_ext_path)) {
-          LOG(ERROR)
-              << "Failed to read the following manifest.json file: "
-              << manifest_path.string()
-              << ". The extension was referenced by the following profile: "
-              << profile_path.value;
+          VLOG(1) << "Failed to read the following manifest.json file: "
+                  << manifest_path.string()
+                  << ". The extension was referenced by the following profile: "
+                  << profile_path.value;
         }
 
         continue;
@@ -960,7 +959,7 @@ Status getExtensionFromSnapshot(
 
   status = localizeExtensionProperties(output);
   if (!status.ok()) {
-    LOG(ERROR) << "Failed to process the localization settngs for the "
+    LOG(ERROR) << "Failed to process the localization settings for the "
                   "following extension: "
                << output.path;
   }

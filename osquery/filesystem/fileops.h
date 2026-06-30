@@ -273,6 +273,9 @@ class PlatformFile : private boost::noncopyable {
   /// Return the modified, created, birth, updated, etc times.
   bool getFileTimes(PlatformTime& times);
 
+  /// Set the access and modification times (atime, mtime) of the file.
+  bool setFileTimes(const PlatformTime& times);
+
   /// Read a number of bytes into a buffer.
   ssize_t read(void* buf, size_t nbyte);
 
@@ -348,6 +351,19 @@ bool platformChmod(const std::string& path, mode_t perms);
  * only.
  */
 bool platformSetSafeDbPerms(const std::string& path);
+
+/**
+ * @brief Creates a directory with only owner-accessible permissions.
+ *
+ * Unlike creating a directory and then restricting it with platformChmod,
+ * this function ensures the directory is created without any group/other access
+ * (i.e., mode 0700 on POSIX, subject to umask), eliminating the race window
+ * where the directory is briefly world-readable or world-writable.
+ *
+ * @param path The path of the directory to create.
+ * @return Status indicating success or failure.
+ */
+Status platformCreatePrivateDir(const boost::filesystem::path& path);
 
 /**
  * @brief Multi-platform implementation of glob.

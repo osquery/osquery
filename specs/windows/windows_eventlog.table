@@ -6,7 +6,7 @@ schema([
     Column("task", INTEGER, "Task value associated with the event"),
     Column("level", INTEGER, "Severity level associated with the event"),
     Column("provider_name", TEXT, "Provider name of the event"),
-    Column("provider_guid", TEXT, "Provider guid of the event"),
+    Column("provider_guid", TEXT, "Provider guid of the event", collate="nocase"),
     Column("computer_name", TEXT, "Hostname of system where event was generated"),
     Column("eventid", INTEGER, "Event ID of the event", additional=True),
     Column("keywords", TEXT, "A bitmask of the keywords defined in the event"),

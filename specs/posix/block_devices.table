@@ -8,7 +8,7 @@ schema([
     Column("serial", TEXT, "Disk serial number"),
     Column("size", BIGINT, "Block device size in blocks"),
     Column("block_size", INTEGER, "Block size in bytes"),
-    Column("uuid", TEXT, "Block device Universally Unique Identifier"),
+    Column("uuid", TEXT, "Block device Universally Unique Identifier", collate="nocase"),
     Column("type", TEXT, "Block device type string"),
     Column("label", TEXT, "Block device label string"),
 ])

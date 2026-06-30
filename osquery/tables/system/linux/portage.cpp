@@ -66,7 +66,7 @@ class PortagePackage : boost::noncopyable {
 std::pair<std::string, std::string> portageSplitPackageVersion(
     const std::string& pkg_str) {
   std::string package_str = pkg_str;
-  if (package_str.back() == '/') {
+  if (!package_str.empty() && package_str.back() == '/') {
     package_str.pop_back();
   }
 

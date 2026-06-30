@@ -7,8 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
 #include <map>
+#include <memory>
 #include <set>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
@@ -268,7 +271,7 @@ MultiHashes hashInode(TskFsFile* file) {
   Hash sha256(HASH_TYPE_SHA256);
 
   // We are guaranteed by the expected callsite to have a valid meta.
-  auto* meta = file->getMeta();
+  std::unique_ptr<TskFsMeta> meta(file->getMeta());
   if (meta == nullptr) {
     return MultiHashes();
   }
@@ -276,34 +279,27 @@ MultiHashes hashInode(TskFsFile* file) {
   // Set a maximum 'chunk' or block size to 1 page or the file size.
   TSK_OFF_T size = meta->getSize();
   if (size == 0) {
-    delete meta;
     return MultiHashes();
   }
 
   // Allocate some heap memory and iterate over reading a chunk and updating.
-  auto buffer_size = (size < 4096) ? size : 4096;
-  auto* buffer = (char*)malloc(buffer_size * sizeof(char));
-  if (buffer != nullptr) {
-    ssize_t chunk_size = 0;
-    for (ssize_t offset = 0; offset < size; offset += chunk_size) {
-      // Here max represents the local max requested bytes.
-      auto max = (size - offset < buffer_size) ? (size - offset) : buffer_size;
-      chunk_size =
-          file->read(offset, buffer, max, (TSK_FS_FILE_READ_FLAG_ENUM)0U);
-      if (chunk_size == -1 || chunk_size != max) {
-        // Huge problem, either a read failed or didn't read the max size.
-        free(buffer);
-        delete meta;
-        return MultiHashes();
-      }
-
-      md5.update(buffer, chunk_size);
-      sha1.update(buffer, chunk_size);
-      sha256.update(buffer, chunk_size);
+  auto buffer_size = std::min(size, TSK_OFF_T{4096});
+  std::vector<char> buffer(buffer_size);
+  ssize_t chunk_size = 0;
+  for (ssize_t offset = 0; offset < size; offset += chunk_size) {
+    // Here max represents the local max requested bytes.
+    auto max = std::min(size - offset, buffer_size);
+    chunk_size =
+        file->read(offset, buffer.data(), max, (TSK_FS_FILE_READ_FLAG_ENUM)0U);
+    if (chunk_size == -1 || chunk_size != max) {
+      // Huge problem, either a read failed or didn't read the max size.
+      return MultiHashes();
     }
-    free(buffer);
+
+    md5.update(buffer.data(), chunk_size);
+    sha1.update(buffer.data(), chunk_size);
+    sha256.update(buffer.data(), chunk_size);
   }
-  delete meta;
 
   // Convert the set of hashes into a device hashes transport.
   MultiHashes dhs = {};
@@ -325,41 +321,41 @@ QueryData genDeviceHash(QueryContext& context) {
     // For each require device path, open a device helper that checks the
     // image, checks the volume, and allows partition iteration.
     DeviceHelper dh(dev);
-    dh.partitions(([&results, &dev, &dh, &parts, &inodes](
-        const TskVsPartInfo* part) {
-      // The table also requires a partition for searching.
-      auto address = std::to_string(part->getAddr());
-      if (address != *parts.begin()) {
-        // If this partition does not match the requested, continue.
-        return;
-      }
+    dh.partitions(
+        ([&results, &dev, &dh, &parts, &inodes](const TskVsPartInfo* part) {
+          // The table also requires a partition for searching.
+          auto address = std::to_string(part->getAddr());
+          if (address != *parts.begin()) {
+            // If this partition does not match the requested, continue.
+            return;
+          }
 
-      auto* fs = new TskFsInfo();
-      auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-      // Cannot retrieve file information without accessing the filesystem.
-      if (status) {
-        delete fs;
-        return;
-      }
+          auto* fs = new TskFsInfo();
+          auto status = fs->open(part, TSK_FS_TYPE_DETECT);
+          // Cannot retrieve file information without accessing the filesystem.
+          if (status) {
+            delete fs;
+            return;
+          }
 
-      dh.inodes(inodes,
-                fs,
-                ([&results, &address, &dev](const std::string& inode,
-                                            TskFsFile* file,
-                                            const std::string& path) {
-                  Row r;
-                  r["device"] = dev;
-                  r["partition"] = address;
-                  r["inode"] = inode;
+          dh.inodes(inodes,
+                    fs,
+                    ([&results, &address, &dev](const std::string& inode,
+                                                TskFsFile* file,
+                                                const std::string& path) {
+                      Row r;
+                      r["device"] = dev;
+                      r["partition"] = address;
+                      r["inode"] = inode;
 
-                  auto hashes = hashInode(file);
-                  r["md5"] = std::move(hashes.md5);
-                  r["sha1"] = std::move(hashes.sha1);
-                  r["sha256"] = std::move(hashes.sha256);
-                  results.push_back(r);
-                }));
-      delete fs;
-    }));
+                      auto hashes = hashInode(file);
+                      r["md5"] = std::move(hashes.md5);
+                      r["sha1"] = std::move(hashes.sha1);
+                      r["sha256"] = std::move(hashes.sha256);
+                      results.push_back(r);
+                    }));
+          delete fs;
+        }));
   }
 
   return results;
@@ -384,48 +380,49 @@ QueryData genDeviceFile(QueryContext& context) {
     // For each require device path, open a device helper that checks the
     // image, checks the volume, and allows partition iteration.
     DeviceHelper dh(dev);
-    dh.partitions(([&results, &dh, &parts, &inodes, &paths](
-                       const TskVsPartInfo* part) {
-      // The table also requires a partition for searching.
-      auto address = std::to_string(part->getAddr());
-      if (address != *parts.begin()) {
-        // If this partition does not match the requested, continue.
-        return;
-      }
+    dh.partitions(
+        ([&results, &dh, &parts, &inodes, &paths](const TskVsPartInfo* part) {
+          // The table also requires a partition for searching.
+          auto address = std::to_string(part->getAddr());
+          if (address != *parts.begin()) {
+            // If this partition does not match the requested, continue.
+            return;
+          }
 
-      auto* fs = new TskFsInfo();
-      auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-      // Cannot retrieve file information without accessing the filesystem.
-      if (status) {
-        delete fs;
-        return;
-      }
+          auto* fs = new TskFsInfo();
+          auto status = fs->open(part, TSK_FS_TYPE_DETECT);
+          // Cannot retrieve file information without accessing the filesystem.
+          if (status) {
+            delete fs;
+            return;
+          }
 
-      // If no inodes or paths were provided as constraints assume a walk of
-      // the partition was requested.
-      if (inodes.empty() && paths.empty()) {
-        dh.generateFiles(address, fs, "/", results);
-        dh.resetStack();
-      }
+          // If no inodes or paths were provided as constraints assume a walk of
+          // the partition was requested.
+          if (inodes.empty() && paths.empty()) {
+            dh.generateFiles(address, fs, "/", results);
+            dh.resetStack();
+          }
 
-      // For each path the canonical name must be mapped to an inode address.
-      for (const auto& path : paths) {
-        auto* file = new TskFsFile();
-        if (file->open(fs, file, path.c_str()) == 0) {
-          dh.generateFile(address, file, fs, path, results);
-        }
-        delete file;
-      }
+          // For each path the canonical name must be mapped to an inode
+          // address.
+          for (const auto& path : paths) {
+            auto* file = new TskFsFile();
+            if (file->open(fs, file, path.c_str()) == 0) {
+              dh.generateFile(address, file, fs, path, results);
+            }
+            delete file;
+          }
 
-      dh.inodes(inodes,
-                fs,
-                ([&results, &address, &dh, &fs](const std::string& inode,
-                                                TskFsFile* file,
-                                                const std::string& path) {
-                  dh.generateFile(address, file, fs, path, results);
-                }));
-      delete fs;
-    }));
+          dh.inodes(inodes,
+                    fs,
+                    ([&results, &address, &dh, &fs](const std::string& inode,
+                                                    TskFsFile* file,
+                                                    const std::string& path) {
+                      dh.generateFile(address, file, fs, path, results);
+                    }));
+          delete fs;
+        }));
   }
 
   return results;
@@ -481,5 +478,5 @@ QueryData genDevicePartitions(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

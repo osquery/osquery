@@ -2,7 +2,7 @@ table_name("office_mru")
 description("View recently opened Office documents.")
 schema([
 	Column("application", TEXT, "Associated Office application"),
-	Column("version", TEXT, "Office application version number"),
+	Column("version", TEXT, "Office application version number", collate="version"),
 	Column("path", TEXT, "File path"),
 	Column("last_opened_time", BIGINT, "Most recent opened time file was opened"),
 	Column("sid", TEXT, "User SID"),

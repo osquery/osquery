@@ -255,28 +255,32 @@ QueryData genApps(QueryContext& context) {
   // Application path accumulator.
   std::set<std::string> apps;
   @autoreleasepool {
-    // Try to use the OS X LaunchServices API.
-    if (!genAppsFromLaunchServices(apps).ok()) {
-      // Otherwise, the LaunchServices API failed, 'manually' search for apps.
-      // Walk through several groups of common search paths that may contain
-      // apps.
-      if (context.constraints["path"].exists(EQUALS)) {
-        auto app_constraints = context.constraints["path"].getAll(EQUALS);
-        for (const auto& app : app_constraints) {
-          apps.insert(app + "/Contents/Info.plist");
-        }
-      } else {
-        for (const auto& path : kSystemSearchPaths) {
-          genApplicationsFromPath(path, apps);
-        }
+    // Try to use the OS X LaunchServices API (best-effort).
+    auto ls_status = genAppsFromLaunchServices(apps);
+    if (!ls_status.ok()) {
+      LOG(WARNING) << "LaunchServices app enumeration failed: "
+                   << ls_status.getMessage();
+    }
 
-        // List all users on the system, and walk common search paths with
-        // homes.
-        auto homes = osquery::getHomeDirectories();
-        for (const auto& home : homes) {
-          for (const auto& path : kHomeDirSearchPaths) {
-            genApplicationsFromPath(home / path, apps);
-          }
+    // Always supplement LaunchServices with directory scanning or path
+    // constraints so that apps missing from LaunchServices (e.g. due to
+    // stale registrations) are still found.
+    if (context.constraints["path"].exists(EQUALS)) {
+      auto app_constraints = context.constraints["path"].getAll(EQUALS);
+      for (const auto& app : app_constraints) {
+        apps.insert(app + "/Contents/Info.plist");
+      }
+    } else {
+      for (const auto& path : kSystemSearchPaths) {
+        genApplicationsFromPath(path, apps);
+      }
+
+      // List all users on the system, and walk common search paths with
+      // homes.
+      auto homes = osquery::getHomeDirectories();
+      for (const auto& home : homes) {
+        for (const auto& path : kHomeDirSearchPaths) {
+          genApplicationsFromPath(home / path, apps);
         }
       }
     }

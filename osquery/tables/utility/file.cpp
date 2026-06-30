@@ -357,7 +357,8 @@ QueryData genFileWindows(QueryContext& context, Logger& logger) {
       // Iterate over the directory and generate info for each regular file.
       fs::directory_iterator begin(directory_string), end;
       for (; begin != end; ++begin) {
-        genFileInfoWindows(begin->path(), directory_string, "", false, results);
+        genFileInfoWindows(
+            begin->path(), directory_string, "", get_shortcut_data, results);
       }
     } catch (const fs::filesystem_error& /* e */) {
       continue;

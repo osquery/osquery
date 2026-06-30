@@ -111,7 +111,8 @@ std::string generateRow(const Row& r,
 
 void prettyPrint(const QueryData& results,
                  const std::vector<std::string>& columns,
-                 std::map<std::string, size_t>& lengths) {
+                 std::map<std::string, size_t>& lengths,
+                 FILE* out) {
   if (results.size() == 0) {
     return;
   }
@@ -122,31 +123,31 @@ void prettyPrint(const QueryData& results,
   // Output a nice header wrapping the column names.
   auto separator = generateToken(lengths, columns);
   auto header = separator + generateHeader(lengths, columns) + separator;
-  printf("%s", header.c_str());
+  fprintf(out, "%s", header.c_str());
 
   // Iterate each row and pretty print.
   for (const auto& row : results) {
-    printf("%s", generateRow(row, lengths, columns).c_str());
+    fprintf(out, "%s", generateRow(row, lengths, columns).c_str());
   }
-  printf("%s", separator.c_str());
+  fprintf(out, "%s", separator.c_str());
 }
 
-void jsonPrint(const QueryData& q) {
-  printf("[\n");
+void jsonPrint(const QueryData& q, FILE* out) {
+  fprintf(out, "[\n");
   for (size_t i = 0; i < q.size(); ++i) {
     std::string row_string;
 
     if (serializeRowJSON(q[i], row_string).ok()) {
-      printf("  %s", row_string.c_str());
+      fprintf(out, "  %s", row_string.c_str());
       if (i < q.size() - 1) {
-        printf(",\n");
+        fprintf(out, ",\n");
       }
     }
   }
-  printf("\n]\n");
+  fprintf(out, "\n]\n");
 }
 
-void jsonPrettyPrint(const QueryData& q) {
+void jsonPrettyPrint(const QueryData& q, FILE* out) {
   auto doc = JSON::newArray();
   for (const auto& row : q) {
     auto row_json = doc.getObject();
@@ -156,7 +157,7 @@ void jsonPrettyPrint(const QueryData& q) {
   }
   std::string doc_string;
   doc.toPrettyString(doc_string);
-  printf("%s\n", doc_string.c_str());
+  fprintf(out, "%s\n", doc_string.c_str());
 }
 
 void computeRowLengths(const Row& r,

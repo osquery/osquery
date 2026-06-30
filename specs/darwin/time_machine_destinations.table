@@ -4,7 +4,7 @@ schema([
     Column("alias", TEXT, "Human readable name of drive"),
     Column("destination_id", TEXT, "Time Machine destination ID"),
     Column("consistency_scan_date", INTEGER, "Consistency scan date"),
-    Column("root_volume_uuid", TEXT, "Root UUID of backup volume"),
+    Column("root_volume_uuid", TEXT, "Root UUID of backup volume", collate="nocase"),
     Column("bytes_available", INTEGER, "Bytes available on volume"),
     Column("bytes_used", INTEGER, "Bytes used on volume"),
     Column("encryption", TEXT, "Last known encrypted state"),

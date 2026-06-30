@@ -100,6 +100,12 @@ class TLSRequestHelper : private boost::noncopyable {
     Request<TLSTransport, TSerializer> request(uri + uri_suffix);
     request.setOption("hostname", FLAGS_tls_hostname);
 
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    if (!node_key.empty()) {
+      request.setOption("node_key", node_key);
+    }
+
     bool compress = false;
     auto it = params_doc.FindMember("_compress");
     if (it != params_doc.MemberEnd()) {

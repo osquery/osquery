@@ -79,6 +79,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/processes.cpp
       linux/rpm_packages.cpp
       linux/secureboot.cpp
+      linux/secureboot_certificates.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -229,6 +230,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_search.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/token_privileges.cpp
       windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
@@ -238,6 +240,8 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/deviceguard_status.cpp
       windows/tpm_info.cpp
       windows/prefetch.cpp
+      windows/token_privileges.cpp
+      windows/process_open_handles.cpp
     )
   endif()
 
@@ -353,13 +357,16 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain.h
       darwin/packages.h
       darwin/smbios_utils.h
+      darwin/os_version.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND platform_public_header_files
+      windows/processes.h
       windows/programs.h
       windows/registry.h
       windows/certificates.h
+      windows/token_privileges.h
       windows/windows_eventlog.h
       windows/windows_update_history.h
       windows/security_profile_info_utils.h

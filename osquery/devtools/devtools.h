@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
@@ -59,15 +60,17 @@ int launchIntoShell(int argc, char** argv);
  * @brief Pretty print a QueryData object
  *
  * This is a helper method which called osquery::beautify on the supplied
- * QueryData object and prints the results to stdout.
+ * QueryData object and prints the results to the specified output.
  *
  * @param results The QueryData object to print
  * @param columns The order of the keys (since maps are unordered)
  * @param lengths A mutable set of column lengths
+ * @param out The output file stream (defaults to stdout)
  */
 void prettyPrint(const QueryData& results,
                  const std::vector<std::string>& columns,
-                 std::map<std::string, size_t>& lengths);
+                 std::map<std::string, size_t>& lengths,
+                 FILE* out = stdout);
 
 /**
  * @brief JSON print a QueryData object
@@ -76,8 +79,9 @@ void prettyPrint(const QueryData& results,
  * in a JSON format.
  *
  * @param q The QueryData object to print
+ * @param out The output file stream (defaults to stdout)
  */
-void jsonPrint(const QueryData& q);
+void jsonPrint(const QueryData& q, FILE* out = stdout);
 
 /**
  * @brief JSON pretty print a QueryData object
@@ -86,8 +90,9 @@ void jsonPrint(const QueryData& q);
  * in a pretty JSON format.
  *
  * @param q The QueryData object to print
+ * @param out The output file stream (defaults to stdout)
  */
-void jsonPrettyPrint(const QueryData& q);
+void jsonPrettyPrint(const QueryData& q, FILE* out = stdout);
 
 /**
  * @brief Compute a map of metadata about the supplied QueryData object

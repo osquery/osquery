@@ -11,7 +11,7 @@
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
-
+#include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
 
 #include <osquery/tables/system/windows/registry.h>
@@ -88,7 +88,12 @@ QueryData genShims(QueryContext& context) {
     QueryData regResults;
     std::string subkey = rKey.at("path");
     auto toks = split(rKey.at("path"), "\\");
-    auto executable = toks[toks.size() - 1];
+    if (toks.empty()) {
+      VLOG(1) << "Unable to determine executable from registry path '"
+              << rKey.at("path") << "'";
+      continue;
+    }
+    auto executable = toks.back();
     queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
       Row r;

@@ -113,6 +113,14 @@ class Transport {
     options_.addCopy(name, value);
   }
 
+  std::string getOption(const std::string& name) const {
+    auto it = options_.doc().FindMember(name.c_str());
+    if (it != options_.doc().MemberEnd() && it->value.IsString()) {
+      return it->value.GetString();
+    }
+    return {};
+  }
+
   /**
    * @brief Virtual destructor
    */
@@ -266,6 +274,14 @@ class Request {
   void setOption(const std::string& name, const T& value) {
     options_.addCopy(name, value);
     transport_->setOption(name, value);
+  }
+
+  std::string getOption(const std::string& name) const {
+    auto it = options_.doc().FindMember(name.c_str());
+    if (it != options_.doc().MemberEnd() && it->value.IsString()) {
+      return it->value.GetString();
+    }
+    return {};
   }
 
  private:

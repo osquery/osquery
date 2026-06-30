@@ -24,6 +24,12 @@
 
 namespace osquery {
 
+/// WMI namespaces commonly used for event subscription persistence detection
+const std::vector<std::wstring> kWmiEventNamespaces = {
+    L"ROOT\\Subscription",
+    L"ROOT\\default",
+};
+
 using WmiMethodArgsMap = std::unordered_map<std::string, VARIANT>;
 
 namespace impl {

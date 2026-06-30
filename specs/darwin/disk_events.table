@@ -6,7 +6,7 @@ schema([
     Column("name", TEXT, "Disk event name"),
     Column("device", TEXT, "Disk event BSD name",
         aliases=["bsd_name"]),
-    Column("uuid", TEXT, "UUID of the volume inside DMG if available"),
+    Column("uuid", TEXT, "UUID of the volume inside DMG if available", collate="nocase"),
     Column("size", BIGINT, "Size of partition in bytes"),
     Column("ejectable", INTEGER, "1 if ejectable, 0 if not"),
     Column("mountable", INTEGER, "1 if mountable, 0 if not"),
@@ -15,7 +15,7 @@ schema([
     Column("media_name", TEXT, "Disk event media name string"),
     Column("vendor", TEXT, "Disk event vendor string"),
     Column("filesystem", TEXT, "Filesystem if available"),
-    Column("checksum", TEXT, "UDIF Master checksum if available (CRC32)"),
+    Column("checksum", TEXT, "UDIF Master checksum if available (CRC32)", collate="nocase"),
     Column("time", BIGINT, "Time of appearance/disappearance in UNIX time", additional=True),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])

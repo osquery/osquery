@@ -184,6 +184,14 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   return true;
 }
 
+bool PlatformFile::setFileTimes(const PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  return (::futimes(handle_, times.times) == 0);
+}
+
 ssize_t PlatformFile::read(void* buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
@@ -270,6 +278,25 @@ bool platformSetSafeDbPerms(const std::string& path) {
 
 bool platformChmod(const std::string& path, mode_t perms) {
   return (::chmod(path.c_str(), perms) == 0);
+}
+
+Status platformCreatePrivateDir(const fs::path& path) {
+  // Create the directory with no group/other permissions to avoid a window
+  // where it is accessible by other users.
+  if (::mkdir(path.c_str(), S_IRWXU) != 0) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+
+  // mkdir is affected by umask; ensure the owner retains full rwx. This does
+  // not widen access for group/other because those bits are not set.
+  if (::chmod(path.c_str(), S_IRWXU) != 0) {
+    ::rmdir(path.c_str());
+    return Status::failure("Failed to set private directory permissions: " +
+                           path.string());
+  }
+
+  return Status::success();
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {

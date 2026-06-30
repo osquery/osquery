@@ -287,4 +287,27 @@ TEST_F(TLSTransportsTests, test_gzip_with_params) {
   // Restore original flag value
   FLAGS_tls_accept_gzip = original_gzip_flag;
 }
+
+TEST_F(TLSTransportsTests, test_node_key_header_set) {
+  auto t = std::make_shared<TLSTransport>();
+  t->setSerializer(std::make_shared<JSONSerializer>());
+  t->setOption("node_key", std::string("test_node_secret"));
+
+  http::Request r("https://localhost");
+  t->decorateRequest(r);
+
+  EXPECT_EQ(std::string(r[kAuthorizationHeader]),
+            kNodeKeyAuthScheme + " " + std::string("test_node_secret"));
+}
+
+TEST_F(TLSTransportsTests, test_node_key_header_not_set) {
+  auto t = std::make_shared<TLSTransport>();
+  t->setSerializer(std::make_shared<JSONSerializer>());
+
+  http::Request r("https://localhost");
+  t->decorateRequest(r);
+
+  EXPECT_TRUE(std::string(r[kAuthorizationHeader]).empty());
+}
+
 } // namespace osquery
