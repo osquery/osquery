@@ -14,6 +14,11 @@
 
 #include "bpf_process_events.h"
 
+// Maximum bytes read per individual argument. Must be a compile-time constant
+// so the BPF verifier can prove that &event->args[total_len] + MAX_SINGLE_ARG_LEN
+// never exceeds the end of the args[] buffer.
+#define MAX_SINGLE_ARG_LEN 64
+
 // BPF helper function declarations (from bpf_helpers.h but without includes)
 static void* (*bpf_ringbuf_reserve)(void* ringbuf,
                                     __u64 size,
@@ -90,43 +95,53 @@ int handle_execve_enter(struct syscall_enter_execve_args* ctx) {
   // Read binary path
   bpf_probe_read_user_str(event->path, sizeof(event->path), ctx->filename);
 
-  /*
-  // Read command line arguments
+  // Read command line arguments.
+  // The verifier-safe pattern: bound total_len with a constant-size check so
+  // that &event->args[total_len] + MAX_SINGLE_ARG_LEN is provably in-bounds.
+  // Using a variable size for bpf_probe_read_user_str would require the verifier
+  // to track off + space_left == MAX_ARGS_LEN symbolically, which it cannot do.
   const char *const *argv = ctx->argv;
-  unsigned int total_len = 0;
+  // __u64 is critical here: the break check `if (total_len > N)` compiles to a
+  // direct 64-bit compare (`if r9 > N goto break`), which lets the verifier
+  // constrain r9 itself in the fall-through path.  With `unsigned int`, the
+  // compiler inserts `<<= 32; >>= 32` zero-extension before the compare,
+  // creating a derived register (r1) that loses identity with r9 — so the
+  // verifier cannot back-propagate the constraint to r9, and by iteration 9
+  // r9's umax hits 512, making 601 + 512 + 64 = 1177 > sz(1120) → EACCES.
+  __u64 total_len = 0;
+  event->args[0] = '\0';
+#pragma unroll
   for (int i = 0; i < 16; i++) {
     const char *arg;
-    // Read the pointer to the i-th argument from user space
     if (bpf_probe_read_user(&arg, sizeof(arg), &argv[i]) < 0 || !arg) {
       break;
     }
 
-    // Use a masked offset to help the verifier bound memory access
-    unsigned int off = total_len & 511;
-    unsigned int space_left = MAX_ARGS_LEN - off;
+    // Break if there is no room for another MAX_SINGLE_ARG_LEN-byte argument.
+    // After this check the verifier knows total_len <= MAX_ARGS_LEN - MAX_SINGLE_ARG_LEN,
+    // so the write of MAX_SINGLE_ARG_LEN bytes at &event->args[total_len] is in-bounds.
+    if (total_len > MAX_ARGS_LEN - MAX_SINGLE_ARG_LEN) {
+      break;
+    }
 
-    // Read the argument string directly into the ring buffer
-    // The verifier can now see that off + space_left is always 512
-    long len = bpf_probe_read_user_str(&event->args[off], space_left, arg);
+    long len = bpf_probe_read_user_str(
+        &event->args[total_len], MAX_SINGLE_ARG_LEN, arg);
     if (len <= 0) {
       break;
     }
 
-    unsigned int ulen = (unsigned int)len;
-    // Update total_len for the next iteration
-    total_len += ulen;
+    total_len += (unsigned int)len;
 
-    // Replace null terminator with space to concatenate next argument
+    // Replace the null terminator with a space to concatenate arguments.
     if (total_len > 0 && total_len < MAX_ARGS_LEN) {
-        event->args[(total_len - 1) & 511] = ' ';
+      event->args[total_len - 1] = ' ';
     }
   }
 
-  // Ensure the entire arguments string is null-terminated
+  // Null-terminate the concatenated arguments string.
   if (total_len > 0 && total_len <= MAX_ARGS_LEN) {
-      event->args[(total_len - 1) & 511] = '\0';
+    event->args[total_len - 1] = '\0';
   }
-      */
 
   // Set defaults
   event->cwd[0] = '/';

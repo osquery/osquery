@@ -39,10 +39,13 @@ int libbpfLogCallback(enum libbpf_print_level level,
   static char buffer[1024 * 1024];
   vsnprintf(buffer, sizeof(buffer), format, args);
 
-  if (level == LIBBPF_WARN || level == LIBBPF_INFO) {
+  if (level == LIBBPF_WARN) {
+    // LIBBPF_WARN carries verifier errors and load failures — always visible.
+    LOG(WARNING) << "libbpf: " << buffer;
+  } else if (level == LIBBPF_INFO) {
     VLOG(1) << "libbpf: " << buffer;
   } else {
-    LOG(WARNING) << "libbpf: " << buffer;
+    VLOG(2) << "libbpf: " << buffer;
   }
 
   return 0;
