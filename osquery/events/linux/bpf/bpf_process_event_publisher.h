@@ -28,7 +28,7 @@ struct BPFProcessEvent {
   uint64_t ppid;
   uint64_t uid;
   uint64_t gid;
-  uint32_t cgroup_id;
+  uint64_t cgroup_id;
   int64_t exit_code;
   uint64_t duration;
   uint8_t probe_error;
