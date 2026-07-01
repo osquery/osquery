@@ -92,6 +92,13 @@ function(generateOsqueryEvents)
       ${CMAKE_CURRENT_BINARY_DIR}
       ${CMAKE_SOURCE_DIR}/libraries/cmake/source/libbpf/src/include
     )
+
+    # Enable GNU extensions for this file so the Linux kernel uapi bpf.h header
+    # can use anonymous structs, flexible arrays, and GNU variadic macro syntax.
+    set_source_files_properties(
+      linux/bpf/bpf_process_event_publisher.cpp
+      PROPERTIES COMPILE_OPTIONS "-std=gnu++17"
+    )
   endif()
 
   enableLinkWholeArchive(osquery_events)
