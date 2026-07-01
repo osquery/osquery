@@ -87,9 +87,10 @@ function(generateOsqueryEvents)
     # Add dependency on BPF skeleton generation
     add_dependencies(osquery_events bpf_process_events_skeleton)
     
-    # Add include directory for generated skeleton
+    # Add include directory for generated skeleton and libbpf uapi headers
     target_include_directories(osquery_events PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}
+      ${CMAKE_SOURCE_DIR}/libraries/cmake/source/libbpf/src/include
     )
   endif()
 

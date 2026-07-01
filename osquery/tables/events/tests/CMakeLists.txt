@@ -165,11 +165,7 @@ function(generateOsqueryTablesEventsTestsBpfprocesseventstestsTest)
     osquery_tables_events_eventstable
     tests_helper
     thirdparty_googletest
-    ${CMAKE_BINARY_DIR}/libs/src/libbpf/libthirdparty_libbpf.a
-  )
-  
-  target_link_options(osquery_tables_events_tests_bpfprocesseventstests-test PRIVATE
-    "-Wl,--allow-multiple-definition"
+    thirdparty_libbpf
   )
 endfunction()
 

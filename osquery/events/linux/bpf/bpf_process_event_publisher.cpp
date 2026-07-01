@@ -15,7 +15,7 @@
 #include "bpf_process_events.h"
 
 // Helper for BPF enums
-#include "../../../../libraries/cmake/source/libbpf/src/include/uapi/linux/bpf.h"
+#include <uapi/linux/bpf.h>
 
 // Include generated BPF skeleton
 #include <linux/bpf/bpf_process_events.skel.h>
