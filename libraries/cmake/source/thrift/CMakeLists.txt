@@ -83,18 +83,6 @@ function(thriftMain)
     "${library_root}/src/thrift/transport/TWebSocketServer.h"
   )
 
-  if(PLATFORM_POSIX)
-    set(tsocket_pool_compile_options "-include;random_shuffle.h")
-
-  elseif(PLATFORM_WINDOWS)
-    set(tsocket_pool_compile_options "/FIrandom_shuffle.h")
-  endif()
-
-  set_source_files_properties("${library_root}/src/thrift/transport/TSocketPool.cpp" PROPERTIES
-    COMPILE_OPTIONS
-      "${tsocket_pool_compile_options}"
-  )
-
   if(PLATFORM_WINDOWS)
     target_sources(thirdparty_thrift_thrift PRIVATE
       "${library_root}/src/thrift/windows/GetTimeOfDay.cpp"
@@ -132,6 +120,11 @@ function(thriftMain)
       thirdparty_openssl
   )
 
+  set_target_properties(thirdparty_thrift_thrift PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
+  )
+
   if(PLATFORM_POSIX)
     find_package(Threads REQUIRED)
     target_link_libraries(thirdparty_thrift_thrift PUBLIC
@@ -158,6 +151,11 @@ function(thriftMain)
     PUBLIC
       thirdparty_thrift_thrift
       thirdparty_zlib
+  )
+
+  set_target_properties(thirdparty_thrift_thriftz PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
   )
 
   target_include_directories(thirdparty_thrift_thriftz PRIVATE
