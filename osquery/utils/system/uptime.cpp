@@ -9,9 +9,10 @@
 
 #include <osquery/utils/system/uptime.h>
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <errno.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <time.h>
 #elif defined(__linux__)
 #include <sys/sysinfo.h>
@@ -22,7 +23,7 @@
 namespace osquery {
 
 long getUptime() {
-#if defined(DARWIN)
+#if defined(DARWIN) || defined(__FreeBSD__)
   struct timeval boot_time;
   size_t len = sizeof(boot_time);
   int mib[2] = {CTL_KERN, KERN_BOOTTIME};

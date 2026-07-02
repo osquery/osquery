@@ -1,15 +1,6 @@
-# Copyright (c) 2014-present, The osquery authors
-#
-# This source code is licensed as defined by the LICENSE file found in the
-# root directory of this source tree.
-#
-# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
-
-include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
-
-importSourceSubmodule(
-  NAME "zstd"
-
-  SHALLOW_SUBMODULES
-    "src"
+# FreeBSD: use system zstd from archivers/zstd (also in base)
+include("${CMAKE_CURRENT_LIST_DIR}/freebsd_system_libs.cmake")
+freebsd_use_system_lib(zstd
+  LIBS zstd
+  INCLUDES /usr/local/include
 )
