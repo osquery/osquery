@@ -260,7 +260,7 @@ jobs:
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
@@ -399,14 +399,12 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore cache (ccache)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-
         key: |
           ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
-
         restore-keys: |
           ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
@@ -592,10 +590,17 @@ jobs:
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
 
 
 
@@ -667,8 +672,8 @@ jobs:
         echo "Cores: $(sysctl -n hw.logicalcpu)"
         vm_stat
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore cache (ccache)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
 
@@ -684,8 +689,8 @@ jobs:
       run: |
         echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: |
@@ -838,17 +843,24 @@ jobs:
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (downloads)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
         key: downloads_${{ runner.os }}_${{ github.sha }}
+
+    - name: Save cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
@@ -1217,14 +1229,12 @@ jobs:
 
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
-    - name: Update the cache (sccache)
-      uses: actions/cache@v4
+    - name: Restore cache (sccache)
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-
         key: |
           sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
-
         restore-keys: |
           sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
 
@@ -1359,18 +1369,25 @@ jobs:
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (downloads)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
         key: downloads_${{ runner.os }}_${{ github.sha }}
-        
+
+    - name: Save cache (sccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
   mergeable:
