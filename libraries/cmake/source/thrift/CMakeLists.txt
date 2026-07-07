@@ -120,10 +120,12 @@ function(thriftMain)
       thirdparty_openssl
   )
 
-  set_target_properties(thirdparty_thrift_thrift PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED ON
-  )
+  if(PLATFORM_WINDOWS)
+    set_target_properties(thirdparty_thrift_thrift PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+    )
+  endif()
 
   if(PLATFORM_POSIX)
     find_package(Threads REQUIRED)
@@ -153,10 +155,12 @@ function(thriftMain)
       thirdparty_zlib
   )
 
-  set_target_properties(thirdparty_thrift_thriftz PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED ON
-  )
+  if(PLATFORM_WINDOWS)
+    set_target_properties(thirdparty_thrift_thriftz PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+    )
+  endif()
 
   target_include_directories(thirdparty_thrift_thriftz PRIVATE
     "${library_root}/src"
