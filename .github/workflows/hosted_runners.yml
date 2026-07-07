@@ -189,8 +189,7 @@ jobs:
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-        restore-keys: |
-          gitmodules_${{ runner.os }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -403,10 +402,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
-        restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+        restore-keys: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -418,10 +415,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-        key: |
-          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-        restore-keys: |
-          gitmodules_${{ runner.os }}
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -676,12 +671,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-
-        key: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
-
-        restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        restore-keys: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -693,10 +684,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-        key: |
-          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-        restore-keys: |
-          gitmodules_${{ runner.os }}
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Restore cache (downloads)
       uses: actions/cache/restore@v6
@@ -1069,10 +1058,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
-        key: |
-          gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-        restore-keys: |
-          gitmodules_${{ runner.os }}
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Restore cache (downloads)
       uses: actions/cache/restore@v6
