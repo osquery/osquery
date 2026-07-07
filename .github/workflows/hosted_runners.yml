@@ -596,9 +596,6 @@ jobs:
         architecture: [x86_64, arm64]
         os: [macos-26, macos-15]
 
-    env:
-      MACOS_DEPLOYMENT_TARGET: 10.15
-
     steps:
     - name: Select the build job count
       shell: bash
