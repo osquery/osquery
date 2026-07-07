@@ -857,7 +857,7 @@ jobs:
 
     - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v7
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
@@ -1383,7 +1383,7 @@ jobs:
 
     - name: Save cache (sccache)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache@v4
+      uses: actions/cache/save@v7
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
         key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
