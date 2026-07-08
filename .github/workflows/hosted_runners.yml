@@ -726,14 +726,6 @@ jobs:
                       thrift==0.11.0 \
                       osquery
 
-    - name: Install CMake
-      shell: bash
-      run: |
-        ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
-          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
-          "${{ steps.build_paths.outputs.INSTALL }}" \
-          "3.21.4"
-
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
     # disable them when running a Debug build
@@ -862,17 +854,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install CMake
-        shell: bash
-        run: |
-          mkdir -p "workspace/downloads" \
-                   "workspace/install"
-
-          ./tools/ci/scripts/macos/install_cmake.sh \
-            "workspace/downloads" \
-            "workspace/install" \
-            "3.21.4"
 
       - uses: actions/download-artifact@v4.1.7
         with:
@@ -1108,7 +1089,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
       run: |
-        $long_cmake_ver = "3.21.4"
+        $long_cmake_ver = "4.0.3"
         $short_cmake_ver = $($long_cmake_ver.split(".")[0] + "." + $long_cmake_ver.split(".")[1])
 
         $folder_name = $("cmake-" + $long_cmake_ver + "-windows-x86_64")
