@@ -1,0 +1,17 @@
+--- a/lib/cpp/src/thrift/transport/TSocketPool.cpp
++++ b/lib/cpp/src/thrift/transport/TSocketPool.cpp
+@@ -197,13 +197,8 @@ void TSocketPool::open() {
+     return;
+   }
+ 
+   if (randomize_ && numServers > 1) {
+-#if __cplusplus >= 201703L
+     std::random_device rng;
+     std::mt19937 urng(rng());
+     std::shuffle(servers_.begin(), servers_.end(), urng);
+-#else
+-    std::random_shuffle(servers_.begin(), servers_.end());
+-#endif
+   }
+ 
+   for (size_t i = 0; i < numServers; ++i) {

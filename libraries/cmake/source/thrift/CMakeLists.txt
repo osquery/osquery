@@ -155,15 +155,6 @@ function(thriftMain)
       thirdparty_zlib
   )
 
-  if(PLATFORM_WINDOWS)
-    # On windows we need to set the C++ standard to 14 because Thrift uses functions removed in later standards.
-    # When updating Thrift, see if this is still necessary.
-    set_target_properties(thirdparty_thrift_thriftz PROPERTIES
-      CXX_STANDARD 14
-      CXX_STANDARD_REQUIRED ON
-    )
-  endif()
-
   target_include_directories(thirdparty_thrift_thriftz PRIVATE
     "${library_root}/src"
   )
