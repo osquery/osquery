@@ -156,9 +156,9 @@ Status Carver::createPaths() {
   // TODO: Adding in a manifest file of all carved files might be nice.
   carveDir_ =
       fs::temp_directory_path() / fs::path(kCarvePathPrefix + carveGuid_);
-  auto ret = fs::create_directory(carveDir_);
-  if (!ret) {
-    return Status::failure("Failed to create carve file store");
+  auto s = platformCreatePrivateDir(carveDir_);
+  if (!s.ok()) {
+    return s;
   }
 
   // Store the path to our archive for later exfiltration

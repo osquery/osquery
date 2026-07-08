@@ -38,6 +38,8 @@ function(boostMain)
     thirdparty_boost_scope_exit
     thirdparty_boost_circular_buffer
   )
+
+  target_compile_features(thirdparty_boost INTERFACE cxx_std_17)
 endfunction()
 
 function(importBoostInterfaceLibrary folder_name)
@@ -146,11 +148,18 @@ function(importBoostInterfaceLibraries)
     BOOST_NO_CXX98_FUNCTION_BASE
   )
 
-  # silence enum constexpr conversion for MPL on Xcode 26
+  # Clang 16+ rejects static_cast<T>(expr) as a non-type template argument for
+  # enum types, even in C++17 mode. Force-include a header that pre-defines the
+  # include guard for boost/mpl/aux_/static_cast.hpp and replaces the macro with
+  # a constexpr wrapper that returns T, matching the fix Boost applied in 1.82.
+  # Also silence the related enum-constexpr-conversion warning.
   if(PLATFORM_MACOS)
-     target_compile_options(thirdparty_boost_mpl INTERFACE
-       -Wno-enum-constexpr-conversion
-      )
+    # This workaround can hopefully be removed when Boost is updated
+    get_filename_component(boost_cmake_dir "${BOOST_ROOT}" DIRECTORY)
+    target_compile_options(thirdparty_boost_mpl INTERFACE
+      -Wno-enum-constexpr-conversion
+      "-include" "${boost_cmake_dir}/mpl_static_cast_fix.hpp"
+    )
   endif()
 
   # Additional settings for the libraries we just imported
@@ -277,6 +286,8 @@ function(generateBoostSerialization)
       thirdparty_boost_serialization
       thirdparty_boost_array
   )
+
+  target_compile_features(thirdparty_boost_serialization PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostAtomic)
@@ -368,6 +379,8 @@ function(generateBoostAtomic)
       thirdparty_boost_predef
       thirdparty_boost_preprocessor
   )
+
+  target_compile_features(thirdparty_boost_atomic PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostChrono)
@@ -413,6 +426,8 @@ function(generateBoostChrono)
       thirdparty_boost_utility
       thirdparty_boost_winapi
   )
+
+  target_compile_features(thirdparty_boost_chrono PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostContainer)
@@ -467,6 +482,8 @@ function(generateBoostContainer)
       thirdparty_boost_type_traits
       thirdparty_boost_winapi
   )
+
+  target_compile_features(thirdparty_boost_container PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostRandom)
@@ -499,6 +516,8 @@ function(generateBoostRandom)
       thirdparty_boost_type_traits
       thirdparty_boost_utility
   )
+
+  target_compile_features(thirdparty_boost_random PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostThread)
@@ -585,6 +604,8 @@ function(generateBoostThread)
       Threads::Threads
     )
   endif()
+
+  target_compile_features(thirdparty_boost_thread PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostLocale)
@@ -668,6 +689,8 @@ function(generateBoostLocale)
       thirdparty_boost_thread
       thirdparty_boost_unordered
   )
+
+  target_compile_features(thirdparty_boost_locale PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostFilesystem)
@@ -722,6 +745,8 @@ function(generateBoostFilesystem)
       thirdparty_boost_winapi
     )
   endif()
+
+  target_compile_features(thirdparty_boost_filesystem PRIVATE cxx_std_17)
 endfunction()
 
 function(generateBoostContext)
@@ -882,6 +907,8 @@ function(generateBoostContext)
       BOOST_CONTEXT_STATIC_LINK
       BOOST_CONTEXT_EXPORT
   )
+
+  target_compile_features(thirdparty_boost_context PRIVATE cxx_std_17)
 endfunction()
 
 boostMain()

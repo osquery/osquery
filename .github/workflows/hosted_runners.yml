@@ -40,8 +40,7 @@ concurrency:
 # Please remember to update values for both x86 and aarch64 workflows.
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
-  PACKAGING_COMMIT: c089fb2d3d796d976e3b2fbea7ee69a1616b9576
-  SUBMODULE_CACHE_VERSION: 3
+  PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
   OSQUERY_TOOLCHAIN_VERSION: 1.2.0
 
 # If the initial code sanity checks are passing, then one job
@@ -179,16 +178,18 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}
         fetch-depth: 0
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
-
-        key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
-        restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -256,7 +257,12 @@ jobs:
         name: cppcheck-debug
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
 
-
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
   # The Linux build will only start once we know that the code
@@ -309,7 +315,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
@@ -392,27 +398,25 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore cache (ccache)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+        restore-keys: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
-        key: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-        restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.build_type }}
-
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
       with:
-        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules  
-
-        key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
-        restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -579,6 +583,21 @@ jobs:
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+
+
 
   # The macOS build will only start once we know that the code
   # has been properly formatted
@@ -591,7 +610,10 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-14, macos-15]
+        os: [macos-26, macos-15]
+
+    env:
+      MACOS_DEPLOYMENT_TARGET: 10.15
 
     steps:
     - name: Select the build job count
@@ -645,38 +667,32 @@ jobs:
         echo "Cores: $(sysctl -n hw.logicalcpu)"
         vm_stat
 
-    - name: Update the cache (ccache)
-      uses: actions/cache@v4
+    - name: Restore cache (ccache)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        restore-keys: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
-        key: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: |
+        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-        restore-keys: |
-          ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
-
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
-        key: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
-        restore-keys: |
-          gitmodules_${{ matrix.os }}_${{ matrix.architecture }}_${{env.SUBMODULE_CACHE_VERSION}}
-
-    - name: Update the cache (downloads)
-      uses: actions/cache@v4
+    - name: Restore cache (downloads)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-
-        key: |
-          downloads_${{ matrix.os }}_${{ matrix.architecture }}_${{ github.sha }}
-
-        restore-keys: |
-          downloads_${{ matrix.os }}_${{ matrix.architecture }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+        restore-keys: downloads_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -718,25 +734,6 @@ jobs:
           "${{ steps.build_paths.outputs.INSTALL }}" \
           "3.21.4"
 
-    - name: Select the Xcode version
-      shell: bash
-      id: xcode_selector
-      run: |
-        if [[ "${{ matrix.os }}" == "macos-14" ]]; then
-          xcode_path="/Applications/Xcode_15.4.app/Contents/Developer"
-        elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
-          xcode_path="/Applications/Xcode_16.app/Contents/Developer"
-        else
-          echo "Invalid matrix.os: ${{ matrix.os }}"
-          exit 1
-        fi
-
-        echo "PATH=${path}" >> $GITHUB_OUTPUT
-
-        sudo xcode-select -s "${xcode_path}"
-
-        echo "DEPLOYMENT_TARGET=10.15" >> $GITHUB_OUTPUT
-
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
     # disable them when running a Debug build
@@ -764,7 +761,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang \
           -DCMAKE_CXX_COMPILER=clang++ \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ steps.xcode_selector.outputs.DEPLOYMENT_TARGET }}" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
@@ -821,7 +818,7 @@ jobs:
         echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release' && matrix.os == 'macos-14'
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
@@ -833,12 +830,32 @@ jobs:
       run: |
         rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (downloads)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+
+    - name: Save cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
     needs: build_macos
 
-    runs-on: macos-14
+    runs-on: macos-26
 
     steps:
       - name: Clone the osquery repository
@@ -1027,27 +1044,29 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Update the cache (git submodules)
-      uses: actions/cache@v4
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: powershell
+      run: |
+        $inputStr = (git -C "${{ steps.build_paths.outputs.REL_SOURCE }}" submodule status --recursive) -join "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($inputStr)
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $hash = [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-","").ToLower()
+        echo "VALUE=$hash" >> $env:GITHUB_OUTPUT
+
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
-        key: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}_${{ github.sha }}
-
-        restore-keys: |
-          gitmodules_${{ matrix.os }}_${{env.SUBMODULE_CACHE_VERSION}}
-
-    - name: Update the cache (downloads)
-      uses: actions/cache@v4
+    - name: Restore cache (downloads)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-
-        key: |
-          downloads_${{ matrix.os }}_${{ github.sha }}
-
-        restore-keys: |
-          downloads_${{ matrix.os }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+        restore-keys: downloads_${{ runner.os }}
 
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
@@ -1085,7 +1104,6 @@ jobs:
                               osquery `
                               pywin32
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install CMake
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1103,7 +1121,6 @@ jobs:
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\$folder_name\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install sccache
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1118,7 +1135,6 @@ jobs:
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\sccache" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    # TODO: Implement a cache so we don't keep hitting the server at each run
     - name: Install Ninja
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1200,14 +1216,12 @@ jobs:
 
         echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
 
-    - name: Update the cache (sccache)
-      uses: actions/cache@v4
+    - name: Restore cache (sccache)
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-
         key: |
           sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
-
         restore-keys: |
           sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
 
@@ -1339,6 +1353,27 @@ jobs:
       shell: powershell
       run: |
         rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
+
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (downloads)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
+
+    - name: Save cache (sccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SCCACHE }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.

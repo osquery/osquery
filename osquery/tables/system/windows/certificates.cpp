@@ -425,33 +425,34 @@ void addCertRow(PCCERT_CONTEXT certContext,
                     static_cast<unsigned long>(certBuff.size()));
   r["common_name"] = wstringToString(certBuff.data());
 
-  auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                                &(certContext->pCertInfo->Subject),
-                                CERT_SIMPLE_NAME_STR,
-                                nullptr,
-                                0);
-  certBuff.resize(subjSize, 0);
-  std::fill(certBuff.begin(), certBuff.end(), 0);
-  subjSize = CertNameToStr(certContext->dwCertEncodingType,
-                           &(certContext->pCertInfo->Subject),
-                           CERT_SIMPLE_NAME_STR,
-                           certBuff.data(),
-                           subjSize);
-  r["subject"] = subjSize == 0 ? "" : wstringToString(certBuff.data());
+  // Convert a distinguished name blob to a string using the given format flag.
+  // CERT_SIMPLE_NAME_STR yields only the attribute values (legacy
+  // subject/issuer behavior), while CERT_X500_NAME_STR preserves the attribute
+  // keys (OIDs), e.g. "CN=Example, O=Example Inc, C=US"
+  auto nameBlobToString = [&](PCERT_NAME_BLOB nameBlob,
+                              DWORD strType) -> std::string {
+    auto size = CertNameToStr(
+        certContext->dwCertEncodingType, nameBlob, strType, nullptr, 0);
+    if (size == 0) {
+      return ""; // defensive: CertNameToStr is documented to return >= 1
+    }
+    std::vector<WCHAR> nameBuff(size, 0);
+    size = CertNameToStr(certContext->dwCertEncodingType,
+                         nameBlob,
+                         strType,
+                         nameBuff.data(),
+                         size);
+    return size == 0 ? "" : wstringToString(nameBuff.data());
+  };
 
-  auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                                  &(certContext->pCertInfo->Issuer),
-                                  CERT_SIMPLE_NAME_STR,
-                                  nullptr,
-                                  0);
-  certBuff.resize(issuerSize, 0);
-  std::fill(certBuff.begin(), certBuff.end(), 0);
-  issuerSize = CertNameToStr(certContext->dwCertEncodingType,
-                             &(certContext->pCertInfo->Issuer),
-                             CERT_SIMPLE_NAME_STR,
-                             certBuff.data(),
-                             issuerSize);
-  r["issuer"] = issuerSize == 0 ? "" : wstringToString(certBuff.data());
+  r["subject"] = nameBlobToString(&(certContext->pCertInfo->Subject),
+                                  CERT_SIMPLE_NAME_STR);
+  r["subject2"] =
+      nameBlobToString(&(certContext->pCertInfo->Subject), CERT_X500_NAME_STR);
+  r["issuer"] =
+      nameBlobToString(&(certContext->pCertInfo->Issuer), CERT_SIMPLE_NAME_STR);
+  r["issuer2"] =
+      nameBlobToString(&(certContext->pCertInfo->Issuer), CERT_X500_NAME_STR);
 
   // TODO(#5654) 1: Find the right API calls to get whether a cert is for a CA
   r["ca"] = INTEGER(-1);
