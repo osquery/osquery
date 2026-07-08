@@ -32,8 +32,15 @@ namespace {
 const std::vector<std::string> kFirefoxPaths = {
     "/Library/Application Support/Firefox/Profiles/"};
 #elif defined(__linux__)
+// Firefox 147 added support for the XDG Base Directory Specification:
+// new profiles are created under $XDG_CONFIG_HOME/mozilla/firefox/
+// (~/.config/mozilla/firefox/ by default), while existing installs keep
+// using ~/.mozilla/firefox/. Both locations need to be scanned since
+// which one is in use depends on when the profile was created.
 const std::vector<std::string> kFirefoxPaths = {
-    "/.mozilla/firefox/", "/snap/firefox/common/.mozilla/firefox/"};
+    "/.mozilla/firefox/",
+    "/snap/firefox/common/.mozilla/firefox/",
+    "/.config/mozilla/firefox/"};
 #elif defined(WIN32)
 const std::vector<std::string> kFirefoxPaths = {
     "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"};
