@@ -390,7 +390,7 @@ jobs:
 
     - name: Restore the cache (ccache)
       if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
@@ -579,7 +579,7 @@ jobs:
 
     - name: Save the cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
@@ -674,7 +674,7 @@ jobs:
 
     - name: Restore the cache (ccache)
       if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
@@ -837,10 +837,10 @@ jobs:
 
     - name: Save the cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -1237,11 +1237,8 @@ jobs:
       if: github.event_name == 'pull_request'
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
-
-        restore-keys: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
+        restore-keys: sccache_${{ matrix.os }}_${{ matrix.bitness }}
 
     - name: Build the project
       shell: cmd
@@ -1262,13 +1259,6 @@ jobs:
         if %errorlevel% neq 0 exit /b %errorlevel%
         sccache.exe --show-stats
         sccache.exe --stop-server
-
-    - name: Save the cache (sccache)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
     - name: Disk space information
       id: disk_space_info_post_build
@@ -1394,12 +1384,12 @@ jobs:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
         key: downloads_${{ runner.os }}_${{ github.sha }}
 
-    - name: Save cache (sccache)
+    - name: Save the cache (sccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
