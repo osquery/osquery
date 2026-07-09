@@ -82,8 +82,7 @@ jobs:
     # placed on all the source code files
     - name: Check the copyright headers
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        ./tools/ci/scripts/check_copyright_headers.py
+      run: ./tools/ci/scripts/check_copyright_headers.py
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -98,9 +97,7 @@ jobs:
     # a Linux machine.
     - name: Check code formatting
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run:
-        cmake --build . --target format_check
-
+      run: cmake --build . --target format_check
 
 
   # This jobs checks that the third party libraries manifest has the correct format
@@ -113,8 +110,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install python pre-requisites
-      run: |
-        pip3 install -r ./tools/ci/scripts/cve/requirements.txt
+      run: pip3 install -r ./tools/ci/scripts/cve/requirements.txt
 
     - name: Verify the third party libraries manifest
       run: |
@@ -181,8 +177,7 @@ jobs:
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -193,8 +188,7 @@ jobs:
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
 
     - name: Configure the project (Release)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -208,8 +202,7 @@ jobs:
 
     - name: Initialize the project (Release)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target prepare_for_ide
+      run: cmake --build . --target prepare_for_ide
 
     - name: Run cppcheck (Release)
       shell: bash
@@ -241,15 +234,13 @@ jobs:
 
     - name: Initialize the project (Debug)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target prepare_for_ide
+      run: cmake --build . --target prepare_for_ide
 
     - name: Run cppcheck (Debug)
       shell: bash
       id: debug_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
+      run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
 
     - name: Store the cppcheck log (Debug)
       uses: actions/upload-artifact@v4.4.0
@@ -357,8 +348,7 @@ jobs:
     - name: Select the build job count
       shell: bash
       id: build_job_count
-      run: |
-        echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
 
     - name: Select the build options for the tests
       shell: bash
@@ -409,8 +399,7 @@ jobs:
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -421,12 +410,10 @@ jobs:
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
 
     - name: Configure ccache
-      run: |
-        echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -446,8 +433,7 @@ jobs:
     - name: Zero ccache stats
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: |
-        ccache --zero-stats
+      run: ccache --zero-stats
 
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -455,14 +441,12 @@ jobs:
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
-      run: |
-        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+      run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: |
-        ccache -s
+      run: ccache -s
 
     - name: Disk space information
       shell: bash
@@ -483,8 +467,7 @@ jobs:
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
-      run: |
-        sudo -u root ctest --build-nocmake -L "root-required" -V
+      run: sudo -u root ctest --build-nocmake -L "root-required" -V
 
     - name: Run the install target
       if: matrix.build_type == 'RelWithDebInfo'
@@ -604,8 +587,7 @@ jobs:
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
-      run: |
-        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
@@ -643,8 +625,7 @@ jobs:
     - name: Select the build job count
       shell: bash
       id: build_job_count
-      run: |
-        echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
 
     - name: Setup the build paths
       shell: bash
@@ -702,8 +683,7 @@ jobs:
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -721,8 +701,7 @@ jobs:
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
 
     - name: Install build dependencies
       run: |
@@ -773,8 +752,7 @@ jobs:
         fi
 
     - name: Configure ccache
-      run: |
-        echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
 
     - name: Configure the project
       shell: bash
@@ -800,8 +778,7 @@ jobs:
     - name: Zero ccache stats
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: |
-        ccache --zero-stats
+      run: ccache --zero-stats
 
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -809,14 +786,12 @@ jobs:
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
-      run: |
-        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+      run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: |
-        ccache -s
+      run: ccache -s
 
     - name: Disk space information
       shell: bash
@@ -828,8 +803,7 @@ jobs:
     - name: Run the tests
       if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        ctest --build-nocmake -V
+      run: ctest --build-nocmake -V
 
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -846,17 +820,13 @@ jobs:
 
     - name: Create the package data
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
-      run: |
-        tar pcvzf package_data.tar.gz \
-          -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} \
-          .
+      run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
 
     - name: Locate the package data
       if: matrix.build_type == 'Release'
       id: packages
       shell: bash
-      run: |
-        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
+      run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
@@ -875,8 +845,7 @@ jobs:
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
-      run: |
-        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
@@ -933,8 +902,7 @@ jobs:
           path: macos_unsigned_release_package_data_arm64
 
       - name: Create the universal package data
-        run: |
-          tools/ci/scripts/macos/build_universal_package_data.sh
+        run: tools/ci/scripts/macos/build_universal_package_data.sh
 
       - name: Store the universal unsigned release package data artifact
         uses: actions/upload-artifact@v4.4.0
@@ -1327,8 +1295,7 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
-      run: |
-        cmake --build . --target install -j 3
+      run: cmake --build . --target install -j 3
 
     - name: Create the packages
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
@@ -1411,8 +1378,7 @@ jobs:
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
       shell: powershell
-      run: |
-        rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
