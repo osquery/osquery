@@ -1,6 +1,16 @@
 --- a/lib/cpp/src/thrift/transport/TSocketPool.cpp
 +++ b/lib/cpp/src/thrift/transport/TSocketPool.cpp
-@@ -192,13 +192,9 @@ void TSocketPool::open() {
+@@ -22,9 +22,7 @@
+ #include <algorithm>
+ #include <iostream>
+ #include <memory>
+-#if __cplusplus >= 201703L
+ #include <random>
+-#endif
+ 
+ #include <thrift/transport/TSocketPool.h>
+ 
+@@ -192,13 +190,9 @@ void TSocketPool::open() {
    }
  
    if (randomize_ && numServers > 1) {
