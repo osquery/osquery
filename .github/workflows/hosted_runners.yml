@@ -593,7 +593,7 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
 
 
 
@@ -842,14 +842,14 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}
+        key: downloads_${{ runner.os }}_${{ github.sha }}
 
     - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
@@ -1322,7 +1322,7 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (downloads)
-      if: github.ref_name == github.event.repository.default_branch
+      if: github.ref_name == github.event.repository.default_branch && matrix.bitness == '64' && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
