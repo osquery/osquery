@@ -389,7 +389,7 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Restore cache (ccache)
-      if: github.event_name == 'pull_request'
+      if: github.ref_type != 'tag'
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
