@@ -388,13 +388,12 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Restore the cache (ccache)
+    - name: Restore cache (ccache)
       if: github.event_name == 'pull_request'
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
-        restore-keys: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -577,13 +576,6 @@ jobs:
         name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
-    - name: Save the cache (ccache)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
-
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
@@ -601,7 +593,7 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
 
 
@@ -677,8 +669,7 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
-        restore-keys: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -696,8 +687,7 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
-        restore-keys: downloads_${{ runner.os }}
+        key: downloads_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -835,12 +825,12 @@ jobs:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
 
-    - name: Save the cache (ccache)
+    - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -859,14 +849,14 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
+        key: downloads_${{ runner.os }}
 
     - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
@@ -1081,8 +1071,7 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
-        restore-keys: downloads_${{ runner.os }}
+        key: downloads_${{ runner.os }}
 
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
@@ -1195,50 +1184,12 @@ jobs:
           ${{ steps.build_paths.outputs.SOURCE }} ^
           %cross_compilation%
 
-    - name: Determine compiler version
-      id: determine_compiler_version
-      shell: pwsh
-      run: |
-        $compiler = (Get-Content "${{ steps.build_paths.outputs.BINARY }}\CMakeCache.txt" | Select-String -Pattern "CMAKE_CXX_COMPILER:STRING=(.*)").Matches[0].Groups[1].Value
-
-        echo "Compiler configured by CMake is $compiler"
-
-        if ($compiler -eq $null || $compiler -eq "") {
-          Write-Error "Could not find the configured compiler" -ErrorAction Stop
-        }
-
-        <#
-           We run the compiler help option; the compiler will write its version in stderr.
-           Due to how powershell works, we have to go through some hoops to extract the stderr to a variable
-           and also avoid it considering the command as failed because stderr contains messages.
-           The expression runs the compiler in a subshell, discards its stdout, then the stderr of the subshell is redirected
-           to the stdout of the parent shell.
-        #>
-        $ErrorActionPreference = 'Continue'
-        $erroutput = $( & "$compiler" /? 1>$null ) 2>&1
-        $ErrorActionPreference = 'Stop'
-
-        if ($erroutput -eq $null || $erroutput -eq "") {
-          Write-Error "Failed to run the compiler at $compiler" -ErrorAction Stop
-        }
-
-        $version = ($erroutput | Select-String -Pattern "Compiler Version (.*) for").Matches[0].Groups[1].Value.Replace(".", "")
-
-        if ($version -eq $null || $version -eq "") {
-          Write-Error "Failed to determine compiler version for $compiler and output $erroutput" -ErrorAction Stop
-        }
-
-        echo "Found compiler version $version"
-
-        echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
-
     - name: Restore cache (sccache)
       uses: actions/cache/restore@v6
       if: github.event_name == 'pull_request'
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
         key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
-        restore-keys: sccache_${{ matrix.os }}_${{ matrix.bitness }}
 
     - name: Build the project
       shell: cmd
@@ -1382,9 +1333,9 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
+        key: downloads_${{ runner.os }}
 
-    - name: Save the cache (sccache)
+    - name: Save cache (sccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
