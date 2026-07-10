@@ -480,8 +480,9 @@ void addCertRow(PCCERT_CONTEXT certContext,
       CERT_ENCODING, &certContext->pCertInfo->SubjectPublicKeyInfo);
   if (keyStrength == 0) {
     VLOG(1) << "Failed to get public key length with " << GetLastError();
+  } else {
+    r["key_strength"] = INTEGER(keyStrength);
   }
-  r["key_strength"] = INTEGER(keyStrength);
 
   std::vector<BYTE> keypropBuff;
   getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, keypropBuff);
