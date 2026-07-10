@@ -35,6 +35,11 @@
 #include <utility>
 #include <vector>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <winioctl.h>
+#endif
+
 // Public RocksDB API headers (available via ${library_root}/include)
 #include <rocksdb/advanced_options.h>
 #include <rocksdb/cache.h>
