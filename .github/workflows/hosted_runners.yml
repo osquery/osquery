@@ -589,7 +589,7 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (ccache)
-      if: github.ref_name == github.event.repository.default_branch
+      # if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
@@ -831,7 +831,7 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (ccache)
-      if: github.ref_name == github.event.repository.default_branch
+      # if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
@@ -1302,7 +1302,7 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
     - name: Save cache (sccache)
-      if: github.ref_name == github.event.repository.default_branch
+      # if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
