@@ -596,7 +596,6 @@ jobs:
         key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
 
 
-
   # The macOS build will only start once we know that the code
   # has been properly formatted
   build_macos:
@@ -664,7 +663,7 @@ jobs:
         echo "Cores: $(sysctl -n hw.logicalcpu)"
         vm_stat
 
-    - name: Restore the cache (ccache)
+    - name: Restore cache (ccache)
       if: github.ref_type != 'tag'
       uses: actions/cache/restore@v6
       with:
@@ -682,12 +681,6 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: gitmodules_${{ runner.os }}
-
-    - name: Restore cache (downloads)
-      uses: actions/cache/restore@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
@@ -836,13 +829,6 @@ jobs:
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-
-    - name: Save cache (downloads)
-      if: github.ref_name == github.event.repository.default_branch && matrix.architecture == 'arm64' && matrix.build_type == 'Release'
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
 
     - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
@@ -1059,12 +1045,6 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: gitmodules_${{ runner.os }}
-
-    - name: Restore cache (downloads)
-      uses: actions/cache/restore@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}
 
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
@@ -1321,19 +1301,12 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
-    - name: Save cache (downloads)
-      if: github.ref_name == github.event.repository.default_branch && matrix.bitness == '64' && matrix.build_type == 'Release'
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}
-
     - name: Save cache (sccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
