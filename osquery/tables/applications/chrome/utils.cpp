@@ -80,17 +80,24 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"}};
 // clang-format on
 
+// clang-format off
 const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::GoogleChrome, ".config/google-chrome"},
     {ChromeBrowserType::GoogleChromeBeta, ".config/google-chrome-beta"},
     {ChromeBrowserType::GoogleChromeDev, ".config/google-chrome-unstable"},
     {ChromeBrowserType::Brave, ".config/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::Brave, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Chromium, ".config/chromium"},
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
+    {ChromeBrowserType::Chromium, ".var/app/org.chromium.Chromium/config/chromium"},
     {ChromeBrowserType::Yandex, ".config/yandex-browser-beta"},
+    {ChromeBrowserType::Edge, ".config/microsoft-edge"},
+    {ChromeBrowserType::EdgeBeta, ".config/microsoft-edge-beta"},
     {ChromeBrowserType::Opera, ".config/opera"},
     {ChromeBrowserType::Vivaldi, ".config/vivaldi"},
+    {ChromeBrowserType::Vivaldi, ".var/app/com.vivaldi.Vivaldi/config/vivaldi"},
 };
+// clang-format on
 
 /// Maps ChromeBrowserType values to readable strings
 const std::unordered_map<ChromeBrowserType, std::string>
@@ -104,7 +111,7 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::Yandex, "yandex"},
         {ChromeBrowserType::Opera, "opera"},
         {ChromeBrowserType::Edge, "edge"},
-        {ChromeBrowserType::Edge, "edge_beta"},
+        {ChromeBrowserType::EdgeBeta, "edge_beta"},
         {ChromeBrowserType::Vivaldi, "vivaldi"},
         {ChromeBrowserType::Arc, "arc"},
 };
