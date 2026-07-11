@@ -104,7 +104,7 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
     // present and in every example checked, metadata.id is present and has the
     // same value (on Windows, macOS, and Linux and multiple VSCode forks)
     it = metadata.FindMember("id");
-    if (it != identifier.MemberEnd() && it->value.IsString()) {
+    if (it != metadata.MemberEnd() && it->value.IsString()) {
       r["uuid"] = it->value.GetString();
     }
 
