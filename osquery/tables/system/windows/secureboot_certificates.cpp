@@ -12,7 +12,6 @@
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
-#include <osquery/tables/system/secureboot.hpp>
 #include <osquery/tables/system/windows/wincert_utils.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/info/firmware.h>
@@ -91,8 +90,9 @@ bool enableSystemEnvironmentNamePrivilege() {
                              L"SeSystemEnvironmentPrivilege",
                              &token_privileges.Privileges[0].Luid)) {
     auto error_code = GetLastError();
-    LOG(ERROR) << "secureboot: Failed to lookup the required privilege: "
-               << errorDwordToString(error_code);
+    LOG(ERROR)
+        << "secureboot_certificates: Failed to lookup the required privilege: "
+        << errorDwordToString(error_code);
     return false;
   }
 
@@ -102,7 +102,7 @@ bool enableSystemEnvironmentNamePrivilege() {
   if (OpenProcessToken(
           GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &raw_token) == 0) {
     auto error_code = GetLastError();
-    LOG(ERROR) << "secureboot: Failed to open the process token: "
+    LOG(ERROR) << "secureboot_certificates: Failed to open the process token: "
                << errorDwordToString(error_code);
     return false;
   }
@@ -115,17 +115,18 @@ bool enableSystemEnvironmentNamePrivilege() {
                              nullptr,
                              nullptr)) {
     auto error_code = GetLastError();
-    LOG(ERROR) << "secureboot: Failed to adjust token privileges: "
+    LOG(ERROR) << "secureboot_certificates: Failed to adjust token privileges: "
                << errorDwordToString(error_code);
     return false;
   }
 
   auto error_code = GetLastError();
   if (error_code == ERROR_NOT_ALL_ASSIGNED) {
-    LOG(ERROR) << "secureboot: SeSystemEnvironmentPrivilege could not be "
-                  "assigned (process may not be running as Administrator). "
-                  "EFI variable reads may fail."
-               << errorDwordToString(error_code);
+    LOG(ERROR)
+        << "secureboot_certificates: SeSystemEnvironmentPrivilege could not be "
+           "assigned (process may not be running as Administrator). "
+           "EFI variable reads may fail. Error: "
+        << errorDwordToString(error_code);
     return false;
   }
 
@@ -316,20 +317,22 @@ QueryData genSecureBootCertificates(QueryContext& context) {
 
   auto opt_firmware_kind = getFirmwareKind();
   if (!opt_firmware_kind.has_value()) {
-    LOG(ERROR) << "secureboot: Failed to determine the firmware type";
+    LOG(ERROR)
+        << "secureboot_certificates: Failed to determine the firmware type";
     return {};
   }
 
   const auto& firmware_kind = opt_firmware_kind.value();
   if (firmware_kind != FirmwareKind::Uefi) {
-    VLOG(1) << "secureboot: Secure boot is only supported on UEFI firmware";
+    VLOG(1) << "secureboot_certificates: Secure boot is only supported on UEFI "
+               "firmware";
     return {};
   }
 
   if (!kPrivilegeInitializationStatus) {
-    VLOG(1) << "secureboot: SE_SYSTEM_ENVIRONMENT_NAME privilege was not "
-               "acquired. EFI variable reads may fail if not running as "
-               "Administrator.";
+    VLOG(1) << "secureboot_certificates: SE_SYSTEM_ENVIRONMENT_NAME privilege "
+               "was not acquired. EFI variable reads may fail if not running "
+               "as Administrator.";
   }
 
   for (const auto& search_db : {"db", "dbx"}) {

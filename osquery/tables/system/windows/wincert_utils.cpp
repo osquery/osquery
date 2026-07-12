@@ -276,7 +276,7 @@ std::wstring getCertificateSubjectKeyID(PCCERT_CONTEXT certContext) {
   std::vector<BYTE> buffer;
   if (decodeCertificateExtension(certContext,
                                  szOID_SUBJECT_KEY_IDENTIFIER,
-                                 szOID_SUBJECT_KEY_IDENTIFIER,
+                                 X509_OCTET_STRING,
                                  buffer)) {
     auto keyId = reinterpret_cast<PCRYPT_DATA_BLOB>(buffer.data());
     if (keyId->cbData > 0) {
