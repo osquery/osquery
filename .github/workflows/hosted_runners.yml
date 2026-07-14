@@ -82,8 +82,7 @@ jobs:
     # placed on all the source code files
     - name: Check the copyright headers
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        ./tools/ci/scripts/check_copyright_headers.py
+      run: ./tools/ci/scripts/check_copyright_headers.py
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -98,9 +97,7 @@ jobs:
     # a Linux machine.
     - name: Check code formatting
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run:
-        cmake --build . --target format_check
-
+      run: cmake --build . --target format_check
 
 
   # This jobs checks that the third party libraries manifest has the correct format
@@ -113,8 +110,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install python pre-requisites
-      run: |
-        pip3 install -r ./tools/ci/scripts/cve/requirements.txt
+      run: pip3 install -r ./tools/ci/scripts/cve/requirements.txt
 
     - name: Verify the third party libraries manifest
       run: |
@@ -181,8 +177,7 @@ jobs:
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -193,8 +188,7 @@ jobs:
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
 
     - name: Configure the project (Release)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -208,8 +202,7 @@ jobs:
 
     - name: Initialize the project (Release)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target prepare_for_ide
+      run: cmake --build . --target prepare_for_ide
 
     - name: Run cppcheck (Release)
       shell: bash
@@ -241,15 +234,13 @@ jobs:
 
     - name: Initialize the project (Debug)
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target prepare_for_ide
+      run: cmake --build . --target prepare_for_ide
 
     - name: Run cppcheck (Debug)
       shell: bash
       id: debug_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
+      run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
 
     - name: Store the cppcheck log (Debug)
       uses: actions/upload-artifact@v4.4.0
@@ -315,7 +306,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic
+        sudo apt-get install --no-install-recommends -y elfutils python3-psutil python3-six python3-wheel linux-headers-generic ccache
         pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3 docker
 
 
@@ -357,8 +348,7 @@ jobs:
     - name: Select the build job count
       shell: bash
       id: build_job_count
-      run: |
-        echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(($(nproc) + 1))" >> $GITHUB_OUTPUT
 
     - name: Select the build options for the tests
       shell: bash
@@ -399,17 +389,16 @@ jobs:
         git checkout ${{ env.PACKAGING_COMMIT }}
 
     - name: Restore cache (ccache)
+      if: github.ref_type != 'tag'
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
-        restore-keys: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -420,8 +409,10 @@ jobs:
 
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
+
+    - name: Configure ccache
+      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -438,14 +429,23 @@ jobs:
           -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
+    - name: Zero ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache --zero-stats
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
-      run: |
-        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+      run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Print ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache -s
 
     - name: Disk space information
       shell: bash
@@ -466,8 +466,7 @@ jobs:
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
-      run: |
-        sudo -u root ctest --build-nocmake -L "root-required" -V
+      run: sudo -u root ctest --build-nocmake -L "root-required" -V
 
     - name: Run the install target
       if: matrix.build_type == 'RelWithDebInfo'
@@ -580,11 +579,10 @@ jobs:
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
-      run: |
-        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
-      if: github.ref_name == github.event.repository.default_branch
+      if: github.ref_name == github.event.repository.default_branch && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
@@ -596,7 +594,6 @@ jobs:
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
-
 
 
   # The macOS build will only start once we know that the code
@@ -619,8 +616,7 @@ jobs:
     - name: Select the build job count
       shell: bash
       id: build_job_count
-      run: |
-        echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
 
     - name: Setup the build paths
       shell: bash
@@ -668,17 +664,16 @@ jobs:
         vm_stat
 
     - name: Restore cache (ccache)
+      if: github.ref_type != 'tag'
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
-        restore-keys: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
       shell: bash
-      run: |
-        echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
 
     - name: Restore cache (git submodules)
       uses: actions/cache/restore@v6
@@ -687,17 +682,9 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: gitmodules_${{ runner.os }}
 
-    - name: Restore cache (downloads)
-      uses: actions/cache/restore@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
-        restore-keys: downloads_${{ runner.os }}
-
     - name: Update the git submodules
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
-      run: |
-        git submodule sync --recursive
+      run: git submodule sync --recursive
 
     - name: Install build dependencies
       run: |
@@ -747,6 +734,9 @@ jobs:
           echo "VALUE=OFF" >> $GITHUB_OUTPUT
         fi
 
+    - name: Configure ccache
+      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+
     - name: Configure the project
       shell: bash
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -768,14 +758,23 @@ jobs:
           -DCMAKE_OSX_SYSROOT=${cmake_osx_sysroot} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
+    - name: Zero ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache --zero-stats
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
-      run: |
-        cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+      run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Print ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache -s
 
     - name: Disk space information
       shell: bash
@@ -787,8 +786,7 @@ jobs:
     - name: Run the tests
       if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        ctest --build-nocmake -V
+      run: ctest --build-nocmake -V
 
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -805,17 +803,13 @@ jobs:
 
     - name: Create the package data
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
-      run: |
-        tar pcvzf package_data.tar.gz \
-          -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} \
-          .
+      run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
 
     - name: Locate the package data
       if: matrix.build_type == 'Release'
       id: packages
       shell: bash
-      run: |
-        echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
+      run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
       if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
@@ -827,22 +821,14 @@ jobs:
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
-      run: |
-        rm -rf ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
-      if: github.ref_name == github.event.repository.default_branch
+      if: github.ref_name == github.event.repository.default_branch && matrix.architecture == 'arm64' && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-
-    - name: Save cache (downloads)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
 
     - name: Save cache (ccache)
       if: github.ref_name == github.event.repository.default_branch
@@ -885,8 +871,7 @@ jobs:
           path: macos_unsigned_release_package_data_arm64
 
       - name: Create the universal package data
-        run: |
-          tools/ci/scripts/macos/build_universal_package_data.sh
+        run: tools/ci/scripts/macos/build_universal_package_data.sh
 
       - name: Store the universal unsigned release package data artifact
         uses: actions/upload-artifact@v4.4.0
@@ -1061,13 +1046,6 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
         restore-keys: gitmodules_${{ runner.os }}
 
-    - name: Restore cache (downloads)
-      uses: actions/cache/restore@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
-        restore-keys: downloads_${{ runner.os }}
-
     - name: Initialize the Python 3 installation
       uses: actions/setup-python@v5
       with:
@@ -1179,51 +1157,12 @@ jobs:
           ${{ steps.build_paths.outputs.SOURCE }} ^
           %cross_compilation%
 
-    - name: Determine compiler version
-      id: determine_compiler_version
-      shell: pwsh
-      run: |
-        $compiler = (Get-Content "${{ steps.build_paths.outputs.BINARY }}\CMakeCache.txt" | Select-String -Pattern "CMAKE_CXX_COMPILER:STRING=(.*)").Matches[0].Groups[1].Value
-
-        echo "Compiler configured by CMake is $compiler"
-
-        if ($compiler -eq $null || $compiler -eq "") {
-          Write-Error "Could not find the configured compiler" -ErrorAction Stop
-        }
-
-        <#
-           We run the compiler help option; the compiler will write its version in stderr.
-           Due to how powershell works, we have to go through some hoops to extract the stderr to a variable
-           and also avoid it considering the command as failed because stderr contains messages.
-           The expression runs the compiler in a subshell, discards its stdout, then the stderr of the subshell is redirected
-           to the stdout of the parent shell.
-        #>
-        $ErrorActionPreference = 'Continue'
-        $erroutput = $( & "$compiler" /? 1>$null ) 2>&1
-        $ErrorActionPreference = 'Stop'
-
-        if ($erroutput -eq $null || $erroutput -eq "") {
-          Write-Error "Failed to run the compiler at $compiler" -ErrorAction Stop
-        }
-
-        $version = ($erroutput | Select-String -Pattern "Compiler Version (.*) for").Matches[0].Groups[1].Value.Replace(".", "")
-
-        if ($version -eq $null || $version -eq "") {
-          Write-Error "Failed to determine compiler version for $compiler and output $erroutput" -ErrorAction Stop
-        }
-
-        echo "Found compiler version $version"
-
-        echo "COMPILER_VERSION=$version" >> $env:GITHUB_OUTPUT
-
     - name: Restore cache (sccache)
       uses: actions/cache/restore@v6
+      if: github.ref_type != 'tag'
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
-        restore-keys: |
-          sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
 
     - name: Build the project
       shell: cmd
@@ -1237,9 +1176,12 @@ jobs:
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
+        sccache.exe --zero-stats
+
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+        sccache.exe --show-stats
         sccache.exe --stop-server
 
     - name: Disk space information
@@ -1267,8 +1209,7 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
-      run: |
-        cmake --build . --target install -j 3
+      run: cmake --build . --target install -j 3
 
     - name: Create the packages
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
@@ -1351,29 +1292,21 @@ jobs:
     # actions will require the disk space to create the archives.
     - name: Reclaim disk space
       shell: powershell
-      run: |
-        rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
+      run: rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
 
     - name: Save cache (git submodules)
-      if: github.ref_name == github.event.repository.default_branch
+      if: github.ref_name == github.event.repository.default_branch && matrix.bitness == '64' && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-
-    - name: Save cache (downloads)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
-      with:
-        path: ${{ steps.build_paths.outputs.DOWNLOADS }}
-        key: downloads_${{ runner.os }}_${{ github.sha }}
 
     - name: Save cache (sccache)
       if: github.ref_name == github.event.repository.default_branch
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ steps.determine_compiler_version.outputs.COMPILER_VERSION }}_${{ github.sha }}
+        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
