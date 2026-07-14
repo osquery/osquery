@@ -19,7 +19,7 @@ else()
 endif()
 
 
-if(APPLE)
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   if(NOT DEFINED CMAKE_OSX_SYSROOT OR "${CMAKE_OSX_SYSROOT}" STREQUAL "")
     execute_process(
       COMMAND xcrun --sdk macosx --show-sdk-path
@@ -39,13 +39,13 @@ if(APPLE)
 
   message(STATUS "Using macOS sysroot: ${CMAKE_OSX_SYSROOT}")
 
-  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment target")
   endif()
 
   if(NOT DEFINED CMAKE_C_COMPILER OR "${CMAKE_C_COMPILER}" STREQUAL "")
     execute_process(
-      COMMAND xcrun -find clang
+      COMMAND xcrun --find clang
       OUTPUT_VARIABLE osquery_clang_path
       OUTPUT_STRIP_TRAILING_WHITESPACE
       RESULT_VARIABLE osquery_xcrun_result
@@ -62,7 +62,7 @@ if(APPLE)
 
   if(NOT DEFINED CMAKE_CXX_COMPILER OR "${CMAKE_CXX_COMPILER}" STREQUAL "")
     execute_process(
-      COMMAND xcrun -find clang++
+      COMMAND xcrun --find clang++
       OUTPUT_VARIABLE osquery_clangxx_path
       OUTPUT_STRIP_TRAILING_WHITESPACE
       RESULT_VARIABLE osquery_xcrun_result

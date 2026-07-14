@@ -4,7 +4,7 @@ osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 14.x.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 16.x+.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 ## macOS
 
 The current build of osquery supports deployment to the same set of macOS versions (macOS 10.15 and newer). _Building_
-osquery from source on macOS requires XCode 16 or newer.
+osquery from source on macOS requires Xcode 16 or newer.
 
 The initial directory is assumed to be `/Users/<user>`
 
