@@ -219,6 +219,7 @@ function(setupBuildFlags)
 
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
+        -fobjc-arc
         -Wabi-tag
       )
 
