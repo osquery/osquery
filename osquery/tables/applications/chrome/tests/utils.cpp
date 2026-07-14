@@ -180,6 +180,12 @@ TEST_F(ChromeUtilsTests, getChromeBrowserName) {
 
   browser_name = getChromeBrowserName(ChromeBrowserType::Opera);
   EXPECT_EQ(browser_name, "opera");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::Edge);
+  EXPECT_EQ(browser_name, "edge");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::EdgeBeta);
+  EXPECT_EQ(browser_name, "edge_beta");
 }
 
 TEST_F(ChromeUtilsTests, getExtensionContentScriptsMatches) {
