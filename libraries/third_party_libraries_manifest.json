@@ -320,5 +320,19 @@
     "version": "1.9.4",
     "commit": "5ff839680134437dbf4678f3d0c7b371d84f4964",
     "ignored-cves": []
+  },
+  "libbpf": {
+    "product": "libbpf",
+    "vendor": "libbpf_project",
+    "version": "1.6.2",
+    "commit": "45e89348ec74617c11cd5241ccd0ffc91dfd03c4",
+    "ignored-cves": []
+  },
+  "libelf": {
+    "product": "elfutils",
+    "vendor": "elfutils_project",
+    "version": "0.194",
+    "commit": "eb7f17d5016a75c6fdb6431aff1c1804d8c290e4",
+    "ignored-cves": []
   }
 }
