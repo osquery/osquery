@@ -7,10 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#ifdef WIN32
-#define _USE_MATH_DEFINES
-#endif
-// Include cmath here to ensure it is included after the define.
+// _USE_MATH_DEFINES (required for M_PI on Windows/MSVC) is defined in the
+// precompiled header (cmake/osquery_pch.h) before <cmath> is first included,
+// so no explicit define is needed here.
 #include <cmath>
 
 #include <osquery/utils/system/errno.h>

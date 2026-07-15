@@ -333,6 +333,8 @@ function(rocksdbMain)
       set_source_files_properties("${crc32_impl}" PROPERTIES
         COMPILE_FLAGS
           "-msse4.2 -mpclmul"
+        SKIP_PRECOMPILE_HEADERS
+          ON
       )
     endif()
 
@@ -478,6 +480,16 @@ function(rocksdbMain)
   target_include_directories(thirdparty_rocksdb SYSTEM INTERFACE
     "${library_root}/include"
   )
+
+  # Add a precompiled header for RocksDB. The PCH is compiled once and shared
+  # across all 303 source files, saving re-parsing of the most expensive
+  # internal headers on every cold build. Skip on Windows where PCH causes
+  # build issues.
+  if(NOT PLATFORM_WINDOWS)
+    target_precompile_headers(thirdparty_rocksdb PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/osquery_rocksdb_pch.h"
+    )
+  endif()
 
   if(PLATFORM_WINDOWS)
     # By defining this, we'll cause the WinEnvIO::AreFilesSame method to return

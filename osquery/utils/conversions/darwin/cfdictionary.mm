@@ -63,8 +63,8 @@ Status serializeCFDictionaryToJSON(const CFDictionaryRef& dict,
                      : "unknown error"));
     }
 
-    NSString* jsonString =
-        [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    NSString* jsonString = [[NSString alloc] initWithData:jsonData
+                                                 encoding:NSUTF8StringEncoding];
     if (jsonString == nil) {
       return Status(1, "Failed to create string from JSON data");
     }
