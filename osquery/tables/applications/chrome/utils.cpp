@@ -56,12 +56,18 @@ const ChromePathSuffixMap kWindowsPathList = {
     {ChromeBrowserType::GoogleChromeDev, "AppData\\Local\\Google\\Chrome Dev\\User Data"},
     {ChromeBrowserType::GoogleChromeCanary, "AppData\\Local\\Google\\Chrome SxS\\User Data"},
     {ChromeBrowserType::Brave, "AppData\\Roaming\\brave"},
+    {ChromeBrowserType::Brave, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data"},
+    {ChromeBrowserType::BraveBeta, "AppData\\Local\\BraveSoftware\\Brave-Browser-Beta\\User Data"},
+    {ChromeBrowserType::BraveNightly, "AppData\\Local\\BraveSoftware\\Brave-Browser-Nightly\\User Data"},
     {ChromeBrowserType::Chromium, "AppData\\Local\\Chromium"},
     {ChromeBrowserType::Yandex, "AppData\\Local\\Yandex\\YandexBrowser\\User Data"},
     {ChromeBrowserType::Edge, "AppData\\Local\\Microsoft\\Edge\\User Data"},
     {ChromeBrowserType::EdgeBeta, "AppData\\Local\\Microsoft\\Edge Beta\\User Data"},
+    {ChromeBrowserType::EdgeDev, "AppData\\Local\\Microsoft\\Edge Dev\\User Data"},
+    {ChromeBrowserType::EdgeCanary, "AppData\\Local\\Microsoft\\Edge SxS\\User Data"},
     {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"},
-    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"}};
+    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"},
+    {ChromeBrowserType::PerplexityComet, "AppData\\Local\\Perplexity\\Comet\\User Data"}};
 // clang-format on
 
 // clang-format off
@@ -71,13 +77,19 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::GoogleChromeDev, "Library/Application Support/Google/Chrome Dev"},
     {ChromeBrowserType::GoogleChromeCanary, "Library/Application Support/Google/Chrome Canary"},
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::BraveBeta, "Library/Application Support/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveNightly, "Library/Application Support/BraveSoftware/Brave-Browser-Nightly"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
     {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
     {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
+    {ChromeBrowserType::EdgeDev, "Library/Application Support/Microsoft Edge Dev"},
+    {ChromeBrowserType::EdgeCanary, "Library/Application Support/Microsoft Edge Canary"},
     {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"},
     {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"},
-    {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"}};
+    {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"},
+    {ChromeBrowserType::Dia, "Library/Application Support/Dia/User Data"},
+    {ChromeBrowserType::PerplexityComet, "Library/Application Support/Comet"}};
 // clang-format on
 
 // clang-format off
@@ -87,12 +99,17 @@ const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::GoogleChromeDev, ".config/google-chrome-unstable"},
     {ChromeBrowserType::Brave, ".config/BraveSoftware/Brave-Browser"},
     {ChromeBrowserType::Brave, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::BraveBeta, ".config/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveBeta, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveNightly, ".config/BraveSoftware/Brave-Browser-Nightly"},
+    {ChromeBrowserType::BraveNightly, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser-Nightly"},
     {ChromeBrowserType::Chromium, ".config/chromium"},
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
     {ChromeBrowserType::Chromium, ".var/app/org.chromium.Chromium/config/chromium"},
     {ChromeBrowserType::Yandex, ".config/yandex-browser-beta"},
     {ChromeBrowserType::Edge, ".config/microsoft-edge"},
     {ChromeBrowserType::EdgeBeta, ".config/microsoft-edge-beta"},
+    {ChromeBrowserType::EdgeDev, ".config/microsoft-edge-dev"},
     {ChromeBrowserType::Opera, ".config/opera"},
     {ChromeBrowserType::Vivaldi, ".config/vivaldi"},
     {ChromeBrowserType::Vivaldi, ".var/app/com.vivaldi.Vivaldi/config/vivaldi"},
@@ -107,13 +124,19 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::GoogleChromeDev, "chrome_dev"},
         {ChromeBrowserType::GoogleChromeCanary, "chrome_canary"},
         {ChromeBrowserType::Brave, "brave"},
+        {ChromeBrowserType::BraveBeta, "brave_beta"},
+        {ChromeBrowserType::BraveNightly, "brave_nightly"},
         {ChromeBrowserType::Chromium, "chromium"},
         {ChromeBrowserType::Yandex, "yandex"},
         {ChromeBrowserType::Opera, "opera"},
         {ChromeBrowserType::Edge, "edge"},
         {ChromeBrowserType::EdgeBeta, "edge_beta"},
+        {ChromeBrowserType::EdgeDev, "edge_dev"},
+        {ChromeBrowserType::EdgeCanary, "edge_canary"},
         {ChromeBrowserType::Vivaldi, "vivaldi"},
         {ChromeBrowserType::Arc, "arc"},
+        {ChromeBrowserType::Dia, "dia"},
+        {ChromeBrowserType::PerplexityComet, "comet"},
 };
 
 /// Base paths for built-in extensions; used to silence warnings for

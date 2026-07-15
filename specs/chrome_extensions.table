@@ -1,7 +1,7 @@
 table_name("chrome_extensions")
 description("Chrome-based browser extensions.")
 schema([
-    Column("browser_type", TEXT, "The browser type (Valid values: chrome, chromium, opera, yandex, brave, edge, edge_beta)"),
+    Column("browser_type", TEXT, "The browser type (Valid values: chrome, chrome_beta, chrome_dev, chrome_canary, chromium, opera, yandex, brave, brave_beta, brave_nightly, edge, edge_beta, edge_dev, edge_canary, vivaldi, arc, dia, comet)"),
     Column("uid", BIGINT, "The local user that owns the extension", index=True, optimized=True),
     Column("name", TEXT, "Extension display name"),
     Column("profile", TEXT, "The name of the Chrome profile that contains this extension"),
