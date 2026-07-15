@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <osquery/core/flags.h>
 #include <osquery/events/darwin/endpointsecurity.h>
+#include <osquery/events/darwin/es_event_categories.h>
 #include <osquery/logger/logger.h>
 #include <pwd.h>
 
@@ -39,6 +40,12 @@ FLAG(string,
 
 // document performance issues
 FLAG(bool, es_fim_enable_open_events, false, "Enable open events");
+
+// Enable specific EndpointSecurity event category tables
+FLAG(bool,
+     enable_es_authentication_events,
+     false,
+     "Enable authentication events from the EndpointSecurity subsystem");
 
 std::string getEsNewClientErrorMessage(const es_new_client_result_t r) {
   switch (r) {
@@ -160,6 +167,25 @@ void getProcessProperties(const es_process_t* p,
   ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";
 
   ec->cwd = getCwdPathFromPid(ec->pid);
+}
+
+// Get basic process properties for BaseESEventContext types
+void getBaseProcessProperties(const es_process_t* p,
+                              const BaseESEventContextRef& ec) {
+  auto audit_token = p->audit_token;
+  ec->pid = audit_token_to_pid(audit_token);
+  ec->pidversion = audit_token_to_pidversion(p->audit_token);
+  ec->path = getPath(p);
+
+  auto user = getpwuid(audit_token_to_ruid(audit_token));
+  ec->username = user->pw_name != nullptr ? std::string(user->pw_name) : "";
+
+  // Set parent property in EndpointSecurityFileEventContext if available
+  auto file_ec =
+      std::dynamic_pointer_cast<EndpointSecurityFileEventContext>(ec);
+  if (file_ec) {
+    file_ec->parent = p->ppid;
+  }
 }
 
 void appendQuotedString(std::ostream& out, std::string s, char delim) {
