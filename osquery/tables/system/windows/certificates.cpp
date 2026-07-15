@@ -476,8 +476,13 @@ void addCertRow(PCCERT_CONTEXT certContext,
 
   r["key_usage"] = getKeyUsage(certContext->pCertInfo);
 
-  r["key_strength"] = INTEGER(
-      (certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData) * 8);
+  auto keyStrength = CertGetPublicKeyLength(
+      CERT_ENCODING, &certContext->pCertInfo->SubjectPublicKeyInfo);
+  if (keyStrength == 0) {
+    VLOG(1) << "Failed to get public key length with " << GetLastError();
+  } else {
+    r["key_strength"] = INTEGER(keyStrength);
+  }
 
   std::vector<BYTE> keypropBuff;
   getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, keypropBuff);
