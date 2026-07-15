@@ -46,6 +46,12 @@ function(generateOsqueryTablesEventsEventstable)
       darwin/user_interaction_events.cpp
     )
 
+  elseif(DEFINED PLATFORM_FREEBSD)
+    list(APPEND source_files
+      freebsd/hardware_events.cpp
+      freebsd/openbsm_events.cpp
+    )
+
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
       windows/ntfs_journal_events.cpp
@@ -82,6 +88,10 @@ function(generateOsqueryTablesEventsEventstable)
   if(DEFINED PLATFORM_MACOS)
     target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
     target_link_libraries(osquery_tables_events_eventstable PUBLIC EndpointSecurity "-Wl,-weak_library,/usr/lib/libEndpointSecurity.dylib")
+  endif()
+
+  if(DEFINED PLATFORM_FREEBSD)
+    target_link_libraries(osquery_tables_events_eventstable PUBLIC bsm)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
