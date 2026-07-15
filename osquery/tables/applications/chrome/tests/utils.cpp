@@ -186,6 +186,39 @@ TEST_F(ChromeUtilsTests, getChromeBrowserName) {
 
   browser_name = getChromeBrowserName(ChromeBrowserType::EdgeBeta);
   EXPECT_EQ(browser_name, "edge_beta");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::GoogleChromeBeta);
+  EXPECT_EQ(browser_name, "chrome_beta");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::GoogleChromeDev);
+  EXPECT_EQ(browser_name, "chrome_dev");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::GoogleChromeCanary);
+  EXPECT_EQ(browser_name, "chrome_canary");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::BraveBeta);
+  EXPECT_EQ(browser_name, "brave_beta");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::BraveNightly);
+  EXPECT_EQ(browser_name, "brave_nightly");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::EdgeDev);
+  EXPECT_EQ(browser_name, "edge_dev");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::EdgeCanary);
+  EXPECT_EQ(browser_name, "edge_canary");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::Vivaldi);
+  EXPECT_EQ(browser_name, "vivaldi");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::Arc);
+  EXPECT_EQ(browser_name, "arc");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::Dia);
+  EXPECT_EQ(browser_name, "dia");
+
+  browser_name = getChromeBrowserName(ChromeBrowserType::PerplexityComet);
+  EXPECT_EQ(browser_name, "comet");
 }
 
 TEST_F(ChromeUtilsTests, getExtensionContentScriptsMatches) {

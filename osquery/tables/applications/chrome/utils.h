@@ -33,13 +33,19 @@ enum class ChromeBrowserType {
   GoogleChromeDev,
   GoogleChromeCanary,
   Brave,
+  BraveBeta,
+  BraveNightly,
   Chromium,
   Yandex,
   Opera,
   Edge,
   EdgeBeta,
+  EdgeDev,
+  EdgeCanary,
   Vivaldi,
   Arc,
+  Dia,
+  PerplexityComet,
 };
 
 /// Converts the browser type to a printable string
