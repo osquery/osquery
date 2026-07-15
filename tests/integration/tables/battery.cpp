@@ -34,7 +34,6 @@ TEST_F(battery, test_sanity) {
   // Or use custom DataCheck object
   // ValidationMap row_map = {
   //      {"manufacturer", NormalType}
-  //      {"manufacture_date", IntType}
   //      {"model", NormalType}
   //      {"serial_number", NormalType}
   //      {"cycle_count", IntType}
