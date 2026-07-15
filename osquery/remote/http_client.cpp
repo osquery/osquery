@@ -37,6 +37,7 @@ const long kSSLShortReadError{0x140000dbL};
 
 void Client::callNetworkOperation(std::function<void()> callback) {
   if (client_options_.timeout_) {
+    timer_.expires_after(std::chrono::seconds(client_options_.timeout_));
     timer_.async_wait(
         std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
   }
@@ -301,11 +302,6 @@ void Client::sendRequest(STREAM_TYPE& stream,
   req.prepare_payload();
   req.keep_alive(true);
 
-  if (client_options_.timeout_) {
-    timer_.async_wait(
-        [=](boost::system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
   beast_http_request_serializer sr{req};
 
   callNetworkOperation([&]() {
@@ -414,11 +410,6 @@ bool Client::initHTTPRequest(Request& req) {
 }
 
 Response Client::sendHTTPRequest(Request& req) {
-  if (client_options_.timeout_) {
-    timer_.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
-  }
-
   size_t redirect_attempts = 0;
   bool init_request = true;
   do {

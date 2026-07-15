@@ -189,7 +189,7 @@ void NTFSEventSubscriber::configure() {
   StringList access_categories;
   if (json_document.HasMember("file_accesses") &&
       json_document["file_accesses"].IsArray()) {
-    auto& json_file_accesses = json_document["file_accesses"].GetArray();
+    const auto& json_file_accesses = json_document["file_accesses"].GetArray();
 
     for (const auto& item : json_file_accesses) {
       if (!item.IsString()) {

@@ -31,6 +31,12 @@ endfunction()
 function(generatePluginsDatabaseTestsRocksdbtestsTest)
   add_osquery_executable(plugins_database_tests_rocksdbtests-test rocksdb.cpp)
 
+  # Use C++17 for rocksdb tests to avoid C++20 strict type checking issues with incomplete types in rocksdb headers
+  set_target_properties(plugins_database_tests_rocksdbtests-test PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+  )
+
   target_link_libraries(plugins_database_tests_rocksdbtests-test PRIVATE
     osquery_cxx_settings
     osquery_core
