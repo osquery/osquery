@@ -5,10 +5,12 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(DEFINED PLATFORM_POSIX)
-  include(CheckPIESupported)
-  check_pie_supported()
-  if(NOT CMAKE_C_LINK_PIE_SUPPORTED OR NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-      message(FATAL_ERROR "The linker for the current compiler does not support -fPIE or -pie")
+  if(DEFINED PLATFORM_LINUX)
+    include(CheckPIESupported)
+    check_pie_supported()
+    if(NOT CMAKE_C_LINK_PIE_SUPPORTED OR NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+        message(FATAL_ERROR "The linker for the current compiler does not support -fPIE or -pie")
+    endif()
   endif()
 
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -213,7 +215,6 @@ function(setupBuildFlags)
 
     elseif(DEFINED PLATFORM_MACOS)
       set(macos_cxx_compile_options
-        -x objective-c++
         -fobjc-arc
         -Wabi-tag
       )

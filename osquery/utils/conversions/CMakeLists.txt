@@ -25,7 +25,7 @@ function(generateOsqueryUtilsConversions)
   if(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
       darwin/cfdata.cpp
-      darwin/cfdictionary.cpp
+      darwin/cfdictionary.mm
       darwin/cfnumber.cpp
       darwin/cfstring.cpp
       darwin/cftime.cpp

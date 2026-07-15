@@ -74,6 +74,8 @@ function(opensslMain)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(platform_c_flags
       -fPIC
+      -isysroot
+      ${CMAKE_OSX_SYSROOT}
     )
 
     if(NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")

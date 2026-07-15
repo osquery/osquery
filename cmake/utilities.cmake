@@ -263,6 +263,29 @@ function(add_osquery_library)
   endforeach()
 
   add_library(${osquery_lib_name} ${osquery_lib_args})
+
+  # Apply precompiled headers to every real (compiled) osquery library.
+  # INTERFACE and IMPORTED targets are excluded because they have no compile
+  # step of their own.  UNKNOWN is also excluded (foreign imported libs).
+  #
+  # We compile separate PCH artifacts for CXX and OBJCXX via
+  # $<COMPILE_LANGUAGE:> generator expressions so that .mm translation units
+  # get an Objective-C++-aware PCH while regular .cpp files keep the C++ PCH.
+  if(NOT "INTERFACE" IN_LIST osquery_lib_ARGN AND
+     NOT "IMPORTED"  IN_LIST osquery_lib_ARGN AND
+     NOT "UNKNOWN"   IN_LIST osquery_lib_ARGN)
+    set(_osquery_pch "${CMAKE_SOURCE_DIR}/cmake/osquery_pch.h")
+    if(DEFINED PLATFORM_MACOS)
+      target_precompile_headers(${osquery_lib_name} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${_osquery_pch}>"
+        "$<$<COMPILE_LANGUAGE:OBJCXX>:${_osquery_pch}>"
+      )
+    else()
+      target_precompile_headers(${osquery_lib_name} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${_osquery_pch}>"
+      )
+    endif()
+  endif()
 endfunction()
 
 # This function modifies an existing cache variable but without changing its description
