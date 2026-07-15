@@ -4,8 +4,12 @@
 
 Integrate the osquery-toolchain, using the following file as a starting point: `cmake/toolchain.cmake`.
 
-Then the osquery source code is needed, and also a build of the `thirdparty_expat` target.
-When built, set the `OSQUERY_SOURCE_ROOT` env var with the path to the root of the osquery source code, and `OSQUERY_BUILD_ROOT` with the build root.
+The in cmake/CMakeLists.txt remove the following lines:
+```
+  if(NOT EXPAT_FOUND)
+      message(FATAL_ERROR "expat not found!")
+  endif(NOT EXPAT_FOUND)
+```
 
 Then configure dbus with the following command:
 
@@ -19,17 +23,15 @@ cmake -S cmake -B b \
   -DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF \
   -DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=OFF \
   -DCMAKE_MAKE_PROGRAM=make \
-  -DEXPAT_LIBRARY=${OSQUERY_BUILD_ROOT}/libs/src/expat/libthirdparty_expat.a \
-  -DEXPAT_INCLUDE_DIR=${OSQUERY_SOURCE_ROOT}/libraries/cmake/source/expat/src/expat/lib
 ```
 
-NOTE: We disable system search paths so that the find_package calls do not find system libraries like expat, but especially X11 and Glib, since we don't want to build against those.
+NOTE: We disable system search paths so that the find_package calls do not find system libraries like X11 and Glib, since we don't want to build against those.
 
 Patch the source code to make it build with the `dbus-noverbose-build.patch` file.
 
-Then build
+Then build libdbus only with:
 ```bash
-cmake --build b --verbose
+cmake --build b --target dbus-1 --verbose
 ```
 
 Always check which additional preprocessor defines are passed to the compiler.
