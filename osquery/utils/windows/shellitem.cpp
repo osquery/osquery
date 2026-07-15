@@ -39,6 +39,12 @@ const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
 std::string guidParse(const std::string& guid_little) {
+  // Validate string length before substr operations
+  if (guid_little.size() < 32) {
+    LOG(WARNING) << "GUID string too short: " << guid_little.size() << " bytes";
+    return "";
+  }
+
   std::vector<std::string> guids;
   guids.push_back(guid_little.substr(0, 8));
   guids.push_back(guid_little.substr(8, 4));
@@ -66,6 +72,11 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // Find "0400EFBE" offset
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
+    if (shell_data.size() < offset + 8) {
+      LOG(WARNING) << "Shell data too short for extension signature";
+      file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+      return file_entry;
+    }
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   }
@@ -79,6 +90,11 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     return file_entry;
   }
 
+  if (shell_data.size() < entry_offset + 8) {
+    LOG(WARNING) << "Shell data too short for version info";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
   std::string version = shell_data.substr(entry_offset + 4, 4);
   version = swapEndianess(version);
   file_entry.version = tryTo<int>(version, 16).takeOr(0);
@@ -95,13 +111,28 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // offset 0x18
   std::string timestamp = "";
   if (shell_data.find("43465346") != std::string::npos) {
+    if (shell_data.size() < 44) {
+      LOG(WARNING) << "Shell data too short for timestamp";
+      file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+      return file_entry;
+    }
     timestamp = shell_data.substr(36, 8);
     file_entry.dos_modified =
         (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
   } else {
+    if (shell_data.size() < 24) {
+      LOG(WARNING) << "Shell data too short for timestamp";
+      file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+      return file_entry;
+    }
     timestamp = shell_data.substr(16, 8);
     file_entry.dos_modified =
         (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  }
+  if (shell_data.size() < entry_offset + 56) {
+    LOG(WARNING) << "Shell data too short for NTFS data";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
   }
   timestamp = shell_data.substr(entry_offset + 16, 8);
   file_entry.dos_created =
@@ -111,6 +142,11 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
       (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
   file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
   std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
+  if (ntfs_data.size() < 16) {
+    LOG(WARNING) << "NTFS data too short";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
   std::string mft_entry = ntfs_data.substr(0, 12);
   mft_entry = swapEndianess(mft_entry);
 
@@ -128,6 +164,11 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     file_entry.mft_sequence = tryTo<int>(mft_sequence, 16).takeOr(0);
   }
 
+  if (shell_data.size() < entry_offset + 76) {
+    LOG(WARNING) << "Shell data too short for string size";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
   std::string string_size = shell_data.substr(entry_offset + 72, 4);
   string_size = swapEndianess(string_size);
   file_entry.string_size = tryTo<int>(string_size, 16).takeOr(0);
@@ -139,10 +180,20 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   } else if (file_entry.version == 7) {
     name_offset = 72;
   }
+  if (shell_data.size() < entry_offset + name_offset) {
+    LOG(WARNING) << "Shell data too short for entry name";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
   std::string entry_name = shell_data.substr(entry_offset + name_offset);
 
   // path name ends with 0000 (end of string)
   size_t name_end = entry_name.find("0000");
+  if (name_end == std::string::npos) {
+    LOG(WARNING) << "Could not find name end marker";
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
   std::string shell_name = entry_name.substr(0, name_end);
   // Path is in unicode, extra 00
   boost::erase_all(shell_name, "00");
@@ -171,6 +222,10 @@ std::string propertyStore(const std::string& shell_data,
                           const std::vector<size_t>& wps_list) {
   std::string guid_string;
   for (const auto& offsets : wps_list) {
+    if (shell_data.size() < offsets + 40) {
+      LOG(WARNING) << "Shell data too short for GUID at offset " << offsets;
+      continue;
+    }
     std::string guid_little = shell_data.substr(offsets + 8, 32);
     guid_string = guidParse(guid_little);
     // If GUID property set is found get the property set name
@@ -178,9 +233,17 @@ std::string propertyStore(const std::string& shell_data,
       if (guid_string != property_list) {
         continue;
       }
+      if (shell_data.size() < offsets + 56) {
+        LOG(WARNING) << "Shell data too short for name size";
+        return guid_string;
+      }
       std::string name_size = shell_data.substr(offsets + 48, 8);
       name_size = swapEndianess(name_size);
       int size = tryTo<int>(name_size, 16).takeOr(0);
+      if (shell_data.size() < offsets + 74 + (size + 1) * 4) {
+        LOG(WARNING) << "Shell data too short for property name";
+        return guid_string;
+      }
       std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
       boost::erase_all(string_hex, "00");
       std::string name;
@@ -200,11 +263,23 @@ std::string propertyStore(const std::string& shell_data,
 }
 
 std::string networkShareItem(const std::string& shell_data) {
+  if (shell_data.size() < 6) {
+    LOG(WARNING) << "Shell data too short for network share ID";
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
   for (const auto& net_id : kNetworkShareIds) {
     if (net_id == shell_data.substr(4, 2)) {
       // Network path ends with "00"
-      std::string network_path =
-          shell_data.substr(10, shell_data.find("00", 10) - 10);
+      auto path_end = shell_data.find("00", 10);
+      if (path_end == std::string::npos || path_end < 10) {
+        LOG(WARNING) << "Could not find network path end marker";
+        return "[UNKNOWN NETWORK SHELL ITEM]";
+      }
+      if (shell_data.size() < path_end) {
+        LOG(WARNING) << "Shell data too short for network path";
+        return "[UNKNOWN NETWORK SHELL ITEM]";
+      }
+      std::string network_path = shell_data.substr(10, path_end - 10);
       std::string name;
       try {
         name = boost::algorithm::unhex(network_path);
@@ -220,10 +295,18 @@ std::string networkShareItem(const std::string& shell_data) {
 }
 
 std::string zipContentItem(const std::string& shell_data) {
+  if (shell_data.size() < 172) {
+    LOG(WARNING) << "Shell data too short for zip path size";
+    return "[ZIP PATH DECODE ERROR]";
+  }
   std::string path_size_string = shell_data.substr(168, 4);
   path_size_string = swapEndianess(path_size_string);
   int path_size = tryTo<int>(path_size_string, 16).takeOr(0);
 
+  if (shell_data.size() < 184 + path_size * 4) {
+    LOG(WARNING) << "Shell data too short for zip path";
+    return "[ZIP PATH DECODE ERROR]";
+  }
   std::string path = shell_data.substr(184, path_size * 4);
   // Path is in unicode, extra 00
   boost::erase_all(path, "00");
@@ -236,11 +319,21 @@ std::string zipContentItem(const std::string& shell_data) {
     return "[ZIP PATH DECODE ERROR]";
   }
   // Zip folders can go down a max of two directories
+  if (shell_data.size() < 180) {
+    LOG(WARNING) << "Shell data too short for second path size";
+    return path;
+  }
   std::string second_path_size_string = shell_data.substr(176, 4);
   second_path_size_string = swapEndianess(second_path_size_string);
   int second_path_size = tryTo<int>(second_path_size_string, 16).takeOr(0);
 
   if (second_path_size != 0) {
+    if (shell_data.size() <
+        184 + (path_size * 4) + 4 + (second_path_size * 4)) {
+      LOG(WARNING) << "Shell data too short for second zip path";
+      path += "/[ZIP PATH DECODE ERROR]";
+      return path;
+    }
     path += "/";
     std::string second_path =
         shell_data.substr((184 + (path_size * 4) + 4), second_path_size * 4);
@@ -260,12 +353,20 @@ std::string zipContentItem(const std::string& shell_data) {
 }
 
 std::string rootFolderItem(const std::string& shell_data) {
+  if (shell_data.size() < 40) {
+    LOG(WARNING) << "Shell data too short for root folder GUID";
+    return "";
+  }
   std::string guid_little = shell_data.substr(8, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
 }
 
 std::string driveLetterItem(const std::string& shell_data) {
+  if (shell_data.size() < 12) {
+    LOG(WARNING) << "Shell data too short for drive letter";
+    return "[UNKNOWN DRIVE VOLUME]";
+  }
   std::string volume;
   try {
     volume = boost::algorithm::unhex(shell_data.substr(6, 6));
@@ -278,6 +379,10 @@ std::string driveLetterItem(const std::string& shell_data) {
 }
 
 std::string controlPanelCategoryItem(const std::string& shell_data) {
+  if (shell_data.size() < 18) {
+    LOG(WARNING) << "Shell data too short for panel category";
+    return "[UNKNOWN PANEL CATEGORY]";
+  }
   std::string panel_id = shell_data.substr(16, 2);
   if (panel_id == "00") {
     return "All Control Panel Items";
@@ -310,6 +415,10 @@ std::string controlPanelCategoryItem(const std::string& shell_data) {
 }
 
 std::string controlPanelItem(const std::string& shell_data) {
+  if (shell_data.size() < 60) {
+    LOG(WARNING) << "Shell data too short for control panel GUID";
+    return "";
+  }
   std::string guid_little = shell_data.substr(28, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
@@ -317,6 +426,12 @@ std::string controlPanelItem(const std::string& shell_data) {
 
 std::vector<std::string> ftpItem(const std::string& shell_data) {
   std::vector<std::string> ftp_data;
+  if (shell_data.size() < 12) {
+    LOG(WARNING) << "Shell data too short for FTP item";
+    ftp_data.push_back("0000000000000000");
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
   std::string unicode = shell_data.substr(6, 2);
   std::string uri_size = shell_data.substr(8, 4);
   if (uri_size == "0000") {
@@ -336,7 +451,17 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
   if (uri_size == "0000" && unicode == "80") {
     // find end of string
     size_t offset = shell_data.find("0000", 16);
+    if (offset == std::string::npos || offset < 12) {
+      LOG(WARNING) << "Could not find FTP hostname end marker";
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
     size_t hostname_size = offset - 12;
+    if (shell_data.size() < 12 + hostname_size) {
+      LOG(WARNING) << "Shell data too short for FTP hostname";
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
     std::string ftp_hostname = shell_data.substr(12, hostname_size);
     std::string name;
     boost::erase_all(ftp_hostname, "00");
@@ -372,6 +497,11 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
+  if (shell_data.size() < 92 + hostname_size) {
+    LOG(WARNING) << "Shell data too short for FTP hostname";
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
   std::string ftp_hostname = shell_data.substr(92, hostname_size);
   std::string name;
   boost::erase_all(ftp_hostname, "00");
@@ -389,6 +519,10 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
 }
 
 std::string propertyViewDrive(const std::string& shell_data) {
+  if (shell_data.size() < 32) {
+    LOG(WARNING) << "Shell data too short for property view drive";
+    return "[UNKNOWN USER PROPERTY DRIVE NAME]";
+  }
   std::string drive_hex = shell_data.substr(26, 6);
   std::string name;
   try {
@@ -415,6 +549,10 @@ std::string variableFtp(const std::string& shell_data) {
     LOG(WARNING) << "Could not identify Variable FTP name: " << shell_data;
     return "[UNKNOWN VARIABLE FTP NAME]";
   }
+  if (name_start.size() < offset) {
+    LOG(WARNING) << "Name start too short for long name";
+    return "[UNKNOWN VARIABLE FTP NAME]";
+  }
   std::string long_name = name_start.substr(offset);
   boost::erase_all(long_name, "00");
   // Check to make sure name is even, fixes issues with 10 base characters
@@ -434,15 +572,27 @@ std::string variableFtp(const std::string& shell_data) {
 }
 
 std::string variableGuid(const std::string& shell_data) {
+  if (shell_data.size() < 60) {
+    LOG(WARNING) << "Shell data too short for variable GUID";
+    return "";
+  }
   std::string guid_little = shell_data.substr(28, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
 }
 
 std::string mtpFolder(const std::string& shell_data) {
+  if (shell_data.size() < 132) {
+    LOG(WARNING) << "Shell data too short for MTP folder name size";
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
   std::string name_size = shell_data.substr(124, 8);
   name_size = swapEndianess(name_size);
   int size = tryTo<int>(name_size, 16).takeOr(0);
+  if (shell_data.size() < 148 + size * 4) {
+    LOG(WARNING) << "Shell data too short for MTP folder name";
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
   std::string path_name = shell_data.substr(148, size * 4);
   boost::erase_all(path_name, "00");
   std::string name;
@@ -457,9 +607,17 @@ std::string mtpFolder(const std::string& shell_data) {
 }
 
 std::string mtpDevice(const std::string& shell_data) {
+  if (shell_data.size() < 84) {
+    LOG(WARNING) << "Shell data too short for MTP device name size";
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
   std::string name_size = shell_data.substr(76, 8);
   name_size = swapEndianess(name_size);
   int size = tryTo<int>(name_size, 16).takeOr(0);
+  if (shell_data.size() < 108 + size * 4) {
+    LOG(WARNING) << "Shell data too short for MTP device name";
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
   std::string path_name = shell_data.substr(108, size * 4);
   boost::erase_all(path_name, "00");
   std::string name;
@@ -474,7 +632,19 @@ std::string mtpDevice(const std::string& shell_data) {
 }
 
 std::string mtpRoot(const std::string& shell_data) {
+  if (shell_data.size() < 80) {
+    LOG(WARNING) << "Shell data too short for MTP root name";
+    return "[UNKNOWN MTP ROOT NAME]";
+  }
   size_t name_end = shell_data.find("000000", 80);
+  if (name_end == std::string::npos || name_end < 80) {
+    LOG(WARNING) << "Could not find MTP root name end marker";
+    return "[UNKNOWN MTP ROOT NAME]";
+  }
+  if (shell_data.size() < name_end) {
+    LOG(WARNING) << "Shell data too short for MTP root path name";
+    return "[UNKNOWN MTP ROOT NAME]";
+  }
   std::string path_name = shell_data.substr(80, name_end - 80);
   boost::erase_all(path_name, "00");
   std::string name;
