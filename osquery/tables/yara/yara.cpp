@@ -153,7 +153,8 @@ bool isRuleUrlAllowed(std::set<std::string> signature_set, std::string url) {
 
     // The uri scheme, host and path matches are case sensitive
     if ((sig_uri.host() == test_uri.host()) &&
-        (sig_uri.scheme() == test_uri.scheme())) {
+        (sig_uri.scheme() == test_uri.scheme()) &&
+        (sig_uri.port() == test_uri.port())) {
       // Check the regex pattern for the allowed URL
       const std::regex pat(sig_uri.path());
       if (std::regex_match(test_uri.path(), pat)) {

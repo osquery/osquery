@@ -11,6 +11,7 @@
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
 // clang-format on
 
 #include <sstream>
@@ -52,8 +53,15 @@ void parseScrapeResults(
 
 void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
                    size_t timeoutS) {
-  http::Client client(
-      http::Client::Options().follow_redirects(true).timeout(timeoutS));
+  // Reuse the TLS transport options so scrape requests get the same TLS
+  // hardening (cipher suites, protocol versions, peer verification, and server
+  // certificate pinning) and redirect policy as the fleet transport, rather
+  // than a bare client that followed redirects with no TLS restrictions. The
+  // scrape URLs come from the (fleet-provided) config, so they are not fully
+  // trusted.
+  auto options = TLSTransport().getInternalOptions();
+  options.timeout(timeoutS);
+  http::Client client(options);
 
   for (auto& target : scrapeResults) {
     try {

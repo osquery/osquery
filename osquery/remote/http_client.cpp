@@ -483,6 +483,18 @@ Response Client::sendHTTPRequest(Request& req) {
           }
         } else {
           // Absolute URI.
+          // Refuse to follow a redirect that downgrades an HTTPS request to
+          // plaintext HTTP: doing so would transmit the request (and any
+          // credentials or body) in cleartext. This is enforced for every
+          // client that follows redirects, regardless of the destination
+          // origin.
+          Uri redir_uri(redir_url);
+          if (req.protocol() && (*req.protocol()) == "https" &&
+              redir_uri.scheme() == "http") {
+            throw std::runtime_error(
+                "Redirect blocked: refusing HTTPS to HTTP downgrade to " +
+                redir_url);
+          }
           init_request = true;
         }
         req.uri(redir_url);
