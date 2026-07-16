@@ -4,7 +4,7 @@
 
 Integrate the osquery-toolchain, using the following file as a starting point: `cmake/toolchain.cmake`.
 
-The in cmake/CMakeLists.txt remove the following lines:
+Then in cmake/CMakeLists.txt remove the following lines:
 ```
   if(NOT EXPAT_FOUND)
       message(FATAL_ERROR "expat not found!")
