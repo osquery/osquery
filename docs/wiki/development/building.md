@@ -4,7 +4,7 @@ osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 14.x.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 16.x+.
 
 ## Prerequisites
 
@@ -49,21 +49,13 @@ cmake --build . -j10 # where 10 is the number of parallel build jobs
 ## macOS
 
 The current build of osquery supports deployment to the same set of macOS versions (macOS 10.15 and newer). _Building_
-osquery from source on macOS now requires macOS 12 Monterey alongwith Xcode 14 or newer.
+osquery from source on macOS requires Xcode 16 or newer.
 
 The initial directory is assumed to be `/Users/<user>`
 
 ### Step 1: Install macOS prerequisites
 
-> Build is currently broken with XCode SDK >= 16.3 (see https://github.com/osquery/osquery/issues/8593).
->
-> The recommended workaround is to downgrade to 16.2 or lower:
->
-> 1. Download XCode 16.2 (requires Apple Developer login)
-> 2. Put it in `/Applications` (e.g. `mv ~/Downloads/Xcode.app /Applications/Xcode-16.2.app`)
-> 3. `xcode-select` that version (e.g. `sudo xcode-select -s /Applications/Xcode-16.2.app`)
-
-Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 14 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
+Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 16 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
 
 Then do the following.
 
@@ -78,8 +70,6 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 
 ### Step 2: Download and build source on macOS
 
-In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15` specifies macOS 10.15 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
-
 ```bash
 # Download source
 git clone https://github.com/osquery/osquery
@@ -87,7 +77,7 @@ cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path) ..
+cmake ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
