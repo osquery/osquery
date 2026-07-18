@@ -46,6 +46,7 @@ function(generateNativeTables)
     groups.table
     firefox_addons.table
     hash.table
+    jdk_installations.table
     interface_addresses.table
     interface_details.table
     listening_ports.table
