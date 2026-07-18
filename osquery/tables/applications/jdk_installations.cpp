@@ -347,10 +347,11 @@ void scanUserJDKs(QueryData& results,
     for (const auto& jdk_dir : jdk_dirs) {
       std::string path_to_process;
       
-      // For macOS Library/Java paths, check for Contents/Home structure
-      // SDKMAN and Jabba use flat directory structure even on macOS
-      if (isPlatform(PlatformType::TYPE_OSX) && 
-          search_path.find("Library/Java/JavaVirtualMachines") != std::string::npos) {
+      // For macOS Library/Java paths and Jabba, check for Contents/Home structure
+      // SDKMAN uses flat directory structure
+      if ((isPlatform(PlatformType::TYPE_OSX) && 
+           search_path.find("Library/Java/JavaVirtualMachines") != std::string::npos) ||
+          search_path.find(".jabba/jdk") != std::string::npos) {
         std::string home_path = jdk_dir + "/Contents/Home";
         if (pathExists(home_path).ok()) {
           path_to_process = home_path;
@@ -358,7 +359,7 @@ void scanUserJDKs(QueryData& results,
           path_to_process = jdk_dir;
         }
       } else {
-        // For SDKMAN and Jabba, the directory itself is the JDK home
+        // For SDKMAN, the directory itself is the JDK home
         path_to_process = jdk_dir;
       }
       
