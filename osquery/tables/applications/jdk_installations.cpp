@@ -261,6 +261,101 @@ void scanSystemJDKs(QueryData& results, std::set<std::string>& seen_paths) {
   }
 }
 
+// Scan system-wide JDK installations (Windows)
+void scanWindowsSystemJDKs(QueryData& results, std::set<std::string>& seen_paths) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return;
+  }
+  
+  std::vector<std::string> system_jdk_paths = {
+    "C:/Program Files/Java",
+    "C:/Program Files/Eclipse Adoptium",
+    "C:/Program Files/Eclipse Foundation",
+    "C:/Program Files/Amazon Corretto",
+    "C:/Program Files/Microsoft",
+    "C:/Program Files/Zulu",
+    "C:/Program Files (x86)/Java",
+    "C:/Program Files (x86)/Eclipse Adoptium",
+    "C:/Program Files (x86)/Amazon Corretto",
+    "C:/Program Files (x86)/Microsoft",
+    "C:/Program Files (x86)/Zulu"
+  };
+  
+  for (const auto& system_path : system_jdk_paths) {
+    if (!pathExists(system_path).ok()) {
+      continue;
+    }
+    
+    std::vector<std::string> jdk_dirs;
+    listDirectoriesInDirectory(system_path, jdk_dirs, false);
+    
+    for (const auto& jdk_dir : jdk_dirs) {
+      // Resolve to canonical path and skip if already seen
+      std::string canonical_path = resolveCanonicalPath(jdk_dir);
+      if (seen_paths.find(canonical_path) != seen_paths.end()) {
+        continue; // Skip duplicate/symlink
+      }
+      seen_paths.insert(canonical_path);
+      
+      std::int64_t uid = 0;
+      
+      // Get uid from the release file owner
+      std::string release_path = jdk_dir + "/release";
+      if (pathExists(release_path).ok()) {
+        uid = getFileOwnerUid(release_path);
+      } else {
+        // Fallback to java executable
+        std::string java_path = jdk_dir + "/bin/java.exe";
+        if (pathExists(java_path).ok()) {
+          uid = getFileOwnerUid(java_path);
+        }
+      }
+      
+      processJDKInstallation(results, jdk_dir, uid);
+    }
+  }
+}
+
+// Scan system-wide JDK installations (Linux)
+void scanLinuxSystemJDKs(QueryData& results, std::set<std::string>& seen_paths) {
+  if (!isPlatform(PlatformType::TYPE_LINUX)) {
+    return;
+  }
+  
+  std::string system_jvm_path = "/usr/lib/jvm";
+  if (!pathExists(system_jvm_path).ok()) {
+    return;
+  }
+  
+  std::vector<std::string> jdk_dirs;
+  listDirectoriesInDirectory(system_jvm_path, jdk_dirs, false);
+  
+  for (const auto& jdk_dir : jdk_dirs) {
+    // Resolve to canonical path and skip if already seen
+    std::string canonical_path = resolveCanonicalPath(jdk_dir);
+    if (seen_paths.find(canonical_path) != seen_paths.end()) {
+      continue; // Skip duplicate/symlink
+    }
+    seen_paths.insert(canonical_path);
+    
+    std::int64_t uid = 0;
+    
+    // Get uid from the release file owner
+    std::string release_path = jdk_dir + "/release";
+    if (pathExists(release_path).ok()) {
+      uid = getFileOwnerUid(release_path);
+    } else {
+      // Fallback to java executable
+      std::string java_path = jdk_dir + "/bin/java";
+      if (pathExists(java_path).ok()) {
+        uid = getFileOwnerUid(java_path);
+      }
+    }
+    
+    processJDKInstallation(results, jdk_dir, uid);
+  }
+}
+
 // Scan Homebrew JDK installations (macOS and Linux)
 void scanHomebrewJDKs(QueryData& results, std::set<std::string>& seen_paths) {
   // Homebrew installation paths
@@ -330,6 +425,11 @@ void scanUserJDKs(QueryData& results,
     search_paths.push_back(user_home + "/Library/Java/JavaVirtualMachines");
   }
   
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    // Windows user-specific installations (e.g., Microsoft JDK)
+    search_paths.push_back(user_home + "/AppData/Local/Programs/Microsoft");
+  }
+  
   // SDKMAN installations (all platforms)
   search_paths.push_back(user_home + "/.sdkman/candidates/java");
   
@@ -347,11 +447,11 @@ void scanUserJDKs(QueryData& results,
     for (const auto& jdk_dir : jdk_dirs) {
       std::string path_to_process;
       
-      // For macOS Library/Java paths and Jabba, check for Contents/Home structure
-      // SDKMAN uses flat directory structure
-      if ((isPlatform(PlatformType::TYPE_OSX) && 
-           search_path.find("Library/Java/JavaVirtualMachines") != std::string::npos) ||
-          search_path.find(".jabba/jdk") != std::string::npos) {
+      // Check for Contents/Home structure on macOS (Library/Java and Jabba)
+      // On Windows/Linux, Jabba uses flat structure like SDKMAN
+      if (isPlatform(PlatformType::TYPE_OSX) && 
+          (search_path.find("Library/Java/JavaVirtualMachines") != std::string::npos ||
+           search_path.find(".jabba/jdk") != std::string::npos)) {
         std::string home_path = jdk_dir + "/Contents/Home";
         if (pathExists(home_path).ok()) {
           path_to_process = home_path;
@@ -359,11 +459,11 @@ void scanUserJDKs(QueryData& results,
           path_to_process = jdk_dir;
         }
       } else {
-        // For SDKMAN, the directory itself is the JDK home
+        // For SDKMAN and Windows/Linux Jabba, the directory itself is the JDK home
         path_to_process = jdk_dir;
       }
       
-      // Resolve to canonical path and skip if already seen
+      // Resolve to canonical path and skip if already seen (avoids symlink duplicates)
       std::string canonical_path = resolveCanonicalPath(path_to_process);
       if (seen_paths.find(canonical_path) != seen_paths.end()) {
         continue; // Skip duplicate/symlink
@@ -400,6 +500,16 @@ QueryData genJDK(QueryContext& context) {
   // Scan system-wide installations (macOS only)
   if (isPlatform(PlatformType::TYPE_OSX)) {
     scanSystemJDKs(results, seen_paths);
+  }
+  
+  // Scan system-wide installations (Windows only)
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    scanWindowsSystemJDKs(results, seen_paths);
+  }
+  
+  // Scan system-wide installations (Linux only)
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    scanLinuxSystemJDKs(results, seen_paths);
   }
   
   // Scan Homebrew installations (macOS and Linux)
