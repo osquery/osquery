@@ -1,5 +1,5 @@
 table_name("agent_skills")
-description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with a directory constraint.")
+description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with an exact directory = <value> constraint.")
 schema([
     Column("name", TEXT, "Skill name from SKILL.md frontmatter"),
     Column("description", TEXT, "Skill description from SKILL.md frontmatter"),
@@ -10,7 +10,7 @@ schema([
     Column("allowed_tools", TEXT, "Declared pre-approved tool permissions, if present"),
     Column("agent", TEXT, "Agent runtime the skill was discovered for (claude, cursor, copilot, codex, agents)"),
     Column("scope", TEXT, "Installation scope: user, project, system or plugin"),
-    Column("directory", TEXT, "Skill root directory; for project-scope rows, echoes the queried directory constraint", index=True, optimized=True),
+    Column("directory", TEXT, "Skill root directory; for project-scope rows, echoes the exact directory = <value> constraint that triggered the scan (LIKE and other predicates are not supported and return no project-scope rows)", index=True, optimized=True),
     Column("path", TEXT, "Absolute path to SKILL.md", index=True),
     Column("sha256", TEXT, "SHA256 hash of SKILL.md"),
     Column("size", BIGINT, "Size of SKILL.md in bytes"),

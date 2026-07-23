@@ -382,22 +382,31 @@ struct SkillCounts {
 };
 
 // Counts bundled resources (every file under the skill directory, excluding
-// SKILL.md itself) and files under scripts/ in a single traversal, rather
-// than two full passes over the same directory tree.
+// any SKILL.md file -- there may legitimately be more than one, e.g. an
+// example or reference SKILL.md bundled by a skill-authoring plugin) and
+// files under scripts/, in a single traversal rather than two full passes
+// over the same directory tree.
 SkillCounts countSkillFiles(const fs::path& skill_dir) {
   SkillCounts counts;
   fs::path scripts_dir = skill_dir / "scripts";
 
   size_t total = 0;
+  size_t skill_md_count = 0;
   for (const auto& dir : walkBounded(
            skill_dir, kMaxResourceScanDepth, kMaxResourceScanDirs, {})) {
     total += dir.files.size();
     if (isUnderRoot(scripts_dir, fs::path(dir.path))) {
       counts.script_count += static_cast<int>(dir.files.size());
     }
+    for (const auto& file : dir.files) {
+      if (fs::path(file).filename() == "SKILL.md") {
+        skill_md_count++;
+      }
+    }
   }
 
-  counts.resource_count = total > 0 ? static_cast<int>(total) - 1 : 0;
+  counts.resource_count =
+      total > skill_md_count ? static_cast<int>(total - skill_md_count) : 0;
   return counts;
 }
 
@@ -514,11 +523,33 @@ void scanRoots(const fs::path& base,
               const std::string& directory_override,
               QueryData& results) {
   for (const auto& root : roots) {
+    fs::path expected_root = base / root.relative_path;
+
+    // Canonicalize the expected root once; a symlink at this level (e.g. a
+    // dotfile-managed ~/.claude) is a legitimate, common setup. What isn't
+    // legitimate is a *matched* SKILL.md resolving somewhere else entirely,
+    // which is checked below per match.
+    boost::system::error_code ec;
+    fs::path expected_root_canonical = fs::canonical(expected_root, ec);
+    if (ec) {
+      continue;
+    }
+
     std::vector<std::string> matches;
-    resolveFilePattern(base / root.relative_path / "%" / "SKILL.md", matches);
+    resolveFilePattern(expected_root / "%" / "SKILL.md", matches);
     for (const auto& match : matches) {
-      addSkillRow(
-          match, root.agent, scope, uid, username, directory_override, results);
+      fs::path match_canonical = fs::canonical(match, ec);
+      if (ec || !isUnderRoot(expected_root_canonical, match_canonical)) {
+        continue;
+      }
+
+      addSkillRow(match_canonical.string(),
+                 root.agent,
+                 scope,
+                 uid,
+                 username,
+                 directory_override,
+                 results);
     }
   }
 }
