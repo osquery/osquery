@@ -276,9 +276,13 @@ bool statSkillFile(const std::string& path, int64_t& size, int64_t& mtime) {
   return true;
 }
 
-// Symlink-loop-safe directory traversal, modeled on npm_packages.cpp's
-// dirs_to_search queue + inode-tracking pattern (there is no existing
-// depth-limited counting utility in osquery/filesystem/filesystem.h).
+// Inode-tracking loop guard, modeled on npm_packages.cpp's dirs_to_search
+// queue + inode-tracking pattern (there is no existing depth-limited
+// counting utility in osquery/filesystem/filesystem.h). platformLstat() is
+// a stub that always fails on Windows (osquery/filesystem/windows/fileops.cpp),
+// so this check is inert there -- a genuine symlink cycle would do
+// redundant re-visiting rather than being caught here, bounded only by
+// max_depth/max_dirs in the callers below, same as npm_packages.cpp today.
 bool isDirVisited(std::unordered_set<int>& visited_inos,
                   const std::string& path) {
   if (path.empty()) {
@@ -318,11 +322,11 @@ struct WalkedDir {
   std::vector<std::string> files;
 };
 
-// Bounded, symlink-loop-safe, and containment-checked directory walk shared
-// by the per-skill resource/script counter and the plugin-cache SKILL.md
-// finder below (each previously carried its own copy of this traversal). A
-// subdirectory whose canonical path resolves outside `root` -- e.g. a
-// symlink pointing elsewhere on disk -- is skipped rather than followed, so
+// Bounded and containment-checked directory walk shared by the per-skill
+// resource/script counter and the plugin-cache SKILL.md finder below (each
+// previously carried its own copy of this traversal). A subdirectory whose
+// canonical path resolves outside `root` -- e.g. a symlink pointing
+// elsewhere on disk -- is skipped rather than followed, so
 // a skill directory can't use a symlink to pull unrelated parts of the
 // filesystem into the scan. `skip_dir_names` subdirectory names are pruned
 // entirely (e.g. ".git").
