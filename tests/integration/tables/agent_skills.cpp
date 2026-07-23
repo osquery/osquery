@@ -85,13 +85,17 @@ Body content.
 
 namespace {
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
+  static const Row kEmptyRow;
   for (const auto& row : data) {
     if (row.at("path") == path) {
       return row;
     }
   }
   ADD_FAILURE() << "No row found with path " << path;
-  return data.front();
+  // data.front() would be undefined behavior if data is empty; fall back to
+  // an empty row so callers still fail loudly (via Row::at() throwing)
+  // instead of crashing the test runner.
+  return data.empty() ? kEmptyRow : data.front();
 }
 } // namespace
 

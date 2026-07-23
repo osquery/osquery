@@ -62,6 +62,16 @@ const std::vector<SkillRoot> kProjectSkillRoots = {
 const std::string kSystemSkillRootRelative = "etc/codex/skills";
 const std::string kSystemSkillAgent = "codex";
 
+// Subdirectory names pruned entirely from any bounded walk below: a skill
+// installed from (or bundling) a git checkout or vendored JS dependencies
+// can otherwise make resource/script counting expensive and inflate counts
+// with unrelated files, potentially exhausting the scan budget before
+// reaching the skill's own content.
+const std::unordered_set<std::string> kPrunedDirNames = {
+    ".git",
+    "node_modules",
+};
+
 // SKILL.md files are recommended to stay under 500 lines / ~5000 tokens, so
 // frontmatter is always near the start of the file. Rather than skipping
 // parsing entirely for oversized files (which would silently blank out
@@ -393,8 +403,10 @@ SkillCounts countSkillFiles(const fs::path& skill_dir) {
 
   size_t total = 0;
   size_t skill_md_count = 0;
-  for (const auto& dir : walkBounded(
-           skill_dir, kMaxResourceScanDepth, kMaxResourceScanDirs, {})) {
+  for (const auto& dir : walkBounded(skill_dir,
+                                     kMaxResourceScanDepth,
+                                     kMaxResourceScanDirs,
+                                     kPrunedDirNames)) {
     total += dir.files.size();
     if (isUnderRoot(scripts_dir, fs::path(dir.path))) {
       counts.script_count += static_cast<int>(dir.files.size());
@@ -420,7 +432,7 @@ std::vector<std::string> findSkillMdFiles(const fs::path& root,
                                           size_t max_dirs) {
   std::vector<std::string> found;
   for (const auto& dir :
-       walkBounded(root, max_depth, max_dirs, {".git", "node_modules"})) {
+       walkBounded(root, max_depth, max_dirs, kPrunedDirNames)) {
     for (const auto& file : dir.files) {
       if (fs::path(file).filename() == "SKILL.md") {
         found.push_back(file);
