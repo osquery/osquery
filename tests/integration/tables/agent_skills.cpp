@@ -51,12 +51,16 @@ class AgentSkills : public testing::Test {
                     .ok());
   }
 
-  void TearDown() override {
-    boost::system::error_code ec;
-    fs::remove_all(project_dir, ec);
-    EXPECT_FALSE(ec) << "Failed to remove " << project_dir.string() << ": "
-                     << ec.message();
+void TearDown() override {
+  if (project_dir.empty()) {
+    return;
   }
+
+  boost::system::error_code ec;
+  fs::remove_all(project_dir, ec);
+  EXPECT_FALSE(ec) << "Failed to remove " << project_dir.string() << ": "
+                   << ec.message();
+}
 
   fs::path project_dir;
   fs::path skill_dir;
@@ -151,6 +155,7 @@ TEST_F(AgentSkills, test_sanity) {
   EXPECT_EQ(row.at("resource_count"), "1");
   EXPECT_TRUE(row.at("uid").empty());
   EXPECT_TRUE(row.at("username").empty());
+}
 
 TEST_F(AgentSkills, test_block_scalar_description) {
   auto const data = execute_query(
