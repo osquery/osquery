@@ -184,17 +184,42 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
     return;
   }
 
-  auto close = file_content.find("\n---", fence_len);
+  size_t close = std::string::npos;
+  size_t fence_eol = std::string::npos;
+
+  for (size_t search_pos = fence_len;;) {
+    auto pos = file_content.find("\n---", search_pos);
+    if (pos == std::string::npos) {
+      break;
+    }
+
+    const auto after = pos + 4; // just after "\n---"
+    if (after == file_content.size()) {
+      close = pos;
+      fence_eol = after;
+      break;
+    } else if (file_content[after] == '\n') {
+      close = pos;
+      fence_eol = after + 1;
+      break;
+    } else if (file_content[after] == '\r' && after + 1 < file_content.size() &&
+               file_content[after + 1] == '\n') {
+      close = pos;
+      fence_eol = after + 2;
+      break;
+    }
+
+    search_pos = after;
+  }
+
   if (close == std::string::npos) {
     skill.content = file_content;
     return;
   }
 
-  auto body_start = file_content.find('\n', close + 1);
-  skill.content = (body_start == std::string::npos)
+  skill.content = (fence_eol >= file_content.size())
                       ? ""
-                      : trim(file_content.substr(body_start + 1));
-
+                      : trim(file_content.substr(fence_eol));
   std::string frontmatter = file_content.substr(fence_len, close - fence_len);
   std::vector<std::string> lines;
   {
