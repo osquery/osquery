@@ -149,7 +149,8 @@ TEST_F(AgentSkills, test_sanity) {
   EXPECT_EQ(row.at("content"), "Do the thing under test.");
   EXPECT_EQ(row.at("script_count"), "1");
   EXPECT_EQ(row.at("resource_count"), "1");
-}
+  EXPECT_TRUE(row.at("uid").empty());
+  EXPECT_TRUE(row.at("username").empty());
 
 TEST_F(AgentSkills, test_block_scalar_description) {
   auto const data = execute_query(
