@@ -217,9 +217,8 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
     return;
   }
 
-  skill.content = (fence_eol >= file_content.size())
-                      ? ""
-                      : trim(file_content.substr(fence_eol));
+  skill.content =
+      (fence_eol >= file_content.size()) ? "" : file_content.substr(fence_eol);
   std::string frontmatter = file_content.substr(fence_len, close - fence_len);
   std::vector<std::string> lines;
   {
