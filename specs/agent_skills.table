@@ -1,0 +1,32 @@
+table_name("agent_skills")
+description("Installed AI agent skills (SKILL.md packages) discovered on the system.")
+schema([
+    Column("name", TEXT, "Skill name from SKILL.md frontmatter"),
+    Column("description", TEXT, "Skill description from SKILL.md frontmatter"),
+    Column("content", TEXT, "Markdown instructions body of SKILL.md, excluding frontmatter", hidden=True),
+    Column("version", TEXT, "Skill version, from the conventional metadata.version frontmatter key, if present"),
+    Column("license", TEXT, "Declared license, if present"),
+    Column("compatibility", TEXT, "Declared environment requirements (target product, required packages, network access), if present"),
+    Column("allowed_tools", TEXT, "Declared pre-approved tool permissions, if present"),
+    Column("agent", TEXT, "Agent runtime the skill was discovered for (claude, cursor, copilot, codex, agents)"),
+    Column("scope", TEXT, "Installation scope: user, project, system or plugin"),
+    Column("directory", TEXT, "Skill root directory; for project-scope rows, echoes the queried directory constraint", index=True, optimized=True),
+    Column("path", TEXT, "Absolute path to SKILL.md", index=True),
+    Column("sha256", TEXT, "SHA256 hash of SKILL.md"),
+    Column("size", BIGINT, "Size of SKILL.md in bytes"),
+    Column("mtime", BIGINT, "Last modification time of SKILL.md"),
+    Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md"),
+    Column("script_count", INTEGER, "Number of files under scripts/"),
+    Column("uid", BIGINT, "Owning user id (user-scope rows only)", index=True, optimized=True),
+    Column("username", TEXT, "Owning username (user-scope rows only; join users on uid for project/system rows)"),
+    ForeignKey(column="uid", table="users"),
+])
+attributes(user_data=True)
+implementation("applications/agent_skills@genAgentSkills")
+examples([
+    "select * from agent_skills",
+    "select * from users join agent_skills using (uid)",
+    "select * from agent_skills where directory = '/path/to/repo'",
+    "select username, name, sha256 from agent_skills where script_count > 0",
+    "select name, content from agent_skills where content like '%curl%'",
+])

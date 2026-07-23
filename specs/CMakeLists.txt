@@ -31,6 +31,7 @@ endfunction()
 
 function(generateNativeTables)
   set(platform_independent_spec_files
+    agent_skills.table
     azure_instance_metadata.table
     azure_instance_tags.table
     carbon_black_info.table
