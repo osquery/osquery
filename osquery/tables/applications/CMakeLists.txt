@@ -17,6 +17,7 @@ endfunction()
 
 function(generateOsqueryTablesApplications)
   set(source_files
+    agent_skills.cpp
     chrome/chrome_extensions.cpp
     chrome/chrome_extension_content_scripts.cpp
     chrome/utils.cpp
