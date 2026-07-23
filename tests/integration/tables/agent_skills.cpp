@@ -26,9 +26,15 @@ class AgentSkills : public testing::Test {
     // resolveFilePattern canonicalizes the path up to the first wildcard
     // (e.g. /var/... -> /private/var/... on macOS, since /var is a symlink);
     // canonicalize here too so the `directory` constraint this test queries
-    // with matches what the table's own discovery will produce.
-    project_dir = fs::canonical(fs::temp_directory_path()) /
-                  fs::unique_path("osquery.tests.agent_skills.%%%%-%%%%");
+    // with matches what the table's own discovery will produce. Uses the
+    // non-throwing overload since the throwing one would abort the test
+    // runner on failure instead of reporting a clean assertion failure.
+    boost::system::error_code ec;
+    fs::path canonical_tmp = fs::canonical(fs::temp_directory_path(), ec);
+    ASSERT_FALSE(ec) << "Failed to canonicalize temp directory: "
+                     << ec.message();
+    project_dir =
+        canonical_tmp / fs::unique_path("osquery.tests.agent_skills.%%%%-%%%%");
     skill_dir = project_dir / ".claude" / "skills" / "test-skill";
     block_scalar_skill_dir =
         project_dir / ".cursor" / "skills" / "block-scalar-skill";
@@ -46,7 +52,10 @@ class AgentSkills : public testing::Test {
   }
 
   void TearDown() override {
-    fs::remove_all(project_dir);
+    boost::system::error_code ec;
+    fs::remove_all(project_dir, ec);
+    EXPECT_FALSE(ec) << "Failed to remove " << project_dir.string() << ": "
+                     << ec.message();
   }
 
   fs::path project_dir;

@@ -356,9 +356,25 @@ std::vector<WalkedDir> walkBounded(
     }
     visited_dirs++;
 
+    // Individual files are canonicalized and containment-checked too, not
+    // just subdirectories: a file entry can itself be a symlink (e.g. one
+    // named SKILL.md pointing outside root), and callers like
+    // findSkillMdFiles() read/hash whatever path is returned here.
     std::vector<std::string> files;
     listFilesInDirectory(current_dir, files, false);
-    result.push_back(WalkedDir{current_dir, depth, std::move(files)});
+
+    std::vector<std::string> contained_files;
+    contained_files.reserve(files.size());
+    for (const auto& file : files) {
+      fs::path file_canonical = fs::canonical(file, ec);
+      if (ec || !isUnderRoot(root_canonical, file_canonical)) {
+        continue;
+      }
+      contained_files.push_back(file_canonical.string());
+    }
+
+    result.push_back(
+        WalkedDir{current_dir, depth, std::move(contained_files)});
 
     if (depth >= max_depth) {
       continue;

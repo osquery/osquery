@@ -17,8 +17,8 @@ schema([
     Column("mtime", BIGINT, "Last modification time of SKILL.md"),
     Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md"),
     Column("script_count", INTEGER, "Number of files under scripts/"),
-    Column("uid", BIGINT, "Owning user id (user-scope rows only)", index=True, optimized=True),
-    Column("username", TEXT, "Owning username; only populated for user-scope rows. Blank for project/system-scope rows, which have no owning user and are not joinable to the users table on uid"),
+    Column("uid", BIGINT, "Owning user id; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows", index=True, optimized=True),
+    Column("username", TEXT, "Owning username; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows, which have no owning user and are not joinable to the users table on uid"),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)
