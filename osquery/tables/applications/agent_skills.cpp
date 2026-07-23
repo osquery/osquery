@@ -400,8 +400,9 @@ std::vector<WalkedDir> walkBounded(
     // named SKILL.md pointing outside root), and callers like
     // findSkillMdFiles() read/hash whatever path is returned here.
     std::vector<std::string> files;
-    listFilesInDirectory(current_dir, files, false);
-
+    if (!listFilesInDirectory(current_dir, files, false).ok()) {
+      continue;
+    }
     std::vector<std::string> contained_files;
     contained_files.reserve(files.size());
     for (const auto& file : files) {

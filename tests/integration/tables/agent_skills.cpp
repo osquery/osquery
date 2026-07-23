@@ -51,16 +51,16 @@ class AgentSkills : public testing::Test {
                     .ok());
   }
 
-void TearDown() override {
-  if (project_dir.empty()) {
-    return;
-  }
+  void TearDown() override {
+    if (project_dir.empty()) {
+      return;
+    }
 
-  boost::system::error_code ec;
-  fs::remove_all(project_dir, ec);
-  EXPECT_FALSE(ec) << "Failed to remove " << project_dir.string() << ": "
-                   << ec.message();
-}
+    boost::system::error_code ec;
+    fs::remove_all(project_dir, ec);
+    EXPECT_FALSE(ec) << "Failed to remove " << project_dir.string() << ": "
+                     << ec.message();
+  }
 
   fs::path project_dir;
   fs::path skill_dir;
