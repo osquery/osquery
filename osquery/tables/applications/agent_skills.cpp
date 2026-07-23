@@ -382,10 +382,11 @@ struct SkillCounts {
 };
 
 // Counts bundled resources (every file under the skill directory, excluding
-// any SKILL.md file -- there may legitimately be more than one, e.g. an
-// example or reference SKILL.md bundled by a skill-authoring plugin) and
-// files under scripts/, in a single traversal rather than two full passes
-// over the same directory tree.
+// any SKILL.md file) and files under scripts/, in a single traversal rather
+// than two full passes over the same directory tree. A skill directory can
+// legitimately contain more than one SKILL.md -- e.g. an example or
+// reference file bundled by a skill-authoring plugin -- so all of them are
+// excluded from resource_count, not just the first one found.
 SkillCounts countSkillFiles(const fs::path& skill_dir) {
   SkillCounts counts;
   fs::path scripts_dir = skill_dir / "scripts";
