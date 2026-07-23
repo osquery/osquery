@@ -328,16 +328,26 @@ bool isDirVisited(std::unordered_set<int>& visited_inos,
 // under "/a/b"; this requires the next character after the shared prefix
 // to be a path separator.
 bool isUnderRoot(const fs::path& root, const fs::path& candidate) {
-  const auto& root_str = root.string();
-  const auto& candidate_str = candidate.string();
+  const auto root_str = root.string();
+  const auto candidate_str = candidate.string();
+
   if (candidate_str == root_str) {
     return true;
   }
-  if (candidate_str.size() <= root_str.size() ||
+
+  if (root_str.empty() || candidate_str.size() <= root_str.size() ||
       candidate_str.compare(0, root_str.size(), root_str) != 0) {
     return false;
   }
-  char next = candidate_str[root_str.size()];
+
+  // If the root already ends with a separator (e.g. "/"), a prefix match is
+  // sufficient.
+  const char last = root_str.back();
+  if (last == '/' || last == '\\') {
+    return true;
+  }
+
+  const char next = candidate_str[root_str.size()];
   return next == '/' || next == '\\';
 }
 
