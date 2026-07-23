@@ -9,6 +9,7 @@
 
 #include <sys/stat.h>
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -61,16 +62,20 @@ const std::vector<SkillRoot> kProjectSkillRoots = {
 const std::string kSystemSkillRootRelative = "etc/codex/skills";
 const std::string kSystemSkillAgent = "codex";
 
-// SKILL.md files are recommended to stay under 500 lines / ~5000 tokens.
-// Anything far larger than that is capped rather than parsed, to bound
-// per-row cost; such rows still get path/hash/size/mtime/counts.
+// SKILL.md files are recommended to stay under 500 lines / ~5000 tokens, so
+// frontmatter is always near the start of the file. Rather than skipping
+// parsing entirely for oversized files (which would silently blank out
+// name/description/etc. for an otherwise-valid, just-large SKILL.md), only
+// this many leading bytes are ever read: enough for any real frontmatter
+// block, bounding per-row cost regardless of total file size. `content`
+// may end up truncated for files whose body exceeds this.
 const size_t kMaxFrontmatterFileSize = 256 * 1024;
 
 // Skill directories are inherently shallow (SKILL.md plus scripts/,
 // references/, assets/); these bound resource/script counting cost without
 // exposing a query-configurable knob like npm_packages' max_depth.
 const int kMaxResourceScanDepth = 8;
-const size_t kMaxResourceScanFiles = 5000;
+const size_t kMaxResourceScanDirs = 5000;
 
 // Claude Code plugin installs put skills several directories deep under
 // ~/.claude/plugins/ (marketplace source checkouts under marketplaces/, an
@@ -80,7 +85,7 @@ const size_t kMaxResourceScanFiles = 5000;
 // walked (bounded, pruning .git/node_modules) instead of glob-matched.
 const std::string kClaudePluginsRootRelative = ".claude/plugins";
 const int kMaxPluginScanDepth = 12;
-const size_t kMaxPluginScanEntries = 20000;
+const size_t kMaxPluginScanDirs = 20000;
 
 struct ParsedSkill {
   std::string name;
@@ -154,14 +159,22 @@ std::string consumeBlockScalar(const std::vector<std::string>& lines,
 // nesting to pull `version` out of a `metadata:` block, per that spec's own
 // documented convention for where version numbers live, plus YAML block
 // scalars (`>`/`|`) since real-world descriptions commonly use them.
+// Accepts both LF and CRLF line endings for the frontmatter fence itself;
+// embedded CRLFs within the frontmatter body are handled by the per-line
+// trim() calls below, which strip trailing '\r' along with other whitespace.
 // Unrecognized keys are dropped rather than surfaced as a partial blob.
 void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
-  if (file_content.compare(0, 4, "---\n") != 0) {
+  size_t fence_len = 0;
+  if (file_content.compare(0, 4, "---\n") == 0) {
+    fence_len = 4;
+  } else if (file_content.compare(0, 5, "---\r\n") == 0) {
+    fence_len = 5;
+  } else {
     skill.content = file_content;
     return;
   }
 
-  auto close = file_content.find("\n---", 3);
+  auto close = file_content.find("\n---", fence_len);
   if (close == std::string::npos) {
     skill.content = file_content;
     return;
@@ -172,7 +185,7 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
                       ? ""
                       : trim(file_content.substr(body_start + 1));
 
-  std::string frontmatter = file_content.substr(4, close - 4);
+  std::string frontmatter = file_content.substr(fence_len, close - fence_len);
   std::vector<std::string> lines;
   {
     std::istringstream stream(frontmatter);
@@ -271,95 +284,158 @@ bool isDirVisited(std::unordered_set<int>& visited_inos,
   return !inserted;
 }
 
-// Counts files under `root` (or under `root/scripts` when scripts_only),
-// depth-limited and symlink-loop-safe.
-int countFiles(const fs::path& root, bool scripts_only) {
-  fs::path start = scripts_only ? root / "scripts" : root;
-  if (!isDirectory(start).ok()) {
-    return 0;
+// True if `candidate` is `root` itself or a path-segment-aligned descendant
+// of it. A plain string-prefix check would wrongly accept "/a/bc" as being
+// under "/a/b"; this requires the next character after the shared prefix
+// to be a path separator.
+bool isUnderRoot(const fs::path& root, const fs::path& candidate) {
+  const auto& root_str = root.string();
+  const auto& candidate_str = candidate.string();
+  if (candidate_str == root_str) {
+    return true;
   }
-
-  size_t count = 0;
-  std::unordered_set<int> visited_inos;
-  std::vector<std::pair<std::string, int>> dirs_to_search;
-  dirs_to_search.emplace_back(start.string(), 0);
-
-  while (!dirs_to_search.empty() && count < kMaxResourceScanFiles) {
-    auto [current_dir, depth] = dirs_to_search.back();
-    dirs_to_search.pop_back();
-
-    if (isDirVisited(visited_inos, current_dir)) {
-      continue;
-    }
-
-    std::vector<std::string> files;
-    if (listFilesInDirectory(current_dir, files, false).ok()) {
-      count += files.size();
-    }
-
-    if (depth < kMaxResourceScanDepth) {
-      std::vector<std::string> subdirs;
-      if (listDirectoriesInDirectory(current_dir, subdirs, false).ok()) {
-        for (const auto& subdir : subdirs) {
-          dirs_to_search.emplace_back(subdir, depth + 1);
-        }
-      }
-    }
+  if (candidate_str.size() <= root_str.size() ||
+      candidate_str.compare(0, root_str.size(), root_str) != 0) {
+    return false;
   }
-
-  return static_cast<int>(count);
+  char next = candidate_str[root_str.size()];
+  return next == '/' || next == '\\';
 }
 
-// Bounded, symlink-loop-safe recursive search for SKILL.md files under
-// `root`, pruning `.git`/`node_modules` subtrees. Used for plugin-cache
-// discovery, where skill depth varies per marketplace repo layout and a
-// single glob pattern (as used for kUserSkillRoots) can't cover it.
-std::vector<std::string> findSkillMdFiles(const fs::path& root,
-                                          int max_depth,
-                                          size_t max_entries) {
-  std::vector<std::string> found;
+struct WalkedDir {
+  std::string path;
+  int depth;
+  std::vector<std::string> files;
+};
+
+// Bounded, symlink-loop-safe, and containment-checked directory walk shared
+// by the per-skill resource/script counter and the plugin-cache SKILL.md
+// finder below (each previously carried its own copy of this traversal). A
+// subdirectory whose canonical path resolves outside `root` -- e.g. a
+// symlink pointing elsewhere on disk -- is skipped rather than followed, so
+// a skill directory can't use a symlink to pull unrelated parts of the
+// filesystem into the scan. `skip_dir_names` subdirectory names are pruned
+// entirely (e.g. ".git").
+std::vector<WalkedDir> walkBounded(
+    const fs::path& root,
+    int max_depth,
+    size_t max_dirs,
+    const std::unordered_set<std::string>& skip_dir_names) {
+  std::vector<WalkedDir> result;
   if (!isDirectory(root).ok()) {
-    return found;
+    return result;
   }
 
-  size_t visited_entries = 0;
+  boost::system::error_code ec;
+  fs::path root_canonical = fs::canonical(root, ec);
+  if (ec) {
+    return result;
+  }
+
+  size_t visited_dirs = 0;
   std::unordered_set<int> visited_inos;
   std::vector<std::pair<std::string, int>> dirs_to_search;
   dirs_to_search.emplace_back(root.string(), 0);
 
-  while (!dirs_to_search.empty() && visited_entries < max_entries) {
+  while (!dirs_to_search.empty() && visited_dirs < max_dirs) {
     auto [current_dir, depth] = dirs_to_search.back();
     dirs_to_search.pop_back();
 
     if (isDirVisited(visited_inos, current_dir)) {
       continue;
     }
-    visited_entries++;
+    visited_dirs++;
 
     std::vector<std::string> files;
-    if (listFilesInDirectory(current_dir, files, false).ok()) {
-      for (const auto& file : files) {
-        if (fs::path(file).filename() == "SKILL.md") {
-          found.push_back(file);
-        }
-      }
+    listFilesInDirectory(current_dir, files, false);
+    result.push_back(WalkedDir{current_dir, depth, std::move(files)});
+
+    if (depth >= max_depth) {
+      continue;
     }
 
-    if (depth < max_depth) {
-      std::vector<std::string> subdirs;
-      if (listDirectoriesInDirectory(current_dir, subdirs, false).ok()) {
-        for (const auto& subdir : subdirs) {
-          auto name = fs::path(subdir).filename().string();
-          if (name == ".git" || name == "node_modules") {
-            continue;
-          }
-          dirs_to_search.emplace_back(subdir, depth + 1);
-        }
+    std::vector<std::string> subdirs;
+    if (!listDirectoriesInDirectory(current_dir, subdirs, false).ok()) {
+      continue;
+    }
+
+    for (const auto& subdir : subdirs) {
+      if (skip_dir_names.count(fs::path(subdir).filename().string())) {
+        continue;
       }
+
+      fs::path subdir_canonical = fs::canonical(subdir, ec);
+      if (ec || !isUnderRoot(root_canonical, subdir_canonical)) {
+        continue;
+      }
+
+      dirs_to_search.emplace_back(subdir, depth + 1);
     }
   }
 
+  return result;
+}
+
+struct SkillCounts {
+  int resource_count = 0;
+  int script_count = 0;
+};
+
+// Counts bundled resources (every file under the skill directory, excluding
+// SKILL.md itself) and files under scripts/ in a single traversal, rather
+// than two full passes over the same directory tree.
+SkillCounts countSkillFiles(const fs::path& skill_dir) {
+  SkillCounts counts;
+  fs::path scripts_dir = skill_dir / "scripts";
+
+  size_t total = 0;
+  for (const auto& dir : walkBounded(
+           skill_dir, kMaxResourceScanDepth, kMaxResourceScanDirs, {})) {
+    total += dir.files.size();
+    if (isUnderRoot(scripts_dir, fs::path(dir.path))) {
+      counts.script_count += static_cast<int>(dir.files.size());
+    }
+  }
+
+  counts.resource_count = total > 0 ? static_cast<int>(total) - 1 : 0;
+  return counts;
+}
+
+// Bounded recursive search for SKILL.md files under `root`, pruning
+// `.git`/`node_modules` subtrees. Used for plugin-cache discovery, where
+// skill depth varies per marketplace repo layout and a single glob pattern
+// (as used for kUserSkillRoots) can't cover it.
+std::vector<std::string> findSkillMdFiles(const fs::path& root,
+                                          int max_depth,
+                                          size_t max_dirs) {
+  std::vector<std::string> found;
+  for (const auto& dir :
+       walkBounded(root, max_depth, max_dirs, {".git", "node_modules"})) {
+    for (const auto& file : dir.files) {
+      if (fs::path(file).filename() == "SKILL.md") {
+        found.push_back(file);
+      }
+    }
+  }
   return found;
+}
+
+// Reads up to `max_bytes` of `path`'s content. Used to bound the cost of
+// frontmatter parsing independent of total file size: a large SKILL.md
+// still gets its (small, leading) frontmatter parsed correctly, rather than
+// an all-or-nothing size gate blanking out every field.
+bool readFilePrefix(const std::string& path,
+                    size_t max_bytes,
+                    std::string& content) {
+  std::ifstream stream(path, std::ios::in | std::ios::binary);
+  if (!stream.is_open()) {
+    return false;
+  }
+
+  content.resize(max_bytes);
+  stream.read(&content[0], static_cast<std::streamsize>(max_bytes));
+  content.resize(static_cast<size_t>(stream.gcount()));
+  return true;
 }
 
 // `directory_override`, when non-empty, is used as the row's `directory`
@@ -406,10 +482,9 @@ void addSkillRow(const std::string& skill_md_path,
   r["mtime"] = BIGINT(mtime);
 
   ParsedSkill parsed;
-  if (stat_ok && size > 0 &&
-      static_cast<size_t>(size) <= kMaxFrontmatterFileSize) {
+  if (stat_ok && size > 0) {
     std::string content;
-    if (readFile(path, content, false).ok()) {
+    if (readFilePrefix(skill_md_path, kMaxFrontmatterFileSize, content)) {
       parseFrontmatter(content, parsed);
     }
   }
@@ -421,9 +496,9 @@ void addSkillRow(const std::string& skill_md_path,
   r["compatibility"] = parsed.compatibility;
   r["allowed_tools"] = parsed.allowed_tools;
 
-  auto resources = countFiles(skill_dir, false);
-  r["resource_count"] = INTEGER(resources > 0 ? resources - 1 : 0);
-  r["script_count"] = INTEGER(countFiles(skill_dir, true));
+  auto counts = countSkillFiles(skill_dir);
+  r["resource_count"] = INTEGER(counts.resource_count);
+  r["script_count"] = INTEGER(counts.script_count);
 
   r["uid"] = uid;
   r["username"] = username;
@@ -477,7 +552,7 @@ QueryData genAgentSkills(QueryContext& context) {
     auto plugin_skills =
         findSkillMdFiles(fs::path(directory->second) / kClaudePluginsRootRelative,
                         kMaxPluginScanDepth,
-                        kMaxPluginScanEntries);
+                        kMaxPluginScanDirs);
     for (const auto& skill_md : plugin_skills) {
       addSkillRow(
           skill_md, "claude", "plugin", uid->second, username->second, "", results);

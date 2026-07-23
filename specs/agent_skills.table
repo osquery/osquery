@@ -1,9 +1,9 @@
 table_name("agent_skills")
-description("Installed AI agent skills (SKILL.md packages) discovered on the system.")
+description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with a directory constraint.")
 schema([
     Column("name", TEXT, "Skill name from SKILL.md frontmatter"),
     Column("description", TEXT, "Skill description from SKILL.md frontmatter"),
-    Column("content", TEXT, "Markdown instructions body of SKILL.md, excluding frontmatter", hidden=True),
+    Column("content", TEXT, "Markdown instructions body of SKILL.md, excluding frontmatter; truncated for files whose body exceeds the frontmatter read cap", hidden=True),
     Column("version", TEXT, "Skill version, from the conventional metadata.version frontmatter key, if present"),
     Column("license", TEXT, "Declared license, if present"),
     Column("compatibility", TEXT, "Declared environment requirements (target product, required packages, network access), if present"),
@@ -18,7 +18,7 @@ schema([
     Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md"),
     Column("script_count", INTEGER, "Number of files under scripts/"),
     Column("uid", BIGINT, "Owning user id (user-scope rows only)", index=True, optimized=True),
-    Column("username", TEXT, "Owning username (user-scope rows only; join users on uid for project/system rows)"),
+    Column("username", TEXT, "Owning username; only populated for user-scope rows. Blank for project/system-scope rows, which have no owning user and are not joinable to the users table on uid"),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)
