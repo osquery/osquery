@@ -187,7 +187,11 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
   size_t close = std::string::npos;
   size_t fence_eol = std::string::npos;
 
-  for (size_t search_pos = fence_len;;) {
+  // Start the search one character before fence_len: for an empty
+  // frontmatter block ("---\n---\n..."), the closing fence's leading '\n'
+  // is the very same '\n' that ends the opening fence line, at index
+  // fence_len - 1. Starting at fence_len would skip past it entirely.
+  for (size_t search_pos = fence_len - 1;;) {
     auto pos = file_content.find("\n---", search_pos);
     if (pos == std::string::npos) {
       break;
@@ -217,9 +221,16 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
     return;
   }
 
-  skill.content =
-      (fence_eol >= file_content.size()) ? "" : file_content.substr(fence_eol);
-  std::string frontmatter = file_content.substr(fence_len, close - fence_len);
+  skill.content = (fence_eol >= file_content.size())
+                      ? ""
+                      : trim(file_content.substr(fence_eol));
+  // close can be less than fence_len for an empty frontmatter block
+  // ("---\n---\n..."), where the closing fence is found at fence_len - 1;
+  // close - fence_len would underflow (both are size_t) and substr's clamped
+  // count would silently turn the rest of the file into `frontmatter`.
+  std::string frontmatter =
+      close > fence_len ? file_content.substr(fence_len, close - fence_len)
+                        : "";
   std::vector<std::string> lines;
   {
     std::istringstream stream(frontmatter);

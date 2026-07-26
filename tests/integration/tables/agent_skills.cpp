@@ -38,6 +38,8 @@ class AgentSkills : public testing::Test {
     skill_dir = project_dir / ".claude" / "skills" / "test-skill";
     block_scalar_skill_dir =
         project_dir / ".cursor" / "skills" / "block-scalar-skill";
+    empty_frontmatter_skill_dir =
+        project_dir / ".agents" / "skills" / "empty-frontmatter-skill";
 
     ASSERT_TRUE(createDirectory(skill_dir / "scripts", true).ok());
     ASSERT_TRUE(writeTextFile(skill_dir / "SKILL.md", kSkillMarkdown).ok());
@@ -48,6 +50,11 @@ class AgentSkills : public testing::Test {
     ASSERT_TRUE(createDirectory(block_scalar_skill_dir, true).ok());
     ASSERT_TRUE(writeTextFile(block_scalar_skill_dir / "SKILL.md",
                               kBlockScalarSkillMarkdown)
+                    .ok());
+
+    ASSERT_TRUE(createDirectory(empty_frontmatter_skill_dir, true).ok());
+    ASSERT_TRUE(writeTextFile(empty_frontmatter_skill_dir / "SKILL.md",
+                              kEmptyFrontmatterSkillMarkdown)
                     .ok());
   }
 
@@ -65,9 +72,11 @@ class AgentSkills : public testing::Test {
   fs::path project_dir;
   fs::path skill_dir;
   fs::path block_scalar_skill_dir;
+  fs::path empty_frontmatter_skill_dir;
 
   static const std::string kSkillMarkdown;
   static const std::string kBlockScalarSkillMarkdown;
+  static const std::string kEmptyFrontmatterSkillMarkdown;
 };
 
 const std::string AgentSkills::kSkillMarkdown = R"(---
@@ -96,6 +105,23 @@ description: >-
 Body content.
 )";
 
+// An empty frontmatter block: the closing fence's "\n" coincides with the
+// opening fence's own trailing "\n" (no lines in between), so `close` ends
+// up less than `fence_len`. This pins two things: the closing fence is
+// still detected (a regression would make the parser treat the whole file,
+// delimiters included, as `content`), and the frontmatter substring is
+// computed as empty rather than underflowing to "the rest of the file"
+// (a regression there would parse the body's "license: MIT" line as if it
+// were real frontmatter, since the body deliberately starts with a line
+// that matches a recognized key -- the earlier version of this fixture had
+// no colon in its body at all, so it couldn't have caught that bug).
+const std::string AgentSkills::kEmptyFrontmatterSkillMarkdown = R"(---
+---
+
+license: MIT
+Body after an empty frontmatter block.
+)";
+
 namespace {
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
   static const Row kEmptyRow;
@@ -117,7 +143,7 @@ TEST_F(AgentSkills, test_sanity) {
       "select *, content from agent_skills where directory = '" +
       project_dir.string() + "'");
 
-  ASSERT_EQ(data.size(), 2ul);
+  ASSERT_EQ(data.size(), 3ul);
 
   ValidationMap row_map = {
       {"name", NormalType},
@@ -169,6 +195,27 @@ TEST_F(AgentSkills, test_block_scalar_description) {
   EXPECT_EQ(row.at("description"),
             "This description spans multiple folded lines. Use when "
             "testing the frontmatter parser.");
+}
+
+TEST_F(AgentSkills, test_empty_frontmatter_block) {
+  auto const data = execute_query(
+      "select *, content from agent_skills where directory = '" +
+      project_dir.string() + "'");
+
+  const auto& row = findRowByPath(
+      data, (empty_frontmatter_skill_dir / "SKILL.md").string());
+  // No metadata to parse from an empty frontmatter block, but the closing
+  // fence must still be detected: content should be just the body, not the
+  // whole raw file with both "---" delimiter lines still attached (which is
+  // what a regression in the closing-fence search would produce).
+  EXPECT_TRUE(row.at("name").empty());
+  EXPECT_TRUE(row.at("description").empty());
+  // The body's "license: MIT" line must NOT be parsed as frontmatter: it
+  // would be if the (empty) frontmatter substring computation underflowed
+  // and silently became "the rest of the file" instead of "".
+  EXPECT_TRUE(row.at("license").empty());
+  EXPECT_EQ(row.at("content"),
+            "license: MIT\nBody after an empty frontmatter block.");
 }
 
 TEST_F(AgentSkills, test_unconstrained_query_excludes_project_scope) {
