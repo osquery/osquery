@@ -2,7 +2,7 @@
   "openssl": {
     "product": "openssl",
     "vendor": "openssl",
-    "version": "3.6.1",
+    "version": "3.6.3",
     "ignored-cves": []
   },
   "augeas": {
@@ -91,13 +91,6 @@
     "version": "1.12.24",
     "commit": "5ff925648e88ba29cef7d708bc2bbc5d6de5fc48",
     "ignored-cves": ["CVE-2023-34969"]
-  },
-  "expat": {
-    "product": "libexpat",
-    "vendor": "libexpat_project",
-    "version": "2.7.4",
-    "commit": "f5c2890d8ff91f88a018173d293a9bd02f76389e",
-    "ignored-cves": []
   },
   "gflags": {
     "vendor": "google",

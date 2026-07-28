@@ -80,9 +80,6 @@ function(dbusMain)
   target_link_libraries(thirdparty_dbus
     PRIVATE
       thirdparty_c_settings
-
-    PUBLIC
-      thirdparty_expat
   )
 endfunction()
 
