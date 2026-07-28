@@ -19,7 +19,7 @@ else()
 endif()
 
 
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+if("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
   if(NOT DEFINED CMAKE_OSX_SYSROOT OR "${CMAKE_OSX_SYSROOT}" STREQUAL "")
     execute_process(
       COMMAND xcrun --sdk macosx --show-sdk-path
