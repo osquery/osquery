@@ -35,14 +35,7 @@ namespace tables {
 /// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
 const std::set<std::string> kJavaPath = {
-    "/usr/local/lib/java%/dist-packages",
-    "/usr/local/lib/java%/site-packages",
-    "/usr/local/lib64/java%/site-packages",
-    "/opt/homebrew/lib/java%/dist-packages",
-    "/opt/homebrew/lib/java%/site-packages",
-    "/usr/lib/java%/dist-packages",
-    "/usr/lib/java%/site-packages",
-    "/Library/Java/%/site-packages"
+    "/Library/Java/Extensions",
 };
 
 const std::set<std::string> kUserDirectoryPaths = {
@@ -230,9 +223,7 @@ void genMavenPackage(const std::string& groupPath,
     std::string author = extractAuthorFromPom(content);
     if (!author.empty()) {
       r["author"] = author;
-    }
-    
-    logger.log(1, "Parsed POM file for Maven artifact: " + pomPath);
+    }    
   }
 }
 
@@ -336,7 +327,6 @@ void genMavenArtifacts(const std::string& repoPath,
   std::vector<std::string> groupDirs;
   
   if (!listDirectoriesInDirectory(repoPath, groupDirs, false).ok()) {
-    LOG(ERROR) << "Cannot list group directories in Maven repository: " + repoPath;
     return;
   }
 
@@ -364,8 +354,6 @@ void genMavenArtifacts(const std::string& repoPath,
         if (!isDirectory(versionDir).ok()) {
           continue;
         }
-
-        LOG(ERROR) << "Found Maven artifact: " + versionDir;
 
         Row r;
         auto artifactId = fs::path(artifactDir).filename().string();
@@ -485,7 +473,6 @@ std::vector<std::map<std::string, UserPath>> getJavaUserPathList(
     const auto& path = user.at("directory");
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-       LOG(ERROR) << "Generating Java packages for user path: " + path;
       std::set<std::string> user_paths = kUserDirectoryPaths;
 
       if (isPlatform(PlatformType::TYPE_OSX)) {
@@ -533,7 +520,6 @@ std::vector<std::map<std::string, UserPath>> getJavaUserPathList(
 QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::set<std::string> paths;
-  logger.log(1, "Generating Java packages for context");
   bool directory_filter = context.constraints.count("directory") > 0 &&
                           context.constraints.at("directory").exists(EQUALS);
 
@@ -541,7 +527,6 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
     for (const auto& path : kJavaPath) {
-        logger.log(1, "Resolving Java path pattern: " + path);
       std::vector<std::string> sites;
       resolveFilePattern(path, sites);
       for (const auto& site : sites) {
@@ -558,7 +543,6 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
   // Enumerate user installed java packages from Maven and Gradle caches
   auto user_paths = getJavaUserPathList(context);
   for (const auto& user_path : user_paths) {
-    logger.log(1, "Generating Java packages for user path: " + user_path.at("path").stringValue);
     const auto& path = user_path.at("path").stringValue;
     const auto& type = user_path.at("type").stringValue;
     
@@ -582,7 +566,6 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
 QueryData genJavaPackages(QueryContext& context) {
    GLOGLogger logger;
   if (hasNamespaceConstraint(context)) {
-    logger.log(1, "Generating Java packages in namespace");
     return generateInNamespace(
         context, "java_packages", genJavaPackagesImpl);
   } else {
