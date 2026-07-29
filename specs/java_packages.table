@@ -1,5 +1,5 @@
 table_name("java_packages")
-description("Java packages installed in a system. NOTE: when querying on windows, even without a users cross join, all user installed python packages will be returned. This special behavior is to not break original functionality.")
+description("Java artifacts found in local Maven (~/.m2/repository) and Gradle (~/.gradle/caches) caches.")
 schema([
     Column("name", TEXT, "Package display name"),
     Column("uid", BIGINT, "The local user that owns the python package", index=True),
