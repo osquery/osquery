@@ -79,15 +79,15 @@ std::string extractAuthorFromPom(const std::string& content) {
     return "";
   }
   ++devsStart;
-  
+
   size_t devsEnd = content.find("</developers>", devsStart);
   if (devsEnd == std::string::npos) {
     return "";
   }
-  
+
   std::string devsBlock = content.substr(devsStart, devsEnd - devsStart);
   std::string fallbackAuthor;
-  
+
   // Find all <developer> blocks
   size_t devPos = 0;
   while ((devPos = devsBlock.find("<developer", devPos)) != std::string::npos) {
@@ -100,8 +100,9 @@ std::string extractAuthorFromPom(const std::string& content) {
     if (devEnd == std::string::npos) {
       break;
     }
-    
-    std::string devBlock = devsBlock.substr(devTagEnd + 1, devEnd - devTagEnd - 1);
+
+    std::string devBlock =
+        devsBlock.substr(devTagEnd + 1, devEnd - devTagEnd - 1);
 
     auto getTagValue = [&devBlock](const std::string& tag_name) -> std::string {
       auto tagStart = devBlock.find("<" + tag_name);
@@ -120,13 +121,14 @@ std::string extractAuthorFromPom(const std::string& content) {
         return "";
       }
 
-      return boost::algorithm::trim_copy(devBlock.substr(tagStart, tagEnd - tagStart));
+      return boost::algorithm::trim_copy(
+          devBlock.substr(tagStart, tagEnd - tagStart));
     };
 
     if (fallbackAuthor.empty()) {
       fallbackAuthor = getTagValue("name");
     }
-    
+
     // Check if this developer has the "owner" role
     size_t rolesStart = devBlock.find("<roles");
     if (rolesStart != std::string::npos) {
@@ -139,11 +141,13 @@ std::string extractAuthorFromPom(const std::string& content) {
 
       size_t rolesEnd = devBlock.find("</roles>", rolesStart);
       if (rolesEnd != std::string::npos) {
-        std::string rolesBlock = devBlock.substr(rolesStart, rolesEnd - rolesStart);
+        std::string rolesBlock =
+            devBlock.substr(rolesStart, rolesEnd - rolesStart);
 
         bool hasOwnerRole{false};
         size_t rolePos = 0;
-        while ((rolePos = rolesBlock.find("<role", rolePos)) != std::string::npos) {
+        while ((rolePos = rolesBlock.find("<role", rolePos)) !=
+               std::string::npos) {
           auto roleTagEnd = rolesBlock.find(">", rolePos);
           if (roleTagEnd == std::string::npos) {
             break;
@@ -154,8 +158,8 @@ std::string extractAuthorFromPom(const std::string& content) {
             break;
           }
 
-          auto roleValue = boost::algorithm::to_lower_copy(
-              boost::algorithm::trim_copy(
+          auto roleValue =
+              boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(
                   rolesBlock.substr(roleTagEnd + 1, roleEnd - roleTagEnd - 1)));
 
           if (roleValue == "owner") {
@@ -179,10 +183,10 @@ std::string extractAuthorFromPom(const std::string& content) {
         }
       }
     }
-    
+
     devPos = devEnd + 12;
   }
-  
+
   return fallbackAuthor;
 }
 
@@ -195,11 +199,11 @@ void genMavenPackage(const std::string& groupPath,
   r["name"] = artifactId;
   r["version"] = version;
   r["type"] = "Maven";
-  
+
   // Try to find and parse POM file for additional metadata
-  auto pomPath = groupPath + "/" + artifactId + "/" + version + "/" + 
+  auto pomPath = groupPath + "/" + artifactId + "/" + version + "/" +
                  artifactId + "-" + version + ".pom";
-  
+
   std::string content;
   auto s = readFile(pomPath, content);
   if (s.ok()) {
@@ -211,19 +215,19 @@ void genMavenPackage(const std::string& groupPath,
       descStart += 13; // length of "<description>"
       r["summary"] = content.substr(descStart, descEnd - descStart);
     }
-    
+
     size_t licenseStart = content.find("<name>", content.find("<license>"));
     size_t licenseEnd = content.find("</name>", licenseStart);
     if (licenseStart != std::string::npos && licenseEnd != std::string::npos) {
       licenseStart += 6; // length of "<name>"
       r["license"] = content.substr(licenseStart, licenseEnd - licenseStart);
     }
-    
+
     // Extract author from developers block
     std::string author = extractAuthorFromPom(content);
     if (!author.empty()) {
       r["author"] = author;
-    }    
+    }
   }
 }
 
@@ -237,7 +241,7 @@ void genGradlePackage(const std::string& versionPath,
   r["name"] = groupId + ":" + artifactId;
   r["version"] = version;
   r["type"] = "Gradle";
-  
+
   // Look for POM file in hash subdirectories to extract metadata
   std::vector<std::string> hashDirs;
   if (listDirectoriesInDirectory(versionPath, hashDirs, false).ok()) {
@@ -253,21 +257,25 @@ void genGradlePackage(const std::string& versionPath,
               // Extract description
               size_t descStart = content.find("<description>");
               size_t descEnd = content.find("</description>");
-              if (descStart != std::string::npos && descEnd != std::string::npos) {
+              if (descStart != std::string::npos &&
+                  descEnd != std::string::npos) {
                 descStart += 13;
                 r["summary"] = content.substr(descStart, descEnd - descStart);
               } else {
                 r["summary"] = groupId + ":" + artifactId;
               }
-              
+
               // Extract license
-              size_t licenseStart = content.find("<name>", content.find("<license>"));
+              size_t licenseStart =
+                  content.find("<name>", content.find("<license>"));
               size_t licenseEnd = content.find("</name>", licenseStart);
-              if (licenseStart != std::string::npos && licenseEnd != std::string::npos) {
+              if (licenseStart != std::string::npos &&
+                  licenseEnd != std::string::npos) {
                 licenseStart += 6;
-                r["license"] = content.substr(licenseStart, licenseEnd - licenseStart);
+                r["license"] =
+                    content.substr(licenseStart, licenseEnd - licenseStart);
               }
-              
+
               // Extract author from developers block
               std::string author = extractAuthorFromPom(content);
               if (!author.empty()) {
@@ -281,7 +289,7 @@ void genGradlePackage(const std::string& versionPath,
       }
     }
   }
-  
+
   // Fallback if no POM found
   r["summary"] = groupId + ":" + artifactId;
 }
@@ -325,7 +333,7 @@ void genMavenArtifacts(const std::string& repoPath,
                        const std::int64_t& user_id) {
   // Maven repository structure: groupId/artifactId/version/
   std::vector<std::string> groupDirs;
-  
+
   if (!listDirectoriesInDirectory(repoPath, groupDirs, false).ok()) {
     return;
   }
@@ -358,9 +366,9 @@ void genMavenArtifacts(const std::string& repoPath,
         Row r;
         auto artifactId = fs::path(artifactDir).filename().string();
         auto version = fs::path(versionDir).filename().string();
-        
+
         genMavenPackage(groupDir, artifactId, version, r, logger);
-        
+
         r["directory"] = repoPath;
         r["path"] = versionDir;
         r["pid_with_namespace"] = "0";
@@ -377,7 +385,7 @@ void genGradleArtifacts(const std::string& cachePath,
                         const std::int64_t& user_id) {
   // Gradle cache structure: groupId/artifactId/version/hash/
   std::vector<std::string> groupDirs;
-  
+
   if (!listDirectoriesInDirectory(cachePath, groupDirs, false).ok()) {
     return;
   }
@@ -411,9 +419,9 @@ void genGradleArtifacts(const std::string& cachePath,
         auto groupId = fs::path(groupDir).filename().string();
         auto artifactId = fs::path(artifactDir).filename().string();
         auto version = fs::path(versionDir).filename().string();
-        
+
         genGradlePackage(versionDir, groupId, artifactId, version, r, logger);
-        
+
         r["directory"] = cachePath;
         r["path"] = versionDir;
         r["pid_with_namespace"] = "0";
@@ -482,7 +490,7 @@ std::vector<std::map<std::string, UserPath>> getJavaUserPathList(
 
       for (const auto& path_postfix : user_paths) {
         auto dir = path + "/" + path_postfix;
-        
+
         // Check if directory exists
         if (isDirectory(dir).ok()) {
           std::map<std::string, UserPath> user_path;
@@ -545,29 +553,24 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
   for (const auto& user_path : user_paths) {
     const auto& path = user_path.at("path").stringValue;
     const auto& type = user_path.at("type").stringValue;
-    
+
     if (type.find(".m2/repository") != std::string::npos) {
       // Maven repository
-      genMavenArtifacts(path,
-                       results,
-                       logger,
-                       user_path.at("user_id").intValue);
+      genMavenArtifacts(
+          path, results, logger, user_path.at("user_id").intValue);
     } else if (type.find(".gradle/caches") != std::string::npos) {
       // Gradle cache
-      genGradleArtifacts(path,
-                        results,
-                        logger,
-                        user_path.at("user_id").intValue);
-    } 
+      genGradleArtifacts(
+          path, results, logger, user_path.at("user_id").intValue);
+    }
   }
   return results;
 }
 
 QueryData genJavaPackages(QueryContext& context) {
-   GLOGLogger logger;
+  GLOGLogger logger;
   if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(
-        context, "java_packages", genJavaPackagesImpl);
+    return generateInNamespace(context, "java_packages", genJavaPackagesImpl);
   } else {
     return genJavaPackagesImpl(context, logger);
   }
