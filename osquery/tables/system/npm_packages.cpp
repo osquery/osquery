@@ -9,10 +9,10 @@
 
 #include <boost/filesystem.hpp>
 
+#include <set>
 #include <stdlib.h>
 #include <string>
 #include <sys/stat.h>
-#include <unordered_set>
 #include <utility>
 
 #include <osquery/core/tables.h>
@@ -70,17 +70,21 @@ const std::string kWinNodeInstallKey = "SOFTWARE\\Node.js\\InstallPath";
 
 const int kDefaultMaxDepth = 100;
 
+// An inode number is only unique within its own filesystem, so the device
+// has to be part of the key.
+using DirIdentifier = std::pair<dev_t, ino_t>;
+
 /**
  * @brief Check if a directory has already been visited using inode tracking.
  *
  * This prevents infinite loops from symlinks pointing back up the directory
  * tree. Uses platformLstat which doesn't follow symlinks.
  *
- * @param visited_inos Set of already-visited inodes
+ * @param visited_inos Set of already-visited (device, inode) pairs
  * @param path Directory path to check
  * @return true if already visited, false if new
  */
-static bool isDirVisited(std::unordered_set<int>& visited_inos,
+static bool isDirVisited(std::set<DirIdentifier>& visited_inos,
                          const std::string& path) {
   if (path.empty()) {
     return true;
@@ -91,7 +95,7 @@ static bool isDirVisited(std::unordered_set<int>& visited_inos,
     return false;
   }
 
-  auto [_, inserted] = visited_inos.emplace(d_stat.st_ino);
+  auto [_, inserted] = visited_inos.emplace(d_stat.st_dev, d_stat.st_ino);
   return !inserted;
 }
 
@@ -157,7 +161,7 @@ void genNodeSiteDirectories(const std::string& site,
                             int max_depth) {
   // Queue of (directory_to_search, current_depth) pairs
   std::vector<std::pair<std::string, int>> dirs_to_search;
-  std::unordered_set<int> visited_inos;
+  std::set<DirIdentifier> visited_inos;
 
   dirs_to_search.emplace_back(site, 0);
 
