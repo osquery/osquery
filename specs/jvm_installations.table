@@ -1,0 +1,15 @@
+table_name("jvm_installations")
+description("Java Virtual Machine (JDK, JRE) Installations.")
+schema([
+    Column("uid", BIGINT, "The local user that owns the JVM", additional=True, optimized=True),
+    Column("name", TEXT, "Name of the JVM"),
+    Column("version", TEXT, "Version of the JVM", collate="version"),
+    Column("vendor", TEXT, "The vendor name or organization id that authored the plugin"),
+    Column("path", TEXT, "The path on the filesystem for the JVM."),
+    Column("architecture", TEXT, "architecture of the JVM (x86_64 or aarch64)"),
+])
+attributes(user_data=True)
+implementation("applications/jvm_installations@genJVM")
+examples([
+    "SELECT u.username, jvm.name, jvm.vendor, jvm.path, jvm.architecture FROM users u CROSS JOIN jvm_installations jvm  ON u.uid = jvm.uid;"
+])
