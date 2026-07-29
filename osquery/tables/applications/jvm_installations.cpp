@@ -199,14 +199,14 @@ void processJVMInstallation(QueryData& results,
   // Extract or generate name
   row["name"] = SQL_TEXT(extractJVMName(jvm_path, properties));
 
-  // If vendor is Homebrew, use OpenJVM naming
+  // If vendor is Homebrew, use OpenJDK naming
   std::string vendor_lower = row["vendor"];
   std::transform(vendor_lower.begin(),
                  vendor_lower.end(),
                  vendor_lower.begin(),
                  ::tolower);
   if (vendor_lower == "homebrew" && !row["version"].empty()) {
-    row["name"] = SQL_TEXT("OpenJVM " + row["version"]);
+    row["name"] = SQL_TEXT("OpenJDK " + row["version"]);
   }
 
   results.push_back(row);
@@ -383,19 +383,19 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
     listDirectoriesInDirectory(homebrew_prefix, opt_dirs, false);
 
     for (const auto& opt_dir : opt_dirs) {
-      // Check if this is an openjvm installation
-      // e.g., openjvm, openjvm@17, openjvm@21, openjvm@25
+      // Check if this is an openjdk installation
+      // e.g., openjdk, openjdk@17, openjdk@21, openjdk@25
       boost::filesystem::path opt_path(opt_dir);
       std::string dir_name = opt_path.filename().string();
 
-      if (dir_name != "openjvm" &&
-          !boost::algorithm::starts_with(dir_name, "openjvm@")) {
+      if (dir_name != "openjdk" &&
+          !boost::algorithm::starts_with(dir_name, "openjdk@")) {
         continue;
       }
 
-      // Homebrew OpenJVM structure:
-      // /opt/homebrew/opt/openjvm@25/libexec/openjvm.jvm/Contents/Home
-      std::string jvm_home = opt_dir + "/libexec/openjvm.jvm/Contents/Home";
+      // Homebrew OpenJDK structure:
+      // /opt/homebrew/opt/openjdk@25/libexec/openjdk.jvm/Contents/Home
+      std::string jvm_home = opt_dir + "/libexec/openjdk.jdk/Contents/Home";
       if (pathExists(jvm_home).ok()) {
         // Resolve to canonical path and skip if already seen
         std::string canonical_path = resolveCanonicalPath(jvm_home);
