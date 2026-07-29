@@ -23,7 +23,7 @@ function(generateOsqueryTablesApplications)
     browser_firefox.cpp
     jetbrains_plugins.cpp
     vscode_extensions.cpp
-    jdk_installations.cpp
+    jvm_installations.cpp
   )
 
   if(DEFINED PLATFORM_POSIX)
