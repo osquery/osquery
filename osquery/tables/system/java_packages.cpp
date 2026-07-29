@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
 #include <stdlib.h>
 #include <string>
 
@@ -190,19 +191,19 @@ std::string extractAuthorFromPom(const std::string& content) {
   return fallbackAuthor;
 }
 
-void genMavenPackage(const std::string& groupPath,
+void genMavenPackage(const std::string& versionPath,
+                     const std::string& groupId,
                      const std::string& artifactId,
                      const std::string& version,
                      Row& r,
                      Logger& logger) {
   // Maven repository structure: groupId/artifactId/version/
-  r["name"] = artifactId;
+  r["name"] = groupId + ":" + artifactId;
   r["version"] = version;
   r["type"] = "Maven";
 
   // Try to find and parse POM file for additional metadata
-  auto pomPath = groupPath + "/" + artifactId + "/" + version + "/" +
-                 artifactId + "-" + version + ".pom";
+  auto pomPath = versionPath + "/" + artifactId + "-" + version + ".pom";
 
   std::string content;
   auto s = readFile(pomPath, content);
@@ -228,6 +229,63 @@ void genMavenPackage(const std::string& groupPath,
     if (!author.empty()) {
       r["author"] = author;
     }
+  }
+}
+
+std::string getMavenGroupId(const std::string& repoPath,
+                            const std::string& groupPath) {
+  auto relativePath = groupPath;
+
+  if (groupPath.compare(0, repoPath.size(), repoPath) == 0) {
+    relativePath = groupPath.substr(repoPath.size());
+  }
+
+  boost::algorithm::trim_if(relativePath, boost::is_any_of("/\\"));
+  if (relativePath.empty()) {
+    return "";
+  }
+
+  std::replace(relativePath.begin(), relativePath.end(), '/', '.');
+  std::replace(relativePath.begin(), relativePath.end(), '\\', '.');
+  return relativePath;
+}
+
+void genMavenArtifactsRecursive(const std::string& repoPath,
+                                const std::string& currentPath,
+                                QueryData& results,
+                                Logger& logger,
+                                const std::int64_t& user_id) {
+  std::vector<std::string> childDirs;
+  if (!listDirectoriesInDirectory(currentPath, childDirs, false).ok()) {
+    return;
+  }
+
+  for (const auto& childDir : childDirs) {
+    if (!isDirectory(childDir).ok()) {
+      continue;
+    }
+
+    const auto artifactId = fs::path(currentPath).filename().string();
+    const auto version = fs::path(childDir).filename().string();
+    const auto pomPath = childDir + "/" + artifactId + "-" + version + ".pom";
+
+    // If a directory contains artifactId-version.pom, treat it as a version
+    // directory under groupId/artifactId/version.
+    if (pathExists(pomPath).ok()) {
+      Row r;
+      const auto groupPath = fs::path(currentPath).parent_path().string();
+      const auto groupId = getMavenGroupId(repoPath, groupPath);
+
+      genMavenPackage(childDir, groupId, artifactId, version, r, logger);
+
+      r["directory"] = repoPath;
+      r["path"] = childDir;
+      r["pid_with_namespace"] = "0";
+      r["uid"] = BIGINT(user_id);
+      results.push_back(r);
+    }
+
+    genMavenArtifactsRecursive(repoPath, childDir, results, logger, user_id);
   }
 }
 
@@ -331,52 +389,11 @@ void genMavenArtifacts(const std::string& repoPath,
                        QueryData& results,
                        Logger& logger,
                        const std::int64_t& user_id) {
-  // Maven repository structure: groupId/artifactId/version/
-  std::vector<std::string> groupDirs;
-
-  if (!listDirectoriesInDirectory(repoPath, groupDirs, false).ok()) {
+  if (!isDirectory(repoPath).ok()) {
     return;
   }
 
-  for (const auto& groupDir : groupDirs) {
-    if (!isDirectory(groupDir).ok()) {
-      continue;
-    }
-
-    std::vector<std::string> artifactDirs;
-    if (!listDirectoriesInDirectory(groupDir, artifactDirs, false).ok()) {
-      continue;
-    }
-
-    for (const auto& artifactDir : artifactDirs) {
-      if (!isDirectory(artifactDir).ok()) {
-        continue;
-      }
-
-      std::vector<std::string> versionDirs;
-      if (!listDirectoriesInDirectory(artifactDir, versionDirs, false).ok()) {
-        continue;
-      }
-
-      for (const auto& versionDir : versionDirs) {
-        if (!isDirectory(versionDir).ok()) {
-          continue;
-        }
-
-        Row r;
-        auto artifactId = fs::path(artifactDir).filename().string();
-        auto version = fs::path(versionDir).filename().string();
-
-        genMavenPackage(groupDir, artifactId, version, r, logger);
-
-        r["directory"] = repoPath;
-        r["path"] = versionDir;
-        r["pid_with_namespace"] = "0";
-        r["uid"] = BIGINT(user_id);
-        results.push_back(r);
-      }
-    }
-  }
+  genMavenArtifactsRecursive(repoPath, repoPath, results, logger, user_id);
 }
 
 void genGradleArtifacts(const std::string& cachePath,
@@ -475,7 +492,6 @@ std::vector<std::map<std::string, UserPath>> getJavaUserPathList(
     const auto& uid_as_string = user.at("uid");
     auto uid_as_big_int = tryTo<int64_t>(uid_as_string, 10);
     if (uid_as_big_int.isError()) {
-      LOG(ERROR) << "Invalid uid field returned: " << uid_as_string;
       continue;
     }
     const auto& path = user.at("directory");

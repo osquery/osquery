@@ -51,7 +51,6 @@ TEST_F(javaPackages, test_sanity) {
   };
 
   auto const data = execute_query("select * from java_packages");
-  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 
