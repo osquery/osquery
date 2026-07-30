@@ -118,7 +118,6 @@ function(importLibraries)
     "Linux:util-linux"
     "Linux,Darwin,Windows:yara"
     "Linux,Darwin,Windows:zstd"
-    "Linux:expat"
     "Linux:dbus"
     "Linux:libcap"
   )
