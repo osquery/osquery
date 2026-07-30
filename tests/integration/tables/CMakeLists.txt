@@ -36,6 +36,7 @@ function(generateTestsIntegrationTablesTestsTest)
     carves.cpp
     certificates.cpp
     chrome_extensions.cpp
+    chrome_search_engines.cpp
     curl.cpp
     curl_certificate.cpp
     etc_hosts.cpp
