@@ -811,9 +811,8 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
 
     // Extract the default search engine settings, if any have been
     // configured for this profile
-    const auto& opt_search_engine_node =
-        parsed_preferences.get_child_optional(
-            "default_search_provider_data.template_url_data");
+    const auto& opt_search_engine_node = parsed_preferences.get_child_optional(
+        "default_search_provider_data.template_url_data");
 
     if (opt_search_engine_node) {
       const auto& search_engine_node = opt_search_engine_node.get();
