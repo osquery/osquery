@@ -809,6 +809,23 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
       continue;
     }
 
+    // Extract the default search engine settings, if any have been
+    // configured for this profile
+    const auto& opt_search_engine_node =
+        parsed_preferences.get_child_optional(
+            "default_search_provider_data.template_url_data");
+
+    if (opt_search_engine_node) {
+      const auto& search_engine_node = opt_search_engine_node.get();
+
+      profile.search_engine_name =
+          search_engine_node.get_optional<std::string>("short_name");
+      profile.search_engine_keyword =
+          search_engine_node.get_optional<std::string>("keyword");
+      profile.search_engine_url =
+          search_engine_node.get_optional<std::string>("url");
+    }
+
     // Parse all the extensions that are inside the profile folder but are
     // not referenced by the Preferences file
     for (const auto& ext_p : snapshot.unreferenced_extensions) {
