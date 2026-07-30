@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
+#include <sstream>
 #include <stdlib.h>
 #include <string>
 
@@ -23,6 +24,8 @@
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #ifdef WIN32
 #include "windows/registry.h"
@@ -69,115 +72,60 @@ struct UserPath {
 };
 
 std::string extractAuthorFromPom(const std::string& content) {
-  // Find the <developers> block
-  size_t devsStart = content.find("<developers");
-  if (devsStart == std::string::npos) {
-    return "";
-  }
+  try {
+    // Parse the XML content into a property tree
+    boost::property_tree::ptree pt;
+    std::istringstream stream(content);
+    boost::property_tree::read_xml(stream, pt);
 
-  devsStart = content.find(">", devsStart);
-  if (devsStart == std::string::npos) {
-    return "";
-  }
-  ++devsStart;
+    std::string fallbackAuthor;
 
-  size_t devsEnd = content.find("</developers>", devsStart);
-  if (devsEnd == std::string::npos) {
-    return "";
-  }
-
-  std::string devsBlock = content.substr(devsStart, devsEnd - devsStart);
-  std::string fallbackAuthor;
-
-  // Find all <developer> blocks
-  size_t devPos = 0;
-  while ((devPos = devsBlock.find("<developer", devPos)) != std::string::npos) {
-    auto devTagEnd = devsBlock.find(">", devPos);
-    if (devTagEnd == std::string::npos) {
-      break;
+    // Navigate to the developers section
+    auto developers = pt.get_child_optional("project.developers");
+    if (!developers) {
+      return "";
     }
 
-    size_t devEnd = devsBlock.find("</developer>", devTagEnd);
-    if (devEnd == std::string::npos) {
-      break;
-    }
-
-    std::string devBlock =
-        devsBlock.substr(devTagEnd + 1, devEnd - devTagEnd - 1);
-
-    auto getTagValue = [&devBlock](const std::string& tag_name) -> std::string {
-      auto tagStart = devBlock.find("<" + tag_name);
-      if (tagStart == std::string::npos) {
-        return "";
-      }
-
-      tagStart = devBlock.find(">", tagStart);
-      if (tagStart == std::string::npos) {
-        return "";
-      }
-      ++tagStart;
-
-      auto tagEnd = devBlock.find("</" + tag_name + ">", tagStart);
-      if (tagEnd == std::string::npos) {
-        return "";
-      }
-
-      return boost::algorithm::trim_copy(
-          devBlock.substr(tagStart, tagEnd - tagStart));
-    };
-
-    if (fallbackAuthor.empty()) {
-      fallbackAuthor = getTagValue("name");
-    }
-
-    // Check if this developer has the "owner" role
-    size_t rolesStart = devBlock.find("<roles");
-    if (rolesStart != std::string::npos) {
-      rolesStart = devBlock.find(">", rolesStart);
-      if (rolesStart == std::string::npos) {
-        devPos = devEnd + 12;
+    // Iterate through all developer nodes
+    for (const auto& devPair : *developers) {
+      if (devPair.first != "developer") {
         continue;
       }
-      ++rolesStart;
 
-      size_t rolesEnd = devBlock.find("</roles>", rolesStart);
-      if (rolesEnd != std::string::npos) {
-        std::string rolesBlock =
-            devBlock.substr(rolesStart, rolesEnd - rolesStart);
+      const auto& developer = devPair.second;
 
-        bool hasOwnerRole{false};
-        size_t rolePos = 0;
-        while ((rolePos = rolesBlock.find("<role", rolePos)) !=
-               std::string::npos) {
-          auto roleTagEnd = rolesBlock.find(">", rolePos);
-          if (roleTagEnd == std::string::npos) {
-            break;
+      // Get the developer's name as fallback
+      if (fallbackAuthor.empty()) {
+        fallbackAuthor = developer.get<std::string>("name", "");
+      }
+
+      // Check if this developer has the "owner" role
+      auto roles = developer.get_child_optional("roles");
+      if (roles) {
+        bool hasOwnerRole = false;
+        for (const auto& rolePair : *roles) {
+          if (rolePair.first != "role") {
+            continue;
           }
 
-          auto roleEnd = rolesBlock.find("</role>", roleTagEnd);
-          if (roleEnd == std::string::npos) {
-            break;
-          }
-
-          auto roleValue =
-              boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(
-                  rolesBlock.substr(roleTagEnd + 1, roleEnd - roleTagEnd - 1)));
+          std::string roleValue = rolePair.second.get_value<std::string>("");
+          roleValue = boost::algorithm::to_lower_copy(
+              boost::algorithm::trim_copy(roleValue));
 
           if (roleValue == "owner") {
             hasOwnerRole = true;
             break;
           }
-
-          rolePos = roleEnd + 7;
         }
 
+        // If this developer is the owner, return their email or name
         if (hasOwnerRole) {
-          auto ownerEmail = getTagValue("email");
+          std::string ownerEmail = developer.get<std::string>("email", "");
           if (!ownerEmail.empty()) {
             return ownerEmail;
           }
 
-          auto ownerName = getTagValue("name");
+          std::string ownerName = developer.get<std::string>("name", "");
           if (!ownerName.empty()) {
             return ownerName;
           }
@@ -185,10 +133,14 @@ std::string extractAuthorFromPom(const std::string& content) {
       }
     }
 
-    devPos = devEnd + 12;
+    return fallbackAuthor;
+  } catch (const boost::property_tree::xml_parser_error& e) {
+    // Failed to parse XML, return empty string
+    return "";
+  } catch (const std::exception& e) {
+    // Other errors, return empty string
+    return "";
   }
-
-  return fallbackAuthor;
 }
 
 void genMavenPackage(const std::string& versionPath,
@@ -570,11 +522,11 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
     const auto& path = user_path.at("path").stringValue;
     const auto& type = user_path.at("type").stringValue;
 
-    if (type.find(".m2/repository") != std::string::npos) {
+    if (type.find(".m2/repository") != std::string::npos or type.find(".m2\\repository") != std::string::npos) {
       // Maven repository
       genMavenArtifacts(
           path, results, logger, user_path.at("user_id").intValue);
-    } else if (type.find(".gradle/caches") != std::string::npos) {
+    } else if (type.find(".gradle/caches") != std::string::npos or type.find(".gradle\\caches") != std::string::npos) {
       // Gradle cache
       genGradleArtifacts(
           path, results, logger, user_path.at("user_id").intValue);
