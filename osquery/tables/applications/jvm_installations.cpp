@@ -50,14 +50,6 @@ std::string resolveCanonicalPath(const std::string& path) {
   return path;
 }
 
-struct JVMInfo {
-  std::string name;
-  std::string version;
-  std::string vendor;
-  std::string path;
-  std::string architecture;
-};
-
 // Parse a JVM release file to extract metadata
 // The release file uses Java properties format: KEY="VALUE" or KEY=VALUE
 std::map<std::string, std::string> parseReleaseFile(

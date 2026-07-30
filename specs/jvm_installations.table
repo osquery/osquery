@@ -4,9 +4,9 @@ schema([
     Column("uid", BIGINT, "The local user that owns the JVM", additional=True, optimized=True),
     Column("name", TEXT, "Name of the JVM"),
     Column("version", TEXT, "Version of the JVM", collate="version"),
-    Column("vendor", TEXT, "The vendor name or organization id that authored the plugin"),
+    Column("vendor", TEXT, "The vendor name or organization that build the JVM"),
     Column("path", TEXT, "The path on the filesystem for the JVM."),
-    Column("architecture", TEXT, "architecture of the JVM (x86_64 or aarch64)"),
+    Column("architecture", TEXT, "architecture of the JVM (x86, aarch64, amd64, etc.)"),
 ])
 attributes(user_data=True)
 implementation("applications/jvm_installations@genJVM")

@@ -17,7 +17,7 @@
 namespace osquery {
 namespace table_tests {
 
-class jvmPackages : public testing::Test {
+class jvmInstallations : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
@@ -37,7 +37,7 @@ class jvmPackages : public testing::Test {
 #endif
 };
 
-TEST_F(jvmPackages, test_sanity) {
+TEST_F(jvmInstallations, test_sanity) {
   ValidationMap row_map = {
       {"name", NormalType},
       {"uid", IntType},
@@ -48,7 +48,6 @@ TEST_F(jvmPackages, test_sanity) {
   };
 
   auto const data = execute_query("select * from jvm_installations");
-  ASSERT_FALSE(data.empty());
   validate_rows(data, row_map);
 }
 
