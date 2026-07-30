@@ -208,7 +208,7 @@ QueryData genGpuMetrics(QueryContext& context) {
   }
   if (!pciids_stream.is_open()) {
     VLOG(1) << "Could not open pci.ids at: "
-                 << osquery::join(kPciidsPathList, " ");
+            << osquery::join(kPciidsPathList, " ");
   }
   PciDB pcidb(pciids_stream);
 
