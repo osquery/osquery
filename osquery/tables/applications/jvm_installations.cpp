@@ -29,11 +29,13 @@ namespace tables {
 
 // Helper function to get the uid of the owner of a file
 std::int64_t getFileOwnerUid(const std::string& file_path) {
+#ifndef WIN32
   struct stat file_stat;
   if (stat(file_path.c_str(), &file_stat) == 0) {
     return static_cast<std::int64_t>(file_stat.st_uid);
   }
-  return 0; // Default to root if stat fails
+#endif
+  return 0; // Default to root if stat fails or is unsupported
 }
 
 // Helper function to resolve a path to its canonical form
