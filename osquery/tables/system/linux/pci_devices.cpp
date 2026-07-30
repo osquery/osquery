@@ -34,7 +34,7 @@ const std::string kPCIClassID = "PCI_CLASS";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
-const std::vector<std::string> kPciidsPathList{"/usr/share/misc/pci.ids",
+extern const std::vector<std::string> kPciidsPathList{"/usr/share/misc/pci.ids",
                                                "/usr/share/hwdata/pci.ids",
                                                "/usr/share/pci.ids"};
 const std::string kPciidsDeviceClassStartIndicator = "ffff";

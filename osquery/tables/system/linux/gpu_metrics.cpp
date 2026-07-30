@@ -76,17 +76,22 @@ std::string readNvidiaDriverVersion() {
   return ver;
 }
 
-// Returns true when the 6-hex-digit PCI_CLASS value indicates a display
-// controller (class code 0x03xx).
+// Returns true when the PCI_CLASS value indicates a display controller.
+// udev reports PCI_CLASS as a hex string with the leading zero stripped when
+// the class byte is < 0x10, so both 5-char ("30200") and 6-char ("030200")
+// forms must be handled.
 bool isDisplayClass(const std::string& pci_class_attr) {
-  if (pci_class_attr.size() < 2) {
+  std::string norm = pci_class_attr;
+  boost::algorithm::to_lower(norm);
+  std::string class_byte;
+  if (norm.size() == 5) {
+    class_byte = "0" + norm.substr(0, 1);
+  } else if (norm.size() == 6) {
+    class_byte = norm.substr(0, 2);
+  } else {
     return false;
   }
-  // PCI_CLASS is reported as a hex string without "0x" prefix, e.g. "030200".
-  // The high byte is the base class; 0x03 == Display Controller.
-  std::string high = pci_class_attr.substr(0, 2);
-  boost::algorithm::to_lower(high);
-  return high == kPCIDisplayClass;
+  return class_byte == kPCIDisplayClass;
 }
 
 // Returns the path to the first hwmon directory under {pci_syspath}/hwmon/,
