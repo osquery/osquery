@@ -344,4 +344,3 @@ QueryData genGpuMetrics(QueryContext& context) {
 
 } // namespace tables
 } // namespace osquery
-

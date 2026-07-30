@@ -11,24 +11,24 @@
 #import <Foundation/Foundation.h>
 #include <IOKit/IOKitLib.h>
 
-#include <optional>
-#include <limits>
-#include <string>
-#include <vector>
-#include <cstring>
-#include <unistd.h>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
+#include <limits>
+#include <optional>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/darwin/iokit_helpers.h>
-#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/darwin/system_profiler.h>
+#include <osquery/utils/scope_guard.h>
 
-// IOReport public API declarations (from libIOReport.dylib - same ABI used by powermetrics).
-// These symbols are exported in the SDK's libIOReport.tbd.
+// IOReport public API declarations (from libIOReport.dylib - same ABI used by
+// powermetrics). These symbols are exported in the SDK's libIOReport.tbd.
 extern "C" {
 typedef struct _IOReportSubscriptionRef* IOReportSubscriptionRef;
 
@@ -36,21 +36,22 @@ typedef struct _IOReportSubscriptionRef* IOReportSubscriptionRef;
 CFMutableDictionaryRef IOReportCopyAllChannels(uint64_t a, uint64_t b);
 
 // Creates a subscription for the desired channels. subbedChannels is output.
-IOReportSubscriptionRef IOReportCreateSubscription(void* self,
-                                                    CFMutableDictionaryRef desired_channels,
-                                                    CFMutableDictionaryRef* subbed_channels,
-                                                    uint64_t channel_id,
-                                                    CFTypeRef options);
+IOReportSubscriptionRef IOReportCreateSubscription(
+    void* self,
+    CFMutableDictionaryRef desired_channels,
+    CFMutableDictionaryRef* subbed_channels,
+    uint64_t channel_id,
+    CFTypeRef options);
 
 // Takes a sample snapshot from a subscription. Returns a CFDictionaryRef.
 CFDictionaryRef IOReportCreateSamples(IOReportSubscriptionRef sub,
-                                       CFMutableDictionaryRef subbed_channels,
-                                       CFTypeRef options);
+                                      CFMutableDictionaryRef subbed_channels,
+                                      CFTypeRef options);
 
 // Computes the delta between two samples.
 CFDictionaryRef IOReportCreateSamplesDelta(CFDictionaryRef prev,
-                                            CFDictionaryRef next,
-                                            CFTypeRef options);
+                                           CFDictionaryRef next,
+                                           CFTypeRef options);
 
 // Iterates over each channel entry in a sample set via a callback block.
 int IOReportIterate(CFDictionaryRef samples,
@@ -67,7 +68,7 @@ CFStringRef IOReportChannelGetUnitLabel(CFDictionaryRef channel_item);
 
 // Extracts the integer value from a simple-format channel item.
 int64_t IOReportSimpleGetIntegerValue(CFDictionaryRef channel_item,
-                                       int32_t* residual);
+                                      int32_t* residual);
 }
 
 namespace osquery {
@@ -115,7 +116,8 @@ PowerUnit getPowerUnit(CFStringRef unit_label) {
   }
 
   char unit_buf[32] = {0};
-  CFStringGetCString(unit_label, unit_buf, sizeof(unit_buf), kCFStringEncodingUTF8);
+  CFStringGetCString(
+      unit_label, unit_buf, sizeof(unit_buf), kCFStringEncodingUTF8);
 
   if (strcmp(unit_buf, "uW") == 0 || strcmp(unit_buf, "µW") == 0) {
     return PowerUnit::MicroWatt;
@@ -231,7 +233,8 @@ std::vector<std::optional<double>> collectGPUPowerData() {
       return power_data;
     }
 
-    CFDictionaryRef sample_a = IOReportCreateSamples(sub, subbed_channels, nullptr);
+    CFDictionaryRef sample_a =
+        IOReportCreateSamples(sub, subbed_channels, nullptr);
     const auto sample_a_guard = scope_guard::CFRelease(sample_a);
     if (sample_a == nullptr) {
       LOG(WARNING) << "IOReportCreateSamples (first) returned null";
@@ -240,14 +243,16 @@ std::vector<std::optional<double>> collectGPUPowerData() {
 
     usleep(kSampleIntervalUs);
 
-    CFDictionaryRef sample_b = IOReportCreateSamples(sub, subbed_channels, nullptr);
+    CFDictionaryRef sample_b =
+        IOReportCreateSamples(sub, subbed_channels, nullptr);
     const auto sample_b_guard = scope_guard::CFRelease(sample_b);
     if (sample_b == nullptr) {
       LOG(WARNING) << "IOReportCreateSamples (second) returned null";
       return power_data;
     }
 
-    CFDictionaryRef delta = IOReportCreateSamplesDelta(sample_a, sample_b, nullptr);
+    CFDictionaryRef delta =
+        IOReportCreateSamplesDelta(sample_a, sample_b, nullptr);
     const auto delta_guard = scope_guard::CFRelease(delta);
 
     if (delta == nullptr) {
@@ -271,7 +276,8 @@ std::vector<std::optional<double>> collectGPUPowerData() {
       }
 
       int32_t residual = 0;
-      const int64_t value = IOReportSimpleGetIntegerValue(channel_item, &residual);
+      const int64_t value =
+          IOReportSimpleGetIntegerValue(channel_item, &residual);
       if (isInvalidCounterValue(value) || value < 0) {
         return 0;
       }
@@ -284,8 +290,8 @@ std::vector<std::optional<double>> collectGPUPowerData() {
 
       found_gpu_channel = true;
 
-      const double channel_power_w = convertToWatts(
-          value, power_unit, kSampleIntervalSeconds);
+      const double channel_power_w =
+          convertToWatts(value, power_unit, kSampleIntervalSeconds);
       total_power_w += channel_power_w;
 
       if (logged < 20) {
@@ -303,7 +309,8 @@ std::vector<std::optional<double>> collectGPUPowerData() {
     });
 
     if (found_gpu_channel) {
-      LOG(INFO) << "Total GPU power from all-channel scan: " << total_power_w << " W";
+      LOG(INFO) << "Total GPU power from all-channel scan: " << total_power_w
+                << " W";
       power_data.push_back(total_power_w);
     } else {
       LOG(INFO) << "All-channel GPU power scan found no matching candidates";
@@ -360,7 +367,7 @@ NSString* normalizeSystemProfilerToken(NSString* value) {
     return @"Built-In";
   }
 
-  for (NSString* prefix in @[@"sppci_vendor_", @"spdisplays_", @"sppci_"]) {
+  for (NSString* prefix in @[ @"sppci_vendor_", @"spdisplays_", @"sppci_" ]) {
     if ([value hasPrefix:prefix]) {
       NSString* token = [value substringFromIndex:[prefix length]];
       token = [token stringByReplacingOccurrencesOfString:@"_" withString:@" "];
@@ -390,7 +397,8 @@ NSString* parseMetalSupportVersion(NSString* value) {
     NSString* suffix = [normalized substringFromIndex:5];
     if ([suffix length] > 0) {
       unichar first_char = [suffix characterAtIndex:0];
-      if ([[NSCharacterSet decimalDigitCharacterSet] characterIsMember:first_char]) {
+      if ([[NSCharacterSet decimalDigitCharacterSet]
+              characterIsMember:first_char]) {
         return [@"Metal " stringByAppendingString:suffix];
       }
     }
@@ -483,7 +491,6 @@ std::vector<AcceleratorStats> collectAcceleratorStats() {
         if (alloc_memory_bytes.has_value()) {
           stats.allocated_vram = *alloc_memory_bytes;
         }
-
       }
     }
 
@@ -602,4 +609,3 @@ QueryData genGpuMetrics(QueryContext& context) {
 
 } // namespace tables
 } // namespace osquery
-
