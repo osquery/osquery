@@ -8,8 +8,10 @@
  */
 
 #include <algorithm>
+#include <cctype>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <map>
 #include <osquery/core/tables.h>
