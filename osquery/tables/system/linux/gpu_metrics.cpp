@@ -8,6 +8,7 @@
  */
 
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -206,7 +207,7 @@ QueryData genGpuMetrics(QueryContext& context) {
     }
   }
   if (!pciids_stream.is_open()) {
-    LOG(WARNING) << "Could not open pci.ids at: "
+    VLOG(1) << "Could not open pci.ids at: "
                  << osquery::join(kPciidsPathList, " ");
   }
   PciDB pcidb(pciids_stream);
