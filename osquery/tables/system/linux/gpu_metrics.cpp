@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <dirent.h>
 #include <fstream>
 #include <optional>
 #include <string>
@@ -20,6 +19,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/linux/pci_devices.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -40,40 +40,34 @@ const std::string kGpuPCIKeyDriver = "DRIVER";
 
 // Read a single-line sysfs attribute. Returns empty string on failure.
 std::string readSysfsAttr(const std::string& syspath, const std::string& attr) {
-  std::ifstream f(syspath + "/" + attr);
-  if (!f.is_open()) {
+  std::string content;
+  if (!readFile(syspath + "/" + attr, content, false).ok()) {
     return "";
   }
-  std::string value;
-  std::getline(f, value);
-  boost::algorithm::trim(value);
-  return value;
+  // sysfs files are single-line; drop everything after the first newline.
+  auto nl = content.find('\n');
+  if (nl != std::string::npos) {
+    content.resize(nl);
+  }
+  boost::algorithm::trim(content);
+  return content;
 }
 
 // Try to read VRAM size (in bytes) from sysfs for the device at syspath.
 // AMD GPUs expose mem_info_vram_total; other drivers generally do not.
 long long readVramBytes(const std::string& syspath) {
-  std::string raw = readSysfsAttr(syspath, "mem_info_vram_total");
-  if (raw.empty()) {
-    return -1;
-  }
-  try {
-    return std::stoll(raw);
-  } catch (...) {
-    return -1;
-  }
+  return tryTo<long long>(readSysfsAttr(syspath, "mem_info_vram_total"))
+      .takeOr(-1LL);
 }
 
 // Try to read the NVIDIA driver version from /sys/module/nvidia/version.
 std::string readNvidiaDriverVersion() {
-  std::ifstream f("/sys/module/nvidia/version");
-  if (!f.is_open()) {
-    return "";
-  }
-  std::string ver;
-  std::getline(f, ver);
-  boost::algorithm::trim(ver);
-  return ver;
+  return readSysfsAttr("/sys/module/nvidia", "version");
+}
+
+// Read the kernel module version from the driver bound to the PCI device.
+std::string readGenericDriverVersion(const std::string& pci_syspath) {
+  return readSysfsAttr(pci_syspath + "/driver/module", "version");
 }
 
 // Returns true when the PCI_CLASS value indicates a display controller.
@@ -97,24 +91,9 @@ bool isDisplayClass(const std::string& pci_class_attr) {
 // Returns the path to the first hwmon directory under {pci_syspath}/hwmon/,
 // or empty string if none found.
 std::string findHwmonPath(const std::string& pci_syspath) {
-  const std::string hwmon_base = pci_syspath + "/hwmon";
-  DIR* dir = opendir(hwmon_base.c_str());
-  if (dir == nullptr) {
-    return "";
-  }
-
-  std::string result;
-  struct dirent* entry = nullptr;
-  while ((entry = readdir(dir)) != nullptr) {
-    const std::string name(entry->d_name);
-    // hwmon subdirectories are named "hwmonN" where N is one or more digits.
-    if (name.size() > 5 && name.rfind("hwmon", 0) == 0) {
-      result = hwmon_base + "/" + name;
-      break;
-    }
-  }
-  closedir(dir);
-  return result;
+  std::vector<std::string> matches;
+  resolveFilePattern(pci_syspath + "/hwmon/hwmon*", matches, GLOB_FOLDERS);
+  return matches.empty() ? "" : matches.front();
 }
 
 struct HwmonData {
@@ -217,20 +196,20 @@ QueryData genGpuMetrics(QueryContext& context) {
   }
 
   // Open pci.ids for vendor/model name resolution.
-  std::ifstream raw;
+  std::ifstream pciids_stream;
   for (const std::string& path : kPciidsPathList) {
-    if (pathExists(path)) {
-      raw.open(path);
-      if (raw) {
+    if (pathExists(path).ok()) {
+      pciids_stream.open(path);
+      if (pciids_stream) {
         break;
       }
     }
   }
-  if (!raw.is_open()) {
+  if (!pciids_stream.is_open()) {
     LOG(WARNING) << "Could not open pci.ids at: "
                  << osquery::join(kPciidsPathList, " ");
   }
-  PciDB pcidb(raw);
+  PciDB pcidb(pciids_stream);
 
   // Cache the NVIDIA driver version so we look it up at most once.
   std::string nvidia_driver_ver;
@@ -296,23 +275,27 @@ QueryData genGpuMetrics(QueryContext& context) {
       r.erase(key);
     }
 
-    // Driver version: for NVIDIA read the module version file.
+    // Driver version: NVIDIA uses /sys/module/nvidia/version; others use the
+    // generic driver/module/version sysfs path.
     std::string driver =
         UdevEventPublisher::getValue(device.get(), kGpuPCIKeyDriver);
+    const char* syspath_c = udev_device_get_syspath(device.get());
+    const std::string syspath(syspath_c != nullptr ? syspath_c : "");
+    std::string driver_ver;
     if (driver == "nvidia") {
       if (!nvidia_driver_checked) {
         nvidia_driver_ver = readNvidiaDriverVersion();
         nvidia_driver_checked = true;
       }
-      if (!nvidia_driver_ver.empty()) {
-        r["driver_version"] = nvidia_driver_ver;
-      }
+      driver_ver = nvidia_driver_ver;
+    } else if (!driver.empty() && !syspath.empty()) {
+      driver_ver = readGenericDriverVersion(syspath);
+    }
+    if (!driver_ver.empty()) {
+      r["driver_version"] = driver_ver;
     }
 
-    const char* syspath_c = udev_device_get_syspath(device.get());
-    if (syspath_c != nullptr) {
-      const std::string syspath(syspath_c);
-
+    if (!syspath.empty()) {
       // VRAM: AMD exposes mem_info_vram_total in sysfs.
       const long long vram = readVramBytes(syspath);
       if (vram > 0) {
