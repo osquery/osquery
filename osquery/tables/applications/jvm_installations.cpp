@@ -388,7 +388,7 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
       }
 
       // Homebrew OpenJDK structure:
-      // /opt/homebrew/opt/openjdk@25/libexec/openjdk.jvm/Contents/Home
+      // /opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home
       std::string jvm_home = opt_dir + "/libexec/openjdk.jdk/Contents/Home";
       if (pathExists(jvm_home).ok()) {
         // Resolve to canonical path and skip if already seen

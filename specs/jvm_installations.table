@@ -4,7 +4,7 @@ schema([
     Column("uid", BIGINT, "The local user that owns the JVM", additional=True, optimized=True),
     Column("name", TEXT, "Name of the JVM"),
     Column("version", TEXT, "Version of the JVM", collate="version"),
-    Column("vendor", TEXT, "The vendor name or organization that build the JVM"),
+    Column("vendor", TEXT, "The vendor name or organization that builds the JVM."),
     Column("path", TEXT, "The path on the filesystem for the JVM."),
     Column("architecture", TEXT, "architecture of the JVM (x86, aarch64, amd64, etc.)"),
 ])
