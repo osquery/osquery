@@ -80,7 +80,7 @@ pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0
 
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path) ..
+cmake ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
