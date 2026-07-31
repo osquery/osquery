@@ -63,9 +63,6 @@ Then do the following.
 # Install prerequisites
 xcode-select --install
 brew install ccache git git-lfs cmake python clang-format flex bison
-
-# Optional: install python tests prerequisites
-pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 ### Step 2: Download and build source on macOS
@@ -75,9 +72,16 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 git clone https://github.com/osquery/osquery
 cd osquery
 
+# Optional: install python tests prerequisites
+# Creating a Python virtual env is needed, 
+# because Python installed by Homebrew don't allow package installations without a venv
+python -m venv .venv
+source .venv/bin/activate
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+
 # Configure
 mkdir build; cd build
-cmake ..
+cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path) ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
