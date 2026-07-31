@@ -72,9 +72,8 @@ brew install ccache git git-lfs cmake python clang-format flex bison
 git clone https://github.com/osquery/osquery
 cd osquery
 
-# Optional: install python tests prerequisites
-# Creating a Python virtual env is needed, 
-# because Python installed by Homebrew don't allow package installations without a venv
+# Optional: install Python test prerequisites
+# Homebrew Python uses an externally managed environment, so install these in a virtualenv
 python -m venv .venv
 source .venv/bin/activate
 pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
