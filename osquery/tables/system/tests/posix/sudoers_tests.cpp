@@ -220,5 +220,47 @@ TEST_F(SudoersTests, long_line) {
   EXPECT_EQ(results[4].at("rule_details"), "ALL=(ALL)CMDS_1");
 }
 
+TEST_F(SudoersTests, escaped_space_in_header) {
+  auto directory =
+      real_temp_path() / fs::unique_path("osquery.sudoers_tests.%%%%-%%%%");
+
+  ASSERT_TRUE(fs::create_directories(directory));
+
+  auto const path_guard =
+      scope_guard::create([directory]() { fs::remove_all(directory); });
+
+  auto sudoers_file = directory / fs::path("sudoers");
+
+  {
+    auto fout = std::ofstream(sudoers_file.native());
+    // sudoers(5): unquoted user and group names escape spaces with a backslash
+    fout << "%Domain\\ Users ALL=(ALL:ALL) ALL\n"
+         << "user\\ one ALL=(ALL) NOPASSWD: /usr/bin/id\n"
+         << "%two\\ escaped\\ spaces ALL=(ALL) ALL\n"
+         << "%ends\\ with\\ a\\ backslash\\\\ ALL=(ALL) ALL\n";
+  }
+
+  auto results = QueryData{};
+  genSudoersFile(sudoers_file.string(), 1, results);
+
+  ASSERT_EQ(results.size(), 4);
+
+  EXPECT_EQ(results[0].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[0].at("header"), "%Domain\\ Users");
+  EXPECT_EQ(results[0].at("rule_details"), "ALL=(ALL:ALL) ALL");
+
+  EXPECT_EQ(results[1].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[1].at("header"), "user\\ one");
+  EXPECT_EQ(results[1].at("rule_details"), "ALL=(ALL) NOPASSWD: /usr/bin/id");
+
+  EXPECT_EQ(results[2].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[2].at("header"), "%two\\ escaped\\ spaces");
+  EXPECT_EQ(results[2].at("rule_details"), "ALL=(ALL) ALL");
+
+  EXPECT_EQ(results[3].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[3].at("header"), "%ends\\ with\\ a\\ backslash\\\\");
+  EXPECT_EQ(results[3].at("rule_details"), "ALL=(ALL) ALL");
+}
+
 } // namespace tables
 } // namespace osquery
