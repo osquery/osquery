@@ -1,0 +1,24 @@
+table_name("pacman_packages")
+description("Packages installed by the pacman package manager.")
+schema([
+    Column("name", TEXT, "Package name", index=True, optimized=True),
+    Column("version", TEXT, "Package version, including epoch and release", collate="version"),
+    Column("source", TEXT, "Name of the base package this package was built from"),
+    Column("description", TEXT, "Package description"),
+    Column("url", TEXT, "Upstream project URL"),
+    Column("licenses", TEXT, "Comma separated list of licenses"),
+    Column("groups", TEXT, "Comma separated list of groups the package belongs to"),
+    Column("arch", TEXT, "Package architecture"),
+    Column("size", BIGINT, "Installed size of the package in bytes"),
+    Column("packager", TEXT, "Person or process that built the package"),
+    Column("build_time", BIGINT, "Unix time when the package was built"),
+    Column("install_time", BIGINT, "Unix time when the package was installed"),
+    Column("install_reason", TEXT, "Either 'explicit' if the package was installed directly, or 'dependency' if it was installed to satisfy another package"),
+    Column("validation", TEXT, "Comma separated list of methods used to validate the package, for example 'sha256' or 'pgp'"),
+    Column("dbpath", TEXT, "pacman database path. The installed packages are read from the 'local' subdirectory. Defaults to /var/lib/pacman", additional=True, optimized=True),
+])
+attributes(cacheable=True)
+implementation("system/pacman_packages@genPacmanPackages")
+fuzz_paths([
+    "/var/lib/pacman",
+])

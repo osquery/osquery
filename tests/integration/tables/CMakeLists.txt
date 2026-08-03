@@ -172,6 +172,7 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
+      pacman_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp

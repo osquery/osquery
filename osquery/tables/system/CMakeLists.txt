@@ -72,6 +72,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/model_specific_register.cpp
       linux/mounts.cpp
       linux/os_version.cpp
+      linux/pacman_packages.cpp
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
