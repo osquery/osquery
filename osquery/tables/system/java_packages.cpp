@@ -9,6 +9,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include <algorithm>
 #include <sstream>
@@ -24,8 +26,6 @@
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
 #ifdef WIN32
 #include "windows/registry.h"
@@ -522,11 +522,13 @@ QueryData genJavaPackagesImpl(QueryContext& context, Logger& logger) {
     const auto& path = user_path.at("path").stringValue;
     const auto& type = user_path.at("type").stringValue;
 
-    if (type.find(".m2/repository") != std::string::npos or type.find(".m2\\repository") != std::string::npos) {
+    if (type.find(".m2/repository") != std::string::npos or
+        type.find(".m2\\repository") != std::string::npos) {
       // Maven repository
       genMavenArtifacts(
           path, results, logger, user_path.at("user_id").intValue);
-    } else if (type.find(".gradle/caches") != std::string::npos or type.find(".gradle\\caches") != std::string::npos) {
+    } else if (type.find(".gradle/caches") != std::string::npos or
+               type.find(".gradle\\caches") != std::string::npos) {
       // Gradle cache
       genGradleArtifacts(
           path, results, logger, user_path.at("user_id").intValue);
