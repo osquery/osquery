@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <osquery/hashing/hashing.h>
 #include <osquery/sql/sql.h>
@@ -30,8 +30,8 @@ void decorateFileEvent(const std::string& path, bool hash, Row& r) {
     }
   }
 
-  boost::system::error_code ec;
-  if (hash && boost::filesystem::is_regular_file(path, ec)) {
+  std::error_code ec;
+  if (hash && std::filesystem::is_regular_file(path, ec)) {
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
     r["md5"] = std::move(hashes.md5);
