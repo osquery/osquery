@@ -6,10 +6,10 @@ schema([
     Column("version", TEXT, "Package-supplied version", collate="version"),
     Column("summary", TEXT, "Package-supplied summary"),
     Column("author", TEXT, "Optional package author"),
-    Column("license", TEXT, "License under which package is launched"),
+    Column("license", TEXT, "License under which package is licensed"),
     Column("path", TEXT, "Path at which this module resides"),
     Column("type", TEXT, "Gradle or Maven"),
-    Column("directory", TEXT, "Directory where Java librairies are located", index=True, optimized=True),
+    Column("directory", TEXT, "Directory where Java libraries are located", index=True, optimized=True),
     ForeignKey(column="uid", table="users"),
 ])
 extended_schema(LINUX, [
@@ -18,6 +18,5 @@ extended_schema(LINUX, [
 attributes(user_data=True)
 implementation("system/java_packages@genJavaPackages")
 examples([
-    "select * from java_packages where directory='/usr/'",
     "select * from users cross join java_packages using (uid)"
 ])
