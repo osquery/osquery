@@ -9,6 +9,13 @@
 
 #include <gtest/gtest.h>
 
+#ifndef WIN32
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
+#include <fstream>
+
 #include <osquery/config/config.h>
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/flags.h>
@@ -57,6 +64,46 @@ class FileEventsTableTests : public testing::Test {
 };
 
 #ifndef WIN32
+TEST_F(FileEventsTableTests, test_decorate_file_event_skips_hash_for_fifo) {
+  // Regression test: decorateFileEvent must not hash non-regular files.
+  // Before the fix, FIFOs (e.g. GNU make's jobserver pipe) would be opened
+  // and drained by readFile() via hashMultiFromFile().
+  const std::string fifo_path =
+      "/tmp/osquery_fim_fifo_test_" + std::to_string(::getpid());
+  ::unlink(fifo_path.c_str());
+  ASSERT_EQ(0, ::mkfifo(fifo_path.c_str(), 0600))
+      << "mkfifo failed: " << strerror(errno);
+
+  Row r;
+  decorateFileEvent(fifo_path, /* hash */ true, r);
+
+  EXPECT_EQ(r.at("hashed"), "0");
+  EXPECT_EQ(r.count("md5"), 0u);
+  EXPECT_EQ(r.count("sha1"), 0u);
+  EXPECT_EQ(r.count("sha256"), 0u);
+
+  ::unlink(fifo_path.c_str());
+}
+
+TEST_F(FileEventsTableTests, test_decorate_file_event_hashes_regular_file) {
+  const std::string file_path =
+      "/tmp/osquery_fim_file_test_" + std::to_string(::getpid());
+  {
+    std::ofstream f(file_path);
+    f << "osquery test content";
+  }
+
+  Row r;
+  decorateFileEvent(file_path, /* hash */ true, r);
+
+  EXPECT_NE(r.at("hashed"), "0");
+  EXPECT_FALSE(r.at("md5").empty());
+  EXPECT_FALSE(r.at("sha1").empty());
+  EXPECT_FALSE(r.at("sha256").empty());
+
+  ::unlink(file_path.c_str());
+}
+
 TEST_F(FileEventsTableTests, test_subscriber_exists) {
   ASSERT_TRUE(Registry::get().exists("event_subscriber", "file_events"));
 
