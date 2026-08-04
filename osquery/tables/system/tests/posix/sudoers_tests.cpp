@@ -262,5 +262,80 @@ TEST_F(SudoersTests, escaped_space_in_header) {
   EXPECT_EQ(results[3].at("rule_details"), "ALL=(ALL) ALL");
 }
 
+TEST_F(SudoersTests, header_split_edge_cases) {
+  auto directory =
+      real_temp_path() / fs::unique_path("osquery.sudoers_tests.%%%%-%%%%");
+
+  ASSERT_TRUE(fs::create_directories(directory));
+
+  auto const path_guard =
+      scope_guard::create([directory]() { fs::remove_all(directory); });
+
+  auto sudoers_file = directory / fs::path("sudoers");
+
+  {
+    auto fout = std::ofstream(sudoers_file.native());
+    // a tab separates the header just like a space
+    fout << "dave\tALL=(ALL) ALL\n"
+         // an escaped backslash ends the escape, so the space still splits
+         << "a\\\\b c\n"
+         // a leading escaped space is part of the name
+         << "\\ leading ALL=(ALL) ALL\n"
+         // no whitespace at all: the whole line is the header
+         << "onlyaheader\n"
+         // every space escaped: also header only
+         << "one\\ single\\ token\n";
+  }
+
+  auto results = QueryData{};
+  genSudoersFile(sudoers_file.string(), 1, results);
+
+  ASSERT_EQ(results.size(), 5);
+
+  EXPECT_EQ(results[0].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[0].at("header"), "dave");
+  EXPECT_EQ(results[0].at("rule_details"), "ALL=(ALL) ALL");
+
+  EXPECT_EQ(results[1].at("header"), "a\\\\b");
+  EXPECT_EQ(results[1].at("rule_details"), "c");
+
+  EXPECT_EQ(results[2].at("header"), "\\ leading");
+  EXPECT_EQ(results[2].at("rule_details"), "ALL=(ALL) ALL");
+
+  EXPECT_EQ(results[3].at("header"), "onlyaheader");
+  EXPECT_EQ(results[3].at("rule_details"), "");
+
+  EXPECT_EQ(results[4].at("header"), "one\\ single\\ token");
+  EXPECT_EQ(results[4].at("rule_details"), "");
+}
+
+TEST_F(SudoersTests, escaped_header_with_continuation) {
+  auto directory =
+      real_temp_path() / fs::unique_path("osquery.sudoers_tests.%%%%-%%%%");
+
+  ASSERT_TRUE(fs::create_directories(directory));
+
+  auto const path_guard =
+      scope_guard::create([directory]() { fs::remove_all(directory); });
+
+  auto sudoers_file = directory / fs::path("sudoers");
+
+  {
+    auto fout = std::ofstream(sudoers_file.native());
+    // an escaped name and a line continuation on the same rule
+    fout << "%Domain\\ Admins ALL=(ALL) \\\n"
+         << "NOPASSWD: ALL\n";
+  }
+
+  auto results = QueryData{};
+  genSudoersFile(sudoers_file.string(), 1, results);
+
+  ASSERT_EQ(results.size(), 1);
+
+  EXPECT_EQ(results[0].at("source"), sudoers_file.string());
+  EXPECT_EQ(results[0].at("header"), "%Domain\\ Admins");
+  EXPECT_EQ(results[0].at("rule_details"), "ALL=(ALL) NOPASSWD: ALL");
+}
+
 } // namespace tables
 } // namespace osquery
