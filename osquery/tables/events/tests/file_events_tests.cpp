@@ -10,11 +10,11 @@
 #include <gtest/gtest.h>
 
 #ifndef WIN32
+#include <cstring>
+#include <fstream>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
-
-#include <fstream>
 
 #include <osquery/config/config.h>
 #include <osquery/config/tests/test_utils.h>
@@ -72,7 +72,7 @@ TEST_F(FileEventsTableTests, test_decorate_file_event_skips_hash_for_fifo) {
       "/tmp/osquery_fim_fifo_test_" + std::to_string(::getpid());
   ::unlink(fifo_path.c_str());
   ASSERT_EQ(0, ::mkfifo(fifo_path.c_str(), 0600))
-      << "mkfifo failed: " << strerror(errno);
+      << "mkfifo failed: " << std::strerror(errno);
 
   Row r;
   decorateFileEvent(fifo_path, /* hash */ true, r);
