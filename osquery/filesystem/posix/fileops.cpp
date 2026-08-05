@@ -90,10 +90,6 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isSpecialFile() const {
-  return (size() == 0);
-}
-
 static uid_t getFileOwner(PlatformHandle handle) {
   struct stat file;
   if (::fstat(handle, &file) < 0) {

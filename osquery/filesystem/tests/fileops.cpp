@@ -221,7 +221,6 @@ TEST_F(FileOpsTests, test_fileIo) {
     std::vector<char> buf(expected_read_len);
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     ASSERT_TRUE(fd.isValid());
-    ASSERT_FALSE(fd.isSpecialFile());
     EXPECT_EQ(expected_read_len, fd.read(buf.data(), expected_read_len));
     EXPECT_EQ(expected_buf_size, buf.size());
     for (ssize_t i = 0; i < expected_read_len; i++) {
@@ -282,7 +281,6 @@ TEST_F(FileOpsTests, test_asyncIo) {
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
     ASSERT_TRUE(fd.isValid());
-    ASSERT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
     EXPECT_EQ(expected_len, fd.read(buf.data(), expected_len));
@@ -292,7 +290,6 @@ TEST_F(FileOpsTests, test_asyncIo) {
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
     ASSERT_TRUE(fd.isValid());
-    ASSERT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
     char* ptr = buf.data();
