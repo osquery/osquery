@@ -74,7 +74,7 @@ cd osquery
 
 # Optional: install Python test prerequisites
 # Homebrew Python uses an externally managed environment, so install these in a virtualenv
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 
