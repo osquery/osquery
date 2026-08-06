@@ -97,7 +97,8 @@ std::int64_t timestampMember(const rapidjson::Value& object, const char* name) {
   return 0;
 }
 /**
- * @brief Determines the per-user application-data directory for the current platform.
+ * @brief Determines the per-user application-data directory for the current
+ * platform.
  *
  * @param home User's home directory.
  * @return Path to the platform-specific application-data directory.

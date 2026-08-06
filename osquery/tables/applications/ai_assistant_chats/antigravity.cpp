@@ -159,7 +159,8 @@ bool nextProtobufField(std::string_view& message, ProtobufField& field) {
 }
 
 /**
- * @brief Finds the first length-delimited protobuf field with the specified number.
+ * @brief Finds the first length-delimited protobuf field with the specified
+ * number.
  *
  * @param message Serialized protobuf message to search.
  * @param number Field number to find.
@@ -202,11 +203,14 @@ bool protobufVarint(std::string_view message,
   return false;
 }
 
-} /**
+} // namespace
+
+/**
  * @brief Decodes an even-length hexadecimal string into binary bytes.
  *
  * @param hex Hexadecimal input containing only hexadecimal digits.
- * @param bytes Output buffer populated with the decoded bytes and cleared on failure.
+ * @param bytes Output buffer populated with the decoded bytes and cleared on
+ * failure.
  * @return true if the input is valid and decoded successfully, false otherwise.
  */
 
@@ -247,7 +251,8 @@ bool decodeHexBlob(const std::string& hex, std::string& bytes) {
   return true;
 }
 /**
- * @brief Extracts a user or assistant message from an Antigravity conversation step.
+ * @brief Extracts a user or assistant message from an Antigravity conversation
+ * step.
  *
  * @param payload Serialized conversation-step data.
  * @param session_id Conversation session identifier.
@@ -312,7 +317,8 @@ void parseAntigravityStep(const std::string& payload,
 /**
  * @brief Collects chat messages from Antigravity conversation databases.
  *
- * @param home User home directory containing the Gemini conversation directories.
+ * @param home User home directory containing the Gemini conversation
+ * directories.
  * @param results Output collection to which extracted chats are appended.
  */
 void collectAntigravityChats(const fs::path& home,

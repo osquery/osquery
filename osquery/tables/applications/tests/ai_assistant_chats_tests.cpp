@@ -298,6 +298,58 @@ TEST_F(AIAssistantChatsTest, test_gemini_session_skipped) {
   EXPECT_EQ(results[1].message, "/etc/hosts is wrong, can you fix it");
 }
 
+TEST_F(AIAssistantChatsTest, test_gemini_session_checkpoint) {
+  // The CLI can restate a session's whole history in one record, and a
+  // prompt can reach the file that way and no other. It replaces what
+  // came before it, the way the CLI itself reads one, so a prompt that
+  // appears both as its own record and in the checkpoint is one row.
+  const std::string session =
+      R"({"sessionId":"c0ffee","projectHash":"9f2b"})"
+      "\n"
+      R"({"id":"m1","timestamp":"2026-08-06T09:00:04.000Z","type":"user","content":"a prompt that was later restated"})"
+      "\n"
+      R"({"$set":{"lastUpdated":"2026-08-06T09:01:00.000Z","messages":[)"
+      R"({"id":"m1","timestamp":"2026-08-06T09:00:04.000Z","type":"user","content":[{"text":"a prompt that was later restated"}]},)"
+      R"({"id":"m2","timestamp":"2026-08-06T09:00:09.000Z","type":"gemini","content":[{"text":"an answer only the checkpoint holds"}]},)"
+      R"({"id":"m3","timestamp":"2026-08-06T09:00:10.000Z","type":"user","content":[{"text":"<session_context>cwd: /repo</session_context>"}]})"
+      R"(]}})"
+      "\n"
+      R"({"$set":{"lastUpdated":"2026-08-06T09:02:00.000Z"}})"
+      "\n";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiSession(
+      session, "/home/user/.gemini/tmp/9f2b/chats/c0ffee.jsonl", results);
+
+  // The context the CLI injects is not a prompt, wherever it is written.
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].session_id, "c0ffee");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "a prompt that was later restated");
+  EXPECT_EQ(results[1].role, "assistant");
+  EXPECT_EQ(results[1].message, "an answer only the checkpoint holds");
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_session_revises_by_id) {
+  // A record repeated under an id already seen revises that message
+  // rather than doubling it.
+  const std::string session =
+      R"({"sessionId":"c0ffee","projectHash":"9f2b"})"
+      "\n"
+      R"({"id":"m1","type":"user","content":"first draft"})"
+      "\n"
+      R"({"id":"m1","type":"user","content":"what was actually sent"})"
+      "\n";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiSession(
+      session, "/home/user/.gemini/tmp/9f2b/chats/c0ffee.jsonl", results);
+
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].message, "what was actually sent");
+}
+
 TEST_F(AIAssistantChatsTest, test_cursor_bubble) {
   std::vector<AIAssistantChat> results;
 
