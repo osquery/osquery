@@ -156,7 +156,8 @@ bool replayChatSessionJournal(const std::string& content, JSON& session) {
     }
 
     if (kind->value.GetInt() == kSessionSetRecord) {
-      target.Set(document, value->value);
+      rapidjson::Value copy(value->value, allocator);
+      target.Set(document, copy);
       continue;
     }
 
