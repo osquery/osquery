@@ -85,6 +85,7 @@ function(generateNativeTables)
   endif()
 
   set(platform_dependent_spec_files
+    "ai_assistant_chats.table:linux,macos,windows"
     "arp_cache.table:linux,macos,windows"
     "vscode_extensions.table:linux,macos,windows"
     "cpu_info.table:linux,macos,windows"

@@ -7,6 +7,7 @@
 
 function(generateOsqueryTablesApplicationsTestsApplicationsTablesTestsTest)
   add_osquery_executable(osquery_tables_applications_tests_applicationstablestests-test
+    ai_assistant_chats_tests.cpp
     jetbrains_plugins_tests.cpp
   )
 

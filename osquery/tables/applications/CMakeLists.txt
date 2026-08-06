@@ -20,6 +20,14 @@ function(generateOsqueryTablesApplications)
     chrome/chrome_extensions.cpp
     chrome/chrome_extension_content_scripts.cpp
     chrome/utils.cpp
+    ai_assistant_chats.cpp
+    ai_assistant_chats/antigravity.cpp
+    ai_assistant_chats/claude.cpp
+    ai_assistant_chats/codex.cpp
+    ai_assistant_chats/cursor.cpp
+    ai_assistant_chats/gemini.cpp
+    ai_assistant_chats/utils.cpp
+    ai_assistant_chats/vscode.cpp
     browser_firefox.cpp
     jetbrains_plugins.cpp
     vscode_extensions.cpp
@@ -58,6 +66,7 @@ function(generateOsqueryTablesApplications)
     osquery_cxx_settings
     osquery_config
     osquery_filesystem
+    osquery_sql
     osquery_tables_system_systemtable
     osquery_utils_conversions
     osquery_utils_info
@@ -74,6 +83,13 @@ function(generateOsqueryTablesApplications)
   endif()
 
   set(public_header_files
+    ai_assistant_chats/antigravity.h
+    ai_assistant_chats/claude.h
+    ai_assistant_chats/codex.h
+    ai_assistant_chats/cursor.h
+    ai_assistant_chats/gemini.h
+    ai_assistant_chats/utils.h
+    ai_assistant_chats/vscode.h
     chrome/utils.h
     jetbrains_plugins.h
   )

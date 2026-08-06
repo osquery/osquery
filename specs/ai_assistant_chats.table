@@ -1,0 +1,18 @@
+table_name("ai_assistant_chats")
+description("Chat messages stored on disk by AI assistant applications: the Claude Code CLI, Claude Desktop agent sessions, Codex, the Gemini CLI, Cursor, VS Code Copilot Chat and Antigravity.")
+schema([
+    Column("application", TEXT, "Application the message was stored by (claude_code, claude_desktop, codex, gemini_cli, cursor, copilot, antigravity)", additional=True, optimized=True),
+    Column("session_id", TEXT, "Identifier of the conversation the message belongs to"),
+    Column("role", TEXT, "Author of the message (user, assistant)"),
+    Column("message", TEXT, "Text of the message"),
+    Column("timestamp", BIGINT, "Unix time the message was written, 0 if the application did not record one"),
+    Column("path", TEXT, "File the message was read from"),
+    Column("uid", BIGINT, "The local user that owns the chat history", additional=True, optimized=True),
+])
+attributes(user_data=True)
+implementation("applications/ai_assistant_chats@genAIAssistantChats")
+examples([
+  "select * from ai_assistant_chats",
+  "select * from ai_assistant_chats where application = 'cursor'",
+  "select application, session_id, count(*) from ai_assistant_chats group by application, session_id",
+])
