@@ -370,6 +370,8 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_config_backup);
   FRIEND_TEST(ConfigTests, test_config_backup_integrate);
   FRIEND_TEST(ConfigTests, test_config_refresh);
+  FRIEND_TEST(ConfigTests, test_refresh_unchanged_config);
+  FRIEND_TEST(ConfigTests, test_config_applied_notification);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_nondenylist_query);
   FRIEND_TEST(ConfigTests, test_queryname_validation);
@@ -482,6 +484,17 @@ class ConfigPlugin : public Plugin {
   virtual Status genPack(const std::string& name,
                          const std::string& value,
                          std::string& pack);
+
+  /**
+   * @brief Virtual method called after a generated config was applied.
+   *
+   * The config refresh path calls this after the source map returned by
+   * genConfig has been successfully applied. A plugin that needs to know
+   * whether its last generated config took effect (for example to
+   * acknowledge a server-supplied validator) may override this; the default
+   * is a no-op.
+   */
+  virtual Status configApplied();
 
   /// Main entrypoint for config plugin requests
   Status call(const PluginRequest& request, PluginResponse& response) override;
