@@ -10,35 +10,13 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 
-/**
- * Parses one JSON record from a Gemini CLI session.
- *
- * @param line JSON record to parse.
- * @param path Session file path associated with the record.
- * @param session_id Session identifier propagated from the session's opening record.
- * @param results Collection to which qualifying conversation messages are appended.
- */
-
-/**
- * Parses all records in a Gemini CLI session.
- *
- * @param content Session file content in JSON-lines format.
- * @param path Session file path associated with the records.
- * @param results Collection to which parsed conversation messages are appended.
- */
-
-/**
- * Collects conversation messages from Gemini CLI session files under a home directory.
- *
- * @param home Home directory containing Gemini CLI session data.
- * @param results Collection to which parsed conversation messages are appended.
- */
 namespace osquery {
 namespace tables {
 
@@ -46,21 +24,44 @@ namespace tables {
 extern const std::string kGeminiApplication;
 
 /**
- * @brief Parse one line of a Gemini CLI session file.
+ * @brief A Gemini CLI session as its file is read.
  *
- * A session is JSON lines: an opening record naming the session, then one
- * record per message carrying an id, a timestamp, a type and its content.
- * Only "user" and "gemini" records are conversation, and the CLI's own
- * rule for what a user record is not (its slash and question mark
- * commands, and the context it injects into a turn) is applied here too.
+ * The messages are held rather than reported one by one, because the CLI
+ * can restate a session's whole history partway through the file and a
+ * prompt can reach the file that way and no other. Each is kept under
+ * the id it was recorded with, so that a record repeated under an id
+ * already seen revises it rather than doubling it.
+ */
+struct GeminiSession final {
+  std::string session_id;
+  std::vector<std::pair<std::string, AIAssistantChat>> messages;
+};
+
+/**
+ * @brief Parse one line of a Gemini CLI session file into `session`.
  *
- * `session_id` carries the id from the opening record across the rest of
- * the file, and should start as a fallback for files without one.
+ * A session is JSON lines: an opening record naming the session, then a
+ * record per message carrying an id, a timestamp, a type and its
+ * content, and records revising the session's metadata. Only "user" and
+ * "gemini" records are conversation, and the CLI's own rule for what a
+ * user record is not (its slash and question mark commands, and the
+ * context it injects into a turn) is applied here too.
+ *
+ * A metadata record carrying "messages" is the CLI restating the whole
+ * history, and replaces what was read before it, which is how the CLI
+ * itself reads one. A record rewinding the session is not honoured: a
+ * turn the user later took back was still typed and sent.
+ *
+ * `session.session_id` should start as a fallback for a file whose
+ * opening record is missing.
  */
 void parseGeminiSessionLine(const std::string& line,
                             const std::string& path,
-                            std::string& session_id,
-                            std::vector<AIAssistantChat>& results);
+                            GeminiSession& session);
+
+/// Moves a finished session's messages into `results`.
+void finishGeminiSession(GeminiSession& session,
+                         std::vector<AIAssistantChat>& results);
 
 /// Parse a whole Gemini CLI session file, one record per line.
 void parseGeminiSession(const std::string& content,

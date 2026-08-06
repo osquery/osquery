@@ -33,7 +33,9 @@ const std::string kCursorDirectory{"Cursor"};
 const std::string kCursorBubbleQuery{
     "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'bubbleId:%'"};
 
-} /**
+} // namespace
+
+/**
  * @brief Converts a Cursor bubble record into an assistant chat entry.
  *
  * Parses supported Cursor bubble records and appends messages with non-empty
@@ -104,9 +106,11 @@ void parseCursorBubble(const std::string& key,
   results.push_back(std::move(chat));
 }
 /**
- * @brief Reads Cursor chat history from its global and workspace state databases.
+ * @brief Reads Cursor chat history from its global and workspace state
+ * databases.
  *
- * @param app_data_root Root directory containing Cursor's per-user application data.
+ * @param app_data_root Root directory containing Cursor's per-user application
+ * data.
  * @param results Output collection to which extracted chats are appended.
  */
 void collectCursorChats(const fs::path& app_data_root,

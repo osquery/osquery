@@ -103,7 +103,8 @@ bool journalPointer(const rapidjson::Value& path, std::string& pointer) {
  *
  * @param content Journal content containing snapshot, set, and append records.
  * @param session Output session document populated from the journal.
- * @return true if the journal contains a valid snapshot record, false otherwise.
+ * @return true if the journal contains a valid snapshot record, false
+ * otherwise.
  */
 bool replayChatSessionJournal(const std::string& content, JSON& session) {
   auto& document = session.doc();
@@ -247,10 +248,14 @@ std::string chatRequestResponse(const rapidjson::Value& request) {
   return text;
 }
 
-} /**
- * @brief Extracts user prompts and assistant responses from a VS Code chat-session file.
+} // namespace
+
+/**
+ * @brief Extracts user prompts and assistant responses from a VS Code
+ * chat-session file.
  *
- * @param content Serialized chat-session content, either as a JSON object or journal records.
+ * @param content Serialized chat-session content, either as a JSON object or
+ * journal records.
  * @param path Path to the chat-session file.
  * @param application Application identifier associated with the session.
  * @param results Collection to which extracted chat rows are appended.

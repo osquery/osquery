@@ -33,7 +33,8 @@ const std::string kGeminiModelType{"gemini"};
  * @brief Extracts readable text from a Gemini content value.
  *
  * @param content A string, text-part object, or array of these values.
- * @return std::string The concatenated text, or an empty string when no readable text is present.
+ * @return std::string The concatenated text, or an empty string when no
+ * readable text is present.
  */
 std::string geminiContentText(const rapidjson::Value& content) {
   if (content.IsString()) {
@@ -92,23 +93,65 @@ bool isGeminiPrompt(const std::string& content) {
          trimmed.rfind("<hook_context>", 0) != 0;
 }
 
-} /**
- * @brief Parses a Gemini session record and appends conversational messages to the results.
- *
- * Updates the session identifier when the record contains session metadata. User and model
- * records with readable conversational content are converted to chat entries; other records
- * are skipped.
- *
- * @param line JSONL record to parse.
- * @param path Path of the session file containing the record.
- * @param session_id Session identifier to update from metadata records and associate with messages.
- * @param results Collection to which parsed chat entries are appended.
+/**
+ * Reads one message record into `chat`, returning false for a record
+ * that is not a message or that carries nothing anybody said.
  */
+bool geminiMessage(const rapidjson::Value& record,
+                   const std::string& path,
+                   const std::string& session_id,
+                   AIAssistantChat& chat) {
+  std::string role;
+  auto type = stringMember(record, "type");
+  if (type == kGeminiUserType) {
+    role = kUserRole;
+  } else if (type == kGeminiModelType) {
+    role = kAssistantRole;
+  } else {
+    // The remaining record types are notices the CLI showed the user
+    // rather than anything either side of the conversation said.
+    return false;
+  }
+
+  auto content = record.FindMember("content");
+  if (content == record.MemberEnd()) {
+    return false;
+  }
+
+  auto message = geminiContentText(content->value);
+  if (message.empty() || (role == kUserRole && !isGeminiPrompt(message))) {
+    return false;
+  }
+
+  chat.application = kGeminiApplication;
+  chat.session_id = session_id;
+  chat.role = std::move(role);
+  chat.message = std::move(message);
+  chat.timestamp = timestampMember(record, "timestamp");
+  chat.path = path;
+
+  return true;
+}
+
+/// Records a message under its id, replacing the one already there.
+void rememberGeminiMessage(const std::string& id,
+                           AIAssistantChat chat,
+                           GeminiSession& session) {
+  for (auto& remembered : session.messages) {
+    if (remembered.first == id) {
+      remembered.second = std::move(chat);
+      return;
+    }
+  }
+
+  session.messages.emplace_back(id, std::move(chat));
+}
+
+} // namespace
 
 void parseGeminiSessionLine(const std::string& line,
                             const std::string& path,
-                            std::string& session_id,
-                            std::vector<AIAssistantChat>& results) {
+                            GeminiSession& session) {
   auto record_text = boost::algorithm::trim_copy(line);
   if (record_text.empty()) {
     return;
@@ -123,71 +166,84 @@ void parseGeminiSessionLine(const std::string& line,
   const auto& record = doc.doc();
 
   // The opening record is the one that names the session and the project
-  // it belongs to. Records that revise the session's metadata afterwards
-  // are not messages and are left alone.
-  auto id = stringMember(record, "sessionId");
-  if (!id.empty() && !stringMember(record, "projectHash").empty()) {
-    session_id = std::move(id);
+  // it belongs to.
+  auto named = stringMember(record, "sessionId");
+  if (!named.empty() && !stringMember(record, "projectHash").empty()) {
+    session.session_id = std::move(named);
     return;
   }
 
-  std::string role;
-  auto type = stringMember(record, "type");
-  if (type == kGeminiUserType) {
-    role = kUserRole;
-  } else if (type == kGeminiModelType) {
-    role = kAssistantRole;
-  } else {
-    // The remaining record types are notices the CLI showed the user
-    // rather than anything either side of the conversation said.
-    return;
-  }
+  // A record revising the session's metadata is not a message, except
+  // when it carries the history itself. The CLI writes that when it
+  // rewrites what a session holds, and reads it as a checkpoint that
+  // replaces everything recorded before it, so this does the same. A
+  // prompt can reach the file this way and no other.
+  auto update = record.FindMember("$set");
+  if (update != record.MemberEnd()) {
+    if (!update->value.IsObject()) {
+      return;
+    }
 
-  auto content = record.FindMember("content");
-  if (content == record.MemberEnd()) {
-    return;
-  }
+    auto messages = update->value.FindMember("messages");
+    if (messages == update->value.MemberEnd() || !messages->value.IsArray()) {
+      return;
+    }
 
-  auto message = geminiContentText(content->value);
-  if (message.empty() || (role == kUserRole && !isGeminiPrompt(message))) {
+    session.messages.clear();
+    for (const auto& message : messages->value.GetArray()) {
+      AIAssistantChat chat;
+      if (message.IsObject() &&
+          geminiMessage(message, path, session.session_id, chat)) {
+        rememberGeminiMessage(
+            stringMember(message, "id"), std::move(chat), session);
+      }
+    }
+
     return;
   }
 
   AIAssistantChat chat;
-  chat.application = kGeminiApplication;
-  chat.session_id = session_id;
-  chat.role = std::move(role);
-  chat.message = std::move(message);
-  chat.timestamp = timestampMember(record, "timestamp");
-  chat.path = path;
-
-  results.push_back(std::move(chat));
+  if (geminiMessage(record, path, session.session_id, chat)) {
+    rememberGeminiMessage(stringMember(record, "id"), std::move(chat), session);
+  }
 }
-/**
- * @brief Parses a Gemini session's JSONL content into assistant chat records.
- *
- * @param content Session content containing one JSON record per line.
- * @param path Path of the session file.
- * @param results Vector to which parsed chat records are appended.
- */
+
 void parseGeminiSession(const std::string& content,
                         const std::string& path,
                         std::vector<AIAssistantChat>& results) {
-  auto session_id = fs::path(path).stem().string();
+  GeminiSession session;
+  session.session_id = fs::path(path).stem().string();
 
   std::size_t start = 0;
   while (start <= content.size()) {
     auto end = content.find('\n', start);
     if (end == std::string::npos) {
-      parseGeminiSessionLine(content.substr(start), path, session_id, results);
+      parseGeminiSessionLine(content.substr(start), path, session);
       break;
     }
 
-    parseGeminiSessionLine(
-        content.substr(start, end - start), path, session_id, results);
+    parseGeminiSessionLine(content.substr(start, end - start), path, session);
     start = end + 1;
   }
+
+  finishGeminiSession(session, results);
 }
+
+void finishGeminiSession(GeminiSession& session,
+                         std::vector<AIAssistantChat>& results) {
+  for (auto& remembered : session.messages) {
+    // The session names itself partway through its own file, so the
+    // messages read before that point are named here instead.
+    if (remembered.second.session_id.empty()) {
+      remembered.second.session_id = session.session_id;
+    }
+
+    results.push_back(std::move(remembered.second));
+  }
+
+  session.messages.clear();
+}
+
 /**
  * Discovers and parses Gemini CLI session files for project and subagent chats.
  *
@@ -205,18 +261,23 @@ void collectGeminiChats(const fs::path& home,
   for (const auto& path : sessions) {
     // The session names itself in its opening record; until that is read
     // the file name is the best answer available.
-    auto session_id = fs::path(path).stem().string();
+    GeminiSession session;
+    session.session_id = fs::path(path).stem().string();
 
     auto status = readJsonLines(path, [&](const std::string& line) {
-      parseGeminiSessionLine(line, path, session_id, results);
+      parseGeminiSessionLine(line, path, session);
     });
 
     if (!status.ok()) {
       VLOG(1) << "Could not read Gemini session " << path << ": "
               << status.getMessage();
+      continue;
     }
+
+    finishGeminiSession(session, results);
   }
 }
 
 } // namespace tables
+
 } // namespace osquery

@@ -34,7 +34,8 @@ const std::string kClaudeDesktopDirectory{"Claude"};
  * Identifies transcript entries representing human-authored prompts.
  *
  * @param entry Transcript entry to classify.
- * @return `true` for entries marked as human or with no origin metadata; `false` for metadata entries and entries with another origin kind.
+ * @return `true` for entries marked as human or with no origin metadata;
+ * `false` for metadata entries and entries with another origin kind.
  */
 bool isHumanPrompt(const rapidjson::Value& entry) {
   if (boolMember(entry, "isMeta")) {
@@ -86,7 +87,8 @@ std::string claudeMessageText(const rapidjson::Value& message) {
  * @brief Reads and parses Claude transcript files matching a path pattern.
  *
  * @param pattern File path pattern used to locate transcript files.
- * @param application Claude application identifier associated with the transcripts.
+ * @param application Claude application identifier associated with the
+ * transcripts.
  * @param results Collection to which parsed chats are appended.
  */
 void genClaudeTranscripts(const fs::path& pattern,
@@ -107,13 +109,17 @@ void genClaudeTranscripts(const fs::path& pattern,
   }
 }
 
-} /**
+} // namespace
+
+/**
  * @brief Parses a Claude transcript entry and records eligible messages.
  *
  * @param line JSON Lines transcript entry to parse.
  * @param path Path of the transcript file.
- * @param application Identifier of the Claude application that produced the entry.
- * @param results Collection to which valid human user and assistant messages are appended.
+ * @param application Identifier of the Claude application that produced the
+ * entry.
+ * @param results Collection to which valid human user and assistant messages
+ * are appended.
  */
 
 void parseClaudeTranscriptLine(const std::string& line,
@@ -177,7 +183,8 @@ void parseClaudeTranscriptLine(const std::string& line,
   results.push_back(std::move(chat));
 }
 /**
- * @brief Parses a Claude transcript and appends its valid messages to the results.
+ * @brief Parses a Claude transcript and appends its valid messages to the
+ * results.
  *
  * @param content Transcript content in JSON Lines format.
  * @param path Source path associated with the transcript entries.
@@ -206,7 +213,8 @@ void parseClaudeTranscript(const std::string& content,
  * @brief Collects Claude Code and Claude Desktop agent-session transcripts.
  *
  * @param home User home directory containing Claude Code data.
- * @param app_data_root Application-data directory containing Claude Desktop data.
+ * @param app_data_root Application-data directory containing Claude Desktop
+ * data.
  * @param results Output vector to which parsed chats are appended.
  */
 void collectClaudeChats(const fs::path& home,

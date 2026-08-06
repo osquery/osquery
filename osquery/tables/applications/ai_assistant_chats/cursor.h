@@ -16,14 +16,6 @@
 
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 
-/**
- * Parses a Cursor chat message record and appends it to the result collection.
- *
- * @param key The record key in the format `bubbleId:<session>:<bubble>`.
- * @param value The JSON payload associated with the record.
- * @param path The path to the state database containing the record.
- * @param results The collection to which the parsed chat message is appended.
- */
 namespace osquery {
 namespace tables {
 

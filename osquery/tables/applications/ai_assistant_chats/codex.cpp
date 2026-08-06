@@ -30,15 +30,18 @@ namespace {
 const std::string kCodexSessionMetaType{"session_meta"};
 const std::string kCodexEventType{"event_msg"};
 
-} /**
+} // namespace
+
+/**
  * @brief Parses a Codex rollout entry and records supported chat messages.
  *
- * Malformed, unsupported, and empty entries are ignored. Session metadata updates
- * the current session identifier.
+ * Malformed, unsupported, and empty entries are ignored. Session metadata
+ * updates the current session identifier.
  *
  * @param line Rollout entry encoded as a JSON line.
  * @param path Path to the rollout file associated with the entry.
- * @param session_id Current session identifier, updated by session metadata entries.
+ * @param session_id Current session identifier, updated by session metadata
+ * entries.
  * @param results Collection to which parsed chat messages are appended.
  */
 
@@ -131,7 +134,8 @@ void parseCodexRollout(const std::string& content,
   }
 }
 /**
- * @brief Collects Codex chat messages from rollout files in the user's home directory.
+ * @brief Collects Codex chat messages from rollout files in the user's home
+ * directory.
  *
  * @param home User home directory containing the `.codex/sessions` hierarchy.
  * @param results Output collection to which parsed chats are appended.
