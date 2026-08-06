@@ -16,6 +16,29 @@
 
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 
+/**
+ * Parses one JSON record from a Gemini CLI session.
+ *
+ * @param line JSON record to parse.
+ * @param path Session file path associated with the record.
+ * @param session_id Session identifier propagated from the session's opening record.
+ * @param results Collection to which qualifying conversation messages are appended.
+ */
+
+/**
+ * Parses all records in a Gemini CLI session.
+ *
+ * @param content Session file content in JSON-lines format.
+ * @param path Session file path associated with the records.
+ * @param results Collection to which parsed conversation messages are appended.
+ */
+
+/**
+ * Collects conversation messages from Gemini CLI session files under a home directory.
+ *
+ * @param home Home directory containing Gemini CLI session data.
+ * @param results Collection to which parsed conversation messages are appended.
+ */
 namespace osquery {
 namespace tables {
 

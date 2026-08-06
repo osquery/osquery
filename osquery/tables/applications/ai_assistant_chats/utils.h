@@ -19,6 +19,13 @@
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
 
+/**
+ * Streams a JSON Lines file and invokes a handler for each entry.
+ *
+ * @param path Path to the JSON Lines file.
+ * @param handler Callback invoked with each JSON entry.
+ * @return The status of the file-reading operation.
+ */
 namespace osquery {
 namespace tables {
 

@@ -31,10 +31,10 @@ namespace {
 /// Directory Claude Desktop keeps its per-user state under.
 const std::string kClaudeDesktopDirectory{"Claude"};
 /**
- * The Claude Code CLI replays tool output back to the model as entries
- * that also carry the user role, and injects context of its own the same
- * way. Neither is something a person typed, so only entries that are
- * explicitly human, or that predate the tagging, become rows.
+ * Identifies transcript entries representing human-authored prompts.
+ *
+ * @param entry Transcript entry to classify.
+ * @return `true` for entries marked as human or with no origin metadata; `false` for metadata entries and entries with another origin kind.
  */
 bool isHumanPrompt(const rapidjson::Value& entry) {
   if (boolMember(entry, "isMeta")) {
@@ -49,11 +49,10 @@ bool isHumanPrompt(const rapidjson::Value& entry) {
   return true;
 }
 /**
- * Returns the part of a Claude message the user actually saw or typed.
- * Content is either a plain string or a list of blocks; of the blocks,
- * "thinking" and "tool_use" are the model working rather than answering
- * and "tool_result" is output replayed back to it, so only "text" blocks
- * are kept.
+ * Extracts visible text from a Claude message.
+ *
+ * @param message JSON message containing string or block-based content.
+ * @return The message text, with text blocks separated by blank lines.
  */
 std::string claudeMessageText(const rapidjson::Value& message) {
   auto content = message.FindMember("content");
@@ -83,7 +82,13 @@ std::string claudeMessageText(const rapidjson::Value& message) {
 
   return boost::algorithm::join(chunks, "\n\n");
 }
-/// Reads every Claude transcript matching one pattern.
+/**
+ * @brief Reads and parses Claude transcript files matching a path pattern.
+ *
+ * @param pattern File path pattern used to locate transcript files.
+ * @param application Claude application identifier associated with the transcripts.
+ * @param results Collection to which parsed chats are appended.
+ */
 void genClaudeTranscripts(const fs::path& pattern,
                           const std::string& application,
                           std::vector<AIAssistantChat>& results) {
@@ -102,7 +107,14 @@ void genClaudeTranscripts(const fs::path& pattern,
   }
 }
 
-} // namespace
+} /**
+ * @brief Parses a Claude transcript entry and records eligible messages.
+ *
+ * @param line JSON Lines transcript entry to parse.
+ * @param path Path of the transcript file.
+ * @param application Identifier of the Claude application that produced the entry.
+ * @param results Collection to which valid human user and assistant messages are appended.
+ */
 
 void parseClaudeTranscriptLine(const std::string& line,
                                const std::string& path,
@@ -164,6 +176,14 @@ void parseClaudeTranscriptLine(const std::string& line,
 
   results.push_back(std::move(chat));
 }
+/**
+ * @brief Parses a Claude transcript and appends its valid messages to the results.
+ *
+ * @param content Transcript content in JSON Lines format.
+ * @param path Source path associated with the transcript entries.
+ * @param application Application identifier associated with the transcript.
+ * @param results Collection to which parsed messages are appended.
+ */
 void parseClaudeTranscript(const std::string& content,
                            const std::string& path,
                            const std::string& application,
@@ -182,7 +202,13 @@ void parseClaudeTranscript(const std::string& content,
     start = end + 1;
   }
 }
-/// Reads the transcripts the Claude Code CLI and Claude Desktop leave behind.
+/**
+ * @brief Collects Claude Code and Claude Desktop agent-session transcripts.
+ *
+ * @param home User home directory containing Claude Code data.
+ * @param app_data_root Application-data directory containing Claude Desktop data.
+ * @param results Output vector to which parsed chats are appended.
+ */
 void collectClaudeChats(const fs::path& home,
                         const fs::path& app_data_root,
                         std::vector<AIAssistantChat>& results) {

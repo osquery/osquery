@@ -20,6 +20,9 @@ namespace table_tests {
 
 class aiAssistantChats : public testing::Test {
  protected:
+  /**
+   * @brief Initializes the test environment before each test.
+   */
   void SetUp() override {
     setUpEnvironment();
   }
@@ -29,6 +32,9 @@ class aiAssistantChats : public testing::Test {
     initUsersAndGroupsServices(true, false);
   }
 
+  /**
+   * @brief Stops dispatcher services and deinitializes user and group services after the test suite.
+   */
   static void TearDownTestSuite() {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
@@ -38,6 +44,9 @@ class aiAssistantChats : public testing::Test {
 #endif
 };
 
+/**
+ * @brief Validates the schema values and contents of rows in the AI assistant chats table.
+ */
 TEST_F(aiAssistantChats, test_sanity) {
   auto const data = execute_query("select * from ai_assistant_chats");
   if (data.empty()) {

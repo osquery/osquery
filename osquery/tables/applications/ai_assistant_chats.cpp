@@ -59,9 +59,9 @@ struct ChatSourceEntry final {
 };
 
 /**
- * Every source this table reads. Built on first use rather than at load,
- * because the application names it holds are defined in other units and
- * the order those are initialized in is not ours to assume.
+ * @brief Provides the configured chat-history sources supported by the table.
+ *
+ * @return const std::vector<ChatSourceEntry>& The configured chat sources.
  */
 const std::vector<ChatSourceEntry>& chatSources() {
   static const std::vector<ChatSourceEntry> sources{
@@ -100,7 +100,13 @@ const std::vector<ChatSourceEntry>& chatSources() {
   return sources;
 }
 
-/// Whether a query asking only for certain applications wants this source.
+/**
+ * @brief Determines whether a chat source matches the requested applications.
+ *
+ * @param source Chat source and its supported applications.
+ * @param applications Applications requested by the query.
+ * @return true if no applications were requested or the source supports a requested application, false otherwise.
+ */
 bool sourceIsWanted(const ChatSourceEntry& source,
                     const std::set<std::string>& applications) {
   if (applications.empty()) {
@@ -135,7 +141,12 @@ std::set<std::pair<std::string, std::string>> usersToRead(
   return users;
 }
 
-} // namespace
+} /**
+ * @brief Collects AI assistant chat history for eligible users and applications.
+ *
+ * @param context Query constraints used to select users and applications.
+ * @return QueryData Rows containing chat messages and their associated metadata.
+ */
 
 QueryData genAIAssistantChats(QueryContext& context) {
   QueryData results;

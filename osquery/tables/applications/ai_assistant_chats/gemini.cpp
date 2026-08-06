@@ -30,9 +30,10 @@ namespace {
 const std::string kGeminiUserType{"user"};
 const std::string kGeminiModelType{"gemini"};
 /**
- * Returns the text of a Gemini content value, which is a plain string, a
- * single part, or a list of either. Parts that are not text (inline data,
- * function calls) carry nothing a person read.
+ * @brief Extracts readable text from a Gemini content value.
+ *
+ * @param content A string, text-part object, or array of these values.
+ * @return std::string The concatenated text, or an empty string when no readable text is present.
  */
 std::string geminiContentText(const rapidjson::Value& content) {
   if (content.IsString()) {
@@ -59,13 +60,12 @@ std::string geminiContentText(const rapidjson::Value& content) {
   return text;
 }
 /**
- * Whether a user record is conversation rather than something the CLI
- * handles itself: its slash and question mark commands, and the context
- * it injects into a turn on the user's behalf.
+ * @brief Determines whether user content represents a conversational prompt.
  *
- * The CLI drops everything opening with a slash. This is narrower on
- * purpose, because "/etc/hosts is wrong, fix it" is a prompt somebody
- * typed even though the CLI would not replay it.
+ * @param content User-provided content to classify.
+ * @return `true` if the trimmed content is conversational, `false` for empty
+ *         content, question-mark commands, recognized slash commands, or
+ *         injected session and hook context.
  */
 bool isGeminiPrompt(const std::string& content) {
   auto trimmed = boost::algorithm::trim_copy(content);
@@ -92,7 +92,18 @@ bool isGeminiPrompt(const std::string& content) {
          trimmed.rfind("<hook_context>", 0) != 0;
 }
 
-} // namespace
+} /**
+ * @brief Parses a Gemini session record and appends conversational messages to the results.
+ *
+ * Updates the session identifier when the record contains session metadata. User and model
+ * records with readable conversational content are converted to chat entries; other records
+ * are skipped.
+ *
+ * @param line JSONL record to parse.
+ * @param path Path of the session file containing the record.
+ * @param session_id Session identifier to update from metadata records and associate with messages.
+ * @param results Collection to which parsed chat entries are appended.
+ */
 
 void parseGeminiSessionLine(const std::string& line,
                             const std::string& path,
@@ -152,6 +163,13 @@ void parseGeminiSessionLine(const std::string& line,
 
   results.push_back(std::move(chat));
 }
+/**
+ * @brief Parses a Gemini session's JSONL content into assistant chat records.
+ *
+ * @param content Session content containing one JSON record per line.
+ * @param path Path of the session file.
+ * @param results Vector to which parsed chat records are appended.
+ */
 void parseGeminiSession(const std::string& content,
                         const std::string& path,
                         std::vector<AIAssistantChat>& results) {
@@ -171,9 +189,10 @@ void parseGeminiSession(const std::string& content,
   }
 }
 /**
- * Reads the sessions the Gemini CLI records. They are filed per project,
- * under a directory named for the hash of the project's path, and a
- * subagent's session sits one level further down under its parent's id.
+ * Discovers and parses Gemini CLI session files for project and subagent chats.
+ *
+ * @param home Gemini home directory.
+ * @param results Collection to which parsed chats are appended.
  */
 void collectGeminiChats(const fs::path& home,
                         std::vector<AIAssistantChat>& results) {
