@@ -483,6 +483,18 @@ TEST_F(ConfigTests, test_content_update) {
   EXPECT_EQ(count, 0U);
 }
 
+TEST_F(ConfigTests, test_rejected_content_is_not_hashed) {
+  std::map<std::string, std::string> config_data{{"rejected", "{}"}};
+  ASSERT_TRUE(get().update(config_data).ok());
+  const auto source_hash = get().getHash("rejected");
+  ASSERT_FALSE(source_hash.empty());
+
+  config_data["rejected"] = "[]";
+  EXPECT_FALSE(get().update(config_data).ok());
+  EXPECT_EQ(get().getHash("rejected"), source_hash);
+  EXPECT_FALSE(get().update(config_data).ok());
+}
+
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());

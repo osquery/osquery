@@ -727,23 +727,6 @@ Status Config::validateConfig(const JSON& document) {
 
 Status Config::updateSource(const std::string& source,
                             const std::string& json) {
-  // Compute a 'synthesized' hash using the content before it is parsed.
-  if (!hashSource(source, json)) {
-    // This source did not change, the returned status allows the caller to
-    // choose to reconfigure if any sources had changed.
-    return Status(2);
-  }
-
-  // Get the queries so that we can check which ones updated the SQL.
-  auto queries = schedule_->getSqlQueriesForSource(source);
-  {
-    RecursiveLock lock(config_schedule_mutex_);
-    // Remove all packs from this source.
-    schedule_->removeAll(source);
-    // Remove all files from this source.
-    removeFiles(source);
-  }
-
   // load the config (source.second) into a JSON object.
   auto doc = JSON::newObject();
   auto clone = json;
@@ -758,7 +741,7 @@ Status Config::updateSource(const std::string& source,
         std::to_string(kMaxConfigSize) + " bytes");
   }
 
-  if (!doc.fromString(clone, JSON::ParseMode::Iterative) ||
+  if ((!clone.empty() && !doc.fromString(clone, JSON::ParseMode::Iterative)) ||
       !doc.doc().IsObject()) {
     return Status::failure("Error parsing the config JSON");
   }
@@ -767,6 +750,23 @@ Status Config::updateSource(const std::string& source,
   if (!status.ok()) {
     return Status::failure("Error validating the config JSON: " +
                            status.getMessage());
+  }
+
+  // Compute a 'synthesized' hash using the content after it is parsed.
+  if (!hashSource(source, json)) {
+    // This source did not change, the returned status allows the caller to
+    // choose to reconfigure if any sources had changed.
+    return Status(2);
+  }
+
+  // Get the queries so that we can check which ones updated the SQL.
+  auto queries = schedule_->getSqlQueriesForSource(source);
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    // Remove all packs from this source.
+    schedule_->removeAll(source);
+    // Remove all files from this source.
+    removeFiles(source);
   }
 
   // extract the "schedule" key and store it as the main pack
