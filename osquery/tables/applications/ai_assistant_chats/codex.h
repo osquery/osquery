@@ -17,6 +17,32 @@
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 
 namespace osquery {
+/**
+ * Parses a single JSON-line Codex rollout entry and appends any user-visible
+ * message to the results.
+ *
+ * @param line Rollout entry encoded as JSON.
+ * @param path Path of the rollout file.
+ * @param session_id Rollout session identifier carried between entries.
+ * @param results Destination for parsed chats.
+ */
+
+/**
+ * Parses a newline-delimited Codex rollout and appends its user-visible
+ * messages to the results.
+ *
+ * @param content Newline-delimited rollout content.
+ * @param path Path of the rollout file.
+ * @param results Destination for parsed chats.
+ */
+
+/**
+ * Collects user-visible chats from Codex CLI and editor-client rollout files
+ * under the specified home directory.
+ *
+ * @param home Codex home directory.
+ * @param results Destination for collected chats.
+ */
 namespace tables {
 
 /// The application whose messages this source reports.

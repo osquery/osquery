@@ -75,9 +75,13 @@ struct ProtobufField final {
 };
 
 /**
- * Reads a base 128 varint, the encoding protobuf uses for every number
- * and for the length of every string. Returns false if the buffer ends
- * mid-number or the number does not terminate within its 64 bits.
+ * @brief Decodes a protobuf base-128 varint from the input buffer.
+ *
+ * Advances the buffer past the encoded value when decoding succeeds.
+ *
+ * @param buffer Input buffer; consumed bytes are removed.
+ * @param value Receives the decoded integer.
+ * @return `true` if a complete 64-bit varint was decoded, `false` otherwise.
  */
 bool readVarint(std::string_view& buffer, std::uint64_t& value) {
   value = 0;
@@ -100,10 +104,16 @@ bool readVarint(std::string_view& buffer, std::uint64_t& value) {
 }
 
 /**
- * Reads the next field out of a protobuf message, advancing `message`
- * past it. Returns false at the end of the message and on anything that
- * does not decode, which for a format read off a real conversation
- * rather than a schema is the same thing: stop and keep what was read.
+ * @brief Parses the next field from a protobuf message.
+ *
+ * Advances `message` past the parsed field and stores its number, wire type,
+ * and applicable value in `field`. Fixed-width fields are skipped without
+ * storing their values.
+ *
+ * @param message Protobuf message data remaining to parse.
+ * @param field Output field populated with the parsed field information.
+ * @return true if a complete supported field was parsed, false if the message
+ *         is exhausted or malformed.
  */
 bool nextProtobufField(std::string_view& message, ProtobufField& field) {
   std::uint64_t key = 0;
@@ -148,7 +158,14 @@ bool nextProtobufField(std::string_view& message, ProtobufField& field) {
   }
 }
 
-/// Returns the bytes of the first string or nested message with `number`.
+/**
+ * @brief Finds the first length-delimited protobuf field with the specified number.
+ *
+ * @param message Serialized protobuf message to search.
+ * @param number Field number to find.
+ * @param value Receives the field's byte contents when found.
+ * @return `true` if a matching field is found, `false` otherwise.
+ */
 bool protobufBytes(std::string_view message,
                    std::uint32_t number,
                    std::string_view& value) {
@@ -163,7 +180,14 @@ bool protobufBytes(std::string_view message,
   return false;
 }
 
-/// Returns the value of the first number with `number`.
+/**
+ * @brief Finds the first varint field with the specified field number.
+ *
+ * @param message Protobuf-encoded message to search.
+ * @param number Field number to find.
+ * @param value Receives the field's decoded value when found.
+ * @return `true` if a matching varint field is found, `false` otherwise.
+ */
 bool protobufVarint(std::string_view message,
                     std::uint32_t number,
                     std::uint64_t& value) {
@@ -178,7 +202,13 @@ bool protobufVarint(std::string_view message,
   return false;
 }
 
-} // namespace
+} /**
+ * @brief Decodes an even-length hexadecimal string into binary bytes.
+ *
+ * @param hex Hexadecimal input containing only hexadecimal digits.
+ * @param bytes Output buffer populated with the decoded bytes and cleared on failure.
+ * @return true if the input is valid and decoded successfully, false otherwise.
+ */
 
 bool decodeHexBlob(const std::string& hex, std::string& bytes) {
   // Deliberately stricter than a general string to number conversion,
@@ -216,6 +246,14 @@ bool decodeHexBlob(const std::string& hex, std::string& bytes) {
 
   return true;
 }
+/**
+ * @brief Extracts a user or assistant message from an Antigravity conversation step.
+ *
+ * @param payload Serialized conversation-step data.
+ * @param session_id Conversation session identifier.
+ * @param path Path to the source conversation database.
+ * @param results Collection to which a parsed message is appended.
+ */
 void parseAntigravityStep(const std::string& payload,
                           const std::string& session_id,
                           const std::string& path,
@@ -271,7 +309,12 @@ void parseAntigravityStep(const std::string& payload,
 
   results.push_back(std::move(chat));
 }
-/// Reads the conversations Antigravity keeps under the Gemini directory.
+/**
+ * @brief Collects chat messages from Antigravity conversation databases.
+ *
+ * @param home User home directory containing the Gemini conversation directories.
+ * @param results Output collection to which extracted chats are appended.
+ */
 void collectAntigravityChats(const fs::path& home,
                              std::vector<AIAssistantChat>& results) {
   std::vector<std::string> databases;

@@ -48,7 +48,13 @@ std::string stringMember(const rapidjson::Value& object, const char* name) {
 
   return it->value.GetString();
 }
-/// Returns whether the named member is present and set to true.
+/**
+ * @brief Checks whether a JSON object member is set to true.
+ *
+ * @param object JSON value containing the member.
+ * @param name Member name to inspect.
+ * @return true if the named member is a boolean set to true, false otherwise.
+ */
 bool boolMember(const rapidjson::Value& object, const char* name) {
   if (!object.IsObject()) {
     return false;
@@ -58,10 +64,13 @@ bool boolMember(const rapidjson::Value& object, const char* name) {
   return it != object.MemberEnd() && it->value.IsBool() && it->value.GetBool();
 }
 /**
- * Returns the named timestamp member as Unix time. The member may be an
- * ISO 8601 string or a number of seconds or milliseconds since the epoch,
- * depending on which application wrote it. Returns 0 when there is no
- * timestamp to read.
+ * @brief Reads a timestamp member and converts it to Unix seconds.
+ *
+ * The member may contain an ISO 8601 string or a numeric timestamp in seconds
+ * or milliseconds since the Unix epoch.
+ *
+ * @return Unix timestamp in seconds, or 0 for missing, invalid, negative, or
+ * unsupported values.
  */
 std::int64_t timestampMember(const rapidjson::Value& object, const char* name) {
   if (!object.IsObject()) {
@@ -87,7 +96,12 @@ std::int64_t timestampMember(const rapidjson::Value& object, const char* name) {
 
   return 0;
 }
-/// Returns the root each application keeps its per-user data under.
+/**
+ * @brief Determines the per-user application-data directory for the current platform.
+ *
+ * @param home User's home directory.
+ * @return Path to the platform-specific application-data directory.
+ */
 fs::path appDataRoot(const fs::path& home) {
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     return home / "AppData" / "Roaming";
@@ -100,11 +114,14 @@ fs::path appDataRoot(const fs::path& home) {
   return home / ".config";
 }
 /**
- * Streams a JSON lines file, handing one entry at a time to `handler`.
+ * @brief Processes a JSON Lines file one entry at a time.
  *
- * A long session's file reaches tens of megabytes, so entries are split
- * out of it as it streams in rather than holding the whole thing in
- * memory at once.
+ * Invokes the handler for each newline-delimited entry and for any final
+ * unterminated entry after a successful read.
+ *
+ * @param path Path to the JSON Lines file.
+ * @param handler Callback invoked with each entry.
+ * @return Status of the file-reading operation.
  */
 Status readJsonLines(const std::string& path,
                      const std::function<void(const std::string&)>& handler) {
@@ -128,6 +145,13 @@ Status readJsonLines(const std::string& path,
 
   return status;
 }
+/**
+ * @brief Converts an ISO 8601 date and time to Unix time.
+ *
+ * @param iso_time Timestamp in `YYYY-MM-DDTHH:MM:SS` or space-separated form,
+ *                 optionally followed by fractional seconds or `Z`.
+ * @return std::int64_t Unix time in seconds, or `0` for invalid timestamps.
+ */
 std::int64_t iso8601ToUnixTime(const std::string& iso_time) {
   // Expected shape: YYYY-MM-DDTHH:MM:SS, optionally followed by fractional
   // seconds and a "Z". Anything else is not a timestamp this table knows

@@ -16,6 +16,26 @@
 
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 
+/**
+ * Decodes a hexadecimal blob into its raw bytes.
+ * @param hex Hexadecimal input with an even number of digits.
+ * @param bytes Receives the decoded bytes.
+ * @return `true` if the input is valid hexadecimal, `false` otherwise.
+ */
+
+/**
+ * Extracts a user message or model response from an Antigravity conversation step.
+ * @param payload Protobuf-encoded conversation-step data.
+ * @param session_id Identifier of the conversation session.
+ * @param path Source path of the conversation.
+ * @param results Receives the extracted chat entry, when the step contains text.
+ */
+
+/**
+ * Collects conversations stored by Antigravity under the Gemini directory.
+ * @param home User home directory containing the Gemini data.
+ * @param results Receives the collected chat entries.
+ */
 namespace osquery {
 namespace tables {
 

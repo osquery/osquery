@@ -30,7 +30,17 @@ namespace {
 const std::string kCodexSessionMetaType{"session_meta"};
 const std::string kCodexEventType{"event_msg"};
 
-} // namespace
+} /**
+ * @brief Parses a Codex rollout entry and records supported chat messages.
+ *
+ * Malformed, unsupported, and empty entries are ignored. Session metadata updates
+ * the current session identifier.
+ *
+ * @param line Rollout entry encoded as a JSON line.
+ * @param path Path to the rollout file associated with the entry.
+ * @param session_id Current session identifier, updated by session metadata entries.
+ * @param results Collection to which parsed chat messages are appended.
+ */
 
 void parseCodexRolloutLine(const std::string& line,
                            const std::string& path,
@@ -95,6 +105,13 @@ void parseCodexRolloutLine(const std::string& line,
 
   results.push_back(std::move(chat));
 }
+/**
+ * @brief Parses a Codex rollout and appends its chat messages to the results.
+ *
+ * @param content Rollout content in JSONL format.
+ * @param path Path to the rollout file.
+ * @param results Collection to which parsed chat messages are appended.
+ */
 void parseCodexRollout(const std::string& content,
                        const std::string& path,
                        std::vector<AIAssistantChat>& results) {
@@ -114,9 +131,10 @@ void parseCodexRollout(const std::string& content,
   }
 }
 /**
- * Reads the rollouts Codex writes, both from the CLI and from the desktop
- * and editor clients that drive it. They are filed by the date the
- * session started: sessions/<year>/<month>/<day>/rollout-<time>-<id>.jsonl
+ * @brief Collects Codex chat messages from rollout files in the user's home directory.
+ *
+ * @param home User home directory containing the `.codex/sessions` hierarchy.
+ * @param results Output collection to which parsed chats are appended.
  */
 void collectCodexChats(const fs::path& home,
                        std::vector<AIAssistantChat>& results) {

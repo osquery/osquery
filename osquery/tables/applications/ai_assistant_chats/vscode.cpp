@@ -49,9 +49,15 @@ const int kSessionAppendRecord{2};
 const std::string kThinkingPart{"thinking"};
 
 /**
- * Builds a JSON pointer out of a journal record's path, which is a list
- * of member names and array indices. Returns false for a path this does
- * not understand, leaving the record to be skipped.
+ * @brief Converts a journal path into a JSON Pointer.
+ *
+ * Supports a single string or 64-bit integer token, or an array of such
+ * tokens. String tokens use JSON Pointer escaping for `~` and `/`.
+ *
+ * @param path Journal path token or array of tokens.
+ * @param pointer Receives the resulting JSON Pointer.
+ * @return `true` if the path contains supported, nonempty tokens; `false`
+ * otherwise.
  */
 bool journalPointer(const rapidjson::Value& path, std::string& pointer) {
   auto append = [&pointer](const rapidjson::Value& token) {
@@ -93,10 +99,11 @@ bool journalPointer(const rapidjson::Value& path, std::string& pointer) {
 }
 
 /**
- * Replays a chat session journal into one document: a snapshot record
- * opens the file, and the records after it set or extend what it holds.
- * Returns false for a file that never had a snapshot, which is not a
- * journal at all.
+ * Reconstructs a chat session from newline-delimited journal records.
+ *
+ * @param content Journal content containing snapshot, set, and append records.
+ * @param session Output session document populated from the journal.
+ * @return true if the journal contains a valid snapshot record, false otherwise.
  */
 bool replayChatSessionJournal(const std::string& content, JSON& session) {
   auto& document = session.doc();
@@ -173,7 +180,12 @@ bool replayChatSessionJournal(const std::string& content, JSON& session) {
   return opened;
 }
 
-/// Returns the prompt a chat request carried.
+/**
+ * @brief Extracts the prompt text from a chat request.
+ *
+ * @param request Chat request containing a direct message or nested text value.
+ * @return std::string The request prompt, or an empty string when unavailable.
+ */
 std::string chatRequestPrompt(const rapidjson::Value& request) {
   auto message = request.FindMember("message");
   if (message == request.MemberEnd()) {
@@ -187,9 +199,10 @@ std::string chatRequestPrompt(const rapidjson::Value& request) {
   return stringMember(message->value, "text");
 }
 /**
- * Returns the answer a chat request received. Responses are streamed, so
- * they are stored as the sequence of parts they arrived in and have to be
- * stitched back together.
+ * Reconstructs the assistant's response from its streamed parts.
+ *
+ * @param request Chat request containing the response data.
+ * @return Concatenated response text, excluding model thinking parts.
  */
 std::string chatRequestResponse(const rapidjson::Value& request) {
   auto response = request.FindMember("response");
@@ -233,7 +246,14 @@ std::string chatRequestResponse(const rapidjson::Value& request) {
   return text;
 }
 
-} // namespace
+} /**
+ * @brief Extracts user prompts and assistant responses from a VS Code chat-session file.
+ *
+ * @param content Serialized chat-session content, either as a JSON object or journal records.
+ * @param path Path to the chat-session file.
+ * @param application Application identifier associated with the session.
+ * @param results Collection to which extracted chat rows are appended.
+ */
 
 void parseChatSessionFile(const std::string& content,
                           const std::string& path,
@@ -296,7 +316,12 @@ void parseChatSessionFile(const std::string& content,
     }
   }
 }
-/// Reads the chat session files a VS Code style editor writes.
+/**
+ * @brief Collects chat sessions stored by VS Code and VS Code Insiders.
+ *
+ * @param app_data_root Root directory containing the editor application data.
+ * @param results Vector to which parsed chat rows are appended.
+ */
 void collectVSCodeChats(const fs::path& app_data_root,
                         std::vector<AIAssistantChat>& results) {
   for (const auto& directory : kVSCodeDirectories) {
