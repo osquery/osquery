@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <osquery/config/config.h>
 #include <osquery/dispatcher/dispatcher.h>
 
@@ -21,12 +23,25 @@ class TLSConfigPlugin : public ConfigPlugin,
  public:
   Status setUp() override;
   Status genConfig(std::map<std::string, std::string>& config) override;
+  Status configApplied() override;
 
  protected:
   /// Calculate the URL once and cache the result.
   std::string uri_;
 
  private:
+  /// Validator of the last config received from the server, echoed back in
+  /// subsequent request bodies. Opaque and server-assigned; never computed
+  /// by the client.
+  std::string etag_;
+
+  /// Whether the config identified by etag_ was successfully applied.
+  bool applied_{false};
+
+  /// Guards etag_/applied_ during the startup overlap window
+  /// (Config::load vs. ConfigRefreshRunner).
+  std::mutex mutex_;
+
   friend class TLSConfigTests;
 };
 } // namespace osquery
