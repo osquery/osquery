@@ -70,8 +70,7 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   {
     auto handlers_executed = ioc_.poll();
     (void)handlers_executed;
-    if (!network_operation_completed_ &&
-        ec_ != boost::asio::error::timed_out) {
+    if (!network_operation_completed_ && ec_ != boost::asio::error::timed_out) {
       ec_ = boost::asio::error::operation_aborted;
     }
     ioc_.restart();
