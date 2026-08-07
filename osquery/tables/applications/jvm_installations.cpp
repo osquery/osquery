@@ -8,10 +8,11 @@
  */
 
 #include <algorithm>
-#include <cctype>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
+#include <cctype>
 #include <fstream>
 #include <map>
 #include <osquery/core/tables.h>
@@ -197,10 +198,7 @@ void processJVMInstallation(QueryData& results,
 
   // If vendor is Homebrew, use OpenJDK naming
   std::string vendor_lower = row["vendor"];
-  std::transform(vendor_lower.begin(),
-                 vendor_lower.end(),
-                 vendor_lower.begin(),
-                 ::tolower);
+  boost::algorithm::to_lower(vendor_lower);
   if (vendor_lower == "homebrew" && !row["version"].empty()) {
     row["name"] = SQL_TEXT("OpenJDK " + row["version"]);
   }
