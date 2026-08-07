@@ -1,0 +1,29 @@
+table_name("ai_agent_skills")
+description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with an exact directory = <value> constraint. A skill whose directory resolves outside the root it was found under, such as one symlinked in from elsewhere, is not reported.")
+schema([
+    Column("name", TEXT, "Skill name from SKILL.md frontmatter"),
+    Column("description", TEXT, "Skill description from SKILL.md frontmatter"),
+    Column("version", TEXT, "Skill version, from the conventional metadata.version frontmatter key, if present"),
+    Column("license", TEXT, "Declared license, if present"),
+    Column("compatibility", TEXT, "Declared environment requirements (target product, required packages, network access), if present"),
+    Column("allowed_tools", TEXT, "Declared pre-approved tool permissions, if present"),
+    Column("agent", TEXT, "Agent runtime the skill was discovered for (claude, cursor, copilot, codex, agents)"),
+    Column("scope", TEXT, "Installation scope: user, project, system or plugin"),
+    Column("directory", TEXT, "Skill root directory; for project-scope rows, echoes the exact directory = <value> constraint that triggered the scan (LIKE and other predicates are not supported and return no project-scope rows)", index=True, optimized=True),
+    Column("path", TEXT, "Absolute path to SKILL.md; join the hash table on this for its hash, or the file table for its size and modification time"),
+    Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md and any hidden file or directory"),
+    Column("script_count", INTEGER, "Number of files under scripts/"),
+    Column("uid", BIGINT, "Owning user id; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows", index=True, optimized=True),
+    Column("username", TEXT, "Owning username; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows, which have no owning user and are not joinable to the users table on uid"),
+    ForeignKey(column="uid", table="users"),
+])
+attributes(user_data=True)
+implementation("applications/ai_agent_skills@genAIAgentSkills")
+examples([
+    "select * from ai_agent_skills",
+    "select * from users join ai_agent_skills using (uid)",
+    "select * from ai_agent_skills where directory = '/path/to/repo'",
+    "select username, name, script_count from ai_agent_skills where script_count > 0",
+    "select s.name, h.sha256 from ai_agent_skills s join hash h on h.path = s.path",
+    "select s.name, f.size, f.mtime from ai_agent_skills s join file f on f.path = s.path",
+])
