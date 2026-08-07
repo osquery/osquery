@@ -347,6 +347,7 @@ class Client {
   boost::asio::steady_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost::system::error_code ec_;
+  bool network_operation_completed_{false};
   bool new_client_options_{true};
 };
 
