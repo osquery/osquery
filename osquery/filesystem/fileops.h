@@ -217,9 +217,6 @@ class PlatformFile : private boost::noncopyable {
 
   ~PlatformFile();
 
-  /// Checks to see if the file object is "special file".
-  bool isSpecialFile() const;
-
   /**
    * @brief Checks to see if there are any pending IO operations.
    *

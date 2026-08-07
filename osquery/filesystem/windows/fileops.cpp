@@ -776,10 +776,6 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isSpecialFile() const {
-  return (GetFileType(handle_) != FILE_TYPE_DISK);
-}
-
 std::unique_ptr<BYTE[]> getCurrentUserInfo() {
   HANDLE token = INVALID_HANDLE_VALUE;
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &token)) {
@@ -1269,7 +1265,11 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 }
 
 size_t PlatformFile::size() const {
-  return ::GetFileSize(handle_, nullptr);
+  LARGE_INTEGER file_size{};
+  if (!::GetFileSizeEx(handle_, &file_size)) {
+    return 0;
+  }
+  return static_cast<size_t>(file_size.QuadPart);
 }
 
 bool platformSetSafeDbPerms(const std::string& path) {
