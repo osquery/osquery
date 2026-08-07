@@ -88,6 +88,7 @@ function(generateNativeTables)
     "arp_cache.table:linux,macos,windows"
     "vscode_extensions.table:linux,macos,windows"
     "cpu_info.table:linux,macos,windows"
+    "gpu_metrics.table:linux,macos,windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
     "darwin/alf.table:macos"

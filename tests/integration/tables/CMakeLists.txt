@@ -84,6 +84,7 @@ function(generateTestsIntegrationTablesTestsTest)
   if(NOT PLATFORM_LINUX OR OSQUERY_BUILD_ROOT_TESTS)
     list(APPEND source_files
       cpu_info.cpp
+      gpu_metrics.cpp
       memory_devices.cpp
     )
   endif()
