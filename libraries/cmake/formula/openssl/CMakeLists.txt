@@ -139,6 +139,9 @@ function(opensslMain)
     set(CMAKE_PREFIX_PATH "C:\\Strawberry\\perl\\bin")
     find_package(Perl REQUIRED)
 
+    set(openssl_windows_extra_cflags "")
+    set(openssl_windows_env_cflags "/Od /Ob0")
+
     if("${TARGET_PROCESSOR}" STREQUAL "aarch64")
       set(OPENSSL_ARCH VC-WIN64-ARM)
     else()
@@ -147,8 +150,11 @@ function(opensslMain)
 
     set(configure_command
       "${CMAKE_COMMAND}" -E env
+      "CFLAGS=${openssl_windows_env_cflags}"
+      "CXXFLAGS=${openssl_windows_env_cflags}"
       "${PERL_EXECUTABLE}" Configure ${OPENSSL_ARCH}
       ${common_options}
+      ${openssl_windows_extra_cflags}
     )
 
     get_filename_component(perl_bin_path "${PERL_EXECUTABLE}" DIRECTORY)

@@ -36,23 +36,50 @@ const std::string kProxyDefaultPort{"3128"};
 const long kSSLShortReadError{0x140000dbL};
 
 void Client::callNetworkOperation(std::function<void()> callback) {
+  network_operation_completed_ = false;
+
   if (client_options_.timeout_) {
+    timer_.expires_after(std::chrono::seconds(client_options_.timeout_));
     timer_.async_wait(
         std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
   }
 
   callback();
 
+  const auto start_time = std::chrono::steady_clock::now();
+
+  while (!network_operation_completed_) {
+    boost::asio::io_context::count_type handlers_executed =
+        ioc_.run_one_for(std::chrono::milliseconds(200));
+
+    if (handlers_executed == 0 && ioc_.stopped()) {
+      break;
+    }
+
+    if (client_options_.timeout_ > 0 &&
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - start_time)
+                .count() > client_options_.timeout_ + 1) {
+      closeSocket();
+      ec_ = boost::asio::error::make_error_code(boost::asio::error::timed_out);
+      network_operation_completed_ = true;
+      break;
+    }
+  }
+
   {
-    boost::asio::io_context::count_type handlers_executed = ioc_.run();
-    ioc_.restart();
-    if (handlers_executed == 0) {
+    auto handlers_executed = ioc_.poll();
+    (void)handlers_executed;
+    if (!network_operation_completed_ && ec_ != boost::asio::error::timed_out) {
       ec_ = boost::asio::error::operation_aborted;
     }
+    ioc_.restart();
   }
 }
 
 void Client::cancelTimerAndSetError(boost::system::error_code const& ec) {
+  network_operation_completed_ = true;
+
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -63,6 +90,8 @@ void Client::cancelTimerAndSetError(boost::system::error_code const& ec) {
 }
 
 void Client::postResponseHandler(boost::system::error_code const& ec) {
+  network_operation_completed_ = true;
+
   if ((ec.category() == boost::asio::error::ssl_category) &&
       (ec.value() == kSSLShortReadError)) {
     // Ignoring short read error, set ec_ to success.
@@ -89,6 +118,7 @@ void Client::closeSocket() {
 
 void Client::timeoutHandler(boost::system::error_code const& ec) {
   if (!ec) {
+    network_operation_completed_ = true;
     closeSocket();
     ec_ = boost::asio::error::make_error_code(boost::asio::error::timed_out);
   }
@@ -301,11 +331,6 @@ void Client::sendRequest(STREAM_TYPE& stream,
   req.prepare_payload();
   req.keep_alive(true);
 
-  if (client_options_.timeout_) {
-    timer_.async_wait(
-        [=](boost::system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
   beast_http_request_serializer sr{req};
 
   callNetworkOperation([&]() {
@@ -414,11 +439,6 @@ bool Client::initHTTPRequest(Request& req) {
 }
 
 Response Client::sendHTTPRequest(Request& req) {
-  if (client_options_.timeout_) {
-    timer_.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
-  }
-
   size_t redirect_attempts = 0;
   bool init_request = true;
   do {

@@ -19,7 +19,7 @@ namespace osquery {
 class ConversionsTests : public testing::Test {};
 
 TEST_F(ConversionsTests, stringFromCFString) {
-  auto const in_str = std::string{u8"空間"};
+  auto const in_str = std::string{"空間"};
   auto const cf_string_ref =
       CFStringCreateWithBytes(kCFAllocatorDefault,
                               reinterpret_cast<const UInt8*>(in_str.data()),

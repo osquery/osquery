@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <fstream>
+
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/fileops.h>
