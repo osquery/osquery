@@ -154,7 +154,8 @@ HwmonData readHwmonData(const std::string& pci_syspath) {
 // Read GPU engine busy percentage from sysfs. AMD (amdgpu) exposes this as
 // gpu_busy_percent directly on the PCI device node.
 std::optional<double> readGpuBusyPercent(const std::string& pci_syspath) {
-  const auto val = tryTo<double>(readSysfsAttr(pci_syspath, "gpu_busy_percent"));
+  const auto val =
+      tryTo<double>(readSysfsAttr(pci_syspath, "gpu_busy_percent"));
   if (val.isError()) {
     return std::nullopt;
   }

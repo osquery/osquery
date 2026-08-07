@@ -18,7 +18,6 @@ namespace osquery {
 
 class ConversionsTests : public testing::Test {};
 
-
 TEST_F(ConversionsTests, tryTo_same_type) {
   class First {};
   // rvalue
