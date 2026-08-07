@@ -41,13 +41,13 @@ TEST_F(chromeSearchEngines, test_sanity) {
   auto const data = execute_query("select * from chrome_search_engines");
 
   ASSERT_GE(data.size(), 0ul);
-  ValidationMap row_map = {{"browser_type", NormalType},
+  ValidationMap row_map = {{"browser_type", NonEmptyString},
                            {"uid", IntType},
-                           {"profile", NormalType},
-                           {"profile_path", NormalType},
-                           {"name", NormalType},
-                           {"keyword", NormalType},
-                           {"url", NormalType}};
+                           {"profile", NonEmptyString},
+                           {"profile_path", FileOnDisk},
+                           {"name", NonEmptyString},
+                           {"keyword", NonEmptyString},
+                           {"url", NonEmptyString}};
   validate_rows(data, row_map);
 }
 
