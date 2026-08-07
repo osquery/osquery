@@ -48,7 +48,7 @@ const std::string kConfigPersistencePrefix{"config_persistence."};
 /// Max depth that the JSON document representing the configuration can have
 const int kMaxConfigDepth = 32;
 /// Max size that the configuration, stripped from its comments, can have
-const int kMaxConfigSize = 1024 * 1024;
+const int kMaxConfigSize = 1024 * 1024 * 4;
 
 using ConfigMap = std::map<std::string, std::string>;
 

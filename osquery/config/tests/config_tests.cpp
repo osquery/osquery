@@ -300,7 +300,7 @@ TEST_F(ConfigTests, test_config_depth) {
 TEST_F(ConfigTests, test_config_too_big) {
   std::string big_config = "{ \"data\" : [ 1";
 
-  for (int i = 0; i < 1 * 1024 * 1024; ++i) {
+  for (int i = 0; i < 4 * 1024 * 1024; ++i) {
     big_config += ",1";
   }
 
