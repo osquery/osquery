@@ -116,21 +116,17 @@ HwmonData readHwmonData(const std::string& pci_syspath) {
 
   // Temperature: temp1_input is in millidegrees Celsius.
   const std::string temp = readSysfsAttr(hwmon_path, "temp1_input");
-  if (!temp.empty()) {
-    try {
-      data.temp_celsius = std::stod(temp) / 1000.0;
-    } catch (...) {
-    }
+  if (const auto val = tryTo<double>(temp); !val.isError()) {
+    data.temp_celsius = val.get() / 1000.0;
   }
 
   // Power draw: prefer time-averaged value, fall back to instantaneous.
   for (const auto* power_file : {"power1_average", "power1_input"}) {
     const std::string power = readSysfsAttr(hwmon_path, power_file);
     if (!power.empty()) {
-      try {
-        // Kernel reports in microwatts.
-        data.power_draw_watts = std::stod(power) / 1000000.0;
-      } catch (...) {
+      // Kernel reports in microwatts.
+      if (const auto val = tryTo<double>(power); !val.isError()) {
+        data.power_draw_watts = val.get() / 1000000.0;
       }
       break;
     }
@@ -138,25 +134,18 @@ HwmonData readHwmonData(const std::string& pci_syspath) {
 
   // Power limit (cap): in microwatts.
   const std::string power_cap = readSysfsAttr(hwmon_path, "power1_cap");
-  if (!power_cap.empty()) {
-    try {
-      data.power_limit_watts = std::stod(power_cap) / 1000000.0;
-    } catch (...) {
-    }
+  if (const auto val = tryTo<double>(power_cap); !val.isError()) {
+    data.power_limit_watts = val.get() / 1000000.0;
   }
 
   // Fan speed: derive percentage from RPM / max_RPM.
   const std::string fan_input = readSysfsAttr(hwmon_path, "fan1_input");
   const std::string fan_max = readSysfsAttr(hwmon_path, "fan1_max");
-  if (!fan_input.empty() && !fan_max.empty()) {
-    try {
-      const double input = std::stod(fan_input);
-      const double max_rpm = std::stod(fan_max);
-      if (max_rpm > 0.0) {
-        data.fan_speed_pct = (input / max_rpm) * 100.0;
-      }
-    } catch (...) {
-    }
+  const auto fan_in_val = tryTo<double>(fan_input);
+  const auto fan_max_val = tryTo<double>(fan_max);
+  if (!fan_in_val.isError() && !fan_max_val.isError() &&
+      fan_max_val.get() > 0.0) {
+    data.fan_speed_pct = (fan_in_val.get() / fan_max_val.get()) * 100.0;
   }
 
   return data;
@@ -165,15 +154,11 @@ HwmonData readHwmonData(const std::string& pci_syspath) {
 // Read GPU engine busy percentage from sysfs. AMD (amdgpu) exposes this as
 // gpu_busy_percent directly on the PCI device node.
 std::optional<double> readGpuBusyPercent(const std::string& pci_syspath) {
-  const std::string raw = readSysfsAttr(pci_syspath, "gpu_busy_percent");
-  if (raw.empty()) {
+  const auto val = tryTo<double>(readSysfsAttr(pci_syspath, "gpu_busy_percent"));
+  if (val.isError()) {
     return std::nullopt;
   }
-  try {
-    return std::stod(raw);
-  } catch (...) {
-    return std::nullopt;
-  }
+  return val.get();
 }
 
 } // namespace

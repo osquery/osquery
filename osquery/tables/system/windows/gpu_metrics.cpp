@@ -14,6 +14,7 @@
 #include <osquery/logger/logger.h>
 
 #include <osquery/core/windows/wmi.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
@@ -52,12 +53,12 @@ std::map<int, double> collectGpuUtilizationPct() {
     if (num_end == std::string::npos) {
       continue;
     }
-    int phys_idx = 0;
-    try {
-      phys_idx = std::stoi(name.substr(num_start, num_end - num_start));
-    } catch (...) {
+    const auto phys_result =
+        tryTo<int>(name.substr(num_start, num_end - num_start));
+    if (phys_result.isError()) {
       continue;
     }
+    const int phys_idx = phys_result.get();
 
     unsigned long long util = 0;
     item.GetUnsignedLongLong("UtilizationPercentage", util);
