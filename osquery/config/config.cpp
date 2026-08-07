@@ -538,6 +538,20 @@ Status Config::refresh() {
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
 
   WriteLock lock(config_refresh_mutex_);
+  if (status.getCode() == 2) {
+    // The plugin reports that the configuration is unchanged since it was
+    // last applied; there is nothing to reload. Plugins may only report
+    // this after a configuration was applied in this process lifetime.
+    if (getRefresh() != FLAGS_config_refresh) {
+      VLOG(1) << "Normal configuration delay restored";
+      setRefresh(FLAGS_config_refresh);
+    }
+    valid_ = true;
+    loaded_ = true;
+    is_first_time_refresh = false;
+    return Status::success();
+  }
+
   if (!status.ok()) {
     if (FLAGS_config_refresh > 0 && getRefresh() == FLAGS_config_refresh) {
       VLOG(1) << "Using accelerated configuration delay";
@@ -577,6 +591,13 @@ Status Config::refresh() {
       return Status::success();
     }
     status = update(response[0]);
+    if (status.ok()) {
+      // Let the plugin know the generated config was applied, e.g. so it
+      // can acknowledge a server-supplied validator. Plugins built against
+      // an older SDK reject the unknown action; that is not a failure.
+      PluginResponse applied_response;
+      Registry::call("config", {{"action", "configApplied"}}, applied_response);
+    }
   }
 
   is_first_time_refresh = false;
@@ -727,23 +748,6 @@ Status Config::validateConfig(const JSON& document) {
 
 Status Config::updateSource(const std::string& source,
                             const std::string& json) {
-  // Compute a 'synthesized' hash using the content before it is parsed.
-  if (!hashSource(source, json)) {
-    // This source did not change, the returned status allows the caller to
-    // choose to reconfigure if any sources had changed.
-    return Status(2);
-  }
-
-  // Get the queries so that we can check which ones updated the SQL.
-  auto queries = schedule_->getSqlQueriesForSource(source);
-  {
-    RecursiveLock lock(config_schedule_mutex_);
-    // Remove all packs from this source.
-    schedule_->removeAll(source);
-    // Remove all files from this source.
-    removeFiles(source);
-  }
-
   // load the config (source.second) into a JSON object.
   auto doc = JSON::newObject();
   auto clone = json;
@@ -758,7 +762,7 @@ Status Config::updateSource(const std::string& source,
         std::to_string(kMaxConfigSize) + " bytes");
   }
 
-  if (!doc.fromString(clone, JSON::ParseMode::Iterative) ||
+  if ((!clone.empty() && !doc.fromString(clone, JSON::ParseMode::Iterative)) ||
       !doc.doc().IsObject()) {
     return Status::failure("Error parsing the config JSON");
   }
@@ -767,6 +771,23 @@ Status Config::updateSource(const std::string& source,
   if (!status.ok()) {
     return Status::failure("Error validating the config JSON: " +
                            status.getMessage());
+  }
+
+  // Compute a 'synthesized' hash using the content after it is parsed.
+  if (!hashSource(source, json)) {
+    // This source did not change, the returned status allows the caller to
+    // choose to reconfigure if any sources had changed.
+    return Status(2);
+  }
+
+  // Get the queries so that we can check which ones updated the SQL.
+  auto queries = schedule_->getSqlQueriesForSource(source);
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    // Remove all packs from this source.
+    schedule_->removeAll(source);
+    // Remove all files from this source.
+    removeFiles(source);
   }
 
   // extract the "schedule" key and store it as the main pack
@@ -1271,6 +1292,10 @@ Status ConfigPlugin::genPack(const std::string& name,
   return Status(1, "Not implemented");
 }
 
+Status ConfigPlugin::configApplied() {
+  return Status::success();
+}
+
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   auto action = request.find("action");
@@ -1302,6 +1327,8 @@ Status ConfigPlugin::call(const PluginRequest& request,
     }
 
     return Config::get().update({{source->second, data->second}});
+  } else if (action->second == "configApplied") {
+    return configApplied();
   } else if (action->second == "option") {
     auto name = request.find("name");
     if (name == request.end()) {

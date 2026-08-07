@@ -117,6 +117,15 @@ class TestConfigPlugin : public ConfigPlugin {
       return Status(1);
     }
 
+    if (unchanged_) {
+      return Status(2, "Config unchanged");
+    }
+
+    if (bad_) {
+      config["data"] = "[]";
+      return Status::success();
+    }
+
     std::string content;
     auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
                       content);
@@ -132,10 +141,18 @@ class TestConfigPlugin : public ConfigPlugin {
     return Status::success();
   }
 
+  Status configApplied() override {
+    config_applied_count_++;
+    return Status::success();
+  }
+
  public:
   std::atomic<size_t> gen_config_count_{0};
   std::atomic<size_t> gen_pack_count_{0};
+  std::atomic<size_t> config_applied_count_{0};
   std::atomic<bool> fail_{false};
+  std::atomic<bool> unchanged_{false};
+  std::atomic<bool> bad_{false};
 };
 
 class TestDataConfigParserPlugin : public ConfigParserPlugin {
@@ -481,6 +498,75 @@ TEST_F(ConfigTests, test_content_update) {
   count = 0;
   get().packs(packCounter);
   EXPECT_EQ(count, 0U);
+}
+
+TEST_F(ConfigTests, test_rejected_content_is_not_hashed) {
+  std::map<std::string, std::string> config_data{{"rejected", "{}"}};
+  ASSERT_TRUE(get().update(config_data).ok());
+  const auto source_hash = get().getHash("rejected");
+  ASSERT_FALSE(source_hash.empty());
+
+  config_data["rejected"] = "[]";
+  EXPECT_FALSE(get().update(config_data).ok());
+  EXPECT_EQ(get().getHash("rejected"), source_hash);
+  EXPECT_FALSE(get().update(config_data).ok());
+}
+
+TEST_F(ConfigTests, test_refresh_unchanged_config) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<TestConfigPlugin>();
+  rf.registry("config")->add("test_unchanged", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_unchanged").ok());
+
+  // A refresh that delivers a config applies it and notifies the plugin.
+  auto status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->gen_config_count_, 1U);
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  size_t pack_count = 0;
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
+  EXPECT_GT(pack_count, 0U);
+
+  // A refresh reporting an unchanged config succeeds without an update:
+  // the installed packs remain and no applied notification is sent.
+  plugin->unchanged_ = true;
+  status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->gen_config_count_, 2U);
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  size_t unchanged_pack_count = 0;
+  get().packs(
+      ([&unchanged_pack_count](const Pack& pack) { unchanged_pack_count++; }));
+  EXPECT_EQ(unchanged_pack_count, pack_count);
+
+  rf.registry("config")->remove("test_unchanged");
+  get().reset();
+}
+
+TEST_F(ConfigTests, test_config_applied_notification) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<TestConfigPlugin>();
+  rf.registry("config")->add("test_applied", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_applied").ok());
+
+  // A config that fails to apply is not reported as applied.
+  plugin->bad_ = true;
+  auto status = get().refresh();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(plugin->config_applied_count_, 0U);
+
+  // A config that applies is.
+  plugin->bad_ = false;
+  status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  rf.registry("config")->remove("test_applied");
+  get().reset();
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
