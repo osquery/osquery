@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/system/system.h>
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace osquery {
@@ -34,111 +36,112 @@ struct ShellFileEntryData {
  *
  * @returns The file entry data structure
  */
-ShellFileEntryData fileEntry(const std::string& shell_data);
+ShellFileEntryData fileEntry(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing Windows Property lists
  *
  * @returns The Windows Property List GUID name or GUID value
  */
-std::string propertyStore(const std::string& shell_data,
-                          const std::vector<size_t>& wps_list);
+std::string propertyStore(const BinaryReader& shell_data,
+                          const std::vector<std::size_t>& byte_offsets);
 
 /**
  * @brief Windows helper function for parsing netshare shell items
  *
  * @returns The network share name
  */
-std::string networkShareItem(const std::string& shell_data);
+std::string networkShareItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing zip content shell items
  *
  * @returns The zip content name
  */
-std::string zipContentItem(const std::string& shell_data);
+std::string zipContentItem(const BinaryReader& shell_data);
 
 /**
- * @brief Windows helper function for parsing root folder shell items
+ * @brief Parse a root-folder GUID from a shell item byte view.
  *
- * @returns The root folder name
+ * @returns The GUID string (e.g. "59031A47-3F72-44A7-89C5-5595FE6B30EE"),
+ *          or "[UNKNOWN ROOT FOLDER]" if the data is too short.
  */
-std::string rootFolderItem(const std::string& shell_data);
+std::string rootFolderItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing drive letter shell items
  *
  * @returns The drive name
  */
-std::string driveLetterItem(const std::string& shell_data);
+std::string driveLetterItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing conrol panel category shell items
  *
  * @returns The control panel category name
  */
-std::string controlPanelCategoryItem(const std::string& shell_data);
+std::string controlPanelCategoryItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing conrol panel shell items
  *
  * @returns The control panel name
  */
-std::string controlPanelItem(const std::string& shell_data);
+std::string controlPanelItem(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing ftp shell items
  *
  * @returns The ftp hostname
  */
-std::vector<std::string> ftpItem(const std::string& shell_data);
+std::vector<std::string> ftpItem(const BinaryReader& shell_data);
 
 /**
- * @brief Windows helper function for parsing little endian guid data
+ * @brief Format 16 little-endian GUID bytes as a hyphenated GUID string.
  *
- * @returns GUID string in the proper order
+ * @returns The GUID string, or "" if the slice is shorter than 16 bytes.
  */
-std::string guidParse(const std::string& guid_little);
+std::string guidParse(std::string_view guid_le_bytes);
 
 /**
  * @brief Windows helper function for parsing user property drive data
  *
  * @returns The drive name
  */
-std::string propertyViewDrive(const std::string& shell_data);
+std::string propertyViewDrive(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing user variable GUID data
  *
  * @returns The GUID name or GUID
  */
-std::string variableGuid(const std::string& shell_data);
+std::string variableGuid(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing variable FTP data
  *
  * @returns The ftp string
  */
-std::string variableFtp(const std::string& shell_data);
+std::string variableFtp(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP device data
  *
  * @returns The MTP device name
  */
-std::string mtpDevice(const std::string& shell_data);
+std::string mtpDevice(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP folder name data
  *
  * @returns The MTP folder name
  */
-std::string mtpFolder(const std::string& shell_data);
+std::string mtpFolder(const BinaryReader& shell_data);
 
 /**
  * @brief Windows helper function for parsing MTP root name data
  *
  * @returns The MTP root name
  */
-std::string mtpRoot(const std::string& shell_data);
+std::string mtpRoot(const BinaryReader& shell_data);
 } // namespace osquery

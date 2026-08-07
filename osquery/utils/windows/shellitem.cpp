@@ -8,18 +8,15 @@
  */
 
 #include <osquery/logger/logger.h>
-#include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
 #include <osquery/utils/windows/shellitem.h>
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
+#include <cstdio>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
-
-const std::string kNetworkShareIds[6] = {"41", "42", "46", "47", "4C", "C3"};
 
 // Property set GUIDs associated with name entries
 const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
@@ -38,453 +35,469 @@ const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "EF6B490D-5CD8-437A-AFFC-DA8B60EE4A3C",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
-std::string guidParse(const std::string& guid_little) {
-  std::vector<std::string> guids;
-  guids.push_back(guid_little.substr(0, 8));
-  guids.push_back(guid_little.substr(8, 4));
-  guids.push_back(guid_little.substr(12, 4));
-
-  std::string guid_4 = guid_little.substr(16, 4);
-  std::string guid_5 = guid_little.substr(20, 12);
-
-  // The first 16 GUID characters are in litte endian format
-  for (auto& guid : guids) {
-    std::reverse(guid.begin(), guid.end());
-    for (std::size_t i = 0; i < guid.length(); i += 2) {
-      std::swap(guid[i], guid[i + 1]);
-    }
+std::string guidParse(std::string_view guid_le_bytes) {
+  if (guid_le_bytes.size() < 16) {
+    return "";
   }
-  std::string guid_string =
-      guids[0] + "-" + guids[1] + "-" + guids[2] + "-" + guid_4 + "-" + guid_5;
-  return guid_string;
+  // GUID layout: little-endian {uint32, uint16, uint16}, then big-endian 8 bytes
+  // formatted as XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.
+  const auto* p = reinterpret_cast<const std::uint8_t*>(guid_le_bytes.data());
+  char buf[37];
+  std::snprintf(buf, sizeof(buf),
+                "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+                p[3], p[2], p[1], p[0],
+                p[5], p[4],
+                p[7], p[6],
+                p[8], p[9],
+                p[10], p[11], p[12], p[13], p[14], p[15]);
+  return std::string(buf);
 }
 
-ShellFileEntryData fileEntry(const std::string& shell_data) {
-  size_t offset;
-  std::string extension_sig;
-  size_t entry_offset = 0;
-  // Find "0400EFBE" offset
-  if (shell_data.find("0400EFBE") != std::string::npos) {
-    offset = shell_data.find("0400EFBE");
-    extension_sig = shell_data.substr(offset, 8);
-    entry_offset = offset - 8;
-  }
+ShellFileEntryData fileEntry(const BinaryReader& shell_data) {
   ShellFileEntryData file_entry;
 
-  if (entry_offset <= 0) {
-    LOG(WARNING)
-        << "Could not find supported file entry extension in shell data: "
-        << shell_data;
+  // Old: find("0400EFBE") in hex. In bytes: find the 4-byte sequence
+  // 04 00 EF BE.
+  static constexpr std::string_view kExtSig("\x04\x00\xEF\xBE", 4);
+  std::size_t ext_pos = shell_data.find(kExtSig);
+  if (ext_pos == BinaryReader::npos || ext_pos < 4) {
+    LOG(WARNING) << "Could not find supported file entry extension";
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
+  file_entry.extension_sig = "0400EFBE"; // preserve old string form
+  std::size_t entry_offset = ext_pos - 4;
 
-  std::string version = shell_data.substr(entry_offset + 4, 4);
-  version = swapEndianess(version);
-  file_entry.version = tryTo<int>(version, 16).takeOr(0);
-  if (file_entry.version < 7) {
-    LOG(WARNING) << "Shellitem format unsupported. Expecting version 7 or "
-                    "higher: "
-                 << shell_data;
+  // Old: version at substr(entry_offset + 4, 4) → entry_offset + 2 bytes;
+  // uint16 LE.
+  auto version = shell_data.u16_le(entry_offset + 2);
+  if (!version || *version < 7) {
+    LOG(WARNING) << "Shellitem format unsupported (version < 7)";
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.extension_sig = extension_sig;
+  file_entry.version = static_cast<int>(*version);
 
-  // Shell data may contain Users Files folder signature, modified time is at
-  // offset 0x18
-  std::string timestamp = "";
-  if (shell_data.find("43465346") != std::string::npos) {
-    timestamp = shell_data.substr(36, 8);
-    file_entry.dos_modified =
-        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+  // Old: timestamp at substr(36, 8) if "43465346" found, else substr(16, 8).
+  // In bytes: 18 vs 8. The hex strings 43 46 53 46 → bytes 0x43 0x46 0x53 0x46.
+  static constexpr std::string_view kCfsf("\x43\x46\x53\x46", 4);
+  std::size_t modified_offset =
+      shell_data.find(kCfsf) != BinaryReader::npos ? 18 : 8;
+  auto modified_bytes = shell_data.bytes(modified_offset, 4);
+  if (modified_bytes) {
+    // parseFatTime takes a hex string; format the 4 bytes back to hex.
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(modified_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_modified = (ts == "00000000") ? 0LL : parseFatTime(ts);
   } else {
-    timestamp = shell_data.substr(16, 8);
-    file_entry.dos_modified =
-        (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
+    file_entry.dos_modified = 0LL;
   }
-  timestamp = shell_data.substr(entry_offset + 16, 8);
-  file_entry.dos_created =
-      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
-  timestamp = shell_data.substr(entry_offset + 24, 8);
-  file_entry.dos_accessed =
-      (timestamp == "00000000") ? 0LL : parseFatTime(timestamp);
-  file_entry.identifier = shell_data.substr(entry_offset + 32, 4);
-  std::string ntfs_data = shell_data.substr(entry_offset + 40, 16);
-  std::string mft_entry = ntfs_data.substr(0, 12);
-  mft_entry = swapEndianess(mft_entry);
 
-  if (mft_entry == "000000000000") {
+  // Old: substr(entry_offset + 16, 8) → entry_offset + 8 bytes.
+  auto created_bytes = shell_data.bytes(entry_offset + 8, 4);
+  if (created_bytes) {
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(created_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_created = (ts == "00000000") ? 0LL : parseFatTime(ts);
+  } else {
+    file_entry.dos_created = 0LL;
+  }
+
+  // Old: substr(entry_offset + 24, 8) → entry_offset + 12 bytes.
+  auto accessed_bytes = shell_data.bytes(entry_offset + 12, 4);
+  if (accessed_bytes) {
+    char hex[9];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(accessed_bytes->data());
+    std::snprintf(hex, sizeof(hex),
+                  "%02X%02X%02X%02X", p[0], p[1], p[2], p[3]);
+    std::string ts(hex);
+    file_entry.dos_accessed = (ts == "00000000") ? 0LL : parseFatTime(ts);
+  } else {
+    file_entry.dos_accessed = 0LL;
+  }
+
+  // Old: substr(entry_offset + 32, 4) → entry_offset + 16 bytes; 2 bytes.
+  auto identifier_bytes = shell_data.bytes(entry_offset + 16, 2);
+  if (identifier_bytes) {
+    char hex[5];
+    const auto* p = reinterpret_cast<const std::uint8_t*>(identifier_bytes->data());
+    std::snprintf(hex, sizeof(hex), "%02X%02X", p[0], p[1]);
+    file_entry.identifier = std::string(hex);
+  }
+
+  // Old: ntfs_data = substr(entry_offset + 40, 16) → entry_offset + 20 bytes;
+  // 16 hex chars → 8 bytes. mft_entry = first 12 hex chars (6 bytes), little-endian.
+  // mft_sequence = next 4 hex chars (2 bytes), little-endian.
+  auto mft_entry_bytes = shell_data.bytes(entry_offset + 20, 6);
+  if (mft_entry_bytes) {
+    // Little-endian 48-bit value.
+    long long v = 0;
+    const auto* p = reinterpret_cast<const std::uint8_t*>(mft_entry_bytes->data());
+    for (int i = 5; i >= 0; --i) {
+      v = (v << 8) | p[i];
+    }
+    file_entry.mft_entry = v;
+  } else {
     file_entry.mft_entry = 0LL;
-  } else {
-    file_entry.mft_entry = tryTo<long long>(mft_entry, 16).takeOr(0ll);
   }
 
-  std::string mft_sequence = ntfs_data.substr(12, 4);
-  mft_sequence = swapEndianess(mft_sequence);
-  if (mft_sequence == "0000") {
-    file_entry.mft_sequence = 0;
-  } else {
-    file_entry.mft_sequence = tryTo<int>(mft_sequence, 16).takeOr(0);
-  }
+  auto mft_seq = shell_data.u16_le(entry_offset + 26);
+  file_entry.mft_sequence = mft_seq ? static_cast<int>(*mft_seq) : 0;
 
-  std::string string_size = shell_data.substr(entry_offset + 72, 4);
-  string_size = swapEndianess(string_size);
-  file_entry.string_size = tryTo<int>(string_size, 16).takeOr(0);
-  int name_offset = 0;
+  // Old: string_size at substr(entry_offset + 72, 4) → entry_offset + 36;
+  // uint16 LE.
+  auto string_size = shell_data.u16_le(entry_offset + 36);
+  file_entry.string_size = string_size ? static_cast<int>(*string_size) : 0;
+
+  std::size_t name_offset = 0;
   if (file_entry.version >= 9) {
-    name_offset = 92;
+    name_offset = 46; // old: 92 hex chars
   } else if (file_entry.version == 8) {
-    name_offset = 84;
-  } else if (file_entry.version == 7) {
-    name_offset = 72;
+    name_offset = 42; // old: 84
+  } else { // version == 7
+    name_offset = 36; // old: 72
   }
-  std::string entry_name = shell_data.substr(entry_offset + name_offset);
-
-  // path name ends with 0000 (end of string)
-  size_t name_end = entry_name.find("0000");
-  std::string shell_name = entry_name.substr(0, name_end);
-  // Path is in unicode, extra 00
-  boost::erase_all(shell_name, "00");
-
-  // verify the hex string length is even. This fixes issues with 10 base
-  // hex values Example 70006900700000... (pip)
-  if (shell_name.length() % 2 != 0) {
-    shell_name += "0";
-  }
-  std::string name;
-  // Convert hex path to readable string
-  try {
-    name = boost::algorithm::unhex(shell_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_name;
+  auto name_tail = shell_data.bytes_from(entry_offset + name_offset);
+  if (!name_tail) {
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
-  file_entry.path = name;
+  // Old: find("0000") in the hex tail → first \0\0 in bytes.
+  std::size_t end = name_tail->find(std::string_view("\0\0", 2));
+  std::string_view utf16 =
+      end == std::string_view::npos ? *name_tail : name_tail->substr(0, end);
+  file_entry.path = stripNullBytes(utf16);
   return file_entry;
 }
 
 // returns property store name or GUID/id if name not found
-std::string propertyStore(const std::string& shell_data,
-                          const std::vector<size_t>& wps_list) {
+std::string propertyStore(const BinaryReader& shell_data,
+                          const std::vector<std::size_t>& byte_offsets) {
   std::string guid_string;
-  for (const auto& offsets : wps_list) {
-    std::string guid_little = shell_data.substr(offsets + 8, 32);
-    guid_string = guidParse(guid_little);
-    // If GUID property set is found get the property set name
+  for (auto offset : byte_offsets) {
+    // Old: substr(offsets + 8, 32) → offsets + 4 bytes, 16 bytes.
+    auto guid_bytes = shell_data.bytes(offset + 4, 16);
+    if (!guid_bytes) {
+      continue;
+    }
+    guid_string = guidParse(*guid_bytes);
+
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
         continue;
       }
-      std::string name_size = shell_data.substr(offsets + 48, 8);
-      name_size = swapEndianess(name_size);
-      int size = tryTo<int>(name_size, 16).takeOr(0);
-      std::string string_hex = shell_data.substr(offsets + 74, (size + 1) * 4);
-      boost::erase_all(string_hex, "00");
-      std::string name;
-      // Convert hex path to readable string
-      try {
-        name = boost::algorithm::unhex(string_hex);
-      } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING)
-            << "Failed to decode Windows Property List hex values to string: "
-            << shell_data;
+      // Old: substr(offsets + 48, 8) → offsets + 24 bytes; uint32 LE.
+      auto name_chars = shell_data.u32_le(offset + 24);
+      if (!name_chars) {
         return guid_string;
       }
-      return name;
+      // Old: substr(offsets + 74, (size + 1) * 4) — 74 is the odd offset.
+      // → offsets + 37 bytes. (size + 1) * 4 hex chars → (size + 1) * 2 bytes.
+      auto utf16 = shell_data.bytes(
+          offset + 37, (static_cast<std::size_t>(*name_chars) + 1) * 2);
+      if (!utf16) {
+        return guid_string;
+      }
+      return stripNullBytes(*utf16);
     }
   }
   return guid_string;
 }
 
-std::string networkShareItem(const std::string& shell_data) {
-  for (const auto& net_id : kNetworkShareIds) {
-    if (net_id == shell_data.substr(4, 2)) {
-      // Network path ends with "00"
-      std::string network_path =
-          shell_data.substr(10, shell_data.find("00", 10) - 10);
-      std::string name;
-      try {
-        name = boost::algorithm::unhex(network_path);
-      } catch (const boost::algorithm::hex_decode_error& /* e */) {
-        LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                     << shell_data;
-        return "[UNKNOWN NETWORK SHELL ITEM]";
-      }
-      return name;
-    }
+namespace {
+constexpr std::uint8_t kNetworkShareIdBytes[] = {0x41, 0x42, 0x46, 0x47, 0x4C, 0xC3};
+} // namespace
+
+std::string networkShareItem(const BinaryReader& shell_data) {
+  // Old code: shell_data.substr(4, 2) compared against kNetworkShareIds.
+  // hex offset 4 → byte offset 2.
+  auto id = shell_data.u8(2);
+  if (!id) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
   }
-  return "[UNKNOWN NETWORK SHELL ITEM]";
+  bool match = false;
+  for (auto v : kNetworkShareIdBytes) {
+    if (v == *id) { match = true; break; }
+  }
+  if (!match) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
+  // Old code: substr(10, find("00", 10) - 10) — read from byte offset 5
+  // until the next 0x00 byte.
+  auto path_start = shell_data.bytes_from(5);
+  if (!path_start) {
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
+  std::size_t end = path_start->find('\0');
+  std::string_view path =
+      end == std::string_view::npos ? *path_start : path_start->substr(0, end);
+  return std::string(path);
 }
 
-std::string zipContentItem(const std::string& shell_data) {
-  std::string path_size_string = shell_data.substr(168, 4);
-  path_size_string = swapEndianess(path_size_string);
-  int path_size = tryTo<int>(path_size_string, 16).takeOr(0);
-
-  std::string path = shell_data.substr(184, path_size * 4);
-  // Path is in unicode, extra 00
-  boost::erase_all(path, "00");
-
-  try {
-    path = boost::algorithm::unhex(path);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << path;
+std::string zipContentItem(const BinaryReader& shell_data) {
+  // Old: substr(168, 4) → hex offset 168 → byte offset 84; uint16 LE length.
+  auto path_size_chars = shell_data.u16_le(84);
+  if (!path_size_chars) {
     return "[ZIP PATH DECODE ERROR]";
   }
-  // Zip folders can go down a max of two directories
-  std::string second_path_size_string = shell_data.substr(176, 4);
-  second_path_size_string = swapEndianess(second_path_size_string);
-  int second_path_size = tryTo<int>(second_path_size_string, 16).takeOr(0);
-
-  if (second_path_size != 0) {
-    path += "/";
-    std::string second_path =
-        shell_data.substr((184 + (path_size * 4) + 4), second_path_size * 4);
-    boost::erase_all(second_path, "00");
-
-    try {
-      second_path = boost::algorithm::unhex(second_path);
-      path += second_path;
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                   << second_path;
-      path += "[ZIP PATH DECODE ERROR]";
-      return path;
-    }
+  // Old: substr(184, path_size * 4) → byte offset 92; size_chars * 2 bytes.
+  auto path_bytes = shell_data.bytes(
+      92, static_cast<std::size_t>(*path_size_chars) * 2);
+  if (!path_bytes) {
+    return "[ZIP PATH DECODE ERROR]";
   }
-  return path;
+  std::string result = stripNullBytes(*path_bytes);
+
+  // Optional second path. Old: substr(176, 4) → byte offset 88.
+  auto second_size_chars = shell_data.u16_le(88);
+  if (second_size_chars && *second_size_chars != 0) {
+    // Old: substr(184 + path_size*4 + 4, second_path_size * 4)
+    //       → byte offset 92 + path_size_chars*2 + 2.
+    std::size_t second_offset =
+        92 + static_cast<std::size_t>(*path_size_chars) * 2 + 2;
+    auto second_bytes = shell_data.bytes(
+        second_offset, static_cast<std::size_t>(*second_size_chars) * 2);
+    if (!second_bytes) {
+      return result + "/[ZIP PATH DECODE ERROR]";
+    }
+    result += "/";
+    result += stripNullBytes(*second_bytes);
+  }
+  return result;
 }
 
-std::string rootFolderItem(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(8, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string rootFolderItem(const BinaryReader& shell_data) {
+  // The GUID lives at byte offset 4 (after sig byte at offset 2 and an
+  // intermediate byte). Old code read 32 hex chars at hex offset 8, which
+  // corresponds to 16 bytes at byte offset 4.
+  auto guid_bytes = shell_data.bytes(4, 16);
+  if (!guid_bytes) {
+    return "[UNKNOWN ROOT FOLDER]";
+  }
+  return guidParse(*guid_bytes);
 }
 
-std::string driveLetterItem(const std::string& shell_data) {
-  std::string volume;
-  try {
-    volume = boost::algorithm::unhex(shell_data.substr(6, 6));
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode Shellbag hex values to string: "
-                 << shell_data;
+std::string driveLetterItem(const BinaryReader& shell_data) {
+  // Old code: boost::unhex(substr(6, 6)) — hex offset 6 → byte offset 3,
+  // 6 hex chars → 3 bytes. The 3-byte ASCII slice IS the drive name.
+  auto volume = shell_data.bytes(3, 3);
+  if (!volume) {
     return "[UNKNOWN DRIVE VOLUME]";
   }
-  return volume;
+  return std::string(*volume);
 }
 
-std::string controlPanelCategoryItem(const std::string& shell_data) {
-  std::string panel_id = shell_data.substr(16, 2);
-  if (panel_id == "00") {
-    return "All Control Panel Items";
-  } else if (panel_id == "01") {
-    return "Appearance and Personalization";
-  } else if (panel_id == "02") {
-    return "Hardware and Sound";
-  } else if (panel_id == "03") {
-    return "Network and Internet";
-  } else if (panel_id == "04") {
-    return "Sound, Speech, and Audio Devices";
-  } else if (panel_id == "05") {
-    return "System and Security";
-  } else if (panel_id == "06") {
-    return "Clock, Language, and Region";
-  } else if (panel_id == "07") {
-    return "Ease of Access";
-  } else if (panel_id == "08") {
-    return "Programs";
-  } else if (panel_id == "09") {
-    return "User Accounts";
-  } else if (panel_id == "10") {
-    return "Security Center";
-  } else if (panel_id == "11") {
-    return "Mobile PC";
-  } else {
-    LOG(WARNING) << "Unknown panel category: " << shell_data;
+std::string controlPanelCategoryItem(const BinaryReader& shell_data) {
+  // Old code read substr(16, 2) — hex offset 16 → byte offset 8.
+  auto panel_id = shell_data.u8(8);
+  if (!panel_id) {
     return "[UNKNOWN PANEL CATEGORY]";
+  }
+  switch (*panel_id) {
+    case 0x00: return "All Control Panel Items";
+    case 0x01: return "Appearance and Personalization";
+    case 0x02: return "Hardware and Sound";
+    case 0x03: return "Network and Internet";
+    case 0x04: return "Sound, Speech, and Audio Devices";
+    case 0x05: return "System and Security";
+    case 0x06: return "Clock, Language, and Region";
+    case 0x07: return "Ease of Access";
+    case 0x08: return "Programs";
+    case 0x09: return "User Accounts";
+    // NB: 0x10 / 0x11 in the old code were the *hex string* "10" / "11",
+    // which compares against the decimal 0x10/0x11 here — preserve as-is.
+    case 0x10: return "Security Center";
+    case 0x11: return "Mobile PC";
+    default:
+      LOG(WARNING) << "Unknown panel category byte: "
+                   << static_cast<int>(*panel_id);
+      return "[UNKNOWN PANEL CATEGORY]";
   }
 }
 
-std::string controlPanelItem(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(28, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string controlPanelItem(const BinaryReader& shell_data) {
+  // GUID at hex offset 28 → byte offset 14.
+  auto guid_bytes = shell_data.bytes(14, 16);
+  if (!guid_bytes) {
+    return "";
+  }
+  return guidParse(*guid_bytes);
 }
 
-std::vector<std::string> ftpItem(const std::string& shell_data) {
+std::vector<std::string> ftpItem(const BinaryReader& shell_data) {
   std::vector<std::string> ftp_data;
-  std::string unicode = shell_data.substr(6, 2);
-  std::string uri_size = shell_data.substr(8, 4);
-  if (uri_size == "0000") {
+
+  auto unicode = shell_data.u8(3);  // hex offset 6 → byte 3
+  auto uri_size_lo = shell_data.u8(4);
+  auto uri_size_hi = shell_data.u8(5);
+  if (!unicode || !uri_size_lo || !uri_size_hi) {
+    ftp_data.push_back("0000000000000000");
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
+  bool uri_size_zero = (*uri_size_lo == 0 && *uri_size_hi == 0);
+
+  if (uri_size_zero) {
     ftp_data.push_back("0000000000000000");
   } else {
-    if (shell_data.size() < 92) {
-      LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+    if (shell_data.size() < 46) { // old: shell_data.size() < 92 hex chars
+      LOG(WARNING) << "Unexpected ShellItem URI size";
       ftp_data.push_back("0000000000000000");
       ftp_data.push_back("[UNKNOWN NAME]");
       return ftp_data;
     }
-    std::string access_time =
-        shell_data.substr(28, 16); // shell data contains connection time
-    ftp_data.push_back(access_time);
+    // Old: substr(28, 16) → hex offset 28 → byte 14, 16 hex chars → 8 bytes.
+    // Return as hex string for downstream littleEndianToUnixTime compatibility.
+    auto ts_bytes = shell_data.bytes(14, 8);
+    if (!ts_bytes) {
+      ftp_data.push_back("0000000000000000");
+    } else {
+      // littleEndianToUnixTime expects a hex string of 16 chars.
+      char hex[17];
+      const auto* p = reinterpret_cast<const std::uint8_t*>(ts_bytes->data());
+      std::snprintf(hex, sizeof(hex),
+                    "%02X%02X%02X%02X%02X%02X%02X%02X",
+                    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+      ftp_data.emplace_back(hex);
+    }
   }
 
-  if (uri_size == "0000" && unicode == "80") {
-    // find end of string
-    size_t offset = shell_data.find("0000", 16);
-    size_t hostname_size = offset - 12;
-    std::string ftp_hostname = shell_data.substr(12, hostname_size);
-    std::string name;
-    boost::erase_all(ftp_hostname, "00");
-    try {
-      name = boost::algorithm::unhex(ftp_hostname);
-    } catch (const boost::algorithm::hex_decode_error& /* e */) {
-      LOG(WARNING)
-          << "Failed to decode ShellItem URI/FTP hex values to string: "
-          << shell_data;
+  if (uri_size_zero && *unicode == 0x80) {
+    // Old: find("0000", 16) starting at hex offset 16 → byte offset 8.
+    // In byte space: find "\0\0" at or after byte offset 8.
+    auto tail = shell_data.bytes_from(8);
+    if (!tail) {
       ftp_data.push_back("[UNKNOWN NAME]");
       return ftp_data;
     }
-    ftp_data.push_back(name);
+    std::size_t end = tail->find(std::string_view("\0\0", 2));
+    if (end == std::string_view::npos) {
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    // Old: hostname starts at hex offset 12 (byte 6); end position above
+    // is relative to byte 8, so subtract that anchor.
+    std::size_t hostname_byte_end = 8 + end;
+    auto hostname_bytes = shell_data.bytes(6, hostname_byte_end - 6);
+    if (!hostname_bytes) {
+      ftp_data.push_back("[UNKNOWN NAME]");
+      return ftp_data;
+    }
+    ftp_data.push_back(stripNullBytes(*hostname_bytes));
     return ftp_data;
   }
 
-  if (shell_data.size() < 92) {
-    LOG(WARNING) << "Unexpected ShellItem URI size: " << shell_data;
+  if (shell_data.size() < 46) {
+    LOG(WARNING) << "Unexpected ShellItem URI size";
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  int hostname_size = 0;
-  std::string name_size = shell_data.substr(84, 8);
-  name_size = swapEndianess(name_size);
-  // find end of string
-  if (unicode == "80") {
-    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 4;
-  } else {
-    hostname_size = tryTo<int>(name_size, 16).takeOr(0) * 2;
-  }
-  if (hostname_size == 0) {
-    LOG(WARNING) << "Unexepcted hostname size: " << shell_data;
+  // Old: substr(84, 8) → hex offset 84 → byte 42; uint32 LE.
+  auto name_chars = shell_data.u32_le(42);
+  if (!name_chars || *name_chars == 0) {
+    LOG(WARNING) << "Unexpected hostname size";
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  std::string ftp_hostname = shell_data.substr(92, hostname_size);
-  std::string name;
-  boost::erase_all(ftp_hostname, "00");
-
-  try {
-    name = boost::algorithm::unhex(ftp_hostname);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem URI/FTP hex values to string: "
-                 << shell_data;
+  // Old: hostname_size = chars * 4 (UTF-16) or chars * 2 (ASCII) hex chars.
+  // In bytes: chars * 2 (UTF-16) or chars * 1 (ASCII).
+  std::size_t hostname_bytes_len =
+      (*unicode == 0x80) ? static_cast<std::size_t>(*name_chars) * 2
+                         : static_cast<std::size_t>(*name_chars);
+  // Old: substr(92, hostname_size) → byte offset 46.
+  auto hostname_bytes = shell_data.bytes(46, hostname_bytes_len);
+  if (!hostname_bytes) {
     ftp_data.push_back("[UNKNOWN NAME]");
     return ftp_data;
   }
-  ftp_data.push_back(name);
+  ftp_data.push_back(stripNullBytes(*hostname_bytes));
   return ftp_data;
 }
 
-std::string propertyViewDrive(const std::string& shell_data) {
-  std::string drive_hex = shell_data.substr(26, 6);
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(drive_hex);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string propertyViewDrive(const BinaryReader& shell_data) {
+  // Old code: boost::unhex(substr(26, 6)) — hex offset 26 → byte offset 13,
+  // 6 hex chars → 3 bytes.
+  auto drive = shell_data.bytes(13, 3);
+  if (!drive) {
     return "[UNKNOWN USER PROPERTY DRIVE NAME]";
   }
-  return name;
+  return std::string(*drive);
 }
 
-std::string variableFtp(const std::string& shell_data) {
-  // Short FTP name starts at string offset 76
-  if (shell_data.length() < 76) {
-    LOG(WARNING) << "FTP Variable name smaller than 76 chars: " << shell_data;
+std::string variableFtp(const BinaryReader& shell_data) {
+  // Old: shell_data.substr(76) — name starts at hex offset 76 → byte 38.
+  auto name_start = shell_data.bytes_from(38);
+  if (!name_start) {
     return "[UNKNOWN VARIABLE FTP NAME]";
   }
-  std::string name_start = shell_data.substr(76);
-  // Short name should end with 0000
-  size_t offset = name_start.find("0000");
-
-  if (offset == std::string::npos) {
-    LOG(WARNING) << "Could not identify Variable FTP name: " << shell_data;
+  // Old: find("0000") inside the suffix. In bytes: 0x00 0x00.
+  std::size_t pos = name_start->find(std::string_view("\0\0", 2));
+  if (pos == std::string_view::npos) {
     return "[UNKNOWN VARIABLE FTP NAME]";
   }
-  std::string long_name = name_start.substr(offset);
-  boost::erase_all(long_name, "00");
-  // Check to make sure name is even, fixes issues with 10 base characters
-  // Ex: p is 70
-  if (long_name.length() % 2 != 0) {
-    long_name += "0";
-  }
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(long_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
-    return "[UNKNOWN VARIABLE FTP NAME]";
-  }
-  return name;
+  // Old behavior: take everything *from* the 0000 onward (yes, including the
+  // null terminator's neighbors). Then strip "00" hex pairs and unhex.
+  // Reproduce in byte space:
+  std::string_view from_terminator = name_start->substr(pos);
+  return stripNullBytes(from_terminator);
 }
 
-std::string variableGuid(const std::string& shell_data) {
-  std::string guid_little = shell_data.substr(28, 32);
-  std::string guid_string = guidParse(guid_little);
-  return guid_string;
+std::string variableGuid(const BinaryReader& shell_data) {
+  // GUID at hex offset 28 → byte offset 14.
+  auto guid_bytes = shell_data.bytes(14, 16);
+  if (!guid_bytes) {
+    return "";
+  }
+  return guidParse(*guid_bytes);
 }
 
-std::string mtpFolder(const std::string& shell_data) {
-  std::string name_size = shell_data.substr(124, 8);
-  name_size = swapEndianess(name_size);
-  int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(148, size * 4);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpFolder(const BinaryReader& shell_data) {
+  // Old: substr(124, 8) at hex offset 124 → byte offset 62; uint32 LE.
+  auto length_chars = shell_data.u32_le(62);
+  if (!length_chars) {
     return "[UNKNOWN MTP FOLDER NAME]";
   }
-  return name;
+  // Old: substr(148, size * 4) → byte offset 74.
+  auto utf16 = shell_data.bytes(74, static_cast<std::size_t>(*length_chars) * 2);
+  if (!utf16) {
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
+  return stripNullBytes(*utf16);
 }
 
-std::string mtpDevice(const std::string& shell_data) {
-  std::string name_size = shell_data.substr(76, 8);
-  name_size = swapEndianess(name_size);
-  int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(108, size * 4);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpDevice(const BinaryReader& shell_data) {
+  // Old: substr(76, 8) → 8 hex chars at hex offset 76 → 4 bytes at byte
+  // offset 38, interpreted as little-endian uint32 length-in-UTF16-chars.
+  auto length_chars = shell_data.u32_le(38);
+  if (!length_chars) {
     return "[UNKNOWN MTP DEVICE NAME]";
   }
-  return name;
+  // Old: substr(108, size * 4). hex offset 108 → byte offset 54.
+  // size * 4 hex chars → size * 2 bytes (UTF-16LE).
+  auto utf16 = shell_data.bytes(54, static_cast<std::size_t>(*length_chars) * 2);
+  if (!utf16) {
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
+  return stripNullBytes(*utf16);
 }
 
-std::string mtpRoot(const std::string& shell_data) {
-  size_t name_end = shell_data.find("000000", 80);
-  std::string path_name = shell_data.substr(80, name_end - 80);
-  boost::erase_all(path_name, "00");
-  std::string name;
-  try {
-    name = boost::algorithm::unhex(path_name);
-  } catch (const boost::algorithm::hex_decode_error& /* e */) {
-    LOG(WARNING) << "Failed to decode ShellItem path hex values to string: "
-                 << shell_data;
+std::string mtpRoot(const BinaryReader& shell_data) {
+  // Old: find("000000", 80) starting at hex offset 80 (byte offset 40),
+  // then substr(80, end - 80). In byte space: scan from byte offset 40
+  // for three consecutive 0x00 bytes; take the slice.
+  auto tail = shell_data.bytes_from(40);
+  if (!tail) {
     return "[UNKNOWN MTP ROOT NAME]";
   }
-  return name;
+  std::size_t end = tail->find(std::string_view("\0\0\0", 3));
+  std::string_view utf16 =
+      end == std::string_view::npos ? *tail : tail->substr(0, end);
+  return stripNullBytes(utf16);
 }
 } // namespace osquery
