@@ -50,6 +50,11 @@ namespace tables {
 auto parseShimcacheData(const std::string& token,
                         const boost::optional<bool>& execution_flag_exists) {
   ShimcacheData shimcache;
+  if (token.size() < 20) {
+    LOG(WARNING) << "Token too short for shimcache path length";
+    shimcache.last_modified = 0LL;
+    return shimcache;
+  }
   std::string path_length = token.substr(16, 4);
 
   // swap endianess
@@ -70,6 +75,11 @@ auto parseShimcacheData(const std::string& token,
   }
 
   // Registry data is in Unicode (extra 0x00)
+  if (token.size() < 20 + (size_t)shimcache_file_path * 2) {
+    LOG(WARNING) << "Token too short for shimcache path";
+    shimcache.last_modified = 0LL;
+    return shimcache;
+  }
   std::string path = token.substr(20, (size_t)shimcache_file_path * 2);
   boost::erase_all(path, "00");
 
@@ -99,6 +109,12 @@ auto parseShimcacheData(const std::string& token,
   } else {
     shimcache_modified_start = 20;
   }
+  if (token.size() <
+      shimcache_modified_start + (size_t)shimcache_file_path * 2 + 16) {
+    LOG(WARNING) << "Token too short for shimcache modified time";
+    shimcache.last_modified = 0LL;
+    return shimcache;
+  }
   std::string shimcache_time = token.substr(
       shimcache_modified_start + (size_t)shimcache_file_path * 2, 16);
 
@@ -109,6 +125,11 @@ auto parseShimcacheData(const std::string& token,
                                 : littleEndianToUnixTime(shimcache_time);
 
   if (execution_flag_exists == true) {
+    if (token.size() <
+        execution_flag_start + (size_t)shimcache_file_path * 2 + 2) {
+      LOG(WARNING) << "Token too short for shimcache execution flag";
+      return shimcache;
+    }
     int shimcache_flag =
         tryTo<int>(
             token.substr(execution_flag_start + (size_t)shimcache_file_path * 2,
@@ -133,19 +154,25 @@ void parseEntry(const Row& aKey, size_t& index, QueryData& results) {
   // Check if Registry data starts with any of supported WIN_START
   // values and if the Shimcache delimiter exists at the specific
   // substring
-  if ((boost::starts_with(data, kWin8Start)) &&
+  if ((boost::starts_with(data, kWin8Start)) && (data.size() >= kWin8 + 8) &&
       (data.substr(kWin8, 8) == kWin8110ShimcacheDelimiter)) {
     execution_flag_exists = true;
     delimter = kWin8110ShimcacheDelimiter;
   } else if (boost::starts_with(data, kWin10Start) &&
+             (data.size() >= kWin10PreCreator + 8) &&
              (data.substr(kWin10PreCreator, 8) == kWin8110ShimcacheDelimiter)) {
     delimter = kWin8110ShimcacheDelimiter;
   } else if (boost::starts_with(data, kWin10CreatorStart) &&
+             (data.size() >= kWin10Creator + 8) &&
              (data.substr(kWin10Creator, 8) == kWin8110ShimcacheDelimiter)) {
     delimter = kWin8110ShimcacheDelimiter;
   } else {
-    LOG(WARNING) << "Unknown or unsupported shimcache data: "
-                 << data.substr(256, 8);
+    if (data.size() >= 264) {
+      LOG(WARNING) << "Unknown or unsupported shimcache data: "
+                   << data.substr(256, 8);
+    } else {
+      LOG(WARNING) << "Unknown or unsupported shimcache data (too short)";
+    }
     return;
   }
 
