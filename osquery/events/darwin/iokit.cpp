@@ -102,8 +102,11 @@ void IOKitEventPublisher::newEvent(const io_service_t& device,
 
   // Get the device details
   CFMutableDictionaryRef details;
-  IORegistryEntryCreateCFProperties(
+  auto kr = IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
+  if (kr != KERN_SUCCESS || details == nullptr) {
+    return;
+  }
   if (ec->type == kIOUSBDeviceClassName_) {
     ec->path = getIOKitProperty(details, "USB Address") + ":";
     ec->path += getIOKitProperty(details, "PortNum");
