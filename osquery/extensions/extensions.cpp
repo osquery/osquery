@@ -153,9 +153,8 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
   std::map<RouteUUID, size_t> failures_;
 };
 
-Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
-  // Make sure the extension manager path exists, and is writable.
-  size_t delay = 0;
+Status applyExtensionDelay(std::function<Status(bool& stop)> predicate,
+                           size_t& delay) {
   // The timeout is given in seconds, but checked interval is microseconds.
   size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000;
   if (timeout < kExtensionInitializeLatency * 10) {
@@ -178,23 +177,27 @@ Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
 }
 
 Status extensionPathActive(const std::string& path, bool use_timeout = false) {
-  return applyExtensionDelay(([path, &use_timeout](bool& stop) {
-    if (socketExists(path)) {
-      try {
-        // Create a client with a 10-second receive timeout.
-        ExtensionManagerClient client(path, 10);
-        auto status = client.ping();
-        return Status::success();
-      } catch (const std::exception& /* e */) {
-        // Path might exist without a connected extension or extension manager.
-      }
-    }
-    // Only check active once if this check does not allow a timeout.
-    if (!use_timeout) {
-      stop = true;
-    }
-    return Status(1, "Extension socket not available: " + path);
-  }));
+  size_t delay = 0;
+  return applyExtensionDelay(
+      ([path, &use_timeout](bool& stop) {
+        if (socketExists(path)) {
+          try {
+            // Create a client with a 10-second receive timeout.
+            ExtensionManagerClient client(path, 10);
+            auto status = client.ping();
+            return Status::success();
+          } catch (const std::exception& /* e */) {
+            // Path might exist without a connected extension or extension
+            // manager.
+          }
+        }
+        // Only check active once if this check does not allow a timeout.
+        if (!use_timeout) {
+          stop = true;
+        }
+        return Status(1, "Extension socket not available: " + path);
+      }),
+      delay);
 }
 
 ExtensionWatcher::ExtensionWatcher(const std::string& path,
@@ -754,30 +757,33 @@ Status startExtensionManager(const std::string& manager_path) {
 
   // The shell or daemon flag configuration may require an extension.
   if (!FLAGS_extensions_require.empty()) {
+    size_t delay = 0;
     bool waited = false;
     auto extensions = osquery::split(FLAGS_extensions_require, ",");
     for (const auto& extension : extensions) {
-      status = applyExtensionDelay(([extension, &waited](bool& stop) {
-        ExtensionList registered_extensions;
-        if (getExtensions(registered_extensions).ok()) {
-          for (const auto& existing : registered_extensions) {
-            if (existing.second.name == extension) {
-              return pingExtension(getExtensionSocket(existing.first));
+      status = applyExtensionDelay(
+          ([extension, &waited](bool& stop) {
+            ExtensionList registered_extensions;
+            if (getExtensions(registered_extensions).ok()) {
+              for (const auto& existing : registered_extensions) {
+                if (existing.second.name == extension) {
+                  return pingExtension(getExtensionSocket(existing.first));
+                }
+              }
             }
-          }
-        }
 
-        if (waited) {
-          // If we have already waited for the timeout period, stop early.
-          stop = true;
-        }
-        return Status(
-            1, "Required extension not found or not loaded: " + extension);
-      }));
+            if (waited) {
+              // If we have already waited for the timeout period, stop early.
+              stop = true;
+            }
+            return Status(
+                1, "Required extension not found or not loaded: " + extension);
+          }),
+          delay);
 
-      // A required extension was not loaded.
-      waited = true;
       if (!status.ok()) {
+        // A required extension was not loaded in time.
+        waited = true;
         LOG(WARNING) << status.getMessage();
         return status;
       }
