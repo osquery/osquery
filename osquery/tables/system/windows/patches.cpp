@@ -8,6 +8,7 @@
  */
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/conversions/windows/windows_time.h>
 
 #include "osquery/core/windows/wmi.h"
 
@@ -31,8 +32,14 @@ QueryData genInstalledPatches(QueryContext& context) {
       item.GetString("Description", r["description"]);
       item.GetString("FixComments", r["fix_comments"]);
       item.GetString("InstalledBy", r["installed_by"]);
-      item.GetString("InstallDate", r["install_date"]);
-      item.GetString("InstalledOn", r["installed_on"]);
+      r["install_date"] = ""; // Deprecated
+
+      std::string installedOn;
+      item.GetString("InstalledOn", installedOn);
+      r["installed_on"] = installedOn;
+
+      auto unixTime = parseDateToUnixTime(installedOn);
+      r["installed_on_unix"] = (unixTime > 0) ? BIGINT(unixTime) : "";
 
       results.push_back(r);
     }
