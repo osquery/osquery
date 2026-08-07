@@ -1,0 +1,40 @@
+table_name("es_authentication_events")
+description("Logs authentication-related events from EndpointSecurity.")
+schema([
+    Column("time", BIGINT, "Time of event in UNIX seconds"),
+    Column("version", INTEGER, "Version of EndpointSecurity event"),
+    Column("seq_num", BIGINT, "Per event sequence number"),
+    Column("global_seq_num", BIGINT, "Global sequence number"),
+    Column("event_type", TEXT, "Type of authentication event (e.g., 'authentication', 'openssh_login', 'sudo')"),
+    Column("pid", BIGINT, "Process ID of the authenticating process"),
+    Column("pidversion", INTEGER, "Process ID version"),
+    Column("path", TEXT, "Path of the executable involved in the authentication"),
+    Column("username", TEXT, "Username associated with the authenticating process"),
+    Column("description", TEXT, "Human-readable description of the event"),
+    Column("category", TEXT, "Event category (always 'authentication' for this table)"),
+    Column("severity", TEXT, "Severity level of the event (low, medium, high)"),
+    Column("success", INTEGER, "Indicates if the authentication attempt was successful (1) or not (0)"),
+    Column("auth_type", TEXT, "Authentication mechanism used (e.g., 'password', 'touchid', 'ssh')"),
+    Column("result_type", TEXT, "Detailed result of the authentication attempt"),
+    Column("auth_right", TEXT, "Authorization right being checked (for authorization events)"),
+    Column("remote_address", TEXT, "Remote IP address (for SSH/screensharing events)"),
+    Column("remote_port", INTEGER, "Remote port (for network-related auth events)"),
+    Column("ssh_login_username", TEXT, "Username for SSH login (may differ from process username)"),
+    Column("su_from_username", TEXT, "Original username for su events"),
+    Column("su_to_username", TEXT, "Target username for su events"),
+    Column("sudo_command", TEXT, "Command executed with sudo"),
+    Column("screensharing_type", TEXT, "Type of screensharing event (attach/detach)"),
+    Column("screensharing_viewer_app_path", TEXT, "Path to viewer application for screensharing"),
+    Column("connection_type", TEXT, "Connection type for screensharing events"),
+    Column("profile_identifier", TEXT, "Profile identifier for profile-related events"),
+    Column("profile_uuid", TEXT, "Profile UUID for profile-related events"),
+    Column("target_uid", BIGINT, "Target User ID (for setuid events)"),
+    Column("eid", TEXT, "Event ID for correlation", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/es_authentication_events@genTable")
+examples([
+  "SELECT time, pid, username, event_type, success FROM es_authentication_events ORDER BY time DESC LIMIT 10",
+  "SELECT * FROM es_authentication_events WHERE event_type = 'sudo' AND success = 0",
+  "SELECT username, auth_type, result_type, remote_address FROM es_authentication_events WHERE event_type = 'openssh_login' AND success = 1"
+])
