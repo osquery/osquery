@@ -11,6 +11,11 @@ function(opensslMain)
 
   set(common_options
     no-ssl3
+    no-ssl3-method
+    no-tls1
+    no-tls1-method
+    no-tls1_1
+    no-tls1_1-method
     no-asm
     no-shared
     no-weak-ssl-ciphers
