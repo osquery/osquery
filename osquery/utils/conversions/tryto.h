@@ -45,6 +45,11 @@ struct IsInteger {
       std::is_integral<Type>::value && !std::is_same<Type, bool>::value;
 };
 
+template <typename Type>
+struct IsFloatingPoint {
+  static constexpr bool value = std::is_floating_point<Type>::value;
+};
+
 template <typename FromType,
           typename ToType,
           typename IntType,
@@ -110,6 +115,44 @@ inline
   return std::stoull(from, &pos, base);
 }
 
+template <typename FromType,
+          typename ToType,
+          typename FloatType,
+          typename =
+              typename std::enable_if<std::is_same<ToType, FloatType>::value &&
+                                          IsStlString<FromType>::value,
+                                      FloatType>::type>
+struct IsConversionFromStringToFloatEnabledFor {
+  using type = FloatType;
+};
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToFloatEnabledFor<FromType,
+                                                        ToType,
+                                                        float>::type
+throwingStringToFloat(const FromType& from) {
+  auto pos = std::size_t{};
+  return std::stof(from, &pos);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToFloatEnabledFor<FromType,
+                                                        ToType,
+                                                        double>::type
+throwingStringToFloat(const FromType& from) {
+  auto pos = std::size_t{};
+  return std::stod(from, &pos);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToFloatEnabledFor<FromType,
+                                                        ToType,
+                                                        long double>::type
+throwingStringToFloat(const FromType& from) {
+  auto pos = std::size_t{};
+  return std::stold(from, &pos);
+}
+
 Expected<bool, ConversionError> stringToBool(std::string from);
 
 } // namespace impl
@@ -137,6 +180,32 @@ tryTo(const FromType& from, const int base = 10) noexcept {
            << "Unknown error during conversion "
            << boost::core::demangle(typeid(FromType).name()) << " to "
            << boost::core::demangle(typeid(ToType).name()) << " base " << base;
+  }
+}
+
+/**
+ * Template tryTo for [w]string to floating point conversion
+ */
+template <typename ToType, typename FromType>
+inline typename std::enable_if<impl::IsFloatingPoint<ToType>::value &&
+                                   impl::IsStlString<FromType>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(const FromType& from) noexcept {
+  try {
+    return impl::throwingStringToFloat<ToType>(from);
+  } catch (const std::invalid_argument& ia) {
+    return createError(ConversionError::InvalidArgument)
+           << "If no conversion could be performed. " << ia.what();
+  } catch (const std::out_of_range& oor) {
+    return createError(ConversionError::OutOfRange)
+           << "Value read is out of the range of representable values by a "
+              "floating point type. "
+           << oor.what();
+  } catch (...) {
+    return createError(ConversionError::Unknown)
+           << "Unknown error during conversion "
+           << boost::core::demangle(typeid(FromType).name()) << " to "
+           << boost::core::demangle(typeid(ToType).name());
   }
 }
 

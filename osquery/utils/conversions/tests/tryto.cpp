@@ -327,4 +327,84 @@ TEST_F(ConversionsTests, tryTo_string_to_boolean_invalid_args) {
   }
 }
 
+template <typename FloatType>
+void testTryToForFloat() {
+  // exactly representable values
+  {
+    auto ret = tryTo<FloatType>(std::string{"1.5"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{1.5});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"-2.5"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{-2.5});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"0.0"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{0.0});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"100"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{100});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"+0.5"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{0.5});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"1.5e2"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{150.0});
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"1.5E2"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{150.0});
+  }
+  // wstring variant
+  {
+    auto ret = tryTo<FloatType>(std::wstring{L"1.5"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), FloatType{1.5});
+  }
+  // failure tests
+  {
+    auto ret = tryTo<FloatType>(std::string{""});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"abc"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<FloatType>(std::string{"(1.5)"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    // out of range for all float types (max long double ~1.18e4932)
+    auto ret = tryTo<FloatType>(std::string{"1e+9999"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::OutOfRange);
+  }
+}
+
+TEST_F(ConversionsTests, tryTo_string_to_float) {
+  testTryToForFloat<float>();
+}
+
+TEST_F(ConversionsTests, tryTo_string_to_double) {
+  testTryToForFloat<double>();
+}
+
+TEST_F(ConversionsTests, tryTo_string_to_long_double) {
+  testTryToForFloat<long double>();
+}
+
 } // namespace osquery
