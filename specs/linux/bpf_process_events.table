@@ -1,0 +1,22 @@
+table_name("bpf_process_events")
+description("Track process execution events using eBPF.")
+schema([
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
+    Column("ntime", TEXT, "The BPF event timestamp"),
+    Column("tid", BIGINT, "Thread ID"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("parent", BIGINT, "Parent process ID"),
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID"),
+    Column("cid", BIGINT, "Cgroup ID"),
+    Column("exit_code", TEXT, "Exit code of the execve syscall"),
+    Column("probe_error", BIGINT, "Set to 1 if there was an error reading information from the probe"),
+    Column("syscall", TEXT, "System call name"),
+    Column("path", TEXT, "Binary path"),
+    Column("cwd", TEXT, "Current working directory"),
+    Column("duration", BIGINT, "Syscall duration in nanoseconds"),
+    Column("cmdline", TEXT, "Command line arguments"),
+    Column("json_cmdline", TEXT, "Command line arguments as a JSON array"),
+])
+attributes(event_subscriber=True)
+implementation("bpf_process_events@BPFProcessEventSubscriber::genTable")
