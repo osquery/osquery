@@ -152,6 +152,16 @@ struct ChromeProfile final {
 
   /// A list of extensions associated with this profile
   ExtensionList extension_list;
+
+  /// The display name of the default search engine, if set
+  boost::optional<std::string> search_engine_name;
+
+  /// The keyword used to trigger the default search engine from the
+  /// address bar, if set
+  boost::optional<std::string> search_engine_keyword;
+
+  /// The URL template used by the default search engine, if set
+  boost::optional<std::string> search_engine_url;
 };
 
 /// A list of Chrome profiles
