@@ -11,5 +11,5 @@ schema([
 attributes(user_data=True)
 implementation("applications/jvm_installations@genJVM")
 examples([
-    "SELECT u.username, jvm.name, jvm.vendor, jvm.path, jvm.architecture FROM users u CROSS JOIN jvm_installations jvm  ON u.uid = jvm.uid;"
+    "select jvm_installations.* from users join jvm_installations using (uid);"
 ])

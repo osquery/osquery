@@ -11,6 +11,7 @@
 // Spec file: specs/jvm_installations.table
 
 #include <osquery/dispatcher/dispatcher.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/tests/test_util.h>
 
