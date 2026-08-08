@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <cctype>
+#include <cstdint>
 #include <fstream>
 #include <map>
 #include <osquery/core/tables.h>
@@ -102,9 +103,9 @@ std::string extractJVMName(
   if (properties.count("IMPLEMENTOR")) {
     auto implementor = properties.at("IMPLEMENTOR");
     if (properties.count("JAVA_VERSION")) {
-      return implementor + " JVM " + properties.at("JAVA_VERSION");
+      return implementor + " JDK " + properties.at("JAVA_VERSION");
     }
-    return implementor + " JVM";
+    return implementor + " JDK";
   }
 
   // Fall back to extracting from path
@@ -207,7 +208,9 @@ void processJVMInstallation(QueryData& results,
 }
 
 // Scan system-wide JVM installations (macOS)
-void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
+void scanSystemJVMs(
+    QueryData& results,
+    std::set<std::pair<std::int64_t, std::string>>& seen_paths) {
   if (!isPlatform(PlatformType::TYPE_OSX)) {
     return;
   }
@@ -227,12 +230,8 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
     std::string path_to_check =
         pathExists(home_path).ok() ? home_path : jvm_dir;
 
-    // Resolve to canonical path and skip if already seen
+    // Resolve to canonical path
     std::string canonical_path = resolveCanonicalPath(path_to_check);
-    if (seen_paths.find(canonical_path) != seen_paths.end()) {
-      continue; // Skip duplicate/symlink
-    }
-    seen_paths.insert(canonical_path);
 
     std::int64_t uid = 0;
 
@@ -250,6 +249,14 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
           uid = getFileOwnerUid(java_path);
         }
       }
+
+      // Skip if already seen for this uid
+      if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+          seen_paths.end()) {
+        continue; // Skip duplicate/symlink
+      }
+      seen_paths.insert(std::make_pair(uid, canonical_path));
+
       processJVMInstallation(results, home_path, uid);
     } else {
       // Try the directory itself as a fallback
@@ -264,14 +271,23 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
           uid = getFileOwnerUid(java_path);
         }
       }
+
+      // Skip if already seen for this uid
+      if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+          seen_paths.end()) {
+        continue; // Skip duplicate/symlink
+      }
+      seen_paths.insert(std::make_pair(uid, canonical_path));
+
       processJVMInstallation(results, jvm_dir, uid);
     }
   }
 }
 
 // Scan system-wide JVM installations (Windows)
-void scanWindowsSystemJVMs(QueryData& results,
-                           std::set<std::string>& seen_paths) {
+void scanWindowsSystemJVMs(
+    QueryData& results,
+    std::set<std::pair<std::int64_t, std::string>>& seen_paths) {
   if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
     return;
   }
@@ -298,12 +314,8 @@ void scanWindowsSystemJVMs(QueryData& results,
     listDirectoriesInDirectory(system_path, jvm_dirs, false);
 
     for (const auto& jvm_dir : jvm_dirs) {
-      // Resolve to canonical path and skip if already seen
+      // Resolve to canonical path
       std::string canonical_path = resolveCanonicalPath(jvm_dir);
-      if (seen_paths.find(canonical_path) != seen_paths.end()) {
-        continue; // Skip duplicate/symlink
-      }
-      seen_paths.insert(canonical_path);
 
       std::int64_t uid = 0;
 
@@ -321,14 +333,22 @@ void scanWindowsSystemJVMs(QueryData& results,
         }
       }
 
+      // Skip if already seen for this uid
+      if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+          seen_paths.end()) {
+        continue; // Skip duplicate/symlink
+      }
+      seen_paths.insert(std::make_pair(uid, canonical_path));
+
       processJVMInstallation(results, jvm_dir, uid);
     }
   }
 }
 
 // Scan system-wide JVM installations (Linux)
-void scanLinuxSystemJVMs(QueryData& results,
-                         std::set<std::string>& seen_paths) {
+void scanLinuxSystemJVMs(
+    QueryData& results,
+    std::set<std::pair<std::int64_t, std::string>>& seen_paths) {
   if (!isPlatform(PlatformType::TYPE_LINUX)) {
     return;
   }
@@ -342,12 +362,8 @@ void scanLinuxSystemJVMs(QueryData& results,
   listDirectoriesInDirectory(system_jvm_path, jvm_dirs, false);
 
   for (const auto& jvm_dir : jvm_dirs) {
-    // Resolve to canonical path and skip if already seen
+    // Resolve to canonical path
     std::string canonical_path = resolveCanonicalPath(jvm_dir);
-    if (seen_paths.find(canonical_path) != seen_paths.end()) {
-      continue; // Skip duplicate/symlink
-    }
-    seen_paths.insert(canonical_path);
 
     std::int64_t uid = 0;
 
@@ -365,12 +381,21 @@ void scanLinuxSystemJVMs(QueryData& results,
       }
     }
 
+    // Skip if already seen for this uid
+    if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+        seen_paths.end()) {
+      continue; // Skip duplicate/symlink
+    }
+    seen_paths.insert(std::make_pair(uid, canonical_path));
+
     processJVMInstallation(results, jvm_dir, uid);
   }
 }
 
 // Scan Homebrew JVM installations (macOS and Linux)
-void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
+void scanHomebrewJVMs(
+    QueryData& results,
+    std::set<std::pair<std::int64_t, std::string>>& seen_paths) {
   // Homebrew installation paths
   // /opt/homebrew for Apple Silicon, /usr/local for Intel
   std::vector<std::string> homebrew_prefixes = {
@@ -402,12 +427,8 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
                               "openjdk.jdk" / "Contents" / "Home")
                                  .string();
       if (pathExists(jvm_home).ok()) {
-        // Resolve to canonical path and skip if already seen
+        // Resolve to canonical path
         std::string canonical_path = resolveCanonicalPath(jvm_home);
-        if (seen_paths.find(canonical_path) != seen_paths.end()) {
-          continue; // Skip duplicate/symlink
-        }
-        seen_paths.insert(canonical_path);
 
         // Get uid from the release file owner
         std::int64_t uid = 0;
@@ -423,6 +444,14 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
             uid = getFileOwnerUid(java_path);
           }
         }
+
+        // Skip if already seen for this uid
+        if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+            seen_paths.end()) {
+          continue; // Skip duplicate/symlink
+        }
+        seen_paths.insert(std::make_pair(uid, canonical_path));
+
         processJVMInstallation(results, jvm_home, uid);
       }
     }
@@ -433,7 +462,7 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
 void scanUserJVMs(QueryData& results,
                   const std::string& user_home,
                   const std::int64_t& uid,
-                  std::set<std::string>& seen_paths) {
+                  std::set<std::pair<std::int64_t, std::string>>& seen_paths) {
   boost::filesystem::path user_home_path(user_home);
   std::vector<std::string> search_paths;
 
@@ -487,13 +516,14 @@ void scanUserJVMs(QueryData& results,
         path_to_process = jvm_dir;
       }
 
-      // Resolve to canonical path and skip if already seen (avoids symlink
-      // duplicates)
+      // Resolve to canonical path and skip if already seen for this uid (avoids
+      // symlink duplicates)
       std::string canonical_path = resolveCanonicalPath(path_to_process);
-      if (seen_paths.find(canonical_path) != seen_paths.end()) {
+      if (seen_paths.find(std::make_pair(uid, canonical_path)) !=
+          seen_paths.end()) {
         continue; // Skip duplicate/symlink
       }
-      seen_paths.insert(canonical_path);
+      seen_paths.insert(std::make_pair(uid, canonical_path));
 
       processJVMInstallation(results, path_to_process, uid);
     }
@@ -502,7 +532,8 @@ void scanUserJVMs(QueryData& results,
 
 QueryData genJVM(QueryContext& context) {
   QueryData results;
-  std::set<std::string> seen_paths; // Track canonical paths to avoid duplicates
+  std::set<std::pair<std::int64_t, std::string>>
+      seen_paths; // Track (uid, canonical_path) pairs to avoid duplicates
 
   auto users = usersFromContext(context);
   for (const auto& user : users) {
