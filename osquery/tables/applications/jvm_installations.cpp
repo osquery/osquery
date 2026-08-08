@@ -222,7 +222,8 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
 
   for (const auto& jvm_dir : jvm_dirs) {
     // macOS JVMs have Contents/Home structure
-    std::string home_path = (boost::filesystem::path(jvm_dir) / "Contents" / "Home").string();
+    std::string home_path =
+        (boost::filesystem::path(jvm_dir) / "Contents" / "Home").string();
     std::string path_to_check =
         pathExists(home_path).ok() ? home_path : jvm_dir;
 
@@ -237,12 +238,14 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
 
     if (pathExists(home_path).ok()) {
       // Get uid from the release file owner
-      std::string release_path = (boost::filesystem::path(home_path) / "release").string();
+      std::string release_path =
+          (boost::filesystem::path(home_path) / "release").string();
       if (pathExists(release_path).ok()) {
         uid = getFileOwnerUid(release_path);
       } else {
         // Fallback to java executable
-        std::string java_path = (boost::filesystem::path(home_path) / "bin" / "java").string();
+        std::string java_path =
+            (boost::filesystem::path(home_path) / "bin" / "java").string();
         if (pathExists(java_path).ok()) {
           uid = getFileOwnerUid(java_path);
         }
@@ -250,11 +253,13 @@ void scanSystemJVMs(QueryData& results, std::set<std::string>& seen_paths) {
       processJVMInstallation(results, home_path, uid);
     } else {
       // Try the directory itself as a fallback
-      std::string release_path = (boost::filesystem::path(jvm_dir) / "release").string();
+      std::string release_path =
+          (boost::filesystem::path(jvm_dir) / "release").string();
       if (pathExists(release_path).ok()) {
         uid = getFileOwnerUid(release_path);
       } else {
-        std::string java_path = (boost::filesystem::path(jvm_dir) / "bin" / "java").string();
+        std::string java_path =
+            (boost::filesystem::path(jvm_dir) / "bin" / "java").string();
         if (pathExists(java_path).ok()) {
           uid = getFileOwnerUid(java_path);
         }
@@ -303,12 +308,14 @@ void scanWindowsSystemJVMs(QueryData& results,
       std::int64_t uid = 0;
 
       // Get uid from the release file owner
-      std::string release_path = (boost::filesystem::path(jvm_dir) / "release").string();
+      std::string release_path =
+          (boost::filesystem::path(jvm_dir) / "release").string();
       if (pathExists(release_path).ok()) {
         uid = getFileOwnerUid(release_path);
       } else {
         // Fallback to java executable
-        std::string java_path = (boost::filesystem::path(jvm_dir) / "bin" / "java.exe").string();
+        std::string java_path =
+            (boost::filesystem::path(jvm_dir) / "bin" / "java.exe").string();
         if (pathExists(java_path).ok()) {
           uid = getFileOwnerUid(java_path);
         }
@@ -345,12 +352,14 @@ void scanLinuxSystemJVMs(QueryData& results,
     std::int64_t uid = 0;
 
     // Get uid from the release file owner
-    std::string release_path = (boost::filesystem::path(jvm_dir) / "release").string();
+    std::string release_path =
+        (boost::filesystem::path(jvm_dir) / "release").string();
     if (pathExists(release_path).ok()) {
       uid = getFileOwnerUid(release_path);
     } else {
       // Fallback to java executable
-      std::string java_path = (boost::filesystem::path(jvm_dir) / "bin" / "java").string();
+      std::string java_path =
+          (boost::filesystem::path(jvm_dir) / "bin" / "java").string();
       if (pathExists(java_path).ok()) {
         uid = getFileOwnerUid(java_path);
       }
@@ -364,8 +373,8 @@ void scanLinuxSystemJVMs(QueryData& results,
 void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
   // Homebrew installation paths
   // /opt/homebrew for Apple Silicon, /usr/local for Intel
-  std::vector<std::string> homebrew_prefixes = {"/opt/homebrew/opt",
-                                                "/usr/local/opt"};
+  std::vector<std::string> homebrew_prefixes = {
+      "/opt/homebrew/opt", "/usr/local/opt", "/home/linuxbrew/.linuxbrew/opt"};
 
   for (const auto& homebrew_prefix : homebrew_prefixes) {
     if (!pathExists(homebrew_prefix).ok()) {
@@ -389,7 +398,9 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
 
       // Homebrew OpenJDK structure:
       // /opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home
-      std::string jvm_home = (boost::filesystem::path(opt_dir) / "libexec" / "openjdk.jdk" / "Contents" / "Home").string();
+      std::string jvm_home = (boost::filesystem::path(opt_dir) / "libexec" /
+                              "openjdk.jdk" / "Contents" / "Home")
+                                 .string();
       if (pathExists(jvm_home).ok()) {
         // Resolve to canonical path and skip if already seen
         std::string canonical_path = resolveCanonicalPath(jvm_home);
@@ -400,12 +411,14 @@ void scanHomebrewJVMs(QueryData& results, std::set<std::string>& seen_paths) {
 
         // Get uid from the release file owner
         std::int64_t uid = 0;
-        std::string release_path = (boost::filesystem::path(jvm_home) / "release").string();
+        std::string release_path =
+            (boost::filesystem::path(jvm_home) / "release").string();
         if (pathExists(release_path).ok()) {
           uid = getFileOwnerUid(release_path);
         } else {
           // Fallback to java executable
-          std::string java_path = (boost::filesystem::path(jvm_home) / "bin" / "java").string();
+          std::string java_path =
+              (boost::filesystem::path(jvm_home) / "bin" / "java").string();
           if (pathExists(java_path).ok()) {
             uid = getFileOwnerUid(java_path);
           }
@@ -426,16 +439,20 @@ void scanUserJVMs(QueryData& results,
 
   if (isPlatform(PlatformType::TYPE_OSX)) {
     // macOS user-specific installations
-    search_paths.push_back((user_home_path / "Library" / "Java" / "JavaVirtualMachines").string());
+    search_paths.push_back(
+        (user_home_path / "Library" / "Java" / "JavaVirtualMachines").string());
   }
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     // Windows user-specific installations (e.g., Microsoft JVM)
-    search_paths.push_back((user_home_path / "AppData" / "Local" / "Programs" / "Microsoft").string());
+    search_paths.push_back(
+        (user_home_path / "AppData" / "Local" / "Programs" / "Microsoft")
+            .string());
   }
 
   // SDKMAN installations (all platforms)
-  search_paths.push_back((user_home_path / ".sdkman" / "candidates" / "java").string());
+  search_paths.push_back(
+      (user_home_path / ".sdkman" / "candidates" / "java").string());
 
   // Jabba installations (all platforms)
   search_paths.push_back((user_home_path / ".jabba" / "jdk").string());
@@ -457,7 +474,8 @@ void scanUserJVMs(QueryData& results,
           (search_path.find("Library/Java/JavaVirtualMachines") !=
                std::string::npos ||
            search_path.find(".jabba/jdk") != std::string::npos)) {
-        std::string home_path = (boost::filesystem::path(jvm_dir) / "Contents" / "Home").string();
+        std::string home_path =
+            (boost::filesystem::path(jvm_dir) / "Contents" / "Home").string();
         if (pathExists(home_path).ok()) {
           path_to_process = home_path;
         } else {
