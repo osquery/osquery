@@ -50,7 +50,7 @@ std::string resolveCanonicalPath(const std::string& path) {
   } catch (const boost::filesystem::filesystem_error& e) {
     // If we can't resolve, return the original path
     VLOG(1) << "Failed to resolve canonical path for " << path << ": "
-                 << e.what();
+            << e.what();
   }
   return path;
 }
