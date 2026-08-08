@@ -43,17 +43,22 @@ std::int64_t getFileOwnerUid(const std::string& file_path) {
 // Helper function to resolve a path to its canonical form
 // This handles symlinks by resolving them to their targets
 std::string resolveCanonicalPath(const std::string& path) {
-  try {
-    boost::filesystem::path p(path);
-    if (boost::filesystem::exists(p)) {
-      return boost::filesystem::canonical(p).string();
-    }
-  } catch (const boost::filesystem::filesystem_error& e) {
+  boost::filesystem::path p(path);
+  boost::system::error_code ec;
+
+  if (!boost::filesystem::exists(p, ec)) {
+    return path;
+  }
+
+  auto canonical = boost::filesystem::canonical(p, ec);
+  if (ec) {
     // If we can't resolve, return the original path
     VLOG(1) << "Failed to resolve canonical path for " << path << ": "
-            << e.what();
+            << ec.message();
+    return path;
   }
-  return path;
+
+  return canonical.string();
 }
 
 // Parse a JVM release file to extract metadata
@@ -67,10 +72,11 @@ std::map<std::string, std::string> parseReleaseFile(
     return properties;
   }
 
-  std::string line;
-  std::regex property_regex(
+  // Compile regex once as a static variable to avoid recompilation overhead
+  static const std::regex property_regex(
       R"(^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\"?([^\"]*)\"?\s*$)");
 
+  std::string line;
   while (std::getline(file, line)) {
     // Skip empty lines and comments
     boost::algorithm::trim(line);
@@ -79,15 +85,11 @@ std::map<std::string, std::string> parseReleaseFile(
     }
 
     std::smatch match;
-    if (std::regex_search(line, match, property_regex)) {
+    // Use regex_match since the pattern is anchored with ^ and $
+    if (std::regex_match(line, match, property_regex)) {
       std::string key = match[1].str();
       std::string value = match[2].str();
-
-      // Remove surrounding quotes if present
-      if (!value.empty() && value.front() == '"' && value.back() == '"') {
-        value = value.substr(1, value.length() - 2);
-      }
-
+      // No need to strip quotes - the capture group [^\"]* excludes them
       properties[key] = value;
     }
   }
