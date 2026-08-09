@@ -16,6 +16,7 @@
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/tables/applications/ai_assistant_chats/cursor.h>
+#include <osquery/tables/applications/ai_assistant_chats/transcript.h>
 #include <osquery/utils/json/json.h>
 
 namespace fs = boost::filesystem;
@@ -106,15 +107,25 @@ void parseCursorBubble(const std::string& key,
   results.push_back(std::move(chat));
 }
 /**
- * @brief Reads Cursor chat history from its global and workspace state
- * databases.
+ * @brief Reads Cursor chat history from its state databases and agent
+ * transcripts.
  *
+ * @param home User home directory holding the agent's transcripts.
  * @param app_data_root Root directory containing Cursor's per-user application
  * data.
  * @param results Output collection to which extracted chats are appended.
  */
-void collectCursorChats(const fs::path& app_data_root,
+void collectCursorChats(const fs::path& home,
+                        const fs::path& app_data_root,
                         std::vector<AIAssistantChat>& results) {
+  // The agent keeps a transcript per session, one directory per project it
+  // was run against. None of this reaches the editor's state database, so
+  // a machine that only ever ran the agent has its whole history here.
+  collectTranscripts(home / ".cursor" / "projects" / "%" / "agent-transcripts" /
+                         "%" / "%.jsonl",
+                     kCursorApplication,
+                     results);
+
   auto cursor_user_dir = app_data_root / kCursorDirectory / "User";
 
   std::vector<std::string> databases;

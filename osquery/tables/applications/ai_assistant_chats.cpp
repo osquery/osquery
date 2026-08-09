@@ -20,10 +20,14 @@
 #include <osquery/tables/applications/ai_assistant_chats/antigravity.h>
 #include <osquery/tables/applications/ai_assistant_chats/claude.h>
 #include <osquery/tables/applications/ai_assistant_chats/codex.h>
+#include <osquery/tables/applications/ai_assistant_chats/copilot_cli.h>
 #include <osquery/tables/applications/ai_assistant_chats/cursor.h>
 #include <osquery/tables/applications/ai_assistant_chats/gemini.h>
+#include <osquery/tables/applications/ai_assistant_chats/kimi.h>
+#include <osquery/tables/applications/ai_assistant_chats/pi.h>
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 #include <osquery/tables/applications/ai_assistant_chats/vscode.h>
+#include <osquery/tables/applications/ai_assistant_chats/windsurf.h>
 #include <osquery/tables/system/system_utils.h>
 
 namespace fs = boost::filesystem;
@@ -83,7 +87,7 @@ const std::vector<ChatSourceEntry>& chatSources() {
       {"cursor",
        {kCursorApplication},
        [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
-         collectCursorChats(paths.app_data_root, results);
+         collectCursorChats(paths.home, paths.app_data_root, results);
        }},
       {"antigravity",
        {kAntigravityApplication},
@@ -94,6 +98,26 @@ const std::vector<ChatSourceEntry>& chatSources() {
        {kCopilotApplication},
        [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
          collectVSCodeChats(paths.app_data_root, results);
+       }},
+      {"windsurf",
+       {kWindsurfApplication},
+       [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
+         collectWindsurfChats(paths.home, results);
+       }},
+      {"copilot_cli",
+       {kCopilotCliApplication},
+       [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
+         collectCopilotCliChats(paths.home, results);
+       }},
+      {"pi",
+       {kPiApplication},
+       [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
+         collectPiChats(paths.home, results);
+       }},
+      {"kimi",
+       {kKimiApplication},
+       [](const UserPaths& paths, std::vector<AIAssistantChat>& results) {
+         collectKimiChats(paths.home, results);
        }},
   };
 

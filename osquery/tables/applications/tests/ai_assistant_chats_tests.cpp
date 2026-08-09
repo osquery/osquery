@@ -16,10 +16,15 @@
 #include <osquery/tables/applications/ai_assistant_chats/antigravity.h>
 #include <osquery/tables/applications/ai_assistant_chats/claude.h>
 #include <osquery/tables/applications/ai_assistant_chats/codex.h>
+#include <osquery/tables/applications/ai_assistant_chats/copilot_cli.h>
 #include <osquery/tables/applications/ai_assistant_chats/cursor.h>
 #include <osquery/tables/applications/ai_assistant_chats/gemini.h>
+#include <osquery/tables/applications/ai_assistant_chats/kimi.h>
+#include <osquery/tables/applications/ai_assistant_chats/pi.h>
+#include <osquery/tables/applications/ai_assistant_chats/transcript.h>
 #include <osquery/tables/applications/ai_assistant_chats/utils.h>
 #include <osquery/tables/applications/ai_assistant_chats/vscode.h>
+#include <osquery/tables/applications/ai_assistant_chats/windsurf.h>
 
 namespace osquery {
 namespace tables {
@@ -659,6 +664,325 @@ TEST_F(AIAssistantChatsTest, test_chat_session_malformed) {
                        "/home/user/a.json",
                        kCopilotApplication,
                        results);
+
+  EXPECT_TRUE(results.empty());
+}
+
+TEST_F(AIAssistantChatsTest, test_agent_transcript) {
+  // The shape Cursor's agent writes: a role, and the body inside a
+  // message envelope alongside the tool calls of the same turn.
+  const std::string transcript =
+      R"({"role":"user","message":{"content":[{"type":"text","text":"<user_query>\nbuild a stock monitor\n</user_query>"}]}})"
+      "\n"
+      R"({"role":"assistant","message":{"content":[{"type":"text","text":"Scaffolding a monitor."},{"type":"tool_use","name":"Write","input":{"path":"a.ts"}},{"type":"text","text":"Done."}]}})"
+      "\n"
+      R"({"role":"assistant","message":{"content":[{"type":"tool_use","name":"Glob","input":{}}]}})"
+      "\n";
+
+  std::vector<AIAssistantChat> results;
+  parseTranscript(transcript,
+                  "/home/user/.cursor/projects/p/agent-transcripts/s/s.jsonl",
+                  kCursorApplication,
+                  results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kCursorApplication);
+  // Nothing in the record names the session, so the file does.
+  EXPECT_EQ(results[0].session_id, "s");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message,
+            "<user_query>\nbuild a stock monitor\n</user_query>");
+  // These records carry no time of their own.
+  EXPECT_EQ(results[0].timestamp, 0);
+
+  EXPECT_EQ(results[1].role, "assistant");
+  // The text of one turn reads as one message, and the tool call between
+  // the two halves is not part of it.
+  EXPECT_EQ(results[1].message, "Scaffolding a monitor.\n\nDone.");
+}
+
+TEST_F(AIAssistantChatsTest, test_agent_transcript_shapes) {
+  std::vector<AIAssistantChat> results;
+
+  // A record that types itself rather than naming a role, with the body
+  // at the top level and a session and time of its own.
+  parseTranscriptLine(
+      R"({"type":"user","sessionId":"abc","timestamp":"2026-05-03T07:59:23Z","content":"hello"})",
+      "/home/user/a.jsonl",
+      kWindsurfApplication,
+      "fallback",
+      results);
+  // A flat string body, timed the way older builds wrote it.
+  parseTranscriptLine(
+      R"({"role":"model","conversationId":"def","createdAt":1777795163977,"text":"hi"})",
+      "/home/user/a.jsonl",
+      kWindsurfApplication,
+      "fallback",
+      results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kWindsurfApplication);
+  EXPECT_EQ(results[0].session_id, "abc");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "hello");
+  EXPECT_EQ(results[0].timestamp, 1777795163);
+
+  EXPECT_EQ(results[1].session_id, "def");
+  EXPECT_EQ(results[1].role, "assistant");
+  EXPECT_EQ(results[1].message, "hi");
+  EXPECT_EQ(results[1].timestamp, 1777795163);
+}
+
+TEST_F(AIAssistantChatsTest, test_agent_transcript_skipped) {
+  std::vector<AIAssistantChat> results;
+
+  for (const auto* record : {
+           // The tool bookkeeping that shares the file.
+           R"({"role":"tool","message":{"content":[{"type":"text","text":"ok"}]}})",
+           R"({"type":"tool_result","content":"ok"})",
+           R"({"type":"turn_ended"})",
+           // A turn that said nothing.
+           R"({"role":"assistant","message":{"content":[]}})",
+           R"({"role":"user","content":""})",
+           // Not a record at all.
+           "{not json",
+           "[]",
+           "",
+       }) {
+    parseTranscriptLine(
+        record, "/home/user/a.jsonl", kCursorApplication, "s", results);
+  }
+
+  EXPECT_TRUE(results.empty());
+}
+
+TEST_F(AIAssistantChatsTest, test_copilot_cli_events) {
+  const std::string events =
+      R"({"hookEventName":"SessionStart","sessionId":"9f2","timestamp":"2026-05-03T07:59:00Z"})"
+      "\n"
+      R"({"hookEventName":"UserPromptSubmitted","sessionId":"9f2","timestamp":"2026-05-03T07:59:23Z","prompt":"list the open ports"})"
+      "\n"
+      R"({"type":"assistant","sessionId":"9f2","timestamp":"2026-05-03T07:59:30Z","content":"Use the listening_ports table."})"
+      "\n"
+      R"({"hookEventName":"PreToolUse","sessionId":"9f2","toolName":"ShellCommand","toolArgs":{"command":"ss -lntp"}})"
+      "\n";
+
+  std::vector<AIAssistantChat> results;
+  parseCopilotCliEvents(
+      events, "/home/user/.copilot/session-state/9f2/events.jsonl", results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kCopilotCliApplication);
+  EXPECT_EQ(results[0].session_id, "9f2");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "list the open ports");
+  EXPECT_EQ(results[0].timestamp, 1777795163);
+
+  EXPECT_EQ(results[1].role, "assistant");
+  EXPECT_EQ(results[1].message, "Use the listening_ports table.");
+}
+
+TEST_F(AIAssistantChatsTest, test_copilot_cli_events_fallbacks) {
+  std::vector<AIAssistantChat> results;
+
+  // An event naming neither its session nor its kind the current way.
+  parseCopilotCliEvent(R"({"event":"user_prompt_submitted","text":"hello"})",
+                       "/home/user/.copilot/session-state/abc/events.jsonl",
+                       "abc",
+                       results);
+  // The tool events and the session's own bookkeeping carry no message.
+  for (const auto* event : {
+           R"({"hookEventName":"PostToolUse","toolName":"ReadFile"})",
+           R"({"hookEventName":"SessionEnd"})",
+           R"({"hookEventName":"UserPromptSubmitted","prompt":""})",
+           "{not json",
+       }) {
+    parseCopilotCliEvent(event,
+                         "/home/user/.copilot/session-state/abc/events.jsonl",
+                         "abc",
+                         results);
+  }
+
+  ASSERT_EQ(results.size(), 1U);
+  // The directory holding the log is named after the session.
+  EXPECT_EQ(results[0].session_id, "abc");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "hello");
+  EXPECT_EQ(results[0].timestamp, 0);
+}
+
+TEST_F(AIAssistantChatsTest, test_pi_session) {
+  const std::string session =
+      R"({"type":"session","version":1,"id":"01H8","cwd":"/home/user/src","timestamp":"2026-05-03T07:59:00Z"})"
+      "\n"
+      R"({"type":"message","timestamp":"2026-05-03T07:59:23Z","message":{"role":"user","content":[{"type":"text","text":"why is the build slow"}]}})"
+      "\n"
+      R"({"type":"message","message":{"role":"assistant","timestamp":1777795163977,"content":[{"type":"thinking","thinking":"internal"},{"type":"text","text":"The link step dominates."},{"type":"toolCall","name":"bash"}]}})"
+      "\n"
+      R"({"type":"message","message":{"role":"toolResult","toolName":"bash","toolCallId":"1"}})"
+      "\n"
+      R"({"type":"compaction","summary":"earlier turns"})"
+      "\n";
+
+  std::vector<AIAssistantChat> results;
+  parsePiSession(
+      session, "/home/user/.pi/agent/sessions/01H8.jsonl", results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kPiApplication);
+  EXPECT_EQ(results[0].session_id, "01H8");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "why is the build slow");
+  EXPECT_EQ(results[0].timestamp, 1777795163);
+
+  EXPECT_EQ(results[1].role, "assistant");
+  // The reasoning and the tool call are not what the model said.
+  EXPECT_EQ(results[1].message, "The link step dominates.");
+  // The entry carried no time, so the message inside it answered instead.
+  EXPECT_EQ(results[1].timestamp, 1777795163);
+}
+
+TEST_F(AIAssistantChatsTest, test_kimi_wire) {
+  const std::string wire =
+      R"({"type":"metadata","protocol_version":"1","time":1777795100000,"cwd":"/home/user/src"})"
+      "\n"
+      R"({"type":"turn.prompt","time":1777795163977,"origin":{"kind":"user"},"input":[{"type":"text","text":"add a retry"}]})"
+      "\n"
+      R"({"type":"context.append_loop_event","time":1777795170000,"event":{"type":"content.part","part":{"type":"think","think":"internal"}}})"
+      "\n"
+      R"({"type":"context.append_loop_event","time":1777795170000,"event":{"type":"content.part","part":{"type":"text","text":"Wrapping the call."}}})"
+      "\n"
+      R"({"type":"context.append_loop_event","time":1777795180000,"event":{"type":"tool.call","name":"Edit","toolCallId":"1"}})"
+      "\n"
+      R"({"type":"context.append_message","time":1777795163977,"input":[{"type":"text","text":"add a retry"}]})"
+      "\n";
+
+  const std::string path =
+      "/home/user/.kimi-code/sessions/2026-05-03/7c1/agents/main/wire.jsonl";
+
+  std::vector<AIAssistantChat> results;
+  parseKimiWire(wire, path, results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kKimiApplication);
+  // Nothing in the journal names the session, so its path does.
+  EXPECT_EQ(results[0].session_id, "7c1");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "add a retry");
+  EXPECT_EQ(results[0].timestamp, 1777795163);
+
+  EXPECT_EQ(results[1].role, "assistant");
+  EXPECT_EQ(results[1].message, "Wrapping the call.");
+  EXPECT_EQ(results[1].timestamp, 1777795170);
+}
+
+TEST_F(AIAssistantChatsTest, test_kimi_session_id) {
+  EXPECT_EQ(kimiSessionId("/home/user/.kimi-code/sessions/2026-05-03/7c1/"
+                          "agents/main/wire.jsonl"),
+            "7c1");
+  // A subagent's journal belongs to the same session as the main one.
+  EXPECT_EQ(kimiSessionId("/home/user/.kimi-code/sessions/2026-05-03/7c1/"
+                          "agents/explore/wire.jsonl"),
+            "7c1");
+  // Anything not laid out that way names no session.
+  EXPECT_EQ(kimiSessionId("/home/user/.kimi-code/sessions/7c1/wire.jsonl"), "");
+  EXPECT_EQ(kimiSessionId("/home/user/a.jsonl"), "");
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_logs) {
+  const std::string logs =
+      R"([{"sessionId":"a","messageId":0,"timestamp":"2026-05-03T07:59:23Z","type":"user","message":"how do I list processes"},)"
+      R"({"sessionId":"a","messageId":1,"type":"user","message":"/help"},)"
+      R"({"sessionId":"a","messageId":2,"type":"user","message":""},)"
+      R"({"sessionId":"a","messageId":3,"type":"info","message":"a notice"},)"
+      R"({"sessionId":"b","messageId":0,"type":"user","message":"and now?"}])";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiLogs(logs, "/home/user/.gemini/tmp/9b2f/logs.json", results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kGeminiApplication);
+  // The entry names the session it belongs to, which is what makes it
+  // the same prompt the journal recorded rather than a second one.
+  EXPECT_EQ(results[0].session_id, "a");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "how do I list processes");
+  EXPECT_EQ(results[0].timestamp, 1777795163);
+
+  EXPECT_EQ(results[1].session_id, "b");
+  EXPECT_EQ(results[1].message, "and now?");
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_logs_without_session) {
+  // An entry that names no session falls back to the project directory.
+  const std::string logs = R"([{"type":"user","message":"hello"}])";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiLogs(logs, "/home/user/.gemini/tmp/9b2f/logs.json", results);
+
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].session_id, "9b2f");
+  EXPECT_EQ(results[0].timestamp, 0);
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_checkpoint_file) {
+  const std::string checkpoint =
+      R"({"history":[)"
+      R"({"role":"user","parts":[{"text":"summarize the diff"}]},)"
+      R"({"role":"model","parts":[{"text":"It "},{"text":"renames the flag."}]},)"
+      R"({"role":"model","parts":[{"functionCall":{"name":"read_file","args":{}}}]},)"
+      R"({"role":"user","parts":[{"functionResponse":{"name":"read_file"}}]}]})";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiCheckpoint(
+      checkpoint,
+      "/home/user/.gemini/tmp/9b2f/checkpoint-review.json",
+      results);
+
+  ASSERT_EQ(results.size(), 2U);
+
+  EXPECT_EQ(results[0].application, kGeminiApplication);
+  EXPECT_EQ(results[0].session_id, "9b2f/checkpoint-review");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "summarize the diff");
+
+  EXPECT_EQ(results[1].role, "assistant");
+  EXPECT_EQ(results[1].message, "It renames the flag.");
+  // A checkpoint records the conversation, not when it happened.
+  EXPECT_EQ(results[1].timestamp, 0);
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_checkpoint_file_legacy) {
+  // Older releases saved the bare array of turns.
+  const std::string checkpoint =
+      R"([{"role":"user","parts":[{"text":"and this one"}]}])";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiCheckpoint(
+      checkpoint, "/home/user/.gemini/tmp/9b2f/checkpoint-old.json", results);
+
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].session_id, "9b2f/checkpoint-old");
+  EXPECT_EQ(results[0].role, "user");
+  EXPECT_EQ(results[0].message, "and this one");
+}
+
+TEST_F(AIAssistantChatsTest, test_gemini_file_malformed) {
+  std::vector<AIAssistantChat> results;
+
+  parseGeminiLogs("not json", "/home/user/logs.json", results);
+  parseGeminiLogs(R"({"type":"user"})", "/home/user/logs.json", results);
+  parseGeminiCheckpoint("not json", "/home/user/checkpoint-a.json", results);
+  parseGeminiCheckpoint(R"({"history":"none"})",
+                        "/home/user/checkpoint-a.json",
+                        results);
+  parseGeminiCheckpoint("42", "/home/user/checkpoint-a.json", results);
 
   EXPECT_TRUE(results.empty());
 }

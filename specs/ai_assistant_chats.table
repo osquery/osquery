@@ -1,7 +1,7 @@
 table_name("ai_assistant_chats")
-description("Chat messages stored on disk by AI assistant applications: the Claude Code CLI, Claude Desktop agent sessions, Codex, the Gemini CLI, Cursor, VS Code Copilot Chat and Antigravity.")
+description("Chat messages stored on disk by AI assistant applications: the Claude Code CLI, Claude Desktop agent sessions, Codex, the Gemini CLI, Cursor, VS Code Copilot Chat, Antigravity, Windsurf, the GitHub Copilot CLI, Pi and Kimi Code.")
 schema([
-    Column("application", TEXT, "Application the message was stored by (claude_code, claude_desktop, codex, gemini_cli, cursor, copilot, antigravity)", additional=True, optimized=True),
+    Column("application", TEXT, "Application the message was stored by (claude_code, claude_desktop, codex, gemini_cli, cursor, copilot, copilot_cli, antigravity, windsurf, pi, kimi_code)", additional=True, optimized=True),
     Column("session_id", TEXT, "Identifier of the conversation the message belongs to"),
     Column("role", TEXT, "Author of the message (user, assistant)"),
     Column("message", TEXT, "Text of the message"),

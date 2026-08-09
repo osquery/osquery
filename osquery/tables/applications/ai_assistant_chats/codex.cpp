@@ -143,9 +143,16 @@ void parseCodexRollout(const std::string& content,
 void collectCodexChats(const fs::path& home,
                        std::vector<AIAssistantChat>& results) {
   std::vector<std::string> rollouts;
-  resolveFilePattern(home / ".codex" / "sessions" / "%" / "%" / "%" / "%.jsonl",
-                     rollouts,
-                     GLOB_FILES);
+
+  // Codex files a rollout under the date it was started, and moves the
+  // ones it has retired into an archive of the same shape. A session the
+  // user has since cleared out of the CLI is still on disk there.
+  for (const auto* directory : {"sessions", "archived_sessions"}) {
+    resolveFilePattern(
+        home / ".codex" / directory / "%" / "%" / "%" / "%.jsonl",
+        rollouts,
+        GLOB_FILES);
+  }
 
   for (const auto& path : rollouts) {
     // The session id arrives in the rollout's opening entry; until then

@@ -33,8 +33,15 @@ void parseCursorBubble(const std::string& key,
                        const std::string& path,
                        std::vector<AIAssistantChat>& results);
 
-/// Reads the chat history Cursor keeps in its state databases.
-void collectCursorChats(const boost::filesystem::path& app_data_root,
+/**
+ * @brief Reads the chat history Cursor keeps on disk.
+ *
+ * Cursor writes two stores that do not overlap: the editor keeps its
+ * conversations in a state database, and the agent writes a JSON Lines
+ * transcript per session under the home directory.
+ */
+void collectCursorChats(const boost::filesystem::path& home,
+                        const boost::filesystem::path& app_data_root,
                         std::vector<AIAssistantChat>& results);
 
 } // namespace tables
