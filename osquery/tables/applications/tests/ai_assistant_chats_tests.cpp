@@ -973,6 +973,23 @@ TEST_F(AIAssistantChatsTest, test_gemini_checkpoint_file_legacy) {
   EXPECT_EQ(results[0].message, "and this one");
 }
 
+TEST_F(AIAssistantChatsTest, test_gemini_checkpoint_file_beside_sessions) {
+  // A checkpoint saved beside the sessions is one directory further
+  // down, and that directory is named the same in every project, so it
+  // is the one above that names the project.
+  const std::string checkpoint =
+      R"({"history":[{"role":"user","parts":[{"text":"summarize the diff"}]}]})";
+
+  std::vector<AIAssistantChat> results;
+  parseGeminiCheckpoint(
+      checkpoint,
+      "/home/user/.gemini/tmp/9b2f/chats/checkpoint-review.json",
+      results);
+
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0].session_id, "9b2f/checkpoint-review");
+}
+
 TEST_F(AIAssistantChatsTest, test_gemini_file_malformed) {
   std::vector<AIAssistantChat> results;
 
