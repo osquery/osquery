@@ -7,7 +7,17 @@
 
 function(generateOsqueryTablesApplicationsTestsApplicationsTablesTestsTest)
   add_osquery_executable(osquery_tables_applications_tests_applicationstablestests-test
-    ai_assistant_chats_tests.cpp
+    ai_assistant_chats/antigravity_tests.cpp
+    ai_assistant_chats/claude_tests.cpp
+    ai_assistant_chats/codex_tests.cpp
+    ai_assistant_chats/copilot_cli_tests.cpp
+    ai_assistant_chats/cursor_tests.cpp
+    ai_assistant_chats/gemini_tests.cpp
+    ai_assistant_chats/kimi_tests.cpp
+    ai_assistant_chats/pi_tests.cpp
+    ai_assistant_chats/transcript_tests.cpp
+    ai_assistant_chats/utils_tests.cpp
+    ai_assistant_chats/vscode_tests.cpp
     jetbrains_plugins_tests.cpp
   )
 
