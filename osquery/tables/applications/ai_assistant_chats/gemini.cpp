@@ -32,6 +32,11 @@ const std::string kGeminiModelType{"gemini"};
 
 /// A saved conversation names the model's turns the way the API does.
 const std::string kGeminiCheckpointModelRole{"model"};
+
+/// The directory a project's sessions, and checkpoints saved beside
+/// them, are kept in.
+const std::string kGeminiChatsDirectory{"chats"};
+
 /**
  * @brief Extracts readable text from a Gemini content value.
  *
@@ -320,10 +325,17 @@ void parseGeminiCheckpoint(const std::string& content,
 
   // A checkpoint is named by the tag the user saved it under, and the
   // default tag is the same one in every project. The directory it was
-  // saved in is what tells two of them apart.
+  // saved in is what tells two of them apart, except that a checkpoint
+  // saved beside the sessions is one level further down, where every
+  // project's is in a directory of the same name.
   auto file = fs::path(path);
   auto session_id = file.stem().string();
-  auto project = file.parent_path().filename().string();
+  auto parent = file.parent_path();
+  if (parent.filename().string() == kGeminiChatsDirectory) {
+    parent = parent.parent_path();
+  }
+
+  auto project = parent.filename().string();
   if (!project.empty()) {
     session_id = project + "/" + session_id;
   }
@@ -406,7 +418,7 @@ static void genGeminiFile(const std::string& path,
 void collectGeminiChats(const fs::path& home,
                         std::vector<AIAssistantChat>& results) {
   auto project = home / ".gemini" / "tmp" / "%";
-  auto chats = project / "chats";
+  auto chats = project / kGeminiChatsDirectory;
 
   std::vector<std::string> sessions;
   resolveFilePattern(chats / "%.jsonl", sessions, GLOB_FILES);
