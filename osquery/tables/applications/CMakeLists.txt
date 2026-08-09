@@ -24,10 +24,15 @@ function(generateOsqueryTablesApplications)
     ai_assistant_chats/antigravity.cpp
     ai_assistant_chats/claude.cpp
     ai_assistant_chats/codex.cpp
+    ai_assistant_chats/copilot_cli.cpp
     ai_assistant_chats/cursor.cpp
     ai_assistant_chats/gemini.cpp
+    ai_assistant_chats/kimi.cpp
+    ai_assistant_chats/pi.cpp
+    ai_assistant_chats/transcript.cpp
     ai_assistant_chats/utils.cpp
     ai_assistant_chats/vscode.cpp
+    ai_assistant_chats/windsurf.cpp
     browser_firefox.cpp
     jetbrains_plugins.cpp
     vscode_extensions.cpp
@@ -86,10 +91,15 @@ function(generateOsqueryTablesApplications)
     ai_assistant_chats/antigravity.h
     ai_assistant_chats/claude.h
     ai_assistant_chats/codex.h
+    ai_assistant_chats/copilot_cli.h
     ai_assistant_chats/cursor.h
     ai_assistant_chats/gemini.h
+    ai_assistant_chats/kimi.h
+    ai_assistant_chats/pi.h
+    ai_assistant_chats/transcript.h
     ai_assistant_chats/utils.h
     ai_assistant_chats/vscode.h
+    ai_assistant_chats/windsurf.h
     chrome/utils.h
     jetbrains_plugins.h
   )

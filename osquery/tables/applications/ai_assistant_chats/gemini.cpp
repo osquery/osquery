@@ -29,6 +29,9 @@ namespace {
 /// Record types of a Gemini CLI session that this table reads.
 const std::string kGeminiUserType{"user"};
 const std::string kGeminiModelType{"gemini"};
+
+/// A saved conversation names the model's turns the way the API does.
+const std::string kGeminiCheckpointModelRole{"model"};
 /**
  * @brief Extracts readable text from a Gemini content value.
  *
@@ -244,6 +247,156 @@ void finishGeminiSession(GeminiSession& session,
   session.messages.clear();
 }
 
+void parseGeminiLogs(const std::string& content,
+                     const std::string& path,
+                     std::vector<AIAssistantChat>& results) {
+  auto doc = JSON::newArray();
+  if (!doc.fromString(content) || !doc.doc().IsArray()) {
+    VLOG(1) << "Skipping unparsable Gemini log " << path;
+    return;
+  }
+
+  // The log sits in the directory the CLI keeps a project's state under
+  // and holds every prompt typed against that project, across all of the
+  // sessions run there. Each entry names the session it belongs to; the
+  // directory only has to answer for one that does not.
+  auto project = fs::path(path).parent_path().filename().string();
+
+  for (const auto& entry : doc.doc().GetArray()) {
+    if (!entry.IsObject() || stringMember(entry, "type") != kGeminiUserType) {
+      // A log holds prompts and nothing else, so a record typed as
+      // anything else is not one this table can place.
+      continue;
+    }
+
+    auto message = stringMember(entry, "message");
+    if (message.empty() || !isGeminiPrompt(message)) {
+      continue;
+    }
+
+    AIAssistantChat chat;
+    chat.application = kGeminiApplication;
+    chat.role = kUserRole;
+    chat.message = std::move(message);
+    chat.timestamp = timestampMember(entry, "timestamp");
+    chat.path = path;
+
+    // Naming the session the entry came from is what lets a prompt the
+    // journal recorded too be recognised as the same one, rather than
+    // read as a second prompt nobody typed.
+    chat.session_id = stringMember(entry, "sessionId");
+    if (chat.session_id.empty()) {
+      chat.session_id = project;
+    }
+
+    results.push_back(std::move(chat));
+  }
+}
+
+void parseGeminiCheckpoint(const std::string& content,
+                           const std::string& path,
+                           std::vector<AIAssistantChat>& results) {
+  auto doc = JSON::newArray();
+  if (!doc.fromString(content)) {
+    VLOG(1) << "Skipping unparsable Gemini checkpoint " << path;
+    return;
+  }
+
+  // Current releases wrap the turns in an object; older ones saved the
+  // bare array.
+  const rapidjson::Value* history = nullptr;
+  if (doc.doc().IsArray()) {
+    history = &doc.doc();
+  } else if (doc.doc().IsObject()) {
+    auto saved = doc.doc().FindMember("history");
+    if (saved != doc.doc().MemberEnd() && saved->value.IsArray()) {
+      history = &saved->value;
+    }
+  }
+
+  if (history == nullptr) {
+    return;
+  }
+
+  // A checkpoint is named by the tag the user saved it under, and the
+  // default tag is the same one in every project. The directory it was
+  // saved in is what tells two of them apart.
+  auto file = fs::path(path);
+  auto session_id = file.stem().string();
+  auto project = file.parent_path().filename().string();
+  if (!project.empty()) {
+    session_id = project + "/" + session_id;
+  }
+
+  for (const auto& turn : history->GetArray()) {
+    if (!turn.IsObject()) {
+      continue;
+    }
+
+    // A checkpoint is the conversation as the model was given it, so a
+    // turn names its role the way the API does rather than the way the
+    // CLI types its own records: the model's turns are "model" here and
+    // "gemini" in a session.
+    std::string role;
+    auto named = stringMember(turn, "role");
+    if (named == kGeminiUserType) {
+      role = kUserRole;
+    } else if (named == kGeminiCheckpointModelRole) {
+      role = kAssistantRole;
+    } else {
+      continue;
+    }
+
+    auto parts = turn.FindMember("parts");
+    if (parts == turn.MemberEnd()) {
+      continue;
+    }
+
+    auto message = geminiContentText(parts->value);
+    if (message.empty() || (role == kUserRole && !isGeminiPrompt(message))) {
+      // A turn that only called a tool carries no text of anyone's.
+      continue;
+    }
+
+    AIAssistantChat chat;
+    chat.application = kGeminiApplication;
+    chat.session_id = session_id;
+    chat.role = std::move(role);
+    chat.message = std::move(message);
+    chat.path = path;
+
+    // A checkpoint records the conversation, not when it happened.
+    chat.timestamp = 0;
+
+    results.push_back(std::move(chat));
+  }
+}
+
+/**
+ * @brief Reads a whole file and hands it to a parser.
+ *
+ * @param path File to read.
+ * @param kind Named for the log when the file cannot be read.
+ * @param parse Parser to hand the content to.
+ * @param results Collection the parser appends to.
+ */
+static void genGeminiFile(const std::string& path,
+                          const char* kind,
+                          void (*parse)(const std::string&,
+                                        const std::string&,
+                                        std::vector<AIAssistantChat>&),
+                          std::vector<AIAssistantChat>& results) {
+  std::string content;
+  auto status = readFile(path, content);
+  if (!status.ok()) {
+    VLOG(1) << "Could not read Gemini " << kind << " " << path << ": "
+            << status.getMessage();
+    return;
+  }
+
+  parse(content, path, results);
+}
+
 /**
  * Discovers and parses Gemini CLI session files for project and subagent chats.
  *
@@ -252,11 +405,29 @@ void finishGeminiSession(GeminiSession& session,
  */
 void collectGeminiChats(const fs::path& home,
                         std::vector<AIAssistantChat>& results) {
-  auto chats = home / ".gemini" / "tmp" / "%" / "chats";
+  auto project = home / ".gemini" / "tmp" / "%";
+  auto chats = project / "chats";
 
   std::vector<std::string> sessions;
   resolveFilePattern(chats / "%.jsonl", sessions, GLOB_FILES);
   resolveFilePattern(chats / "%" / "%.jsonl", sessions, GLOB_FILES);
+
+  // Before the CLI journalled its sessions it kept a flat log of the
+  // prompts typed against a project, and it still writes one alongside.
+  std::vector<std::string> logs;
+  resolveFilePattern(project / "logs.json", logs, GLOB_FILES);
+  for (const auto& path : logs) {
+    genGeminiFile(path, "log", parseGeminiLogs, results);
+  }
+
+  // A conversation the user saved by hand is written whole rather than
+  // journalled, and outlives the session it was saved from.
+  std::vector<std::string> checkpoints;
+  resolveFilePattern(project / "checkpoint-%.json", checkpoints, GLOB_FILES);
+  resolveFilePattern(chats / "checkpoint-%.json", checkpoints, GLOB_FILES);
+  for (const auto& path : checkpoints) {
+    genGeminiFile(path, "checkpoint", parseGeminiCheckpoint, results);
+  }
 
   for (const auto& path : sessions) {
     // The session names itself in its opening record; until that is read

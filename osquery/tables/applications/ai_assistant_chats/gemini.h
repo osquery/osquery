@@ -68,6 +68,28 @@ void parseGeminiSession(const std::string& content,
                         const std::string& path,
                         std::vector<AIAssistantChat>& results);
 
+/**
+ * @brief Parse the prompt log the Gemini CLI keeps beside its sessions.
+ *
+ * A logs.json is one JSON array of entries, each recording a prompt the
+ * user typed. It holds no replies and no session of its own, so the
+ * project directory it sits in names the messages instead.
+ */
+void parseGeminiLogs(const std::string& content,
+                     const std::string& path,
+                     std::vector<AIAssistantChat>& results);
+
+/**
+ * @brief Parse a conversation saved by the Gemini CLI's /chat save.
+ *
+ * A checkpoint is the conversation itself rather than a journal of it:
+ * either an object holding its history or, from older releases, the bare
+ * array of turns.
+ */
+void parseGeminiCheckpoint(const std::string& content,
+                           const std::string& path,
+                           std::vector<AIAssistantChat>& results);
+
 /// Reads the sessions the Gemini CLI records.
 void collectGeminiChats(const boost::filesystem::path& home,
                         std::vector<AIAssistantChat>& results);
