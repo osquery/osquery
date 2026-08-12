@@ -188,10 +188,9 @@ TEST_F(GeminiChatsTest, test_gemini_checkpoint_file) {
       R"({"role":"user","parts":[{"functionResponse":{"name":"read_file"}}]}]})";
 
   std::vector<AIAssistantChat> results;
-  parseGeminiCheckpoint(
-      checkpoint,
-      "/home/user/.gemini/tmp/9b2f/checkpoint-review.json",
-      results);
+  parseGeminiCheckpoint(checkpoint,
+                        "/home/user/.gemini/tmp/9b2f/checkpoint-review.json",
+                        results);
 
   ASSERT_EQ(results.size(), 2U);
 
@@ -244,9 +243,8 @@ TEST_F(GeminiChatsTest, test_gemini_file_malformed) {
   parseGeminiLogs("not json", "/home/user/logs.json", results);
   parseGeminiLogs(R"({"type":"user"})", "/home/user/logs.json", results);
   parseGeminiCheckpoint("not json", "/home/user/checkpoint-a.json", results);
-  parseGeminiCheckpoint(R"({"history":"none"})",
-                        "/home/user/checkpoint-a.json",
-                        results);
+  parseGeminiCheckpoint(
+      R"({"history":"none"})", "/home/user/checkpoint-a.json", results);
   parseGeminiCheckpoint("42", "/home/user/checkpoint-a.json", results);
 
   EXPECT_TRUE(results.empty());

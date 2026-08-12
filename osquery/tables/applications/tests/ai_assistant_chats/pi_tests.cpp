@@ -31,8 +31,7 @@ TEST_F(PiChatsTest, test_pi_session) {
       "\n";
 
   std::vector<AIAssistantChat> results;
-  parsePiSession(
-      session, "/home/user/.pi/agent/sessions/01H8.jsonl", results);
+  parsePiSession(session, "/home/user/.pi/agent/sessions/01H8.jsonl", results);
 
   ASSERT_EQ(results.size(), 2U);
 

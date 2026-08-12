@@ -89,19 +89,21 @@ TEST_F(TranscriptChatsTest, test_agent_transcript_shapes) {
 TEST_F(TranscriptChatsTest, test_agent_transcript_skipped) {
   std::vector<AIAssistantChat> results;
 
-  for (const auto* record : {
-           // The tool bookkeeping that shares the file.
-           R"({"role":"tool","message":{"content":[{"type":"text","text":"ok"}]}})",
-           R"({"type":"tool_result","content":"ok"})",
-           R"({"type":"turn_ended"})",
-           // A turn that said nothing.
-           R"({"role":"assistant","message":{"content":[]}})",
-           R"({"role":"user","content":""})",
-           // Not a record at all.
-           "{not json",
-           "[]",
-           "",
-       }) {
+  const std::vector<std::string> records = {
+      // The tool bookkeeping that shares the file.
+      R"({"role":"tool","message":{"content":[{"type":"text","text":"ok"}]}})",
+      R"({"type":"tool_result","content":"ok"})",
+      R"({"type":"turn_ended"})",
+      // A turn that said nothing.
+      R"({"role":"assistant","message":{"content":[]}})",
+      R"({"role":"user","content":""})",
+      // Not a record at all.
+      "{not json",
+      "[]",
+      "",
+  };
+
+  for (const auto& record : records) {
     parseTranscriptLine(
         record, "/home/user/a.jsonl", kCursorApplication, "s", results);
   }

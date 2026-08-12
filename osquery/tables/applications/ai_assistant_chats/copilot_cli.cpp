@@ -171,10 +171,9 @@ void parseCopilotCliEvents(const std::string& content,
 void collectCopilotCliChats(const fs::path& home,
                             std::vector<AIAssistantChat>& results) {
   std::vector<std::string> logs;
-  resolveFilePattern(
-      home / ".copilot" / "session-state" / "%" / "events.jsonl",
-      logs,
-      GLOB_FILES);
+  resolveFilePattern(home / ".copilot" / "session-state" / "%" / "events.jsonl",
+                     logs,
+                     GLOB_FILES);
 
   for (const auto& path : logs) {
     // The events rarely name their session, but the directory holding the

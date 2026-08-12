@@ -33,7 +33,8 @@ class aiAssistantChats : public testing::Test {
   }
 
   /**
-   * @brief Stops dispatcher services and deinitializes user and group services after the test suite.
+   * @brief Stops dispatcher services and deinitializes user and group services
+   * after the test suite.
    */
   static void TearDownTestSuite() {
     Dispatcher::stopServices();
@@ -45,7 +46,8 @@ class aiAssistantChats : public testing::Test {
 };
 
 /**
- * @brief Validates the schema values and contents of rows in the AI assistant chats table.
+ * @brief Validates the schema values and contents of rows in the AI assistant
+ * chats table.
  */
 TEST_F(aiAssistantChats, test_sanity) {
   auto const data = execute_query("select * from ai_assistant_chats");

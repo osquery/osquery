@@ -129,7 +129,8 @@ const std::vector<ChatSourceEntry>& chatSources() {
  *
  * @param source Chat source and its supported applications.
  * @param applications Applications requested by the query.
- * @return true if no applications were requested or the source supports a requested application, false otherwise.
+ * @return true if no applications were requested or the source supports a
+ * requested application, false otherwise.
  */
 bool sourceIsWanted(const ChatSourceEntry& source,
                     const std::set<std::string>& applications) {
@@ -165,13 +166,16 @@ std::set<std::pair<std::string, std::string>> usersToRead(
   return users;
 }
 
-} /**
- * @brief Collects AI assistant chat history for eligible users and applications.
+} // namespace
+
+/**
+ * @brief Collects AI assistant chat history for eligible users and
+ * applications.
  *
  * @param context Query constraints used to select users and applications.
- * @return QueryData Rows containing chat messages and their associated metadata.
+ * @return QueryData Rows containing chat messages and their associated
+ * metadata.
  */
-
 QueryData genAIAssistantChats(QueryContext& context) {
   QueryData results;
 
