@@ -78,7 +78,8 @@ static inline bool isPacmanDescKey(const std::string& line) {
  * libalpm records '0' for a package the user asked for and '1' for one pulled
  * in to satisfy a dependency. The field is omitted for explicitly installed
  * packages in practice, and libalpm treats a missing value as explicit, so
- * that is the default applied by the caller.
+ * that is the default applied by the caller. Any other value is reported as an
+ * empty string rather than guessed at, which the column documents.
  */
 static std::string pacmanInstallReason(const std::string& reason) {
   if (reason == "0") {
