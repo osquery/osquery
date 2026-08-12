@@ -119,7 +119,10 @@ QueryData genSystemInfo(QueryContext& context) {
             tryTo<unsigned long int>(key.at("data").substr(8, 2), 16);
         r["cpu_microcode"] = std::to_string(revision_exp.takeOr(0ul));
       }
-      break;
+    } else if (key.at("name") == "ProcessorNameString" &&
+               r.find("cpu_brand") == r.end()) {
+        r["cpu_brand"] = key.at("data");
+        boost::trim(r["cpu_brand"]);
     }
   }
 
