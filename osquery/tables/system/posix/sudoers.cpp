@@ -35,6 +35,25 @@ const std::string kSudoWhitespaceChars = "\t\v ";
 // sudoers(5): No more than 128 files are allowed to be nested.
 static const unsigned int kMaxNest = 128;
 
+// sudoers(5): an unquoted user or group name escapes spaces and other special
+// characters with a backslash, so the first whitespace character on a line is
+// not necessarily the end of the header.
+static std::string::size_type findHeaderEnd(const std::string& line) {
+  for (std::string::size_type i = 0; i < line.size(); ++i) {
+    if (line[i] == '\\') {
+      // Skip whatever the backslash escapes, including another backslash.
+      ++i;
+      continue;
+    }
+
+    if (kSudoWhitespaceChars.find(line[i]) != std::string::npos) {
+      return i;
+    }
+  }
+
+  return std::string::npos;
+}
+
 void genSudoersFile(const std::string& filename,
                     unsigned int level,
                     QueryData& results) {
@@ -78,7 +97,7 @@ void genSudoersFile(const std::string& filename,
     }
 
     // Find the rule header
-    auto header_len = line.find_first_of(kSudoWhitespaceChars);
+    auto header_len = findHeaderEnd(line);
     auto header = line.substr(0, header_len);
     boost::trim_if(header, boost::is_any_of(kSudoWhitespaceChars));
 
