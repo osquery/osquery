@@ -1,0 +1,21 @@
+table_name("chrome_search_engines")
+description("The configured default search engine for Chrome-based browser profiles.")
+schema([
+    Column("browser_type", TEXT, "The browser type (Valid values: chrome, chrome_beta, chrome_dev, chrome_canary, chromium, opera, yandex, brave, brave_beta, brave_nightly, edge, edge_beta, edge_dev, edge_canary, vivaldi, arc, dia, comet)"),
+    Column("uid", BIGINT, "The local user that owns the profile", index=True, optimized=True),
+    Column("profile", TEXT, "The name of the Chrome profile"),
+    Column("profile_path", TEXT, "The profile path"),
+    Column("name", TEXT, "The display name of the default search engine"),
+    Column("keyword", TEXT, "The keyword used to trigger this search engine from the address bar"),
+    Column("url", TEXT, "The URL template used by this search engine"),
+    ForeignKey(column="uid", table="users"),
+])
+attributes(user_data=True)
+implementation("applications/browser_chrome@genChromeSearchEngines")
+examples([
+    "select * from users join chrome_search_engines using (uid)",
+])
+fuzz_paths([
+    "/Library/Application Support/Google/Chrome/",
+    "/Users",
+])
