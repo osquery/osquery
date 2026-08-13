@@ -15,6 +15,9 @@ function(opensslMain)
     no-shared
     no-weak-ssl-ciphers
     no-comp
+    no-tests
+    no-apps
+    no-docs
     enable-cms
   )
 
