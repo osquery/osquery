@@ -45,6 +45,7 @@ const std::vector<SkillRoot> kUserSkillRoots = {
     // loadable skill content.
     {".cursor/skills-cursor", "cursor"},
     {".copilot/skills", "copilot"},
+    {".codex/skills", "codex"},
     {".agents/skills", "agents"},
 };
 
