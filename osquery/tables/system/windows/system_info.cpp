@@ -121,8 +121,8 @@ QueryData genSystemInfo(QueryContext& context) {
       }
     } else if (key.at("name") == "ProcessorNameString" &&
                r.find("cpu_brand") == r.end()) {
-        r["cpu_brand"] = key.at("data");
-        boost::trim(r["cpu_brand"]);
+      r["cpu_brand"] = key.at("data");
+      boost::trim(r["cpu_brand"]);
     }
   }
 
