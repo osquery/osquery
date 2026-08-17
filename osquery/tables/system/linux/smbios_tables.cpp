@@ -260,7 +260,7 @@ QueryData genPlatformInfo(QueryContext& context) {
                             uint8_t* address,
                             uint8_t* textAddrs,
                             size_t size) {
-    const size_t maxOffset = 0x15;
+    const size_t maxOffset = 0x15 + 1;
     if (hdr->type != kSMBIOSTypeBIOS || size < maxOffset) {
       return;
     }
