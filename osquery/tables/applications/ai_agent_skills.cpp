@@ -10,6 +10,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -19,6 +20,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/trim.h>
 
 namespace fs = boost::filesystem;
 
@@ -104,23 +106,14 @@ struct ParsedSkill {
   std::string version;
 };
 
-std::string trim(const std::string& value) {
-  auto start = value.find_first_not_of(" \t\r\n");
-  if (start == std::string::npos) {
-    return "";
-  }
-  auto end = value.find_last_not_of(" \t\r\n");
-  return value.substr(start, end - start + 1);
-}
-
-std::string stripQuotes(const std::string& value) {
+std::string stripQuotes(std::string_view value) {
   auto trimmed = trim(value);
   if (trimmed.size() >= 2 &&
       ((trimmed.front() == '"' && trimmed.back() == '"') ||
        (trimmed.front() == '\'' && trimmed.back() == '\''))) {
     trimmed = trimmed.substr(1, trimmed.size() - 2);
   }
-  return trimmed;
+  return std::string(trimmed);
 }
 
 // Consumes a YAML block scalar (`>`/`>-`/`>+` folded, `|`/`|-`/`|+`
@@ -156,7 +149,7 @@ std::string consumeBlockScalar(const std::vector<std::string>& lines,
     value += trim(line);
   }
   next_index = i;
-  return trim(value);
+  return std::string(trim(value));
 }
 
 // A minimal frontmatter reader, not a general YAML parser: osquery does not
@@ -249,8 +242,8 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
       continue;
     }
 
-    std::string key = trim(line.substr(0, colon));
-    std::string raw_value = trim(line.substr(colon + 1));
+    std::string_view key = trim(std::string_view(line).substr(0, colon));
+    std::string_view raw_value = trim(std::string_view(line).substr(colon + 1));
 
     std::string value;
     if (!raw_value.empty() && (raw_value[0] == '>' || raw_value[0] == '|') &&
