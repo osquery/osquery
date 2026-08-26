@@ -201,19 +201,14 @@ rm strip; ln -s llvm-strip strip
 
 ## macOS
 
-The system used to compile is currently macOS Big Sur 11.x, XCode 13.x, SDK 11.3.
+The system used to compile is currently macOS 26, Xcode 26.x, SDK 26.5.
 
 Both x86_64 and ARM architectures of the executable are built on an x86_64 machine, using the toolchain's ability to cross-compile.
 
-### macos x86_64
-
-The deployment target is 10.14.
-
-### macOS ARM (M1, M2, etc.)
-
-The deployment target is 10.15.
+The deployment target is 13.3.
 
 ## Windows
 
-The system compiler is used on Windows 10, Visual Studio 2019.  
-The SDK used currently is not fixed (depends on what's available on the CI or the developer machine), but in general the target we attempt to have is Windows 7.
+The system compiler is used on Windows 11, Visual Studio 2026.
+
+The SDK used currently is not fixed (depends on what's available on the CI or the developer machine), but in general the target we attempt to have is Windows 10.

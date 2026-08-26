@@ -181,7 +181,7 @@ TEST_F(UsnJournalReaderTests, test_get_event_string) {
   uint8_t scratch[4096] = {};
 
   USN_RECORD_V2* usn_v2 = (USN_RECORD_V2*)scratch;
-  wchar_t* event_string_v2 = L"foo foo foo";
+  const wchar_t* event_string_v2 = L"foo foo foo";
 
   usn_v2->MajorVersion = 2U;
   usn_v2->FileNameOffset = sizeof(USN_RECORD_V2);
@@ -195,7 +195,7 @@ TEST_F(UsnJournalReaderTests, test_get_event_string) {
 
   memset(scratch, 0, sizeof(scratch));
   USN_RECORD_V3* usn_v3 = (USN_RECORD_V3*)scratch;
-  wchar_t* event_string_v3 = L"bar bar bar";
+  const wchar_t* event_string_v3 = L"bar bar bar";
 
   usn_v3->MajorVersion = 3U;
   usn_v3->FileNameOffset = sizeof(USN_RECORD_V3);

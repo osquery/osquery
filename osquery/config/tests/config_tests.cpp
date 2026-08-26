@@ -76,7 +76,7 @@ class ConfigTests : public testing::Test {
   }
 
   void TearDown() {
-    fs::remove_all(fake_directory_);
+    deleteMockFileStructure(fake_directory_);
     FLAGS_config_refresh = refresh_;
   }
 

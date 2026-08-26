@@ -38,7 +38,7 @@ class FileOpsTests : public testing::Test {
   }
 
   void TearDown() override {
-    fs::remove_all(fake_directory_);
+    deleteMockFileStructure(fake_directory_);
   }
 
   bool globResultsMatch(const std::vector<std::string>& results,
@@ -81,6 +81,7 @@ class TempFile {
 
   ~TempFile() {
     if (fs::exists(path_)) {
+      platformChmod(path_.c_str(), S_IRWXU);
       fs::remove(path_);
     }
   }

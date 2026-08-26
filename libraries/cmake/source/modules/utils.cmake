@@ -51,6 +51,28 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     WORKING_DIRECTORY "${working_directory}"
   )
 
+  # Git shallow submodule updates can fail intermittently when cached module metadata
+  # is stale or inconsistent; retry once without depth to recover.
+  if(NOT ${process_exit_code} EQUAL 0 AND NOT "${optional_depth_arg}" STREQUAL "")
+    message(WARNING "Shallow submodule update failed for \"${submodule_path}\". Retrying without depth.")
+
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" submodule deinit --force "${submodule_path}"
+      WORKING_DIRECTORY "${working_directory}"
+    )
+
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E rm -rf "${submodule_path}"
+      WORKING_DIRECTORY "${working_directory}"
+    )
+
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init --force ${optional_recursive_arg} "${submodule_path}"
+      RESULT_VARIABLE process_exit_code
+      WORKING_DIRECTORY "${working_directory}"
+    )
+  endif()
+
   if(NOT ${process_exit_code} EQUAL 0)
     message(FATAL_ERROR "Failed to update the following git submodule: \"${submodule_path}\"")
   endif()

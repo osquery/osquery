@@ -7,9 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <gtest/gtest.h>
-
 #include <filesystem>
+#include <fstream>
+
+#include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 

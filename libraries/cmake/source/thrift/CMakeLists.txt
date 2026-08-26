@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(thriftMain)
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cpp")
+  set(library_root "${OSQUERY_thrift_ROOT_DIR}/lib/cpp")
 
   if(PLATFORM_WINDOWS)
     set(thrift_config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/windows/${TARGET_PROCESSOR}")
@@ -83,18 +83,6 @@ function(thriftMain)
     "${library_root}/src/thrift/transport/TWebSocketServer.h"
   )
 
-  if(PLATFORM_POSIX)
-    set(tsocket_pool_compile_options "-include;random_shuffle.h")
-
-  elseif(PLATFORM_WINDOWS)
-    set(tsocket_pool_compile_options "/FIrandom_shuffle.h")
-  endif()
-
-  set_source_files_properties("${library_root}/src/thrift/transport/TSocketPool.cpp" PROPERTIES
-    COMPILE_OPTIONS
-      "${tsocket_pool_compile_options}"
-  )
-
   if(PLATFORM_WINDOWS)
     target_sources(thirdparty_thrift_thrift PRIVATE
       "${library_root}/src/thrift/windows/GetTimeOfDay.cpp"
@@ -131,6 +119,13 @@ function(thriftMain)
       thirdparty_boost
       thirdparty_openssl
   )
+
+  if(PLATFORM_WINDOWS)
+    set_target_properties(thirdparty_thrift_thrift PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+    )
+  endif()
 
   if(PLATFORM_POSIX)
     find_package(Threads REQUIRED)

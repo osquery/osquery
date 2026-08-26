@@ -7,26 +7,31 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/utils/system/system.h>
+#include <fstream>
+
+// Include windows.h before other headers like wincrypt.h.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 
 #include <Wintrust.h>
 #include <wincrypt.h>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
-
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
-
-#include <osquery/filesystem/fileops.h>
 #include <osquery/tables/system/windows/certificates.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/system/system.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 namespace fs = boost::filesystem;

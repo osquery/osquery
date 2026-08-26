@@ -35,24 +35,61 @@ const std::string kProxyDefaultPort{"3128"};
 
 const long kSSLShortReadError{0x140000dbL};
 
-void Client::callNetworkOperation(std::function<void()> callback) {
+std::uint64_t Client::beginNetworkOperation() {
+  return ++operation_generation_;
+}
+
+bool Client::isCurrentOperation(std::uint64_t generation) const {
+  return generation == operation_generation_;
+}
+
+void Client::callNetworkOperation(std::function<void(std::uint64_t)> callback) {
+  const auto operation_generation = beginNetworkOperation();
+  network_operation_completed_ = false;
+
   if (client_options_.timeout_) {
-    timer_.async_wait(
-        std::bind(&Client::timeoutHandler, this, std::placeholders::_1));
+    timer_.expires_after(std::chrono::seconds(client_options_.timeout_));
+    timer_.async_wait(makeGenerationGuardedHandler(
+        operation_generation,
+        [this](boost::system::error_code const& ec) { timeoutHandler(ec); }));
   }
 
-  callback();
+  callback(operation_generation);
+
+  const auto start_time = std::chrono::steady_clock::now();
+
+  while (!network_operation_completed_) {
+    boost::asio::io_context::count_type handlers_executed =
+        ioc_.run_one_for(std::chrono::milliseconds(200));
+
+    if (handlers_executed == 0 && ioc_.stopped()) {
+      break;
+    }
+
+    if (client_options_.timeout_ > 0 &&
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - start_time)
+                .count() > client_options_.timeout_ + 1) {
+      closeSocket();
+      ec_ = boost::asio::error::make_error_code(boost::asio::error::timed_out);
+      network_operation_completed_ = true;
+      break;
+    }
+  }
 
   {
-    boost::asio::io_context::count_type handlers_executed = ioc_.run();
-    ioc_.restart();
-    if (handlers_executed == 0) {
+    auto handlers_executed = ioc_.poll();
+    (void)handlers_executed;
+    if (!network_operation_completed_ && ec_ != boost::asio::error::timed_out) {
       ec_ = boost::asio::error::operation_aborted;
     }
+    ioc_.restart();
   }
 }
 
 void Client::cancelTimerAndSetError(boost::system::error_code const& ec) {
+  network_operation_completed_ = true;
+
   if (client_options_.timeout_) {
     timer_.cancel();
   }
@@ -63,6 +100,8 @@ void Client::cancelTimerAndSetError(boost::system::error_code const& ec) {
 }
 
 void Client::postResponseHandler(boost::system::error_code const& ec) {
+  network_operation_completed_ = true;
+
   if ((ec.category() == boost::asio::error::ssl_category) &&
       (ec.value() == kSSLShortReadError)) {
     // Ignoring short read error, set ec_ to success.
@@ -82,13 +121,18 @@ bool Client::isSocketOpen() {
 void Client::closeSocket() {
   if (isSocketOpen()) {
     boost::system::error_code rc;
-    sock_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);
-    sock_.close(rc);
+    auto shutdown_rc =
+        sock_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);
+    (void)shutdown_rc;
+
+    auto close_rc = sock_.close(rc);
+    (void)close_rc;
   }
 }
 
 void Client::timeoutHandler(boost::system::error_code const& ec) {
   if (!ec) {
+    network_operation_completed_ = true;
     closeSocket();
     ec_ = boost::asio::error::make_error_code(boost::asio::error::timed_out);
   }
@@ -148,13 +192,16 @@ void Client::createConnection() {
   // We can resolve async, but there is a handle leak in Windows.
   auto results = r_.resolve(connect_host, port, ec_);
   if (!ec_) {
-    callNetworkOperation([&]() {
-      boost::asio::async_connect(sock_,
-                                 results,
-                                 std::bind(&Client::connectHandler,
-                                           this,
-                                           std::placeholders::_1,
-                                           std::placeholders::_2));
+    callNetworkOperation([&](std::uint64_t operation_generation) {
+      boost::asio::async_connect(
+          sock_,
+          results,
+          makeGenerationGuardedHandler(
+              operation_generation,
+              [this](boost::system::error_code const& ec,
+                     auto const& endpoint_result) {
+                connectHandler(ec, endpointFromConnectResult(endpoint_result));
+              }));
     });
   }
 
@@ -182,13 +229,15 @@ void Client::createConnection() {
     req.version(11);
     req.prepare_payload();
 
-    callNetworkOperation([&]() {
+    callNetworkOperation([&](std::uint64_t operation_generation) {
       beast_http::async_write(sock_,
                               req,
-                              std::bind(&Client::writeHandler,
-                                        this,
-                                        std::placeholders::_1,
-                                        std::placeholders::_2));
+                              makeGenerationGuardedHandler(
+                                  operation_generation,
+                                  [this](boost::system::error_code const& ec,
+                                         size_t bytes_transferred) {
+                                    writeHandler(ec, bytes_transferred);
+                                  }));
     });
 
     if (ec_) {
@@ -199,14 +248,17 @@ void Client::createConnection() {
     beast_http_response_parser rp;
     rp.skip(true);
 
-    callNetworkOperation([&]() {
-      beast_http::async_read_header(sock_,
-                                    b,
-                                    rp,
-                                    std::bind(&Client::readHandler,
-                                              this,
-                                              std::placeholders::_1,
-                                              std::placeholders::_2));
+    callNetworkOperation([&](std::uint64_t operation_generation) {
+      beast_http::async_read_header(
+          sock_,
+          b,
+          rp,
+          makeGenerationGuardedHandler(
+              operation_generation,
+              [this](boost::system::error_code const& ec,
+                     size_t bytes_transferred) {
+                readHandler(ec, bytes_transferred);
+              }));
     });
 
     if (ec_) {
@@ -264,10 +316,13 @@ void Client::encryptConnection() {
   ssl_sock_->set_verify_callback(boost::asio::ssl::host_name_verification(
       *client_options_.remote_hostname_));
 
-  callNetworkOperation([&]() {
+  callNetworkOperation([&](std::uint64_t operation_generation) {
     ssl_sock_->async_handshake(
         boost::asio::ssl::stream_base::client,
-        std::bind(&Client::handshakeHandler, this, std::placeholders::_1));
+        makeGenerationGuardedHandler(
+            operation_generation, [this](boost::system::error_code const& ec) {
+              handshakeHandler(ec);
+            }));
   });
 
   if (ec_) {
@@ -301,20 +356,17 @@ void Client::sendRequest(STREAM_TYPE& stream,
   req.prepare_payload();
   req.keep_alive(true);
 
-  if (client_options_.timeout_) {
-    timer_.async_wait(
-        [=](boost::system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
   beast_http_request_serializer sr{req};
 
-  callNetworkOperation([&]() {
-    beast_http::async_write(stream,
-                            sr,
-                            std::bind(&Client::writeHandler,
-                                      this,
-                                      std::placeholders::_1,
-                                      std::placeholders::_2));
+  callNetworkOperation([&](std::uint64_t operation_generation) {
+    beast_http::async_write(
+        stream,
+        sr,
+        makeGenerationGuardedHandler(operation_generation,
+                                     [this](boost::system::error_code const& ec,
+                                            size_t bytes_transferred) {
+                                       writeHandler(ec, bytes_transferred);
+                                     }));
   });
 
   if (ec_) {
@@ -323,14 +375,16 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   boost::beast::flat_buffer b;
 
-  callNetworkOperation([&]() {
-    beast_http::async_read(stream,
-                           b,
-                           resp,
-                           std::bind(&Client::readHandler,
-                                     this,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2));
+  callNetworkOperation([&](std::uint64_t operation_generation) {
+    beast_http::async_read(
+        stream,
+        b,
+        resp,
+        makeGenerationGuardedHandler(operation_generation,
+                                     [this](boost::system::error_code const& ec,
+                                            size_t bytes_transferred) {
+                                       readHandler(ec, bytes_transferred);
+                                     }));
   });
 
   if (ec_) {
@@ -414,11 +468,6 @@ bool Client::initHTTPRequest(Request& req) {
 }
 
 Response Client::sendHTTPRequest(Request& req) {
-  if (client_options_.timeout_) {
-    timer_.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
-  }
-
   size_t redirect_attempts = 0;
   bool init_request = true;
   do {

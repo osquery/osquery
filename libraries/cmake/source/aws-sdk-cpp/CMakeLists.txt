@@ -2719,6 +2719,13 @@ function(generateAwsCppSdkCore)
       "${library_root}/source/platform/windows/Time.cpp"
       "${library_root}/source/utils/crypto/bcrypt/CryptoImpl.cpp"
     )
+    # CryptoImpl.cpp uses NTSTATUS with operator<< which breaks under C++20; compile it as C++17 without the PCH
+    set_source_files_properties(
+      "${library_root}/source/utils/crypto/bcrypt/CryptoImpl.cpp"
+      PROPERTIES
+        SKIP_PRECOMPILE_HEADERS ON
+        COMPILE_FLAGS "/std:c++17"
+    )
   endif()
 
   target_include_directories(thirdparty_aws-cpp-sdk-core PRIVATE
@@ -2798,6 +2805,14 @@ function(generateAwsCppSdkCore)
       USE_WINDOWS_DLL_SEMANTICS
       PLATFORM_WINDOWS
       ENABLE_BCRYPT_ENCRYPTION
+      _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+    )
+    target_compile_options(thirdparty_aws-cpp-sdk-core PUBLIC
+      /FI${CMAKE_CURRENT_SOURCE_DIR}/osquery_aws_compat.h
+    )
+    target_compile_options(thirdparty_aws-cpp-sdk-core PRIVATE
+      /FIcodecvt
+      /FIlocale
     )
   endif()
 
@@ -2863,6 +2878,13 @@ function(generateAwsCrtCpp)
     "${library_root}/source/UUID.cpp"
   )
 
+  if (MSVC)
+    set_target_properties(thirdparty_aws-crt-cpp PROPERTIES
+      COMPILE_PDB_NAME thirdparty_aws-crt-cpp
+      COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb/$<CONFIG>
+    )
+  endif()
+
   target_include_directories(thirdparty_aws-crt-cpp PRIVATE
     "${library_root}/include"
     "${config_path}"
@@ -2891,6 +2913,12 @@ function(generateAwsCrtCpp)
   target_compile_definitions(thirdparty_aws-crt-cpp PRIVATE
     CJSON_HIDE_SYMBOLS
   )
+
+  if(MSVC)
+    target_compile_options(thirdparty_aws-crt-cpp PRIVATE
+      /FIstring
+    )
+  endif()
 
   if(PLATFORM_LINUX)
     target_compile_definitions(thirdparty_aws-crt-cpp PRIVATE

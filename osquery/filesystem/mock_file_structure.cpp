@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/mock_file_structure.h>
 
@@ -20,9 +21,8 @@ namespace fs = boost::filesystem;
 
 fs::path createMockFileStructure() {
   const auto root_dir =
-      fs::temp_directory_path() /
-      fs::unique_path("osquery.tests.%%%%.%%%%");
-  fs::create_directories(root_dir / kTopLevelMockFolderName / "/");
+      fs::temp_directory_path() / fs::unique_path("osquery.tests.%%%%.%%%%");
+  fs::create_directories(root_dir / kTopLevelMockFolderName);
   fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel1");
   fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel2");
   fs::create_directories(root_dir / kTopLevelMockFolderName / "secondlevel3");
@@ -45,10 +45,38 @@ fs::path createMockFileStructure() {
   writeTextFile(root_dir / "root2.txt", "l1");
 #else
   boost::system::error_code ec;
-  fs::create_symlink(
-      root_dir / "root.txt", root_dir / "root2.txt", ec);
+  fs::create_symlink(root_dir / "root.txt", root_dir / "root2.txt", ec);
 #endif
   return root_dir;
+}
+
+void deleteMockFileStructure(const fs::path& path) {
+#ifdef WIN32
+  // On Windows, files with restricted permissions can't be deleted.
+  // Recursively fix permissions on all files in the directory.
+  boost::system::error_code ec;
+
+  if (fs::exists(path, ec)) {
+    try {
+      for (fs::recursive_directory_iterator it(path);
+           it != fs::recursive_directory_iterator();
+           ++it) {
+        if (fs::is_regular_file(it->path())) {
+          // Make all files fully accessible (owner read/write/execute)
+          // to ensure they can be deleted
+          platformChmod(it->path().string(), S_IRWXU);
+        }
+      }
+    } catch (const fs::filesystem_error&) {
+      // If permission changes fail, continue with removal attempt
+    }
+  }
+
+  // Remove the directory using error_code version to avoid exceptions
+  fs::remove_all(path, ec);
+#else
+  fs::remove_all(path);
+#endif
 }
 
 } // namespace osquery

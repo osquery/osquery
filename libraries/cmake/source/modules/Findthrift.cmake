@@ -12,4 +12,8 @@ importSourceSubmodule(
 
   SHALLOW_SUBMODULES
     "src"
+
+  # We should be able to remove the random_shuffle patch after Thrift is updated
+  PATCH
+    "src"
 )
