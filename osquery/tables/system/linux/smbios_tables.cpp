@@ -102,10 +102,10 @@ bool LinuxSMBIOSParser::discoverTables(size_t address, size_t length) {
 }
 
 bool LinuxSMBIOSParser::discover() {
-  if (osquery::isReadable(kLinuxDMISysfsPath)) {
+  if (osquery::isReadable(kLinuxDMISysfsPath, true)) {
     VLOG(1) << "Reading SMBIOS from sysfs DMI node";
     readFromSysfs(kLinuxDMISysfsPath);
-  } else if (osquery::isReadable(kLinuxEFISystabPath)) {
+  } else if (osquery::isReadable(kLinuxEFISystabPath, true)) {
     VLOG(1) << "Reading SMBIOS from EFI provided memory location";
     readFromSystab(kLinuxEFISystabPath);
   } else {
