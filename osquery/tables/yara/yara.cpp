@@ -178,32 +178,79 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
       return Status::failure("YARA signature url not allowed");
     }
 
-    http::Client client(TLSTransport().getInternalOptions());
-    http::Response response;
-    http::Request request(url);
+    // Do not let the HTTP client silently follow redirects here. With
+    // --tls_follow_redirects enabled (the default) a redirect could otherwise
+    // send the request to a host that is not on the signature URL allowlist,
+    // defeating isRuleUrlAllowed(). Instead we follow redirects manually below
+    // so every hop is re-validated against the allowlist.
+    auto options = TLSTransport().getInternalOptions();
+    options.follow_redirects(false);
+    http::Client client(options);
 
+    std::string postBody;
     if (FLAGS_yara_sigurl_authenticate) {
       // If authentication is turned on, make a POST request with the node key
       // in the JSON body.
       JSON params;
       params.addCopy("node_key", getNodeKey("tls"));
-      std::string postBody;
       Status result = params.toString(postBody);
       if (!result.ok()) {
         return Status::failure("Failed to stringify JSON body: " +
                                result.getMessage());
       }
-      response = client.post(request, postBody, "application/json");
-    } else {
-      response = client.get(request);
     }
-    // Check for the status code and update the rule string on success
-    // and result has been transmitted to the message body
-    if (response.status() == 200) {
-      rule = response.body();
-    } else {
-      VLOG(1) << "Can't fetch rules from url response code: "
-              << response.status();
+
+    std::string current_url = url;
+    for (size_t redirects = 0;; ++redirects) {
+      http::Request request(current_url);
+      http::Response response;
+      if (FLAGS_yara_sigurl_authenticate) {
+        response = client.post(request, postBody, "application/json");
+      } else {
+        response = client.get(request);
+      }
+
+      auto status = response.status();
+      // On success the rule has been transmitted in the message body.
+      if (status == 200) {
+        rule = response.body();
+        break;
+      }
+
+      // Follow a redirect only after re-validating its target against the
+      // allowlist, so the allowlist cannot be bypassed via a redirect.
+      if (status == 301 || status == 302 || status == 303 || status == 307 ||
+          status == 308) {
+        if (redirects >= 10) {
+          return Status::failure("YARA signature url exceeded max redirects");
+        }
+        std::string location = response.headers()["Location"];
+        if (location.empty()) {
+          return Status::failure(
+              "YARA signature url redirect missing Location header");
+        }
+        // Resolve a relative redirect against the current request URL.
+        if (location[0] == '/') {
+          Uri base(current_url);
+          std::string resolved = base.scheme() + "://" + base.host();
+          if (base.port() != 0) {
+            resolved += ":" + std::to_string(base.port());
+          }
+          resolved += location;
+          location = resolved;
+        }
+        if (!isRuleUrlAllowed(signature_set, location)) {
+          VLOG(1) << "YARA signature url redirect to " << location
+                  << " not allowed";
+          return Status::failure(
+              "YARA signature url redirect target not allowed");
+        }
+        current_url = location;
+        continue;
+      }
+
+      VLOG(1) << "Can't fetch rules from url response code: " << status;
+      break;
     }
   } catch (const std::exception& e) {
     return Status::failure(e.what());

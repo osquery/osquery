@@ -42,10 +42,10 @@ std::string sanitizeHttpHeaderValue(const std::string& value) {
 
 Status processRequest(Row& r) {
   try {
-    // The curl table exists to fetch arbitrary user-supplied URLs, so it keeps
-    // following redirects (e.g. URL shorteners and CDNs) even though the TLS
-    // transport disables them by default. HTTPS-to-HTTP downgrades are still
-    // refused by the HTTP client.
+    // The curl table exists to fetch arbitrary user-supplied URLs, so it always
+    // follows redirects (e.g. URL shorteners and CDNs) by explicitly enabling
+    // them, independent of the --tls_follow_redirects default used by the TLS
+    // transport. HTTPS-to-HTTP downgrades are still refused by the HTTP client.
     auto options = TLSTransport().getOptions();
     options.follow_redirects(true);
     osquery::http::Client client(options);
