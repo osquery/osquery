@@ -69,10 +69,11 @@ CLI_FLAG(bool,
 /// Follow HTTP redirects for requests made through the TLS transport.
 CLI_FLAG(bool,
          tls_follow_redirects,
-         false,
-         "Follow HTTP redirects for TLS/HTTPS requests. Disabled by default: a "
-         "redirect can send the request to a different origin or downgrade "
-         "HTTPS to HTTP");
+         true,
+         "Follow HTTP redirects for TLS/HTTPS requests. Enabled by default. "
+         "Regardless of this setting, a redirect that downgrades HTTPS to "
+         "plaintext HTTP is always refused. Set to false to disable following "
+         "redirects entirely");
 
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,

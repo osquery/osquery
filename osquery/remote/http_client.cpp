@@ -483,7 +483,8 @@ Response Client::sendHTTPRequest(Request& req) {
           }
         } else {
           // Absolute URI.
-          // Refuse to follow a redirect that downgrades an HTTPS request to
+          // Redirects are followed by default (see --tls_follow_redirects),
+          // but refuse to follow one that downgrades an HTTPS request to
           // plaintext HTTP: doing so would transmit the request (and any
           // credentials or body) in cleartext. This is enforced for every
           // client that follows redirects, regardless of the destination
