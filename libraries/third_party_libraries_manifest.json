@@ -267,8 +267,8 @@
   "thrift": {
     "product": "thrift",
     "vendor": "apache",
-    "version": "0.17.0",
-    "commit": "4d493e867b349f3475203ef9848353b315203c51",
+    "version": "0.24.0",
+    "commit": "6d2ec95f450b4ce404afb8929ff479e68770141a",
     "ignored-cves": []
   },
   "util-linux": {
