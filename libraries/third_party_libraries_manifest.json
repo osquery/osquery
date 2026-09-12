@@ -251,8 +251,8 @@
   "sleuthkit": {
     "product": "the_sleuth_kit",
     "vendor": "sleuthkit",
-    "version": "4.11.0",
-    "commit": "a397493d8fd5198b40d6c0ce1e4135c1f86d9ea9",
+    "version": "4.15.0",
+    "commit": "01de0345edaa1ebf21dba6939a7c6bc7129e6e7d",
     "ignored-cves": []
   },
   "sqlite": {
