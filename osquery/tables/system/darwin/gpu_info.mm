@@ -153,8 +153,8 @@ bool readPciInfoFromEntry(io_registry_entry_t entry, IOKitGpuInfo& info) {
 
   // Bus address (e.g. "0:5:0"); the same pcidebug value the darwin
   // pci_devices table reports as pci_slot.
-  info.pci_slot = stringFromIOKitProperty(
-      CFDictionaryGetValue(props, CFSTR("pcidebug")));
+  info.pci_slot =
+      stringFromIOKitProperty(CFDictionaryGetValue(props, CFSTR("pcidebug")));
 
   return found;
 }
