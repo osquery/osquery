@@ -6,10 +6,10 @@ schema([
     Column("vendor", TEXT, "The vendor of the GPU."),
     Column("vendor_id", TEXT, "The hex encoded PCI vendor identifier of the GPU."),
     Column("model", TEXT, "The model of the GPU."),
-    Column("model_id", TEXT, "The hex encoded PCI model identifier of the GPU."),
+    Column("model_id", TEXT, "The hex encoded PCI model identifier of the GPU. On Apple Silicon, where the GPU is integrated in the SoC and has no PCI device ID, the IOKit SoC identifier is reported instead (e.g. gpu,t6000)."),
     Column("driver", TEXT, "The driver in use by the GPU."),
     Column("vram", BIGINT, "The total video memory of the GPU in bytes. Fixed capacity only: on Linux only available for AMD GPUs (amdgpu driver, via mem_info_vram_total sysfs) and for NVIDIA GPUs with the proprietary driver loaded (via NVML, the library behind nvidia-smi, which also requires the query to have permission to talk to the driver); Intel drivers expose no equivalent; on macOS empty for unified-memory GPUs (Apple Silicon), which have no dedicated VRAM"),
-    Column("pci_slot", TEXT, "The PCI slot of the GPU, as a bus address (e.g. 0000:01:00.0 on Linux, 0000:bb:dd.f on Windows). Empty for non-PCI adapters."),
+    Column("pci_slot", TEXT, "The PCI slot of the GPU, as a bus address (e.g. 0000:01:00.0 on Linux, 0000:bb:dd.f on Windows, b:d:f on macOS). Empty for non-PCI adapters (e.g. Apple Silicon integrated GPUs)."),
     Column("pci_class_id", TEXT, "The PCI class identifier of the GPU in hex format."),
 ])
 extended_schema(DARWIN, [

@@ -8,6 +8,7 @@
  */
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
 #include <fstream>
@@ -81,16 +82,19 @@ void collectVramFromDrm(std::map<std::string, std::uint64_t>& vram_by_slot) {
   }
 
   for (const auto& entry : drm_entries) {
-    // Select card0, card1, ... only: prefix-match "card" and exclude
-    // connector entries (card0-eDP-1) and other hyphenated names. The
-    // explicit render check excludes renderD* siblings.
-    if (entry.rfind("card", 0) != 0 ||
-        entry.find("render") != std::string::npos ||
-        entry.find("-") != std::string::npos) {
+    // listDirectoriesInDirectory returns full paths; only the entry name
+    // (card0, card1, ...) identifies the DRM device.
+    const auto card_name = boost::filesystem::path(entry).filename().string();
+
+    // Select card0, card1, ... only: the prefix match excludes renderD*
+    // siblings and the hyphen check excludes connector entries
+    // (card0-eDP-1).
+    if (card_name.rfind("card", 0) != 0 ||
+        card_name.find("-") != std::string::npos) {
       continue;
     }
 
-    auto device_path = drmCardNameToDevicePath(kDrmSysfsPath, entry);
+    auto device_path = drmCardNameToDevicePath(kDrmSysfsPath, card_name);
     if (device_path.empty()) {
       continue;
     }
@@ -295,10 +299,13 @@ void enrichVramFromNvml(QueryData& results) {
   nvml->shutdown();
 }
 
-bool isDisplayControllerClass(const std::string& pci_class_attr) {
-  // udev reports PCI_CLASS as the 24-bit class code, hex, WITHOUT the 0x
-  // prefix and with insignificant leading zeroes stripped (e.g. display is
-  // "30000" == 0x030000). The display controller base class is 0x03.
+// udev reports PCI_CLASS as the 24-bit class code in hex without the 0x
+// prefix and with insignificant leading zeroes stripped (e.g. display
+// controllers report "30000", i.e. 0x030000). The other platforms publish
+// the full code, so normalize to the fixed "0xrrccss" form to keep the
+// shared column identical across platforms. Returns an empty string for
+// values that are not valid class codes.
+std::string normalizePciClassId(const std::string& pci_class_attr) {
   std::string lowered = pci_class_attr;
   boost::algorithm::to_lower(lowered);
   boost::trim(lowered);
@@ -309,20 +316,23 @@ bool isDisplayControllerClass(const std::string& pci_class_attr) {
   }
 
   if (lowered.empty()) {
-    return false;
+    return {};
   }
 
-  // The class code is 0xRRCCSS: base class RR is the leading byte. With
-  // leading zeroes stripped, RR==0x03 appears as either "3" (id_len 5) or
-  // "03" (id_len 6).
-  std::string base;
-  if (lowered[0] == '0' && lowered.size() >= 2) {
-    base = lowered.substr(0, 2); // "03xxxx" -> "03"
-  } else {
-    base = lowered.substr(0, 1); // "3xxxx" -> "3"
+  auto class_exp = tryTo<std::uint32_t>(lowered, 16);
+  if (class_exp.isError()) {
+    return {};
   }
 
-  return (base == "03" || base == "3");
+  char class_id[16];
+  std::snprintf(class_id, sizeof(class_id), "0x%06x", class_exp.take());
+  return class_id;
+}
+
+bool isDisplayControllerClass(const std::string& pci_class_id) {
+  // pci_class_id is the normalized 0xrrccss form; the display controller
+  // base class is 0x03.
+  return pci_class_id.size() >= 4 && pci_class_id.compare(2, 2, "03") == 0;
 }
 
 } // namespace
@@ -383,9 +393,9 @@ QueryData genGpuInfo(QueryContext& context) {
       continue;
     }
 
-    auto pci_class_attr =
-        UdevEventPublisher::getValue(device.get(), kPCIClassID);
-    if (!isDisplayControllerClass(pci_class_attr)) {
+    auto pci_class_id = normalizePciClassId(
+        UdevEventPublisher::getValue(device.get(), kPCIClassID));
+    if (!isDisplayControllerClass(pci_class_id)) {
       continue;
     }
 
@@ -399,7 +409,7 @@ QueryData genGpuInfo(QueryContext& context) {
     } else {
       r["device_id"] = "GPU" + r["pci_slot"];
     }
-    r["pci_class_id"] = "0x" + pci_class_attr;
+    r["pci_class_id"] = pci_class_id;
     r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
 
     if (pcidb != nullptr) {

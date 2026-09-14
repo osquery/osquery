@@ -46,6 +46,9 @@ struct IOKitGpuInfo {
   // sgx@4000000 on Apple Silicon, IOPCIDevice for discrete GPUs), if any.
   std::string pci_vendor_id;
   std::string pci_device_id;
+  // Bus address of the underlying PCI device (the IOKit pcidebug property,
+  // e.g. "0:5:0"), in the same form as the darwin pci_devices table.
+  std::string pci_slot;
 };
 
 using IOKitGpuInfoList = std::vector<IOKitGpuInfo>;
@@ -61,10 +64,21 @@ std::string cfDataToHexString(CFDataRef data) {
   }
 
   const UInt8* bytes = CFDataGetBytePtr(data);
+  // The value is stored little-endian; reverse for human-readable hex. The
+  // high-order bytes are padding (vendor-id/device-id are 16-bit), so start
+  // at the last nonzero byte: <6b100000> is "0x106b", not "0x0000106b",
+  // matching the IDs system_profiler reports.
+  CFIndex start = length - 1;
+  while (start > 0 && bytes[start] == 0) {
+    --start;
+  }
+  if (bytes[start] == 0) {
+    return {};
+  }
+
   std::stringstream ss;
   ss << "0x" << std::hex << std::setfill('0');
-  // The vendor-id is stored little-endian; reverse for human-readable hex.
-  for (CFIndex i = length - 1; i >= 0; --i) {
+  for (CFIndex i = start; i >= 0; --i) {
     ss << std::setw(2) << static_cast<int>(bytes[i]);
   }
   return ss.str();
@@ -109,15 +123,14 @@ std::string stringFromIOKitProperty(CFTypeRef value) {
   return {};
 }
 
-// Read the PCI vendor-id / device-id properties of a device node. On Apple
-// Silicon the accelerator node itself carries vendor-id only; the device node
-// (e.g. sgx@4000000) has neither, in which case this returns false and callers
-// fall back to model-based matching.
-bool readPciIdsFromEntry(io_registry_entry_t entry,
-                         std::string& vendor_id,
-                         std::string& device_id) {
-  vendor_id.clear();
-  device_id.clear();
+// Read the PCI identity of a device node: the vendor-id / device-id
+// properties and the pcidebug bus address. On Apple Silicon the device node
+// (e.g. sgx@4000000) has none of them, in which case this returns false and
+// callers fall back to model-based matching.
+bool readPciInfoFromEntry(io_registry_entry_t entry, IOKitGpuInfo& info) {
+  info.pci_vendor_id.clear();
+  info.pci_device_id.clear();
+  info.pci_slot.clear();
 
   CFMutableDictionaryRef props = nullptr;
   auto kr = IORegistryEntryCreateCFProperties(
@@ -130,26 +143,33 @@ bool readPciIdsFromEntry(io_registry_entry_t entry,
   bool found = false;
   auto vid = CFDictionaryGetValue(props, CFSTR("vendor-id"));
   if (vid != nullptr && CFGetTypeID(vid) == CFDataGetTypeID()) {
-    vendor_id = cfDataToHexString(static_cast<CFDataRef>(vid));
-    found = !vendor_id.empty();
+    info.pci_vendor_id = cfDataToHexString(static_cast<CFDataRef>(vid));
+    found = !info.pci_vendor_id.empty();
   }
   auto did = CFDictionaryGetValue(props, CFSTR("device-id"));
   if (did != nullptr && CFGetTypeID(did) == CFDataGetTypeID()) {
-    device_id = cfDataToHexString(static_cast<CFDataRef>(did));
+    info.pci_device_id = cfDataToHexString(static_cast<CFDataRef>(did));
   }
+
+  // Bus address (e.g. "0:5:0"); the same pcidebug value the darwin
+  // pci_devices table reports as pci_slot.
+  info.pci_slot = stringFromIOKitProperty(
+      CFDictionaryGetValue(props, CFSTR("pcidebug")));
+
   return found;
 }
 
-// Walk from the accelerator to its parent device node and read the PCI
-// vendor/device identity, falling back to the accelerator's own properties
-// (Apple Silicon accelerators publish vendor-id directly).
+// Walk from the accelerator to its parent device node and read its PCI
+// identity (vendor/device IDs and the bus address), falling back to the
+// accelerator's own properties (Apple Silicon accelerators publish
+// vendor-id directly).
 void acceleratorPciIdentity(io_service_t accelerator, IOKitGpuInfo& info) {
   io_registry_entry_t parent = 0;
   if (IORegistryEntryGetParentEntry(accelerator, "IOService", &parent) ==
           KERN_SUCCESS &&
       parent != 0) {
     UniqueIoService parent_ptr(parent);
-    readPciIdsFromEntry(parent, info.pci_vendor_id, info.pci_device_id);
+    readPciInfoFromEntry(parent, info);
   }
 
   if (info.pci_vendor_id.empty()) {
@@ -382,37 +402,21 @@ QueryData genGpuInfo(QueryContext& context) {
         r["vram"] = BIGINT(vram);
       }
 
-      if (id pci_slot = [item valueForKey:@"sppci_device_id"]) {
-        r["pci_slot"] = SQL_TEXT([[pci_slot description] UTF8String]);
-      } else if (id bus = [item valueForKey:@"sppci_bus"]) {
-        std::string bus_str([[bus description] UTF8String]);
-        if (bus_str != "spdisplays_builtin") {
-          r["pci_slot"] = SQL_TEXT(bus_str);
-        }
-      }
-
-      // device_id: derived from the slot when present so it is stable across
-      // reboots; system_profiler enumeration order is not guaranteed. The
-      // counter is only a fallback for rows without one (e.g. Apple Silicon
-      // integrated GPUs).
-      if (r["pci_slot"].empty()) {
-        r["device_id"] = "GPU" + std::to_string(device_id++);
-      } else {
-        r["device_id"] = "GPU" + r["pci_slot"];
-      }
-
       r["pci_class_id"] = "0x030000";
 
       // Hardware identity from system_profiler, used to match the row to its
-      // IOKit accelerator. Discrete GPUs report hex PCI ids (e.g.
-      // "0x1002" / "0x679e"); Apple Silicon does not report them.
+      // IOKit accelerator and to fill the identity columns: discrete GPUs
+      // report hex PCI ids (e.g. "0x1002" / "0x679e"); Apple Silicon does
+      // not report them and falls through to the IOKit enrichment below.
       std::string sp_vendor_id;
       std::string sp_device_id;
       if (id sp_vid = [item valueForKey:@"sppci_vendor_id"]) {
         sp_vendor_id = [[sp_vid description] UTF8String];
+        r["vendor_id"] = sp_vendor_id;
       }
       if (id sp_did = [item valueForKey:@"sppci_device_id"]) {
         sp_device_id = [[sp_did description] UTF8String];
+        r["model_id"] = sp_device_id;
       }
 
       // Enrich from IOKit AGXAccelerator for Apple Silicon (and discrete GPUs
@@ -431,11 +435,27 @@ QueryData genGpuInfo(QueryContext& context) {
         if (r["driver"].empty() && !iokit_info.driver.empty()) {
           r["driver"] = iokit_info.driver;
         }
+        // pci_slot: the IOKit bus address of the underlying PCI device.
+        // Apple Silicon GPUs have no PCI node, so the column stays empty
+        // there.
+        if (!iokit_info.pci_slot.empty()) {
+          r["pci_slot"] = iokit_info.pci_slot;
+        }
         if (iokit_info.cores > 0) {
           r["cores"] = INTEGER(iokit_info.cores);
         }
         // Consume this accelerator so no other row matches it.
         iokit_gpus.erase(accel_it);
+      }
+
+      // device_id: derived from the slot when present so it is stable across
+      // reboots; system_profiler enumeration order is not guaranteed. The
+      // counter is only a fallback for rows without one (e.g. Apple Silicon
+      // integrated GPUs).
+      if (r["pci_slot"].empty()) {
+        r["device_id"] = "GPU" + std::to_string(device_id++);
+      } else {
+        r["device_id"] = "GPU" + r["pci_slot"];
       }
 
       // metal_support from system_profiler.

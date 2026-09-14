@@ -169,7 +169,12 @@ QueryData genGpuInfo(QueryContext& context) {
       }
     }
 
-    r["pci_class_id"] = "0x030000";
+    // Only PCI adapters carry a PCI class: Win32_VideoController also
+    // enumerates non-PCI adapters (ROOT\... devices, virtual video
+    // adapters).
+    if (pnp_device_id.rfind("PCI\\", 0) == 0) {
+      r["pci_class_id"] = "0x030000";
+    }
 
     // Windows-specific extended schema columns.
     wmiResult.GetString("DriverVersion", r["driver_version"]);
