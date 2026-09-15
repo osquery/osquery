@@ -117,6 +117,7 @@ function(generateOsqueryTablesSystemDarwinTests)
     darwin/extended_attributes_tests.cpp
     darwin/firewall_tests.cpp
     darwin/launchd_tests.cpp
+    darwin/macports_packages_tests.cpp
     darwin/mdfind_tests.cpp
     darwin/packages_tests.cpp
     darwin/processes_tests.cpp
