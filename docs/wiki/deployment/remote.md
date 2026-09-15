@@ -70,7 +70,8 @@ The most basic TLS-based server should implement 3 HTTP POST endpoints. This API
 
 ```json
 {
-  "node_key": "..." // Optionally blank
+  "node_key": "...", // Optionally blank
+  "etag": "..." // Optional, see "Conditional configuration requests".
 }
 ```
 
@@ -86,11 +87,21 @@ Configuration responses should be exactly the same JSON/format as read by the **
       "interval": 10
     }
   },
-  "node_invalid": false // Optional, return true to indicate re-enrollment.
+  "node_invalid": false, // Optional, return true to indicate re-enrollment.
+  "etag": "..." // Optional, see "Conditional configuration requests".
 }
 ```
 
 The POSTed logger data is exactly the same as logged to disk by the **filesystem** plugin with an additional important key: `log_type`. The filesystem plugin differentiates log types by writing distinct file names. The **tls** plugin includes: `result` or `status`. Snapshot queries are `result` queries.
+
+### Conditional configuration requests
+
+Configurations rarely change between refreshes, so the **tls** config plugin supports conditional requests carried in the JSON bodies (the request is a `POST`, so HTTP `ETag`/`If-None-Match` header semantics do not apply). Servers are free to ignore all of this: a response without an `"etag"` key is treated as the configuration content, byte for byte, exactly as before.
+
+- Unless `--config_tls_etag=false`, the request body includes an `"etag"` field containing the value from the last configuration response the client received, or an empty string when it has none. The value is assigned by the server and is opaque to the client; it is kept in memory only, so a restarted client always requests the full configuration.
+- A server that supports conditional requests includes a top-level `"etag"` key in the configuration response. When the request's etag matches the current one, the server may instead answer with the minimal body `{"etag": "ok"}` to signal that the configuration is unchanged; the client then skips reloading it. The literal value `"ok"` is reserved and never used as a real etag.
+- A server must not answer `{"etag": "ok"}` to a request with an empty etag.
+- A request without an `"etag"` field (an older client, or `--config_tls_etag=false`) must receive the full configuration without an `"etag"` key.
 
 ## Remote logging
 
