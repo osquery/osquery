@@ -222,7 +222,9 @@
     "vendor": "rpm",
     "version": "4.18.2",
     "commit": "9fc611e38004b1ddaa6668297408649ed556c157",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-44605"
+    ]
   },
   "libudev": {
     "product": "udev",
