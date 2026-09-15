@@ -25,7 +25,7 @@ namespace osquery {
 namespace tables {
 
 const std::string kSnapdStatePath{"/var/lib/snapd/state.json"};
-const std::string kSnapMountRoot{"/snap"};
+const std::vector<std::string> kSnapMountRoots{"/snap", "/var/lib/snapd/snap"};
 
 struct SnapStateInfo {
   std::string revision;
@@ -167,7 +167,15 @@ static std::unordered_map<std::string, SnapStateInfo> parseSnapdState(
 QueryData genSnapPackages(QueryContext& context) {
   QueryData results;
 
-  if (!isDirectory(kSnapMountRoot).ok()) {
+  boost::filesystem::path snap_mount_root;
+  for (const auto& root : kSnapMountRoots) {
+    if (isDirectory(root).ok()) {
+      snap_mount_root = root;
+      break;
+    }
+  }
+
+  if (snap_mount_root.empty()) {
     return results;
   }
 
@@ -181,14 +189,12 @@ QueryData genSnapPackages(QueryContext& context) {
     }
   }
 
-  // Enumerate installed snaps from /snap/<name>/ directories.
+  // Enumerate installed snaps from <snap mount root>/<name>/ directories.
   std::vector<std::string> snap_dirs;
   if (!resolveFilePattern(
-           boost::filesystem::path(kSnapMountRoot) / kSQLGlobWildcard,
-           snap_dirs,
-           GLOB_FOLDERS)
+           snap_mount_root / kSQLGlobWildcard, snap_dirs, GLOB_FOLDERS)
            .ok()) {
-    VLOG(1) << "snap_packages: could not list " << kSnapMountRoot;
+    VLOG(1) << "snap_packages: could not list " << snap_mount_root.string();
     return results;
   }
 
@@ -244,8 +250,15 @@ QueryData genSnapPackages(QueryContext& context) {
       r["channel"] = state_it->second.channel;
       r["snap_id"] = state_it->second.snap_id;
     } else {
-      r["channel"] = "";
-      r["snap_id"] = "";
+      if (!r.count("type") || r["type"].empty()) {
+        r["type"] = "app";
+      }
+      if (!r.count("confinement") || r["confinement"].empty()) {
+        r["confinement"] = "strict";
+      }
+      if (!r.count("grade") || r["grade"].empty()) {
+        r["grade"] = "stable";
+      }
     }
 
     results.push_back(std::move(r));

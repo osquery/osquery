@@ -5,7 +5,7 @@ schema([
     Column("version", TEXT, "Package version"),
     Column("summary", TEXT, "One-line summary"),
     Column("description", TEXT, "Long description"),
-    Column("type", TEXT, "Snap type (app, core, kernel, gadget, snapd)"),
+    Column("type", TEXT, "Snap type (app, base, kernel, gadget, snapd)"),
     Column("confinement", TEXT, "Confinement policy (strict, devmode, classic)"),
     Column("base", TEXT, "Base snap this snap is built on"),
     Column("license", TEXT, "SPDX license expression"),
