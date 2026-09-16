@@ -249,16 +249,17 @@ QueryData genSnapPackages(QueryContext& context) {
     if (state_it != snap_states.end()) {
       r["channel"] = state_it->second.channel;
       r["snap_id"] = state_it->second.snap_id;
-    } else {
-      if (!r.count("type") || r["type"].empty()) {
-        r["type"] = "app";
-      }
-      if (!r.count("confinement") || r["confinement"].empty()) {
-        r["confinement"] = "strict";
-      }
-      if (!r.count("grade") || r["grade"].empty()) {
-        r["grade"] = "stable";
-      }
+    }
+
+    // Set defaults used by snapd when values are empty
+    if (!r.count("type") || r["type"].empty()) {
+      r["type"] = "app";
+    }
+    if (!r.count("confinement") || r["confinement"].empty()) {
+      r["confinement"] = "strict";
+    }
+    if (!r.count("grade") || r["grade"].empty()) {
+      r["grade"] = "stable";
     }
 
     results.push_back(std::move(r));
