@@ -100,7 +100,7 @@ Row parseSnapYaml(const std::string& content) {
  * Returns a map from snap name to SnapStateInfo containing the current
  * revision, tracking channel, and snap-id flags.
  */
-static std::unordered_map<std::string, SnapStateInfo> parseSnapdState(
+std::unordered_map<std::string, SnapStateInfo> parseSnapdState(
     const std::string& json_content) {
   std::unordered_map<std::string, SnapStateInfo> result;
 

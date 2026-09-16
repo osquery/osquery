@@ -9,12 +9,23 @@
 
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
 #include <osquery/core/tables.h>
 
 namespace osquery {
 namespace tables {
 
 Row parseSnapYaml(const std::string& content);
+
+struct SnapStateInfo {
+  std::string revision;
+  std::string channel;
+  std::string snap_id;
+};
+
+std::unordered_map<std::string, SnapStateInfo> parseSnapdState(
+    const std::string& json_content);
 
 class SnapPackagesTests : public testing::Test {};
 
@@ -180,6 +191,37 @@ TEST_F(SnapPackagesTests, parses_snapd_type_snap) {
       "confinement: strict\n");
 
   EXPECT_EQ(r["type"], "snapd");
+}
+
+TEST_F(SnapPackagesTests, parses_snapd_state_for_current_revision) {
+  const auto states = parseSnapdState(
+      R"json({
+        "data": {
+          "snaps": {
+            "hello-world": {
+              "current": "42",
+              "channel": "stable",
+              "sequence": [
+                {"revision": "41", "snap-id": "old-id"},
+                {"revision": "42", "snap-id": "current-id"}
+              ]
+            },
+            "fallback": {
+              "current": "7",
+              "snap-id": "fallback-id"
+            }
+          }
+        }
+      })json");
+
+  ASSERT_EQ(states.count("hello-world"), 1u);
+  EXPECT_EQ(states.at("hello-world").revision, "42");
+  EXPECT_EQ(states.at("hello-world").channel, "stable");
+  EXPECT_EQ(states.at("hello-world").snap_id, "current-id");
+
+  ASSERT_EQ(states.count("fallback"), 1u);
+  EXPECT_EQ(states.at("fallback").revision, "7");
+  EXPECT_EQ(states.at("fallback").snap_id, "fallback-id");
 }
 
 } // namespace tables
