@@ -500,7 +500,7 @@ TableRows genProcesses(QueryContext& context) {
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    ProcessesRow* r = new ProcessesRow();
+    std::unique_ptr<ProcessesRow> r{new ProcessesRow()};
     r->pid_col = pid;
 
     genProcCmdline(context, pid, *r);
@@ -524,8 +524,7 @@ TableRows genProcesses(QueryContext& context) {
 
     genProcArch(context, pid, *r);
 
-    std::unique_ptr<TableRow> tr(r);
-    results.push_back(std::move(tr));
+    results.push_back(std::move(r));
   }
 
   return results;
