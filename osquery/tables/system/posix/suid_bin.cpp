@@ -33,6 +33,12 @@ std::vector<std::string> kBinarySearchPaths = {
     "/usr/sbin",
     "/usr/local/bin",
     "/usr/local/sbin",
+    // Homebrew on Apple Silicon, whose default prefix is not /usr/local
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    // MacPorts
+    "/opt/local/bin",
+    "/opt/local/sbin",
     "/tmp",
 };
 
