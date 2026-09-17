@@ -601,13 +601,12 @@ jobs:
   build_macos:
     needs: [check_code_style, check_libraries_manifest]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-26
 
     strategy:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-26]
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
@@ -668,7 +667,7 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ runner.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -798,6 +797,7 @@ jobs:
           -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Create the package data
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
 
@@ -808,7 +808,7 @@ jobs:
       run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v7
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
@@ -831,7 +831,7 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ runner.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
   # Reuse the build tree(s) produced by build_macos to run the tests.
   # This allows us to do fewer builds (just use the builds
