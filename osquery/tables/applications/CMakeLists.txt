@@ -21,6 +21,7 @@ function(generateOsqueryTablesApplications)
     chrome/chrome_extension_content_scripts.cpp
     chrome/chrome_search_engines.cpp
     chrome/utils.cpp
+    ai_agent_skills.cpp
     browser_firefox.cpp
     jetbrains_plugins.cpp
     vscode_extensions.cpp
