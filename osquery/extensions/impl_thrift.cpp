@@ -24,6 +24,7 @@
 #include <thrift/transport/TPipeServer.h>
 
 #else
+#include <grp.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>
 #endif
@@ -33,8 +34,23 @@
 
 #include "osquery/extensions/interface.h"
 
+#include <osquery/extensions/extensions.h>
+#include <osquery/utils/conversions/tryto.h>
+
 #include <boost/chrono/include.hpp>
 #include <boost/thread/condition_variable.hpp>
+
+#ifndef WIN32
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <vector>
+#endif
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/locks.hpp>
 
@@ -60,6 +76,61 @@ using TPlatformSocket = TPipe;
 #else
 using TPlatformServerSocket = TServerSocket;
 using TPlatformSocket = TSocket;
+#endif
+
+#ifndef WIN32
+namespace {
+
+bool resolveGroup(const std::string& group_str, gid_t& out_gid) {
+  if (group_str.empty()) {
+    return false;
+  }
+  if (std::all_of(group_str.begin(), group_str.end(), [](unsigned char c) {
+        return std::isdigit(c) != 0;
+      })) {
+    auto gid_exp = osquery::tryTo<std::uint64_t>(group_str, 10);
+    if (gid_exp.isError() ||
+        gid_exp.get() >=
+            static_cast<std::uint64_t>(std::numeric_limits<gid_t>::max())) {
+      return false;
+    }
+    out_gid = static_cast<gid_t>(gid_exp.get());
+    return true;
+  }
+
+  std::vector<char> buf(16384);
+  struct group grp;
+  struct group* result = nullptr;
+  int rc = getgrnam_r(group_str.c_str(), &grp, buf.data(), buf.size(), &result);
+  if (rc != 0) {
+    return false;
+  }
+  if (result == nullptr) {
+    return false;
+  }
+  out_gid = result->gr_gid;
+  return true;
+}
+
+void applySocketGroup(const std::string& path) {
+  // Restrict mode first. If the group cannot be resolved, the socket must not
+  // remain at its umask-derived default mode, which could be world-accessible.
+  if (chmod(path.c_str(), 0660) != 0) {
+    PLOG(ERROR) << "Failed to set mode 0660 on extensions socket " << path;
+  }
+
+  gid_t gid = 0;
+  if (!resolveGroup(osquery::FLAGS_extensions_socket_group, gid)) {
+    LOG(ERROR) << "Invalid extensions_socket_group: "
+               << osquery::FLAGS_extensions_socket_group;
+    return;
+  }
+  if (lchown(path.c_str(), static_cast<uid_t>(-1), gid) != 0) {
+    PLOG(ERROR) << "Failed to set group on extensions socket " << path;
+  }
+}
+
+} // namespace
 #endif
 
 class ThriftServerEventHandler : public TServerEventHandler,
@@ -348,7 +419,12 @@ void ExtensionRunnerInterface::connect() {
   server_->transport = std::make_shared<TPlatformServerSocket>(
       path_, bufsize, TPIPE_SERVER_MAX_CONNS_DEFAULT, securityDescriptor);
 #else
-  server_->transport = std::make_shared<TPlatformServerSocket>(path_);
+  auto transport_socket = std::make_shared<TPlatformServerSocket>(path_);
+  if (!osquery::FLAGS_extensions_socket_group.empty()) {
+    transport_socket->setListenCallback(
+        [path = path_](int /* fd */) { applySocketGroup(path); });
+  }
+  server_->transport = std::move(transport_socket);
 #endif
 
   // Construct the service's transport, protocol, thread pool.
