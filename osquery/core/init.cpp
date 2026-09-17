@@ -652,19 +652,22 @@ bool Initializer::isWatcher() {
 
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
-  auto status = applyExtensionDelay(([type, name](bool& stop) {
-    auto rs = RegistryFactory::get().setActive(type, name);
-    if (rs.ok()) {
-      // The plugin was found, and is now active.
-      return rs;
-    }
+  size_t delay = 0;
+  auto status = applyExtensionDelay(
+      ([type, name](bool& stop) {
+        auto rs = RegistryFactory::get().setActive(type, name);
+        if (rs.ok()) {
+          // The plugin was found, and is now active.
+          return rs;
+        }
 
-    if (!Watcher::hasManagedExtensions()) {
-      // The plugin must be local, and is not active, problem.
-      stop = true;
-    }
-    return rs;
-  }));
+        if (!Watcher::hasManagedExtensions()) {
+          // The plugin must be local, and is not active, problem.
+          stop = true;
+        }
+        return rs;
+      }),
+      delay);
 
   if (!status.ok()) {
     std::string message = "Cannot activate " + name + " " + type +
