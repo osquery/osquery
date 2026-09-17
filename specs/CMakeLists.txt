@@ -185,6 +185,7 @@ function(generateNativeTables)
     "linux/md_personalities.table:linux"
     "linux/msr.table:linux"
     "linux/pacman_packages.table:linux"
+    "linux/snap_packages.table:linux"
     "linux/portage_keywords.table:linux"
     "linux/portage_packages.table:linux"
     "linux/portage_use.table:linux"

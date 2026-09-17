@@ -33,6 +33,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/extended_attributes_tests.cpp
     linux/md_tables_tests.cpp
     linux/pacman_packages_tests.cpp
+    linux/snap_packages_tests.cpp
     linux/pci_devices_tests.cpp
     linux/pcidb_tests.cpp
     linux/portage_tests.cpp
