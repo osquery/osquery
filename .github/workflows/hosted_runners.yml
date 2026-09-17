@@ -768,15 +768,9 @@ jobs:
     # concurrently with the install/package steps below, without rebuilding.
     # CMakeFiles/ and intermediate object files are excluded since ctest
     # only needs the already-linked test binaries, not the compile artifacts.
-    # Debug info is stripped from the binaries too, since ctest doesn't
-    # need symbols to run them. gzip (tar's built-in compression, no extra
-    # tools needed) shrinks the transfer size for upload/download.
     - name: Package build tree for testing
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        find . -type f -perm -u+x ! -name '*.sh' ! -name '*.py' \
-          -exec strip -S {} \; 2>/dev/null || true
-
         tar -czf ../build_tree.tar.gz \
           --exclude='CMakeFiles' \
           --exclude='*.o' \
@@ -800,6 +794,7 @@ jobs:
         compression-level: 0
 
     - name: Run the install target
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
