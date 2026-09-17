@@ -262,6 +262,9 @@ std::string DiskArbitrationEventPublisher::getProperty(
     return (CFBooleanGetValue((CFBooleanRef)value)) ? "1" : "0";
   } else if (CFGetTypeID(value) == CFUUIDGetTypeID()) {
     auto cf_string = CFUUIDCreateString(kCFAllocatorDefault, (CFUUIDRef)value);
+    if (cf_string == nullptr) {
+      return "";
+    }
     auto string = stringFromCFString(cf_string);
     CFRelease(cf_string);
     return string;
