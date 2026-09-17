@@ -8,50 +8,65 @@
  */
 
 #include <gtest/gtest.h>
+#include <osquery/utils/conversions/binary_reader.h>
 #include <osquery/utils/windows/shellitem.h>
 
+#include <boost/algorithm/hex.hpp>
+
+#include <iterator>
 #include <string>
 
 namespace osquery {
 
+namespace {
+std::string hex_to_bytes(const std::string& hex) {
+  std::string out;
+  boost::algorithm::unhex(hex, std::back_inserter(out));
+  return out;
+}
+} // namespace
+
 class ShellitemTests : public testing::Test {};
 
 TEST_F(ShellitemTests, test_shellitem_fileentry) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "56003100000000000000000010006F73717565727900400009000400EFBE000000000000"
       "00002E00000000000000000000000000000000000000000000000000000000006F007300"
-      "71007500650072007900000016000000";
-  auto file_entry = fileEntry(data);
-  ASSERT_TRUE(file_entry.path == "osquery");
-  ASSERT_TRUE(file_entry.mft_entry == 0LL);
-  ASSERT_TRUE(file_entry.dos_created == 0LL);
-  ASSERT_TRUE(file_entry.dos_modified == 0LL);
-  ASSERT_TRUE(file_entry.dos_accessed == 0LL);
-  ASSERT_TRUE(file_entry.mft_sequence == 0LL);
+      "71007500650072007900000016000000");
+  BinaryReader r(bytes);
+  auto file_entry = fileEntry(r);
+  EXPECT_EQ(file_entry.path, "osquery");
+  EXPECT_EQ(file_entry.mft_entry, 0LL);
+  EXPECT_EQ(file_entry.dos_created, 0LL);
+  EXPECT_EQ(file_entry.dos_modified, 0LL);
+  EXPECT_EQ(file_entry.dos_accessed, 0LL);
+  EXPECT_EQ(file_entry.mft_sequence, 0);
 }
 
 TEST_F(ShellitemTests, test_shellitem_ftpserver) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "560061034C00030100000400000012122B8B7BFBD601FFFFFFFF00000000000000000000"
       "000015000000140000007370656564746573742E74656C65322E6E657400040000000000"
-      "00000400000000000000667470000000";
-  std::vector<std::string> ftp_data = ftpItem(data);
-  ASSERT_TRUE(ftp_data[1] == "speedtest.tele2.net");
-  ASSERT_TRUE(ftp_data[0] == "12122B8B7BFBD601");
+      "00000400000000000000667470000000");
+  BinaryReader r(bytes);
+  auto out = ftpItem(r);
+  ASSERT_EQ(out.size(), 2u);
+  EXPECT_EQ(out[0], "12122B8B7BFBD601");
+  EXPECT_EQ(out[1], "speedtest.tele2.net");
 }
 
 TEST_F(ShellitemTests, test_shellitem_zipcontent) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "86007E0043003A0000000000000000000000000000000000000000000000000010000000"
       "4E002F0041000000000000000000000000000000010000000000000004E3CB1700000000"
       "0100000000000000FFFF000011000000000000004C004900450046002D0030002E003100"
-      "30002E0031002D00770069006E0036003400000000006D6265720000";
-  auto name = zipContentItem(data);
-  ASSERT_TRUE(name == "LIEF-0.10.1-win64");
+      "30002E0031002D00770069006E0036003400000000006D6265720000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(zipContentItem(r), "LIEF-0.10.1-win64");
 }
 
 TEST_F(ShellitemTests, test_shellitem_mtpdevice) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "9C050000960505203110030000001A0020000080AF38060000000000000000000000B602"
       "00001800000019000000150000000700000049006E007400650072006E0061006C002000"
       "7300680061007200650064002000730074006F0072006100670065000000530049004400"
@@ -91,27 +106,28 @@ TEST_F(ShellitemTests, test_shellitem_mtpdevice) {
       "DA8B60EE4A3C1A0000000B00000000000D496BEFD85C7A43AFFCDA8B60EE4A3C07000000"
       "480000006001ED99FF17444C9D981D7A6F941921932D058FCAABC54FA5ACB01DF4DBE598"
       "0200000048000000BC5BF023DE152A4CA55BA9AF5CE412EF0D496BEFD85C7A43AFFCDA8B"
-      "60EE4A3C170000001F0000000E000000730031003000300030003100000000000000";
-  auto name = mtpDevice(data);
-  ASSERT_TRUE(name == "Internal shared storage");
+      "60EE4A3C170000001F0000000E000000730031003000300030003100000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(mtpDevice(r), "Internal shared storage");
 }
 
 TEST_F(ShellitemTests, test_shellitem_rootentry) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "3A001F44471A0359723FA74489C55595FE6B30EE260001002600EFBE100000002A4B9884"
-      "B387D50168891281D387D501BF5E6881D387D50114000000";
-  auto name = rootFolderItem(data);
-  ASSERT_TRUE(name == "59031A47-3F72-44A7-89C5-5595FE6B30EE");
+      "B387D50168891281D387D501BF5E6881D387D50114000000");
+  BinaryReader r(bytes);
+  auto name = rootFolderItem(r);
+  ASSERT_EQ(name, "59031A47-3F72-44A7-89C5-5595FE6B30EE");
 }
 
 TEST_F(ShellitemTests, test_shellitem_driveletterentry) {
-  std::string data = "19002F433A5C000000000000000000000000000000000000000000";
-  auto name = driveLetterItem(data);
-  ASSERT_TRUE(name == "C:\\");
+  auto bytes = hex_to_bytes("19002F433A5C000000000000000000000000000000000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(driveLetterItem(r), "C:\\");
 }
 
 TEST_F(ShellitemTests, test_shellitem_mtpfolder) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "0E030000080306201907FB000000020020000000000000000000000000000000000080FD"
       "D223D4F9D40192E3E22711A1E048AB0CE17705A05F85400200000D0000000D0000002700"
       "0000730075007000650072007400750078006B0061007200740000007300750070006500"
@@ -133,13 +149,13 @@ TEST_F(ShellitemTests, test_shellitem_mtpfolder) {
       "95C88698A9BC0F4903DC00001200000000005850544DCE4F784595C88698A9BC0F494EDC"
       "00001F000000200000003200300031003700310031003200370054003000360035003300"
       "3300330000000D496BEFD85C7A43AFFCDA8B60EE4A3C0C0000001F0000001A0000007300"
-      "75007000650072007400750078006B00610072007400000000000000";
-  auto name = mtpFolder(data);
-  ASSERT_TRUE(name == "supertuxkart");
+      "75007000650072007400750078006B00610072007400000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(mtpFolder(r), "supertuxkart");
 }
 
 TEST_F(ShellitemTests, test_shellitem_mtproot) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "6E012E004801062031080300000000000000030000006E00000001000000090000005200"
       "000000004E00650078007500730020003500580000005C005C003F005C00750073006200"
       "23007600690064005F00310038006400310026007000690064005F003400650065003100"
@@ -150,50 +166,50 @@ TEST_F(ShellitemTests, test_shellitem_mtproot) {
       "26469E2B736DC0C92FDC0C0000001F000000120000004E00650078007500730020003500"
       "58000000932D058FCAABC54FA5ACB01DF4DBE59802000000480000006B46EA08A4E33643"
       "A1F3A44D2B5C438C0000741A595E96DFD3488D671733BCEE28BA3C6D783575B0B94988DD"
-      "029876E11C010000";
-  auto name = mtpRoot(data);
-  ASSERT_TRUE(name == "Nexus 5X");
+      "029876E11C010000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(mtpRoot(r), "Nexus 5X");
 }
 
 TEST_F(ShellitemTests, test_shellitem_controlpanelcategoryitem) {
-  std::string data = "0C0001008421DE39050000000000";
-  auto name = controlPanelCategoryItem(data);
-  ASSERT_TRUE(name == "System and Security");
+  auto bytes = hex_to_bytes("0C0001008421DE39050000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(controlPanelCategoryItem(r), "System and Security");
 }
 
 TEST_F(ShellitemTests, test_shellitem_controlpanelitem) {
-  std::string data =
-      "1E007180000000000000000000006ABE817B2BCE7646A29EEB907A5126C50000";
-  auto name = controlPanelItem(data);
-  ASSERT_TRUE(name == "7B81BE6A-CE2B-4676-A29E-EB907A5126C5");
+  auto bytes = hex_to_bytes(
+      "1E007180000000000000000000006ABE817B2BCE7646A29EEB907A5126C50000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(controlPanelItem(r), "7B81BE6A-CE2B-4676-A29E-EB907A5126C5");
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableftp) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "3E0000000000050003001000000000700A00000000000018389483FBD601550700000000"
-      "000075706C6F61640000750070006C006F0061006400000000000000";
-  auto name = variableFtp(data);
-  ASSERT_TRUE(name == "upload");
+      "000075706C6F61640000750070006C006F0061006400000000000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(variableFtp(r), "upload");
 }
 
 TEST_F(ShellitemTests, test_shellitem_variableguid) {
-  std::string data =
-      "200000001A00EEBBFE23000010003ACCBFB42CDB4C42B0297FE99A87C64100000000";
-  auto name = variableGuid(data);
-  ASSERT_TRUE(name == "B4BFCC3A-DB2C-424C-B029-7FE99A87C641");
+  auto bytes = hex_to_bytes(
+      "200000001A00EEBBFE23000010003ACCBFB42CDB4C42B0297FE99A87C64100000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(variableGuid(r), "B4BFCC3A-DB2C-424C-B029-7FE99A87C641");
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "55001F002F0010B7A6F519002F443A5C0000000000000000000000000000000000000000"
       "0000000000000000000000000000000000741A595E96DFD3488D671733BCEE28BA772CFB"
-      "F52F0E164AA3813E560C68BC830000";
-  auto name = propertyViewDrive(data);
-  ASSERT_TRUE(name == "D:\\");
+      "F52F0E164AA3813E560C68BC830000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(propertyViewDrive(r), "D:\\");
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertystore) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "100100000A01BBAF933BFC000400000000002D000000315350537343E50ABE43AD4F85E4"
       "69DC8633986E110000000B000000000B000000FFFF000000000000450000003153505330"
       "F125B7EF471A10A5F102608C9EEBAC290000000A000000001F0000000C00000076006D00"
@@ -201,23 +217,24 @@ TEST_F(ShellitemTests, test_shellitem_propertystore) {
       "3D95D211B5D600C04FD918D03D0000001F000000001F0000001600000056004D00770061"
       "00720065002000530068006100720065006400200046006F006C00640065007200730000"
       "00000000002D000000315350533AA4BDDEB337834391E74498DA2995AB11000000030000"
-      "00001300000000000000000000000000000000000000";
-  std::vector<size_t> wps_list;
-  size_t wps = data.find("31535053");
-  while (wps != std::string::npos) {
+      "00001300000000000000000000000000000000000000");
+  BinaryReader r(bytes);
+  std::vector<std::size_t> wps_list;
+  static constexpr std::string_view kWps("\x31\x53\x50\x53", 4);
+  std::size_t wps = r.find(kWps);
+  while (wps != BinaryReader::npos) {
     wps_list.push_back(wps);
-    wps = data.find("31535053", wps + 1);
+    wps = r.find(kWps, wps + 1);
   }
-  auto name = propertyStore(data, wps_list);
-  ASSERT_TRUE(name == "vmware-host");
+  EXPECT_EQ(propertyStore(r, wps_list), "vmware-host");
 }
 
 TEST_F(ShellitemTests, test_shellitem_networkshare) {
-  std::string data =
+  auto bytes = hex_to_bytes(
       "3A00C301815C5C766D776172652D686F73745C53686172656420466F6C6465727300564D"
-      "776172652053686172656420466F6C64657273003F000000";
-  auto name = networkShareItem(data);
-  ASSERT_TRUE(name == "\\\\vmware-host\\Shared Folders");
+      "776172652053686172656420466F6C64657273003F000000");
+  BinaryReader r(bytes);
+  EXPECT_EQ(networkShareItem(r), "\\\\vmware-host\\Shared Folders");
 }
 
 } // namespace osquery
