@@ -607,7 +607,7 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-26, macos-15]
+        os: [macos-26]
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
@@ -698,20 +698,7 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v7
       with:
-        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
         python-version: '3.13.1'
-        architecture: arm64
-
-    - name: Install tests dependencies
-      id: install_test_deps
-      run: |
-        pip3 install setuptools \
-                      pexpect==3.3 \
-                      psutil \
-                      timeout_decorator \
-                      six \
-                      thrift==0.11.0 \
-                      osquery
 
     - name: Install CMake
       shell: bash
@@ -778,10 +765,24 @@ jobs:
         df -h
         du -sh ${{ steps.build_paths.outputs.BINARY }}
 
-    - name: Run the tests
-      if: matrix.architecture == 'arm64'
+    # Package the build tree so test_macos can reuse it to run the tests
+    # concurrently with the install/package steps below, without rebuilding.
+    # CMakeFiles/ and intermediate object files are excluded since ctest
+    # only needs the already-linked test binaries, not the compile artifacts.
+    - name: Package build tree for testing
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: ctest --build-nocmake -V
+      run: |
+        tar -cf ../build_tree.tar \
+          --exclude='CMakeFiles' \
+          --exclude='*.o' \
+          --exclude='*.a' \
+          .
+
+    - name: Store the build tree artifact
+      uses: actions/upload-artifact@v4.4.0
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: workspace/build_tree.tar
 
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -832,9 +833,68 @@ jobs:
         path: ${{ steps.build_paths.outputs.CCACHE }}
         key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
 
+  # Reuse the build tree(s) produced by build_macos to run the tests.
+  # This allows us to do fewer builds (just use the builds
+  # produced on the newest macOS, which are the ones that we ship)
+  # while still testing on all the configurations.
+  test_macos:
+    needs: build_macos
+
+    # x86_64 needs to run on an actual Intel runner; arm64 runs on the
+    # regular (Apple Silicon) runner.
+    runs-on: ${{ matrix.architecture == 'x86_64' && format('{0}-intel', matrix.os) || matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-26, macos-15]
+        architecture: [x86_64, arm64]
+        build_type: [Release, Debug]
+
+    steps:
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+
+        mkdir -p ${rel_build_path}
+
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+
+    - name: Setup python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13.1'
+
+    - name: Install tests dependencies
+      run: |
+        pip3 install setuptools \
+                      pexpect==3.3 \
+                      psutil \
+                      timeout_decorator \
+                      six \
+                      thrift==0.11.0 \
+                      osquery
+
+    - name: Download the build tree artifact
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}
+
+    - name: Extract the build tree
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        tar -xf build_tree.tar
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: ctest --build-nocmake -V
+
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: build_macos
+    needs: test_macos
 
     runs-on: macos-26
 
@@ -1310,8 +1370,9 @@ jobs:
     steps:
       - run: true
     needs:
-      - build_macos
+      - check_source_code
       - build_linux
       - build_windows
+      - build_macos
+      - test_macos
       - build_universal_macos_artifacts
-      - check_source_code
