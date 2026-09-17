@@ -1,0 +1,278 @@
+#
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+#
+
+# Due to a limitation in how GitHub Actions works, we can't reference
+# jobs in another file inside the `needs` statement.
+#
+# This configuration file takes care of the Windows, macOS and Linux
+# builds on x86_64 and aarch64
+name: build
+
+on:
+  # Run this workflow once every day against the master branch
+  schedule:
+   - cron: "0 7 * * *"
+
+  push:
+    branches:
+      - 'master'
+      - 'main'
+
+    tags:
+      - '*'
+
+  pull_request:
+    branches:
+      - '*'
+
+# Cancel old jobs of a PR if a new job is started.
+# Fallback on using the run id if it's not a PR, which is unique, so no job canceling.
+concurrency:
+  group: hosted-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+# Please remember to update values for both x86 and aarch64 workflows.
+env:
+  PACKAGING_REPO: https://github.com/osquery/osquery-packaging
+  PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
+  OSQUERY_TOOLCHAIN_VERSION: 1.2.0
+
+# If the initial code sanity checks are passing, then one job
+# per [`platform` * `build_type`] will start, building osquery
+# and generating packages that are later attached to the commit
+# (or PR) as build artifacts.
+jobs:
+  # The macOS build will only start once we know that the code
+  # has been properly formatted
+  build_macos:
+
+    runs-on: mac-xl
+
+    env:
+      MACOS_DEPLOYMENT_TARGET: 10.15
+
+    steps:
+    - name: Select the build job count
+      shell: bash
+      id: build_job_count
+      run: echo "VALUE=$(($(sysctl -n hw.logicalcpu) + 1))" >> $GITHUB_OUTPUT
+
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_src_path="workspace/src"
+        rel_ccache_path="workspace/ccache"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
+        rel_package_data_path="workspace/package_data"
+        rel_packaging_path="workspace/osquery-packaging"
+        rel_package_build_path="workspace/package-build"
+
+        mkdir -p ${rel_build_path} \
+                 ${rel_ccache_path} \
+                 ${rel_downloads_path} \
+                 ${rel_install_path} \
+                 ${rel_package_data_path} \
+                 ${rel_package_build_path}
+
+        echo "SOURCE=$(pwd)/${rel_src_path}" >> $GITHUB_OUTPUT
+        echo "REL_SOURCE=${rel_src_path}" >> $GITHUB_OUTPUT
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "CCACHE=$(pwd)/${rel_ccache_path}" >> $GITHUB_OUTPUT
+        echo "DOWNLOADS=$(pwd)/${rel_downloads_path}" >> $GITHUB_OUTPUT
+        echo "INSTALL=$(pwd)/${rel_install_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGING=$(pwd)/${rel_packaging_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_DATA=$(pwd)/${rel_package_data_path}" >> $GITHUB_OUTPUT
+        echo "REL_PACKAGE_BUILD=${rel_package_build_path}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_BUILD=$(pwd)/${rel_package_build_path}" >> $GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Get runner hardware info
+      shell: bash
+      id: runner_stats
+      run: |
+        df -h
+        echo "Cores: $(sysctl -n hw.logicalcpu)"
+        vm_stat
+
+    - name: Restore cache (ccache)
+      if: github.ref_type != 'tag'
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: git submodule sync --recursive
+
+    - name: Install build dependencies
+      run: |
+        brew install \
+          ccache \
+          flex \
+          bison \
+          coreutils \
+          gnu-sed
+
+    - name: Setup python
+      uses: actions/setup-python@v7
+      with:
+        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
+        python-version: '3.13.1'
+        architecture: arm64
+
+    - name: Install tests dependencies
+      id: install_test_deps
+      run: |
+        pip3 install setuptools \
+                      pexpect==3.3 \
+                      psutil \
+                      timeout_decorator \
+                      six \
+                      thrift==0.11.0 \
+                      osquery
+
+    - name: Install CMake
+      shell: bash
+      run: |
+        ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
+          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
+          "${{ steps.build_paths.outputs.INSTALL }}" \
+          "3.21.4"
+
+    # We don't have enough space on the worker to actually generate all
+    # the debug symbols (osquery + dependencies), so we have a flag to
+    # disable them when running a Debug build
+    - name: Select the debug symbols options
+      shell: bash
+      id: debug_symbols_settings
+      run: |
+        if [[ "${{ matrix.build_type }}" == "Debug" ]] ; then
+          echo "VALUE=ON" >> $GITHUB_OUTPUT
+        else
+          echo "VALUE=OFF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Configure ccache
+      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+
+    - name: Configure the project
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}" \
+          -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
+          ${{ steps.build_paths.outputs.SOURCE }}
+
+    - name: Zero ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache --zero-stats
+
+    - name: Build the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+
+      run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Print ccache stats
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+      run: ccache -s
+
+    - name: Disk space information
+      shell: bash
+      id: disk_space_info_post_build
+      run: |
+        df -h
+        du -sh ${{ steps.build_paths.outputs.BINARY }}
+
+    - name: Run the tests
+      if: matrix.architecture == 'arm64'
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: ctest --build-nocmake -V
+
+    - name: Run the install target
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+
+      env:
+        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
+        DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
+
+      run: |
+        cmake \
+          --build . \
+          --target install \
+          -j ${{ steps.build_job_count.outputs.VALUE }}
+
+    - name: Create the package data
+      working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
+      run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
+
+    - name: Locate the package data
+      if: matrix.build_type == 'Release'
+      id: packages
+      shell: bash
+      run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
+
+    - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
+      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos_unsigned_release_package_data_${{ matrix.architecture }}
+        path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
+
+    # Before we terminate this job, delete the build folder. The cache
+    # actions will require the disk space to create the archives.
+    - name: Reclaim disk space
+      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
+
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch && matrix.architecture == 'arm64' && matrix.build_type == 'Release'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
+    - name: Save cache (ccache)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.CCACHE }}
+        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
