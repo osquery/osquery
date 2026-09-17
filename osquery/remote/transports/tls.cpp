@@ -66,6 +66,15 @@ CLI_FLAG(bool,
          false,
          "Enable gzip compression for HTTP responses");
 
+/// Follow HTTP redirects for requests made through the TLS transport.
+CLI_FLAG(bool,
+         tls_follow_redirects,
+         true,
+         "Follow HTTP redirects for TLS/HTTPS requests. Enabled by default. "
+         "Regardless of this setting, a redirect that downgrades HTTPS to "
+         "plaintext HTTP is always refused. Set to false to disable following "
+         "redirects entirely");
+
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
@@ -109,7 +118,9 @@ void TLSTransport::decorateRequest(http::Request& r) {
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
 
-  options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
+  options.follow_redirects(FLAGS_tls_follow_redirects)
+      .always_verify_peer(verify_peer_)
+      .timeout(16);
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
