@@ -869,11 +869,31 @@ jobs:
       id: build_paths
       run: |
         rel_build_path="workspace/build"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
 
-        mkdir -p ${rel_build_path}
+        mkdir -p ${rel_build_path} ${rel_downloads_path} ${rel_install_path}
 
         echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
         echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "DOWNLOADS=$(pwd)/${rel_downloads_path}" >> $GITHUB_OUTPUT
+        echo "INSTALL=$(pwd)/${rel_install_path}" >> $GITHUB_OUTPUT
+
+    # The python integration tests invoke an absolute path to the cmake
+    # binary that was baked in at configure time in build_macos, so it
+    # must be installed at the same path here too.
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+
+    - name: Install CMake
+      shell: bash
+      run: |
+        ./tools/ci/scripts/macos/install_cmake.sh \
+          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
+          "${{ steps.build_paths.outputs.INSTALL }}" \
+          "3.21.4"
 
     - name: Setup python
       uses: actions/setup-python@v5
