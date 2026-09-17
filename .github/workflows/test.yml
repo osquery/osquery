@@ -52,7 +52,7 @@ jobs:
   # has been properly formatted
   build_macos:
 
-    runs-on: mac-xl
+    runs-on: macos-latest-xl
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
