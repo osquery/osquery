@@ -95,6 +95,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
       linux/cpu_info.cpp
+      linux/gpu_info.cpp
       linux/yum_sources.cpp
     )
 
@@ -128,6 +129,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/extended_attributes.cpp
       darwin/firewall.mm
       darwin/gatekeeper.cpp
+      darwin/gpu_info.mm
       darwin/homebrew_packages.cpp
       darwin/macports_packages.cpp
       darwin/ibridge.cpp
@@ -194,6 +196,7 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/dns_cache.cpp
       windows/drivers.cpp
       windows/groups.cpp
+      windows/gpu_info.cpp
       windows/ie_extensions.cpp
       windows/intel_me.cpp
       windows/kernel_info.cpp

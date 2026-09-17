@@ -246,6 +246,7 @@ function(generateNativeTables)
     "posix/memory_error_info.table:linux,macos"
     "posix/mounts.table:linux,macos"
     "posix/oem_strings.table:linux,macos"
+    "posix/gpu_info.table:linux,macos,windows"
     "posix/pci_devices.table:linux,macos"
     "posix/process_envs.table:linux,macos"
     "posix/process_events.table:linux,macos"
