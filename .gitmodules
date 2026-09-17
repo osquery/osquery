@@ -145,3 +145,6 @@
 [submodule "libraries/cmake/source/lz4/src"]
 	path = libraries/cmake/source/lz4/src
 	url = https://github.com/lz4/lz4.git
+[submodule "libraries/cmake/source/yaml-cpp/src"]
+	path = libraries/cmake/source/yaml-cpp/src
+	url = https://github.com/jbeder/yaml-cpp.git

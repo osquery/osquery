@@ -284,6 +284,13 @@
       "CVE-2024-28085"
     ]
   },
+  "yaml-cpp": {
+    "product": "yaml-cpp",
+    "vendor": "jbeder",
+    "version": "0.9.0",
+    "commit": "c3f81127320662deb3e28f4da0a511f1faecd860",
+    "ignored-cves": []
+  },
   "yara": {
     "product": "yara",
     "vendor": "virustotal",
