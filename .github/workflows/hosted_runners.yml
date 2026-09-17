@@ -768,20 +768,36 @@ jobs:
     # concurrently with the install/package steps below, without rebuilding.
     # CMakeFiles/ and intermediate object files are excluded since ctest
     # only needs the already-linked test binaries, not the compile artifacts.
+    # Debug info is stripped from the binaries too, since ctest doesn't
+    # need symbols to run them. gzip (tar's built-in compression, no extra
+    # tools needed) shrinks the transfer size for upload/download.
     - name: Package build tree for testing
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        tar -cf ../build_tree.tar \
+        find . -type f -perm -u+x ! -name '*.sh' ! -name '*.py' \
+          -exec strip -S {} \; 2>/dev/null || true
+
+        tar -czf ../build_tree.tar.gz \
           --exclude='CMakeFiles' \
           --exclude='*.o' \
           --exclude='*.a' \
+          --exclude='*.dSYM' \
+          --exclude='.git' \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='*.tar.gz' \
+          --exclude='*.tar.xz' \
+          --exclude='*.tar.bz2' \
+          --exclude='*.zip' \
           .
 
     - name: Store the build tree artifact
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
-        path: workspace/build_tree.tar
+        path: workspace/build_tree.tar.gz
+        # Already gzip-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -813,6 +829,8 @@ jobs:
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
+        # Already gzip-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     # Before we terminate this job, delete the build folder. The cache
     # actions will require the disk space to create the archives.
@@ -886,7 +904,7 @@ jobs:
     - name: Extract the build tree
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        tar -xf build_tree.tar
+        tar -xzvf build_tree.tar.gz
 
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
