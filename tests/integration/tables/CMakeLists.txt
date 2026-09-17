@@ -173,6 +173,7 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
+      flatpak_packages.cpp
       pacman_packages.cpp
       snap_packages.cpp
       portage_keywords.cpp

@@ -183,6 +183,7 @@ function(generateNativeTables)
     "linux/md_drives.table:linux"
     "linux/md_personalities.table:linux"
     "linux/msr.table:linux"
+    "linux/flatpak_packages.table:linux"
     "linux/pacman_packages.table:linux"
     "linux/snap_packages.table:linux"
     "linux/portage_keywords.table:linux"
