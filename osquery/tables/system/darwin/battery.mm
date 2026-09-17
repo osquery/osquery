@@ -155,7 +155,6 @@ BOOL genAdvancedBatteryInfo(Row& r) {
     [components setYear:year];
     NSDate* date = [calendar dateFromComponents:components];
 
-    r["manufacture_date"] = INTEGER([date timeIntervalSince1970]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMDeviceNameKey]) {
     r["model"] = SQL_TEXT(
