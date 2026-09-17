@@ -367,7 +367,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_ATTR_XATTR_H */
 
 /* Define to 1 if you have the <Bcrypt.h> header file. */
-/* #undef HAVE_BCRYPT_H */
+#define HAVE_BCRYPT_H 1
 
 /* Define to 1 if you have the <bsdxml.h> header file. */
 /* #undef HAVE_BSDXML_H */
