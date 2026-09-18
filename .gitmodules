@@ -75,7 +75,7 @@
 	url = https://github.com/osquery/third-party-iptables
 [submodule "libraries/cmake/source/librdkafka/src"]
 	path = libraries/cmake/source/librdkafka/src
-	url = https://github.com/edenhill/librdkafka
+	url = https://github.com/confluentinc/librdkafka
 [submodule "libraries/cmake/source/googletest/src"]
 	path = libraries/cmake/source/googletest/src
 	url = https://github.com/google/googletest
