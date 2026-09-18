@@ -18,12 +18,15 @@ main() {
   local url="https://cmake.org/files/v${short_version}/${filename}"
   local local_path="${download_folder}/${filename}"
 
-  if [[ ! -f "${local_path}" ]]; then
-    wget "${url}" -O "${local_path}" || return 1
+  mkdir -p "${download_folder}" || return 1
 
-    ls -t ${download_folder}/cmake* | tail -n +2 | while read archive_file ; do
-      rm "${archive_file}" || return 1
-    done
+  if [[ ! -f "${local_path}" ]]; then
+    curl -fL --retry 3 --retry-delay 2 -o "${local_path}" "${url}" || return 1
+  fi
+
+  if [[ ! -s "${local_path}" ]]; then
+    echo "Download failed: ${local_path} is missing or empty" >&2
+    return 1
   fi
 
   mkdir -p "${install_folder}" || return 1
