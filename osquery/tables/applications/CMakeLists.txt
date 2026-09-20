@@ -66,6 +66,7 @@ function(generateOsqueryTablesApplications)
     osquery_utils_json
     plugins_config_parsers
     thirdparty_boost
+    thirdparty_yaml-cpp
   )
 
   if(DEFINED PLATFORM_MACOS)

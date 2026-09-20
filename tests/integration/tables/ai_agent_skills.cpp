@@ -58,6 +58,8 @@ class AIAgentSkills : public testing::Test {
         project_dir / ".cursor" / "skills" / "block-scalar-skill";
     empty_frontmatter_skill_dir =
         project_dir / ".agents" / "skills" / "empty-frontmatter-skill";
+    structured_skill_dir =
+        project_dir / ".github" / "skills" / "structured-skill";
 
     ASSERT_TRUE(createDirectory(skill_dir / "scripts", true).ok());
     ASSERT_TRUE(writeTextFile(skill_dir / "SKILL.md", kSkillMarkdown).ok());
@@ -72,6 +74,11 @@ class AIAgentSkills : public testing::Test {
     ASSERT_TRUE(createDirectory(empty_frontmatter_skill_dir, true).ok());
     ASSERT_TRUE(writeTextFile(empty_frontmatter_skill_dir / "SKILL.md",
                               kEmptyFrontmatterSkillMarkdown)
+                    .ok());
+
+    ASSERT_TRUE(createDirectory(structured_skill_dir, true).ok());
+    ASSERT_TRUE(writeTextFile(structured_skill_dir / "SKILL.md",
+                              kStructuredSkillMarkdown)
                     .ok());
   }
 
@@ -90,10 +97,12 @@ class AIAgentSkills : public testing::Test {
   fs::path skill_dir;
   fs::path block_scalar_skill_dir;
   fs::path empty_frontmatter_skill_dir;
+  fs::path structured_skill_dir;
 
   static const std::string kSkillMarkdown;
   static const std::string kBlockScalarSkillMarkdown;
   static const std::string kEmptyFrontmatterSkillMarkdown;
+  static const std::string kStructuredSkillMarkdown;
 };
 
 const std::string AIAgentSkills::kSkillMarkdown = R"(---
@@ -139,6 +148,27 @@ license: MIT
 Body after an empty frontmatter block.
 )";
 
+// Frontmatter values that are not flat strings: `allowed-tools` as a YAML
+// sequence and `compatibility` as a mapping, both shapes the Agent Skills
+// spec allows, plus a double-quoted description carrying characters that
+// are YAML-significant unquoted. These are what a real YAML parser buys
+// over line splitting, so pin how each one lands in its column.
+const std::string AIAgentSkills::kStructuredSkillMarkdown = R"(---
+name: structured-skill
+description: "Quoted: with a colon, and #hash"
+compatibility:
+  product: claude-code
+  network: false
+allowed-tools:
+  - Read
+  - Bash(git:*)
+metadata:
+  version: 2.0.0
+---
+
+Body content.
+)";
+
 namespace {
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
   static const Row kEmptyRow;
@@ -160,7 +190,7 @@ TEST_F(AIAgentSkills, test_sanity) {
       execute_query("select * from ai_agent_skills where directory = '" +
                     project_dir.string() + "'");
 
-  ASSERT_EQ(data.size(), 3ul);
+  ASSERT_EQ(data.size(), 4ul);
 
   ValidationMap row_map = {
       {"name", NormalType},
@@ -224,6 +254,23 @@ TEST_F(AIAgentSkills, test_empty_frontmatter_block) {
   // would be if the (empty) frontmatter substring computation underflowed
   // and silently became "the rest of the file" instead of "".
   EXPECT_TRUE(row.at("license").empty());
+}
+
+TEST_F(AIAgentSkills, test_structured_frontmatter_values) {
+  auto const data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& row =
+      findRowByPath(data, (structured_skill_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("name"), "structured-skill");
+  EXPECT_EQ(row.at("agent"), "copilot");
+  EXPECT_EQ(row.at("description"), "Quoted: with a colon, and #hash");
+  EXPECT_EQ(row.at("version"), "2.0.0");
+  // A sequence reads better as a joined list than as YAML syntax.
+  EXPECT_EQ(row.at("allowed_tools"), "Read, Bash(git:*)");
+  // Anything structured is emitted in flow style, so it stays on one line.
+  EXPECT_EQ(row.at("compatibility"), "{product: claude-code, network: false}");
 }
 
 TEST_F(AIAgentSkills, test_unconstrained_query_excludes_project_scope) {

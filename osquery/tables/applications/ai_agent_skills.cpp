@@ -8,18 +8,20 @@
  */
 
 #include <set>
-#include <sstream>
 #include <string>
-#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include <yaml-cpp/yaml.h>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/trim.h>
 
 namespace fs = boost::filesystem;
@@ -106,63 +108,81 @@ struct ParsedSkill {
   std::string version;
 };
 
-std::string stripQuotes(std::string_view value) {
-  auto trimmed = trim(value);
-  if (trimmed.size() >= 2 &&
-      ((trimmed.front() == '"' && trimmed.back() == '"') ||
-       (trimmed.front() == '\'' && trimmed.back() == '\''))) {
-    trimmed = trimmed.substr(1, trimmed.size() - 2);
+// Renders a frontmatter value as a single column string. Scalars are taken
+// verbatim (yaml-cpp has already resolved quoting, escapes and block
+// scalars). A sequence of scalars -- the common shape for `allowed-tools`
+// -- is joined, which reads better in a column than YAML syntax. Anything
+// structured (a `compatibility:` map, a nested sequence) is emitted in
+// flow style so it stays on one line rather than becoming a multi-line
+// blob in the middle of a result set.
+std::string nodeToString(const YAML::Node& node) {
+  if (!node || node.IsNull()) {
+    return "";
   }
-  return std::string(trimmed);
+
+  if (node.IsScalar()) {
+    return std::string(trim(node.Scalar()));
+  }
+
+  if (node.IsSequence()) {
+    std::vector<std::string> items;
+    bool all_scalar = true;
+    for (const auto& item : node) {
+      if (!item.IsScalar()) {
+        all_scalar = false;
+        break;
+      }
+      items.push_back(std::string(trim(item.Scalar())));
+    }
+
+    if (all_scalar) {
+      return join(items, ", ");
+    }
+  }
+
+  // Flow style is set on the emitter rather than on the node: the `YAML::Flow`
+  // manipulator loses to the style a node carries from the document it was
+  // parsed out of, whereas these defaults apply to every collection emitted,
+  // at any depth. Restyling the node tree instead would mean walking it, and
+  // a self-referential alias (`compatibility: &a [*a]`) makes that walk
+  // non-terminating; the emitter handles such a node natively, writing it
+  // back out as an alias.
+  YAML::Emitter emitter;
+  emitter.SetSeqFormat(YAML::Flow);
+  emitter.SetMapFormat(YAML::Flow);
+  emitter << node;
+  if (!emitter.good()) {
+    return "";
+  }
+
+  std::string emitted(emitter.c_str());
+  return std::string(trim(emitted));
 }
 
-// Consumes a YAML block scalar (`>`/`>-`/`>+` folded, `|`/`|-`/`|+`
-// literal) starting at lines[start], whose continuation lines are indented
-// further than `key_indent`. Returns the assembled value and advances
-// `next_index` past the consumed lines. Folded lines join with spaces;
-// literal lines keep their newlines; blank lines become a paragraph break
-// either way. Chomping indicators (-/+) are not distinguished: trailing
-// whitespace is trimmed regardless, which is a fine approximation for the
-// short description-style values this table cares about.
-std::string consumeBlockScalar(const std::vector<std::string>& lines,
-                               size_t start,
-                               size_t key_indent,
-                               bool folded,
-                               size_t& next_index) {
-  std::string value;
-  size_t i = start;
-  for (; i < lines.size(); ++i) {
-    const std::string& line = lines[i];
-    if (trim(line).empty()) {
-      value += "\n";
-      continue;
-    }
-
-    size_t indent = line.find_first_not_of(" \t");
-    if (indent == std::string::npos || indent <= key_indent) {
-      break;
-    }
-
-    if (!value.empty() && value.back() != '\n') {
-      value += folded ? " " : "\n";
-    }
-    value += trim(line);
+void assignIfPresent(const YAML::Node& doc,
+                     const std::string& key,
+                     std::string& out) {
+  const auto& node = doc[key];
+  if (node) {
+    out = nodeToString(node);
   }
-  next_index = i;
-  return std::string(trim(value));
 }
 
-// A minimal frontmatter reader, not a general YAML parser: osquery does not
-// vendor a YAML library. Handles the flat scalar keys the Agent Skills open
-// standard (agentskills.io/specification) defines at the top level (name,
-// description, license, compatibility, allowed-tools), plus one level of
-// nesting to pull `version` out of a `metadata:` block, per that spec's own
-// documented convention for where version numbers live, plus YAML block
-// scalars (`>`/`|`) since real-world descriptions commonly use them.
-// Accepts both LF and CRLF line endings for the frontmatter fence itself;
-// embedded CRLFs within the frontmatter body are handled by the per-line
-// trim() calls below, which strip trailing '\r' along with other whitespace.
-// Unrecognized keys are dropped rather than surfaced as a partial blob.
+// Parses the YAML frontmatter block of a SKILL.md: the document delimited
+// by a leading `---` fence and the next `---` line, per the Agent Skills
+// open standard (agentskills.io/specification). Only the keys that
+// standard defines at the top level (name, description, license,
+// compatibility, allowed-tools) are pulled out, plus `version` from the
+// `metadata:` block, per that spec's own documented convention for where
+// version numbers live. Unrecognized keys are dropped rather than surfaced
+// as a partial blob.
+//
+// Locating the fences is markdown framing, not YAML, so it is done here;
+// everything inside is handed to yaml-cpp. Both LF and CRLF line endings
+// are accepted for the fences themselves. A frontmatter block that does
+// not parse leaves the columns blank rather than failing the row, since
+// the path/agent/scope columns are still worth reporting for a skill whose
+// SKILL.md is malformed.
 void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
   size_t fence_len = 0;
   if (file_content.compare(0, 4, "---\n") == 0) {
@@ -174,7 +194,6 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
   }
 
   size_t close = std::string::npos;
-  size_t fence_eol = std::string::npos;
 
   // Start the search one character before fence_len: for an empty
   // frontmatter block ("---\n---\n..."), the closing fence's leading '\n'
@@ -187,18 +206,10 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
     }
 
     const auto after = pos + 4; // just after "\n---"
-    if (after == file_content.size()) {
+    if (after == file_content.size() || file_content[after] == '\n' ||
+        (file_content[after] == '\r' && after + 1 < file_content.size() &&
+         file_content[after + 1] == '\n')) {
       close = pos;
-      fence_eol = after;
-      break;
-    } else if (file_content[after] == '\n') {
-      close = pos;
-      fence_eol = after + 1;
-      break;
-    } else if (file_content[after] == '\r' && after + 1 < file_content.size() &&
-               file_content[after + 1] == '\n') {
-      close = pos;
-      fence_eol = after + 2;
       break;
     }
 
@@ -213,67 +224,45 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
   // ("---\n---\n..."), where the closing fence is found at fence_len - 1;
   // close - fence_len would underflow (both are size_t) and substr's clamped
   // count would silently turn the rest of the file into `frontmatter`.
-  std::string frontmatter =
-      close > fence_len ? file_content.substr(fence_len, close - fence_len)
-                        : "";
-  std::vector<std::string> lines;
-  {
-    std::istringstream stream(frontmatter);
-    std::string line;
-    while (std::getline(stream, line)) {
-      lines.push_back(line);
-    }
+  if (close <= fence_len) {
+    return;
   }
 
-  bool in_metadata = false;
-  for (size_t i = 0; i < lines.size(); ++i) {
-    const std::string& line = lines[i];
-    if (trim(line).empty()) {
-      continue;
+  std::string frontmatter = file_content.substr(fence_len, close - fence_len);
+
+  YAML::Node doc;
+  try {
+    doc = YAML::Load(frontmatter);
+  } catch (const YAML::Exception& e) {
+    VLOG(1) << "ai_agent_skills: failed to parse SKILL.md frontmatter: "
+            << e.what();
+    return;
+  }
+
+  if (!doc.IsMap()) {
+    return;
+  }
+
+  try {
+    assignIfPresent(doc, "name", skill.name);
+    assignIfPresent(doc, "description", skill.description);
+    assignIfPresent(doc, "license", skill.license);
+    assignIfPresent(doc, "compatibility", skill.compatibility);
+
+    // The standard spells it `allowed-tools`; `allowed_tools` is accepted
+    // as well since it shows up in the wild.
+    assignIfPresent(doc, "allowed-tools", skill.allowed_tools);
+    if (skill.allowed_tools.empty()) {
+      assignIfPresent(doc, "allowed_tools", skill.allowed_tools);
     }
 
-    bool indented = line[0] == ' ' || line[0] == '\t';
-    if (!indented) {
-      in_metadata = false;
+    const auto& metadata = doc["metadata"];
+    if (metadata && metadata.IsMap()) {
+      assignIfPresent(metadata, "version", skill.version);
     }
-
-    auto colon = line.find(':');
-    if (colon == std::string::npos) {
-      continue;
-    }
-
-    std::string_view key = trim(std::string_view(line).substr(0, colon));
-    std::string_view raw_value = trim(std::string_view(line).substr(colon + 1));
-
-    std::string value;
-    if (!raw_value.empty() && (raw_value[0] == '>' || raw_value[0] == '|') &&
-        (raw_value.size() == 1 || raw_value[1] == '-' || raw_value[1] == '+')) {
-      size_t key_indent = line.find_first_not_of(" \t");
-      size_t next_index = i + 1;
-      value = consumeBlockScalar(
-          lines, i + 1, key_indent, raw_value[0] == '>', next_index);
-      i = next_index - 1;
-    } else {
-      value = stripQuotes(raw_value);
-    }
-
-    if (!indented) {
-      if (key == "name") {
-        skill.name = value;
-      } else if (key == "description") {
-        skill.description = value;
-      } else if (key == "license") {
-        skill.license = value;
-      } else if (key == "compatibility") {
-        skill.compatibility = value;
-      } else if (key == "allowed-tools" || key == "allowed_tools") {
-        skill.allowed_tools = value;
-      } else if (key == "metadata") {
-        in_metadata = true;
-      }
-    } else if (in_metadata && key == "version") {
-      skill.version = value;
-    }
+  } catch (const YAML::Exception& e) {
+    VLOG(1) << "ai_agent_skills: failed to read SKILL.md frontmatter keys: "
+            << e.what();
   }
 }
 
