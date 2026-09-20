@@ -72,12 +72,14 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/model_specific_register.cpp
       linux/mounts.cpp
       linux/os_version.cpp
+      linux/pacman_packages.cpp
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
       linux/process_open_pipes.cpp
       linux/processes.cpp
       linux/rpm_packages.cpp
+      linux/snap_packages.cpp
       linux/secureboot.cpp
       linux/secureboot_certificates.cpp
       linux/shadow.cpp
@@ -127,6 +129,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/firewall.mm
       darwin/gatekeeper.cpp
       darwin/homebrew_packages.cpp
+      darwin/macports_packages.cpp
       darwin/ibridge.cpp
       darwin/iokit_registry.cpp
       darwin/kernel_extensions.cpp
@@ -266,6 +269,7 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_system_time
     osquery_utils_system_uptime
     osquery_worker_ipc_platformtablecontaineripc
+    osquery_utils_json
     thirdparty_boost
     osquery_rows_processes_header
   )
@@ -290,6 +294,7 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_librpm
       thirdparty_dbus
       thirdparty_libcap
+      thirdparty_yaml-cpp
     )
 
     if(OSQUERY_BUILD_DPKG)

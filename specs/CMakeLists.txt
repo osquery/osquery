@@ -38,6 +38,7 @@ function(generateNativeTables)
     carves.table
     certificates.table
     chrome_extensions.table
+    chrome_search_engines.table
     chrome_extension_content_scripts.table
     curl.table
     curl_certificate.table
@@ -114,6 +115,7 @@ function(generateNativeTables)
     "darwin/gatekeeper.table:macos"
     "darwin/gatekeeper_approved_apps.table:macos"
     "darwin/homebrew_packages.table:macos"
+    "darwin/macports_packages.table:macos"
     "darwin/ibridge_info.table:macos"
     "darwin/iokit_devicetree.table:macos"
     "darwin/iokit_registry.table:macos"
@@ -182,6 +184,8 @@ function(generateNativeTables)
     "linux/md_drives.table:linux"
     "linux/md_personalities.table:linux"
     "linux/msr.table:linux"
+    "linux/pacman_packages.table:linux"
+    "linux/snap_packages.table:linux"
     "linux/portage_keywords.table:linux"
     "linux/portage_packages.table:linux"
     "linux/portage_use.table:linux"

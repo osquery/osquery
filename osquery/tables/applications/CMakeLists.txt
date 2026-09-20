@@ -19,6 +19,7 @@ function(generateOsqueryTablesApplications)
   set(source_files
     chrome/chrome_extensions.cpp
     chrome/chrome_extension_content_scripts.cpp
+    chrome/chrome_search_engines.cpp
     chrome/utils.cpp
     ai_agent_skills.cpp
     browser_firefox.cpp

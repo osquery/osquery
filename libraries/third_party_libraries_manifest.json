@@ -251,8 +251,8 @@
   "sleuthkit": {
     "product": "the_sleuth_kit",
     "vendor": "sleuthkit",
-    "version": "4.11.0",
-    "commit": "a397493d8fd5198b40d6c0ce1e4135c1f86d9ea9",
+    "version": "4.15.0",
+    "commit": "01de0345edaa1ebf21dba6939a7c6bc7129e6e7d",
     "ignored-cves": []
   },
   "sqlite": {
@@ -267,8 +267,8 @@
   "thrift": {
     "product": "thrift",
     "vendor": "apache",
-    "version": "0.17.0",
-    "commit": "4d493e867b349f3475203ef9848353b315203c51",
+    "version": "0.24.0",
+    "commit": "6d2ec95f450b4ce404afb8929ff479e68770141a",
     "ignored-cves": []
   },
   "util-linux": {
@@ -284,6 +284,13 @@
       "CVE-2024-28085"
     ]
   },
+  "yaml-cpp": {
+    "product": "yaml-cpp",
+    "vendor": "jbeder",
+    "version": "0.9.0",
+    "commit": "c3f81127320662deb3e28f4da0a511f1faecd860",
+    "ignored-cves": []
+  },
   "yara": {
     "product": "yara",
     "vendor": "virustotal",
@@ -294,8 +301,8 @@
   "zlib": {
     "product": "zlib",
     "vendor": "zlib",
-    "version": "1.3.1",
-    "commit": "51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf",
+    "version": "1.3.2",
+    "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
     "ignored-cves": []
   },
   "zstd": {
