@@ -28,8 +28,10 @@
 #include <osquery/core/system.h>
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/registry/registry_factory.h>
+#include <osquery/utils/info/version.h>
 #include <osquery/utils/json/json.h>
 
+#include <plugins/config/parsers/decorators.h>
 #include <plugins/config/parsers/kafka_topics.h>
 #include <plugins/logger/kafka_producer.h>
 
@@ -39,6 +41,7 @@ DECLARE_string(tls_client_cert);
 DECLARE_string(tls_client_key);
 DECLARE_string(tls_server_certs);
 DECLARE_bool(verbose);
+DECLARE_bool(decorations_top_level);
 
 FLAG(string,
      logger_kafka_brokers,
@@ -47,6 +50,11 @@ FLAG(string,
      "(default port 9092)");
 
 FLAG(string, logger_kafka_topic, "", "Kafka topic to publish logs under");
+
+FLAG(string,
+     logger_kafka_status_topic,
+     "",
+     "Kafka topic to publish status logs under (disabled if empty)");
 
 FLAG(string,
      logger_kafka_acks,
@@ -276,6 +284,70 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
   return status;
 }
 
+bool KafkaProducerPlugin::usesLogStatus() {
+  // Only take over Glog status logging when a status topic is configured and
+  // the producer initialized successfully.
+  return running_.load() && statusTopic_ != nullptr;
+}
+
+/// Serializes a single StatusLogLine into a JSON payload string.
+static std::string serializeStatusLogLine(const StatusLogLine& item) {
+  JSON status_json;
+  status_json.addRef("hostIdentifier", item.identifier);
+  status_json.addRef("calendarTime", item.calendar_time);
+  status_json.addCopy("unixTime", item.time);
+  status_json.addCopy("severity", static_cast<int>(item.severity));
+  status_json.addRef("filename", item.filename);
+  status_json.addCopy("line", item.line);
+  status_json.addRef("message", item.message);
+  status_json.addRef("version", kVersion);
+
+  std::map<std::string, std::string> decorations;
+  getDecorations(decorations);
+  if (!decorations.empty()) {
+    if (!FLAGS_decorations_top_level) {
+      JSON decorations_json;
+      for (const auto& decoration : decorations) {
+        decorations_json.addCopy(decoration.first, decoration.second);
+      }
+      status_json.addCopy("decorations", decorations_json.doc());
+    } else {
+      for (const auto& decoration : decorations) {
+        status_json.addCopy(decoration.first, decoration.second);
+      }
+    }
+  }
+
+  std::string json;
+  status_json.toString(json);
+  return json;
+}
+
+Status KafkaProducerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  if (!running_.load()) {
+    return Status(
+        1, "Cannot log because Kafka producer did not initiate properly.");
+  }
+
+  if (statusTopic_ == nullptr) {
+    return Status(1, "No Kafka status topic configured");
+  }
+
+  Status result;
+  for (const auto& item : log) {
+    Status status = publishMsg(statusTopic_, serializeStatusLogLine(item));
+    if (!status.ok()) {
+      LOG(ERROR) << "Could not publish status message: " << status.getMessage();
+      result = status;
+    }
+  }
+
+  // Poll after producing the batch of status messages.
+  pollKafka();
+
+  return result;
+}
+
 Status KafkaProducerPlugin::publishMsg(rd_kafka_topic_t* topic,
                                        const std::string& payload) {
   if (rd_kafka_produce(topic,
@@ -342,6 +414,21 @@ bool KafkaProducerPlugin::configureTopics() {
           queryToTopics_[name] = topic;
         }
       }
+    }
+  }
+
+  // Initiate the Kafka status topic, if configured.
+  if (!FLAGS_logger_kafka_status_topic.empty()) {
+    auto topic = initTopic(FLAGS_logger_kafka_status_topic);
+    if (topic == nullptr) {
+      LOG(ERROR) << "Could not initiate Kafka status topic '"
+                 << FLAGS_logger_kafka_status_topic
+                 << "'; status logs will not be published to Kafka";
+    } else {
+      topics_.push_back(std::unique_ptr<rd_kafka_topic_t,
+                                        std::function<void(rd_kafka_topic_t*)>>(
+          topic, delKafkaTopic));
+      statusTopic_ = topic;
     }
   }
 

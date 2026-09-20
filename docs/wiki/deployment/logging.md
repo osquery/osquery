@@ -97,6 +97,10 @@ There are 3 Kafka configurations exposed as options: a comma-delimited list of b
 
 To publish queries to specific topics, add a `kafka_topics` field at the top level of `osquery.conf` (see example below). If a given query was not explicitly configured in `kafka_topics` then the base topic will be used.  If there is no base topic configured, then that query will not be logged. There is however a performance cost for the falling back of unconfigured queries to the base topic, so it is advised that when using multiple topics to explicitly configure all scheduled queries in `kafka_topics`.
 
+Status logs (osquery's own INFO/WARNING/ERROR messages) are published separately from query results. Set `logger_kafka_status_topic` to the topic that should receive status logs. When it is empty (the default) status logs are not published to Kafka and continue to flow to the default logging path (e.g. the filesystem logger). Each status log line is published as a JSON object, in the same format used by the TLS logger, containing fields such as `hostIdentifier`, `calendarTime`, `unixTime`, `severity`, `filename`, `line`, `message`, and `version`.
+
+To enable the Kafka logger, set `--logger_plugin=kafka_producer`. Note that `--logger_plugin` is a CLI-only flag: it is read before the config is loaded, so it must be passed on the command line or in a flagfile. Setting it in the `options` block of the config is ignored (osquery emits a warning), which causes it to fall back to the default logger. The `logger_kafka_*` options below are not CLI-only and may be set either in a flagfile or in the config `options` block.
+
 The configuration parameters are exposed via command-line options and can be set in a JSON configuration file:
 
 ```json
@@ -104,6 +108,7 @@ The configuration parameters are exposed via command-line options and can be set
   "options": {
     "logger_kafka_brokers": "some.example1.com:9092,some.example2.com:9092",
     "logger_kafka_topic": "base_topic",
+    "logger_kafka_status_topic": "status_topic",
     "logger_kafka_compression": "gzip",
     "logger_kafka_acks": "1"
   },
