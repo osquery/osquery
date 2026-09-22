@@ -921,6 +921,32 @@ jobs:
       run: |
         tar -xzvf build_tree.tar.gz
 
+    # build_macos always configures on macos-26 (Apple Silicon) hardware,
+    # even for the x86_64 leg (it cross-compiles via CMAKE_OSX_ARCHITECTURES),
+    # so the CTest files it produces have the arm64 hostedtoolcache Python
+    # path baked into their COMMAND/ENVIRONMENT. When x86_64 tests run here
+    # on a real Intel runner that path doesn't exist, so re-point it at the
+    # Python actually installed on this runner.
+    - name: Align the baked Python interpreter path
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        baked_python_path="$(grep -rhoE '/[^ ;"]*/bin/python3' --include='CTestTestfile.cmake' . | sort -u | head -n1)"
+
+        if [[ -z "${baked_python_path}" ]]; then
+          echo "::error::Could not find the baked Python interpreter path in the build tree"
+          exit 1
+        fi
+
+        actual_python_path="$(command -v python3)"
+        echo "Baked path: ${baked_python_path}"
+        echo "Actual path: ${actual_python_path}"
+
+        if [[ "${baked_python_path}" != "${actual_python_path}" ]]; then
+          mkdir -p "$(dirname "${baked_python_path}")"
+          ln -sf "${actual_python_path}" "${baked_python_path}"
+        fi
+
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: ctest --build-nocmake -V
