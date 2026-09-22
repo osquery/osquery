@@ -771,7 +771,7 @@ jobs:
     - name: Package build tree for testing
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        tar -czf ../build_tree.tar.gz \
+        tar --zstd -cf ../build_tree.tar.zst \
           --exclude='CMakeFiles' \
           --exclude='*.o' \
           --exclude='*.a' \
@@ -781,6 +781,7 @@ jobs:
           --exclude='*.pyc' \
           --exclude='*.tar.gz' \
           --exclude='*.tar.xz' \
+          --exclude='*.tar.zst' \
           --exclude='*.tar.bz2' \
           --exclude='*.zip' \
           .
@@ -789,8 +790,8 @@ jobs:
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
-        path: workspace/build_tree.tar.gz
-        # Already gzip-compressed; skip the redundant recompression pass.
+        path: workspace/build_tree.tar.zst
+        # Already zstd-compressed; skip the redundant recompression pass.
         compression-level: 0
 
     - name: Run the install target
@@ -919,7 +920,7 @@ jobs:
     - name: Extract the build tree
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        tar -xzvf build_tree.tar.gz
+        tar --zstd -xvf build_tree.tar.zst
 
     # build_macos always configures on macos-26 (Apple Silicon) hardware,
     # even for the x86_64 leg (it cross-compiles via CMAKE_OSX_ARCHITECTURES),
