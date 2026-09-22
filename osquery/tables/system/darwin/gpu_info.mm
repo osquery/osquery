@@ -264,7 +264,8 @@ IOKitGpuInfoList collectIOKitGpus() {
     // "GPU Activity(%)" appears on some Intel/integrated GPUs.
     CFTypeRef perf_ref =
         CFDictionaryGetValue(props, CFSTR("PerformanceStatistics"));
-    if (perf_ref != nullptr && CFGetTypeID(perf_ref) == CFDictionaryGetTypeID()) {
+    if (perf_ref != nullptr &&
+        CFGetTypeID(perf_ref) == CFDictionaryGetTypeID()) {
       CFDictionaryRef perf = static_cast<CFDictionaryRef>(perf_ref);
       for (CFStringRef key :
            {CFSTR("Device Utilization %"), CFSTR("GPU Activity(%)")}) {
