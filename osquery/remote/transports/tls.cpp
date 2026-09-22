@@ -22,7 +22,18 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::string kTLSUserAgentBase = "osquery/";
+/// Compile-time default for the User-Agent prefix, set via the
+/// OSQUERY_USER_AGENT_PREFIX CMake option (default "osquery/").
+const std::string kTLSUserAgentBase = STR(OSQUERY_USER_AGENT_PREFIX);
+
+/// User-Agent prefix sent to the TLS server back-end. The osquery version is
+/// appended to this value, so a prefix of "osquery/" yields "osquery/5.0.0".
+/// Defaults to the compile-time OSQUERY_USER_AGENT_PREFIX but can be
+/// overridden at run time.
+CLI_FLAG(string,
+         tls_user_agent,
+         kTLSUserAgentBase,
+         "User-Agent prefix for TLS requests; the osquery version is appended");
 
 /// TLS server hostname.
 CLI_FLAG(string,
@@ -97,7 +108,7 @@ TLSTransport::TLSTransport() {
 void TLSTransport::decorateRequest(http::Request& r) {
   r << http::Request::Header("Content-Type", serializer_->getContentType());
   r << http::Request::Header("Accept", serializer_->getContentType());
-  r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
+  r << http::Request::Header("User-Agent", FLAGS_tls_user_agent + kVersion);
 
   auto node_key = getOption("node_key");
   if (!node_key.empty()) {
