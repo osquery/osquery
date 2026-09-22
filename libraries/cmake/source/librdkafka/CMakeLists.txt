@@ -26,9 +26,11 @@ function(librdkafkaMain)
   endif()
 
   add_library(thirdparty_rdkafka_c
+    "${library_root}/src/cJSON.c"
     "${library_root}/src/crc32c.c"
     "${library_root}/src/rdaddr.c"
     "${library_root}/src/rdavl.c"
+    "${library_root}/src/rdbase64.c"
     "${library_root}/src/rdbuf.c"
     "${library_root}/src/rdcrc32.c"
     "${library_root}/src/rddl.c"
@@ -49,6 +51,7 @@ function(librdkafkaMain)
     "${library_root}/src/rdkafka_error.c"
     "${library_root}/src/rdkafka_event.c"
     "${library_root}/src/rdkafka_feature.c"
+    "${library_root}/src/rdkafka_fetcher.c"
     "${library_root}/src/rdkafka_header.c"
     "${library_root}/src/rdkafka_idempotence.c"
     "${library_root}/src/rdkafka_interceptor.c"
@@ -58,6 +61,7 @@ function(librdkafkaMain)
     "${library_root}/src/rdkafka_mock.c"
     "${library_root}/src/rdkafka_mock_cgrp.c"
     "${library_root}/src/rdkafka_mock_handlers.c"
+    "${library_root}/src/rdkafka_mock_sharegrp.c"
     "${library_root}/src/rdkafka_msg.c"
     "${library_root}/src/rdkafka_msgset_reader.c"
     "${library_root}/src/rdkafka_msgset_writer.c"
@@ -74,9 +78,13 @@ function(librdkafkaMain)
     "${library_root}/src/rdkafka_sasl_oauthbearer.c"
     "${library_root}/src/rdkafka_sasl_plain.c"
     "${library_root}/src/rdkafka_sasl_scram.c"
+    "${library_root}/src/rdkafka_share_acknowledgement.c"
     "${library_root}/src/rdkafka_ssl.c"
     "${library_root}/src/rdkafka_sticky_assignor.c"
     "${library_root}/src/rdkafka_subscription.c"
+    "${library_root}/src/rdkafka_telemetry.c"
+    "${library_root}/src/rdkafka_telemetry_decode.c"
+    "${library_root}/src/rdkafka_telemetry_encode.c"
     "${library_root}/src/rdkafka_timer.c"
     "${library_root}/src/rdkafka_topic.c"
     "${library_root}/src/rdkafka_transport.c"
@@ -91,11 +99,20 @@ function(librdkafkaMain)
     "${library_root}/src/rdregex.c"
     "${library_root}/src/rdstring.c"
     "${library_root}/src/rdunittest.c"
+    "${library_root}/src/rdunittest_acknowledge.c"
+    "${library_root}/src/rdunittest_fetcher.c"
+    "${library_root}/src/rdunittest_msgset_errors.c"
     "${library_root}/src/rdvarint.c"
     "${library_root}/src/rdxxhash.c"
     "${library_root}/src/snappy.c"
     "${library_root}/src/tinycthread.c"
     "${library_root}/src/tinycthread_extra.c"
+    "${library_root}/src/nanopb/pb_common.c"
+    "${library_root}/src/nanopb/pb_decode.c"
+    "${library_root}/src/nanopb/pb_encode.c"
+    "${library_root}/src/opentelemetry/common.pb.c"
+    "${library_root}/src/opentelemetry/metrics.pb.c"
+    "${library_root}/src/opentelemetry/resource.pb.c"
   )
 
   if(PLATFORM_POSIX)
@@ -112,9 +129,103 @@ function(librdkafkaMain)
 
   renameLZ4APIs("RDKAFKA" "lz4_frame_renames")
 
+  # rdkafka embeds a copy of cJSON (used unconditionally by rd_kafka_global_init
+  # via cJSON_InitHooks). The aws-sdk-cpp core library also embeds cJSON and
+  # exports the same "cJSON_*" symbols, which collides at link time when both are
+  # linked into osqueryd. Namespace rdkafka's copy so the two do not clash.
+  # NOTE: This list has to be manually kept up to date (see the exported symbols
+  # of cJSON.c, e.g. `nm libthirdparty_rdkafka_c.a`).
+  set(cjson_apis
+    "cJSON_AddArrayToObject"
+    "cJSON_AddBoolToObject"
+    "cJSON_AddFalseToObject"
+    "cJSON_AddItemReferenceToArray"
+    "cJSON_AddItemReferenceToObject"
+    "cJSON_AddItemToArray"
+    "cJSON_AddItemToObject"
+    "cJSON_AddItemToObjectCS"
+    "cJSON_AddNullToObject"
+    "cJSON_AddNumberToObject"
+    "cJSON_AddObjectToObject"
+    "cJSON_AddRawToObject"
+    "cJSON_AddStringToObject"
+    "cJSON_AddTrueToObject"
+    "cJSON_Compare"
+    "cJSON_CreateArray"
+    "cJSON_CreateArrayReference"
+    "cJSON_CreateBool"
+    "cJSON_CreateDoubleArray"
+    "cJSON_CreateFalse"
+    "cJSON_CreateFloatArray"
+    "cJSON_CreateIntArray"
+    "cJSON_CreateNull"
+    "cJSON_CreateNumber"
+    "cJSON_CreateObject"
+    "cJSON_CreateObjectReference"
+    "cJSON_CreateRaw"
+    "cJSON_CreateString"
+    "cJSON_CreateStringArray"
+    "cJSON_CreateStringReference"
+    "cJSON_CreateTrue"
+    "cJSON_Delete"
+    "cJSON_DeleteItemFromArray"
+    "cJSON_DeleteItemFromObject"
+    "cJSON_DeleteItemFromObjectCaseSensitive"
+    "cJSON_DetachItemFromArray"
+    "cJSON_DetachItemFromObject"
+    "cJSON_DetachItemFromObjectCaseSensitive"
+    "cJSON_DetachItemViaPointer"
+    "cJSON_Duplicate"
+    "cJSON_Duplicate_rec"
+    "cJSON_GetArrayItem"
+    "cJSON_GetArraySize"
+    "cJSON_GetErrorPtr"
+    "cJSON_GetNumberValue"
+    "cJSON_GetObjectItem"
+    "cJSON_GetObjectItemCaseSensitive"
+    "cJSON_GetStringValue"
+    "cJSON_HasObjectItem"
+    "cJSON_InitHooks"
+    "cJSON_InsertItemInArray"
+    "cJSON_IsArray"
+    "cJSON_IsBool"
+    "cJSON_IsFalse"
+    "cJSON_IsInvalid"
+    "cJSON_IsNull"
+    "cJSON_IsNumber"
+    "cJSON_IsObject"
+    "cJSON_IsRaw"
+    "cJSON_IsString"
+    "cJSON_IsTrue"
+    "cJSON_Minify"
+    "cJSON_Parse"
+    "cJSON_ParseWithLength"
+    "cJSON_ParseWithLengthOpts"
+    "cJSON_ParseWithOpts"
+    "cJSON_Print"
+    "cJSON_PrintBuffered"
+    "cJSON_PrintPreallocated"
+    "cJSON_PrintUnformatted"
+    "cJSON_ReplaceItemInArray"
+    "cJSON_ReplaceItemInObject"
+    "cJSON_ReplaceItemInObjectCaseSensitive"
+    "cJSON_ReplaceItemViaPointer"
+    "cJSON_SetNumberHelper"
+    "cJSON_SetValuestring"
+    "cJSON_Version"
+    "cJSON_free"
+    "cJSON_malloc"
+  )
+
+  unset(cjson_renames)
+  foreach(cjson_api ${cjson_apis})
+    list(APPEND cjson_renames "${cjson_api}=RDKAFKA_${cjson_api}")
+  endforeach()
+
   target_compile_definitions(thirdparty_rdkafka_c PRIVATE
     XXH_NAMESPACE=RDKAFKA_
     ${lz4_frame_renames}
+    ${cjson_renames}
   )
 
   target_include_directories(thirdparty_rdkafka_c PRIVATE
