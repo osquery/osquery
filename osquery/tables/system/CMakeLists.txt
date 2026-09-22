@@ -33,6 +33,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/augeas.cpp
       posix/authorized_keys.cpp
       posix/crontab.cpp
+      posix/homebrew_packages.cpp
       posix/known_hosts.cpp
       posix/last.cpp
       posix/load_average.cpp
@@ -130,7 +131,6 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/firewall.mm
       darwin/gatekeeper.cpp
       darwin/gpu_info.mm
-      darwin/homebrew_packages.cpp
       darwin/macports_packages.cpp
       darwin/ibridge.cpp
       darwin/iokit_registry.cpp

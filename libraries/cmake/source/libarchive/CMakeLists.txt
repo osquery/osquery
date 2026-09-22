@@ -171,6 +171,12 @@ function(libarchiveMain)
     target_compile_definitions(thirdparty_libarchive PRIVATE
       _CRT_SECURE_NO_DEPRECATE
     )
+
+    # libarchive 3.8.x dropped the deprecated WinCrypt fallback, so the
+    # ARCHIVE_CRYPTO_*_WIN digest backends now require CNG (bcrypt).
+    target_link_libraries(thirdparty_libarchive PRIVATE
+      bcrypt
+    )
   endif()
 
   target_link_libraries(thirdparty_libarchive PRIVATE
