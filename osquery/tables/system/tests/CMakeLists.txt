@@ -33,6 +33,7 @@ function(generateOsqueryTablesSystemLinuxTests)
     linux/extended_attributes_tests.cpp
     linux/md_tables_tests.cpp
     linux/pacman_packages_tests.cpp
+    linux/snap_packages_tests.cpp
     linux/pci_devices_tests.cpp
     linux/pcidb_tests.cpp
     linux/portage_tests.cpp
@@ -117,6 +118,7 @@ function(generateOsqueryTablesSystemDarwinTests)
     darwin/extended_attributes_tests.cpp
     darwin/firewall_tests.cpp
     darwin/launchd_tests.cpp
+    darwin/macports_packages_tests.cpp
     darwin/mdfind_tests.cpp
     darwin/packages_tests.cpp
     darwin/processes_tests.cpp

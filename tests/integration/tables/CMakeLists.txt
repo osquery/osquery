@@ -175,6 +175,7 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_map.cpp
       msr.cpp
       pacman_packages.cpp
+      snap_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp
@@ -237,6 +238,7 @@ function(generateTestsIntegrationTablesTestsTest)
       gatekeeper.cpp
       gatekeeper_approved_apps.cpp
       homebrew_packages.cpp
+      macports_packages.cpp
       ibridge.cpp
       iokit_devicetree.cpp
       iokit_registry.cpp

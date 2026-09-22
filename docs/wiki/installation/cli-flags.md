@@ -255,6 +255,14 @@ The total number of attempts that will be made to the remote config server if a
 request fails. If an attempt fails, it will be retried with exponential
 backoff, up to the max number of attempts set.
 
+`--config_tls_etag=true`
+
+Send an `"etag"` field in **tls** config request bodies so the server may
+answer with a minimal `{"etag": "ok"}` body instead of the full configuration
+when it is unchanged. Servers that do not support conditional requests ignore
+the field; see the [remote](../deployment/remote.md) plugin documentation.
+Set to `false` to always request the full configuration.
+
 `--logger_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: `/api/v1/logger` when using the **tls** logger plugin. See the other **tls\_** related CLI flags.
