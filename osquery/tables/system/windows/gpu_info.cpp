@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <map>
 #include <string>
@@ -19,6 +20,7 @@
 #include <osquery/sql/sql.h>
 
 #include <osquery/core/windows/wmi.h>
+#include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/conversions/windows/strings.h>
 
@@ -101,6 +103,115 @@ std::map<std::string, std::string> pciAddressByPnpId() {
   return addresses;
 }
 
+// Collect 3D engine utilization per physical GPU index.
+// Name format: pid_PPPP_luid_0xHH_0xHH_phys_N_eng_E_engtype_3D
+// Sums UtilizationPercentage across all entries for each phys_N, capped at 100.
+std::map<int, double> collectGpuUtilizationPct() {
+  std::map<int, double> util_map;
+
+  const auto perfReq = WmiRequest::CreateWmiRequest(
+      "SELECT Name, UtilizationPercentage "
+      "FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine");
+  if (!perfReq || perfReq->results().empty()) {
+    return util_map;
+  }
+
+  for (const auto& item : perfReq->results()) {
+    std::string name;
+    if (!item.GetString("Name", name).ok()) {
+      continue;
+    }
+    if (name.find("engtype_3D") == std::string::npos) {
+      continue;
+    }
+
+    const auto phys_pos = name.find("_phys_");
+    if (phys_pos == std::string::npos) {
+      continue;
+    }
+    const std::size_t num_start = phys_pos + 6;
+    const auto num_end = name.find('_', num_start);
+    if (num_end == std::string::npos) {
+      continue;
+    }
+    const auto phys_result =
+        tryTo<int>(name.substr(num_start, num_end - num_start));
+    if (phys_result.isError()) {
+      continue;
+    }
+    const int phys_idx = phys_result.get();
+
+    unsigned long long util = 0;
+    item.GetUnsignedLongLong("UtilizationPercentage", util);
+    util_map[phys_idx] += static_cast<double>(util);
+  }
+
+  for (auto& kv : util_map) {
+    kv.second = std::min(kv.second, 100.0);
+  }
+
+  return util_map;
+}
+
+// Collect 64-bit VRAM sizes from the display adapter registry class.
+// Indexed by enumeration order of numeric subkeys (0000, 0001, ...).
+// This avoids the 4 GB wrap of Win32_VideoController.AdapterRAM (uint32).
+std::map<int, unsigned long long> collectVramSizes() {
+  std::map<int, unsigned long long> vram_map;
+
+  const std::string kDisplayClassKey =
+      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\"
+      "{4d36e968-e325-11ce-bfc1-08002be10318}";
+
+  QueryData classResults;
+  queryKey(kDisplayClassKey, classResults);
+
+  int idx = 0;
+  for (const auto& row : classResults) {
+    const auto type_it = row.find("type");
+    const auto name_it = row.find("name");
+    if (type_it == row.end() || type_it->second != "subkey") {
+      continue;
+    }
+
+    // Skip non-numeric subkeys (e.g. "Properties").
+    const std::string& subkeyName = name_it->second;
+    bool numeric = !subkeyName.empty();
+    for (char c : subkeyName) {
+      if (!isdigit(static_cast<unsigned char>(c))) {
+        numeric = false;
+        break;
+      }
+    }
+    if (!numeric) {
+      continue;
+    }
+
+    QueryData adapterResults;
+    queryKey(kDisplayClassKey + kRegSep + subkeyName, adapterResults);
+    for (const auto& val : adapterResults) {
+      const auto vname_it = val.find("name");
+      const auto vtype_it = val.find("type");
+      const auto vdata_it = val.find("data");
+      if (vname_it == val.end() || vtype_it == val.end() ||
+          vdata_it == val.end()) {
+        continue;
+      }
+      if (vname_it->second == "HardwareInformation.qwMemorySize" &&
+          vtype_it->second == "REG_QWORD") {
+        const auto result = tryTo<unsigned long long>(vdata_it->second);
+        if (!result.isError() && result.get() > 0) {
+          vram_map[idx] = result.get();
+        }
+        break;
+      }
+    }
+    ++idx;
+  }
+
+  return vram_map;
+}
+
 } // namespace
 
 QueryData genGpuInfo(QueryContext& context) {
@@ -114,8 +225,11 @@ QueryData genGpuInfo(QueryContext& context) {
   }
 
   const auto address_by_pnp_id = pciAddressByPnpId();
+  const auto util_map = collectGpuUtilizationPct();
+  const auto vram_map = collectVramSizes();
 
   std::int32_t device_id = 0;
+  int gpu_index = 0;
   for (const auto& wmiResult : wmiReq->results()) {
     Row r;
 
@@ -156,17 +270,30 @@ QueryData genGpuInfo(QueryContext& context) {
     wmiResult.GetString("VideoProcessor", r["model"]);
     wmiResult.GetString("InstalledDisplayDrivers", r["driver"]);
 
-    // VRAM: AdapterRAM is a uint32 and wraps at 4 GB. Try the registry-backed
-    // WMI property first; fall back to AdapterRAM.
-    unsigned long long adapter_ram = 0;
-    if (wmiResult.GetUnsignedLongLong("AdapterRAM", adapter_ram).ok() &&
-        adapter_ram > 0) {
-      r["vram"] = BIGINT(adapter_ram);
+    // VRAM: prefer the 64-bit registry value (HardwareInformation.qwMemorySize)
+    // to avoid the 4 GB wrap of Win32_VideoController.AdapterRAM (uint32).
+    // Fall back to AdapterRAM when the registry value is unavailable.
+    const auto vram_it = vram_map.find(gpu_index);
+    if (vram_it != vram_map.end()) {
+      r["vram"] = BIGINT(static_cast<long long>(vram_it->second));
     } else {
-      unsigned long ram = 0;
-      if (wmiResult.GetUnsignedLong("AdapterRAM", ram).ok() && ram > 0) {
-        r["vram"] = BIGINT(ram);
+      unsigned long long adapter_ram = 0;
+      if (wmiResult.GetUnsignedLongLong("AdapterRAM", adapter_ram).ok() &&
+          adapter_ram > 0) {
+        r["vram"] = BIGINT(adapter_ram);
+      } else {
+        unsigned long ram = 0;
+        if (wmiResult.GetUnsignedLong("AdapterRAM", ram).ok() && ram > 0) {
+          r["vram"] = BIGINT(ram);
+        }
       }
+    }
+
+    // GPU utilization: phys_N in GPUEngine perf counters is assumed to match
+    // enumeration order.
+    const auto util_it = util_map.find(gpu_index);
+    if (util_it != util_map.end()) {
+      r["gpu_utilization_pct"] = DOUBLE(util_it->second);
     }
 
     // Only PCI adapters carry a PCI class: Win32_VideoController also
@@ -185,6 +312,7 @@ QueryData genGpuInfo(QueryContext& context) {
     }
 
     results.push_back(r);
+    ++gpu_index;
   }
 
   return results;

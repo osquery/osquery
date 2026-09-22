@@ -13,6 +13,7 @@
 #include <dlfcn.h>
 #include <fstream>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include <boost/algorithm/string.hpp>
@@ -44,12 +45,6 @@ const std::string kPCIKeyID = "PCI_ID";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
-
-// Candidate locations of the pci.ids database; mirrors the constant in
-// pci_devices.cpp, which is not exported through a header.
-const std::vector<std::string> kPciidsPathList{"/usr/share/misc/pci.ids",
-                                               "/usr/share/hwdata/pci.ids",
-                                               "/usr/share/pci.ids"};
 
 std::string readSysFile(const std::string& path) {
   std::string content;
@@ -335,6 +330,104 @@ bool isDisplayControllerClass(const std::string& pci_class_id) {
   return pci_class_id.size() >= 4 && pci_class_id.compare(2, 2, "03") == 0;
 }
 
+// Read a single-line sysfs attribute from a device path. Returns empty string
+// on failure. Used for telemetry attributes that live on the PCI device node
+// or its hwmon child.
+std::string readSysfsAttr(const std::string& syspath, const std::string& attr) {
+  std::string content;
+  if (!readFile(syspath + "/" + attr, content, false).ok()) {
+    return "";
+  }
+  auto nl = content.find('\n');
+  if (nl != std::string::npos) {
+    content.resize(nl);
+  }
+  boost::trim(content);
+  return content;
+}
+
+// Try to read the NVIDIA driver version from /sys/module/nvidia/version.
+std::string readNvidiaDriverVersion() {
+  return readSysfsAttr("/sys/module/nvidia", "version");
+}
+
+// Read the kernel module version from the driver bound to the PCI device.
+std::string readGenericDriverVersion(const std::string& pci_syspath) {
+  return readSysfsAttr(pci_syspath + "/driver/module", "version");
+}
+
+// Returns the path to the first hwmon directory under {pci_syspath}/hwmon/,
+// or empty string if none found.
+std::string findHwmonPath(const std::string& pci_syspath) {
+  std::vector<std::string> matches;
+  resolveFilePattern(pci_syspath + "/hwmon/hwmon*", matches, GLOB_FOLDERS);
+  return matches.empty() ? "" : matches.front();
+}
+
+struct HwmonData {
+  std::optional<double> temp_celsius;
+  std::optional<double> power_draw_watts;
+  std::optional<double> power_limit_watts;
+  std::optional<double> fan_speed_pct;
+};
+
+// Read hardware-monitor telemetry from the kernel hwmon interface for the
+// given PCI device syspath. Works for AMD (amdgpu) and NVIDIA (nouveau/nvidia)
+// drivers that expose standard hwmon attributes.
+HwmonData readHwmonData(const std::string& pci_syspath) {
+  HwmonData data;
+  const std::string hwmon_path = findHwmonPath(pci_syspath);
+  if (hwmon_path.empty()) {
+    return data;
+  }
+
+  // Temperature: temp1_input is in millidegrees Celsius.
+  const std::string temp = readSysfsAttr(hwmon_path, "temp1_input");
+  if (const auto val = tryTo<double>(temp); !val.isError()) {
+    data.temp_celsius = val.get() / 1000.0;
+  }
+
+  // Power draw: prefer time-averaged value, fall back to instantaneous.
+  for (const auto* power_file : {"power1_average", "power1_input"}) {
+    const std::string power = readSysfsAttr(hwmon_path, power_file);
+    if (!power.empty()) {
+      // Kernel reports in microwatts.
+      if (const auto val = tryTo<double>(power); !val.isError()) {
+        data.power_draw_watts = val.get() / 1000000.0;
+      }
+      break;
+    }
+  }
+
+  // Power limit (cap): in microwatts.
+  const std::string power_cap = readSysfsAttr(hwmon_path, "power1_cap");
+  if (const auto val = tryTo<double>(power_cap); !val.isError()) {
+    data.power_limit_watts = val.get() / 1000000.0;
+  }
+
+  // Fan speed: derive percentage from RPM / max_RPM.
+  const std::string fan_input = readSysfsAttr(hwmon_path, "fan1_input");
+  const std::string fan_max = readSysfsAttr(hwmon_path, "fan1_max");
+  const auto fan_in_val = tryTo<double>(fan_input);
+  const auto fan_max_val = tryTo<double>(fan_max);
+  if (!fan_in_val.isError() && !fan_max_val.isError() &&
+      fan_max_val.get() > 0.0) {
+    data.fan_speed_pct = (fan_in_val.get() / fan_max_val.get()) * 100.0;
+  }
+
+  return data;
+}
+
+// Read GPU engine busy percentage from sysfs. AMD (amdgpu) exposes this as
+// gpu_busy_percent directly on the PCI device node.
+std::optional<double> readGpuBusyPercent(const std::string& pci_syspath) {
+  const auto val = tryTo<double>(readSysfsAttr(pci_syspath, "gpu_busy_percent"));
+  if (val.isError()) {
+    return std::nullopt;
+  }
+  return val.get();
+}
+
 } // namespace
 
 QueryData genGpuInfo(QueryContext& context) {
@@ -412,6 +505,22 @@ QueryData genGpuInfo(QueryContext& context) {
     r["pci_class_id"] = pci_class_id;
     r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
 
+    // Driver version: NVIDIA uses /sys/module/nvidia/version; others use the
+    // generic driver/module/version sysfs path.
+    std::string driver =
+        UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
+    const char* syspath_c = udev_device_get_syspath(device.get());
+    const std::string syspath(syspath_c != nullptr ? syspath_c : "");
+    std::string driver_ver;
+    if (driver == "nvidia") {
+      driver_ver = readNvidiaDriverVersion();
+    } else if (!driver.empty() && !syspath.empty()) {
+      driver_ver = readGenericDriverVersion(syspath);
+    }
+    if (!driver_ver.empty()) {
+      r["driver_version"] = driver_ver;
+    }
+
     if (pcidb != nullptr) {
       auto status = extractVendorModelFromPciDBIfPresent(
           r,
@@ -438,6 +547,29 @@ QueryData genGpuInfo(QueryContext& context) {
     }
 
     enrichVram(r, vram_by_slot);
+
+    if (!syspath.empty()) {
+      // GPU utilization: AMD exposes gpu_busy_percent.
+      const auto busy = readGpuBusyPercent(syspath);
+      if (busy.has_value()) {
+        r["gpu_utilization_pct"] = DOUBLE(*busy);
+      }
+
+      // Hardware-monitor telemetry (temperature, power, fan).
+      const HwmonData hwmon = readHwmonData(syspath);
+      if (hwmon.temp_celsius.has_value()) {
+        r["temperature_gpu_celsius"] = DOUBLE(*hwmon.temp_celsius);
+      }
+      if (hwmon.power_draw_watts.has_value()) {
+        r["power_draw_watts"] = DOUBLE(*hwmon.power_draw_watts);
+      }
+      if (hwmon.power_limit_watts.has_value()) {
+        r["power_limit_watts"] = DOUBLE(*hwmon.power_limit_watts);
+      }
+      if (hwmon.fan_speed_pct.has_value()) {
+        r["fan_speed_pct"] = DOUBLE(*hwmon.fan_speed_pct);
+      }
+    }
 
     results.emplace_back(std::move(r));
   }

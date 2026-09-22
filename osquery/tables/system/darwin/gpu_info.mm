@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <vector>
 
@@ -42,6 +43,8 @@ struct IOKitGpuInfo {
   std::string model;
   std::string driver;
   std::uint32_t cores = 0;
+  // GPU utilization from PerformanceStatistics, if available.
+  std::optional<double> utilization_pct;
   // PCI vendor/device IDs published by the underlying device node (e.g.
   // sgx@4000000 on Apple Silicon, IOPCIDevice for discrete GPUs), if any.
   std::string pci_vendor_id;
@@ -256,6 +259,27 @@ IOKitGpuInfoList collectIOKitGpus() {
       info.cores = static_cast<std::uint32_t>(cfNumberToUint64(cores_cf));
     }
 
+    // GPU utilization from PerformanceStatistics.
+    // "Device Utilization %" is used by NVIDIA and AMD on macOS.
+    // "GPU Activity(%)" appears on some Intel/integrated GPUs.
+    CFTypeRef perf_ref =
+        CFDictionaryGetValue(props, CFSTR("PerformanceStatistics"));
+    if (perf_ref != nullptr && CFGetTypeID(perf_ref) == CFDictionaryGetTypeID()) {
+      CFDictionaryRef perf = static_cast<CFDictionaryRef>(perf_ref);
+      for (CFStringRef key :
+           {CFSTR("Device Utilization %"), CFSTR("GPU Activity(%)")}) {
+        CFTypeRef val = CFDictionaryGetValue(perf, key);
+        if (val != nullptr && CFGetTypeID(val) == CFNumberGetTypeID()) {
+          long long pct = 0;
+          if (CFNumberGetValue(
+                  static_cast<CFNumberRef>(val), kCFNumberSInt64Type, &pct)) {
+            info.utilization_pct = static_cast<double>(pct);
+          }
+          break;
+        }
+      }
+    }
+
     // vram: deliberately not populated from PerformanceStatistics. The only
     // candidate there, "Alloc system memory", is the memory *currently*
     // allocated to the GPU and fluctuates with load (verified empirically:
@@ -443,6 +467,9 @@ QueryData genGpuInfo(QueryContext& context) {
         }
         if (iokit_info.cores > 0) {
           r["cores"] = INTEGER(iokit_info.cores);
+        }
+        if (iokit_info.utilization_pct.has_value()) {
+          r["gpu_utilization_pct"] = DOUBLE(*iokit_info.utilization_pct);
         }
         // Consume this accelerator so no other row matches it.
         iokit_gpus.erase(accel_it);
