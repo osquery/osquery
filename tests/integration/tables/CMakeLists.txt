@@ -122,6 +122,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volumes.cpp
       file_events.cpp
       hardware_events.cpp
+      homebrew_packages.cpp
       interface_ipv6.cpp
       known_hosts.cpp
       last.cpp
@@ -236,7 +237,6 @@ function(generateTestsIntegrationTablesTestsTest)
       fan_speed_sensors.cpp
       gatekeeper.cpp
       gatekeeper_approved_apps.cpp
-      homebrew_packages.cpp
       macports_packages.cpp
       ibridge.cpp
       iokit_devicetree.cpp
