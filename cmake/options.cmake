@@ -149,6 +149,14 @@ if(PLATFORM_MACOS)
   endif()
 endif()
 
+# OSQUERY_USER_AGENT_PREFIX sets the User-Agent prefix osqueryd sends to the
+# TLS server back-end (e.g. for the config and logger endpoints). The osquery
+# version is appended to this prefix, so the default of "osquery/" produces a
+# User-Agent such as "osquery/5.0.0". This can also be overridden at run time
+# with the --tls_user_agent flag.
+set(OSQUERY_USER_AGENT_PREFIX "osquery/" CACHE STRING "User-Agent prefix used for TLS requests to the server back-end")
+
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+message(STATUS "osquery User-Agent prefix: ${OSQUERY_USER_AGENT_PREFIX}")
