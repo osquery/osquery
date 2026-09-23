@@ -24,25 +24,36 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 # Read all implementation templates
 TEMPLATES = {}
 
-# SQLite keywords that cannot be used as bare identifiers (everything else
-# in SQLite's keyword list falls back to being an identifier). A column with
-# one of these names is unusable in a WHERE / ORDER BY / select list unless
-# quoted, e.g. `SELECT * FROM t WHERE commit = 'x'` -> near "commit": syntax
-# error. Derived from the bundled SQLite via sqlite3_keyword_name() by testing
-# each keyword as a bare column reference.
+# SQLite keywords that cannot be used as bare column identifiers. Most SQLite
+# keywords fall back to being identifiers and are fine as column names; the
+# ones listed here either cause a syntax error (`SELECT * FROM t WHERE commit
+# = 'x'` -> near "commit": syntax error) or silently resolve to a literal
+# instead of the column (`SELECT null FROM t` is the NULL literal, and
+# CURRENT_DATE / CURRENT_TIME / CURRENT_TIMESTAMP are the datetime literals).
+# Derived from the bundled SQLite via sqlite3_keyword_name(): a keyword is
+# reserved if `SELECT <kw> FROM t WHERE <kw> = 'x'` on a table with a column
+# of that name fails to parse or does not return the column's value.
 SQLITE_RESERVED = [
     "add", "all", "alter", "and", "as", "autoincrement", "between", "case",
-    "cast", "check", "collate", "commit", "constraint", "create", "default",
+    "cast", "check", "collate", "commit", "constraint", "create",
+    "current_date", "current_time", "current_timestamp", "default",
     "deferrable", "delete", "distinct", "drop", "else", "escape", "except",
     "exists", "foreign", "from", "group", "having", "in", "index", "insert",
     "intersect", "into", "is", "isnull", "join", "limit", "not", "nothing",
-    "notnull", "on", "or", "order", "primary", "raise", "references",
+    "notnull", "null", "on", "or", "order", "primary", "raise", "references",
     "returning", "select", "set", "table", "then", "to", "transaction",
     "union", "unique", "update", "using", "values", "when", "where",
 ]
 
 # Column names that cannot be used in a table spec.
 RESERVED = ["n"] + SQLITE_RESERVED
+
+# Existing (table, column) pairs that predate the SQLite keyword check and are
+# kept as-is for backwards compatibility: renaming them would change the
+# result shape of `SELECT *`. Do not add new entries; pick a different name.
+RESERVED_EXCEPTIONS = {
+    ("memory_devices", "set"),
+}
 
 # Set the platform in osquery-language. This is duplicated with
 # tests/utils.py, but that duplication allows usage to _not_ require a
@@ -278,12 +289,16 @@ class TableState(Singleton):
             print(lightred("Invalid table spec: %s" % (path)))
             exit(1)
 
-        # Check for reserved column names
+        # Check for reserved column names (and column aliases)
         for column in self.columns():
-            if column.name.lower() in RESERVED:
+            for name in [column.name] + list(column.aliases):
+                if name.lower() not in RESERVED:
+                    continue
+                if (self.table_name, name) in RESERVED_EXCEPTIONS:
+                    continue
                 print(lightred(("Cannot use column name: %s in table: %s "
                                 "(the column name is reserved)" % (
-                                    column.name, self.table_name))))
+                                    name, self.table_name))))
                 exit(1)
 
         path_bits = path.split("/")

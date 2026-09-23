@@ -358,7 +358,7 @@ void genSMBIOSMemoryDevices(size_t index,
   }
 
   if (address[0x0F] != 0xFF) {
-    r["set_id"] = INTEGER(static_cast<int>(address[0x0F]));
+    r["set"] = INTEGER(static_cast<int>(address[0x0F]));
   }
 
   const auto maxlen = size - hdr->length;

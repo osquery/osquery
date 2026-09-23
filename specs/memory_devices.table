@@ -7,7 +7,7 @@ schema([
     Column("total_width", INTEGER, "Total width, in bits, of this memory device, including any check or error-correction bits"),
     Column("data_width", INTEGER, "Data width, in bits, of this memory device"),
     Column("size", INTEGER, "Size of memory device in Megabyte"),
-    Column("set_id", INTEGER, "Identifies if memory device is one of a set of devices.  A value of 0 indicates no set affiliation.", aliases=["set"]),
+    Column("set", INTEGER, "Identifies if memory device is one of a set of devices.  A value of 0 indicates no set affiliation."),
     Column("device_locator", TEXT, "String number of the string that identifies the physically-labeled socket or board position where the memory device is located"),
     Column("bank_locator", TEXT, "String number of the string that identifies the physically-labeled bank where the memory device is located"),
     Column("memory_type", TEXT, "Type of memory used"),

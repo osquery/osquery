@@ -215,7 +215,7 @@ QueryData genMemoryDevices(QueryContext& context) {
     // Unable to find match for these from WMI.
     r["handle"] = "";
     r["array_handle"] = "";
-    r["set_id"] = "";
+    r["set"] = "";
 
     results.push_back(r);
   }
