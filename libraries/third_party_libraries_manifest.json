@@ -128,12 +128,9 @@
   "libarchive": {
     "product": "libarchive",
     "vendor": "libarchive",
-    "version": "3.8.1",
-    "commit": "9525f90ca4bd14c7b335e2f8c84a4607b0af6bdf",
-    "ignored-cves": [
-      "CVE-2026-16517",
-      "CVE-2025-60753"
-    ]
+    "version": "3.8.9",
+    "commit": "27cbc7827172698143e440801fc0ba39ccb4f1f5",
+    "ignored-cves": []
   },
   "libaudit": {
     "product": "audit-userspace",
@@ -214,8 +211,8 @@
   "librdkafka": {
     "product": "librdkafka",
     "vendor": "edenhill",
-    "version": "1.8.0",
-    "commit": "9ded5eefaf3ba3b65ebc95b0dff7a6d5faaaa38d"
+    "version": "2.15.1",
+    "commit": "c58bbed850ebe1cc493259d11e4de6ca930d5120"
   },
   "librpm": {
     "product": "rpm",
