@@ -784,6 +784,11 @@ jobs:
           --exclude='*.tar.zst' \
           --exclude='*.tar.bz2' \
           --exclude='*.zip' \
+          --exclude='compile_commands.json' \
+          --exclude='installed_formulas' \
+          --exclude='openssl-prefix' \
+          --exclude='patched-source' \
+          --exclude='Makefile' \
           .
 
     - name: Store the build tree artifact
