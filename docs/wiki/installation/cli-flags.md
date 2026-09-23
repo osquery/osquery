@@ -532,7 +532,7 @@ The number of acknowledgments the Kafka leader has to receive before a publish i
 
 `--logger_kafka_compression`
 
-Compression codec to use for compressing message sets. Valid options are ("none", "gzip"). Default is "none".
+Compression codec to use for compressing message sets. Valid options are ("none", "gzip", "lz4", "zstd"). Default is "none".
 
 `--buffered_log_max=1000000`
 

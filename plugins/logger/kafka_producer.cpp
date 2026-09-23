@@ -57,7 +57,8 @@ FLAG(
     string,
     logger_kafka_compression,
     "none",
-    "Compression codec to use for compressing message sets ('none' or 'gzip')");
+    "Compression codec to use for compressing message sets ('none', 'gzip', "
+    "'lz4', or 'zstd')");
 
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
