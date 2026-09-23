@@ -24,8 +24,25 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 # Read all implementation templates
 TEMPLATES = {}
 
-# Temporary reserved column names
-RESERVED = ["n", "index"]
+# SQLite keywords that cannot be used as bare identifiers (everything else
+# in SQLite's keyword list falls back to being an identifier). A column with
+# one of these names is unusable in a WHERE / ORDER BY / select list unless
+# quoted, e.g. `SELECT * FROM t WHERE commit = 'x'` -> near "commit": syntax
+# error. Derived from the bundled SQLite via sqlite3_keyword_name() by testing
+# each keyword as a bare column reference.
+SQLITE_RESERVED = [
+    "add", "all", "alter", "and", "as", "autoincrement", "between", "case",
+    "cast", "check", "collate", "commit", "constraint", "create", "default",
+    "deferrable", "delete", "distinct", "drop", "else", "escape", "except",
+    "exists", "foreign", "from", "group", "having", "in", "index", "insert",
+    "intersect", "into", "is", "isnull", "join", "limit", "not", "nothing",
+    "notnull", "on", "or", "order", "primary", "raise", "references",
+    "returning", "select", "set", "table", "then", "to", "transaction",
+    "union", "unique", "update", "using", "values", "when", "where",
+]
+
+# Column names that cannot be used in a table spec.
+RESERVED = ["n"] + SQLITE_RESERVED
 
 # Set the platform in osquery-language. This is duplicated with
 # tests/utils.py, but that duplication allows usage to _not_ require a
@@ -263,7 +280,7 @@ class TableState(Singleton):
 
         # Check for reserved column names
         for column in self.columns():
-            if column.name in RESERVED:
+            if column.name.lower() in RESERVED:
                 print(lightred(("Cannot use column name: %s in table: %s "
                                 "(the column name is reserved)" % (
                                     column.name, self.table_name))))

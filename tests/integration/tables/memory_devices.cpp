@@ -39,7 +39,7 @@ TEST_F(memoryDevices, test_sanity) {
       {"total_width", IntOrEmpty},
       {"data_width", IntOrEmpty},
       {"size", IntOrEmpty},
-      {"set", IntOrEmpty},
+      {"set_id", IntOrEmpty},
       {"device_locator", NormalType},
       {"bank_locator", NormalType},
       {"memory_type", NormalType},
