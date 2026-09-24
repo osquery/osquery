@@ -694,11 +694,6 @@ jobs:
           coreutils \
           gnu-sed
 
-    - name: Setup python
-      uses: actions/setup-python@v7
-      with:
-        python-version: '3.13.1'
-
     - name: Install CMake
       shell: bash
       run: |
@@ -900,11 +895,6 @@ jobs:
           "${{ steps.build_paths.outputs.DOWNLOADS }}" \
           "${{ steps.build_paths.outputs.INSTALL }}" \
           "3.21.4"
-
-    - name: Setup python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13.1'
 
     - name: Install tests dependencies
       run: |
