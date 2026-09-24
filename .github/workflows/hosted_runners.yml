@@ -767,28 +767,30 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         tar --zstd -cf ../build_tree.tar.zst \
-          --files-from=- < <(find . \( -type f -o -type l \) -print0) \
-          --null \
           --exclude-vcs \
           --exclude='CMakeFiles' \
           --exclude='*.o' \
           --exclude='*.a' \
           --exclude='*.h' \
           --exclude='*.cpp' \
-          --exclude='specs' \
           --exclude='*.dSYM' \
-          --exclude='__pycache__' \
           --exclude='*.pyc' \
+          --exclude='*.table' \
           --exclude='*.tar.gz' \
           --exclude='*.tar.xz' \
           --exclude='*.tar.zst' \
           --exclude='*.tar.bz2' \
-          --exclude='*.zip' \          
+          --exclude='*.zip' \
           --exclude='compile_commands.json' \
-          --exclude='installed_formulas' \
-          --exclude='openssl-prefix' \
-          --exclude='patched-source' \
-          --exclude='Makefile'
+          --exclude='Makefile' \
+          --exclude='.DS_Store' \
+          --exclude='__pycache__/' \
+          --exclude='installed_formulas/' \
+          --exclude='libs/' \
+          --exclude='openssl-prefix/' \
+          --exclude='patched-source/' \
+          --exclude='.cache/' \
+          .
 
     - name: Store the build tree artifact
       uses: actions/upload-artifact@v4.4.0
