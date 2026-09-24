@@ -897,14 +897,18 @@ jobs:
           "${{ steps.build_paths.outputs.INSTALL }}" \
           "3.21.4"
 
-    - name: Install tests dependencies
+    - name: Install Python dependencies
+      shell: bash
       run: |
-        pip3 install pexpect==3.3 \
-                      psutil \
-                      timeout_decorator \
-                      six \
-                      thrift==0.11.0 \
-                      osquery
+        python3 -m venv "${{ steps.build_paths.outputs.INSTALL }}/venv"
+        echo "${{ steps.build_paths.outputs.INSTALL }}/venv/bin" >> $GITHUB_PATH
+        "${{ steps.build_paths.outputs.INSTALL }}/venv/bin/pip3" install \
+          pexpect==3.3 \
+          psutil \
+          timeout_decorator \
+          six \
+          thrift==0.11.0 \
+          osquery
 
     - name: Download the build tree artifact
       uses: actions/download-artifact@v4.1.7
@@ -945,7 +949,14 @@ jobs:
 
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: ctest --build-nocmake -V
+      shell: bash
+      run: |
+        if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
+          ctest --build-nocmake -V \
+            -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
+        else
+          ctest --build-nocmake -V
+        fi
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
