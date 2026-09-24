@@ -898,8 +898,7 @@ jobs:
 
     - name: Install tests dependencies
       run: |
-        pip3 install setuptools \
-                      pexpect==3.3 \
+        pip3 install pexpect==3.3 \
                       psutil \
                       timeout_decorator \
                       six \
