@@ -3,7 +3,19 @@
     "product": "openssl",
     "vendor": "openssl",
     "version": "3.6.3",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-75803",
+      "CVE-2026-63076",
+      "CVE-2026-63075",
+      "CVE-2026-63074",
+      "CVE-2026-63073",
+      "CVE-2026-63072",
+      "CVE-2026-54876",
+      "CVE-2026-54874",
+      "CVE-2026-18798",
+      "CVE-2026-14457",
+      "CVE-2026-14456"
+    ]
   },
   "augeas": {
     "product": "augeas",
@@ -76,7 +88,9 @@
     "vendor": "boost",
     "version": "1.77.0",
     "commit": "9d3f9bcd7d416880d4631d7d39cceeb4e8f25da0",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2016-9840"
+    ]
   },
   "bzip2": {
     "product": "bzip2",
@@ -157,7 +171,8 @@
     "version": "1.21.7",
     "commit": "e61f582015a9c67bbb3791cb93a864cfeb9c7151",
     "ignored-cves": [
-      "CVE-2022-1664"
+      "CVE-2022-1664",
+      "CVE-2025-6297"
     ]
   },
   "libgcrypt": {
@@ -204,7 +219,9 @@
     "vendor": "rpm",
     "version": "4.18.2",
     "commit": "9fc611e38004b1ddaa6668297408649ed556c157",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-44605"
+    ]
   },
   "libudev": {
     "product": "udev",
@@ -225,14 +242,19 @@
     "vendor": "tukaani",
     "version": "5.4.4",
     "commit": "03c51c5c08fe3579d8bbc8eea8251a1128001330",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-34743"
+    ]
   },
   "popt": {
     "product": "popt",
     "vendor": "popt_project",
     "version": "1.19",
     "commit": "916e61045d268f7e37ade5ec047eb77e8299e6ad",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-18839",
+      "CVE-2026-18739"
+    ]
   },
   "rapidjson": {
     "product": "rapidjson",
@@ -261,7 +283,11 @@
     "version": "3.42.0",
     "commit": "3341b40a45585b7854b20a8acff944c7668cf7e8",
     "ignored-cves": [
-      "CVE-2023-7104"
+      "CVE-2023-7104",
+      "CVE-2025-71316",
+      "CVE-2026-11824",
+      "CVE-2026-11822",
+      "CVE-2025-70873"
     ]
   },
   "thrift": {
@@ -281,7 +307,9 @@
       "CVE-2022-0563",
       "CVE-2021-3996",
       "CVE-2021-3995",
-      "CVE-2024-28085"
+      "CVE-2024-28085",
+      "CVE-2026-13595",
+      "CVE-2026-27456"
     ]
   },
   "yaml-cpp": {
