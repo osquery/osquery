@@ -601,13 +601,12 @@ jobs:
   build_macos:
     needs: [check_code_style, check_libraries_manifest]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-26
 
     strategy:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-26, macos-15]
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
@@ -668,7 +667,7 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        key: ccache_${{ runner.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -694,24 +693,6 @@ jobs:
           bison \
           coreutils \
           gnu-sed
-
-    - name: Setup python
-      uses: actions/setup-python@v7
-      with:
-        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
-        python-version: '3.13.1'
-        architecture: arm64
-
-    - name: Install tests dependencies
-      id: install_test_deps
-      run: |
-        pip3 install setuptools \
-                      pexpect==3.3 \
-                      psutil \
-                      timeout_decorator \
-                      six \
-                      thrift==0.11.0 \
-                      osquery
 
     - name: Install CMake
       shell: bash
@@ -778,12 +759,49 @@ jobs:
         df -h
         du -sh ${{ steps.build_paths.outputs.BINARY }}
 
-    - name: Run the tests
-      if: matrix.architecture == 'arm64'
+    # Package the build tree so test_macos can reuse it to run the tests
+    # concurrently with the install/package steps below, without rebuilding.
+    # CMakeFiles/ and intermediate object files are excluded since ctest
+    # only needs the already-linked test binaries, not the compile artifacts.
+    - name: Package build tree for testing
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: ctest --build-nocmake -V
+      run: |
+        tar --zstd -cf ../build_tree.tar.zst \
+          --exclude-vcs \
+          --exclude='CMakeFiles' \
+          --exclude='*.o' \
+          --exclude='*.a' \
+          --exclude='*.h' \
+          --exclude='*.cpp' \
+          --exclude='*.dSYM' \
+          --exclude='*.pyc' \
+          --exclude='*.table' \
+          --exclude='*.tar.gz' \
+          --exclude='*.tar.xz' \
+          --exclude='*.tar.zst' \
+          --exclude='*.tar.bz2' \
+          --exclude='*.zip' \
+          --exclude='compile_commands.json' \
+          --exclude='Makefile' \
+          --exclude='.DS_Store' \
+          --exclude='__pycache__/' \
+          --exclude='installed_formulas/' \
+          --exclude='libs/' \
+          --exclude='openssl-prefix/' \
+          --exclude='patched-source/' \
+          --exclude='.cache/' \
+          .
+
+    - name: Store the build tree artifact
+      uses: actions/upload-artifact@v4.4.0
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: workspace/build_tree.tar.zst
+        # Already zstd-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     - name: Run the install target
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
@@ -797,6 +815,7 @@ jobs:
           -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Create the package data
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
 
@@ -807,16 +826,13 @@ jobs:
       run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v7
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
-
-    # Before we terminate this job, delete the build folder. The cache
-    # actions will require the disk space to create the archives.
-    - name: Reclaim disk space
-      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
+        # Already gzip-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch && matrix.architecture == 'arm64' && matrix.build_type == 'Release'
@@ -830,11 +846,121 @@ jobs:
       uses: actions/cache/save@v6
       with:
         path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        key: ccache_${{ runner.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+
+  # Reuse the build tree(s) produced by build_macos to run the tests.
+  # This allows us to do fewer builds (just use the builds
+  # produced on the newest macOS, which are the ones that we ship)
+  # while still testing on all the configurations.
+  test_macos:
+    needs: build_macos
+
+    # x86_64 needs to run on an actual Intel runner; arm64 runs on the
+    # regular (Apple Silicon) runner.
+    runs-on: ${{ matrix.architecture == 'x86_64' && format('{0}-intel', matrix.os) || matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-26, macos-15]
+        architecture: [x86_64, arm64]
+        build_type: [Release, Debug]
+
+    steps:
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
+
+        mkdir -p ${rel_build_path} ${rel_downloads_path} ${rel_install_path}
+
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "DOWNLOADS=$(pwd)/${rel_downloads_path}" >> $GITHUB_OUTPUT
+        echo "INSTALL=$(pwd)/${rel_install_path}" >> $GITHUB_OUTPUT
+
+    # The python integration tests invoke an absolute path to the cmake
+    # binary that was baked in at configure time in build_macos, so it
+    # must be installed at the same path here too.
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+
+    - name: Install CMake
+      shell: bash
+      run: |
+        ./tools/ci/scripts/macos/install_cmake.sh \
+          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
+          "${{ steps.build_paths.outputs.INSTALL }}" \
+          "3.21.4"
+
+    - name: Install Python dependencies
+      shell: bash
+      run: |
+        python3 -m venv "${{ steps.build_paths.outputs.INSTALL }}/venv"
+        echo "${{ steps.build_paths.outputs.INSTALL }}/venv/bin" >> $GITHUB_PATH
+        "${{ steps.build_paths.outputs.INSTALL }}/venv/bin/pip3" install \
+          pexpect==3.3 \
+          psutil \
+          timeout_decorator \
+          six \
+          thrift==0.11.0 \
+          osquery
+
+    - name: Download the build tree artifact
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}
+
+    - name: Extract the build tree
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        tar --zstd -xf build_tree.tar.zst
+
+    # build_macos always configures on macos-26 (Apple Silicon) hardware,
+    # even for the x86_64 leg (it cross-compiles via CMAKE_OSX_ARCHITECTURES),
+    # so the CTest files it produces have the arm64 hostedtoolcache Python
+    # path baked into their COMMAND/ENVIRONMENT. When x86_64 tests run here
+    # on a real Intel runner that path doesn't exist, so re-point it at the
+    # Python actually installed on this runner.
+    - name: Align the baked Python interpreter path
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        baked_python_path="$(grep -rhoE '/[^ ;"]*/bin/python3' --include='CTestTestfile.cmake' . | sort -u | head -n1)"
+
+        if [[ -z "${baked_python_path}" ]]; then
+          echo "::error::Could not find the baked Python interpreter path in the build tree"
+          exit 1
+        fi
+
+        actual_python_path="$(command -v python3)"
+        echo "Baked path: ${baked_python_path}"
+        echo "Actual path: ${actual_python_path}"
+
+        if [[ "${baked_python_path}" != "${actual_python_path}" ]]; then
+          mkdir -p "$(dirname "${baked_python_path}")"
+          ln -sf "${actual_python_path}" "${baked_python_path}"
+        fi
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: bash
+      run: |
+        if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
+          ctest --build-nocmake -V \
+            -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
+        else
+          ctest --build-nocmake -V
+        fi
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: build_macos
+    needs: test_macos
 
     runs-on: macos-26
 
@@ -1310,8 +1436,9 @@ jobs:
     steps:
       - run: true
     needs:
-      - build_macos
+      - check_source_code
       - build_linux
       - build_windows
+      - build_macos
+      - test_macos
       - build_universal_macos_artifacts
-      - check_source_code
