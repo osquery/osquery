@@ -32,6 +32,7 @@ endfunction()
 
 function(generateTestsIntegrationTablesTestsTest)
   set(source_files
+    ai_agent_skills.cpp
     carbon_black_info.cpp
     carves.cpp
     certificates.cpp
