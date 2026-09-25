@@ -10,6 +10,7 @@
 #include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 
+#include <cerrno>
 #include <glob.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -76,11 +77,25 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     oflag |= O_APPEND;
   }
 
+#if defined(__linux__) && defined(O_NOATIME)
+  const bool noatime_requested = (mode & PF_NOATIME) == PF_NOATIME;
+  if (noatime_requested) {
+    oflag |= O_NOATIME;
+  }
+#endif
+
   if (perms == -1 && may_create) {
     perms = 0666;
   }
 
   handle_ = ::open(fname_.c_str(), oflag, perms);
+
+#if defined(__linux__) && defined(O_NOATIME)
+  if (handle_ == kInvalidHandle && noatime_requested && errno == EPERM) {
+    oflag &= ~O_NOATIME;
+    handle_ = ::open(fname_.c_str(), oflag, perms);
+  }
+#endif
 }
 
 PlatformFile::~PlatformFile() {

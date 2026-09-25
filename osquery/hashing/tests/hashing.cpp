@@ -10,6 +10,11 @@
 #include <fstream>
 #include <vector>
 
+#if defined(__linux__)
+#include <sys/stat.h>
+#include <utime.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -72,6 +77,51 @@ TEST_F(HashingFilesystemTests, test_multi_hashing_file_small) {
   EXPECT_EQ(hashFromFile(HASH_TYPE_SHA256, file_path.string()),
             kHelloSHA256Digest);
 }
+
+#if defined(__linux__)
+TEST_F(HashingFilesystemTests, test_hashing_preserves_access_time) {
+  const auto file_path = test_working_dir_ / "hashing_noatime.txt";
+
+  {
+    std::ofstream test_file(file_path.string());
+    test_file << kHelloString;
+  }
+
+  struct utimbuf old_times {};
+  old_times.actime = 1;
+  old_times.modtime = 2;
+  ASSERT_EQ(::utime(file_path.c_str(), &old_times), 0);
+
+  struct stat before_probe {};
+  ASSERT_EQ(::stat(file_path.c_str(), &before_probe), 0);
+
+  {
+    std::ifstream test_file(file_path.string());
+    ASSERT_EQ(test_file.get(), kHelloString.front());
+  }
+
+  struct stat after_probe {};
+  ASSERT_EQ(::stat(file_path.c_str(), &after_probe), 0);
+
+  if (before_probe.st_atim.tv_sec == after_probe.st_atim.tv_sec &&
+      before_probe.st_atim.tv_nsec == after_probe.st_atim.tv_nsec) {
+    GTEST_SKIP() << "The test filesystem does not update access times";
+  }
+
+  ASSERT_EQ(::utime(file_path.c_str(), &old_times), 0);
+
+  struct stat before_hash {};
+  ASSERT_EQ(::stat(file_path.c_str(), &before_hash), 0);
+
+  EXPECT_EQ(hashFromFile(HASH_TYPE_MD5, file_path.string()), kHelloMD5Digest);
+
+  struct stat after_hash {};
+  ASSERT_EQ(::stat(file_path.c_str(), &after_hash), 0);
+
+  EXPECT_EQ(before_hash.st_atim.tv_sec, after_hash.st_atim.tv_sec);
+  EXPECT_EQ(before_hash.st_atim.tv_nsec, after_hash.st_atim.tv_nsec);
+}
+#endif
 
 TEST_F(HashingFilesystemTests, test_multi_hashing_file_big) {
   auto file_path = test_working_dir_ / "hashing_file.bin";
