@@ -23,6 +23,7 @@
 #include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/registry/registry_interface.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
 
 #include "plugins/logger/kafka_producer.h"
@@ -41,6 +42,10 @@ class MockKafkaProducerPlugin : public KafkaProducerPlugin {
 
   void setQueryToTopics(const std::map<std::string, rd_kafka_topic_t*>& m) {
     queryToTopics_ = m;
+  }
+
+  void setStatusTopic(rd_kafka_topic_t* topic) {
+    statusTopic_ = topic;
   }
 
  protected:
@@ -353,6 +358,83 @@ TEST_F(KafkaProducerPluginTest, logString_multi_topic_happy_path) {
   EXPECT_EQ(expected, mkpp.publishedMsgs_[topic3]);
 
   EXPECT_TRUE(mkpp.timesPolled_.load() == 8);
+}
+
+TEST_F(KafkaProducerPluginTest, usesLogStatus_reflects_status_topic) {
+  MockKafkaProducerPlugin mkpp;
+
+  // No status topic configured: statuses are not forwarded to Kafka.
+  EXPECT_FALSE(mkpp.usesLogStatus());
+
+  rd_kafka_topic_t* statusTopic = reinterpret_cast<rd_kafka_topic_t*>(0x692880);
+  mkpp.setStatusTopic(statusTopic);
+
+  // Status topic configured and producer running: statuses are forwarded.
+  EXPECT_TRUE(mkpp.usesLogStatus());
+}
+
+TEST_F(KafkaProducerPluginTest, logStatus_publishes_to_status_topic) {
+  MockKafkaProducerPlugin mkpp;
+
+  rd_kafka_topic_t* statusTopic = reinterpret_cast<rd_kafka_topic_t*>(0x692880);
+  mkpp.setStatusTopic(statusTopic);
+
+  std::vector<StatusLogLine> log;
+
+  StatusLogLine line1;
+  line1.severity = O_INFO;
+  line1.filename = "foo.cpp";
+  line1.line = 42;
+  line1.message = "first status";
+  line1.calendar_time = "Wed Jul 26 19:29:22 2017 UTC";
+  line1.time = 1501097362;
+  line1.identifier = "node151";
+  log.push_back(line1);
+
+  StatusLogLine line2;
+  line2.severity = O_ERROR;
+  line2.filename = "bar.cpp";
+  line2.line = 7;
+  line2.message = "second status";
+  line2.calendar_time = "Wed Jul 26 19:29:23 2017 UTC";
+  line2.time = 1501097363;
+  line2.identifier = "node151";
+  log.push_back(line2);
+
+  Status s = mkpp.logStatus(log);
+  EXPECT_TRUE(s.ok());
+
+  // Both status lines are published to the status topic.
+  ASSERT_EQ(mkpp.publishedMsgs_[statusTopic].size(), 2U);
+
+  // Each published payload is valid JSON carrying the expected message.
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(mkpp.publishedMsgs_[statusTopic][0]).ok());
+  ASSERT_TRUE(doc.doc().HasMember("message"));
+  EXPECT_STREQ(doc.doc()["message"].GetString(), "first status");
+
+  // logStatus polls once for the batch.
+  EXPECT_EQ(mkpp.timesPolled_.load(), 1);
+}
+
+TEST_F(KafkaProducerPluginTest, logStatus_no_topic_is_noop) {
+  MockKafkaProducerPlugin mkpp;
+
+  std::vector<StatusLogLine> log;
+  StatusLogLine line;
+  line.severity = O_INFO;
+  line.filename = "foo.cpp";
+  line.line = 1;
+  line.message = "status";
+  line.calendar_time = "Wed Jul 26 19:29:22 2017 UTC";
+  line.time = 1501097362;
+  line.identifier = "node151";
+  log.push_back(line);
+
+  // Without a configured status topic logStatus fails and publishes nothing.
+  Status s = mkpp.logStatus(log);
+  EXPECT_FALSE(s.ok());
+  EXPECT_TRUE(mkpp.publishedMsgs_.empty());
 }
 
 TEST_F(KafkaProducerPluginTest, flush_on_stop) {

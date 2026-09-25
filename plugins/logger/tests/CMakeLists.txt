@@ -78,6 +78,7 @@ function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
     osquery_registry
     osquery_utils_conversions
     osquery_utils_info
+    osquery_utils_json
     osquery_utils_system_time
     plugins_logger_kafkaproducer
     tests_helper
