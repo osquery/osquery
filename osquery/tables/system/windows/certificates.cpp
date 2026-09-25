@@ -99,6 +99,162 @@ std::string getKeyUsage(const PCERT_INFO& certInfo) {
   return join(usages, ",");
 }
 
+/// Decode a certificate extension into the given buffer
+bool decodeCertExtension(LPCSTR structType,
+                         const CERT_EXTENSION* extension,
+                         std::vector<BYTE>& buffer) {
+  unsigned long structSize = 0;
+  auto ret = CryptDecodeObjectEx(CERT_ENCODING,
+                                 structType,
+                                 extension->Value.pbData,
+                                 extension->Value.cbData,
+                                 CRYPT_DECODE_NOCOPY_FLAG,
+                                 nullptr,
+                                 nullptr,
+                                 &structSize);
+  if (ret == 0) {
+    VLOG(1) << "Failed to size certificate extension with " << GetLastError();
+    return false;
+  }
+
+  buffer.resize(structSize, 0);
+  ret = CryptDecodeObjectEx(CERT_ENCODING,
+                            structType,
+                            extension->Value.pbData,
+                            extension->Value.cbData,
+                            CRYPT_DECODE_NOCOPY_FLAG,
+                            nullptr,
+                            buffer.data(),
+                            &structSize);
+  if (ret == 0) {
+    VLOG(1) << "Failed to decode certificate extension with " << GetLastError();
+    return false;
+  }
+
+  return true;
+}
+
+/// Render an alternate name IP address the way OpenSSL prints it, so the
+/// column reads the same across platforms
+std::string formatAltNameIpAddress(const CRYPT_DATA_BLOB& address) {
+  std::vector<std::string> parts;
+
+  if (address.cbData == 4) {
+    for (unsigned long i = 0; i < address.cbData; i++) {
+      parts.push_back(std::to_string(address.pbData[i]));
+    }
+
+    return join(parts, ".");
+  }
+
+  if (address.cbData == 16) {
+    constexpr char kHexDigits[] = "0123456789ABCDEF";
+
+    for (unsigned long i = 0; i < address.cbData; i += 2) {
+      // Match OpenSSL's ipaddr_to_asc, which prints each group as uppercase
+      // hex with no leading zeroes and no run compression
+      unsigned int group_value =
+          (address.pbData[i] << 8) | address.pbData[i + 1];
+      std::string group;
+
+      while (group_value != 0) {
+        group.insert(group.begin(), kHexDigits[group_value & 0x0F]);
+        group_value >>= 4;
+      }
+
+      parts.push_back(group.empty() ? "0" : group);
+    }
+
+    return join(parts, ":");
+  }
+
+  return "";
+}
+
+std::string getSubjectAltNames(const PCERT_INFO& certInfo) {
+  auto extension = CertFindExtension(
+      szOID_SUBJECT_ALT_NAME2, certInfo->cExtension, certInfo->rgExtension);
+
+  if (extension == nullptr) {
+    // Certificates predating RFC 3280 carry the alternate name under the
+    // obsolete OID
+    extension = CertFindExtension(
+        szOID_SUBJECT_ALT_NAME, certInfo->cExtension, certInfo->rgExtension);
+  }
+
+  if (extension == nullptr) {
+    return "";
+  }
+
+  std::vector<BYTE> buffer;
+  if (!decodeCertExtension(X509_ALTERNATE_NAME, extension, buffer)) {
+    return "";
+  }
+
+  auto altNameInfo = reinterpret_cast<PCERT_ALT_NAME_INFO>(buffer.data());
+  std::vector<std::string> names;
+
+  for (unsigned long i = 0; i < altNameInfo->cAltEntry; i++) {
+    auto& entry = altNameInfo->rgAltEntry[i];
+
+    switch (entry.dwAltNameChoice) {
+    case CERT_ALT_NAME_DNS_NAME:
+      names.push_back("DNS:" + wstringToString(entry.pwszDNSName));
+      break;
+
+    case CERT_ALT_NAME_RFC822_NAME:
+      names.push_back("email:" + wstringToString(entry.pwszRfc822Name));
+      break;
+
+    case CERT_ALT_NAME_URL:
+      names.push_back("URI:" + wstringToString(entry.pwszURL));
+      break;
+
+    case CERT_ALT_NAME_IP_ADDRESS: {
+      auto address = formatAltNameIpAddress(entry.IPAddress);
+      if (!address.empty()) {
+        names.push_back("IP Address:" + address);
+      }
+      break;
+    }
+
+    case CERT_ALT_NAME_REGISTERED_ID:
+      names.push_back(std::string("Registered ID:") + entry.pszRegisteredID);
+      break;
+
+    case CERT_ALT_NAME_DIRECTORY_NAME: {
+      auto size = CertNameToStr(
+          CERT_ENCODING, &entry.DirectoryName, CERT_X500_NAME_STR, nullptr, 0);
+      if (size == 0) {
+        break;
+      }
+
+      std::vector<WCHAR> nameBuff(size, 0);
+      size = CertNameToStr(CERT_ENCODING,
+                           &entry.DirectoryName,
+                           CERT_X500_NAME_STR,
+                           nameBuff.data(),
+                           size);
+      if (size != 0) {
+        names.push_back("DirName:" + wstringToString(nameBuff.data()));
+      }
+      break;
+    }
+
+    case CERT_ALT_NAME_OTHER_NAME:
+      if (entry.pOtherName != nullptr) {
+        names.push_back(std::string("othername:") + entry.pOtherName->pszObjId);
+      }
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  return join(names, ", ");
+}
+
 void getCertCtxProp(const PCCERT_CONTEXT& certContext,
                     unsigned long propId,
                     std::vector<BYTE>& dataBuff) {
@@ -475,6 +631,8 @@ void addCertRow(PCCERT_CONTEXT certContext,
       certContext->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
 
   r["key_usage"] = getKeyUsage(certContext->pCertInfo);
+
+  r["subject_alternative_names"] = getSubjectAltNames(certContext->pCertInfo);
 
   auto keyStrength = CertGetPublicKeyLength(
       CERT_ENCODING, &certContext->pCertInfo->SubjectPublicKeyInfo);
