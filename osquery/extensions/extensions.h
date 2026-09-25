@@ -17,6 +17,7 @@
 namespace osquery {
 
 DECLARE_string(extensions_socket);
+DECLARE_string(extensions_socket_group);
 DECLARE_string(extensions_autoload);
 DECLARE_string(extensions_timeout);
 DECLARE_bool(disable_extensions);
