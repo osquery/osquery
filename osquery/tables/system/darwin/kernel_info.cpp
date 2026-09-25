@@ -140,7 +140,14 @@ QueryData genKernelInfo(QueryContext& context) {
       auto signature = stringFromCFString((CFStringRef)property);
       CFRelease(property);
 
-      r["version"] = signature.substr(22, signature.find(':') - 22);
+      auto colon_pos = signature.find(':');
+      if (colon_pos != std::string::npos && signature.size() >= 22 &&
+          colon_pos > 22) {
+        r["version"] = signature.substr(22, colon_pos - 22);
+      } else {
+        LOG(WARNING) << "Unexpected kernel version signature format: "
+                     << signature;
+      }
     }
   }
 
