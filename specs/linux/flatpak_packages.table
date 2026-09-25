@@ -1,0 +1,25 @@
+table_name("flatpak_packages")
+description("Installed Flatpak packages.")
+schema([
+    Column("name", TEXT, "Human-readable package name (from AppStream metadata)"),
+    Column("app_id", TEXT, "Application ID (e.g. org.gnome.Gedit)", index=True),
+    Column("version", TEXT, "Package version (from AppStream metadata)"),
+    Column("arch", TEXT, "Architecture (e.g. x86_64)"),
+    Column("branch", TEXT, "Tracking branch (e.g. stable)"),
+    Column("commit", TEXT, "Active deployment commit checksum"),
+    Column("origin", TEXT, "Remote name the package was installed from"),
+    Column("runtime", TEXT, "Runtime identifier (from package metadata)"),
+    Column("type", TEXT, "Package type: app or runtime"),
+    Column("installation", TEXT, "Installation scope: system or user"),
+    Column("summary", TEXT, "One-line summary"),
+    Column("description", TEXT, "Long description (from AppStream metadata)"),
+    Column("license", TEXT, "SPDX license expression"),
+    Column("homepage", TEXT, "Project homepage URL"),
+    Column("developer_name", TEXT, "Developer or publisher name"),
+])
+attributes(cacheable=True)
+implementation("system/flatpak_packages@genFlatpakPackages")
+fuzz_paths([
+    "/var/lib/flatpak",
+    "/home",
+])

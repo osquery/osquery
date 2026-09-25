@@ -79,6 +79,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/process_open_files.cpp
       linux/process_open_pipes.cpp
       linux/processes.cpp
+      linux/flatpak_packages.cpp
       linux/rpm_packages.cpp
       linux/snap_packages.cpp
       linux/secureboot.cpp
