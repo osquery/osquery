@@ -137,7 +137,10 @@ TEST_F(CarverTests, test_carve_files_locally) {
 
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
-  EXPECT_GT(tar.size(), 0U);
+
+  const auto size = tar.size();
+  ASSERT_TRUE(size.has_value());
+  EXPECT_GT(size.value(), 0U);
 }
 
 TEST_F(CarverTests, test_carve_preserves_timestamps) {

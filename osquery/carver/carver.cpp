@@ -204,10 +204,16 @@ Status Carver::carve() {
   }
 
   PlatformFile uploadFile(uploadPath, PF_OPEN_EXISTING | PF_READ);
-  updateCarveValue(carveGuid_, "size", uploadFile.size());
+  const auto uploadFileSizeOpt = uploadFile.size();
+  if (!uploadFileSizeOpt) {
+    return Status::failure("Could not determine size of upload file: " +
+                           uploadPath.string());
+  }
+  const auto uploadFileSize = *uploadFileSizeOpt;
+  updateCarveValue(carveGuid_, "size", uploadFileSize);
 
   std::string uploadHash =
-      (uploadFile.size() > FLAGS_read_max)
+      (uploadFileSize > FLAGS_read_max)
           ? "-1"
           : hashFromFile(HashType::HASH_TYPE_SHA256, uploadPath.string());
   if (uploadHash == "-1") {
@@ -284,7 +290,11 @@ std::set<fs::path> Carver::carveAll() {
 }
 
 Status Carver::blockwiseCopy(PlatformFile& src, PlatformFile& dst) {
-  auto blkCount = ceil(static_cast<double>(src.size()) /
+  const auto srcSizeOpt = src.size();
+  if (!srcSizeOpt) {
+    return Status::failure("Could not determine size of source file");
+  }
+  auto blkCount = ceil(static_cast<double>(*srcSizeOpt) /
                        static_cast<double>(FLAGS_carver_block_size));
 
   std::vector<char> inBuff(FLAGS_carver_block_size, 0);
@@ -315,14 +325,20 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
 
   // Perform the start request to get the session id
   PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
+  const auto pFileSizeOpt = pFile.size();
+  if (!pFileSizeOpt) {
+    return Status::failure("Could not determine size of carve file: " +
+                           path.string());
+  }
+  const auto pFileSize = *pFileSizeOpt;
   auto blkCount =
-      static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
+      static_cast<size_t>(ceil(static_cast<double>(pFileSize) /
                                static_cast<double>(FLAGS_carver_block_size)));
   JSON startParams;
 
   startParams.addCopy("block_count", blkCount);
   startParams.addCopy("block_size", size_t(FLAGS_carver_block_size));
-  startParams.addCopy("carve_size", pFile.size());
+  startParams.addCopy("carve_size", pFileSize);
   startParams.addCopy("carve_id", carveGuid_);
   startParams.addCopy("request_id", requestId_);
   startParams.addCopy("node_key", node_key);
