@@ -109,7 +109,13 @@ bool LinuxSMBIOSParser::discover() {
     VLOG(1) << "Reading SMBIOS from EFI provided memory location";
     readFromSystab(kLinuxEFISystabPath);
   } else {
+    // The 0xF0000 scan assumes PC/AT firmware layout; can SIGBUS elsewhere.
+#if defined(__x86_64__) || defined(__i386__)
     readFromAddress(kLinuxSMBIOSRawAddress_, kLinuxSMBIOSRawLength_);
+#else
+    VLOG(1) << "No SMBIOS data: sysfs DMI and EFI systab are unavailable, and "
+               "the raw memory fallback is x86-only";
+#endif
   }
   return valid();
 }
