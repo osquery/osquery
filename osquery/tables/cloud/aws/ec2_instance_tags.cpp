@@ -7,15 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
-
-#include <aws/core/auth/AWSAuthSigner.h>
-#include <aws/core/http/HttpClientFactory.h>
-#include <aws/core/http/HttpResponse.h>
-#include <aws/core/http/standard/StandardHttpRequest.h>
-#include <aws/core/utils/StringUtils.h>
-#include <aws/core/utils/memory/stl/AWSStringStream.h>
-#include <aws/core/utils/xml/XmlSerializer.h>
+#include <aws/ec2/EC2Client.h>
+#include <aws/ec2/model/DescribeTagsRequest.h>
+#include <aws/ec2/model/Filter.h>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
@@ -24,23 +18,8 @@
 namespace osquery {
 namespace tables {
 
-namespace {
-const char kEc2ApiVersion[] = "2016-11-15";
-
-std::string getEc2Endpoint(const Aws::Client::ClientConfiguration& config) {
-  if (!config.endpointOverride.empty()) {
-    return config.endpointOverride;
-  }
-
-  return "ec2." + std::string(config.region) + ".amazonaws.com";
-}
-
-std::string getResponseBody(Aws::Http::HttpResponse& response) {
-  std::stringstream body;
-  body << response.GetResponseBody().rdbuf();
-  return body.str();
-}
-} // namespace
+namespace ec2 = Aws::EC2;
+namespace model = Aws::EC2::Model;
 
 QueryData genEc2InstanceTags(QueryContext& context) {
   QueryData results;
@@ -77,75 +56,30 @@ QueryData genEc2InstanceTags(QueryContext& context) {
     return results;
   }
 
-  Aws::Http::URI uri("https://" + getEc2Endpoint(client_config));
-  auto request = std::make_shared<Aws::Http::Standard::StandardHttpRequest>(
-      uri, Aws::Http::HttpMethod::HTTP_POST);
-
-  Aws::StringStream payload;
-  payload << "Action=DescribeTags"
-          << "&Version=" << kEc2ApiVersion << "&MaxResults=50"
-          << "&Filter.1.Name=resource-id"
-          << "&Filter.1.Value.1="
-          << Aws::Utils::StringUtils::URLEncode(instance_id.c_str());
-
-  auto body = Aws::MakeShared<Aws::StringStream>("Ec2InstanceTags");
-  *body << payload.str();
-  request->AddContentBody(body);
-  request->SetContentLength(std::to_string(payload.str().size()).c_str());
-  request->SetContentType("application/x-www-form-urlencoded; charset=utf-8");
-
-  Aws::Client::AWSAuthV4Signer signer(
+  auto client = std::make_shared<ec2::EC2Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(false),
-      "ec2",
-      client_config.region,
-      Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Always);
+      client_config);
 
-  if (!signer.SignRequest(*request)) {
-    LOG(WARNING) << "Failed to sign EC2 DescribeTags request";
+  model::Filter filter;
+  filter.WithName("resource-id").AddValues(instance_id);
+
+  model::DescribeTagsRequest request;
+  request.SetMaxResults(50);
+  request.AddFilters(filter);
+
+  auto outcome = client->DescribeTags(request);
+  if (!outcome.IsSuccess()) {
+    VLOG(1) << "Error getting EC2 instance tags: "
+            << outcome.GetError().GetMessage();
     return results;
   }
 
-  OsqueryHttpClient client;
-  auto response = client.MakeRequest(request, nullptr, nullptr);
-  if (response->GetResponseCode() != Aws::Http::HttpResponseCode::OK) {
-    VLOG(1) << "Error getting EC2 instance tags, HTTP response code: "
-            << static_cast<int>(response->GetResponseCode());
-    return results;
-  }
-
-  auto xml = Aws::Utils::Xml::XmlDocument::CreateFromXmlString(
-      getResponseBody(*response).c_str());
-  if (!xml.WasParseSuccessful()) {
-    VLOG(1) << "Error parsing EC2 instance tags response: "
-            << xml.GetErrorMessage();
-    return results;
-  }
-
-  auto root = xml.GetRootElement();
-  auto result_node = root;
-  if (!root.IsNull() && root.GetName() != "DescribeTagsResponse") {
-    result_node = root.FirstChild("DescribeTagsResponse");
-  }
-
-  if (result_node.IsNull()) {
-    return results;
-  }
-
-  auto tags_node = result_node.FirstChild("tagSet");
-  if (tags_node.IsNull()) {
-    return results;
-  }
-
-  auto tag = tags_node.FirstChild("item");
-  while (!tag.IsNull()) {
+  for (const auto& tag : outcome.GetResult().GetTags()) {
     Row r;
     r["instance_id"] = instance_id;
-    r["key"] = SQL_TEXT(
-        Aws::Utils::Xml::DecodeEscapedXmlText(tag.FirstChild("key").GetText()));
-    r["value"] = SQL_TEXT(Aws::Utils::Xml::DecodeEscapedXmlText(
-        tag.FirstChild("value").GetText()));
+    r["key"] = SQL_TEXT(tag.GetKey());
+    r["value"] = SQL_TEXT(tag.GetValue());
     results.push_back(r);
-    tag = tag.NextNode("item");
   }
 
   return results;

@@ -8,15 +8,94 @@
 function(awsSdkCppMain)
   generateAwsCrtCpp()
   generateAwsCppSdkCore()
+  generateAwsCppSdkEc2()
   generateAwsCppSdkFirehose()
   generateAwsCppSdkKinesis()
   generateAwsCppSdkSts()
 
   add_library(thirdparty_aws-sdk-cpp INTERFACE)
   target_link_libraries(thirdparty_aws-sdk-cpp INTERFACE
+    thirdparty_aws-cpp-sdk-ec2
     thirdparty_aws-cpp-sdk-firehose
     thirdparty_aws-cpp-sdk-kinesis
     thirdparty_aws-cpp-sdk-sts
+  )
+endfunction()
+
+function(generateAwsCppSdkEc2)
+  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src/aws-sdk-cpp/aws-cpp-sdk-ec2")
+  set(reduced_root "${CMAKE_CURRENT_SOURCE_DIR}/ec2-minimal")
+
+  add_library(thirdparty_aws-cpp-sdk-ec2 EXCLUDE_FROM_ALL
+    "${reduced_root}/EC2Client.cpp"
+    "${library_root}/source/EC2Endpoint.cpp"
+    "${library_root}/source/EC2ErrorMarshaller.cpp"
+    "${library_root}/source/EC2Errors.cpp"
+    "${library_root}/source/model/DescribeTagsRequest.cpp"
+    "${library_root}/source/model/DescribeTagsResponse.cpp"
+    "${library_root}/source/model/Filter.cpp"
+    "${library_root}/source/model/ResourceType.cpp"
+    "${library_root}/source/model/ResponseMetadata.cpp"
+    "${library_root}/source/model/TagDescription.cpp"
+  )
+
+  target_include_directories(thirdparty_aws-cpp-sdk-ec2 PRIVATE
+    "${reduced_root}/include"
+    "${library_root}/include"
+  )
+
+  target_include_directories(thirdparty_aws-cpp-sdk-ec2 SYSTEM INTERFACE
+    "${reduced_root}/include"
+    "${library_root}/include"
+  )
+
+  target_link_libraries(thirdparty_aws-cpp-sdk-ec2
+    PRIVATE
+      thirdparty_cxx_settings
+
+    PUBLIC
+      thirdparty_aws-cpp-sdk-core
+  )
+
+  if(PLATFORM_POSIX)
+    find_package(Threads REQUIRED)
+    target_link_libraries(thirdparty_aws-cpp-sdk-ec2 PUBLIC
+      Threads::Threads
+    )
+
+    target_compile_definitions(thirdparty_aws-cpp-sdk-ec2 PRIVATE
+      HAS_PATHCONF
+      HAS_UMASK
+    )
+  endif()
+
+  if(PLATFORM_LINUX)
+    target_compile_definitions(thirdparty_aws-cpp-sdk-ec2 PRIVATE
+      PLATFORM_LINUX
+      ENABLE_OPENSSL_ENCRYPTION
+    )
+
+  elseif(PLATFORM_MACOS)
+    target_compile_definitions(thirdparty_aws-cpp-sdk-ec2 PRIVATE
+      PLATFORM_APPLE
+      ENABLE_COMMONCRYPTO_ENCRYPTION
+    )
+
+  elseif(PLATFORM_WINDOWS)
+    target_compile_definitions(thirdparty_aws-cpp-sdk-ec2 PRIVATE
+      PLATFORM_WINDOWS
+      ENABLE_BCRYPT_ENCRYPTION
+    )
+
+    target_link_libraries(thirdparty_aws-cpp-sdk-ec2 PUBLIC
+      Userenv
+      version
+      ws2_32
+    )
+  endif()
+
+  target_precompile_headers(thirdparty_aws-cpp-sdk-ec2 REUSE_FROM
+    thirdparty_aws-cpp-sdk-core
   )
 endfunction()
 
