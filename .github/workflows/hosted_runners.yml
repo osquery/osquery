@@ -726,7 +726,7 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
-        build_tests_flag=""
+        build_tests_flag="-DOSQUERY_BUILD_TESTS=OFF"
         if [[ "${{ matrix.architecture }}" == "arm64" ]]; then
           build_tests_flag="-DOSQUERY_BUILD_TESTS=ON"
         fi
