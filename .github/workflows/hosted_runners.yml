@@ -726,11 +726,16 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
+        build_tests_flag=""
+        if [[ "${{ matrix.architecture }}" == "arm64" ]]; then
+          build_tests_flag="-DOSQUERY_BUILD_TESTS=ON"
+        fi
+
         cmake -G "Unix Makefiles" \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
-          -DOSQUERY_BUILD_TESTS=ON \
+          ${build_tests_flag} \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
@@ -952,7 +957,7 @@ jobs:
         venv_site_packages=$(find "${{ steps.build_paths.outputs.INSTALL }}/venv/lib" -name "site-packages" -type d | head -n1)
         mkdir -p "${{ steps.build_paths.outputs.BINARY }}/python_path"
         ln -sf "$venv_site_packages" "${{ steps.build_paths.outputs.BINARY }}/python_path/site-packages"
-        
+
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
