@@ -78,14 +78,12 @@ QueryData genEc2InstanceTags(QueryContext& context) {
   }
 
   Aws::Http::URI uri("https://" + getEc2Endpoint(client_config));
-  auto request =
-      std::make_shared<Aws::Http::Standard::StandardHttpRequest>(
-          uri, Aws::Http::HttpMethod::HTTP_POST);
+  auto request = std::make_shared<Aws::Http::Standard::StandardHttpRequest>(
+      uri, Aws::Http::HttpMethod::HTTP_POST);
 
   Aws::StringStream payload;
   payload << "Action=DescribeTags"
-          << "&Version=" << kEc2ApiVersion
-          << "&MaxResults=50"
+          << "&Version=" << kEc2ApiVersion << "&MaxResults=50"
           << "&Filter.1.Name=resource-id"
           << "&Filter.1.Value.1="
           << Aws::Utils::StringUtils::URLEncode(instance_id.c_str());
@@ -142,8 +140,8 @@ QueryData genEc2InstanceTags(QueryContext& context) {
   while (!tag.IsNull()) {
     Row r;
     r["instance_id"] = instance_id;
-    r["key"] = SQL_TEXT(Aws::Utils::Xml::DecodeEscapedXmlText(
-        tag.FirstChild("key").GetText()));
+    r["key"] = SQL_TEXT(
+        Aws::Utils::Xml::DecodeEscapedXmlText(tag.FirstChild("key").GetText()));
     r["value"] = SQL_TEXT(Aws::Utils::Xml::DecodeEscapedXmlText(
         tag.FirstChild("value").GetText()));
     results.push_back(r);
