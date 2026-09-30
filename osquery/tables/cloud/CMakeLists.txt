@@ -25,7 +25,7 @@ function(generateOsqueryTablesCloudAws)
     osquery_logger
     osquery_utils_aws
     thirdparty_boost
-    thirdparty_aws-cpp-sdk-ec2
+    thirdparty_aws-cpp-sdk-core
   )
 endfunction()
 
