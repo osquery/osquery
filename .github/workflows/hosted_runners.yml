@@ -947,6 +947,13 @@ jobs:
           ln -sf "${actual_python_path}" "${baked_python_path}"
         fi
 
+    - name: Link venv packages into python_path
+      shell: bash
+      run: |
+        venv_site_packages=$(find "${{ steps.build_paths.outputs.INSTALL }}/venv/lib" -name "site-packages" -type d | head -n1)
+        mkdir -p "${{ steps.build_paths.outputs.BINARY }}/python_path"
+        ln -sf "$venv_site_packages" "${{ steps.build_paths.outputs.BINARY }}/python_path/site-packages"
+        
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
