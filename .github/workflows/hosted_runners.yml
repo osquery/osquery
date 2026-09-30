@@ -764,6 +764,7 @@ jobs:
     # CMakeFiles/ and intermediate object files are excluded since ctest
     # only needs the already-linked test binaries, not the compile artifacts.
     - name: Package build tree for testing
+      if: matrix.architecture == 'arm64' # tests are only run on arm64
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         tar --zstd -cf ../build_tree.tar.zst \
@@ -793,6 +794,7 @@ jobs:
           .
 
     - name: Store the build tree artifact
+      if: matrix.architecture == 'arm64'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
@@ -854,15 +856,12 @@ jobs:
   # while still testing on all the configurations.
   test_macos:
     needs: build_macos
-
-    # x86_64 needs to run on an actual Intel runner; arm64 runs on the
-    # regular (Apple Silicon) runner.
-    runs-on: ${{ matrix.architecture == 'x86_64' && format('{0}-intel', matrix.os) || matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [macos-26, macos-15]
-        architecture: [x86_64, arm64]
+        architecture: [arm64]
         build_type: [Release, Debug]
 
     steps:
