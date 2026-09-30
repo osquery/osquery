@@ -77,7 +77,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
 
   add_osquery_executable(osquery_tables_system_tests_mergedtests-test ${source_files})
 
-  target_link_libraries(osquery_tables_system_tests_mergedtests-test PRIVATE
+  set(link_libraries
     osquery_cxx_settings
     osquery_config_tests_testutils
     osquery_core
@@ -92,11 +92,20 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
-    osquery_utils_plist
-    osquery_utils_system_profiler
     tests_helper
     thirdparty_googletest
     thirdparty_openssl
+  )
+
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND link_libraries
+      osquery_utils_plist
+      osquery_utils_system_profiler
+    )
+  endif()
+
+  target_link_libraries(osquery_tables_system_tests_mergedtests-test PRIVATE
+    ${link_libraries}
   )
 
   if(DEFINED PLATFORM_MACOS)
