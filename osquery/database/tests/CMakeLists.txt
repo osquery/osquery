@@ -6,31 +6,19 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryDatabaseTestsMain)
-  generateOsqueryDatabaseTestsTest()
-  generateOsqueryDatabaseTestsResultsTest()
+  generateOsqueryDatabaseTestsMergedtestsTest()
   generateOsqueryDatabaseTestsDatabasetestutils()
 endfunction()
 
-function(generateOsqueryDatabaseTestsTest)
-  add_osquery_executable(osquery_database_tests-test database.cpp)
-
-  target_link_libraries(osquery_database_tests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_registry
-    osquery_utils_json
-    tests_helper
-    thirdparty_googletest
+function(generateOsqueryDatabaseTestsMergedtestsTest)
+  set(source_files
+    database.cpp
+    results.cpp
   )
-endfunction()
 
-function(generateOsqueryDatabaseTestsResultsTest)
-  add_osquery_executable(osquery_database_tests_results-test results.cpp)
+  add_osquery_executable(osquery_database_tests_mergedtests-test ${source_files})
 
-  target_link_libraries(osquery_database_tests_results-test PRIVATE
+  target_link_libraries(osquery_database_tests_mergedtests-test PRIVATE
     osquery_cxx_settings
     osquery_core_sql
     osquery_core
