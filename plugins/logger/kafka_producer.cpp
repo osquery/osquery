@@ -53,11 +53,11 @@ FLAG(string,
      "all",
      "The number of acknowledgments the leader has to receive (0, 1, 'all')");
 
-FLAG(
-    string,
-    logger_kafka_compression,
-    "none",
-    "Compression codec to use for compressing message sets ('none' or 'gzip')");
+FLAG(string,
+     logger_kafka_compression,
+     "none",
+     "Compression codec to use for compressing message sets ('none', 'gzip', "
+     "'snappy', 'lz4', or 'zstd')");
 
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
