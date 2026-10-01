@@ -726,16 +726,11 @@ jobs:
         CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
-        build_tests_flag="-DOSQUERY_BUILD_TESTS=OFF"
-        if [[ "${{ matrix.architecture }}" == "arm64" ]]; then
-          build_tests_flag="-DOSQUERY_BUILD_TESTS=ON"
-        fi
-
         cmake -G "Unix Makefiles" \
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
           -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}" \
           -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" \
-          ${build_tests_flag} \
+          -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
 
@@ -769,7 +764,6 @@ jobs:
     # CMakeFiles/ and intermediate object files are excluded since ctest
     # only needs the already-linked test binaries, not the compile artifacts.
     - name: Package build tree for testing
-      if: matrix.architecture == 'arm64' # tests are only run on arm64
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         tar --zstd -cf ../build_tree.tar.zst \
@@ -799,7 +793,6 @@ jobs:
           .
 
     - name: Store the build tree artifact
-      if: matrix.architecture == 'arm64'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
@@ -861,6 +854,8 @@ jobs:
   # while still testing on all the configurations.
   test_macos:
     needs: build_macos
+
+    # Only test on arm64, matching the original behavior in master
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -928,10 +923,11 @@ jobs:
     # build_macos always configures on macos-26 (Apple Silicon) hardware,
     # even for the x86_64 leg (it cross-compiles via CMAKE_OSX_ARCHITECTURES),
     # so the CTest files it produces have the arm64 hostedtoolcache Python
-    # path baked into their COMMAND/ENVIRONMENT. When x86_64 tests run here
-    # on a real Intel runner that path doesn't exist, so re-point it at the
-    # Python actually installed on this runner.
-    - name: Align the baked Python interpreter path
+    # path baked into their COMMAND/ENVIRONMENT. When tests run on a different
+    # runner, we need to: (1) re-point the interpreter path to what's installed
+    # on this runner, and (2) update PYTHONPATH to include venv site-packages
+    # so test dependencies like psutil are found.
+    - name: Align Python paths and update PYTHONPATH for venv
       shell: bash
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
@@ -951,12 +947,20 @@ jobs:
           ln -sf "${actual_python_path}" "${baked_python_path}"
         fi
 
-    - name: Link venv packages into python_path
-      shell: bash
-      run: |
+        # Add venv site-packages to PYTHONPATH so test dependencies are found
         venv_site_packages=$(find "${{ steps.build_paths.outputs.INSTALL }}/venv/lib" -name "site-packages" -type d | head -n1)
-        mkdir -p "${{ steps.build_paths.outputs.BINARY }}/python_path"
-        ln -sf "$venv_site_packages" "${{ steps.build_paths.outputs.BINARY }}/python_path/site-packages"
+        
+        if [[ -z "$venv_site_packages" ]]; then
+          echo "::error::Could not find venv site-packages directory in ${{ steps.build_paths.outputs.INSTALL }}/venv/lib"
+          exit 1
+        fi
+
+        # Escape path for use in sed regex replacement
+        venv_escaped=$(printf '%s\n' "$venv_site_packages" | sed -e 's/[\/&]/\\&/g')
+        
+        # Update all CTestTestfile.cmake files to prepend venv site-packages to PYTHONPATH
+        find . -name "CTestTestfile.cmake" -type f -print0 | xargs -0 sed -i '' \
+          "s|PYTHONPATH=\${{ steps.build_paths.outputs.BINARY }}/python_path|PYTHONPATH=$venv_escaped:\${{ steps.build_paths.outputs.BINARY }}/python_path|g"
 
     - name: Run the tests
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
