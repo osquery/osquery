@@ -168,6 +168,7 @@ function(setupBuildFlags)
       set(osquery_linux_common_link_options
         -Wl,-z,relro,-z,now
         -Wl,--build-id=sha1
+        -Wl,--gc-sections
       )
 
       set(linux_common_compile_options)
@@ -228,6 +229,9 @@ function(setupBuildFlags)
       set(macos_cxx_link_options
         -stdlib=libc++
         -lresolv
+        -Wl,-dead_strip
+        # Release builds carry no debug info, so drop the local symbols too
+        "$<$<CONFIG:Release>:-Wl,-x>"
       )
 
       set(macos_cxx_link_libraries
