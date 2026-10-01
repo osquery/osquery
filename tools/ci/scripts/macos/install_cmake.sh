@@ -21,7 +21,7 @@ main() {
   mkdir -p "${download_folder}" || return 1
 
   if [[ ! -f "${local_path}" ]]; then
-    curl -fL --retry 3 --retry-delay 2 -o "${local_path}" "${url}" || return 1
+    curl -fL --retry 5 --retry-delay 10 -o "${local_path}" "${url}" || return 1
   fi
 
   if [[ ! -s "${local_path}" ]]; then
