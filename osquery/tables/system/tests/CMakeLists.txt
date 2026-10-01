@@ -31,6 +31,7 @@ function(generateOsqueryTablesSystemLinuxTests)
   add_osquery_executable(osquery_tables_system_linux_tests-test
     linux/apt_sources_tests.cpp
     linux/extended_attributes_tests.cpp
+    linux/flatpak_packages_tests.cpp
     linux/md_tables_tests.cpp
     linux/pacman_packages_tests.cpp
     linux/snap_packages_tests.cpp
