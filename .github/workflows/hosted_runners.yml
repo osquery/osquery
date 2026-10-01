@@ -607,6 +607,10 @@ jobs:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
+        exclude:
+          # Debug builds are unused on x86. Tests only run on arm64 and only the release build is used for universal binaries.
+          - build_type: Debug
+            architecture: x86_64
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
