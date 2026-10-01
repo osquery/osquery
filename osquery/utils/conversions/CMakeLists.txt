@@ -55,6 +55,7 @@ function(generateOsqueryUtilsConversions)
   )
 
   set(public_header_files
+    binary_reader.h
     castvariant.h
     join.h
     split.h
@@ -106,6 +107,7 @@ endfunction()
 
 function(generateOsqueryUtilsConversionsConversionstestsTest)
   set(source_files
+    tests/binary_reader.cpp
     tests/join.cpp
     tests/split.cpp
     tests/tryto.cpp
