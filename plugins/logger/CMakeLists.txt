@@ -157,6 +157,7 @@ function(generatePluginsLoggerKafkaproducer)
     osquery_config
     osquery_dispatcher
     osquery_remote_utility
+    osquery_utils
     osquery_utils_config
     plugins_config_parsers
     plugins_logger_commondeps

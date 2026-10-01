@@ -38,6 +38,22 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
   Status logString(const std::string& s) override;
 
   /**
+   * @brief Publishes Glog status lines to the configured Kafka status topic.
+   *
+   * Each status line is serialized to JSON and published to the topic set via
+   * the --logger_kafka_status_topic flag.  Calls rd_kafka_poll after producing.
+   */
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
+
+  /**
+   * @brief Signals whether Glog statuses should be forwarded to logStatus.
+   *
+   * Returns true only when a Kafka status topic has been configured, so that
+   * status logs are otherwise left to the default logging path.
+   */
+  bool usesLogStatus() override;
+
+  /**
    * @brief Initializes the Kafka producer.
    *
    * Setups producer with necessary configurations for interacting with Kafka
@@ -96,6 +112,10 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
 
   /// Map of query names to Kafka topic.
   std::map<std::string, rd_kafka_topic_t*> queryToTopics_;
+
+  /// Kafka topic to publish status logs to; nullptr if not configured.
+  /// Ownership of the underlying topic handle is held by topics_.
+  rd_kafka_topic_t* statusTopic_{nullptr};
 
  private:
   /// Configures Kafka topics accordingly.

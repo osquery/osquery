@@ -526,6 +526,10 @@ A comma-delimited list of Kafka brokers to connect to. Format can be `protocol:/
 
 The Kafka topic to publish logs to. When using multiple topics this configuration becomes the base topic that unconfigured queries fall back to. Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
 
+`--logger_kafka_status_topic`
+
+The Kafka topic to publish status logs (Glog INFO/WARNING/ERROR messages) to. When empty (the default) status logs are not published to Kafka and are left to the default logging path. Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
+
 `--logger_kafka_acks`
 
 The number of acknowledgments the Kafka leader has to receive before a publish is considered successful. Valid options are (0, 1, "all").
