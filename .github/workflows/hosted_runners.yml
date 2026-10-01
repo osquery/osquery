@@ -768,6 +768,7 @@ jobs:
     # CMakeFiles/ and intermediate object files are excluded since ctest
     # only needs the already-linked test binaries, not the compile artifacts.
     - name: Package build tree for testing
+      if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         tar --zstd -cf ../build_tree.tar.zst \
@@ -797,6 +798,7 @@ jobs:
           .
 
     - name: Store the build tree artifact
+      if: matrix.architecture == 'arm64'
       uses: actions/upload-artifact@v4.4.0
       with:
         name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
