@@ -2,8 +2,20 @@
   "openssl": {
     "product": "openssl",
     "vendor": "openssl",
-    "version": "3.6.1",
-    "ignored-cves": []
+    "version": "3.6.3",
+    "ignored-cves": [
+      "CVE-2026-75803",
+      "CVE-2026-63076",
+      "CVE-2026-63075",
+      "CVE-2026-63074",
+      "CVE-2026-63073",
+      "CVE-2026-63072",
+      "CVE-2026-54876",
+      "CVE-2026-54874",
+      "CVE-2026-18798",
+      "CVE-2026-14457",
+      "CVE-2026-14456"
+    ]
   },
   "augeas": {
     "product": "augeas",
@@ -76,7 +88,9 @@
     "vendor": "boost",
     "version": "1.77.0",
     "commit": "9d3f9bcd7d416880d4631d7d39cceeb4e8f25da0",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2016-9840"
+    ]
   },
   "bzip2": {
     "product": "bzip2",
@@ -93,13 +107,6 @@
     "ignored-cves": [
       "CVE-2023-34969"
     ]
-  },
-  "expat": {
-    "product": "libexpat",
-    "vendor": "libexpat_project",
-    "version": "2.7.4",
-    "commit": "f5c2890d8ff91f88a018173d293a9bd02f76389e",
-    "ignored-cves": []
   },
   "gflags": {
     "vendor": "google",
@@ -121,8 +128,8 @@
   "libarchive": {
     "product": "libarchive",
     "vendor": "libarchive",
-    "version": "3.8.1",
-    "commit": "9525f90ca4bd14c7b335e2f8c84a4607b0af6bdf",
+    "version": "3.8.9",
+    "commit": "27cbc7827172698143e440801fc0ba39ccb4f1f5",
     "ignored-cves": []
   },
   "libaudit": {
@@ -164,7 +171,8 @@
     "version": "1.21.7",
     "commit": "e61f582015a9c67bbb3791cb93a864cfeb9c7151",
     "ignored-cves": [
-      "CVE-2022-1664"
+      "CVE-2022-1664",
+      "CVE-2025-6297"
     ]
   },
   "libgcrypt": {
@@ -203,15 +211,17 @@
   "librdkafka": {
     "product": "librdkafka",
     "vendor": "edenhill",
-    "version": "1.8.0",
-    "commit": "9ded5eefaf3ba3b65ebc95b0dff7a6d5faaaa38d"
+    "version": "2.15.1",
+    "commit": "c58bbed850ebe1cc493259d11e4de6ca930d5120"
   },
   "librpm": {
     "product": "rpm",
     "vendor": "rpm",
     "version": "4.18.2",
     "commit": "9fc611e38004b1ddaa6668297408649ed556c157",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-44605"
+    ]
   },
   "libudev": {
     "product": "udev",
@@ -232,14 +242,19 @@
     "vendor": "tukaani",
     "version": "5.4.4",
     "commit": "03c51c5c08fe3579d8bbc8eea8251a1128001330",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-34743"
+    ]
   },
   "popt": {
     "product": "popt",
     "vendor": "popt_project",
     "version": "1.19",
     "commit": "916e61045d268f7e37ade5ec047eb77e8299e6ad",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-18839",
+      "CVE-2026-18739"
+    ]
   },
   "rapidjson": {
     "product": "rapidjson",
@@ -258,8 +273,8 @@
   "sleuthkit": {
     "product": "the_sleuth_kit",
     "vendor": "sleuthkit",
-    "version": "4.11.0",
-    "commit": "a397493d8fd5198b40d6c0ce1e4135c1f86d9ea9",
+    "version": "4.15.0",
+    "commit": "01de0345edaa1ebf21dba6939a7c6bc7129e6e7d",
     "ignored-cves": []
   },
   "sqlite": {
@@ -268,14 +283,18 @@
     "version": "3.42.0",
     "commit": "3341b40a45585b7854b20a8acff944c7668cf7e8",
     "ignored-cves": [
-      "CVE-2023-7104"
+      "CVE-2023-7104",
+      "CVE-2025-71316",
+      "CVE-2026-11824",
+      "CVE-2026-11822",
+      "CVE-2025-70873"
     ]
   },
   "thrift": {
     "product": "thrift",
     "vendor": "apache",
-    "version": "0.17.0",
-    "commit": "4d493e867b349f3475203ef9848353b315203c51",
+    "version": "0.24.0",
+    "commit": "6d2ec95f450b4ce404afb8929ff479e68770141a",
     "ignored-cves": []
   },
   "util-linux": {
@@ -288,8 +307,17 @@
       "CVE-2022-0563",
       "CVE-2021-3996",
       "CVE-2021-3995",
-      "CVE-2024-28085"
+      "CVE-2024-28085",
+      "CVE-2026-13595",
+      "CVE-2026-27456"
     ]
+  },
+  "yaml-cpp": {
+    "product": "yaml-cpp",
+    "vendor": "jbeder",
+    "version": "0.9.0",
+    "commit": "c3f81127320662deb3e28f4da0a511f1faecd860",
+    "ignored-cves": []
   },
   "yara": {
     "product": "yara",
@@ -301,8 +329,8 @@
   "zlib": {
     "product": "zlib",
     "vendor": "zlib",
-    "version": "1.3.1",
-    "commit": "51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf",
+    "version": "1.3.2",
+    "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
     "ignored-cves": []
   },
   "zstd": {

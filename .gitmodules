@@ -75,7 +75,7 @@
 	url = https://github.com/osquery/third-party-iptables
 [submodule "libraries/cmake/source/librdkafka/src"]
 	path = libraries/cmake/source/librdkafka/src
-	url = https://github.com/edenhill/librdkafka
+	url = https://github.com/confluentinc/librdkafka
 [submodule "libraries/cmake/source/googletest/src"]
 	path = libraries/cmake/source/googletest/src
 	url = https://github.com/google/googletest
@@ -94,9 +94,6 @@
 [submodule "libraries/cmake/source/dbus/src"]
 	path = libraries/cmake/source/dbus/src
 	url = https://gitlab.freedesktop.org/dbus/dbus.git
-[submodule "libraries/cmake/source/expat/src"]
-	path = libraries/cmake/source/expat/src
-	url = https://github.com/libexpat/libexpat
 [submodule "libraries/cmake/source/libcap/src"]
 	path = libraries/cmake/source/libcap/src
 	url = https://kernel.googlesource.com/pub/scm/libs/libcap/libcap.git
@@ -148,3 +145,6 @@
 [submodule "libraries/cmake/source/lz4/src"]
 	path = libraries/cmake/source/lz4/src
 	url = https://github.com/lz4/lz4.git
+[submodule "libraries/cmake/source/yaml-cpp/src"]
+	path = libraries/cmake/source/yaml-cpp/src
+	url = https://github.com/jbeder/yaml-cpp.git

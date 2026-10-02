@@ -8,6 +8,7 @@
  */
 
 #include <codecvt>
+#include <set>
 #include <sstream>
 
 #include <fcntl.h>
@@ -306,7 +307,11 @@ Status removePath(const fs::path& path) {
   return Status(0, std::to_string(removed_files));
 }
 
-static bool isDirVisited(std::unordered_set<int>& dir_inos,
+// A directory is identified by (device, inode). An inode number is only
+// unique within its own filesystem, so the device has to be part of the key.
+using DirIdentifier = std::pair<dev_t, ino_t>;
+
+static bool isDirVisited(std::set<DirIdentifier>& dir_inos,
                          const std::string& path) {
   if (path.empty()) {
     return true;
@@ -318,12 +323,12 @@ static bool isDirVisited(std::unordered_set<int>& dir_inos,
     return false;
   }
 
-  auto [_, inserted] = dir_inos.emplace(d_stat.st_ino);
+  auto [_, inserted] = dir_inos.emplace(d_stat.st_dev, d_stat.st_ino);
   return !inserted;
 }
 
 static void dfsTraverseDirectories(const std::string& current_path,
-                                   std::unordered_set<int>& visited_dirs,
+                                   std::set<DirIdentifier>& visited_dirs,
                                    std::vector<std::string>& results,
                                    size_t depth) {
   if (depth >= kMaxRecursiveGlobs) {
@@ -368,7 +373,7 @@ static void genGlobs(std::string path,
   replaceGlobWildcards(path, limits);
 
   // inodes of traversed directories to avoid loops from symlinks
-  std::unordered_set<int> dir_inos;
+  std::set<DirIdentifier> dir_inos;
 
   bool should_expand =
       (path.size() >= 2 && path.substr(path.size() - 2) == "**");

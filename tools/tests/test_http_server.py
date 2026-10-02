@@ -11,6 +11,7 @@ import argparse
 import base64
 from datetime import datetime
 import gzip
+import hashlib
 import json
 import os
 import random
@@ -127,6 +128,30 @@ RECEIVED_REQUESTS = []
 FILE_CARVE_DIR = "/tmp/"
 FILE_CARVE_MAP = {}
 
+# Conditional-request (etag) test state for the config endpoint.
+# CONFIG_ETAG_MODE selects the simulated server behavior:
+#   "on"        - assign an etag and honor conditional requests (default)
+#   "off"       - a legacy server: ignore the request etag entirely
+#   "always_ok" - a misbehaving server: always claim the config is unchanged
+CONFIG_ETAG_EVENTS = []
+CONFIG_PAYLOAD_OVERRIDE = None
+CONFIG_ETAG_MODE = "on"
+
+
+def _compute_etag(body_bytes):
+    """Generate an opaque server-assigned validator for a config body."""
+    digest = hashlib.sha256(body_bytes).hexdigest()
+    return "test-server-" + digest
+
+
+def _record_config_event(request_etag, etag, not_modified, body_size):
+    CONFIG_ETAG_EVENTS.append({
+        "request_etag": request_etag,
+        "etag": etag,
+        "not_modified": not_modified,
+        "body_size": body_size,
+    })
+
 
 def debug(response):
     if ARGS["verbose"]:
@@ -181,6 +206,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        global CONFIG_PAYLOAD_OVERRIDE, CONFIG_ETAG_MODE
         reset_timeout()
         debug("RealSimpleHandler::post %s" % self.path)
         if not self._check_gzip_required():
@@ -212,6 +238,27 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self.start_carve(request)
         elif self.path == "/carve_block":
             self.continue_carve(request)
+        elif self.path == "/set_config_payload":
+            CONFIG_PAYLOAD_OVERRIDE = request.get("payload")
+            self._reply({})
+        elif self.path == "/set_config_etag_mode":
+            CONFIG_ETAG_MODE = request.get("mode", "on")
+            self._reply({})
+        elif self.path == "/read_etag_events":
+            self._reply(CONFIG_ETAG_EVENTS)
+        elif self.path == "/reset_config_test_state":
+            CONFIG_PAYLOAD_OVERRIDE = None
+            CONFIG_ETAG_MODE = "on"
+            CONFIG_ETAG_EVENTS.clear()
+            # Restore the periodic node-key invalidation to its defaults.
+            # Suppressing invalidation (for tests that assert exact
+            # request sequences) is an explicit opt-in, so a reset never
+            # leaves a shared server with re-enrollment silently disabled.
+            ENROLL_RESET["count"] = 1
+            ENROLL_RESET["max"] = 3
+            if request.get("enroll_invalidation") == "off":
+                ENROLL_RESET["max"] = 0
+            self._reply({})
         else:
             self._reply(TEST_POST_RESPONSE)
 
@@ -256,14 +303,42 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # This endpoint will also invalidate the node secret key (node_key)
         # after several attempts to test re-enrollment.
         ENROLL_RESET["count"] += 1
-        if ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
+        if ENROLL_RESET["max"] and ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
             ENROLL_RESET["first"] = 0
             self._reply(FAILED_ENROLL_RESPONSE)
             return
+
         if node:
-            self._reply(EXAMPLE_NODE_CONFIG)
+            payload = EXAMPLE_NODE_CONFIG
+        elif CONFIG_PAYLOAD_OVERRIDE is not None:
+            payload = CONFIG_PAYLOAD_OVERRIDE
+        else:
+            payload = EXAMPLE_CONFIG
+
+        # Conditional requests: an agent opts in by sending an "etag" field
+        # in the request body. The server answers
+        # with the full config plus an "etag" key, or with the reserved
+        # body {"etag": "ok"} when the agent's etag is current. An agent
+        # that sends no etag receives the config alone, as always.
+        request_etag = request.get("etag")
+        if request_etag is None or CONFIG_ETAG_MODE == "off":
+            _record_config_event(
+                request_etag, None, False,
+                len(json.dumps(payload).encode()))
+            self._reply(payload)
             return
-        self._reply(EXAMPLE_CONFIG)
+
+        etag = _compute_etag(json.dumps(payload).encode())
+        if CONFIG_ETAG_MODE == "always_ok" or request_etag == etag:
+            response = {"etag": "ok"}
+            not_modified = True
+        else:
+            response = dict(payload)
+            response["etag"] = etag
+            not_modified = False
+        _record_config_event(request_etag, etag, not_modified,
+                             len(json.dumps(response).encode()))
+        self._reply(response)
 
     def distributed_read(self, request):
         """A basic distributed read endpoint"""

@@ -8,8 +8,9 @@
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 importSourceSubmodule(
-  NAME
-    "expat"
+  NAME "yaml-cpp"
+
+  NO_RECURSIVE
 
   SHALLOW_SUBMODULES
     "src"
