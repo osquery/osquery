@@ -80,20 +80,21 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
 
   reg_handle_t registry_handle(hkey, close_reg_handle);
 
-  const auto max_key_length = 255;
   DWORD subkeys_count;
-  DWORD max_name_length;
+  DWORD max_subkey_length;
   DWORD ret_code;
 
+  // Note: max_subkey_length is at position 6 (lpcbMaxSubKeyLen).
+  // Position 9 would be lpcbMaxValueNameLen which has a different limit.
   ret_code = RegQueryInfoKeyW(registry_handle.get(),
                               nullptr,
                               nullptr,
                               nullptr,
                               &subkeys_count,
+                              &max_subkey_length,
                               nullptr,
                               nullptr,
                               nullptr,
-                              &max_name_length,
                               nullptr,
                               nullptr,
                               nullptr);
@@ -106,19 +107,26 @@ std::optional<std::vector<std::string>> getRoamingProfileSids() {
   }
 
   std::wstring key_name;
-  key_name.resize(max_key_length);
+  key_name.resize(max_subkey_length + 1);
 
   std::vector<std::string> subkeys_names;
 
   // Process registry subkeys
   for (DWORD i = 0; i < subkeys_count; i++) {
-    ret_code =
-        RegEnumKeyW(registry_handle.get(), i, key_name.data(), max_key_length);
+    DWORD key_length = static_cast<DWORD>(key_name.size());
+    ret_code = RegEnumKeyExW(registry_handle.get(),
+                             i,
+                             key_name.data(),
+                             &key_length,
+                             nullptr,
+                             nullptr,
+                             nullptr,
+                             nullptr);
     if (ret_code != ERROR_SUCCESS) {
       return std::nullopt;
     }
 
-    subkeys_names.emplace_back(wstringToString(key_name));
+    subkeys_names.emplace_back(wstringToString(key_name.c_str()));
   }
 
   return subkeys_names;
