@@ -111,8 +111,6 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     ::SysFreeString(taskPath);
 
     VARIANT_BOOL hidden = false;
-    pRegisteredTask->get_Enabled(&hidden);
-    r["hidden"] = hidden ? INTEGER(1) : INTEGER(0);
 
     HRESULT lastTaskRun = E_FAIL;
     pRegisteredTask->get_LastTaskResult(&lastTaskRun);
@@ -142,9 +140,18 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     IActionCollection* tActionCollection = nullptr;
     pRegisteredTask->get_Definition(&taskDef);
     if (taskDef != nullptr) {
+      ITaskSettings* taskSettings = nullptr;
+      taskDef->get_Settings(&taskSettings);
+      if (taskSettings != nullptr) {
+        taskSettings->get_Hidden(&hidden);
+        taskSettings->Release();
+      }
+
       taskDef->get_Actions(&tActionCollection);
       taskDef->Release();
     }
+
+    r["hidden"] = hidden ? INTEGER(1) : INTEGER(0);
     pRegisteredTask->Release();
 
     long actionCount = 0;
