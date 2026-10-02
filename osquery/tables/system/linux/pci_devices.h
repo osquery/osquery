@@ -126,5 +126,7 @@ Status extractVendorModelFromPciDBIfPresent(
 ///  attribute.
 Status extractPCIClassIDAttrs(Row& row, std::string pci_class_attr);
 
+extern const std::vector<std::string> kPciidsPathList;
+
 } // namespace tables
 } // namespace osquery
