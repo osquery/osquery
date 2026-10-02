@@ -49,6 +49,7 @@ function(generateNativeTables)
     hash.table
     interface_addresses.table
     interface_details.table
+    java_packages.table
     listening_ports.table
     logged_in_users.table
     memory_devices.table
