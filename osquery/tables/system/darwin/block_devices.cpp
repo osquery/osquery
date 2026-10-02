@@ -10,13 +10,12 @@
 #include <DiskArbitration/DADisk.h>
 #include <DiskArbitration/DASession.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -38,7 +37,11 @@ void genIOMediaDevice(const io_service_t& device,
   r["block_size"] = getIOKitProperty(properties, "Preferred Block Size");
   auto disk_size = getNumIOKitProperty(properties, "Size");
   auto block_size = getNumIOKitProperty(properties, "Preferred Block Size");
-  r["size"] = boost::lexical_cast<std::string>(disk_size / block_size);
+  if (block_size == 0) {
+    r["size"] = "0";
+  } else {
+    r["size"] = std::to_string(disk_size / block_size);
+  }
   auto type = getIOKitProperty(properties, "Whole");
   if (type == "1") {
     // The "Whole" property applies to the entire disk entry, not partitions.

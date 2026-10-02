@@ -19,7 +19,6 @@
 #include <IOKit/IOKitLib.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
 
 #include <osquery/core/tables.h>
@@ -29,6 +28,7 @@
 #include <osquery/utils/conversions/darwin/cfstring.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
 #include <osquery/utils/conversions/join.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/firmware.h>
 
 namespace osquery {
@@ -324,7 +324,7 @@ QueryData genIntelPlatformInfo(QueryContext& context) {
   {
     auto address = getIOKitProperty(details, "fv-main-address");
     if (!address.empty()) {
-      auto value = boost::lexical_cast<size_t>(address);
+      auto value = tryTo<size_t>(address).takeOr(0);
 
       std::stringstream hex_id;
       hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
