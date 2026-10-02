@@ -306,6 +306,13 @@ function(generateSpecialTargets)
     "libraries"
   )
 
+  add_custom_target(format
+    COMMAND "${OSQUERY_PYTHON_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+            --exclude-folders "${excluded_folders}" --binary "${OSQUERY_CLANG_FORMAT}" -f --style=file
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    VERBATIM
+  )
   add_custom_target(format_check
     COMMAND "${OSQUERY_PYTHON_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/formatting/format-check.py"
@@ -313,10 +320,10 @@ function(generateSpecialTargets)
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
-  add_custom_target(format
+  add_custom_target(format_all
     COMMAND "${OSQUERY_PYTHON_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
-            --exclude-folders "${excluded_folders}" --binary "${OSQUERY_CLANG_FORMAT}" -f --style=file
+            --exclude-folders "${excluded_folders}" --binary "${OSQUERY_CLANG_FORMAT}" -f --style=file origin/master
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
   )
