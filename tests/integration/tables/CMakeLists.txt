@@ -121,6 +121,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
+      gpu_info.cpp
       hardware_events.cpp
       homebrew_packages.cpp
       interface_ipv6.cpp
@@ -305,6 +306,7 @@ function(generateTestsIntegrationTablesTestsTest)
       default_environment.cpp
       disk_info.cpp
       drivers.cpp
+      gpu_info.cpp
       ie_extensions.cpp
       intel_me_info.cpp
       logon_sessions.cpp

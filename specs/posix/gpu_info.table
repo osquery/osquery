@@ -1,0 +1,30 @@
+table_name("gpu_info")
+description("Retrieve GPU (graphics processing unit) information of the machine, including inventory and runtime telemetry where supported.")
+schema([
+    Column("device_id", TEXT, "The DeviceID of the GPU. Derived from the PCI slot when available (e.g. GPU0000:01:00.0) so it is stable across reboots; a positional GPU<n> counter is used only for devices without a slot."),
+    Column("name", TEXT, "The name of the GPU."),
+    Column("vendor", TEXT, "The vendor of the GPU."),
+    Column("vendor_id", TEXT, "The hex encoded PCI vendor identifier of the GPU."),
+    Column("model", TEXT, "The model of the GPU."),
+    Column("model_id", TEXT, "The hex encoded PCI model identifier of the GPU. On Apple Silicon, where the GPU is integrated in the SoC and has no PCI device ID, the IOKit SoC identifier is reported instead (e.g. gpu,t6000)."),
+    Column("driver", TEXT, "The driver in use by the GPU."),
+    Column("driver_version", TEXT, "The version of the installed driver.", collate="version"),
+    Column("vram", BIGINT, "The total video memory of the GPU in bytes. Fixed capacity only: on Linux only available for AMD GPUs (amdgpu driver, via mem_info_vram_total sysfs) and for NVIDIA GPUs with the proprietary driver loaded (via NVML, the library behind nvidia-smi, which also requires the query to have permission to talk to the driver); Intel drivers expose no equivalent; on macOS empty for unified-memory GPUs (Apple Silicon), which have no dedicated VRAM"),
+    Column("pci_slot", TEXT, "The PCI slot of the GPU, as a bus address (e.g. 0000:01:00.0 on Linux, 0000:bb:dd.f on Windows, b:d:f on macOS). Empty for non-PCI adapters (e.g. Apple Silicon integrated GPUs)."),
+    Column("pci_class_id", TEXT, "The PCI class identifier of the GPU in hex format."),
+    Column("gpu_utilization_pct", DOUBLE, "GPU engine utilization as a percentage (0-100). Best-effort: may be NULL when the platform or driver does not expose it."),
+])
+extended_schema(DARWIN, [
+    Column("cores", INTEGER, "The number of GPU cores. Only available on macOS."),
+    Column("metal_support", TEXT, "The Metal feature set supported by the GPU. Only available on macOS."),
+])
+extended_schema(LINUX, [
+    Column("temperature_gpu_celsius", DOUBLE, "GPU core temperature in degrees Celsius, from hwmon. May be NULL when not exposed by the driver."),
+    Column("power_draw_watts", DOUBLE, "Current GPU power draw in Watts, from hwmon. May be NULL when not exposed by the driver."),
+    Column("power_limit_watts", DOUBLE, "Configured GPU power limit in Watts, from hwmon. May be NULL when not exposed by the driver."),
+    Column("fan_speed_pct", DOUBLE, "GPU fan speed as a percentage of maximum (0-100), from hwmon. May be NULL when not exposed by the driver."),
+])
+extended_schema(WINDOWS, [
+    Column("driver_date", BIGINT, "The date of the installed driver, as a Unix timestamp. Only available on Windows."),
+])
+implementation("gpu_info@genGpuInfo")
