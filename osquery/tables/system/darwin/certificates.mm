@@ -87,6 +87,9 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   auto opt_cert_key_usage = getCertificateKeyUsage(cert);
   r["key_usage"] = opt_cert_key_usage.value_or("");
 
+  auto opt_subject_alt_names = getCertificateSubjectAltNames(cert);
+  r["subject_alternative_names"] = SQL_TEXT(opt_subject_alt_names.value_or(""));
+
   auto opt_authority_key_id = getCertificateAuthorityKeyID(cert);
   r["authority_key_id"] = SQL_TEXT(opt_authority_key_id.value_or(""));
 
