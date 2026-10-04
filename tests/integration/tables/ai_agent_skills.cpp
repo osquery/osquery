@@ -60,6 +60,12 @@ class AIAgentSkills : public testing::Test {
         project_dir / ".agents" / "skills" / "empty-frontmatter-skill";
     structured_skill_dir =
         project_dir / ".github" / "skills" / "structured-skill";
+    hidden_entries_skill_dir =
+        project_dir / ".claude" / "skills" / "hidden-entries-skill";
+    // Not a typo: a *directory* named SKILL.md, which the discovery glob
+    // must not match.
+    skill_md_directory_dir =
+        project_dir / ".claude" / "skills" / "skill-md-is-a-directory";
 
     ASSERT_TRUE(createDirectory(skill_dir / "scripts", true).ok());
     ASSERT_TRUE(writeTextFile(skill_dir / "SKILL.md", kSkillMarkdown).ok());
@@ -80,6 +86,29 @@ class AIAgentSkills : public testing::Test {
     ASSERT_TRUE(writeTextFile(structured_skill_dir / "SKILL.md",
                               kStructuredSkillMarkdown)
                     .ok());
+
+    // One visible resource alongside a dot-prefixed file and a dot-prefixed
+    // directory with a file in it. Only the visible one counts, on every
+    // platform.
+    ASSERT_TRUE(
+        createDirectory(hidden_entries_skill_dir / ".hidden-dir", true).ok());
+    ASSERT_TRUE(writeTextFile(hidden_entries_skill_dir / "SKILL.md",
+                              kHiddenEntriesSkillMarkdown)
+                    .ok());
+    ASSERT_TRUE(
+        writeTextFile(hidden_entries_skill_dir / "visible.txt", "v\n").ok());
+    ASSERT_TRUE(
+        writeTextFile(hidden_entries_skill_dir / ".hidden-file", "h\n").ok());
+    ASSERT_TRUE(
+        writeTextFile(hidden_entries_skill_dir / ".hidden-dir" / "nested.txt",
+                      "n\n")
+            .ok());
+
+    ASSERT_TRUE(
+        createDirectory(skill_md_directory_dir / "SKILL.md", true).ok());
+    ASSERT_TRUE(writeTextFile(skill_md_directory_dir / "SKILL.md" / "inner.txt",
+                              "not frontmatter\n")
+                    .ok());
   }
 
   void TearDown() override {
@@ -98,11 +127,14 @@ class AIAgentSkills : public testing::Test {
   fs::path block_scalar_skill_dir;
   fs::path empty_frontmatter_skill_dir;
   fs::path structured_skill_dir;
+  fs::path hidden_entries_skill_dir;
+  fs::path skill_md_directory_dir;
 
   static const std::string kSkillMarkdown;
   static const std::string kBlockScalarSkillMarkdown;
   static const std::string kEmptyFrontmatterSkillMarkdown;
   static const std::string kStructuredSkillMarkdown;
+  static const std::string kHiddenEntriesSkillMarkdown;
 };
 
 const std::string AIAgentSkills::kSkillMarkdown = R"(---
@@ -169,6 +201,13 @@ metadata:
 Body content.
 )";
 
+const std::string AIAgentSkills::kHiddenEntriesSkillMarkdown = R"(---
+name: hidden-entries-skill
+---
+
+Body content.
+)";
+
 namespace {
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
   static const Row kEmptyRow;
@@ -190,7 +229,7 @@ TEST_F(AIAgentSkills, test_sanity) {
       execute_query("select * from ai_agent_skills where directory = '" +
                     project_dir.string() + "'");
 
-  ASSERT_EQ(data.size(), 4ul);
+  ASSERT_EQ(data.size(), 5ul);
 
   ValidationMap row_map = {
       {"name", NormalType},
@@ -271,6 +310,35 @@ TEST_F(AIAgentSkills, test_structured_frontmatter_values) {
   EXPECT_EQ(row.at("allowed_tools"), "Read, Bash(git:*)");
   // Anything structured is emitted in flow style, so it stays on one line.
   EXPECT_EQ(row.at("compatibility"), "{product: claude-code, network: false}");
+}
+
+TEST_F(AIAgentSkills, test_hidden_entries_are_not_counted) {
+  auto const data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& row =
+      findRowByPath(data, (hidden_entries_skill_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("name"), "hidden-entries-skill");
+  // visible.txt only: .hidden-file and everything under .hidden-dir/ are
+  // excluded. POSIX glob("*") drops dot entries on its own, but the Windows
+  // directory iteration does not, so without an explicit filter this would
+  // be 3 there and 1 here.
+  EXPECT_EQ(row.at("resource_count"), "1");
+}
+
+TEST_F(AIAgentSkills, test_directory_named_skill_md_is_not_a_skill) {
+  auto const data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  // The discovery glob matches files only. A directory named SKILL.md has no
+  // frontmatter to read, so matching it would emit a row with every
+  // frontmatter column blank.
+  const auto unwanted = (skill_md_directory_dir / "SKILL.md").string();
+  for (const auto& row : data) {
+    EXPECT_NE(row.at("path"), unwanted);
+  }
 }
 
 TEST_F(AIAgentSkills, test_unconstrained_query_excludes_project_scope) {

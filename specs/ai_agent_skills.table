@@ -11,7 +11,7 @@ schema([
     Column("scope", TEXT, "Installation scope: user, project, system or plugin"),
     Column("directory", TEXT, "Skill root directory; for project-scope rows, echoes the exact directory = <value> constraint that triggered the scan (LIKE and other predicates are not supported and return no project-scope rows)", index=True, optimized=True),
     Column("path", TEXT, "Absolute path to SKILL.md; join the hash table on this for its hash, or the file table for its size and modification time"),
-    Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md and any hidden file or directory"),
+    Column("resource_count", INTEGER, "Number of bundled files under the skill directory, excluding SKILL.md and any dot-prefixed file or directory"),
     Column("script_count", INTEGER, "Number of files under scripts/"),
     Column("uid", BIGINT, "Owning user id; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows", index=True, optimized=True),
     Column("username", TEXT, "Owning username; populated for user-scope rows and for plugin-scope rows discovered under a user's home directory. Blank for project/system-scope rows, which have no owning user and are not joinable to the users table on uid"),

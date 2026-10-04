@@ -329,6 +329,20 @@ struct WalkedDir {
   std::vector<std::string> files;
 };
 
+// True for a dot-prefixed entry name. Hidden entries are filtered out of
+// the walk below explicitly rather than left to the platform: POSIX
+// glob("*") drops them, but the Windows directory iteration behind
+// listFilesInDirectory() (WindowsFindFiles, which skips only "." and "..")
+// returns them, so the same skill would otherwise report a different
+// resource_count on each platform. Dot-prefixed is the whole rule, on
+// every platform -- a Windows entry carrying FILE_ATTRIBUTE_HIDDEN without
+// a leading dot is counted, since there is no portable way to ask, and the
+// column's documented contract says the same.
+bool isHiddenName(const std::string& path) {
+  const auto name = fs::path(path).filename().string();
+  return !name.empty() && name.front() == '.';
+}
+
 // Bounded and containment-checked directory walk shared by the per-skill
 // resource/script counter and the plugin-cache SKILL.md finder below (each
 // previously carried its own copy of this traversal). A subdirectory whose
@@ -336,7 +350,9 @@ struct WalkedDir {
 // elsewhere on disk -- is skipped rather than followed, so
 // a skill directory can't use a symlink to pull unrelated parts of the
 // filesystem into the scan. `skip_dir_names` subdirectory names are pruned
-// entirely (e.g. ".git").
+// entirely (e.g. ".git"), as is any dot-prefixed entry. Note that `root`
+// itself is walked whether or not it is hidden: the skill roots this runs
+// against are routinely under a dotted directory (~/.claude/skills/...).
 std::vector<WalkedDir> walkBounded(
     const fs::path& root,
     int max_depth,
@@ -378,6 +394,10 @@ std::vector<WalkedDir> walkBounded(
     std::vector<std::string> contained_files;
     contained_files.reserve(files.size());
     for (const auto& file : files) {
+      if (isHiddenName(file)) {
+        continue;
+      }
+
       fs::path file_canonical = fs::canonical(file, ec);
       if (ec || !isUnderRoot(root_canonical, file_canonical)) {
         continue;
@@ -397,7 +417,8 @@ std::vector<WalkedDir> walkBounded(
     }
 
     for (const auto& subdir : subdirs) {
-      if (skip_dir_names.count(fs::path(subdir).filename().string())) {
+      if (isHiddenName(subdir) ||
+          skip_dir_names.count(fs::path(subdir).filename().string())) {
         continue;
       }
 
@@ -580,8 +601,11 @@ void scanRoots(const fs::path& base,
       continue;
     }
 
+    // GLOB_FILES, not the default GLOB_ALL: a *directory* named SKILL.md
+    // would otherwise match and reach addSkillRow(), producing a row whose
+    // frontmatter columns are all blank because there is no file to read.
     std::vector<std::string> matches;
-    resolveFilePattern(expected_root / "%" / "SKILL.md", matches);
+    resolveFilePattern(expected_root / "%" / "SKILL.md", matches, GLOB_FILES);
     for (const auto& match : matches) {
       fs::path match_canonical = fs::canonical(match, ec);
       if (ec || !isUnderRoot(expected_root_canonical, match_canonical)) {
