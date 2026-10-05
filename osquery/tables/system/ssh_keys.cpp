@@ -152,7 +152,7 @@ void genSSHkeyForHosts(const std::string& uid,
   boost::filesystem::path keys_dir = directory;
   keys_dir /= kSSHUserKeysDir;
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(keys_dir, files_list, false);
+  auto status = listFilesInDirectory(keys_dir, files_list, true);
   if (!status.ok()) {
     return;
   }
