@@ -7,8 +7,7 @@
 
 function(osqueryConfigTestsMain)
   generateOsqueryConfigTestsTestUtils()
-  generateOsqueryConfigTestsTest()
-  generateOsqueryConfigTestsPacksTest()
+  generateOsqueryConfigTestsMergedtestsTest()
 endfunction()
 
 function(generateOsqueryConfigTestsTestUtils)
@@ -28,30 +27,15 @@ function(generateOsqueryConfigTestsTestUtils)
   )
 endfunction()
 
-function(generateOsqueryConfigTestsTest)
-  add_osquery_executable(osquery_config_tests-test config_tests.cpp)
-
-  target_link_libraries(osquery_config_tests-test PRIVATE
-    osquery_cxx_settings
-    osquery_config
-    osquery_config_tests_testutils
-    osquery_database
-    osquery_dispatcher
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_filesystem_mockfilestructure
-    osquery_registry
-    osquery_utils_system_time
-    tests_helper
-    thirdparty_googletest
+function(generateOsqueryConfigTestsMergedtestsTest)
+  set(source_files
+    config_tests.cpp
+    packs.cpp
   )
 
-endfunction()
+  add_osquery_executable(osquery_config_tests_mergedtests-test ${source_files})
 
-function(generateOsqueryConfigTestsPacksTest)
-  add_osquery_executable(osquery_config_tests_packs-test packs.cpp)
-
-  target_link_libraries(osquery_config_tests_packs-test PRIVATE
+  target_link_libraries(osquery_config_tests_mergedtests-test PRIVATE
     osquery_cxx_settings
     osquery_config
     osquery_config_tests_testutils

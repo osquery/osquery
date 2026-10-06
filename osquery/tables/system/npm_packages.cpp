@@ -40,6 +40,8 @@ const std::set<std::string> kNodeModulesPath = {
 #else
     "/usr/local/lib",
     "/opt/homebrew/lib",
+    // MacPorts
+    "/opt/local/lib",
     "/usr/lib",
     "/home/%/.npm-global/lib",
     "/home/%/.nvm/versions/node/%/lib",

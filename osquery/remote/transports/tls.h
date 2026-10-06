@@ -25,6 +25,13 @@ namespace osquery {
 const std::string kAuthorizationHeader = "Authorization";
 const std::string kNodeKeyAuthScheme = "NodeKey";
 
+#if !defined(OSQUERY_USER_AGENT_PREFIX)
+#error The build must define OSQUERY_USER_AGENT_PREFIX.
+#endif
+
+/// Run-time overridable prefix of the User-Agent used for TLS requests.
+DECLARE_string(tls_user_agent);
+
 const std::string kTLSCiphers =
     "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
     "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!CBC:!SHA:!DSS:!kDHE:!"
