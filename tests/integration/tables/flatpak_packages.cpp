@@ -34,7 +34,7 @@ TEST_F(FlatpakPackages, test_sanity) {
       {"version", NormalType},
       {"arch", NormalType},
       {"branch", NormalType},
-      {"commit", NormalType},
+      {"commit_hash", NormalType},
       {"origin", NormalType},
       {"runtime", NormalType},
       {"type", NormalType},

@@ -166,6 +166,24 @@ TEST_F(FlatpakPackagesTests, appstream_parses_description_paragraphs) {
   EXPECT_NE(r["description"].find("Second paragraph"), std::string::npos);
 }
 
+TEST_F(FlatpakPackagesTests, appstream_uses_only_default_description) {
+  const std::string xml =
+      "<?xml version=\"1.0\"?>\n"
+      "<component>\n"
+      "  <description>\n"
+      "    <p>Default description.</p>\n"
+      "  </description>\n"
+      "  <description xml:lang=\"de\">\n"
+      "    <p>Deutsche Beschreibung.</p>\n"
+      "  </description>\n"
+      "</component>\n";
+
+  Row r;
+  parseFlatpakAppStream(xml, r);
+
+  EXPECT_EQ(r["description"], "Default description.");
+}
+
 TEST_F(FlatpakPackagesTests, appstream_uses_first_release_version) {
   const std::string xml =
       "<?xml version=\"1.0\"?>\n"

@@ -6,7 +6,7 @@ schema([
     Column("version", TEXT, "Package version (from AppStream metadata)"),
     Column("arch", TEXT, "Architecture (e.g. x86_64)"),
     Column("branch", TEXT, "Tracking branch (e.g. stable)"),
-    Column("commit", TEXT, "Active deployment commit checksum"),
+    Column("commit_hash", TEXT, "Active deployment commit checksum"),
     Column("origin", TEXT, "Remote name the package was installed from"),
     Column("runtime", TEXT, "Runtime identifier (from package metadata)"),
     Column("type", TEXT, "Package type: app or runtime"),

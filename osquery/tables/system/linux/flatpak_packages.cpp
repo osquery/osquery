@@ -129,6 +129,14 @@ static std::string extractXmlText(const boost::property_tree::ptree& node) {
   return std::string(trim(out));
 }
 
+static std::string xmlLanguage(const boost::property_tree::ptree& node) {
+  std::string language = node.get<std::string>("<xmlattr>.xml:lang", "");
+  if (language.empty()) {
+    language = node.get<std::string>("<xmlattr>.lang", "");
+  }
+  return language;
+}
+
 /**
  * @brief Parse an AppStream metainfo or appdata XML file into a Row.
  *
@@ -188,12 +196,34 @@ void parseFlatpakAppStream(const std::string& content, Row& r) {
     }
   }
 
-  // Description: join text from all immediate <p> and <li> children.
-  auto desc_node = comp->get_child_optional("description");
-  if (desc_node) {
+  // Prefer the unlocalized description so translations do not inflate rows.
+  const pt::ptree* desc_node = nullptr;
+  const pt::ptree* first_localized_desc_node = nullptr;
+  for (const auto& child : *comp) {
+    if (child.first != "description") {
+      continue;
+    }
+
+    const std::string language = xmlLanguage(child.second);
+    if (first_localized_desc_node == nullptr) {
+      first_localized_desc_node = &child.second;
+    }
+    if (language.empty() || language == "C") {
+      desc_node = &child.second;
+      break;
+    }
+  }
+  if (desc_node == nullptr) {
+    desc_node = first_localized_desc_node;
+  }
+  if (desc_node != nullptr) {
     std::string desc;
     for (const auto& child : *desc_node) {
       if (child.first == "<xmlattr>" || child.first == "<xmlcomment>") {
+        continue;
+      }
+      const std::string language = xmlLanguage(child.second);
+      if (!language.empty() && language != "C") {
         continue;
       }
       const std::string text = extractXmlText(child.second);
@@ -393,7 +423,7 @@ static void genFlatpakFromBase(const std::string& base_path,
           r["version"] = "";
           r["arch"] = arch;
           r["branch"] = branch;
-          r["commit"] = commit_hash;
+          r["commit_hash"] = commit_hash;
           r["origin"] = "";
           r["runtime"] = "";
           r["type"] = type;
@@ -433,6 +463,7 @@ QueryData genFlatpakPackages(QueryContext& context) {
   genFlatpakFromBase(kFlatpakSystemBase, "system", results);
 
   // Enumerate per-user installations from ~/.local/share/flatpak.
+  // This is a host-wide inventory, so include per-user Flatpak installs too.
   const auto users = usersFromContext(context, /* all= */ true);
   for (const auto& user : users) {
     const auto dir_it = user.find("directory");
