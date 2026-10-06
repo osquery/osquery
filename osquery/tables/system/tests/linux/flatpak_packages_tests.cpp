@@ -149,6 +149,33 @@ TEST_F(FlatpakPackagesTests, appstream_parses_basic_fields) {
   EXPECT_EQ(r["version"], "46.2");
 }
 
+TEST_F(FlatpakPackagesTests, appstream_extracts_nested_text_fields) {
+  const std::string xml =
+      "<?xml version=\"1.0\"?>\n"
+      "<component>\n"
+      "  <name>\n"
+      "    <em>Example App</em>\n"
+      "  </name>\n"
+      "  <summary>\n"
+      "    <em>Example summary</em>\n"
+      "  </summary>\n"
+      "  <project_license>\n"
+      "    <em>MIT</em>\n"
+      "  </project_license>\n"
+      "  <developer_name>\n"
+      "    <em>Example Foundation</em>\n"
+      "  </developer_name>\n"
+      "</component>\n";
+
+  Row r;
+  parseFlatpakAppStream(xml, r);
+
+  EXPECT_EQ(r["name"], "Example App");
+  EXPECT_EQ(r["summary"], "Example summary");
+  EXPECT_EQ(r["license"], "MIT");
+  EXPECT_EQ(r["developer_name"], "Example Foundation");
+}
+
 TEST_F(FlatpakPackagesTests, appstream_parses_description_paragraphs) {
   const std::string xml =
       "<?xml version=\"1.0\"?>\n"

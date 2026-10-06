@@ -173,7 +173,7 @@ void parseFlatpakAppStream(const std::string& content, Row& r) {
     if (!opt) {
       return "";
     }
-    return opt->data();
+    return extractXmlText(opt.get());
   };
 
   r["name"] = get_text("name");
@@ -190,7 +190,7 @@ void parseFlatpakAppStream(const std::string& content, Row& r) {
     if (item.first == "url") {
       const auto url_type = item.second.get<std::string>("<xmlattr>.type", "");
       if (url_type == "homepage") {
-        r["homepage"] = item.second.data();
+        r["homepage"] = extractXmlText(item.second);
         break;
       }
     }
