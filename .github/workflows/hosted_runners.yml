@@ -893,11 +893,12 @@ jobs:
           exit 1
         fi
 
-        actual_python_path="$(command -v python3)"
+        actual_python_path="$(python3 -c 'import os, sys; print(os.path.realpath(sys.executable))')"
+        baked_python_realpath="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "${baked_python_path}")"
         echo "Baked path: ${baked_python_path}"
         echo "Actual path: ${actual_python_path}"
 
-        if [[ "${baked_python_path}" != "${actual_python_path}" ]]; then
+        if [[ "${baked_python_realpath}" != "${actual_python_path}" ]]; then
           mkdir -p "$(dirname "${baked_python_path}")"
           ln -sf "${actual_python_path}" "${baked_python_path}"
         fi
