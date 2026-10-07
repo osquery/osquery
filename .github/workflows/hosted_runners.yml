@@ -261,6 +261,11 @@ jobs:
   build_linux:
     needs: [check_code_style, check_libraries_manifest]
 
+    env:
+      CCACHE_MAXSIZE: "500MB"
+      CCACHE_COMPRESS: "true"
+      CCACHE_NOFILECLONE: "true"
+
     strategy:
       matrix:
         build_type: [Release, RelWithDebInfo, Debug]
@@ -383,13 +388,15 @@ jobs:
       run: git submodule sync --recursive
 
     - name: Configure ccache
-      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: |
+        export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
+        export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
+        echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
+        echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --zero-stats
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
         cmake -G "Unix Makefiles" \
@@ -400,22 +407,12 @@ jobs:
           -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
-    - name: Zero ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: ccache --zero-stats
-
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
       run: ccache -s
 
     - name: Disk space information
@@ -444,7 +441,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
@@ -580,6 +576,9 @@ jobs:
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
+      CCACHE_MAXSIZE: "1GB"
+      CCACHE_COMPRESS: "true"
+      CCACHE_NOFILECLONE: "true"
 
     steps:
     - name: Select the build job count
@@ -678,14 +677,16 @@ jobs:
         fi
 
     - name: Configure ccache
-      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: |
+        export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
+        export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
+        echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
+        echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --zero-stats
 
     - name: Configure the project
       shell: bash
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
         cmake -G "Unix Makefiles" \
@@ -695,23 +696,13 @@ jobs:
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
-
-    - name: Zero ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: ccache --zero-stats
-
+    
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
       run: ccache -s
 
     - name: Disk space information
@@ -768,7 +759,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
@@ -1012,6 +1002,9 @@ jobs:
   build_windows:
     needs: [check_code_style, check_libraries_manifest]
 
+    env:
+      SCCACHE_CACHE_SIZE: "1G"
+
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -1059,6 +1052,9 @@ jobs:
         echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_BUILD=$base_dir\$rel_packaging_build" >> $env:GITHUB_OUTPUT
+
+        echo "SCCACHE_DIR=$base_dir\$rel_sccache_path" >> $env:GITHUB_ENV
+
 
     - name: Setup the VC arch
       shell: powershell
@@ -1195,10 +1191,6 @@ jobs:
       shell: cmd
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
-      env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
-
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
@@ -1231,10 +1223,6 @@ jobs:
     - name: Build the project
       shell: cmd
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
 
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
@@ -1270,7 +1258,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: cmake --build . --target install -j 3
