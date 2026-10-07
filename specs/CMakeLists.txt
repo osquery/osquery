@@ -256,6 +256,7 @@ function(generateNativeTables)
     "posix/shell_history.table:linux,macos"
     "posix/smbios_tables.table:linux,macos"
     "posix/socket_events.table:linux,macos"
+    "posix/sshd_config.table:linux,macos"
     "posix/sudoers.table:linux,macos"
     "posix/suid_bin.table:linux,macos"
     "posix/system_controls.table:linux,macos"
