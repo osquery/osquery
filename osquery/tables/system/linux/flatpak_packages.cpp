@@ -83,14 +83,27 @@ std::unordered_map<std::string, std::string> parseFlatpakMetadata(
   return result;
 }
 
+static std::string xmlLanguage(const boost::property_tree::ptree& node) {
+  std::string language = node.get<std::string>("<xmlattr>.xml:lang", "");
+  if (language.empty()) {
+    language = node.get<std::string>("<xmlattr>.lang", "");
+  }
+  return language;
+}
+
 /**
  * @brief Recursively extract plain text from a boost XML ptree node.
  *
  * Walks all non-attribute, non-comment children and concatenates their
  * text data with a single space separator, producing a plain-text
- * representation of the element's content.
+ * representation of the element's content. Localized subtrees are omitted.
  */
 static std::string extractXmlText(const boost::property_tree::ptree& node) {
+  const std::string language = xmlLanguage(node);
+  if (!language.empty() && language != "C") {
+    return "";
+  }
+
   std::string result = node.data();
 
   for (const auto& child : node) {
@@ -127,14 +140,6 @@ static std::string extractXmlText(const boost::property_tree::ptree& node) {
 
   // Trim trailing space.
   return std::string(trim(out));
-}
-
-static std::string xmlLanguage(const boost::property_tree::ptree& node) {
-  std::string language = node.get<std::string>("<xmlattr>.xml:lang", "");
-  if (language.empty()) {
-    language = node.get<std::string>("<xmlattr>.lang", "");
-  }
-  return language;
 }
 
 /**
@@ -198,23 +203,16 @@ void parseFlatpakAppStream(const std::string& content, Row& r) {
 
   // Prefer the unlocalized description so translations do not inflate rows.
   const pt::ptree* desc_node = nullptr;
-  const pt::ptree* first_localized_desc_node = nullptr;
   for (const auto& child : *comp) {
     if (child.first != "description") {
       continue;
     }
 
     const std::string language = xmlLanguage(child.second);
-    if (first_localized_desc_node == nullptr) {
-      first_localized_desc_node = &child.second;
-    }
     if (language.empty() || language == "C") {
       desc_node = &child.second;
       break;
     }
-  }
-  if (desc_node == nullptr) {
-    desc_node = first_localized_desc_node;
   }
   if (desc_node != nullptr) {
     std::string desc;

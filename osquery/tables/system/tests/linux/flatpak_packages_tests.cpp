@@ -198,7 +198,9 @@ TEST_F(FlatpakPackagesTests, appstream_uses_only_default_description) {
       "<?xml version=\"1.0\"?>\n"
       "<component>\n"
       "  <description>\n"
-      "    <p>Default description.</p>\n"
+      "    <p>Default description. "
+      "<em xml:lang=\"de\">Deutsche Beschreibung.</em></p>\n"
+      "    <p xml:lang=\"fr\">Description francaise.</p>\n"
       "  </description>\n"
       "  <description xml:lang=\"de\">\n"
       "    <p>Deutsche Beschreibung.</p>\n"
@@ -209,6 +211,24 @@ TEST_F(FlatpakPackagesTests, appstream_uses_only_default_description) {
   parseFlatpakAppStream(xml, r);
 
   EXPECT_EQ(r["description"], "Default description.");
+}
+
+TEST_F(FlatpakPackagesTests, appstream_omits_description_without_default) {
+  const std::string xml =
+      "<?xml version=\"1.0\"?>\n"
+      "<component>\n"
+      "  <description xml:lang=\"de\">\n"
+      "    <p>Deutsche Beschreibung.</p>\n"
+      "  </description>\n"
+      "  <description xml:lang=\"fr\">\n"
+      "    <p>Description francaise.</p>\n"
+      "  </description>\n"
+      "</component>\n";
+
+  Row r;
+  parseFlatpakAppStream(xml, r);
+
+  EXPECT_EQ(r.count("description"), 0u);
 }
 
 TEST_F(FlatpakPackagesTests, appstream_uses_first_release_version) {
