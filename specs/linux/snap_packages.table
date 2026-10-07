@@ -1,0 +1,23 @@
+table_name("snap_packages")
+description("Installed snap packages.")
+schema([
+    Column("name", TEXT, "Package name", index=True),
+    Column("version", TEXT, "Package version"),
+    Column("summary", TEXT, "One-line summary"),
+    Column("description", TEXT, "Long description"),
+    Column("type", TEXT, "Snap type (app, base, kernel, gadget, snapd)"),
+    Column("confinement", TEXT, "Confinement policy (strict, devmode, classic)"),
+    Column("base", TEXT, "Base snap this snap is built on"),
+    Column("license", TEXT, "SPDX license expression"),
+    Column("grade", TEXT, "Grade (stable, devel)"),
+    Column("architectures", TEXT, "Comma-separated list of supported architectures"),
+    Column("revision", TEXT, "Installed revision number"),
+    Column("channel", TEXT, "Tracking channel (e.g. stable, beta, edge)"),
+    Column("snap_id", TEXT, "Snap Store identifier"),
+])
+attributes(cacheable=True)
+implementation("system/snap_packages@genSnapPackages")
+fuzz_paths([
+    "/var/lib/snapd",
+    "/snap",
+])

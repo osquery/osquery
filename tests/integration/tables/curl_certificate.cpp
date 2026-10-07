@@ -52,7 +52,10 @@ TEST_F(curlCertificate, test_sanity) {
                            {"basic_constraint", NormalType},
                            {"name_constraints", NormalType},
                            {"policy_constraints", NormalType},
-                           {"pem", NormalType}};
+                           {"pem", NormalType},
+                           {"tls_version", NormalType},
+                           {"cipher_suite", NormalType},
+                           {"cipher_bits", IntType}};
   validate_rows(data, row_map);
 }
 

@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
+
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
@@ -203,6 +206,8 @@ TEST_F(RegistryTablesTest, test_get_username_from_key) {
 
   status = getUsernameFromKey("HKEY_USERS\\S-1-5-19\\Some\\Key", username);
   EXPECT_TRUE(status.ok());
+  status = getUsernameFromKey("hkey_users\\S-1-5-19\\Some\\Key", username);
+  EXPECT_TRUE(status.ok());
   for (const auto& key : badKeys) {
     status = getUsernameFromKey(key, username);
     EXPECT_FALSE(status.ok());
@@ -260,6 +265,55 @@ TEST_F(RegistryTablesTest, test_populate_subkeys_invalid_middle_key) {
       std::any_of(keys.begin(), keys.end(), [&](const std::string& key) {
         return boost::starts_with(key, validKey2);
       }));
+}
+
+TEST_F(RegistryTablesTest, test_registry_name_and_path_are_case_insensitive) {
+  // Only the value name is lowercased; the hive is resolved separately.
+  const std::string kCurrentVersionKey =
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion";
+
+  SQL baseline("select * from registry where key = \"" + kCurrentVersionKey +
+               "\"");
+  ASSERT_FALSE(baseline.rows().empty());
+
+  const auto entry = std::find_if(
+      baseline.rows().begin(), baseline.rows().end(), [](const auto& row) {
+        const auto& name = row.at("name");
+        return !name.empty() && boost::to_lower_copy(name) != name;
+      });
+  ASSERT_NE(entry, baseline.rows().end());
+  const auto loweredName = boost::to_lower_copy(entry->at("name"));
+  // A subkey and a value may share a name, and then also a path, so pin the
+  // row by type as well.
+  const auto typeClause = " and type = \"" + entry->at("type") + "\"";
+
+  SQL nameResults("select * from registry where key = \"" + kCurrentVersionKey +
+                  "\" and name = \"" + loweredName + "\"" + typeClause);
+  ASSERT_EQ(nameResults.rows().size(), std::size_t{1});
+  EXPECT_EQ(nameResults.rows()[0].at("name"), entry->at("name"));
+
+  SQL pathResults("select * from registry where path = \"" +
+                  kCurrentVersionKey + kRegSep + loweredName + "\"" +
+                  typeClause);
+  ASSERT_EQ(pathResults.rows().size(), std::size_t{1});
+  EXPECT_EQ(pathResults.rows()[0].at("path"), entry->at("path"));
+}
+
+TEST_F(RegistryTablesTest, test_registry_hive_is_case_insensitive) {
+  // The hive has its own lookup, so it needs its own coverage.
+  QueryData canonical;
+  auto ret = queryKey(kTestKey, canonical);
+  ASSERT_TRUE(ret.ok());
+  ASSERT_FALSE(canonical.empty());
+
+  QueryData lowercasedHive;
+  ret = queryKey("hkey_local_machine" + kRegSep + "SOFTWARE", lowercasedHive);
+  ASSERT_TRUE(ret.ok());
+  EXPECT_EQ(lowercasedHive.size(), canonical.size());
+
+  SQL results("select * from registry where key = \"hkey_local_machine" +
+              kRegSep + "SOFTWARE\"");
+  EXPECT_FALSE(results.rows().empty());
 }
 } // namespace tables
 } // namespace osquery

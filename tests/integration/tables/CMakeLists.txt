@@ -36,6 +36,7 @@ function(generateTestsIntegrationTablesTestsTest)
     carves.cpp
     certificates.cpp
     chrome_extensions.cpp
+    chrome_search_engines.cpp
     curl.cpp
     curl_certificate.cpp
     etc_hosts.cpp
@@ -121,7 +122,9 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
+      gpu_info.cpp
       hardware_events.cpp
+      homebrew_packages.cpp
       interface_ipv6.cpp
       known_hosts.cpp
       last.cpp
@@ -173,6 +176,9 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
+      flatpak_packages.cpp
+      pacman_packages.cpp
+      snap_packages.cpp
       portage_keywords.cpp
       portage_packages.cpp
       portage_use.cpp
@@ -234,7 +240,7 @@ function(generateTestsIntegrationTablesTestsTest)
       fan_speed_sensors.cpp
       gatekeeper.cpp
       gatekeeper_approved_apps.cpp
-      homebrew_packages.cpp
+      macports_packages.cpp
       ibridge.cpp
       iokit_devicetree.cpp
       iokit_registry.cpp
@@ -302,6 +308,7 @@ function(generateTestsIntegrationTablesTestsTest)
       default_environment.cpp
       disk_info.cpp
       drivers.cpp
+      gpu_info.cpp
       ie_extensions.cpp
       intel_me_info.cpp
       logon_sessions.cpp

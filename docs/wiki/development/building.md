@@ -63,9 +63,6 @@ Then do the following.
 # Install prerequisites
 xcode-select --install
 brew install ccache git git-lfs cmake python clang-format flex bison
-
-# Optional: install python tests prerequisites
-pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 ### Step 2: Download and build source on macOS
@@ -74,6 +71,12 @@ pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift=
 # Download source
 git clone https://github.com/osquery/osquery
 cd osquery
+
+# Optional: install Python test prerequisites
+# Homebrew Python uses an externally managed environment, so install these in a virtualenv
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 
 # Configure
 mkdir build; cd build
