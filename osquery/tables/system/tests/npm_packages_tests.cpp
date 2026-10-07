@@ -368,5 +368,44 @@ TEST_F(NpmPackagesUnitTest, test_nested_scoped_packages) {
       << "Did not find @angular/common at depth 1";
 }
 
+TEST_F(NpmPackagesUnitTest, test_non_object_license_is_ignored) {
+  GLOGLogger logger;
+
+  // A package.json comes from a user's node_modules and is fully
+  // attacker-controlled. The deprecated-license fallback inspects a non-string
+  // license as an object; make sure a license that is neither a string nor an
+  // object does not trip the object-member lookup.
+  auto numeric_path =
+      temp_dir_ / "node_modules" / "numeric-license" / "package.json";
+  createPackageJson(numeric_path, R"({
+  "name": "numeric-license",
+  "version": "1.0.0",
+  "description": "Test non-object license",
+  "license": 1
+})");
+
+  auto array_path =
+      temp_dir_ / "node_modules" / "array-license" / "package.json";
+  createPackageJson(array_path, R"({
+  "name": "array-license",
+  "version": "1.0.0",
+  "description": "Test non-object license",
+  "license": ["MIT", "url"]
+})");
+
+  QueryData results;
+  tables::genNodeSiteDirectories(temp_dir_.string(), results, logger, 100);
+
+  EXPECT_EQ(results.size(), 2);
+
+  for (const auto& row : results) {
+    auto name = row.at("name");
+    EXPECT_EQ(row.at("version"), "1.0.0");
+    // The license is not a string or an object, so no license is reported.
+    EXPECT_EQ(row.count("license"), 0U)
+        << "Unexpected license reported for " << name;
+  }
+}
+
 } // namespace table_tests
 } // namespace osquery
