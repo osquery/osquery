@@ -16,6 +16,7 @@
 #import <IOKit/pwr_mgt/IOPMLib.h>
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/darwin/system_profiler.h>
 
 namespace osquery {
 namespace tables {
@@ -90,6 +91,21 @@ BOOL genIopmBatteryInfo(Row& r) {
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthKey]) {
     r["health"] = SQL_TEXT(
         [[batteryInfo objectForKey:@kIOPSBatteryHealthKey] UTF8String]);
+  } else {
+    NSDictionary* __autoreleasing systemProfilerReport = nil;
+    auto status =
+        getSystemProfilerReport("SPPowerDataType", systemProfilerReport);
+    if (status.ok() && systemProfilerReport != nil) {
+      NSArray* items = [systemProfilerReport objectForKey:@"_items"];
+      NSDictionary* powerInfo = [items firstObject];
+      NSDictionary* healthInfo =
+          [powerInfo objectForKey:@"sppower_battery_health_info"];
+      NSString* health =
+          [healthInfo objectForKey:@"sppower_battery_health"];
+      if ([health isKindOfClass:[NSString class]]) {
+        r["health"] = SQL_TEXT([health UTF8String]);
+      }
+    }
   }
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthConditionKey]) {
     r["condition"] = SQL_TEXT([[batteryInfo
@@ -172,15 +188,15 @@ BOOL genAdvancedBatteryInfo(Row& r) {
   }
   if ([batteryData objectForKey:@"DesignCapacity"]) {
     r["designed_capacity"] = INTEGER(
-        [[batteryData objectForKey:@"DesignCapacity"] intValue]);
+      [[batteryData objectForKey:@"DesignCapacity"] intValue]);
   }
   if ([batteryData objectForKey:@"AppleRawMaxCapacity"]) {
     r["max_capacity"] = INTEGER(
-        [[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
+      [[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
   }
   if ([batteryData objectForKey:@"AppleRawCurrentCapacity"]) {
     r["current_capacity"] = INTEGER([[batteryData
-        objectForKey:@"AppleRawCurrentCapacity"] intValue]);
+      objectForKey:@"AppleRawCurrentCapacity"] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] = INTEGER(
