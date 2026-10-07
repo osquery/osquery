@@ -404,8 +404,6 @@ QueryData genGpuInfo(QueryContext& context) {
         r["vram"] = BIGINT(vram);
       }
 
-      r["pci_class_id"] = "0x030000";
-
       // Hardware identity from system_profiler, used to match the row to its
       // IOKit accelerator and to fill the identity columns: discrete GPUs
       // report hex PCI ids (e.g. "0x1002" / "0x679e"); Apple Silicon does
@@ -419,6 +417,13 @@ QueryData genGpuInfo(QueryContext& context) {
       if (id sp_did = [item valueForKey:@"sppci_device_id"]) {
         sp_device_id = [[sp_did description] UTF8String];
         r["model_id"] = sp_device_id;
+      }
+
+      // pci_class_id: display class of a PCI device, identified through its
+      // hex PCI ids. Apple Silicon GPUs are integrated in the SoC, report no
+      // PCI identity, and leave the column empty.
+      if (!sp_vendor_id.empty() && !sp_device_id.empty()) {
+        r["pci_class_id"] = "0x030000";
       }
 
       // Enrich from IOKit AGXAccelerator for Apple Silicon (and discrete GPUs

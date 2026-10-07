@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <map>
+#include <optional>
 #include <string>
 
 #include <osquery/core/system.h>
@@ -102,63 +103,77 @@ std::map<std::string, std::string> pciAddressByPnpId() {
   return addresses;
 }
 
-// Collect 64-bit VRAM sizes from the display adapter registry class.
-// Indexed by enumeration order of numeric subkeys (0000, 0001, ...).
-// This avoids the 4 GB wrap of Win32_VideoController.AdapterRAM (uint32).
-std::map<int, unsigned long long> collectVramSizes() {
-  std::map<int, unsigned long long> vram_map;
+const std::string kDeviceEnumKey =
+    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Enum";
+const std::string kDisplayClassKey =
+    "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\"
+    "{4d36e968-e325-11ce-bfc1-08002be10318}";
 
-  const std::string kDisplayClassKey =
-      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\"
-      "{4d36e968-e325-11ce-bfc1-08002be10318}";
-
-  QueryData classResults;
-  queryKey(kDisplayClassKey, classResults);
-
-  int idx = 0;
-  for (const auto& row : classResults) {
-    const auto type_it = row.find("type");
-    const auto name_it = row.find("name");
-    if (type_it == row.end() || type_it->second != "subkey") {
-      continue;
-    }
-
-    // Skip non-numeric subkeys (e.g. "Properties").
-    const std::string& subkeyName = name_it->second;
-    bool numeric = !subkeyName.empty();
-    for (char c : subkeyName) {
-      if (!isdigit(static_cast<unsigned char>(c))) {
-        numeric = false;
-        break;
-      }
-    }
-    if (!numeric) {
-      continue;
-    }
-
-    QueryData adapterResults;
-    queryKey(kDisplayClassKey + kRegSep + subkeyName, adapterResults);
-    for (const auto& val : adapterResults) {
-      const auto vname_it = val.find("name");
-      const auto vtype_it = val.find("type");
-      const auto vdata_it = val.find("data");
-      if (vname_it == val.end() || vtype_it == val.end() ||
-          vdata_it == val.end()) {
-        continue;
-      }
-      if (vname_it->second == "HardwareInformation.qwMemorySize" &&
-          vtype_it->second == "REG_QWORD") {
-        const auto result = tryTo<unsigned long long>(vdata_it->second);
-        if (!result.isError() && result.get() > 0) {
-          vram_map[idx] = result.get();
-        }
-        break;
-      }
-    }
-    ++idx;
+// Collect the 64-bit VRAM size Windows records for the device instance in
+// the HardwareInformation.qwMemorySize value of its display driver class
+// subkey. The subkey is resolved through the device Enum registry key, whose
+// Driver value names it, so the size follows the device itself instead of
+// assuming that the order of the registry subkeys and the order of the
+// Win32_VideoController results agree: unrelated APIs do not guarantee the
+// same order and stale class subkeys would make an index-based mapping
+// assign another adapter's memory. This also avoids the 4 GB wrap of
+// AdapterRAM, which is a uint32 in WMI.
+std::optional<unsigned long long> vramSizeByPnpDeviceId(
+    const std::string& pnp_device_id) {
+  if (pnp_device_id.empty()) {
+    return std::nullopt;
   }
 
-  return vram_map;
+  QueryData enumKeyResults;
+  queryKey(kDeviceEnumKey + kRegSep + pnp_device_id, enumKeyResults);
+
+  // The Driver value is of the form "{class-guid}\0000"; the component
+  // after the separator names the subkey below the display class key.
+  std::string driver_value;
+  for (const auto& value : enumKeyResults) {
+    const auto name_it = value.find("name");
+    if (name_it == value.end() || name_it->second != "Driver") {
+      continue;
+    }
+    const auto data_it = value.find("data");
+    if (data_it != value.end()) {
+      driver_value = data_it->second;
+    }
+    break;
+  }
+  if (driver_value.empty()) {
+    return std::nullopt;
+  }
+
+  const std::size_t separator = driver_value.find_last_of(kRegSep);
+  const std::string class_subkey = separator == std::string::npos
+                                       ? driver_value
+                                       : driver_value.substr(separator + 1);
+  if (class_subkey.empty()) {
+    return std::nullopt;
+  }
+
+  QueryData adapterResults;
+  queryKey(kDisplayClassKey + kRegSep + class_subkey, adapterResults);
+  for (const auto& val : adapterResults) {
+    const auto vname_it = val.find("name");
+    const auto vtype_it = val.find("type");
+    const auto vdata_it = val.find("data");
+    if (vname_it == val.end() || vtype_it == val.end() ||
+        vdata_it == val.end()) {
+      continue;
+    }
+    if (vname_it->second == "HardwareInformation.qwMemorySize" &&
+        vtype_it->second == "REG_QWORD") {
+      const auto result = tryTo<unsigned long long>(vdata_it->second);
+      if (!result.isError() && result.get() > 0) {
+        return result.get();
+      }
+      break;
+    }
+  }
+
+  return std::nullopt;
 }
 
 } // namespace
@@ -174,10 +189,8 @@ QueryData genGpuInfo(QueryContext& context) {
   }
 
   const auto address_by_pnp_id = pciAddressByPnpId();
-  const auto vram_map = collectVramSizes();
 
   std::int32_t device_id = 0;
-  int gpu_index = 0;
   for (const auto& wmiResult : wmiReq->results()) {
     Row r;
 
@@ -218,12 +231,12 @@ QueryData genGpuInfo(QueryContext& context) {
     wmiResult.GetString("VideoProcessor", r["model"]);
     wmiResult.GetString("InstalledDisplayDrivers", r["driver"]);
 
-    // VRAM: prefer the 64-bit registry value (HardwareInformation.qwMemorySize)
-    // to avoid the 4 GB wrap of Win32_VideoController.AdapterRAM (uint32).
-    // Fall back to AdapterRAM when the registry value is unavailable.
-    const auto vram_it = vram_map.find(gpu_index);
-    if (vram_it != vram_map.end()) {
-      r["vram"] = BIGINT(static_cast<long long>(vram_it->second));
+    // VRAM: prefer the device's own 64-bit registry value to avoid the
+    // 4 GB wrap of Win32_VideoController.AdapterRAM (uint32). Fall back to
+    // AdapterRAM when the registry value is unavailable.
+    const auto vram_size = vramSizeByPnpDeviceId(pnp_device_id);
+    if (vram_size.has_value()) {
+      r["vram"] = BIGINT(static_cast<long long>(*vram_size));
     } else {
       unsigned long long adapter_ram = 0;
       if (wmiResult.GetUnsignedLongLong("AdapterRAM", adapter_ram).ok() &&
@@ -237,12 +250,10 @@ QueryData genGpuInfo(QueryContext& context) {
       }
     }
 
-    // Only PCI adapters carry a PCI class: Win32_VideoController also
-    // enumerates non-PCI adapters (ROOT\... devices, virtual video
-    // adapters).
-    if (pnp_device_id.rfind("PCI\\", 0) == 0) {
-      r["pci_class_id"] = "0x030000";
-    }
+    // pci_class_id is not populated on Windows: the queried WMI and registry
+    // data do not expose the PCI class code of the device, and claiming the
+    // VGA subclass would be wrong for display controllers of other
+    // subclasses (e.g. 0x030200, 3D controller).
 
     // Windows-specific extended schema columns.
     wmiResult.GetString("DriverVersion", r["driver_version"]);
@@ -253,7 +264,6 @@ QueryData genGpuInfo(QueryContext& context) {
     }
 
     results.push_back(r);
-    ++gpu_index;
   }
 
   return results;

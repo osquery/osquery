@@ -1,7 +1,7 @@
 table_name("gpu_info")
-description("Retrieve GPU (graphics processing unit) inventory information of the machine. Changing metrics, such as GPU utilization or power draw, are intentionally omitted; they are provided by the gpu_metrics table, which can be joined with this one through device_id.")
+description("Retrieve GPU (graphics processing unit) inventory information of the machine, reporting only stable attributes.")
 schema([
-    Column("device_id", TEXT, "The DeviceID of the GPU. Derived from the PCI slot when available (e.g. GPU0000:01:00.0) so it is stable across reboots; a positional GPU<n> counter is used only for devices without a slot."),
+    Column("device_id", TEXT, "The stable identifier of the GPU, used as the join key to correlate with GPU tables that report the same identifier. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0), so it is stable across reboots; a positional GPU<n> counter is used only for GPUs without a slot, where the identifier is only stable within the same query result."),
     Column("name", TEXT, "The name of the GPU."),
     Column("vendor", TEXT, "The vendor of the GPU."),
     Column("vendor_id", TEXT, "The hex encoded PCI vendor identifier of the GPU."),
@@ -11,7 +11,7 @@ schema([
     Column("driver_version", TEXT, "The version of the installed driver.", collate="version"),
     Column("vram", BIGINT, "The total video memory of the GPU in bytes. Fixed capacity only: on Linux only available for AMD GPUs (amdgpu driver, via mem_info_vram_total sysfs) and for NVIDIA GPUs with the proprietary driver loaded (via NVML, the library behind nvidia-smi, which also requires the query to have permission to talk to the driver); Intel drivers expose no equivalent; on macOS empty for unified-memory GPUs (Apple Silicon), which have no dedicated VRAM"),
     Column("pci_slot", TEXT, "The PCI slot of the GPU, as a bus address (e.g. 0000:01:00.0 on Linux, 0000:bb:dd.f on Windows, b:d:f on macOS). Empty for non-PCI adapters (e.g. Apple Silicon integrated GPUs)."),
-    Column("pci_class_id", TEXT, "The PCI class identifier of the GPU in hex format."),
+    Column("pci_class_id", TEXT, "The PCI class identifier of the GPU in hex format. Empty when the GPU has no PCI identity (e.g. Apple Silicon integrated GPUs) or when the platform does not expose the class code (Windows)."),
 ])
 extended_schema(DARWIN, [
     Column("cores", INTEGER, "The number of GPU cores. Only available on macOS."),

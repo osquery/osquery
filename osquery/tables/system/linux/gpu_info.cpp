@@ -41,7 +41,6 @@ const std::string kPCIClassID = "PCI_CLASS";
 const std::string kPCIKeySlot = "PCI_SLOT_NAME";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCIKeyID = "PCI_ID";
-const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
 
@@ -329,6 +328,28 @@ bool isDisplayControllerClass(const std::string& pci_class_id) {
   return pci_class_id.size() >= 4 && pci_class_id.compare(2, 2, "03") == 0;
 }
 
+// Splits a udev PCI_ID attribute ("vendor:model" in lowercase hex, e.g.
+// "8086:6fd4") into its two components. Returns false for malformed
+// attributes (no colon, empty components or more than one colon).
+bool splitPciIdAttr(const std::string& pci_id_attr,
+                    std::string& vendor_id,
+                    std::string& model_id) {
+  // pci.ids lower cases everything, so we follow suit.
+  std::string attr = pci_id_attr;
+  boost::algorithm::to_lower(attr);
+  boost::algorithm::trim(attr);
+
+  auto colon = attr.find(':');
+  if (colon == std::string::npos || colon == 0 || colon == attr.length() - 1 ||
+      attr.find(':', colon + 1) != std::string::npos) {
+    return false;
+  }
+
+  vendor_id = attr.substr(0, colon);
+  model_id = attr.substr(colon + 1);
+  return true;
+}
+
 // Read a single-line sysfs attribute from a device path. Returns empty string
 // on failure. Used for driver-version attributes that live on the PCI device
 // node or its driver module.
@@ -448,15 +469,27 @@ QueryData genGpuInfo(QueryContext& context) {
       r["driver_version"] = driver_ver;
     }
 
-    if (pcidb != nullptr) {
-      auto status = extractVendorModelFromPciDBIfPresent(
-          r,
-          UdevEventPublisher::getValue(device.get(), kPCIKeyID),
-          UdevEventPublisher::getValue(device.get(), kPCISubsysID),
-          *pcidb);
-      if (!status.ok()) {
-        VLOG(1) << "Unexpected error extracting GPU PCI info: "
-                << status.getMessage();
+    // The PCI identity comes from the udev PCI_ID attribute, not from the
+    // names database: minimal systems may not ship pci.ids, and the
+    // identifiers must be reported independently of it. The database, when
+    // available, is only used to resolve the vendor / model names.
+    std::string pci_vendor_id;
+    std::string pci_model_id;
+    if (splitPciIdAttr(UdevEventPublisher::getValue(device.get(), kPCIKeyID),
+                       pci_vendor_id,
+                       pci_model_id)) {
+      r["vendor_id"] = "0x" + pci_vendor_id;
+      r["model_id"] = "0x" + pci_model_id;
+
+      if (pcidb != nullptr) {
+        std::string name;
+        if (pcidb->getVendorName(pci_vendor_id, name).ok()) {
+          r["vendor"] = std::move(name);
+        }
+        name.clear();
+        if (pcidb->getModel(pci_vendor_id, pci_model_id, name).ok()) {
+          r["model"] = std::move(name);
+        }
       }
     }
 
