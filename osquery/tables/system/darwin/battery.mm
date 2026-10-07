@@ -100,8 +100,7 @@ BOOL genIopmBatteryInfo(Row& r) {
       NSDictionary* powerInfo = [items firstObject];
       NSDictionary* healthInfo =
           [powerInfo objectForKey:@"sppower_battery_health_info"];
-      NSString* health =
-          [healthInfo objectForKey:@"sppower_battery_health"];
+      NSString* health = [healthInfo objectForKey:@"sppower_battery_health"];
       if ([health isKindOfClass:[NSString class]]) {
         r["health"] = SQL_TEXT([health UTF8String]);
       }
@@ -146,8 +145,7 @@ BOOL genAdvancedBatteryInfo(Row& r) {
   if (advancedBatteryInfo == nullptr) {
     return NO;
   }
-  NSDictionary* batteryData =
-      [advancedBatteryInfo objectForKey:@"BatteryData"];
+  NSDictionary* batteryData = [advancedBatteryInfo objectForKey:@"BatteryData"];
   if (batteryData == nil) {
     batteryData = advancedBatteryInfo;
   }
@@ -187,16 +185,16 @@ BOOL genAdvancedBatteryInfo(Row& r) {
         [[advancedBatteryInfo objectForKey:@kIOPMPSCycleCountKey] intValue]);
   }
   if ([batteryData objectForKey:@"DesignCapacity"]) {
-    r["designed_capacity"] = INTEGER(
-      [[batteryData objectForKey:@"DesignCapacity"] intValue]);
+    r["designed_capacity"] =
+        INTEGER([[batteryData objectForKey:@"DesignCapacity"] intValue]);
   }
   if ([batteryData objectForKey:@"AppleRawMaxCapacity"]) {
-    r["max_capacity"] = INTEGER(
-      [[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
+    r["max_capacity"] =
+        INTEGER([[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
   }
   if ([batteryData objectForKey:@"AppleRawCurrentCapacity"]) {
-    r["current_capacity"] = INTEGER([[batteryData
-      objectForKey:@"AppleRawCurrentCapacity"] intValue]);
+    r["current_capacity"] = INTEGER(
+        [[batteryData objectForKey:@"AppleRawCurrentCapacity"] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] = INTEGER(
