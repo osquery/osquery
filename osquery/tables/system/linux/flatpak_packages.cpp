@@ -265,13 +265,14 @@ static std::string findAppStreamPath(const boost::filesystem::path& files_dir,
 
   const auto metainfo =
       files_dir / "share" / "metainfo" / (app_id + ".metainfo.xml");
-  if (fs::exists(metainfo)) {
+  boost::system::error_code ec;
+  if (fs::exists(metainfo, ec)) {
     return metainfo.string();
   }
 
   const auto appdata =
       files_dir / "share" / "appdata" / (app_id + ".appdata.xml");
-  if (fs::exists(appdata)) {
+  if (fs::exists(appdata, ec)) {
     return appdata.string();
   }
 
