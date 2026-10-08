@@ -41,7 +41,6 @@ TEST_F(gpuMetrics, test_sanity) {
   }
 
   if (isPlatform(PlatformType::TYPE_OSX)) {
-    row_map.emplace("total_cores", IntOrEmpty);
     row_map.emplace("allocated_vram", IntOrEmpty);
     row_map.emplace("in_use_vram", IntOrEmpty);
   }

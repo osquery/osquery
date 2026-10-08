@@ -442,11 +442,6 @@ QueryData genGpuMetrics(QueryContext& context) {
       Row r;
       r["device_id"] = device_id_it->second;
 
-      const auto cores_it = gpu_info[gpu_index].find("cores");
-      if (cores_it != gpu_info[gpu_index].end()) {
-        r["total_cores"] = cores_it->second;
-      }
-
       // GPU utilization from IOAccelerator PerformanceStatistics.
       // Correlation is by index; order generally matches system_profiler.
       if (gpu_index < accel_stats.size()) {

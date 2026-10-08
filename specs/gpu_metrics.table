@@ -8,7 +8,6 @@ extended_schema(POSIX, [
   Column("power_draw_watts", DOUBLE, "Current GPU power draw in Watts."),
 ])
 extended_schema(DARWIN, [
-  Column("total_cores", INTEGER, "The total number of GPU cores."),
   Column("allocated_vram", BIGINT, "Allocated GPU memory in bytes from IOAccelerator."),
   Column("in_use_vram", BIGINT, "In-use GPU memory in bytes from IOAccelerator."),
 ])
