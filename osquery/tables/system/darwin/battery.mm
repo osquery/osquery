@@ -193,10 +193,16 @@ BOOL genAdvancedBatteryInfo(Row& r) {
   if ([batteryData objectForKey:@"AppleRawMaxCapacity"]) {
     r["max_capacity"] =
         INTEGER([[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
+  } else if ([batteryData objectForKey:@"FullChargeCapacity"]) {
+    r["max_capacity"] =
+        INTEGER([[batteryData objectForKey:@"FullChargeCapacity"] intValue]);
   }
   if ([batteryData objectForKey:@"AppleRawCurrentCapacity"]) {
     r["current_capacity"] = INTEGER(
         [[batteryData objectForKey:@"AppleRawCurrentCapacity"] intValue]);
+  } else if ([batteryData objectForKey:@"RemainingCapacity"]) {
+    r["current_capacity"] =
+        INTEGER([[batteryData objectForKey:@"RemainingCapacity"] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] = INTEGER(
