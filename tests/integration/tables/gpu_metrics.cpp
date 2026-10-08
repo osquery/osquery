@@ -32,15 +32,11 @@ TEST_F(gpuMetrics, test_sanity) {
   }
 
   ValidationMap row_map = {
-      {"vendor_name", NormalType},
-      {"device_name", NormalType},
-      {"driver_version", NormalType},
-      {"vram_total_bytes", IntOrEmpty},
+      {"device_id", NonEmptyString},
       {"gpu_utilization_pct", NormalType},
   };
 
   if (isPlatform(PlatformType::TYPE_POSIX)) {
-    row_map.emplace("pci_bus", NormalType);
     row_map.emplace("power_draw_watts", NormalType);
   }
 
@@ -57,6 +53,11 @@ TEST_F(gpuMetrics, test_sanity) {
   }
 
   validate_rows(data, row_map);
+
+  const auto unmatched_ids = execute_query(
+      "select device_id from gpu_metrics where device_id not in "
+      "(select device_id from gpu_info)");
+  EXPECT_TRUE(unmatched_ids.empty());
 }
 
 } // namespace table_tests

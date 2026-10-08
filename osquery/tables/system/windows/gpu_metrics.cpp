@@ -8,20 +8,66 @@
  */
 
 #include <algorithm>
+#include <cstdio>
 #include <map>
+#include <string>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
 #include <osquery/core/windows/wmi.h>
-#include <osquery/tables/system/windows/registry.h>
 #include <osquery/utils/conversions/tryto.h>
-#include <osquery/utils/conversions/windows/strings.h>
 
 namespace osquery {
 namespace tables {
 
 namespace {
+
+// Resolve the same PCI address used by gpu_info for the device_id join key.
+std::map<std::string, std::string> pciAddressByPnpId() {
+  std::map<std::string, std::string> addresses;
+
+  const auto wmiReq = WmiRequest::CreateWmiRequest(
+      "SELECT PNPDeviceID, LocationInformation FROM Win32_PnPEntity");
+  if (!wmiReq) {
+    return addresses;
+  }
+
+  for (const auto& item : wmiReq->results()) {
+    std::string pnp_id;
+    if (!item.GetString("PNPDeviceID", pnp_id).ok() || pnp_id.empty()) {
+      continue;
+    }
+
+    std::string location;
+    if (!item.GetString("LocationInformation", location).ok() ||
+        location.empty()) {
+      continue;
+    }
+
+    unsigned long bus = 0;
+    unsigned long device = 0;
+    unsigned long function = 0;
+    if (std::sscanf(location.c_str(),
+                    "PCI bus %lu, device %lu, function %lu",
+                    &bus,
+                    &device,
+                    &function) != 3) {
+      continue;
+    }
+
+    char address[16];
+    std::snprintf(address,
+                  sizeof(address),
+                  "0000:%02lx:%02lx.%lu",
+                  bus,
+                  device,
+                  function);
+    addresses[pnp_id] = address;
+  }
+
+  return addresses;
+}
 
 // Collect 3D engine utilization per physical GPU index.
 // Name format: pid_PPPP_luid_0xHH_0xHH_phys_N_eng_E_engtype_3D
@@ -73,98 +119,33 @@ std::map<int, double> collectGpuUtilizationPct() {
   return util_map;
 }
 
-// Collect 64-bit VRAM sizes from the display adapter registry class.
-// Indexed by enumeration order of numeric subkeys (0000, 0001, ...).
-std::map<int, unsigned long long> collectVramSizes() {
-  std::map<int, unsigned long long> vram_map;
-
-  const std::string kDisplayClassKey =
-      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\"
-      "{4d36e968-e325-11ce-bfc1-08002be10318}";
-
-  QueryData classResults;
-  queryKey(kDisplayClassKey, classResults);
-
-  int idx = 0;
-  for (const auto& row : classResults) {
-    const auto type_it = row.find("type");
-    const auto name_it = row.find("name");
-    if (type_it == row.end() || type_it->second != "subkey") {
-      continue;
-    }
-
-    // Skip non-numeric subkeys (e.g. "Properties").
-    const std::string& subkeyName = name_it->second;
-    bool numeric = !subkeyName.empty();
-    for (char c : subkeyName) {
-      if (!isdigit(static_cast<unsigned char>(c))) {
-        numeric = false;
-        break;
-      }
-    }
-    if (!numeric) {
-      continue;
-    }
-
-    QueryData adapterResults;
-    queryKey(kDisplayClassKey + kRegSep + subkeyName, adapterResults);
-    for (const auto& val : adapterResults) {
-      const auto vname_it = val.find("name");
-      const auto vtype_it = val.find("type");
-      const auto vdata_it = val.find("data");
-      if (vname_it == val.end() || vtype_it == val.end() ||
-          vdata_it == val.end()) {
-        continue;
-      }
-      if (vname_it->second == "HardwareInformation.qwMemorySize" &&
-          vtype_it->second == "REG_QWORD") {
-        const auto result = tryTo<unsigned long long>(vdata_it->second);
-        if (!result.isError() && result.get() > 0) {
-          vram_map[idx] = result.get();
-        }
-        break;
-      }
-    }
-    ++idx;
-  }
-
-  return vram_map;
-}
-
 } // namespace
 
 QueryData genGpuMetrics(QueryContext& context) {
   QueryData results;
 
-  const auto wmiReq =
-      WmiRequest::CreateWmiRequest("SELECT * FROM Win32_VideoController");
+  const auto wmiReq = WmiRequest::CreateWmiRequest(
+      "SELECT PNPDeviceID FROM Win32_VideoController");
   if (!wmiReq || wmiReq->results().empty()) {
     LOG(WARNING) << "Failed to retrieve GPU information via WMI";
     return results;
   }
 
   const auto util_map = collectGpuUtilizationPct();
-  const auto vram_map = collectVramSizes();
+  const auto address_by_pnp_id = pciAddressByPnpId();
 
   int gpu_index = 0;
+  int device_id = 0;
   for (const auto& item : wmiReq->results()) {
     Row r;
 
-    item.GetString("AdapterCompatibility", r["vendor_name"]);
-    item.GetString("Name", r["device_name"]);
-    item.GetString("DriverVersion", r["driver_version"]);
-
-    const auto vram_it = vram_map.find(gpu_index);
-    if (vram_it != vram_map.end()) {
-      r["vram_total_bytes"] = BIGINT(static_cast<long long>(vram_it->second));
+    std::string pnp_device_id;
+    item.GetString("PNPDeviceID", pnp_device_id);
+    const auto slot_it = address_by_pnp_id.find(pnp_device_id);
+    if (slot_it == address_by_pnp_id.end()) {
+      r["device_id"] = "GPU" + std::to_string(device_id++);
     } else {
-      // AdapterRAM is UINT32 in WMI, capped at ~4 GB; cast via unsigned to
-      // avoid sign-extension.
-      long adapterRam = 0;
-      if (item.GetLong("AdapterRAM", adapterRam) && adapterRam > 0) {
-        r["vram_total_bytes"] = BIGINT(
-            static_cast<long long>(static_cast<unsigned long>(adapterRam)));
-      }
+      r["device_id"] = "GPU" + slot_it->second;
     }
 
     // phys_N in GPUEngine perf counters is assumed to match enumeration order.

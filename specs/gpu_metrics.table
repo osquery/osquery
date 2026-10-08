@@ -1,14 +1,10 @@
 table_name("gpu_metrics")
 description("Information about GPU devices on the system, including inventory and runtime telemetry where supported.")
 schema([
-  Column("vendor_name", TEXT, "The vendor name of the GPU."),
-  Column("device_name", TEXT, "The model/device name of the GPU."),
-  Column("driver_version", TEXT, "The installed driver version for the GPU.", collate="version"),
-  Column("vram_total_bytes", BIGINT, "Total video RAM in bytes."),
+  Column("device_id", TEXT, "The stable identifier of the GPU, used as the join key to correlate with GPU tables that report the same identifier. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0), so it is stable across reboots; a positional GPU<n> counter is used only for GPUs without a slot, where the identifier is only stable within the same query result."),
   Column("gpu_utilization_pct", DOUBLE, "GPU engine utilization as a percentage (0-100)."),
 ])
 extended_schema(POSIX, [
-  Column("pci_bus", TEXT, "The PCI bus address of the GPU."),
   Column("power_draw_watts", DOUBLE, "Current GPU power draw in Watts."),
 ])
 extended_schema(DARWIN, [
