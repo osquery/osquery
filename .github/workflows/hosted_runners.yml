@@ -1233,6 +1233,10 @@ jobs:
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+
+    - name: Print sccache stats
+      shell: cmd
+      run: |
         sccache.exe --show-stats
         sccache.exe --stop-server
 
