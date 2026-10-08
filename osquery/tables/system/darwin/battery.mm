@@ -145,9 +145,11 @@ BOOL genAdvancedBatteryInfo(Row& r) {
   if (advancedBatteryInfo == nullptr) {
     return NO;
   }
-  NSDictionary* batteryData = [advancedBatteryInfo objectForKey:@"BatteryData"];
-  if (batteryData == nil) {
-    batteryData = advancedBatteryInfo;
+  NSMutableDictionary* batteryData = [advancedBatteryInfo mutableCopy];
+  NSDictionary* nestedBatteryData =
+      [advancedBatteryInfo objectForKey:@"BatteryData"];
+  if ([nestedBatteryData isKindOfClass:[NSDictionary class]]) {
+    [batteryData addEntriesFromDictionary:nestedBatteryData];
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSManufacturerKey]) {
     r["manufacturer"] = SQL_TEXT([[advancedBatteryInfo
