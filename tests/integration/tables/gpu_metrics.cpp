@@ -28,7 +28,7 @@ TEST_F(gpuMetrics, test_sanity) {
 
   // GPUs may not be present in all test environments; skip validation if empty.
   if (data.empty()) {
-    return;
+    GTEST_SKIP() << "No GPU metrics available on this system";
   }
 
   ValidationMap row_map = {

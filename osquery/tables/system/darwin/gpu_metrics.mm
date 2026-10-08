@@ -226,6 +226,7 @@ std::vector<std::optional<double>> collectGPUPowerData() {
     CFMutableDictionaryRef subbed_channels = nullptr;
     IOReportSubscriptionRef sub = IOReportCreateSubscription(
         nullptr, all_channels, &subbed_channels, 0, nullptr);
+    const auto sub_guard = scope_guard::CFRelease(sub);
     const auto subbed_channels_guard = scope_guard::CFRelease(subbed_channels);
 
     if (sub == nullptr || subbed_channels == nullptr) {

@@ -108,8 +108,9 @@ std::map<int, double> collectGpuUtilizationPct() {
     const int phys_idx = phys_result.get();
 
     unsigned long long util = 0;
-    item.GetUnsignedLongLong("UtilizationPercentage", util);
-    util_map[phys_idx] += static_cast<double>(util);
+    if (item.GetUnsignedLongLong("UtilizationPercentage", util).ok()) {
+      util_map[phys_idx] += static_cast<double>(util);
+    }
   }
 
   for (auto& kv : util_map) {
