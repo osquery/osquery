@@ -52,6 +52,7 @@ struct CertificateInformation final {
   std::string key_algorithm;
   std::string key_strength;
   std::string key_usage;
+  std::string subject_alternative_names;
   std::string subject_key_id;
   std::string authority_key_id;
   std::string sha1;
@@ -168,6 +169,11 @@ Expected<CertificateInformation, OpenSSLError> generateCertificateInformation(
   auto opt_cert_key_usage = getCertificateKeyUsage(x509);
   if (opt_cert_key_usage.has_value()) {
     cert_info.key_usage = opt_cert_key_usage.value();
+  }
+
+  auto opt_subject_alt_names = getCertificateSubjectAltNames(x509);
+  if (opt_subject_alt_names.has_value()) {
+    cert_info.subject_alternative_names = opt_subject_alt_names.value();
   }
 
   auto opt_authority_key_id = getCertificateAuthorityKeyID(x509);
@@ -289,6 +295,8 @@ QueryData genCerts(QueryContext& context) {
       row["key_algorithm"] = SQL_TEXT(cert_info.key_algorithm);
       row["key_strength"] = SQL_TEXT(cert_info.key_strength);
       row["key_usage"] = SQL_TEXT(cert_info.key_usage);
+      row["subject_alternative_names"] =
+          SQL_TEXT(cert_info.subject_alternative_names);
       row["subject_key_id"] = SQL_TEXT(cert_info.subject_key_id);
       row["authority_key_id"] = SQL_TEXT(cert_info.authority_key_id);
       row["sha1"] = SQL_TEXT(cert_info.sha1);

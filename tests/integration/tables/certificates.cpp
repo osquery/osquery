@@ -62,6 +62,7 @@ TEST_F(certificates, test_sanity) {
       {"sha1", NormalType},
       {"path", NormalType},
       {"serial", NormalType},
+      {"subject_alternative_names", NormalType},
   };
 
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
