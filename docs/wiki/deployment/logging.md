@@ -226,7 +226,7 @@ Consider the following example:
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
   "unixTime": 1462228052,
   "epoch": 314159265,
-  "counter": 1,
+  "counter": 0,
   "numerics": false
 }
 ```
