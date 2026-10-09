@@ -71,6 +71,15 @@ function(setupBuildFlags)
 
     if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
       list(APPEND posix_common_compile_options INTERFACE -Oz)
+
+      # Fortified libc calls require optimization, so they are not enabled in
+      # Debug builds. Undefine first to override any default level (the macOS
+      # SDK defaults to 2) without a redefinition warning. C libraries that do
+      # not support level 3 (macOS, older glibc) treat it as level 2.
+      list(APPEND posix_common_compile_options
+        -U_FORTIFY_SOURCE
+        -D_FORTIFY_SOURCE=3
+      )
     endif()
 
     set(osquery_posix_common_defines
@@ -172,6 +181,14 @@ function(setupBuildFlags)
       )
 
       set(linux_common_compile_options)
+
+      # Control-flow integrity: Intel CET (IBT and shadow stack) on x86_64,
+      # and PAC/BTI on aarch64.
+      if("${TARGET_PROCESSOR}" STREQUAL "x86_64")
+        list(APPEND linux_common_compile_options -fcf-protection=full)
+      elseif("${TARGET_PROCESSOR}" STREQUAL "aarch64")
+        list(APPEND linux_common_compile_options -mbranch-protection=standard)
+      endif()
 
       set(linux_cxx_link_options
         --no-undefined
@@ -330,6 +347,24 @@ function(setupBuildFlags)
       comsuppw.lib
       SearchSDK.lib
     )
+
+    # Exploit mitigations. ASLR (with high-entropy 64-bit addresses) and DEP
+    # are linker defaults, but are stated explicitly so they cannot be dropped
+    # silently. Control Flow Guard must be given to the linker as well as the
+    # compiler to take effect.
+    list(APPEND windows_common_link_options
+      /DYNAMICBASE
+      /HIGHENTROPYVA
+      /NXCOMPAT
+      /guard:cf
+    )
+
+    # Mark images compatible with CET shadow stacks (x64 only).
+    if("${TARGET_PROCESSOR}" STREQUAL "x86_64")
+      list(APPEND windows_common_link_options
+        /CETCOMPAT
+      )
+    endif()
 
     if(OSQUERY_ENABLE_INCREMENTAL_LINKING)
       list(APPEND windows_common_link_options
