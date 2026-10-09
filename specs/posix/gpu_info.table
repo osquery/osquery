@@ -1,7 +1,7 @@
 table_name("gpu_info")
 description("Retrieve GPU (graphics processing unit) inventory information of the machine, reporting only stable attributes.")
 schema([
-    Column("device_id", TEXT, "The stable identifier of the GPU, used as the join key to correlate with GPU tables that report the same identifier. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0), so it is stable across reboots; a positional GPU<n> counter is used only for GPUs without a slot, where the identifier is only stable within the same query result."),
+    Column("device_id", TEXT, "The GPU identifier used to correlate rows with other GPU tables. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0); macOS GPUs without a PCI slot use GPUintegrated, while other platforms use an enumeration-based fallback."),
     Column("name", TEXT, "The name of the GPU."),
     Column("vendor", TEXT, "The vendor of the GPU."),
     Column("vendor_id", TEXT, "The hex encoded PCI vendor identifier of the GPU."),

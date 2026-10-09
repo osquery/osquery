@@ -93,36 +93,6 @@ std::uint64_t cfNumberToUint64(CFTypeRef value) {
   return static_cast<std::uint64_t>(n);
 }
 
-// Safely convert an IOKit property that may be either a CFString or a CFData
-// holding a (possibly unterminated) C string. IOKit does not guarantee property
-// types across vendors; on PCI device nodes, "model" is conventionally CFData.
-std::string stringFromIOKitProperty(CFTypeRef value) {
-  if (value == nullptr) {
-    return {};
-  }
-
-  auto type_id = CFGetTypeID(value);
-  if (type_id == CFStringGetTypeID()) {
-    return stringFromCFString(static_cast<CFStringRef>(value));
-  }
-
-  if (type_id == CFDataGetTypeID()) {
-    auto data = static_cast<CFDataRef>(value);
-    auto length = CFDataGetLength(data);
-    if (length < 1) {
-      return {};
-    }
-    // The data bytes may not be null terminated; use strnlen against the
-    // CFDataGetLength bound.
-    auto bytes = CFDataGetBytePtr(data);
-    auto* begin = reinterpret_cast<const char*>(bytes);
-    auto str_length = strnlen(begin, static_cast<std::size_t>(length));
-    return std::string(begin, str_length);
-  }
-
-  return {};
-}
-
 // Read the PCI identity of a device node: the vendor-id / device-id
 // properties and the pcidebug bus address. On Apple Silicon the device node
 // (e.g. sgx@4000000) has none of them, in which case this returns false and
@@ -363,8 +333,6 @@ QueryData genGpuInfo(QueryContext& context) {
       return results;
     }
 
-    std::int32_t device_id = 0;
-
     // Collect IOKit accelerators once; each row consumes at most one node so
     // identical GPUs are enriched from distinct accelerators.
     IOKitGpuInfoList iokit_gpus = collectIOKitGpus();
@@ -455,15 +423,10 @@ QueryData genGpuInfo(QueryContext& context) {
         iokit_gpus.erase(accel_it);
       }
 
-      // device_id: derived from the slot when present so it is stable across
-      // reboots; system_profiler enumeration order is not guaranteed. The
-      // counter is only a fallback for rows without one (e.g. Apple Silicon
-      // integrated GPUs).
-      if (r["pci_slot"].empty()) {
-        r["device_id"] = "GPU" + std::to_string(device_id++);
-      } else {
-        r["device_id"] = "GPU" + r["pci_slot"];
-      }
+      // Use the PCI slot as the cross-table identity. Non-PCI GPUs use a
+      // stable integrated-device identifier instead of an enumeration index.
+      r["device_id"] =
+          r["pci_slot"].empty() ? "GPUintegrated" : "GPU" + r["pci_slot"];
 
       // metal_support from system_profiler.
       if (id metal = [item valueForKey:@"spdisplays_mtlgpufamilysupport"]) {
