@@ -29,11 +29,21 @@
 
 #include <boost/filesystem.hpp>
 
+#ifndef WIN32
+#include <grp.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
+#include <algorithm>
+#include <vector>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
 
 DECLARE_string(extensions_require);
+DECLARE_string(extensions_socket_group);
 
 const int kDelay = 20;
 const int kTimeout = 3000;
@@ -64,6 +74,8 @@ class ExtensionsTest : public testing::Test {
 
   void TearDown() override {
     resetDispatcher();
+
+    FLAGS_extensions_socket_group = "";
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       fs::remove(fs::path(socket_path));
@@ -168,6 +180,54 @@ TEST_F(ExtensionsTest, test_extension_runnable) {
   // Test the extension manager API 'ping' call.
   EXPECT_TRUE(ping());
 }
+
+#ifndef WIN32
+TEST_F(ExtensionsTest, test_manager_socket_group) {
+  // Find a secondary group that differs from the effective GID so the
+  // assertion has power: the socket would not already have this group.
+  int ngroups = getgroups(0, nullptr);
+  if (ngroups <= 0) {
+    GTEST_SKIP() << "No supplemental groups available";
+  }
+  std::vector<gid_t> gids(ngroups);
+  if (getgroups(static_cast<int>(gids.size()), gids.data()) < 0) {
+    GTEST_SKIP() << "Failed to read supplemental groups";
+  }
+  auto it = std::find_if(
+      gids.begin(), gids.end(), [](gid_t g) { return g != getegid(); });
+  if (it == gids.end()) {
+    GTEST_SKIP() << "No secondary group available that differs from egid";
+  }
+  gid_t target_gid = *it;
+  auto group = getgrgid(target_gid);
+  if (group == nullptr || group->gr_name == nullptr) {
+    GTEST_SKIP() << "Cannot resolve secondary group name";
+  }
+
+  FLAGS_extensions_socket_group = group->gr_name;
+  auto status = startExtensionManager(socket_path);
+  ASSERT_TRUE(status.ok()) << " error " << status.what();
+  ASSERT_TRUE(ping(150));
+
+  struct stat sb;
+  ASSERT_EQ(stat(socket_path.c_str(), &sb), 0);
+  EXPECT_EQ(sb.st_mode & 0777, 0660u);
+  EXPECT_EQ(sb.st_gid, target_gid);
+}
+
+TEST_F(ExtensionsTest, test_manager_socket_group_unresolvable) {
+  // The flag is resolved at listen time and must not cause the server to fail.
+  // A typo'd group still leaves the socket at 0660, so it does not fail open.
+  FLAGS_extensions_socket_group = "osquery_nonexistent_group_zzz";
+  auto status = startExtensionManager(socket_path);
+  ASSERT_TRUE(status.ok()) << " error " << status.what();
+  ASSERT_TRUE(ping(150));
+
+  struct stat sb;
+  ASSERT_EQ(stat(socket_path.c_str(), &sb), 0);
+  EXPECT_EQ(sb.st_mode & 0777, 0660u);
+}
+#endif
 
 TEST_F(ExtensionsTest, test_extension_start) {
   auto status = startExtensionManager(socket_path);
