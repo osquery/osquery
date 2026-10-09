@@ -12,6 +12,7 @@
 #include <osquery/remote/http_client.h>
 #include <osquery/remote/requests.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio/connect.hpp>
 #include <chrono>
 
@@ -34,6 +35,26 @@ const std::string kHTTPDefaultPort{"80"};
 const std::string kProxyDefaultPort{"3128"};
 
 const long kSSLShortReadError{0x140000dbL};
+
+namespace {
+
+/**
+ * @brief A redirect that is malformed or refused by the redirect policy.
+ *
+ * These are never retried: a retry would resend the original request,
+ * including its body, to the original server, duplicating a state-changing
+ * POST or PUT only to be refused again.
+ */
+class RedirectError : public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
+};
+
+const std::string& defaultPortForScheme(const std::string& scheme) {
+  return (scheme == "https") ? kHTTPSDefaultPort : kHTTPDefaultPort;
+}
+
+} // namespace
 
 void Client::callNetworkOperation(std::function<void()> callback) {
   if (client_options_.timeout_) {
@@ -458,13 +479,12 @@ Response Client::sendHTTPRequest(Request& req) {
         }
 
         if (redirect_attempts++ >= 10) {
-          throw std::runtime_error("Exceeded max of 10 redirects");
+          throw RedirectError("Exceeded max of 10 redirects");
         }
 
         std::string redir_url = Response(resp.release()).headers()["Location"];
         if (!redir_url.size()) {
-          throw std::runtime_error(
-              "Location header missing in redirect response");
+          throw RedirectError("Location header missing in redirect response");
         }
 
         VLOG(1) << "HTTP(S) request re-directed to: " << redir_url;
@@ -483,6 +503,45 @@ Response Client::sendHTTPRequest(Request& req) {
           }
         } else {
           // Absolute URI.
+          std::unique_ptr<Uri> redir_uri;
+          try {
+            redir_uri = std::make_unique<Uri>(redir_url);
+          } catch (const std::invalid_argument&) {
+            throw RedirectError("Invalid redirect Location: " + redir_url);
+          }
+
+          const std::string scheme = req.protocol() ? *req.protocol() : "";
+          const std::string& redir_scheme = redir_uri->scheme();
+
+          // Never let a redirect take an HTTPS request off of HTTPS: any other
+          // scheme is sent over a plaintext socket, transmitting the request
+          // (and any credentials or body) in cleartext. This is enforced for
+          // every client that follows redirects, regardless of the destination
+          // origin.
+          if (scheme == "https" && redir_scheme != "https") {
+            throw RedirectError(
+                "Redirect blocked: refusing to leave HTTPS for " + redir_url);
+          }
+
+          // The request (including its body, which may carry credentials such
+          // as a node key) is re-sent to the redirect target, so only follow
+          // redirects to a different origin when explicitly allowed.
+          if (!client_options_.allow_cross_origin_redirects_) {
+            const std::string host = req.remoteHost() ? *req.remoteHost() : "";
+            const std::string port = req.remotePort()
+                                         ? *req.remotePort()
+                                         : defaultPortForScheme(scheme);
+            const std::string redir_port =
+                (redir_uri->port() > 0) ? std::to_string(redir_uri->port())
+                                        : defaultPortForScheme(redir_scheme);
+            if (redir_scheme != scheme ||
+                !boost::algorithm::iequals(redir_uri->host(), host) ||
+                redir_port != port) {
+              throw RedirectError(
+                  "Redirect blocked: refusing cross-origin redirect to " +
+                  redir_url);
+            }
+          }
           init_request = true;
         }
         req.uri(redir_url);
@@ -494,6 +553,10 @@ Response Client::sendHTTPRequest(Request& req) {
         return Response(std::move(http_resp));
       }
       }
+    } catch (const RedirectError&) {
+      closeSocket();
+      ec_.clear();
+      throw;
     } catch (std::exception const& /* e */) {
       closeSocket();
       if (init_request && ec_ != boost::asio::error::timed_out) {
