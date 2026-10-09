@@ -23,6 +23,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tables/system/linux/os_version.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
@@ -30,24 +31,11 @@
 namespace osquery {
 namespace tables {
 
-const std::string kOSRelease = "/etc/os-release";
-const std::string kRedhatRelease = "/etc/redhat-release";
-const std::string kGentooRelease = "/etc/gentoo-release";
-
-const std::map<std::string, std::string> kOSReleaseColumns = {
-    {"NAME", "name"},
-    {"VERSION", "version"},
-    {"BUILD_ID", "build"},
-    {"ID", "platform"},
-    {"ID_LIKE", "platform_like"},
-    {"VERSION_CODENAME", "codename"},
-    {"VERSION_ID", "_id"},
-};
-
-void genOSRelease(Row& r) {
+void genOSRelease(const std::string& path, Row& r) {
+  std::string osRelease = path + "/" + kOSRelease;
   // This will parse /etc/os-version according to the systemd manual.
   std::string content;
-  if (!readFile(kOSRelease, content).ok()) {
+  if (!readFile(osRelease, content).ok()) {
     return;
   }
 
@@ -99,31 +87,62 @@ QueryData genOSVersionImpl(QueryContext& context, Logger& logger) {
   r["platform"] = "posix";
   r["pid_with_namespace"] = "0";
 
-  if (isReadable(kOSRelease)) {
+  parseOSVersion(kPath, r);
+
+  return {r};
+}
+
+QueryData genOSVersion(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    return generateInNamespace(context, "osversion", genOSVersionImpl);
+  } else {
+    GLOGLogger logger;
+    return genOSVersionImpl(context, logger);
+  }
+}
+
+std::string getMachineArchitecture() {
+  struct utsname uname_buf{};
+
+  if (uname(&uname_buf) != 0) {
+    LOG(INFO) << "Failed to determine the OS architecture, error " << errno;
+
+    return "";
+  }
+
+  return SQL_TEXT(uname_buf.machine);
+}
+
+void parseOSVersion(const std::string& path, Row& r) {
+  std::string osRelease = path + "/" + kOSRelease;
+  std::string redhatRelease = path + "/" + kRedhatRelease;
+  std::string gentooRelease = path + "/" + kGentooRelease;
+  std::string oracleRelease = path + "/" + kOracleRelease;
+
+  if (isReadable(osRelease)) {
     boost::system::error_code ec;
     // Funtoo has an empty os-release file.
-    if (boost::filesystem::file_size(kOSRelease, ec) > 0) {
-      genOSRelease(r);
+    if (boost::filesystem::file_size(osRelease, ec) > 0) {
+      genOSRelease(path, r);
     }
   }
 
-  struct utsname uname_buf {};
-
-  if (uname(&uname_buf) == 0) {
-    r["arch"] = SQL_TEXT(uname_buf.machine);
-  } else {
-    LOG(INFO) << "Failed to determine the OS architecture, error " << errno;
-  }
+  r["arch"] = getMachineArchitecture();
 
   std::string content;
-  if (readFile(kRedhatRelease, content).ok()) {
+  if (readFile(oracleRelease, content).ok()) {
+    // Oracle Linux ships oracle-release alongside a redhat-release, so it must
+    // be checked first. Read it for the version string below, but keep the
+    // platform already derived from os-release (ID=ol) instead of overriding to
+    // rhel as the redhat-release branch does.
+  } else if (readFile(redhatRelease, content).ok()) {
     r["platform"] = "rhel";
     r["platform_like"] = "rhel";
-  } else if (readFile(kGentooRelease, content).ok()) {
+  } else if (readFile(gentooRelease, content).ok()) {
     r["platform"] = "gentoo";
     r["platform_like"] = "gentoo";
   } else {
-    return {r};
+    return;
   }
 
   boost::algorithm::trim_all(content);
@@ -155,17 +174,6 @@ QueryData genOSVersionImpl(QueryContext& context, Logger& logger) {
     if (!boost::algorithm::ifind_first(r["name"], "centos").empty()) {
       r["platform"] = "centos";
     }
-  }
-
-  return {r};
-}
-
-QueryData genOSVersion(QueryContext& context) {
-  if (hasNamespaceConstraint(context)) {
-    return generateInNamespace(context, "osversion", genOSVersionImpl);
-  } else {
-    GLOGLogger logger;
-    return genOSVersionImpl(context, logger);
   }
 }
 
