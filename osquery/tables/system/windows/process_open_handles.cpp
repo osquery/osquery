@@ -728,16 +728,34 @@ GetObjectTypeEnumeration(HandleRecordCache& cache) {
   // Walk the serialized array of OBJECT_TYPE_INFORMATION entries.  Entries are
   // variable-length: each struct is followed by its TypeName string data, and
   // the next entry starts at the next pointer-aligned address.
+  PBYTE bufferEnd = localBuffer.data() + retLen;
   POBJECT_TYPE_INFORMATION typeIter = &pTypes->Types[0];
   for (ULONG i = 0; i < pTypes->NumberOfTypes; i++) {
+    // Validate we're still within buffer bounds before accessing the structure
+    if (reinterpret_cast<PBYTE>(typeIter) + sizeof(OBJECT_TYPE_INFORMATION) >
+        bufferEnd) {
+      VLOG(1) << "Object type iteration would exceed buffer bounds at index "
+              << i;
+      return STATUS_BUFFER_OVERFLOW;
+    }
+
     cache.CacheHandleType(typeIter->TypeIndex, &typeIter->TypeName);
 
     // advance our iterator, accounting for the trailing serialized string
     // buffer and alignment
-    typeIter = reinterpret_cast<POBJECT_TYPE_INFORMATION>(
-        reinterpret_cast<PBYTE>(typeIter) +
-        AlignUpPtr(sizeof(OBJECT_TYPE_INFORMATION) +
-                   typeIter->TypeName.MaximumLength));
+    size_t advanceSize = AlignUpPtr(sizeof(OBJECT_TYPE_INFORMATION) +
+                                    typeIter->TypeName.MaximumLength);
+    PBYTE nextIter = reinterpret_cast<PBYTE>(typeIter) + advanceSize;
+
+    // Validate the next iteration position is within bounds
+    if (nextIter > bufferEnd) {
+      VLOG(1) << "Object type iteration would exceed buffer bounds advancing "
+                 "from index "
+              << i;
+      return STATUS_BUFFER_OVERFLOW;
+    }
+
+    typeIter = reinterpret_cast<POBJECT_TYPE_INFORMATION>(nextIter);
   }
 
   return STATUS_SUCCESS;
@@ -1174,6 +1192,19 @@ class HandleEnumeration {
     // 3. Filter and process the basic enumeration into our record structure
     pHandleInfo =
         reinterpret_cast<PSYSTEM_HANDLE_INFORMATION_EX>(localBuffer.data());
+
+    // Validate that the NumberOfHandles doesn't exceed the buffer size
+    // Header is 2 * ULONG_PTR (NumberOfHandles + Reserved)
+    size_t headerSize = 2 * sizeof(ULONG_PTR);
+    size_t requiredSize =
+        headerSize + (pHandleInfo->NumberOfHandles *
+                      sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+    if (requiredSize > retLen) {
+      VLOG(1) << "Handle enumeration buffer overflow: NumberOfHandles ("
+              << pHandleInfo->NumberOfHandles << ") exceeds buffer size";
+      return STATUS_BUFFER_OVERFLOW;
+    }
+
     for (ULONG i = 0; i < pHandleInfo->NumberOfHandles; i++) {
       PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = &pHandleInfo->Handles[i];
       if (IsPidFiltered(static_cast<DWORD>(entry->UniqueProcessId))) {
