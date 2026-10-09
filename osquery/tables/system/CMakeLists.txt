@@ -182,6 +182,7 @@ function(generateOsqueryTablesSystemSystemtable)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
+      windows/ads.cpp
       windows/appcompat_shims.cpp
       windows/authenticode.cpp
       windows/autoexec.cpp
