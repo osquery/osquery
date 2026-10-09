@@ -312,7 +312,7 @@ $ ./tools/tests/test_http_server.py --tls --persist --verbose \
 
 This starts a HTTPS server bound to port 8080 using some fake CA/server cert and an example shared enrollment key from the text file **./tools/tests/configs/test_enroll_secret.txt**. If you inspect the file, see that the enrollment secret is **this_is_a_deployment_secret**. The server's enroll step will expect osquery clients to submit this secret.
 
-We will use an `osqueryd` client and set the required TLS settings. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
+With the server running, start the `osqueryd` client in a second terminal from the repository root. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
 
 ```shell
 $ osqueryd --verbose --ephemeral --disable_database \
