@@ -135,8 +135,11 @@ QueryData genGpuMetrics(QueryContext& context) {
   const auto util_map = collectGpuUtilizationPct();
   const auto address_by_pnp_id = pciAddressByPnpId();
 
-  int gpu_index = 0;
   int device_id = 0;
+  const auto single_gpu_utilization = util_map.find(0);
+  const bool has_unambiguous_utilization =
+      wmiReq->results().size() == 1 && util_map.size() == 1 &&
+      single_gpu_utilization != util_map.end();
   for (const auto& item : wmiReq->results()) {
     Row r;
 
@@ -149,14 +152,13 @@ QueryData genGpuMetrics(QueryContext& context) {
       r["device_id"] = "GPU" + slot_it->second;
     }
 
-    // phys_N in GPUEngine perf counters is assumed to match enumeration order.
-    const auto it = util_map.find(gpu_index);
-    if (it != util_map.end()) {
-      r["gpu_utilization_pct"] = DOUBLE(it->second);
+    // The WMI controller and performance-counter enumerations expose no shared
+    // identity here. Only report utilization when both identify one adapter.
+    if (has_unambiguous_utilization) {
+      r["gpu_utilization_pct"] = DOUBLE(single_gpu_utilization->second);
     }
 
     results.push_back(r);
-    ++gpu_index;
   }
 
   return results;

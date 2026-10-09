@@ -1,11 +1,11 @@
 table_name("gpu_metrics")
 description("Information about GPU devices on the system, including inventory and runtime telemetry where supported.")
 schema([
-  Column("device_id", TEXT, "The stable identifier of the GPU, used as the join key to correlate with GPU tables that report the same identifier. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0), so it is stable across reboots; a positional GPU<n> counter is used only for GPUs without a slot, where the identifier is only stable within the same query result."),
+  Column("device_id", TEXT, "The GPU identifier used to correlate rows with other GPU tables. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0); macOS GPUs without a PCI slot use GPUintegrated, while other platforms use an enumeration-based fallback."),
   Column("gpu_utilization_pct", DOUBLE, "GPU engine utilization as a percentage (0-100)."),
 ])
 extended_schema(POSIX, [
-  Column("power_draw_watts", DOUBLE, "Current GPU power draw in Watts."),
+  Column("power_draw_watts", DOUBLE, "Estimated average GPU power draw in Watts over a 500 ms sampling window."),
 ])
 extended_schema(DARWIN, [
   Column("allocated_vram", BIGINT, "Allocated GPU memory in bytes from IOAccelerator."),

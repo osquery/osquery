@@ -300,9 +300,9 @@ std::vector<std::optional<double>> collectGPUPowerData() {
         const auto name_string = safeStringFromCFString(name);
         const auto unit_string = safeStringFromCFString(unit);
 
-        LOG(INFO) << "IOReport(all) GPU power candidate group='" << group_string
-                  << "' name='" << name_string << "' value=" << value
-                  << " unit='" << unit_string << "' watts=" << channel_power_w;
+        VLOG(1) << "IOReport(all) GPU power candidate group='" << group_string
+                << "' name='" << name_string << "' value=" << value << " unit='"
+                << unit_string << "' watts=" << channel_power_w;
         ++logged;
       }
 
@@ -310,11 +310,11 @@ std::vector<std::optional<double>> collectGPUPowerData() {
     });
 
     if (found_gpu_channel) {
-      LOG(INFO) << "Total GPU power from all-channel scan: " << total_power_w
-                << " W";
+      VLOG(1) << "Total GPU power from all-channel scan: " << total_power_w
+              << " W";
       power_data.push_back(total_power_w);
     } else {
-      LOG(INFO) << "All-channel GPU power scan found no matching candidates";
+      VLOG(1) << "All-channel GPU power scan found no matching candidates";
     }
   }
 
@@ -322,15 +322,36 @@ std::vector<std::optional<double>> collectGPUPowerData() {
 }
 
 struct AcceleratorStats {
+  std::string device_id;
   std::optional<double> utilization_pct;
   std::optional<double> power_draw_watts;
   std::optional<long long> allocated_vram;
   std::optional<long long> in_use_vram;
 };
 
-// Query IOAccelerator services and return their PerformanceStatistics indexed
-// in enumeration order. The order generally matches the GPU order returned by
-// system_profiler SPDisplaysDataType.
+std::string deviceIdForAccelerator(io_service_t service) {
+  io_registry_entry_t parent = 0;
+  if (IORegistryEntryGetParentEntry(service, "IOService", &parent) !=
+          KERN_SUCCESS ||
+      parent == 0) {
+    return {};
+  }
+
+  UniqueIoService parent_ptr(parent);
+  CFMutableDictionaryRef raw_props = nullptr;
+  const auto status = IORegistryEntryCreateCFProperties(
+      parent, &raw_props, kCFAllocatorDefault, kNilOptions);
+  UniqueCFMutableDictionaryRef props(raw_props);
+  if (status != KERN_SUCCESS || props == nullptr) {
+    return {};
+  }
+
+  const auto pci_slot = stringFromIOKitProperty(
+      CFDictionaryGetValue(props.get(), CFSTR("pcidebug")));
+  return pci_slot.empty() ? "GPUintegrated" : "GPU" + pci_slot;
+}
+
+// Query IOAccelerator services with their hardware identity and runtime stats.
 std::vector<AcceleratorStats> collectAcceleratorStats() {
   std::vector<AcceleratorStats> result;
 
@@ -353,6 +374,7 @@ std::vector<AcceleratorStats> collectAcceleratorStats() {
   while ((raw_service = IOIteratorNext(it.get())) != 0) {
     UniqueIoService service(raw_service);
     AcceleratorStats stats;
+    stats.device_id = deviceIdForAccelerator(service.get());
 
     CFMutableDictionaryRef raw_props = nullptr;
     if (IORegistryEntryCreateCFProperties(
@@ -431,22 +453,30 @@ QueryData genGpuMetrics(QueryContext& context) {
   QueryData results;
   @autoreleasepool {
     const QueryData gpu_info = genGpuInfo(context);
-    // Collect IOAccelerator stats once; correlate by index.
     const std::vector<AcceleratorStats> accel_stats = collectAcceleratorStats();
 
-    for (std::size_t gpu_index = 0; gpu_index < gpu_info.size(); ++gpu_index) {
-      const auto device_id_it = gpu_info[gpu_index].find("device_id");
-      if (device_id_it == gpu_info[gpu_index].end()) {
+    for (const auto& gpu : gpu_info) {
+      const auto device_id_it = gpu.find("device_id");
+      if (device_id_it == gpu.end()) {
         continue;
       }
 
       Row r;
       r["device_id"] = device_id_it->second;
 
-      // GPU utilization from IOAccelerator PerformanceStatistics.
-      // Correlation is by index; order generally matches system_profiler.
-      if (gpu_index < accel_stats.size()) {
-        const AcceleratorStats& stats = accel_stats[gpu_index];
+      const AcceleratorStats* matched_stats = nullptr;
+      for (const auto& stats : accel_stats) {
+        if (stats.device_id != device_id_it->second) {
+          continue;
+        }
+        if (matched_stats != nullptr) {
+          matched_stats = nullptr;
+          break;
+        }
+        matched_stats = &stats;
+      }
+      if (matched_stats != nullptr) {
+        const AcceleratorStats& stats = *matched_stats;
         if (stats.allocated_vram.has_value()) {
           r["allocated_vram"] = BIGINT(*stats.allocated_vram);
         }
