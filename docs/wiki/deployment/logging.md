@@ -161,11 +161,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     "pid": "97830"
   },
   "name": "processes",
-  "hostname": "hostname.local",
+  "hostIdentifier": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -179,11 +179,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     "pid": "97650"
   },
   "name": "processes",
-  "hostname": "hostname.local",
+  "hostIdentifier": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -224,9 +224,9 @@ Consider the following example:
   "name": "process_snapshot",
   "hostIdentifier": "hostname.local",
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
-  "unixTime": "1462228052",
-  "epoch": "314159265",
-  "counter": "1",
+  "unixTime": 1462228052,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -258,11 +258,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     ]
   },
   "name": "processes",
-  "hostname": "hostname.local",
+  "hostIdentifier": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
