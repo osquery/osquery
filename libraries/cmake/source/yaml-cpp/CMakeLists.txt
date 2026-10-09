@@ -45,6 +45,17 @@ function(yamlcppMain)
     YAML_CPP_NO_CONTRIB
   )
 
+  # yaml-cpp is built here as a static library, but its dll.h defaults
+  # YAML_CPP_API to __declspec(dllimport) under MSVC unless told otherwise
+  # (upstream's own src/CMakeLists.txt sets this for non-shared builds; this
+  # wrapper does not use that file). Without it the library fails to compile
+  # on Windows -- classes like Emitter and Parser would be declared dllimport
+  # while being defined here -- and consumers would look for __imp_ symbols a
+  # static lib does not export. PUBLIC so consumers see the same declarations.
+  target_compile_definitions(thirdparty_yaml-cpp PUBLIC
+    YAML_CPP_STATIC_DEFINE
+  )
+
   target_link_libraries(thirdparty_yaml-cpp PRIVATE
     thirdparty_cxx_settings
   )

@@ -52,6 +52,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       darwin/certificates_tests.cpp
       darwin/extended_attributes_tests.cpp
       darwin/firewall_tests.cpp
+      darwin/kernel_panics_tests.cpp
       darwin/launchd_tests.cpp
       darwin/macports_packages_tests.cpp
       darwin/mdfind_tests.cpp

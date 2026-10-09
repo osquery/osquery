@@ -44,6 +44,11 @@ const std::vector<std::pair<std::string, std::string>> KPathList = {
     {".devin", "windsurf"},
     {".trae", "trae"},
     {".trae-server", "trae"},
+    {".antigravity", "antigravity"},
+    // Newer Antigravity IDE builds use .antigravity-ide.
+    {".antigravity-ide", "antigravity"},
+    {".antigravity-server", "antigravity"},
+    {".local/share/code-server", "code_server"},
 };
 
 void genReadJSONAndAddExtensionRows(const std::string& uid,
