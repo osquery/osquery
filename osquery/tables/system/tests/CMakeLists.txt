@@ -33,6 +33,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       linux/extended_attributes_tests.cpp
       linux/flatpak_packages_tests.cpp
       linux/md_tables_tests.cpp
+      linux/os_version_tests.cpp
       linux/pacman_packages_tests.cpp
       linux/snap_packages_tests.cpp
       linux/pci_devices_tests.cpp

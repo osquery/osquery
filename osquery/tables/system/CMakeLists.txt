@@ -354,6 +354,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/dbus/uniqueresource.h
       linux/apt_sources.h
       linux/md_tables.h
+      linux/os_version.h
       linux/pci_devices.h
       linux/processes.h
       linux/smbios_utils.h
