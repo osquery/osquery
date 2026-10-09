@@ -288,10 +288,14 @@ void RegistryInterface::removeExternal(const RouteUUID& uuid) {
         removed_items.push_back(item.first);
       }
     }
+  }
 
-    for (const auto& item : removed_items) {
-      removeExternalPlugin(item);
-    }
+  // Run the callbacks with no registry lock held: for a table plugin this drops
+  // the table, which re-enters the registry (DROP -> xCreate -> call, wanting a
+  // shared lock). Holding mutex_ across it deadlocks against a concurrent
+  // remover's pending exclusive (shared_mutex is writer-priority).
+  for (const auto& item : removed_items) {
+    removeExternalPlugin(item);
   }
 
   // Remove items belonging to the external uuid.
