@@ -301,49 +301,29 @@ This allows servers and intermediaries to identify and authenticate requests wit
 
 The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/osquery/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have `osqueryd` exercise the API:
 
+Run these commands from the repository root. The required `--test-configs-dir` option selects the directory containing the test certificates and enrollment secret; the server uses the fixture filenames in that directory by default.
+
 ```shell
-$ ./tools/tests/test_http_server.py -h
-usage: test_http_server.py [-h] [--tls] [--persist] [--timeout TIMEOUT]
-                           [--cert CERT_FILE] [--key PRIVATE_KEY_FILE]
-                           [--ca CA_FILE] [--use_enroll_secret]
-                           [--enroll_secret SECRET_FILE]
-                           PORT
-
-osquery python https server for client TLS testing.
-
-positional arguments:
-  PORT                  Bind to which local TCP port.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --tls                 Wrap the HTTP server socket in TLS.
-  --persist             Wrap the HTTP server socket in TLS.
-  --timeout TIMEOUT     If not persisting, exit after a number of seconds
-  --cert CERT_FILE      TLS server cert.
-  --key PRIVATE_KEY_FILE
-                        TLS server cert private key.
-  --ca CA_FILE          TLS server CA list for client-auth.
-  --use_enroll_secret   Require an enrollment secret for node enrollment
-  --enroll_secret SECRET_FILE
-                        File containing enrollment secret
-$ ./tools/tests/test_http_server.py --tls --persist --cert ./tools/tests/configs/test_server.pem --key ./tools/tests/configs/test_server.key --ca .tools/tests/configs/test_server_ca.pem --use_enroll_secret --enroll_secret ./tools/tests/test_enroll_secret.txt 8080
+$ ./tools/tests/test_http_server.py --help
+$ ./tools/tests/test_http_server.py --tls --persist --verbose \
+    --test-configs-dir ./tools/tests/configs 8080
 -- [DEBUG] Starting TLS/HTTPS server on TCP port: 8080
 ```
 
-This starts a HTTPS server bound to port 8080 using some fake CA/server cert and an example shared enrollment key from the text file **./tools/tests/test_enroll_secret.txt**. If you inspect the file, see that the enrollment secret is **this_is_a_deployment_secret**. The server's enroll step will expect osquery clients to submit this secret.
+This starts a HTTPS server bound to port 8080 using some fake CA/server cert and an example shared enrollment key from the text file **./tools/tests/configs/test_enroll_secret.txt**. If you inspect the file, see that the enrollment secret is **this_is_a_deployment_secret**. The server's enroll step will expect osquery clients to submit this secret.
 
 We will use an `osqueryd` client and set the required TLS settings. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
 
 ```shell
 $ osqueryd --verbose --ephemeral --disable_database \
     --tls_hostname localhost:8080 \
-    --tls_server_certs ./tools/tests/test_server_ca.pem \
+    --tls_server_certs ./tools/tests/configs/test_server_ca.pem \
     --config_plugin tls \
     --config_tls_endpoint /config \
-    --logger_tls_endpoint /logger \
+    --logger_tls_endpoint /log \
     --logger_plugin tls  \
     --enroll_tls_endpoint /enroll \
-    --enroll_secret_path ./tools/tests/test_enroll_secret.txt
+    --enroll_secret_path ./tools/tests/configs/test_enroll_secret.txt
 ```
 
 There are a LOT of command line switches here! The basics notes are (1) set the TLS hostname and port, note that no `https://` is used, as well as the explicit set of certificates to expect; (2) set the plugin options for the config and logger; (3) set the plugin options for enrollment. Turning `verbose` mode on helps describe the expected behavior.
@@ -355,7 +335,7 @@ I1015 10:36:06.936123 2032685056 tls.cpp:196] TLS/HTTPS POST request to URI: htt
 I1015 10:36:06.947465 2032685056 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/config
 I1015 10:36:10.288635 3825664 scheduler.cpp:56] Executing query: SELECT * FROM processes;
 I1015 10:36:10.366140 3825664 scheduler.cpp:101] Found results for query (tls_proc) for host: YOURHOSTNAME.local
-I1015 10:36:11.019227 528384 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/logger
+I1015 10:36:11.019227 528384 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/log
 [...]
 ```
 
@@ -368,7 +348,7 @@ And the example TLS server will show something similar:
 127.0.0.1 - - [15/Oct/2015 10:36:06] "POST /config HTTP/1.1" 200 -
 -- [DEBUG] Request: {u'node_key': u'this_is_a_node_secret'}
 -- [DEBUG] Replying: {u'schedule': {u'tls_proc': {u'query': u'select * from processes', u'interval': 1}}}
-127.0.0.1 - - [15/Oct/2015 10:36:11] "POST /logger HTTP/1.1" 200 -
+127.0.0.1 - - [15/Oct/2015 10:36:11] "POST /log HTTP/1.1" 200 -
 -- [DEBUG] Request: {u'node_key': u'this_is_a_node_secret', u'data': [...]}
 [...]
 ```
