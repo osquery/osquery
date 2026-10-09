@@ -82,9 +82,18 @@ CLI_FLAG(bool,
          tls_follow_redirects,
          true,
          "Follow HTTP redirects for TLS/HTTPS requests. Enabled by default. "
-         "Regardless of this setting, a redirect that downgrades HTTPS to "
-         "plaintext HTTP is always refused. Set to false to disable following "
+         "Only same-origin redirects are followed unless "
+         "--tls_allow_cross_origin_redirects is set, and a redirect off of "
+         "HTTPS is always refused. Set to false to disable following "
          "redirects entirely");
+
+/// Allow the TLS transport to follow redirects to a different origin.
+CLI_FLAG(bool,
+         tls_allow_cross_origin_redirects,
+         false,
+         "Allow TLS/HTTPS requests to follow redirects to a different scheme, "
+         "host, or port. Redirected requests are re-sent with their headers "
+         "and body, including the node key. Disabled by default");
 
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
@@ -130,6 +139,7 @@ http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
 
   options.follow_redirects(FLAGS_tls_follow_redirects)
+      .allow_cross_origin_redirects(FLAGS_tls_allow_cross_origin_redirects)
       .always_verify_peer(verify_peer_)
       .timeout(16);
 
