@@ -90,10 +90,6 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isSpecialFile() const {
-  return (size() == 0);
-}
-
 static uid_t getFileOwner(PlatformHandle handle) {
   struct stat file;
   if (::fstat(handle, &file) < 0) {
@@ -245,11 +241,10 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
   return ::lseek(handle_, offset, whence);
 }
 
-size_t PlatformFile::size() const {
+boost::optional<size_t> PlatformFile::size() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
-    // This is an error case, but the size is not signed.
-    return 0;
+    return boost::none;
   }
   return file.st_size;
 }
