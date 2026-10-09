@@ -23,6 +23,10 @@ class CupsJobs {
 
   CupsJobs() : job_list(nullptr), num_jobs(0) {
     num_jobs = cupsGetJobs(&job_list, nullptr, 0, CUPS_WHICHJOBS_ALL);
+    // cupsGetJobs returns -1 on error (e.g. cupsd is unreachable)
+    if (num_jobs < 0) {
+      num_jobs = 0;
+    }
   }
 
   ~CupsJobs() {
