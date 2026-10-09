@@ -108,6 +108,7 @@ TEST_F(ProcessesTest, test_sanity) {
 
   if (isPlatform(PlatformType::TYPE_LINUX)) {
     row_map.emplace("cgroup_path", NormalType);
+    row_map.emplace("label", NormalType);
   }
 
   validate_rows(data, row_map);
