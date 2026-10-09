@@ -25,7 +25,7 @@ constexpr auto kFullRegPath =
 
 // Get execution count
 std::size_t executionNum(const std::string& assist_data) {
-  if (assist_data.length() <= 16) {
+  if (assist_data.length() < 16) {
     LOG(WARNING) << "Userassist execution count format is incorrect";
     return -1;
   }
@@ -80,7 +80,19 @@ QueryData genUserAssist(QueryContext& context) {
 
         // split reg path by \Count\ to get Key values
         auto count_key = subkey.find("Count\\");
+        if (count_key == std::string::npos) {
+          LOG(WARNING) << "Could not find Count\\ in subkey path";
+          continue;
+        }
+        if (subkey.size() < count_key) {
+          LOG(WARNING) << "Subkey too short for value key extraction";
+          continue;
+        }
         auto value_key = subkey.substr(count_key);
+        if (value_key.size() < 6) {
+          LOG(WARNING) << "Value key too short";
+          continue;
+        }
         std::string value_key_reg = value_key.substr(6, std::string::npos);
 
         std::string decoded_value_key = rotDecode(value_key_reg);
@@ -98,7 +110,7 @@ QueryData genUserAssist(QueryContext& context) {
         } else {
           std::string assist_data = aKey.at("data");
           auto time_str = 0LL;
-          if (assist_data.length() <= 136) {
+          if (assist_data.length() < 136) {
             LOG(WARNING)
                 << "Userassist last execute Timestamp format is incorrect";
           } else {
