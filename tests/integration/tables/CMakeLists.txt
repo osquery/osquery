@@ -144,6 +144,7 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
+      sshd_config.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp

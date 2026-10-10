@@ -1,0 +1,16 @@
+table_name("sshd_config")
+
+description("Returns the keyword/argument pairs for each configuration option within an sshd_config file(s).")
+
+schema([
+    Column("keyword", TEXT, "The config option keyword."),
+    Column("argument", TEXT, "The config option argument."),
+    Column("match", TEXT, "The match block associated with the keyword/argument."),
+    Column("path", TEXT, "The sshd_config file path associated with the keyword/argument.", required=True),
+])
+
+implementation("sshd_config@genSshdConfig")
+
+examples([
+  "select * from sshd_config where path='<path_to_sshd_config>';",
+])

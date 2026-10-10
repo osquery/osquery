@@ -42,6 +42,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/openssl_utils.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
+      posix/sshd_config.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
@@ -340,6 +341,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/known_hosts.h
       posix/shell_history.h
       posix/ssh_keys.h
+      posix/sshd_config.h
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
