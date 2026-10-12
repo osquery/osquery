@@ -407,5 +407,53 @@ TEST_F(NpmPackagesUnitTest, test_non_object_license_is_ignored) {
   }
 }
 
+TEST_F(NpmPackagesUnitTest, test_non_object_license_does_not_crash) {
+  GLOGLogger logger;
+
+  // A license that is neither a string nor an object must not crash the parser:
+  // in release builds RapidJSON's HasMember() faults on it, and an unprivileged
+  // user can plant such a package.json under the default scan path.
+  const std::vector<std::string> hostile_licenses = {
+      "42", "[]", "true", "null", R"(["MIT"])"};
+
+  // writeTextFile appends, so each case needs its own package.json.
+  size_t i = 0;
+  for (const auto& license : hostile_licenses) {
+    auto package_path = temp_dir_ / "node_modules" /
+                        ("evil" + std::to_string(i++)) / "package.json";
+    createPackageJson(package_path,
+                      R"({"name": "evil", "version": "1.0.0", "license": )" +
+                          license + "}");
+
+    Row r;
+    tables::genNodePackage(package_path.string(), r, logger);
+
+    EXPECT_EQ(r["name"], "evil");
+    EXPECT_EQ(r["license"], "") << "license=" << license;
+  }
+}
+
+TEST_F(NpmPackagesUnitTest, test_object_license_url_is_surfaced) {
+  GLOGLogger logger;
+
+  auto with_url = temp_dir_ / "node_modules" / "legacy" / "package.json";
+  createPackageJson(
+      with_url,
+      R"({"name": "legacy", "version": "1.0.0",)"
+      R"( "license": {"type": "ISC", "url": "https://example.com/LICENSE"}})");
+  Row r1;
+  tables::genNodePackage(with_url.string(), r1, logger);
+  EXPECT_EQ(r1["license"], "https://example.com/LICENSE");
+
+  // An object license with no usable url resolves to empty, not to the type.
+  auto no_url = temp_dir_ / "node_modules" / "legacy2" / "package.json";
+  createPackageJson(
+      no_url,
+      R"({"name": "legacy2", "version": "1.0.0", "license": {"type": "ISC"}})");
+  Row r2;
+  tables::genNodePackage(no_url.string(), r2, logger);
+  EXPECT_EQ(r2["license"], "");
+}
+
 } // namespace table_tests
 } // namespace osquery
