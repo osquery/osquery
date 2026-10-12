@@ -12,6 +12,7 @@
 #include <functional>
 #include <map>
 #include <queue>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -129,6 +130,10 @@ Mutex config_backup_mutex_;
 RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
+
+/// Parsers updated by applyParsers whose afterUpdate() has not run yet.
+Mutex config_pending_parsers_mutex_;
+std::vector<std::shared_ptr<ConfigParserPlugin>> config_pending_parsers_;
 
 using PackRef = std::unique_ptr<Pack>;
 
@@ -419,6 +424,10 @@ void Config::addPack(const std::string& name,
   } else {
     addSinglePack(name, obj);
   }
+
+  // The parsers were applied to the pack content under the schedule lock, which
+  // addSinglePack has released.
+  applyParserChanges();
 }
 
 void Config::removePack(const std::string& pack) {
@@ -913,6 +922,9 @@ void Config::applyParsers(const std::string& source,
     // each top-level-config key. The parser may choose to update the config's
     // internal state
     parser->update(source, parser_config);
+
+    WriteLock pending_lock(config_pending_parsers_mutex_);
+    config_pending_parsers_.push_back(parser);
   };
 
   auto getParser = [=](const PluginRef& plugin, const std::string& name) {
@@ -925,26 +937,50 @@ void Config::applyParsers(const std::string& source,
     return parser;
   };
 
-  RecursiveLock lock(config_schedule_mutex_);
-  auto plugins = RegistryFactory::get().plugins("config_parser");
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    auto plugins = RegistryFactory::get().plugins("config_parser");
 
-  // Always apply the options parser first, others may depend on flags/options.
-  auto options_plugin = plugins.find("options");
-  if (options_plugin != plugins.end()) {
-    auto parser = getParser(options_plugin->second, options_plugin->first);
-    if (parser != nullptr && parser.get() != nullptr) {
-      applyParser(parser, source, obj);
+    // Always apply the options parser first, others may depend on
+    // flags/options.
+    auto options_plugin = plugins.find("options");
+    if (options_plugin != plugins.end()) {
+      auto parser = getParser(options_plugin->second, options_plugin->first);
+      if (parser != nullptr && parser.get() != nullptr) {
+        applyParser(parser, source, obj);
+      }
+    }
+
+    // Iterate each parser.
+    for (const auto& plugin : plugins) {
+      if (plugin.first == "options") {
+        continue;
+      }
+      auto parser = getParser(plugin.second, plugin.first);
+      if (parser != nullptr && parser.get() != nullptr) {
+        applyParser(parser, source, obj);
+      }
     }
   }
 
-  // Iterate each parser.
-  for (const auto& plugin : plugins) {
-    if (plugin.first == "options") {
-      continue;
-    }
-    auto parser = getParser(plugin.second, plugin.first);
-    if (parser != nullptr && parser.get() != nullptr) {
-      applyParser(parser, source, obj);
+  // Pack content is parsed while addPack holds the schedule lock, so addPack
+  // applies the parser changes once it has released it.
+  if (!pack) {
+    applyParserChanges();
+  }
+}
+
+void Config::applyParserChanges() {
+  std::vector<std::shared_ptr<ConfigParserPlugin>> parsers;
+  {
+    WriteLock lock(config_pending_parsers_mutex_);
+    parsers.swap(config_pending_parsers_);
+  }
+
+  std::set<ConfigParserPlugin*> applied;
+  for (const auto& parser : parsers) {
+    if (applied.insert(parser.get()).second) {
+      parser->afterUpdate();
     }
   }
 }
