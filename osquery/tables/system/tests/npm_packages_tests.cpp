@@ -421,9 +421,9 @@ TEST_F(NpmPackagesUnitTest, test_non_object_license_does_not_crash) {
   for (const auto& license : hostile_licenses) {
     auto package_path = temp_dir_ / "node_modules" /
                         ("evil" + std::to_string(i++)) / "package.json";
-    createPackageJson(package_path,
-                      R"({"name": "evil", "version": "1.0.0", "license": )" +
-                          license + "}");
+    createPackageJson(
+        package_path,
+        R"({"name": "evil", "version": "1.0.0", "license": )" + license + "}");
 
     Row r;
     tables::genNodePackage(package_path.string(), r, logger);
