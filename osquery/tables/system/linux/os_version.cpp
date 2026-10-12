@@ -129,6 +129,24 @@ void parseOSVersion(const std::string& path, Row& r) {
 
   r["arch"] = getMachineArchitecture();
 
+  // Amazon Linux's os-release VERSION_ID is only the major (e.g. 2023); the
+  // point release is in the human-readable PRETTY_NAME. Parse it for
+  // major/minor/patch, keeping name/version/platform from os-release.
+  if (r["platform"] == "amzn") {
+    std::string content;
+    readFile(osRelease, content);
+    std::smatch matches;
+    auto rx = std::regex(
+        "PRETTY_NAME=\"?[^\"\n]* ([0-9]+)(?:\\.([0-9]+))?"
+        "(?:\\.([0-9]+))?");
+    if (std::regex_search(content, matches, rx)) {
+      r["major"] = matches[1];
+      r["minor"] = matches[2].matched ? matches[2].str() : "0";
+      r["patch"] = matches[3].matched ? matches[3].str() : "0";
+    }
+    return;
+  }
+
   std::string content;
   if (readFile(oracleRelease, content).ok()) {
     // Oracle Linux ships oracle-release alongside a redhat-release, so it must
