@@ -359,12 +359,8 @@ function(setupBuildFlags)
       /guard:cf
     )
 
-    # Mark images compatible with CET shadow stacks (x64 only).
-    if("${TARGET_PROCESSOR}" STREQUAL "x86_64")
-      list(APPEND windows_common_link_options
-        /CETCOMPAT
-      )
-    endif()
+    # /CETCOMPAT (CET shadow stacks) is not enabled: on x64, Boost.Context uses
+    # the fcontext backend, whose stack switching violates the shadow stack.
 
     if(OSQUERY_ENABLE_INCREMENTAL_LINKING)
       list(APPEND windows_common_link_options
