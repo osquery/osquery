@@ -45,6 +45,38 @@ const std::string kRedhatReleaseContent =
     "Red Hat Enterprise Linux Server release 1.2.3 (Santiago)\n";
 const std::string kGentooReleaseContent = "Gentoo Base System version 1.2.3\n";
 
+// Amazon Linux 2023: os-release VERSION/VERSION_ID carry only the major
+// release (2023); the point release is in PRETTY_NAME.
+const std::string kAmazonOSReleaseContent =
+    "NAME=\"Amazon Linux\"\n"
+    "VERSION=\"2023\"\n"
+    "ID=\"amzn\"\n"
+    "ID_LIKE=\"fedora\"\n"
+    "VERSION_ID=\"2023\"\n"
+    "PLATFORM_ID=\"platform:al2023\"\n"
+    "PRETTY_NAME=\"Amazon Linux 2023.6.20241010\"\n"
+    "CPE_NAME=\"cpe:2.3:o:amazon:amazon_linux:2023\"\n";
+
+// Amazon Linux 2: no point release, so PRETTY_NAME has only the major.
+const std::string kAmazon2OSReleaseContent =
+    "NAME=\"Amazon Linux\"\n"
+    "VERSION=\"2\"\n"
+    "ID=\"amzn\"\n"
+    "ID_LIKE=\"centos rhel fedora\"\n"
+    "VERSION_ID=\"2\"\n"
+    "PRETTY_NAME=\"Amazon Linux 2\"\n"
+    "CPE_NAME=\"cpe:2.3:o:amazon:amazon_linux:2\"\n";
+
+// Amazon Linux AMI (AL1): VERSION_ID is major.minor and PRETTY_NAME matches.
+const std::string kAmazon1OSReleaseContent =
+    "NAME=\"Amazon Linux AMI\"\n"
+    "VERSION=\"2018.03\"\n"
+    "ID=\"amzn\"\n"
+    "ID_LIKE=\"rhel fedora\"\n"
+    "VERSION_ID=\"2018.03\"\n"
+    "PRETTY_NAME=\"Amazon Linux AMI 2018.03\"\n"
+    "CPE_NAME=\"cpe:/o:amazon:linux:2018.03:ga\"\n";
+
 void writeFile(const fs::path& path, const std::string& content) {
   std::ofstream stream(path.string());
   ASSERT_TRUE(stream.is_open());
@@ -150,6 +182,69 @@ TEST_F(OSVersion, parseOSVersion) {
          {kOSRelease, kOracleRelease, kRedhatRelease, kGentooRelease}) {
       fs::remove(directory_ / name);
     }
+
+    ASSERT_EQ(got, tc.want) << "Test Case Failed: " << tc.name;
+  }
+}
+
+TEST_F(OSVersion, parseAmazonLinux) {
+  struct TestCase {
+    std::string name;
+    std::string osRelease;
+    Row want;
+  };
+
+  TestCase testCases[] = {
+      {"AL2023",
+       kAmazonOSReleaseContent,
+       Row({
+           {"_id", "2023"},
+           {"arch", getMachineArchitecture()},
+           {"cpe_name", "cpe:2.3:o:amazon:amazon_linux:2023"},
+           {"major", "2023"},
+           {"minor", "6"},
+           {"name", "Amazon Linux"},
+           {"patch", "20241010"},
+           {"platform", "amzn"},
+           {"platform_like", "fedora"},
+           {"version", "2023"},
+       })},
+      {"AL2",
+       kAmazon2OSReleaseContent,
+       Row({
+           {"_id", "2"},
+           {"arch", getMachineArchitecture()},
+           {"cpe_name", "cpe:2.3:o:amazon:amazon_linux:2"},
+           {"major", "2"},
+           {"minor", "0"},
+           {"name", "Amazon Linux"},
+           {"patch", "0"},
+           {"platform", "amzn"},
+           {"platform_like", "centos rhel fedora"},
+           {"version", "2"},
+       })},
+      {"AL1",
+       kAmazon1OSReleaseContent,
+       Row({
+           {"_id", "2018.03"},
+           {"arch", getMachineArchitecture()},
+           {"cpe_name", "cpe:/o:amazon:linux:2018.03:ga"},
+           {"major", "2018"},
+           {"minor", "03"},
+           {"name", "Amazon Linux AMI"},
+           {"patch", "0"},
+           {"platform", "amzn"},
+           {"platform_like", "rhel fedora"},
+           {"version", "2018.03"},
+       })}};
+
+  for (const auto& tc : testCases) {
+    writeFile(directory_ / kOSRelease, tc.osRelease);
+
+    Row got;
+    parseOSVersion(directory_.string(), got);
+
+    fs::remove(directory_ / kOSRelease);
 
     ASSERT_EQ(got, tc.want) << "Test Case Failed: " << tc.name;
   }
