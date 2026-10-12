@@ -63,16 +63,16 @@ TEST_F(PackagesTests, test_bom_getpaths_rejects_truncated_block) {
 
   // Header.
   std::memcpy(&buf[0], "BOMStore", 8);
-  putBe32(buf, 8, 1);   // version
-  putBe32(buf, 12, 0);  // numberOfBlocks
+  putBe32(buf, 8, 1); // version
+  putBe32(buf, 12, 0); // numberOfBlocks
   putBe32(buf, 16, 32); // indexOffset -> block table
-  putBe32(buf, 20, 0);  // indexLength
+  putBe32(buf, 20, 0); // indexLength
   putBe32(buf, 24, 52); // varsOffset -> variable table
-  putBe32(buf, 28, 0);  // varsLength
+  putBe32(buf, 28, 0); // varsLength
 
   // Block table at 32: two pointers.
   putBe32(buf, 32, 2);
-  putBe32(buf, 36, 0);  // blockPointers[0] null entry
+  putBe32(buf, 36, 0); // blockPointers[0] null entry
   putBe32(buf, 40, 0);
   putBe32(buf, 44, 56); // blockPointers[1] address
   putBe32(buf, 48, 16); // blockPointers[1] length
