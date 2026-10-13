@@ -7,7 +7,7 @@ index edd6d5122..432a022ca 100644
  // Turn on -Wdeprecated-enum-enum-conversion. This deprecation comes in C++20
  // via http://wg21.link/p1120r0.
 -#pragma clang diagnostic error "-Wdeprecated-enum-enum-conversion"
-+// NOTE: Disabled for osquery - Clang 9.0.1 toolchain doesn't support this warning
++// NOTE: Disabled for osquery - the toolchain's Clang doesn't support this warning
 +// #pragma clang diagnostic error "-Wdeprecated-enum-enum-conversion"
  // This error has been generally flaky, but we need to disable it specifically
  // to fix https://github.com/protocolbuffers/protobuf/issues/12313
