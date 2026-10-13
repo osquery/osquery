@@ -145,18 +145,12 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   }
 
   rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
-
+  rpmdbMatchIterator matches;
   if (context.constraints["name"].exists(EQUALS)) {
-    auto names = context.constraints["name"].getAll(EQUALS);
-    for (const auto& name : names) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
-        logger.vlog(
-            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
-      }
-    }
+    auto name = (*context.constraints["name"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
   }
 
   Header header;
@@ -216,19 +210,12 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
-
+  rpmdbMatchIterator matches;
   if (context.constraints["package"].exists(EQUALS)) {
-    auto packages = context.constraints["package"].getAll(EQUALS);
-    for (const auto& package : packages) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) != 0) {
-        logger.vlog(
-            1,
-            "Cannot add pattern: (" + package + ") to RPM iterator selector");
-      }
-    }
+    auto name = (*context.constraints["package"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
   }
 
   Header header;
