@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package containerd.services.snapshots.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/containerd/containerd/api/services/snapshots/v1;snapshots";
+
+// Snapshots service provides an interface for managing snapshots
+service Snapshots {
+  rpc Prepare(PrepareSnapshotRequest) returns (PrepareSnapshotResponse);
+  rpc View(ViewSnapshotRequest) returns (ViewSnapshotResponse);
+  rpc Mounts(MountsRequest) returns (MountsResponse);
+  rpc Commit(CommitSnapshotRequest) returns (google.protobuf.Empty);
+  rpc Remove(RemoveSnapshotRequest) returns (google.protobuf.Empty);
+  rpc Stat(StatSnapshotRequest) returns (StatSnapshotResponse);
+  rpc Update(UpdateSnapshotRequest) returns (UpdateSnapshotResponse);
+  rpc List(ListSnapshotsRequest) returns (stream ListSnapshotsResponse);
+  rpc Usage(UsageRequest) returns (UsageResponse);
+  rpc Cleanup(CleanupRequest) returns (google.protobuf.Empty);
+}
+
+message Info {
+  string name = 1;
+  string parent = 2;
+  enum Kind {
+    UNKNOWN = 0;
+    VIEW = 1;
+    ACTIVE = 2;
+    COMMITTED = 3;
+  }
+  Kind kind = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  map<string, string> labels = 6;
+}
+
+message Mount {
+  string type = 1;
+  string source = 2;
+  repeated string options = 3;
+}
+
+message PrepareSnapshotRequest {
+  string snapshotter = 1;
+  string key = 2;
+  string parent = 3;
+  map<string, string> labels = 4;
+}
+
+message PrepareSnapshotResponse {
+  repeated Mount mounts = 1;
+}
+
+message ViewSnapshotRequest {
+  string snapshotter = 1;
+  string key = 2;
+  string parent = 3;
+  map<string, string> labels = 4;
+}
+
+message ViewSnapshotResponse {
+  repeated Mount mounts = 1;
+}
+
+message MountsRequest {
+  string snapshotter = 1;
+  string key = 2;
+}
+
+message MountsResponse {
+  repeated Mount mounts = 1;
+}
+
+message CommitSnapshotRequest {
+  string snapshotter = 1;
+  string name = 2;
+  string key = 3;
+  map<string, string> labels = 4;
+}
+
+message RemoveSnapshotRequest {
+  string snapshotter = 1;
+  string key = 2;
+}
+
+message StatSnapshotRequest {
+  string snapshotter = 1;
+  string key = 2;
+}
+
+message StatSnapshotResponse {
+  Info info = 1;
+}
+
+message UpdateSnapshotRequest {
+  string snapshotter = 1;
+  Info info = 2;
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+message UpdateSnapshotResponse {
+  Info info = 1;
+}
+
+message ListSnapshotsRequest {
+  string snapshotter = 1;
+  repeated string filters = 2;
+}
+
+message ListSnapshotsResponse {
+  repeated Info info = 1;
+}
+
+message UsageRequest {
+  string snapshotter = 1;
+  string key = 2;
+}
+
+message UsageResponse {
+  int64 size = 1;
+  int64 inodes = 2;
+}
+
+message CleanupRequest {
+  string snapshotter = 1;
+}

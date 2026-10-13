@@ -1,0 +1,13 @@
+table_name("containerd_container_envs")
+description("Environment variables for containerd containers, one row per variable.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("key", TEXT, "Environment variable name"),
+    Column("value", TEXT, "Environment variable value"),
+])
+implementation("applications/containerd@genContainerdContainerEnvs")
+examples([
+  "select * from containerd_container_envs",
+  "select * from containerd_container_envs where namespace = 'k8s.io'",
+])

@@ -1,0 +1,86 @@
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
+
+syntax = "proto3";
+
+package containerd.services.containers.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/containerd/containerd/api/services/containers/v1;containers";
+
+service Containers {
+  rpc Get(GetContainerRequest) returns (GetContainerResponse);
+  rpc List(ListContainersRequest) returns (ListContainersResponse);
+  rpc ListStream(ListContainersRequest) returns (stream ListContainerMessage);
+  rpc Create(CreateContainerRequest) returns (CreateContainerResponse);
+  rpc Update(UpdateContainerRequest) returns (UpdateContainerResponse);
+  rpc Delete(DeleteContainerRequest) returns (google.protobuf.Empty);
+}
+
+message Container {
+  string id = 1;
+  map<string, string> labels = 2;
+  string image = 3;
+  message Runtime {
+    string name = 1;
+    google.protobuf.Any options = 2;
+  }
+  Runtime runtime = 4;
+  google.protobuf.Any spec = 5;
+  string snapshotter = 6;
+  string snapshot_key = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  map<string, google.protobuf.Any> extensions = 10;
+}
+
+message GetContainerRequest {
+  string id = 1;
+}
+
+message GetContainerResponse {
+  Container container = 1;
+}
+
+message ListContainersRequest {
+  repeated string filters = 1;
+}
+
+message ListContainersResponse {
+  repeated Container containers = 1;
+}
+
+message ListContainerMessage {
+  Container container = 1;
+}
+
+message CreateContainerRequest {
+  Container container = 1;
+}
+
+message CreateContainerResponse {
+  Container container = 1;
+}
+
+message UpdateContainerRequest {
+  Container container = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdateContainerResponse {
+  Container container = 1;
+}
+
+message DeleteContainerRequest {
+  string id = 1;
+}

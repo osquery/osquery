@@ -1,0 +1,10 @@
+table_name("containerd_namespaces")
+description("Containerd namespaces information.")
+schema([
+    Column("name", TEXT, "Namespace name", index=True),
+])
+implementation("applications/containerd@genContainerdNamespaces")
+examples([
+  "select * from containerd_namespaces",
+  "select * from containerd_namespaces where name = 'k8s.io'"
+])

@@ -31,6 +31,7 @@ function(osqueryMain)
   add_subdirectory("experimental")
   add_subdirectory("system")
   add_subdirectory("worker")
+  add_subdirectory("proto")
 
   generateOsqueryd()
 endfunction()
