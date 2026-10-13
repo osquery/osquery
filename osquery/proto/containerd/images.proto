@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package containerd.services.images.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/containerd/containerd/api/services/images/v1;images";
+
+// Images service provides an interface for managing container images
+service Images {
+  rpc Get(GetImageRequest) returns (GetImageResponse);
+  rpc List(ListImagesRequest) returns (ListImagesResponse);
+  rpc Create(CreateImageRequest) returns (CreateImageResponse);
+  rpc Update(UpdateImageRequest) returns (UpdateImageResponse);
+  rpc Delete(DeleteImageRequest) returns (google.protobuf.Empty);
+}
+
+message Image {
+  string name = 1;
+  map<string, string> labels = 2;
+  Target target = 3;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message Target {
+  string media_type = 1;
+  string digest = 2;
+  int64 size = 3;
+  map<string, string> annotations = 5;
+}
+
+message GetImageRequest {
+  string name = 1;
+}
+
+message GetImageResponse {
+  Image image = 1;
+}
+
+message ListImagesRequest {
+  repeated string filters = 1;
+}
+
+message ListImagesResponse {
+  repeated Image images = 1;
+}
+
+message CreateImageRequest {
+  Image image = 1;
+}
+
+message CreateImageResponse {
+  Image image = 1;
+}
+
+message UpdateImageRequest {
+  Image image = 1;
+  google.protobuf.FieldMask update_mask = 2;
+  google.protobuf.Timestamp source_date_epoch = 3;
+}
+
+message UpdateImageResponse {
+  Image image = 1;
+}
+
+message DeleteImageRequest {
+  string name = 1;
+  bool sync = 2;
+  Target target = 3;
+}

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package containerd.services.namespaces.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+
+option go_package = "github.com/containerd/containerd/api/services/namespaces/v1;namespaces";
+
+// Namespaces service provides an interface for managing containerd namespaces
+service Namespaces {
+  rpc Get(GetNamespaceRequest) returns (GetNamespaceResponse);
+  rpc List(ListNamespacesRequest) returns (ListNamespacesResponse);
+  rpc Create(CreateNamespaceRequest) returns (CreateNamespaceResponse);
+  rpc Update(UpdateNamespaceRequest) returns (UpdateNamespaceResponse);
+  rpc Delete(DeleteNamespaceRequest) returns (google.protobuf.Empty);
+}
+
+message Namespace {
+  string name = 1;
+  map<string, string> labels = 2;
+}
+
+message GetNamespaceRequest {
+  string name = 1;
+}
+
+message GetNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message ListNamespacesRequest {
+  string filter = 1;
+}
+
+message ListNamespacesResponse {
+  repeated Namespace namespaces = 1;
+}
+
+message CreateNamespaceRequest {
+  Namespace namespace = 1;
+}
+
+message CreateNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message UpdateNamespaceRequest {
+  Namespace namespace = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdateNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message DeleteNamespaceRequest {
+  string name = 1;
+}
