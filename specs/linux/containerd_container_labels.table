@@ -1,0 +1,14 @@
+table_name("containerd_container_labels")
+description("Labels for containerd containers.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("key", TEXT, "Label key", index=True),
+    Column("value", TEXT, "Label value")
+])
+implementation("applications/containerd@genContainerdContainerLabels")
+examples([
+  "select * from containerd_container_labels",
+  "select * from containerd_container_labels where key = 'app.version'",
+  "select c.id, c.image, l.value from containerd_containers c join containerd_container_labels l on c.id = l.id where l.key = 'io.kubernetes.pod.name'"
+])
