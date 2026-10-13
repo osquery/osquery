@@ -148,3 +148,6 @@
 [submodule "libraries/cmake/source/yaml-cpp/src"]
 	path = libraries/cmake/source/yaml-cpp/src
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "libraries/cmake/source/grpc/src"]
+	path = libraries/cmake/source/grpc/src
+	url = https://github.com/grpc/grpc.git
