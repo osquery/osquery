@@ -129,6 +129,18 @@ function(patchSubmoduleSourceCode library_name patches_dir source_dir apply_to_d
     message(FATAL_ERROR "Failed to git reset the following submodule: \"${source_dir}\"")
   endif()
 
+  # "git reset --hard" above does not descend into nested submodules, so a
+  # patch touching a file inside one would leave it dirty. Reset recursively.
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" submodule foreach --recursive "${GIT_EXECUTABLE}" reset --hard
+    RESULT_VARIABLE process_exit_code
+    WORKING_DIRECTORY "${source_dir}"
+  )
+
+  if(NOT ${process_exit_code} EQUAL 0)
+    message(FATAL_ERROR "Failed to git reset the nested submodules of: \"${source_dir}\"")
+  endif()
+
   set(patchSubmoduleSourceCode_Patched TRUE PARENT_SCOPE)
 endfunction()
 
