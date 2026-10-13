@@ -1,0 +1,44 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bc86c00463..df03185dab 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -286,10 +286,10 @@ if(WIN32)
+   set(_gRPC_PLATFORM_WINDOWS ON)
+ endif()
+
+-if (APPLE AND NOT DEFINED CMAKE_CXX_STANDARD)
++if (NOT DEFINED CMAKE_CXX_STANDARD)
+   # AppleClang defaults to C++98, so we bump it to C++17.
+   message("CMAKE_CXX_STANDARD was undefined, defaulting to C++17.")
+-  set(CMAKE_CXX_STANDARD 17)
++  set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard for gRPC" FORCE)
+ endif ()
+
+ if (NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
+@@ -3080,7 +3080,7 @@ target_include_directories(grpc
+     ${_gRPC_XXHASH_INCLUDE_DIR}
+     ${_gRPC_ZLIB_INCLUDE_DIR}
+ )
+-target_link_libraries(grpc
++target_link_libraries(grpc PRIVATE
+   ${_gRPC_ALLTARGETS_LIBRARIES}
+   upb_json_lib
+   upb_textformat_lib
+@@ -3109,7 +3109,7 @@ target_link_libraries(grpc
+   ${_gRPC_ADDRESS_SORTING_LIBRARIES}
+ )
+ if(_gRPC_PLATFORM_IOS OR _gRPC_PLATFORM_MAC)
+-  target_link_libraries(grpc "-framework CoreFoundation")
++  target_link_libraries(grpc PRIVATE "-framework CoreFoundation")
+ endif()
+
+ foreach(_hdr
+@@ -4663,7 +4663,7 @@ target_include_directories(grpc++
+     ${_gRPC_ZLIB_INCLUDE_DIR}
+     ${_gRPC_PROTO_GENS_DIR}
+ )
+-target_link_libraries(grpc++
++target_link_libraries(grpc++ PRIVATE
+   ${_gRPC_ALLTARGETS_LIBRARIES}
+   absl::absl_check
+   absl::absl_log
