@@ -48,9 +48,12 @@ function(cppcheckMain)
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
+    COMMAND "${OSQUERY_PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/filter_compile_commands.py"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_BINARY_DIR}/compile_commands.cppcheck.json"
     COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options}
-            --enable=all --platform=unix64 --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
+            --enable=all --platform=unix64 --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.cppcheck.json"
             ${ignored_folders} -q
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
