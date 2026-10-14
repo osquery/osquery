@@ -201,9 +201,14 @@ osqueryd may depend on a config plugin from an extension. If the requested confi
 Seconds delay between extension connectivity checks.
 Extensions are loaded as processes. They are expected to start a thrift service thread. The osqueryd process will continue to check this API. If an extension process is incorrectly stopped, osqueryd will detect the connectivity failure and unregister the extension.
 
-`--extensions_require=custom1,custom1`
+`--extensions_require=custom1,custom2`
 
 Optional comma-delimited set of extension names to require before `osqueryi` or `osqueryd` will start. The tool will fail if the extension has not started according to the interval and timeout.
+Use the name each extension registers, which may differ from its file name. When passing a query to `osqueryi` on the command line together with `--extension`, set this flag as well; otherwise the query may run before the extension's tables are registered and fail with `Error: no such table`.
+
+`--extension=/path/to/extension.ext`
+
+Path to a single extension to load at startup. This flag is only available in `osqueryi`; it is meant for development and testing, and skips the ownership and permission checks applied to `--extensions_autoload`. See the extensions [deployment](../deployment/extensions.md#manually-loading-extensions) page for an example.
 
 `--extensions_default_index=true`
 
