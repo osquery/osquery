@@ -120,6 +120,12 @@ inline std::string readProcLink(const std::string& attr,
   return std::string(linkname.data(), r);
 }
 
+inline std::string readSecurityLabel(const std::string& pid) {
+  auto label_path = getProcAttr("attr/current", pid);
+  std::string content;
+  return readFile(label_path, content).ok() ? content : "";
+}
+
 // In the case where the linked binary path ends in " (deleted)", and a file
 // actually exists at that path, check whether the inode of that file matches
 // the inode of the mapped file in /proc/%pid/maps
@@ -480,6 +486,7 @@ void genProcess(const std::string& pid,
   r["gid"] = proc_stat.real_gid;
   r["egid"] = proc_stat.effective_gid;
   r["sgid"] = proc_stat.saved_gid;
+  r["label"] = readSecurityLabel(pid);
 
   r["on_disk"] = INTEGER(getOnDisk(pid, r["path"]));
 
