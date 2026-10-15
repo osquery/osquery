@@ -15,13 +15,20 @@
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmts.h>
 
+#include <memory>
+#include <type_traits>
+
+#include <unistd.h>
+
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core/system.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
+#include <osquery/utils/mutex.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -77,69 +84,118 @@ static std::string getRpmAttribute(const Header& header,
   return result;
 }
 
-class RpmEnvironmentManager : public boost::noncopyable {
+// Serializes and owns librpm's non-thread-safe process-global state:
+// RPM_CONFIGDIR, the rpmlog callback, crypto, and rc. Model:
+//
+//   - Callers take lock() and then construct a session. Lock and construction
+//     are separate so the forked namespace worker can construct without the
+//     lock (see below).
+//   - depth_ counts nested sessions. Only the outermost (depth 0) sets up and,
+//     on teardown, frees the global state; nested sessions reuse it. Freeing or
+//     reinstalling the callback under a live outer-scan iterator corrupts it.
+//   - A same-thread join nests: rpm_package_files holds the lock across yield()
+//     while SQLite drives an inner rpm_packages scan on the same thread. Hence
+//     the recursive mutex (re-lock instead of self-deadlock) and the reuse.
+//   - The namespace worker forks with the mutex held by the parent, so the
+//     child must not lock (it inherited a copy owned by an absent thread) and
+//     re-inits its own session; owner_pid_ sees the new pid and resets.
+//   - State is plain static, not thread_local: all in-process access is under
+//     mutex_, and the only unlocked accessor -- the single-threaded child --
+//     needs no per-thread storage or atomics.
+class RpmSession : public boost::noncopyable {
  public:
-  RpmEnvironmentManager(Logger& logger)
-      : config_(getEnvVar("RPM_CONFIGDIR")), logger_(&logger) {
-    // Honor a caller's environment
-    if (!config_.is_initialized()) {
-      setEnvVar("RPM_CONFIGDIR", "/usr/lib/rpm");
-    }
-
-    callback_ = rpmlogSetCallback(&RpmEnvironmentManager::Callback, logger_);
+  [[nodiscard]] static RecursiveLock lock() {
+    return RecursiveLock(mutex_);
   }
 
-  ~RpmEnvironmentManager() {
-    // If we had set the environment, clean it up afterward.
-    if (!config_.is_initialized()) {
-      unsetEnvVar("RPM_CONFIGDIR");
+  explicit RpmSession(Logger& logger) {
+    if (depth_ != 0 && owner_pid_ != getpid()) {
+      depth_ = 0;
     }
 
-    if (callback_ != nullptr) {
-      rpmlogSetCallback(callback_, nullptr);
-      callback_ = nullptr;
+    if (depth_ == 0) {
+      owner_pid_ = getpid();
+
+      prev_config_ = getEnvVar("RPM_CONFIGDIR");
+      if (!prev_config_.is_initialized()) {
+        setEnvVar("RPM_CONFIGDIR", "/usr/lib/rpm");
+      }
+
+      prev_callback_ = rpmlogSetCallback(&RpmSession::Callback, &logger);
+      rpmInitCrypto();
+      ok_ = rpmReadConfigFiles(nullptr, nullptr) == 0;
+    }
+
+    // After setup: a throw above must not strand depth_ (no dtor would run).
+    ++depth_;
+  }
+
+  ~RpmSession() {
+    if (--depth_ == 0) {
+      rpmFreeCrypto();
+      rpmFreeRpmrc();
+
+      if (prev_callback_ != nullptr) {
+        // The previous data pointer is unrecoverable, but the scan is done.
+        rpmlogSetCallback(prev_callback_, nullptr);
+        prev_callback_ = nullptr;
+      }
+
+      if (!prev_config_.is_initialized()) {
+        unsetEnvVar("RPM_CONFIGDIR");
+      }
+      prev_config_ = boost::none;
+
+      ok_ = false;
     }
   }
 
-  static int Callback(rpmlogRec rec, rpmlogCallbackData data) {
+  bool ok() const {
+    return ok_;
+  }
+
+  // Invoked by librpm across a C boundary, where an escaping throw is UB.
+  static int Callback(rpmlogRec rec, rpmlogCallbackData data) noexcept {
     static std::string last_message;
 
     Logger* logger = reinterpret_cast<Logger*>(data);
 
-    if (rpmlogRecMessage(rec) != nullptr) {
-      if (last_message != rpmlogRecMessage(rec)) {
-        last_message = rpmlogRecMessage(rec);
-        logger->vlog(1, "RPM notice: " + last_message);
+    try {
+      if (rpmlogRecMessage(rec) != nullptr) {
+        if (last_message != rpmlogRecMessage(rec)) {
+          last_message = rpmlogRecMessage(rec);
+          logger->vlog(1, "RPM notice: " + last_message);
+        }
       }
+    } catch (const std::exception&) {
     }
     return 0;
   }
 
  private:
-  // Previous configuration directory.
-  boost::optional<std::string> config_;
-
-  // Previous callback function.
-  rpmlogCallback callback_{nullptr};
-
-  Logger* logger_;
+  static RecursiveMutex mutex_;
+  static unsigned depth_;
+  static pid_t owner_pid_;
+  static bool ok_;
+  static rpmlogCallback prev_callback_;
+  static boost::optional<std::string> prev_config_;
 };
 
-QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
+RecursiveMutex RpmSession::mutex_;
+unsigned RpmSession::depth_ = 0;
+pid_t RpmSession::owner_pid_ = 0;
+bool RpmSession::ok_ = false;
+rpmlogCallback RpmSession::prev_callback_ = nullptr;
+boost::optional<std::string> RpmSession::prev_config_;
+
+// Core rpm_packages scan. Privileges must already be dropped by the caller; see
+// genRpmPackagesImpl (namespace worker) and genRpmPackages (direct path).
+static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
   QueryData results;
 
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
-    return results;
-  }
-
-  // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
-  RpmEnvironmentManager env_manager(logger);
-
   // The following implementation uses http://rpm.org/api/4.11.1/
-  rpmInitCrypto();
-  if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
+  RpmSession rpm_session(logger);
+  if (!rpm_session.ok()) {
     logger.vlog(1, "Cannot read RPM configuration files");
     return results;
   }
@@ -183,20 +239,81 @@ QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
 
   rpmdbFreeIterator(matches);
   rpmtsFree(ts);
-  rpmFreeCrypto();
-  rpmFreeRpmrc();
 
   return results;
 }
 
+// Namespace-worker entry point. generateInNamespace takes a plain function
+// pointer (so this can't be a lambda): the forked child keeps privileges to
+// enter the namespace, then drops here before touching the rpmdb.
+QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
+    return {};
+  }
+
+  return genRpmPackagesCore(context, logger);
+}
+
 QueryData genRpmPackages(QueryContext& context) {
   if (hasNamespaceConstraint(context)) {
+    // Lock in the parent, not the worker: the child would inherit it locked by
+    // an absent thread. The worker keeps privileges to enter the namespace and
+    // drops inside genRpmPackagesImpl.
+    auto rpm_lock = RpmSession::lock();
     return generateInNamespace(context, "rpm_packages", genRpmPackagesImpl);
-  } else {
-    GLOGLogger logger;
-    return genRpmPackagesImpl(context, logger);
   }
+
+  // Drop before locking (mirrors genRpmPackageFiles) so the drop's `users`
+  // sub-query does not run inside the global rpm critical section.
+  GLOGLogger logger;
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
+    return {};
+  }
+
+  auto rpm_lock = RpmSession::lock();
+  return genRpmPackagesCore(context, logger);
 }
+
+namespace {
+
+// librpm C handles owned via RAII. genRpmPackageFiles yields inside its loops;
+// boost.coroutine2 forced-unwind on early query termination (LIMIT, a
+// short-circuited join) runs only local destructors, so frees placed after the
+// loops would be skipped and leak. Ownership by unique_ptr frees them on every
+// exit, including that unwind.
+struct RpmtsDeleter {
+  void operator()(rpmts ts) const noexcept {
+    rpmtsFree(ts);
+  }
+};
+struct RpmdbIteratorDeleter {
+  void operator()(rpmdbMatchIterator mi) const noexcept {
+    rpmdbFreeIterator(mi);
+  }
+};
+struct RpmfiDeleter {
+  void operator()(rpmfi fi) const noexcept {
+    rpmfiFree(fi);
+  }
+};
+struct RpmtdDeleter {
+  void operator()(rpmtd td) const noexcept {
+    rpmtdFree(td);
+  }
+};
+
+using RpmtsPtr = std::unique_ptr<std::remove_pointer_t<rpmts>, RpmtsDeleter>;
+using RpmdbIteratorPtr =
+    std::unique_ptr<std::remove_pointer_t<rpmdbMatchIterator>,
+                    RpmdbIteratorDeleter>;
+using RpmfiPtr = std::unique_ptr<std::remove_pointer_t<rpmfi>, RpmfiDeleter>;
+using RpmtdPtr = std::unique_ptr<std::remove_pointer_t<rpmtd>, RpmtdDeleter>;
+
+} // namespace
 
 void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   GLOGLogger logger;
@@ -207,23 +324,25 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     return;
   }
 
-  // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
-  RpmEnvironmentManager env_manager(logger);
+  auto rpm_lock = RpmSession::lock();
 
-  if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
+  RpmSession rpm_session(logger);
+  if (!rpm_session.ok()) {
     logger.vlog(1, "Cannot read RPM configuration files");
     return;
   }
 
-  rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  RpmtsPtr ts(rpmtsCreate());
+  RpmdbIteratorPtr matches(
+      rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
   if (context.constraints["package"].exists(EQUALS)) {
     auto packages = context.constraints["package"].getAll(EQUALS);
     for (const auto& package : packages) {
       // Limit RPM iterator to constraint values
       if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) != 0) {
+              matches.get(), RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) !=
+          0) {
         logger.vlog(
             1,
             "Cannot add pattern: (" + package + ") to RPM iterator selector");
@@ -232,41 +351,38 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   Header header;
-  while ((header = rpmdbNextIterator(matches)) != nullptr) {
-    rpmtd td = rpmtdNew();
-    rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
-    std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td, logger);
+  while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+    RpmtdPtr td(rpmtdNew());
+    RpmfiPtr fi(rpmfiNew(ts.get(), header, RPMTAG_BASENAMES, RPMFI_NOHEADER));
+    std::string package_name =
+        getRpmAttribute(header, RPMTAG_NAME, td.get(), logger);
 
-    auto file_count = rpmfiFC(fi);
+    auto file_count = rpmfiFC(fi.get());
     if (file_count <= 0) {
       logger.vlog(1, "RPM package " + package_name + " contains 0 files");
-      rpmfiFree(fi);
-      rpmtdFree(td);
       continue;
     } else if (file_count > MAX_RPM_FILES) {
       logger.vlog(1,
                   "RPM package " + package_name + " contains over " +
                       std::to_string(MAX_RPM_FILES) + " files");
-      rpmfiFree(fi);
-      rpmtdFree(td);
       continue;
     }
 
     // Iterate over every file in this package.
-    for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
+    for (size_t i = 0; rpmfiNext(fi.get()) >= 0 && i < file_count; i++) {
       auto r = make_table_row();
-      auto path = rpmfiFN(fi);
+      auto path = rpmfiFN(fi.get());
       r["package"] = package_name;
       r["path"] = (path != nullptr) ? path : "";
-      auto username = rpmfiFUser(fi);
+      auto username = rpmfiFUser(fi.get());
       r["username"] = (username != nullptr) ? username : "";
-      auto groupname = rpmfiFGroup(fi);
+      auto groupname = rpmfiFGroup(fi.get());
       r["groupname"] = (groupname != nullptr) ? groupname : "";
-      r["mode"] = lsperms(rpmfiFMode(fi));
-      r["size"] = BIGINT(rpmfiFSize(fi));
+      r["mode"] = lsperms(rpmfiFMode(fi.get()));
+      r["size"] = BIGINT(rpmfiFSize(fi.get()));
 
       int digest_algo;
-      auto digest = rpmfiFDigestHex(fi, &digest_algo);
+      auto digest = rpmfiFDigestHex(fi.get(), &digest_algo);
       if (digest_algo == PGPHASHALGO_SHA256) {
         r["sha256"] = (digest != nullptr) ? digest : "";
       }
@@ -276,14 +392,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
       yield(std::move(r));
     }
-
-    rpmfiFree(fi);
-    rpmtdFree(td);
   }
-
-  rpmdbFreeIterator(matches);
-  rpmtsFree(ts);
-  rpmFreeRpmrc();
 }
 } // namespace tables
 } // namespace osquery
