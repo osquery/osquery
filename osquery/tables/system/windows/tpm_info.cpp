@@ -10,6 +10,8 @@
 #include <osquery/core/tables.h>
 #include <osquery/core/windows/wmi.h>
 #include <osquery/logger/logger.h>
+#include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery::tables {
 
@@ -38,17 +40,17 @@ QueryData genTpmInfo(QueryContext& context) {
     LOG(ERROR) << "tpm_info: Failed to allocate the WMI class namespace string";
     return {};
   }
+  auto _ = scope_guard::create([&]() { ::SysFreeString(class_namespace); });
 
   auto exp_wmi_request =
       WmiRequest::CreateWmiRequest(kWin32TpmQuery, class_namespace);
-  ::SysFreeString(class_namespace);
 
   if (exp_wmi_request.isError()) {
     const auto& error = exp_wmi_request.getError();
 
     LOG(ERROR) << "tpm_info: The following WMI query could not be constructed: "
-               << class_namespace << ":" << kWin32TpmQuery << ". "
-               << error.getMessage();
+               << wstringToString(class_namespace) << ":" << kWin32TpmQuery
+               << ". " << error.getMessage();
 
     return {};
   }

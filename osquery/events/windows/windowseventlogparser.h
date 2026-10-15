@@ -39,7 +39,7 @@ struct WELEvent final {
 
 // Process event log and generate the property_tree object
 Status parseWindowsEventLogXML(boost::property_tree::ptree& event_object,
-                               const std::wstring& xml_event);
+                               const std::string& xml_event);
 
 // Utility function to parse the windows event property tree
 Status parseWindowsEventLogPTree(

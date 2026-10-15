@@ -30,8 +30,7 @@ Status initializePowershellEventsContext(
         xml_event_list) {
   for (const auto& xml_event : xml_event_list) {
     boost::property_tree::ptree event_object = {};
-    auto status =
-        parseWindowsEventLogXML(event_object, stringToWstring(xml_event));
+    auto status = parseWindowsEventLogXML(event_object, xml_event);
 
     if (!status.ok()) {
       return status;
@@ -48,8 +47,7 @@ class PowershellEventsTests : public testing::Test {};
 
 TEST_F(PowershellEventsTests, parse_simple_event) {
   boost::property_tree::ptree event_object = {};
-  auto status = parseWindowsEventLogXML(event_object,
-                                        stringToWstring(kSingleScriptBlock));
+  auto status = parseWindowsEventLogXML(event_object, kSingleScriptBlock);
 
   ASSERT_TRUE(status.ok());
 

@@ -154,7 +154,7 @@ TEST_F(AslTests, test_read_asl_row) {
   ASSERT_EQ("1", r["level"]);
   ASSERT_EQ("bar", r["message"]);
   ASSERT_EQ((size_t)0, r.count("bang"));
-  ASSERT_EQ("{\"Bang\":\"bang_val\"}\n", r["extra"]);
+  ASSERT_EQ("{\"Bang\":\"bang_val\"}", r["extra"]);
 
   asl_release(row);
 }

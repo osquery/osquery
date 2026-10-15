@@ -41,7 +41,7 @@ concurrency:
 env:
   PACKAGING_REPO: https://github.com/osquery/osquery-packaging
   PACKAGING_COMMIT: 528b57ae758f41f0aaafde25bf2d3844785dd848
-  OSQUERY_TOOLCHAIN_VERSION: 1.2.0
+  OSQUERY_TOOLCHAIN_VERSION: 1.3.0
 
 # If the initial code sanity checks are passing, then one job
 # per [`platform` * `build_type`] will start, building osquery
@@ -260,11 +260,6 @@ jobs:
   # has been properly formatted
   build_linux:
     needs: [check_code_style, check_libraries_manifest]
-
-    env:
-      CCACHE_MAXSIZE: "500MB"
-      CCACHE_COMPRESS: "true"
-      CCACHE_NOFILECLONE: "true"
 
     strategy:
       matrix:
@@ -565,6 +560,9 @@ jobs:
 
     runs-on: macos-26
 
+    env:
+      MACOS_DEPLOYMENT_TARGET: "13.3"
+
     strategy:
       matrix:
         build_type: [Release, Debug]
@@ -573,12 +571,6 @@ jobs:
           # Debug builds are unused on x86. Tests only run on arm64 and only the release build is used for universal binaries.
           - build_type: Debug
             architecture: x86_64
-
-    env:
-      MACOS_DEPLOYMENT_TARGET: 10.15
-      CCACHE_MAXSIZE: "1GB"
-      CCACHE_COMPRESS: "true"
-      CCACHE_NOFILECLONE: "true"
 
     steps:
     - name: Select the build job count
@@ -696,7 +688,7 @@ jobs:
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
-    
+
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
@@ -895,7 +887,7 @@ jobs:
 
         # Add venv site-packages to PYTHONPATH so test dependencies are found
         venv_site_packages=$(find "${{ steps.build_paths.outputs.INSTALL }}/venv/lib" -name "site-packages" -type d | head -n1)
-        
+
         if [[ -z "$venv_site_packages" ]]; then
           echo "::error::Could not find venv site-packages directory in ${{ steps.build_paths.outputs.INSTALL }}/venv/lib"
           exit 1
@@ -903,7 +895,7 @@ jobs:
 
         # Escape path for use in sed regex replacement
         venv_escaped=$(printf '%s\n' "$venv_site_packages" | sed -e 's/[\/&]/\\&/g')
-        
+
         # Update all CTestTestfile.cmake files to prepend venv site-packages to PYTHONPATH
         find . -name "CTestTestfile.cmake" -type f -print0 | xargs -0 sed -i '' \
           "s|PYTHONPATH=\${{ steps.build_paths.outputs.BINARY }}/python_path|PYTHONPATH=$venv_escaped:\${{ steps.build_paths.outputs.BINARY }}/python_path|g"
@@ -1002,16 +994,13 @@ jobs:
   build_windows:
     needs: [check_code_style, check_libraries_manifest]
 
-    env:
-      SCCACHE_CACHE_SIZE: "1G"
-
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         build_type: [Release]
         bitness: [64, arm64]
-        os: [windows-2022]
+        os: [windows-2025]
 
     steps:
     - name: Select the build job count
@@ -1187,12 +1176,33 @@ jobs:
 
         echo "${{ steps.build_paths.outputs.INSTALL }}\ninja" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+    - name: Locate Visual C++ toolchain
+      id: vc_toolchain
+      shell: powershell
+      run: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path $vswhere)) {
+          throw "vswhere.exe was not found at: $vswhere"
+        }
+
+        $installation_path = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ([string]::IsNullOrWhiteSpace($installation_path)) {
+          throw "Failed to locate a Visual Studio installation with VC tools"
+        }
+
+        $vcvarsall_path = Join-Path $installation_path "VC\Auxiliary\Build\vcvarsall.bat"
+        if (-not (Test-Path $vcvarsall_path)) {
+          throw "vcvarsall.bat was not found at: $vcvarsall_path"
+        }
+
+        echo "VCVARSALL_BAT=$vcvarsall_path" >> $env:GITHUB_OUTPUT
+
     - name: Configure the project
       shell: cmd
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        call "${{ steps.vc_toolchain.outputs.VCVARSALL_BAT }}" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
         set cross_compilation=
@@ -1225,7 +1235,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        call "${{ steps.vc_toolchain.outputs.VCVARSALL_BAT }}" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
         sccache.exe --zero-stats
@@ -1254,7 +1264,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        call "${{ steps.vc_toolchain.outputs.VCVARSALL_BAT }}" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
         ctest --build-nocmake -C Release -V
 
@@ -1271,7 +1281,7 @@ jobs:
       shell: cmd
 
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
+        call "${{ steps.vc_toolchain.outputs.VCVARSALL_BAT }}" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
 
         7z ^

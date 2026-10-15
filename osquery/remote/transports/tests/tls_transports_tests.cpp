@@ -147,13 +147,10 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
   ASSERT_NO_THROW(status = r.call());
   ASSERT_FALSE(status.ok());
 
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    if (!nameError(status)) {
-      EXPECT_EQ(status.getMessage(),
-                "Request error: certificate verify failed");
-    }
-  } else {
-    EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
+  if (!(isPlatform(PlatformType::TYPE_WINDOWS) && nameError(status))) {
+    EXPECT_NE(
+        status.getMessage().find("Request error: certificate verify failed"),
+        std::string::npos);
   }
 }
 

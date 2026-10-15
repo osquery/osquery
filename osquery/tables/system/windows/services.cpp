@@ -121,7 +121,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
       throw std::runtime_error("failed to query service description");
     }
   } catch (const std::runtime_error& e) {
-    LOG(WARNING) << svc.lpServiceName << ": " << e.what();
+    LOG(WARNING) << wstringToString(svc.lpServiceName) << ": " << e.what();
   }
 
   r["name"] = SQL_TEXT(wstringToString(svc.lpServiceName));
