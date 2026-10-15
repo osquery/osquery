@@ -45,7 +45,7 @@ If you are using a `--flagfile` to define additional command line switches then 
 
 ## Checking the config sanity
 
-The daemon will not start with an invalid configuration. And no configuration is provided by default. See the [configuration](../deployment/configuration.md) guide for details on how to move the example config to an active config.
+During normal startup, the daemon logs a warning for an invalid configuration and continues running. Use `--config_check` to validate a configuration explicitly; it exits with a non-zero status when the configuration is invalid. No configuration is provided by default. See the [configuration](../deployment/configuration.md) guide for details on how to move the example config to an active config.
 
 To check your configuration with the shell (or daemon):
 
