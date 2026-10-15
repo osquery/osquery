@@ -58,11 +58,11 @@ static void executeCarve(sqlite3_context* ctx) {
     carvePaths(kFunctionCarvePaths, createCarveGuid(), new_carve_guid);
     sqlite3_result_text(ctx,
                         std::string("Carve Started: " + new_carve_guid).c_str(),
-                        13,
+                        -1,
                         SQLITE_TRANSIENT);
   } else {
     sqlite3_result_text(
-        ctx, "Carve Failed: function disabled", 13, SQLITE_TRANSIENT);
+        ctx, "Carve Failed: function disabled", -1, SQLITE_TRANSIENT);
   }
   kFunctionCarvePaths.clear();
 }
