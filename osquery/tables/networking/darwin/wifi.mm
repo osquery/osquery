@@ -283,6 +283,11 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
   auto dropper = DropPrivileges::get();
   dropper->dropToParent(path);
 
+  if (!readFile(path)) {
+    VLOG(1) << "Unable to read file: " << p;
+    return {};
+  }
+
   if (isBigSurOrHigher()) {
     return parseBigSur(p);
   }
@@ -323,5 +328,5 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
   }
   return results;
 }
-} // namespace tables
-} // namespace osquery
+}
+}
