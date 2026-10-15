@@ -32,9 +32,9 @@ QueryData genKernelInfo(QueryContext& context) {
 
       // Iterate over each space-tokenized argument.
       for (const auto& argument : arguments) {
-        if (argument.substr(0, 11) == "BOOT_IMAGE=") {
+        if (argument.size() >= 11 && argument.substr(0, 11) == "BOOT_IMAGE=") {
           r["path"] = argument.substr(11);
-        } else if (argument.substr(0, 5) == "root=") {
+        } else if (argument.size() >= 5 && argument.substr(0, 5) == "root=") {
           r["device"] = argument.substr(5);
         } else {
           if (additional_arguments.size() > 0) {
