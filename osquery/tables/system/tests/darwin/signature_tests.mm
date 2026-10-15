@@ -36,6 +36,19 @@ std::string getUnsignedExecutablePath() {
   return (getTestConfigDirectory() / "unsigned_test").string();
 }
 
+// macOS 26 (Tahoe) renamed the code-signing authority for Apple's system
+// binaries from "Software Signing" to "macOS Software Signing". Accept either
+// so the test is valid across the macOS versions we build and test on.
+::testing::AssertionResult IsAppleSoftwareSigningAuthority(
+    const std::string& authority) {
+  if (authority == "Software Signing" ||
+      authority == "macOS Software Signing") {
+    return ::testing::AssertionSuccess();
+  }
+  return ::testing::AssertionFailure()
+         << "unexpected code-signing authority: '" << authority << "'";
+}
+
 class SignatureTest : public testing::Test {
  protected:
   void SetUp() {
@@ -59,10 +72,8 @@ class SignatureTest : public testing::Test {
 TEST_F(SignatureTest, test_get_valid_signature) {
   std::string path = "/bin/ls";
 
-  Row expected = {{"path", path},
-                  {"signed", "1"},
-                  {"identifier", "com.apple.ls"},
-                  {"authority", "Software Signing"}};
+  Row expected = {
+      {"path", path}, {"signed", "1"}, {"identifier", "com.apple.ls"}};
 
   for (bool hash_resources : {true, false}) {
     for (bool hash_executable : {true, false}) {
@@ -78,6 +89,8 @@ TEST_F(SignatureTest, test_get_valid_signature) {
         EXPECT_EQ(expected_value, actual_value)
             << " for column named " << column.first;
       }
+
+      EXPECT_TRUE(IsAppleSoftwareSigningAuthority(first_row.at("authority")));
 
       EXPECT_EQ(first_row.at("hash_resources"), INTEGER(hash_resources));
       EXPECT_EQ(first_row.at("hash_executable"), INTEGER(hash_executable));
@@ -200,12 +213,12 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
                   {"hash_resources", "1"},
                   {"hash_executable", "1"},
                   {"signed", "0"},
-                  {"identifier", "com.apple.ls"},
-                  {"authority", "Software Signing"}};
+                  {"identifier", "com.apple.ls"}};
 
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
   }
+  EXPECT_TRUE(IsAppleSoftwareSigningAuthority(results.front()["authority"]));
   ASSERT_TRUE(results.front().count("team_identifier") > 0);
   ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 
@@ -218,12 +231,12 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
                    {"hash_resources", "0"},
                    {"hash_executable", "0"},
                    {"signed", "1"},
-                   {"identifier", "com.apple.ls"},
-                   {"authority", "Software Signing"}};
+                   {"identifier", "com.apple.ls"}};
 
   for (const auto& column : expected2) {
     EXPECT_EQ(results2.front()[column.first], column.second);
   }
+  EXPECT_TRUE(IsAppleSoftwareSigningAuthority(results2.front()["authority"]));
   ASSERT_TRUE(results2.front().count("team_identifier") > 0);
   ASSERT_TRUE(results2.front()["cdhash"].length() > 0);
 }

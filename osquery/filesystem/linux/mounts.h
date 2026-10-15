@@ -18,22 +18,22 @@ namespace osquery {
 struct MountInformation final {
   struct StatFsInfo final {
     // Optimal transfer block size (statfs::f_bsize)
-    std::uint32_t block_size{0U};
+    std::uint64_t block_size{0U};
 
     // Total data blocks in file system (statfs::f_blocks)
-    std::uint32_t block_count{0U};
+    std::uint64_t block_count{0U};
 
     // Free blocks in filesystem (statfs::f_bfree)
-    std::uint32_t free_block_count{0U};
+    std::uint64_t free_block_count{0U};
 
     // Free blocks available to unprivileged user (statfs::f_bavail)
-    std::uint32_t unprivileged_free_block_count{0U};
+    std::uint64_t unprivileged_free_block_count{0U};
 
     // Total file nodes in filesystem (statfs::f_files)
-    std::uint32_t inode_count{0U};
+    std::uint64_t inode_count{0U};
 
     // Free file nodes in filesystem (statfs::f_ffree)
-    std::uint32_t free_inode_count{0U};
+    std::uint64_t free_inode_count{0U};
   };
 
   // Filesystem type

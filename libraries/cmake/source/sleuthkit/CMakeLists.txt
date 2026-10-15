@@ -162,6 +162,7 @@ function(sleuthkitMain)
     "${library_root}/tsk/img/aff.c"
     "${library_root}/tsk/img/img_io.c"
     "${library_root}/tsk/img/img_types.c"
+    "${library_root}/tsk/img/logical_img.c"
     "${library_root}/tsk/img/mult_files.c"
     "${library_root}/tsk/img/raw.c"
     "${library_root}/tsk/img/unsupported_types.c"
@@ -191,6 +192,7 @@ function(sleuthkitMain)
 
   add_library(thirdparty_sleuthkit_util
     "${library_root}/tsk/util/detect_encryption.c"
+    "${library_root}/tsk/util/file_system_utils.c"
   )
 
   target_link_libraries(thirdparty_sleuthkit_util
@@ -274,7 +276,9 @@ function(sleuthkitMain)
     "${library_root}/tsk/fs/apfs.cpp"
     "${library_root}/tsk/fs/apfs_fs.cpp"
     "${library_root}/tsk/fs/apfs_open.cpp"
+    "${library_root}/tsk/fs/encryptionHelper.cpp"
     "${library_root}/tsk/fs/fatfs_dent.cpp"
+    "${library_root}/tsk/fs/logical_fs.cpp"
     "${library_root}/tsk/fs/ntfs_dent.cpp"
     "${library_root}/tsk/fs/walk_cpp.cpp"
     "${library_root}/tsk/fs/yaffs.cpp"

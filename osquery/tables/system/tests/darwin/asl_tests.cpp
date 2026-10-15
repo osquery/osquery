@@ -196,6 +196,11 @@ TEST_F(AslTests, test_actual_query) {
   std::string time_str = std::to_string(std::time(nullptr));
   std::string log_entry = "osquery_test: test_actual_query " + time_str;
 
+  // The ASL/syslog sender is derived from the running process's name, so it
+  // tracks whatever binary this test is compiled into rather than a
+  // hardcoded (and easily stale) executable name.
+  std::string sender = getprogname();
+
   // Note: when this test is built with the 10.13 SDK or newer, even syslog()
   // writes to the Unified Log instead, and reading results from 'asl' (or
   // the /private/var/log/system.log file) will not include this logline.
@@ -205,12 +210,12 @@ TEST_F(AslTests, test_actual_query) {
   // Check for our written log entry, but just skip the test if it isn't there.
   auto results =
       SQL("select * from asl where facility = 'user' and level = 5 and sender "
-          "= 'osquery_tables_system_darwin_tests-test' and message like '%" +
-          time_str + "' and time >= " + time_str);
+          "= '" +
+          sender + "' and message like '%" + time_str +
+          "' and time >= " + time_str);
 
   if (results.rows().size() > (size_t)0) {
-    ASSERT_EQ("osquery_tables_system_darwin_tests-test",
-              results.rows()[0].at("sender"));
+    ASSERT_EQ(sender, results.rows()[0].at("sender"));
     ASSERT_EQ("user", results.rows()[0].at("facility"));
   } else {
     LOG(WARNING)

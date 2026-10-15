@@ -316,13 +316,13 @@ typedef uint64_t uintmax_t;
 /* #undef ARCHIVE_XATTR_LINUX */
 
 /* Version number of bsdcpio */
-#define BSDCPIO_VERSION_STRING "3.8.1"
+#define BSDCPIO_VERSION_STRING "3.8.9"
 
 /* Version number of bsdtar */
-#define BSDTAR_VERSION_STRING "3.8.1"
+#define BSDTAR_VERSION_STRING "3.8.9"
 
 /* Version number of bsdcat */
-#define BSDCAT_VERSION_STRING "3.8.1"
+#define BSDCAT_VERSION_STRING "3.8.9"
 
 /* Define to 1 if you have the `acl_create_entry' function. */
 /* #undef HAVE_ACL_CREATE_ENTRY */
@@ -367,7 +367,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_ATTR_XATTR_H */
 
 /* Define to 1 if you have the <Bcrypt.h> header file. */
-/* #undef HAVE_BCRYPT_H */
+#define HAVE_BCRYPT_H 1
 
 /* Define to 1 if you have the <bsdxml.h> header file. */
 /* #undef HAVE_BSDXML_H */

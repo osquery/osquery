@@ -197,7 +197,6 @@ function(rocksdbMain)
     "${library_root}/table/two_level_iterator.cc"
     "${library_root}/test_util/sync_point.cc"
     "${library_root}/test_util/sync_point_impl.cc"
-    "${library_root}/test_util/testutil.cc"
     "${library_root}/test_util/transaction_test_util.cc"
     "${library_root}/tools/block_cache_analyzer/block_cache_trace_analyzer.cc"
     "${library_root}/tools/dump/db_dump_tool.cc"

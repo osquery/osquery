@@ -9,15 +9,27 @@ option(OSQUERY_THIRD_PARTY_SOURCE_MODULE_WARNINGS "This option can be enable to 
 option(OSQUERY_DISABLE_SHALLOW_CLONE "Set this option to ON to do a full git clone. For Development only" OFF)
 
 function(initializeGitSubmodule submodule_path no_recursive shallow)
-  file(GLOB submodule_folder_contents "${submodule_path}/*")
+  get_filename_component(working_directory "${submodule_path}" DIRECTORY)
 
-  list(LENGTH submodule_folder_contents submodule_folder_file_count)
-  if(NOT ${submodule_folder_file_count} EQUAL 0)
+  find_package(Git REQUIRED)
+
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" submodule status -- "${submodule_path}"
+    RESULT_VARIABLE submodule_status_exit_code
+    OUTPUT_VARIABLE submodule_status_output
+    WORKING_DIRECTORY "${working_directory}"
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  if(NOT ${submodule_status_exit_code} EQUAL 0)
+    message(FATAL_ERROR "Failed to inspect the following git submodule: \"${submodule_path}\"")
+  endif()
+
+  string(SUBSTRING "${submodule_status_output}" 0 1 submodule_status_prefix)
+  if("${submodule_status_prefix}" STREQUAL " ")
     set(initializeGitSubmodule_IsAlreadyCloned TRUE PARENT_SCOPE)
     return()
   endif()
-
-  find_package(Git REQUIRED)
 
   if(no_recursive)
     set(optional_recursive_arg "")
@@ -41,9 +53,6 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
   else()
     set(optional_protocol_arg "")
   endif()
-
-
-  get_filename_component(working_directory "${submodule_path}" DIRECTORY)
 
   execute_process(
     COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} ${optional_depth_arg} "${submodule_path}"

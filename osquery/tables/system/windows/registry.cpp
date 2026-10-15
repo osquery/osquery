@@ -51,7 +51,14 @@ using reg_handle_t = std::unique_ptr<HKEY__, decltype(closeRegHandle)>;
 const std::set<int> kRegistryStringTypes = {
     REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ};
 
-const std::map<std::string, HKEY> kRegistryHives = {
+/// Compare hive names the way Windows resolves them, case-insensitively.
+struct CaseInsensitiveLess {
+  bool operator()(const std::string& lhs, const std::string& rhs) const {
+    return boost::ilexicographical_compare(lhs, rhs);
+  }
+};
+
+const std::map<std::string, HKEY, CaseInsensitiveLess> kRegistryHives = {
     {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
     {"HKEY_CURRENT_CONFIG", HKEY_CURRENT_CONFIG},
     {"HKEY_CURRENT_USER", HKEY_CURRENT_USER},
@@ -172,7 +179,7 @@ Status getClassExecutables(const std::string& clsId,
 }
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
-  if (!boost::starts_with(key, "HKEY_USERS")) {
+  if (!boost::istarts_with(key, "HKEY_USERS")) {
     return Status(1, "Can not extract username from non-HKEY_USERS key");
   }
 
@@ -535,8 +542,8 @@ static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
   std::string hive, _;
   for (const auto& key : rKeys) {
     explodeRegistryPath(key, hive, _);
-    if (hive == "HKEY_CURRENT_USER" ||
-        hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
+    if (boost::iequals(hive, "HKEY_CURRENT_USER") ||
+        boost::iequals(hive, "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
                       "query HKEY_USERS with the desired users SID instead";
       break;
