@@ -598,6 +598,38 @@ In seconds, the amount of time that osqueryd will wait between periodically chec
 
 (Default false) Enable the HTTP client to process gzip responses from the server. Will turn on sending an `Accept-Encoding: gzip` header. In the future this flag may default to true, or be removed entirely with the feature always on.
 
+## File carving flags
+
+See [File Carving](../deployment/file-carving.md) for how to request carves through the `carves` table.
+
+`--disable_carver=true`
+
+Disable the file carver. By default, this is set to `true` (carving is disabled). Set this to `false` to enable file carving.
+
+`--carver_disable_function=true`
+
+Disable the `carve()` SQL function, which starts a carve of the paths passed to it from within a query. By default, this is set to `true`. Set this to `false` to allow carving with the function.
+
+`--carver_start_endpoint=`
+
+The TLS/HTTPS endpoint, on the `--tls_hostname` server, used to start a carve session. For example, `/start_uploads`.
+
+`--carver_continue_endpoint=`
+
+The TLS/HTTPS endpoint, on the `--tls_hostname` server, that receives the carved content in blocks after a carve session starts. For example, `/upload_blocks`.
+
+`--carver_block_size=8192`
+
+In bytes, the size of the blocks used to upload carved content to the continue endpoint.
+
+`--carver_compression=false`
+
+Compress carve archives using zstd before uploading them.
+
+`--carver_expiry=86400`
+
+In seconds, how long to keep the metadata of successful carves in the `carves` table.
+
 ## Syslog consumption flags
 
 There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results _from_ syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
