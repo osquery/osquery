@@ -8,6 +8,8 @@
  */
 
 #include <boost/optional.hpp>
+#include <chrono>
+#include <functional>
 #include <unordered_map>
 
 #include <osquery/core/core.h>
@@ -58,6 +60,21 @@ struct MountInformation final {
 
 // Information about all mounted filesystems
 using MountedFilesystems = std::vector<MountInformation>;
+
+// Produces statfs info for a mount path (boost::none on failure). Injectable
+// so tests can simulate a hang without a real FUSE mount.
+using StatFsInfoProducer =
+    std::function<boost::optional<MountInformation::StatFsInfo>(
+        const std::string& path)>;
+
+// Probes every path with `producer` concurrently under one shared deadline, so
+// a mount whose statfs() hangs can't block the caller past `timeout`. Result is
+// aligned to `paths`; boost::none means the producer failed, timed out, or is
+// still in flight from an earlier call (skipped to avoid leaking threads).
+std::vector<boost::optional<MountInformation::StatFsInfo>>
+getStatFsInfoWithTimeout(const std::vector<std::string>& paths,
+                         std::chrono::milliseconds timeout,
+                         const StatFsInfoProducer& producer);
 
 Status getMountedFilesystems(MountedFilesystems& mounted_fs_info);
 } // namespace osquery
