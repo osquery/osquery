@@ -1226,4 +1226,44 @@ TEST_F(VirtualTableTests, test_table_exceptions) {
   FLAGS_ignore_table_exceptions = backup_flag;
 }
 
+namespace tables {
+namespace sqlite {
+std::string getTableDocHint(const std::string& name);
+} // namespace sqlite
+} // namespace tables
+
+class docHintTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("col1", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    return TableRows();
+  }
+};
+
+TEST_F(VirtualTableTests, test_table_doc_hint) {
+  // A built-in table links to the osquery schema.
+  EXPECT_EQ(tables::sqlite::getTableDocHint("processes"),
+            "Please see the table documentation: "
+            "https://osquery.io/schema/#processes");
+
+  // A table provided by an extension is not in the osquery schema. Create the
+  // connection before registering the table, since getUnique() attaches every
+  // registered table as a non-extension table.
+  auto dbc = SQLiteDBManager::getUnique();
+  auto registry = RegistryFactory::get().registry("table");
+  registry->add("doc_hint_extension_table",
+                std::make_shared<docHintTablePlugin>());
+  attachTableInternal("doc_hint_extension_table", dbc, true);
+
+  auto hint = tables::sqlite::getTableDocHint("doc_hint_extension_table");
+  EXPECT_EQ(hint.find("osquery.io"), std::string::npos) << hint;
+  EXPECT_NE(hint.find("provided by an extension"), std::string::npos) << hint;
+}
+
 } // namespace osquery
