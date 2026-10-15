@@ -14,6 +14,7 @@ function(generateOsqueryEventsTestsMergedtestsTest)
       events_tests.cpp
       mockedosquerydatabase.cpp
       eventsubscriberplugin.cpp
+      pathset_tests.cpp
   )
 
   if(DEFINED PLATFORM_LINUX)
