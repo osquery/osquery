@@ -162,6 +162,7 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_node_key_header_set);
   FRIEND_TEST(TLSTransportsTests, test_node_key_header_not_set);
 
+  friend class TLSTransportsTests;
   friend class TestDistributedPlugin;
 };
 } // namespace osquery

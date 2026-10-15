@@ -125,6 +125,17 @@ FAILED_ENROLL_RESPONSE = {"node_invalid": True}
 ENROLL_RESPONSE = {"node_key": "this_is_a_node_secret"}
 
 RECEIVED_REQUESTS = []
+
+# POST endpoints that answer with a 307 redirect, used to test the client's
+# redirect policy. Each maps to the redirect Location, where "{port}" is the
+# server's own port.
+REDIRECT_TARGETS = {
+    "/redirect_same_origin": "https://localhost:{port}/redirect_target",
+    "/redirect_cross_origin": "https://127.0.0.1:{port}/redirect_target",
+    "/redirect_to_http": "http://localhost:{port}/redirect_target",
+    "/redirect_to_ftp": "ftp://localhost:{port}/redirect_target",
+}
+
 FILE_CARVE_DIR = "/tmp/"
 FILE_CARVE_MAP = {}
 
@@ -210,6 +221,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         reset_timeout()
         debug("RealSimpleHandler::post %s" % self.path)
         if not self._check_gzip_required():
+            return
+        if self.path in REDIRECT_TARGETS:
+            self.redirect()
             return
         self._set_headers()
         content_len = int(self.headers.get("content-length", 0))
@@ -353,6 +367,23 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
     def log(self, request):
         self._reply({})
+
+    def redirect(self):
+        """Record the request, then answer with a 307 redirect"""
+        content_len = int(self.headers.get("content-length", 0))
+        body = self.rfile.read(content_len)
+        request = json.loads(body) if body else {}
+        self._push_request(self.path.lstrip("/"), request)
+
+        location = REDIRECT_TARGETS[self.path].format(
+            port=self.server.server_address[1]
+        )
+        debug("Redirecting to: %s" % location)
+        self.protocol_version = self.request_version
+        self.send_response(307)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", 0)
+        self.end_headers()
 
     def test_read_requests(self):
         # call made by unit tests to retrieve the entire history of requests

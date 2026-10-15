@@ -308,6 +308,7 @@ class Request {
   FRIEND_TEST(TLSTransportsTests, test_gzip_compression_disabled);
   FRIEND_TEST(TLSTransportsTests, test_gzip_with_params);
 
+  friend class TLSTransportsTests;
   friend class TestDistributedPlugin;
 };
 } // namespace osquery

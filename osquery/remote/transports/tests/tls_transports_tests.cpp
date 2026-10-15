@@ -33,6 +33,7 @@ namespace osquery {
 
 DECLARE_string(tls_server_certs);
 DECLARE_bool(tls_accept_gzip);
+DECLARE_bool(tls_allow_cross_origin_redirects);
 
 class TLSTransportsTests : public testing::Test {
  public:
@@ -72,6 +73,44 @@ class TLSTransportsTests : public testing::Test {
   void TearDown() override {
     TLSServerRunner::stop();
     FLAGS_tls_server_certs = certs_;
+  }
+
+  /// POST a JSON body to a path on the test server.
+  Status postToServer(const std::string& path) {
+    auto t = std::make_shared<TLSTransport>();
+    t->disableVerifyPeer();
+    Request<TLSTransport, JSONSerializer> r("https://localhost:" + port_ + path,
+                                            t);
+    JSON params;
+    params.addCopy("foo", "bar");
+    return r.call(params);
+  }
+
+  /// Count the requests the test server recorded for a command.
+  size_t countServerRequests(const std::string& command) {
+    auto t = std::make_shared<TLSTransport>();
+    t->disableVerifyPeer();
+    Request<TLSTransport, JSONSerializer> r(
+        "https://localhost:" + port_ + "/test_read_requests", t);
+
+    JSON requests;
+    auto status = r.call(JSON());
+    if (status.ok()) {
+      status = r.getResponse(requests);
+    }
+    EXPECT_TRUE(status.ok()) << getTLSError(status);
+    if (!status.ok() || !requests.doc().IsArray()) {
+      return 0;
+    }
+
+    size_t count = 0;
+    for (const auto& request : requests.doc().GetArray()) {
+      if (request.HasMember("command") && request["command"].IsString() &&
+          command == request["command"].GetString()) {
+        ++count;
+      }
+    }
+    return count;
   }
 
  protected:
@@ -308,6 +347,62 @@ TEST_F(TLSTransportsTests, test_node_key_header_not_set) {
   t->decorateRequest(r);
 
   EXPECT_TRUE(std::string(r[kAuthorizationHeader]).empty());
+}
+
+TEST_F(TLSTransportsTests, test_redirect_same_origin_followed) {
+  startServer();
+
+  Status status = postToServer("/redirect_same_origin");
+  EXPECT_TRUE(status.ok()) << getTLSError(status);
+  EXPECT_EQ(countServerRequests("redirect_same_origin"), 1U);
+}
+
+TEST_F(TLSTransportsTests, test_redirect_cross_origin_refused) {
+  startServer();
+
+  // The redirect points at the same server via a different host name, which
+  // is a different origin.
+  Status status = postToServer("/redirect_cross_origin");
+  ASSERT_FALSE(status.ok());
+  EXPECT_NE(status.getMessage().find("cross-origin"), std::string::npos)
+      << status.getMessage();
+
+  // A refused redirect must not be retried, which would re-send the request.
+  EXPECT_EQ(countServerRequests("redirect_cross_origin"), 1U);
+}
+
+TEST_F(TLSTransportsTests, test_redirect_cross_origin_allowed_by_flag) {
+  startServer();
+
+  auto original_flag = FLAGS_tls_allow_cross_origin_redirects;
+  FLAGS_tls_allow_cross_origin_redirects = true;
+
+  Status status = postToServer("/redirect_cross_origin");
+  EXPECT_TRUE(status.ok()) << getTLSError(status);
+  EXPECT_EQ(countServerRequests("redirect_cross_origin"), 1U);
+
+  FLAGS_tls_allow_cross_origin_redirects = original_flag;
+}
+
+TEST_F(TLSTransportsTests, test_redirect_off_https_refused) {
+  startServer();
+
+  // Leaving HTTPS is refused even when cross-origin redirects are allowed.
+  auto original_flag = FLAGS_tls_allow_cross_origin_redirects;
+  FLAGS_tls_allow_cross_origin_redirects = true;
+
+  for (const auto& path : {"/redirect_to_http", "/redirect_to_ftp"}) {
+    Status status = postToServer(path);
+    ASSERT_FALSE(status.ok()) << path;
+    EXPECT_NE(status.getMessage().find("refusing to leave HTTPS"),
+              std::string::npos)
+        << status.getMessage();
+
+    // A refused redirect must not be retried, which would re-send the request.
+    EXPECT_EQ(countServerRequests(std::string(path).substr(1)), 1U) << path;
+  }
+
+  FLAGS_tls_allow_cross_origin_redirects = original_flag;
 }
 
 } // namespace osquery
