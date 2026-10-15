@@ -118,6 +118,13 @@
     "version": "0.5.0",
     "commit": "8f9ccfe770add9e4c64e9b25c102658e3c763b73"
   },
+  "grpc": {
+    "product": "grpc",
+    "vendor": "grpc",
+    "version": "1.70.2",
+    "commit": "c5805f42dbdf4f09bc6b9b5c49ebdb2f48e0efa7",
+    "ignored-cves": []
+  },
   "krabsetw": {
     "product": "krabsetw",
     "vendor": "microsoft",

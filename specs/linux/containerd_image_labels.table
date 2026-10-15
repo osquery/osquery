@@ -1,0 +1,14 @@
+table_name("containerd_image_labels")
+description("Labels for containerd images.")
+schema([
+    Column("name", TEXT, "Image name", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("key", TEXT, "Label key", index=True),
+    Column("value", TEXT, "Label value")
+])
+implementation("applications/containerd@genContainerdImageLabels")
+examples([
+  "select * from containerd_image_labels",
+  "select * from containerd_image_labels where key = 'maintainer'",
+  "select i.name, l.value from containerd_images i join containerd_image_labels l on i.name = l.name where l.key = 'version'"
+])

@@ -1,0 +1,14 @@
+table_name("containerd_namespace_labels")
+description("Labels for containerd namespaces.")
+schema([
+    Column("name", TEXT, "Namespace name", index=True),
+    Column("namespace", TEXT, "Containerd namespace (same as name for this table)", index=True),
+    Column("key", TEXT, "Label key", index=True),
+    Column("value", TEXT, "Label value")
+])
+implementation("applications/containerd@genContainerdNamespaceLabels")
+examples([
+  "select * from containerd_namespace_labels",
+  "select * from containerd_namespace_labels where name = 'k8s.io'",
+  "select * from containerd_namespace_labels where key = 'owner'"
+])

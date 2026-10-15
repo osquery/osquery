@@ -38,6 +38,7 @@ function(generateOsqueryTablesApplications)
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       linux/lxd.cpp
+      linux/containerd.cpp
     )
   endif()
 
@@ -88,6 +89,21 @@ function(generateOsqueryTablesApplications)
 
     target_link_libraries(osquery_tables_applications PUBLIC
       osquery_remote_utility
+    )
+  endif()
+
+  if(DEFINED PLATFORM_LINUX)
+    # containerd.cpp needs gRPC and the generated containerd proto library
+    target_link_libraries(osquery_tables_applications PUBLIC
+      osquery_proto_containerd
+    )
+
+    # containerd.cpp includes gRPC/protobuf/abseil headers that the osquery
+    # toolchain's Clang warns on; scope the suppressions to this file.
+    set_source_files_properties(
+      linux/containerd.cpp
+      PROPERTIES
+      COMPILE_FLAGS "-Wno-gnu-zero-variadic-macro-arguments -Wno-gcc-compat -Wno-unknown-attributes -Wno-unknown-warning-option"
     )
   endif()
 
