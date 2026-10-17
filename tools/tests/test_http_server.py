@@ -395,6 +395,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             request["block_id"]
             in FILE_CARVE_MAP[request["session_id"]]["blocks_received"]
         ):
+            self._reply({})
             return
 
         # Store block data to be reassembled later
@@ -407,6 +408,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             len(FILE_CARVE_MAP[request["session_id"]]["blocks_received"])
             < FILE_CARVE_MAP[request["session_id"]]["block_count"]
         ):
+            self._reply({})
             return
 
         # If not, let's reassemble everything
@@ -435,6 +437,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         f.close()
         debug("File successfully carved to: %s" % out_file_name)
         FILE_CARVE_MAP[request["session_id"]] = {}
+        self._reply({})
 
     def _push_request(self, command, request):
         # Archive the http command and the request body so that unit tests
