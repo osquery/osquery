@@ -6,14 +6,18 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryPluginsDatabaseTestsMain)
-  generatePluginsDatabaseTestsSqliteplugintestsTest()
-  generatePluginsDatabaseTestsRocksdbtestsTest()
+  generatePluginsDatabaseTestsMergedtestsTest()
 endfunction()
 
-function(generatePluginsDatabaseTestsSqliteplugintestsTest)
-  add_osquery_executable(plugins_database_tests_sqliteplugintests-test sqlite.cpp)
+function(generatePluginsDatabaseTestsMergedtestsTest)
+  set(source_files
+    sqlite.cpp
+    rocksdb.cpp
+  )
 
-  target_link_libraries(plugins_database_tests_sqliteplugintests-test PRIVATE
+  add_osquery_executable(plugins_database_tests_mergedtests-test ${source_files})
+
+  target_link_libraries(plugins_database_tests_mergedtests-test PRIVATE
     osquery_cxx_settings
     osquery_core
     osquery_database
@@ -23,23 +27,6 @@ function(generatePluginsDatabaseTestsSqliteplugintestsTest)
     osquery_registry
     osquery_utils_json
     plugins_database_sqliteplugin
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generatePluginsDatabaseTestsRocksdbtestsTest)
-  add_osquery_executable(plugins_database_tests_rocksdbtests-test rocksdb.cpp)
-
-  target_link_libraries(plugins_database_tests_rocksdbtests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_database
-    osquery_database_tests_databasetestutils
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_registry
-    osquery_utils_json
     plugins_database_rocksdbplugin
     tests_helper
     thirdparty_googletest

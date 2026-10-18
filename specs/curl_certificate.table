@@ -32,7 +32,10 @@ schema([
     Column("policy_constraints", TEXT, "Policy Constraints"),
     Column("dump_certificate", INTEGER, "Set this value to '1' to dump certificate", additional=True, hidden=True),
     Column("timeout", INTEGER, "Set this value to the timeout in seconds to complete the TLS handshake (default 4s, use 0 for no timeout)", additional=True, hidden=True),
-    Column("pem", TEXT, "Certificate PEM format")
+    Column("pem", TEXT, "Certificate PEM format"),
+    Column("tls_version", TEXT, "TLS protocol version negotiated for the connection; empty if the handshake did not complete"),
+    Column("cipher_suite", TEXT, "IANA name of the cipher suite negotiated for the connection; empty if the handshake did not complete"),
+    Column("cipher_bits", INTEGER, "Number of secret/key bits used by the negotiated cipher suite; NULL if the handshake did not complete")
 ])
 implementation("curl_certificate@genTLSCertificate")
 examples([

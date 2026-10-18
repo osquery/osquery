@@ -157,8 +157,10 @@ const BOMPaths* BOM::getPaths(int index) const {
     return nullptr;
   }
 
-  // Check the number of indexes.
-  if (paths_size < ntohs(paths->count) * sizeof(BOMPathIndices)) {
+  // Check the number of indexes. The indices array sits behind the
+  // BOMPaths header, so the header size must be part of the bound.
+  if (paths_size <
+      sizeof(BOMPaths) + ntohs(paths->count) * sizeof(BOMPathIndices)) {
     return nullptr;
   }
   return paths;

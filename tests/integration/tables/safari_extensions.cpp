@@ -23,29 +23,31 @@ class safariExtensions : public testing::Test {
 };
 
 TEST_F(safariExtensions, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from safari_extensions");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"uid", IntType}
-  //      {"name", NormalType}
-  //      {"identifier", NormalType}
-  //      {"version", NormalType}
-  //      {"sdk", NormalType}
-  //      {"update_url", NormalType}
-  //      {"author", NormalType}
-  //      {"developer_id", NormalType}
-  //      {"description", NormalType}
-  //      {"path", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  // Query requires a users JOIN (or uid constraint) and Full Disk Access to
+  // read Safari container plists. Discovery covers:
+  //   - /Applications/*/Contents/PlugIns/*.appex
+  //   - recursive depth-limited walk of ~/Library/Application Support for
+  //     *.app/Contents/PlugIns/*.appex (e.g. Webex; see osquery#8684 /
+  //     Fleet#6950)
+  // Rows are emitted only when the bundle id appears in the user's
+  // AppExtensions or WebExtensions Extensions.plist.
+  auto const data = execute_query(
+      "select safari_extensions.* from users "
+      "cross join safari_extensions using (uid)");
+  ValidationMap row_map = {
+      {"uid", IntType},
+      {"name", NormalType},
+      {"identifier", NormalType},
+      {"version", NormalType},
+      {"sdk", NormalType},
+      {"description", NormalType},
+      {"path", NormalType},
+      {"bundle_version", NormalType},
+      {"copyright", NormalType},
+  };
+  if (!data.empty()) {
+    validate_rows(data, row_map);
+  }
 }
 
 } // namespace table_tests

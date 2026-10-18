@@ -1,0 +1,14 @@
+table_name("macports_packages")
+description("The installed MacPorts port database.")
+schema([
+    Column("name", TEXT, "Port name"),
+    Column("version", TEXT, "Port version", collate="version"),
+    Column("revision", INTEGER, "MacPorts revision of the port"),
+    Column("variants", TEXT, "Active variants, as recorded by MacPorts"),
+    Column("requested", INTEGER, "1 if explicitly requested, 0 if a dependency"),
+    Column("arch", TEXT, "Architectures the port was built for"),
+    Column("date", BIGINT, "Install time, in unix time"),
+    Column("prefix", TEXT, "MacPorts install prefix", hidden=True, additional=True, optimized=True),
+])
+attributes(cacheable=True)
+implementation("system/macports_packages@genMacPortsPackages")

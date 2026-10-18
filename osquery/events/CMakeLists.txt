@@ -170,16 +170,7 @@ function(generateOsqueryEvents)
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
 
-  if(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_events_tests_linuxtests-test COMMAND osquery_events_tests_linuxtests-test)
-  endif()
-
-  if(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
-  endif()
-
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
     add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
 
@@ -224,7 +215,7 @@ function(generateOsqueryEventsEventsregistry)
 
   generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
+  add_test(NAME osquery_events_tests_mergedtests-test COMMAND osquery_events_tests_mergedtests-test)
 endfunction()
 
 osqueryEventsMain()
