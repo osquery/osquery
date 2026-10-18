@@ -22,6 +22,7 @@
 
 #include <osquery/utils/info/platform_type.h>
 
+#include <osquery/core/shutdown.h>
 #include <osquery/database/database.h>
 #include <osquery/extensions/interface.h>
 #include <osquery/filesystem/fileops.h>
@@ -74,6 +75,7 @@ class ExtensionsTest : public testing::Test {
 
   void TearDown() override {
     resetDispatcher();
+    resetShutdown();
 
     FLAGS_extensions_socket_group = "";
 
@@ -216,16 +218,13 @@ TEST_F(ExtensionsTest, test_manager_socket_group) {
 }
 
 TEST_F(ExtensionsTest, test_manager_socket_group_unresolvable) {
-  // The flag is resolved at listen time and must not cause the server to fail.
-  // A typo'd group still leaves the socket at 0660, so it does not fail open.
+  // If the configured group cannot be resolved, socket setup must fail closed
+  // and request shutdown.
   FLAGS_extensions_socket_group = "osquery_nonexistent_group_zzz";
-  auto status = startExtensionManager(socket_path);
-  ASSERT_TRUE(status.ok()) << " error " << status.what();
-  ASSERT_TRUE(ping(150));
-
-  struct stat sb;
-  ASSERT_EQ(stat(socket_path.c_str(), &sb), 0);
-  EXPECT_EQ(sb.st_mode & 0777, 0660u);
+  startExtensionManager(socket_path);
+  ASSERT_TRUE(waitTimeoutOrShutdown(std::chrono::milliseconds(kTimeout)));
+  EXPECT_EQ(getShutdownExitCode(), EXIT_CATASTROPHIC);
+  EXPECT_FALSE(ping(5));
 }
 #endif
 
