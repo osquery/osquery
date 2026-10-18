@@ -19,6 +19,7 @@
 #include <osquery/events/darwin/diskarbitration.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tables/system/posix/disk_encryption.h>
 #include <osquery/utils/conversions/darwin/iokit.h>
 
 namespace osquery {
@@ -36,9 +37,6 @@ const std::string kAPFSFileSystem = "apfs";
 const std::string kFileVaultStatusOn = "on";
 const std::string kFileVaultStatusOff = "off";
 const std::string kFileVaultStatusUnknown = "unknown";
-const std::string kEncryptionStatusEncrypted = "encrypted";
-const std::string kEncryptionStatusUndefined = "undefined";
-const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 /// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
