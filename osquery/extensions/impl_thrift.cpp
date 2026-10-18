@@ -116,7 +116,8 @@ bool resolveGroup(const std::string& group_str, gid_t& out_gid) {
 }
 
 void applySocketGroup(const std::string& path) {
-  // Ensure the path is an authentic socket owned by current user before modifying
+  // Ensure the path is an authentic socket owned by current user before
+  // modifying
   struct stat sb;
   if (lstat(path.c_str(), &sb) != 0 || !S_ISSOCK(sb.st_mode) ||
       sb.st_uid != geteuid()) {
