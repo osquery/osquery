@@ -34,6 +34,7 @@
 
 #include "osquery/extensions/interface.h"
 
+#include <osquery/core/shutdown.h>
 #include <osquery/extensions/extensions.h>
 #include <osquery/utils/conversions/tryto.h>
 
@@ -46,6 +47,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -98,12 +100,13 @@ bool resolveGroup(const std::string& group_str, gid_t& out_gid) {
     return true;
   }
 
-  std::vector<char> buf(16384);
+  size_t bufsize = 16384;
+  std::vector<char> buf(bufsize);
   struct group grp;
   struct group* result = nullptr;
-  int rc = getgrnam_r(group_str.c_str(), &grp, buf.data(), buf.size(), &result);
-  if (rc != 0) {
-    return false;
+  while (getgrnam_r(group_str.c_str(), &grp, buf.data(), buf.size(), &result) ==
+         ERANGE) {
+    buf.resize(buf.size() * 2);
   }
   if (result == nullptr) {
     return false;
@@ -113,20 +116,43 @@ bool resolveGroup(const std::string& group_str, gid_t& out_gid) {
 }
 
 void applySocketGroup(const std::string& path) {
-  // Restrict mode first. If the group cannot be resolved, the socket must not
-  // remain at its umask-derived default mode, which could be world-accessible.
-  if (chmod(path.c_str(), 0660) != 0) {
-    PLOG(ERROR) << "Failed to set mode 0660 on extensions socket " << path;
+  // Ensure the path is an authentic socket owned by current user before modifying
+  struct stat sb;
+  if (lstat(path.c_str(), &sb) != 0 || !S_ISSOCK(sb.st_mode) ||
+      sb.st_uid != geteuid()) {
+    removePath(path);
+    std::string msg =
+        "Refusing to update permissions on non-socket or untrusted path: " +
+        path;
+    requestShutdown(EXIT_CATASTROPHIC, msg);
+    throw TTransportException(TTransportException::NOT_OPEN, msg);
   }
 
   gid_t gid = 0;
   if (!resolveGroup(osquery::FLAGS_extensions_socket_group, gid)) {
-    LOG(ERROR) << "Invalid extensions_socket_group: "
-               << osquery::FLAGS_extensions_socket_group;
-    return;
+    removePath(path);
+    std::string msg = "Invalid extensions_socket_group: " +
+                      osquery::FLAGS_extensions_socket_group;
+    requestShutdown(EXIT_CATASTROPHIC, msg);
+    throw TTransportException(TTransportException::NOT_OPEN, msg);
   }
+
+  if (chmod(path.c_str(), 0660) != 0) {
+    int err = errno;
+    removePath(path);
+    std::string msg = "Failed to set mode 0660 on extensions socket " + path +
+                      ": " + std::strerror(err);
+    requestShutdown(EXIT_CATASTROPHIC, msg);
+    throw TTransportException(TTransportException::NOT_OPEN, msg);
+  }
+
   if (lchown(path.c_str(), static_cast<uid_t>(-1), gid) != 0) {
-    PLOG(ERROR) << "Failed to set group on extensions socket " << path;
+    int err = errno;
+    removePath(path);
+    std::string msg = "Failed to set group on extensions socket " + path +
+                      ": " + std::strerror(err);
+    requestShutdown(EXIT_CATASTROPHIC, msg);
+    throw TTransportException(TTransportException::NOT_OPEN, msg);
   }
 }
 
