@@ -188,7 +188,7 @@ Path to the extensions UNIX domain socket.
 
 `--extensions_socket_group=osquery`
 
-Group name or numeric GID granted access to the extensions UNIX domain socket. When set, the socket is created with mode `0660` and assigned to the requested group. This allows extension processes to run as an unprivileged user and connect to a socket owned by root. The flag also applies to per-extension sockets. If the group cannot be resolved, osquery logs an error and continues to serve; the socket is still restricted to mode `0660`, so extensions running as another user will be unable to connect. This flag has no effect on Windows, where extensions use a named pipe.
+Group name or numeric GID granted access to the extensions UNIX domain socket. When set, the socket file is set to mode `0660` and assigned to the requested group before listening begins. This allows extension processes to run as an unprivileged user and connect to a socket owned by root. If the group cannot be resolved or if setting permissions/ownership fails, osquery will log an error and exit with a failure status. When running unprivileged extensions, configure `--extensions_socket` in a directory writable by the extension group (e.g., `/var/run/osquery/`) rather than the default root-owned directory so the extension can create its client socket. When launching independent extension processes serving their own sockets, pass `--socket_group` to the extension binary directly. This flag has no effect on Windows, where extensions use a named pipe.
 
 `--extensions_autoload=/etc/osquery/extensions.load`
 
