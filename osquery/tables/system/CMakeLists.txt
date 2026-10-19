@@ -373,6 +373,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/packages.h
       darwin/smbios_utils.h
       darwin/os_version.h
+      darwin/startup_items.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
