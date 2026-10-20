@@ -347,6 +347,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/last.h
       posix/openssl_utils.h
       posix/authorized_keys.h
+      posix/disk_encryption.h
     )
   endif()
 
