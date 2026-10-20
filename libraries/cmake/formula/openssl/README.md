@@ -14,6 +14,14 @@ it does not need:
   OpenSSL disables its tests along with its apps, which the tests drive.
 - `no-docs`: the manual pages.
 
+The deprecated protocol versions are compiled out, so no part of osquery can
+negotiate them:
+
+- `no-ssl3`, `no-tls1`, `no-tls1_1`: SSL 3.0, TLS 1.0 and TLS 1.1.
+- `no-ssl3-method`, `no-tls1-method`, `no-tls1_1-method`: their
+  version-specific methods, such as `TLSv1_method()`. Disabling a protocol
+  does not remove its method, so both are needed.
+
 ## Updating OpenSSL
 
 1. Set `OPENSSL_VERSION` and `OPENSSL_ARCHIVE_SHA256` in `CMakeLists.txt`.
