@@ -9,6 +9,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
@@ -154,22 +155,17 @@ void genVSCodeProfileExtensionRows(const std::string& uid,
                                    const fs::path& profiles_dir,
                                    const std::string& vscode_edition,
                                    QueryData& results) {
-  boost::system::error_code ec;
-  if (!fs::is_directory(profiles_dir, ec)) {
+  std::vector<std::string> profile_paths;
+  if (!listDirectoriesInDirectory(profiles_dir, profile_paths).ok()) {
     return;
   }
 
-  fs::directory_iterator it(profiles_dir, ec);
-  for (const fs::directory_iterator end; !ec && it != end; it.increment(ec)) {
-    genReadJSONAndAddExtensionRows(uid,
-                                   (it->path() / "extensions.json").string(),
-                                   vscode_edition,
-                                   results);
-  }
-
-  if (ec) {
-    VLOG(1) << "Could not list vscode profiles in " << profiles_dir << ": "
-            << ec.message();
+  for (const auto& profile_path : profile_paths) {
+    genReadJSONAndAddExtensionRows(
+        uid,
+        (fs::path(profile_path) / "extensions.json").string(),
+        vscode_edition,
+        results);
   }
 }
 
