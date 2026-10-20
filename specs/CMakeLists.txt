@@ -24,8 +24,10 @@ function(specsMain)
   generateCopyFileTarget("specs_table_files" "" "REGEX" "*.table" "${TEST_CONFIGS_DIR}/specs")
 endfunction()
 
-function(generateForeignTables spec_file_list)
-  generateTableCategoryAmalgamation("foreign" ${spec_file_list})
+# The caller expands the spec list into separate arguments, so take them all
+# from ARGN; a named parameter would only receive the first spec file.
+function(generateForeignTables)
+  generateTableCategoryAmalgamation("foreign" ${ARGN})
   set(generateForeignTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
 endfunction()
 
