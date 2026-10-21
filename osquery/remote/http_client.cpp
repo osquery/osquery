@@ -508,6 +508,9 @@ Response Client::sendHTTPRequest(Request& req) {
             redir_uri = std::make_unique<Uri>(redir_url);
           } catch (const std::invalid_argument&) {
             throw RedirectError("Invalid redirect Location: " + redir_url);
+          } catch (const std::out_of_range&) {
+            // e.g. a port too large for std::stoi.
+            throw RedirectError("Invalid redirect Location: " + redir_url);
           }
 
           const std::string scheme = req.protocol() ? *req.protocol() : "";

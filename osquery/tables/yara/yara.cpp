@@ -12,7 +12,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-#include <regex>
 #include <thread>
 
 #ifdef LINUX
@@ -146,25 +145,6 @@ static Row makeYaraRow(YaraRuleType yr_type, const std::string& sigName) {
   return row;
 }
 
-bool isRuleUrlAllowed(std::set<std::string> signature_set, std::string url) {
-  Uri test_uri(url);
-  for (const auto& sig : signature_set) {
-    Uri sig_uri(sig);
-
-    // The uri scheme, host and path matches are case sensitive
-    if ((sig_uri.host() == test_uri.host()) &&
-        (sig_uri.scheme() == test_uri.scheme()) &&
-        (sig_uri.port() == test_uri.port())) {
-      // Check the regex pattern for the allowed URL
-      const std::regex pat(sig_uri.path());
-      if (std::regex_match(test_uri.path(), pat)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 Status getRuleFromURL(const std::string& url, std::string& rule) {
   auto yaraParser = getYaraParser();
   if (isNull(yaraParser)) {
@@ -238,6 +218,17 @@ Status getRuleFromURL(const std::string& url, std::string& rule) {
           }
           resolved += location;
           location = resolved;
+        }
+        // Automatic redirects are disabled for this client, so the HTTP
+        // client's HTTPS-downgrade guard does not apply here. Never follow a
+        // redirect off of HTTPS, even to an allowlisted URL: the next request
+        // could carry the node key in cleartext.
+        if (Uri(current_url).scheme() == "https" &&
+            Uri(location).scheme() != "https") {
+          VLOG(1) << "YARA signature url redirect to " << location
+                  << " refused: it leaves HTTPS";
+          return Status::failure(
+              "YARA signature url redirect refused: refusing to leave HTTPS");
         }
         if (!isRuleUrlAllowed(signature_set, location)) {
           VLOG(1) << "YARA signature url redirect to " << location

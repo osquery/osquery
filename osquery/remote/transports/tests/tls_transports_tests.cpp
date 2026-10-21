@@ -443,4 +443,19 @@ TEST_F(TLSTransportsTests, test_redirect_off_https_refused) {
   FLAGS_tls_allow_cross_origin_redirects = original_flag;
 }
 
+TEST_F(TLSTransportsTests, test_redirect_invalid_location_refused) {
+  startServer();
+
+  // The Location has a port too large to parse, which must be refused like
+  // any other invalid Location rather than escaping as a parse exception.
+  Status status = postToServer("/redirect_bad_port");
+  ASSERT_FALSE(status.ok());
+  EXPECT_NE(status.getMessage().find("Invalid redirect Location"),
+            std::string::npos)
+      << status.getMessage();
+
+  // A refused redirect must not be retried, which would re-send the request.
+  EXPECT_EQ(countServerRequests("redirect_bad_port"), 1U);
+}
+
 } // namespace osquery

@@ -134,6 +134,7 @@ REDIRECT_TARGETS = {
     "/redirect_cross_origin": "https://127.0.0.1:{port}/redirect_target",
     "/redirect_to_http": "http://localhost:{port}/redirect_target",
     "/redirect_to_ftp": "ftp://localhost:{port}/redirect_target",
+    "/redirect_bad_port": "https://localhost:999999999999999999999999/redirect_target",
 }
 
 FILE_CARVE_DIR = "/tmp/"
