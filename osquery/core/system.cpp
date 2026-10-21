@@ -206,6 +206,8 @@ Status getHostUUID(std::string& ident) {
   // --disable_database the database is memory-backed and is emptied by every
   // scheduler reset (--schedule_reload), so it cannot be the only copy.
   static std::string cached_uuid;
+  // Set when a generated UUID could not be stored, so the write is retried.
+  static bool persist_pending = false;
   static std::mutex mutex;
 
   std::lock_guard<std::mutex> lock(mutex);
@@ -224,6 +226,11 @@ Status getHostUUID(std::string& ident) {
   // A valid hardware UUID always wins over any stored value, and is not lost
   // if the database is reset after the hardware check.
   if (!cached_uuid.empty()) {
+    if (persist_pending) {
+      persist_pending =
+          !setDatabaseValue(kPersistentSettings, "host_uuid_v3", cached_uuid)
+               .ok();
+    }
     ident = cached_uuid;
     return Status::success();
   }
@@ -238,7 +245,9 @@ Status getHostUUID(std::string& ident) {
     auto set_status =
         setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
     if (!set_status.ok()) {
-      VLOG(1) << "Could not persist the host UUID: " << set_status.getMessage();
+      VLOG(1) << "Could not persist the host UUID, will retry: "
+              << set_status.getMessage();
+      persist_pending = true;
     }
     return Status::success();
   }
