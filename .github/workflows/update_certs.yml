@@ -10,7 +10,6 @@
 name: update-certs
 
 on:
-  pull_request: # todo remove
   workflow_dispatch:
   schedule:
     - cron: "23 8 * * 1"
@@ -69,7 +68,7 @@ jobs:
           EOF
 
       - name: Create or update the certificate bundle pull request
-        # TODO uncomment if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
