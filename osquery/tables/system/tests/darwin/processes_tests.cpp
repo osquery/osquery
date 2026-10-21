@@ -53,6 +53,14 @@ TEST_F(DarwinProcessesTests, test_cmdline_parsing) {
   std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
   memcpy(&cmdline[0], &argc, sizeof(argc));
   EXPECT_FALSE(parseProcCmdline(cmdline, cmdline.size()));
+
+  // argc claims more arguments than there are NUL separators in the buffer
+  // (a process that overwrote its own argv/envp region). The join loop must
+  // stop instead of indexing the string at npos.
+  cmdline = "0000/bin/sh0argline";
+  std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
+  memcpy(&cmdline[0], &argc, sizeof(argc));
+  EXPECT_FALSE(parseProcCmdline(cmdline, cmdline.size()));
 }
 
 TEST_F(DarwinProcessesTests, test_process_arch) {
