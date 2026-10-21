@@ -368,6 +368,9 @@ bool parseProcCmdline(std::string& args, size_t len) {
   start = 0;
   while (nargs-- && nul != std::string::npos) {
     nul = args.find('\0', start);
+    if (nul == std::string::npos) {
+      break;
+    }
     args[nul] = ' ';
     start = nul + 1;
   }
