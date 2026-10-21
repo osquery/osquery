@@ -89,6 +89,41 @@ void GenerateEventRow(Row& row, const RawAuditEvent& audit_event) {
   ASSERT_EQ(row_list.size(), 1U);
   row = row_list.at(0U);
 }
+
+void GenerateExecEventRow(Row& row,
+                          const std::vector<std::string>& execve_records) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const std::string kRecordPrefix{"audit(1502125323.756:12): "};
+  std::vector<std::pair<int, std::string>> audit_event = {
+      {1300,
+       kRecordPrefix + "arch=" + kAuditArch + " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7847 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"}};
+
+  for (const auto& record : execve_records) {
+    audit_event.push_back({1309, kRecordPrefix + record});
+  }
+
+  audit_event.push_back({1307, kRecordPrefix + "cwd=\"/tmp\""});
+  audit_event.push_back(
+      {1302,
+       kRecordPrefix + "item=0 name=\"/usr/bin/fixture\" inode=18867 dev=fd:00 "
+                       "mode=0100755 ouid=0 ogid=0 rdev=00:00 objtype=NORMAL"});
+  audit_event.push_back({1320, kRecordPrefix});
+
+  GenerateEventRow(row, audit_event);
+}
 } // namespace
 
 class ProcessEventsTests : public testing::Test {};
@@ -182,6 +217,266 @@ TEST_F(ProcessEventsTests, exec_event_processing) {
 
     const auto& actual_value = it->second;
     EXPECT_EQ(expected_value, actual_value);
+  }
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_preserves_argument_order) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const RawAuditEvent kSampleExecveEvent = {
+      {1300,
+       "audit(1502125323.756:7): arch=" + kAuditArch +
+           " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7842 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"},
+      {1309,
+       "audit(1502125323.756:7): argc=11 a0=\"arg0\" a1=\"arg1\" "
+       "a2=\"arg2\" a3=\"arg3\" a4=\"arg4\" a5=\"arg5\" "
+       "a6=\"arg6\" a7=\"arg7\" a8=\"arg8\" a9=\"arg9\" "
+       "a10=\"arg10\""},
+      {1307, "audit(1502125323.756:7): cwd=\"/tmp\""},
+      {1302,
+       "audit(1502125323.756:7): item=0 name=\"/usr/bin/fixture\" "
+       "inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+       "objtype=NORMAL"},
+      {1320, "audit(1502125323.756:7): "}};
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  EXPECT_EQ(event_row.at("cmdline"),
+            "arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_reassembles_split_arguments) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const RawAuditEvent kSampleExecveEvent = {
+      {1300,
+       "audit(1502125323.756:8): arch=" + kAuditArch +
+           " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7843 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"},
+      {1309,
+       "audit(1502125323.756:8): argc=3 a0=\"runner\" a1_len=22 "
+       "a1[0]=41 a1[1]=42 a1[2]=43 a1[3]=44"},
+      {1309,
+       "audit(1502125323.756:8): a1[4]=45 a1[5]=46 a1[6]=47 "
+       "a1[7]=48"},
+      {1309,
+       "audit(1502125323.756:8): a1[8]=49 a1[9]=4a a1[10]=4b "
+       "a2=\"TAIL_MARKER\""},
+      {1307, "audit(1502125323.756:8): cwd=\"/tmp\""},
+      {1302,
+       "audit(1502125323.756:8): item=0 name=\"/usr/bin/fixture\" "
+       "inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+       "objtype=NORMAL"},
+      {1320, "audit(1502125323.756:8): "}};
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  EXPECT_EQ(event_row.at("cmdline"), "runner ABCDEFGHIJK TAIL_MARKER");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_collects_execve_records) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const RawAuditEvent kSampleExecveEvent = {
+      {1300,
+       "audit(1502125323.756:9): arch=" + kAuditArch +
+           " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7844 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"},
+      {1309, "audit(1502125323.756:9): argc=3 a0=\"runner\" a1=\"first\""},
+      {1309, "audit(1502125323.756:9): a2=\"TAIL_MARKER\""},
+      {1307, "audit(1502125323.756:9): cwd=\"/tmp\""},
+      {1302,
+       "audit(1502125323.756:9): item=0 name=\"/usr/bin/fixture\" "
+       "inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+       "objtype=NORMAL"},
+      {1320, "audit(1502125323.756:9): "}};
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  EXPECT_EQ(event_row.at("cmdline"), "runner first TAIL_MARKER");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_marks_incomplete_arguments) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"59"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"221"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const RawAuditEvent kSampleExecveEvent = {
+      {1300,
+       "audit(1502125323.756:10): arch=" + kAuditArch +
+           " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7845 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"},
+      {1309,
+       "audit(1502125323.756:10): argc=3 a0=\"runner\" a1_len=10 "
+       "a1[0]=4141"},
+      {1309, "audit(1502125323.756:10): a1[2]=4242 a2=\"TAIL_MARKER\""},
+      {1307, "audit(1502125323.756:10): cwd=\"/tmp\""},
+      {1302,
+       "audit(1502125323.756:10): item=0 name=\"/usr/bin/fixture\" "
+       "inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+       "objtype=NORMAL"},
+      {1320, "audit(1502125323.756:10): "}};
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  EXPECT_EQ(event_row.at("cmdline"), "runner AABB TAIL_MARKER");
+  EXPECT_EQ(event_row.at("overflows"), "cmdline");
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_preserves_execveat_argc_zero) {
+#if defined(__x86_64__)
+  const std::string kExecSyscall{"322"};
+  const std::string kAuditArch{"c000003e"};
+#elif defined(__aarch64__)
+  const std::string kExecSyscall{"281"};
+  const std::string kAuditArch{"c00000b7"};
+#else
+#error Unsupported architecture
+#endif
+
+  const RawAuditEvent kSampleExecveEvent = {
+      {1300,
+       "audit(1502125323.756:11): arch=" + kAuditArch +
+           " syscall=" + kExecSyscall +
+           " success=yes exit=0 items=1 ppid=6882 pid=7846 auid=1000 "
+           "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
+           "sgid=1000 fsgid=1000 tty=pts1 ses=2 comm=\"fixture\" "
+           "exe=\"/usr/bin/fixture\" key=(null)"},
+      {1309, "audit(1502125323.756:11): argc=0 a0=\"/dev/fd/3/fixture\""},
+      {1307, "audit(1502125323.756:11): cwd=\"/tmp\""},
+      {1302,
+       "audit(1502125323.756:11): item=0 name=\"/usr/bin/fixture\" "
+       "inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
+       "objtype=NORMAL"},
+      {1320, "audit(1502125323.756:11): "}};
+
+  Row event_row;
+  GenerateEventRow(event_row, kSampleExecveEvent);
+
+  EXPECT_EQ(event_row.at("cmdline"), "/dev/fd/3/fixture");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+
+  auto chunked_execveat_event = kSampleExecveEvent;
+  chunked_execveat_event.at(1U).second =
+      "audit(1502125323.756:11): argc=0 a0_len=2 a0[0]=41";
+
+  GenerateEventRow(event_row, chunked_execveat_event);
+
+  EXPECT_EQ(event_row.at("cmdline"), "A");
+  EXPECT_EQ(event_row.at("overflows"), "cmdline");
+}
+
+TEST_F(ProcessEventsTests, exec_event_processing_reassembles_quoted_chunks) {
+  Row event_row;
+  GenerateExecEventRow(event_row,
+                       {"argc=3 a0=\"runner\" a1_len=5 a1[0]=\"hel\"",
+                        "a1[1]=\"lo\" a2=\"tail\""});
+
+  EXPECT_EQ(event_row.at("cmdline"), "runner hello tail");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+}
+
+TEST_F(ProcessEventsTests,
+       exec_event_processing_marks_invalid_numeric_metadata) {
+  struct TestCase final {
+    std::vector<std::string> execve_records;
+    std::string expected_cmdline;
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {{"argc=1junk a0=\"runner\""}, "runner"},
+      {{"argc=2 a0=\"runner\" a1_len=4junk a1[0]=4142"}, "runner AB"},
+      {{"argc=2 a0=\"runner\" a1_len=6 a1[0]=4142"}, "runner AB"},
+  };
+
+  for (const auto& test_case : test_cases) {
+    SCOPED_TRACE(test_case.expected_cmdline);
+
+    Row event_row;
+    GenerateExecEventRow(event_row, test_case.execve_records);
+
+    EXPECT_EQ(event_row.at("cmdline"), test_case.expected_cmdline);
+    EXPECT_EQ(event_row.at("overflows"), "cmdline");
+  }
+}
+
+TEST_F(ProcessEventsTests,
+       exec_event_processing_marks_inconsistent_argument_structure) {
+  struct TestCase final {
+    std::vector<std::string> execve_records;
+    std::string expected_cmdline;
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {{"a0=\"runner\""}, "runner"},
+      {{"argc=3 a0=\"runner\" a2=\"tail\""}, "runner tail"},
+      {{"argc=3 a0=\"runner\" a1=\"first\"",
+        "argc=3 a1=\"second\" a1_len=4 a1[0]=4142 a2=\"tail\""},
+       "runner first tail"},
+      {{"argc=1 a0_len=2 a0[0]=GG"}, "GG"},
+      {{"argc=1 a0=\"abc"}, "ab"},
+      {{"argc=0 a0=\"runner\""}, "runner"},
+      {{"argc=0 a0=\"first\" a1=\"second\""}, "first second"},
+  };
+
+  for (const auto& test_case : test_cases) {
+    SCOPED_TRACE(test_case.expected_cmdline);
+
+    Row event_row;
+    GenerateExecEventRow(event_row, test_case.execve_records);
+
+    EXPECT_EQ(event_row.at("cmdline"), test_case.expected_cmdline);
+    EXPECT_EQ(event_row.at("overflows"), "cmdline");
   }
 }
 
