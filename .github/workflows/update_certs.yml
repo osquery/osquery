@@ -69,7 +69,7 @@ jobs:
           EOF
 
       - name: Create or update the certificate bundle pull request
-        if: github.event_name != 'pull_request'
+        # TODO uncomment if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
