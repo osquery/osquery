@@ -1,0 +1,106 @@
+#
+# Copyright (c) 2014-present, The osquery authors
+#
+# This source code is licensed as defined by the LICENSE file found in the
+# root directory of this source tree.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+#
+
+name: update-certs
+
+on:
+  pull_request: # todo remove
+  workflow_dispatch:
+  schedule:
+    - cron: "23 8 * * 1"
+
+concurrency:
+  group: update-certs
+  cancel-in-progress: true
+
+jobs:
+  update-certs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Clone the osquery repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Download and validate the Mozilla CA bundle
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            --proto '=https' --proto-redir '=https' \
+            --output cacert.pem https://curl.se/ca/cacert.pem
+          curl --fail --silent --show-error --location --retry 3 \
+            --proto '=https' --proto-redir '=https' \
+            --output cacert.pem.sha256 https://curl.se/ca/cacert.pem.sha256
+          sha256sum --check cacert.pem.sha256
+          grep -q '^-----BEGIN CERTIFICATE-----$' cacert.pem
+          openssl crl2pkcs7 -nocrl -certfile cacert.pem |
+            openssl pkcs7 -print_certs -noout > /dev/null
+          cp cacert.pem "$GITHUB_WORKSPACE/tools/deployment/certs.pem"
+
+      - name: Prepare pull request description
+        shell: bash
+        run: |
+          cp .github/PULL_REQUEST_TEMPLATE.md "$RUNNER_TEMP/certs-pr-body.md"
+          cat >> "$RUNNER_TEMP/certs-pr-body.md" <<'EOF'
+
+          ## Certificate bundle update
+
+          Update `tools/deployment/certs.pem` from https://curl.se/ca/cacert.pem,
+          curl's PEM export of Mozilla's CA trust store. This includes upstream
+          additions and removals of trusted roots.
+
+          Validation (all passed):
+          - `sha256sum --check cacert.pem.sha256`
+          - `grep -q '^-----BEGIN CERTIFICATE-----$' cacert.pem`
+          - `openssl crl2pkcs7 -nocrl -certfile cacert.pem | openssl pkcs7 -print_certs -noout`
+          EOF
+
+      - name: Create or update the certificate bundle pull request
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- tools/deployment/certs.pem; then
+            echo "The certificate bundle is already up to date"
+            exit 0
+          fi
+
+          branch="automation/update-certs"
+          title="Update Mozilla CA certificate bundle"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/deployment/certs.pem
+          tree=$(git write-tree)
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch" &&
+             [ "$tree" = "$(git rev-parse "refs/remotes/origin/$branch^{tree}")" ]; then
+            echo "The update branch already contains this bundle"
+          else
+            git commit -m "$title"
+            git push --force-with-lease origin "HEAD:refs/heads/$branch"
+          fi
+
+          pr_number=$(gh pr list --state open --base "$BASE_BRANCH" --head "$branch" \
+            --json number --jq '.[0].number')
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" --title "$title" \
+              --body-file "$RUNNER_TEMP/certs-pr-body.md"
+          else
+            gh pr create --base "$BASE_BRANCH" --head "$branch" --title "$title" \
+              --body-file "$RUNNER_TEMP/certs-pr-body.md"
+          fi
