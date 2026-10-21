@@ -178,15 +178,18 @@ void genBOMPaths(const std::string& path,
       uint32_t index0 = paths->indices[j].index0;
       uint32_t index1 = paths->indices[j].index1;
 
-      auto info1 = (const BOMPathInfo1*)bom.getPointer(index0);
-      if (info1 == nullptr) {
-        // Invalid BOMPathInfo1 structure.
+      size_t info1_size;
+      auto info1 = (const BOMPathInfo1*)bom.getPointer(index0, &info1_size);
+      if (info1 == nullptr || info1_size < sizeof(BOMPathInfo1)) {
+        // Invalid BOMPathInfo1 structure or size out of bounds.
         return;
       }
 
-      auto info2 = (const BOMPathInfo2*)bom.getPointer(info1->index);
-      if (info2 == nullptr) {
-        // Invalid BOMPathInfo2 structure.
+      size_t info2_size;
+      auto info2 =
+          (const BOMPathInfo2*)bom.getPointer(info1->index, &info2_size);
+      if (info2 == nullptr || info2_size < sizeof(BOMPathInfo2)) {
+        // Invalid BOMPathInfo2 structure or size out of bounds.
         return;
       }
 
