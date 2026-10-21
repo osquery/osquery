@@ -107,6 +107,12 @@ class TLSTransport : public Transport {
   http::Client::Options getOptions();
 
  private:
+  /**
+   * @brief Build client options including destination-specific connection
+   * state so repeated requests to the same endpoint compare equal.
+   */
+  http::Client::Options getInternalOptionsForRequest(http::Request& request);
+
   /// Testing-only, disable peer verification.
   void disableVerifyPeer() {
     verify_peer_ = false;
@@ -151,6 +157,7 @@ class TLSTransport : public Transport {
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);
+  FRIEND_TEST(TLSTransportsTests, test_connection_reuse);
   FRIEND_TEST(TLSTransportsTests, test_call_with_params);
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);

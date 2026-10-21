@@ -195,6 +195,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self._set_headers()
         if self.path == "/config":
             self.config(request, node=True)
+        elif self.path == "/test_connection_id":
+            self.close_connection = False
+            self._reply({"client_port": self.client_address[1]})
         else:
             self._reply(TEST_GET_RESPONSE)
 
