@@ -76,7 +76,7 @@ Status ATCConfigParserPlugin::removeATCTables(
         registry_table->remove(table);
         PluginResponse resp;
         Registry::call(
-            "sql", "sql", {{"action", "detatch"}, {"table", table}}, resp);
+            "sql", "sql", {{"action", "detach"}, {"table", table}}, resp);
         VLOG(1) << "ATC table: " << table << " Removed";
       } else {
         failed_tables.insert(table);

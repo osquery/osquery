@@ -32,6 +32,7 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
+#include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/affixes.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/trim.h>
@@ -385,6 +386,8 @@ void Config::addPack(const std::string& name,
                      const std::string& source,
                      const rj::Value& obj) {
   assert(obj.IsObject());
+
+  auto sqlite_attach_lock = SQLiteDBManager::lockPrimaryAttach();
 
   auto addSinglePack = ([this, &source](const std::string pack_name,
                                         const rj::Value& pack_obj) {
@@ -891,6 +894,8 @@ void Config::applyParsers(const std::string& source,
                           const rj::Value& obj,
                           bool pack) {
   assert(obj.IsObject());
+
+  auto sqlite_attach_lock = SQLiteDBManager::lockPrimaryAttach();
 
   auto applyParser = [=](const std::shared_ptr<ConfigParserPlugin>& parser,
                          const std::string& source,

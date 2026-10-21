@@ -534,6 +534,10 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   return instance;
 }
 
+RecursiveLock SQLiteDBManager::lockPrimaryAttach() {
+  return getConnection(true)->attachLock();
+}
+
 SQLiteDBManager::~SQLiteDBManager() {
   connection_ = nullptr;
   if (db_ != nullptr) {
