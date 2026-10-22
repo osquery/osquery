@@ -7,7 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <set>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
@@ -96,12 +99,6 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   std::map<std::string, std::map<uint64_t, std::vector<std::string>>>
       intervals_;
 
-  /// Sources whose load decorators update() left for afterUpdate() to run.
-  std::set<std::string> pending_load_sources_;
-
-  /// Protects pending_load_sources_.
-  Mutex pending_load_sources_mutex_;
-
  public:
   /// The result set of decorations, column names and their values.
   static DecorationStore kDecorations;
@@ -111,12 +108,40 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
 
   /// Protect the configuration controlled content.
   static Mutex kDecorationsConfigMutex;
+
+  /// The generation of each source's decorators, which changes whenever they
+  /// are replaced. Results of queries from a replaced set of decorators are
+  /// not published. Protected by kDecorationsConfigMutex.
+  static std::map<std::string, uint64_t> kDecorationGenerations;
 };
+
+/// The sources, and their decorator generations, whose load decorators
+/// update() left for afterUpdate() to run. It is per-thread like the config's
+/// pending parsers, so each config update runs its own load decorators.
+thread_local std::vector<std::pair<std::string, uint64_t>>
+    kPendingLoadDecorators;
+
+/// The generation of a source's decorators. kDecorationsConfigMutex must be
+/// held.
+uint64_t decorationGeneration(const std::string& source) {
+  auto generation =
+      DecoratorsConfigParserPlugin::kDecorationGenerations.find(source);
+  return generation ==
+                 DecoratorsConfigParserPlugin::kDecorationGenerations.end()
+             ? 0
+             : generation->second;
+}
 } // namespace
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;
 Mutex DecoratorsConfigParserPlugin::kDecorationsConfigMutex;
+std::map<std::string, uint64_t>
+    DecoratorsConfigParserPlugin::kDecorationGenerations;
+
+static void runDecorators(const std::string& source,
+                          uint64_t generation,
+                          const std::vector<std::string>& queries);
 
 Status DecoratorsConfigParserPlugin::setUp() {
   // Decorators are kept within customized data structures.
@@ -147,8 +172,8 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 
     // Load decorators may query tables, such as ATC tables, that parsers
     // attach in afterUpdate(), so they run in afterUpdate() too.
-    WriteLock lock(pending_load_sources_mutex_);
-    pending_load_sources_.insert(source);
+    ReadLock lock(kDecorationsConfigMutex);
+    kPendingLoadDecorators.emplace_back(source, decorationGeneration(source));
   }
 
   auto doc = JSON::newObject();
@@ -159,20 +184,34 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 }
 
 void DecoratorsConfigParserPlugin::afterUpdate() {
-  std::set<std::string> sources;
-  {
-    WriteLock lock(pending_load_sources_mutex_);
-    sources.swap(pending_load_sources_);
+  std::vector<std::pair<std::string, uint64_t>> loads;
+  loads.swap(kPendingLoadDecorators);
+  if (FLAGS_disable_decorators) {
+    return;
   }
 
-  for (const auto& source : sources) {
-    runDecorators(DECORATE_LOAD, 0, source);
+  for (const auto& load : loads) {
+    std::vector<std::string> queries;
+    {
+      ReadLock lock(kDecorationsConfigMutex);
+      if (decorationGeneration(load.first) != load.second) {
+        // A newer update replaced these decorators. It runs its own once its
+        // changes, such as new ATC tables, have been applied.
+        continue;
+      }
+      auto source_queries = load_.find(load.first);
+      if (source_queries != load_.end()) {
+        queries = source_queries->second;
+      }
+    }
+    runDecorators(load.first, load.second, queries);
   }
 }
 
 void DecoratorsConfigParserPlugin::clearSources(const std::string& source) {
   // Reset the internal data store.
   WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
+  kDecorationGenerations[source]++;
   if (intervals_.count(source) > 0) {
     intervals_[source].clear();
   }
@@ -263,14 +302,31 @@ void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
   }
 }
 
-inline void addDecoration(const std::string& source,
-                          const std::string& name,
-                          const std::string& value) {
+/// Publish a decorator query's result, unless its decorators were replaced.
+inline void addDecorations(const std::string& source,
+                           uint64_t generation,
+                           const Row& row) {
+  ReadLock config_lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
+  if (decorationGeneration(source) != generation) {
+    return;
+  }
+
   WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
-  DecoratorsConfigParserPlugin::kDecorations[source][name] = value;
+  for (const auto& column : row) {
+    DecoratorsConfigParserPlugin::kDecorations[source][column.first] =
+        column.second;
+  }
 }
 
-inline void runDecorators(const std::string& source,
+/**
+ * Run decorator queries and publish their results.
+ *
+ * No decorator lock may be held: the queries can read tables, such as
+ * osquery_schedule, that take config locks, while a config update holding those
+ * locks waits for the decorator locks.
+ */
+static void runDecorators(const std::string& source,
+                          uint64_t generation,
                           const std::vector<std::string>& queries) {
 #ifdef OSQUERY_IS_FUZZING
   return;
@@ -282,9 +338,7 @@ inline void runDecorators(const std::string& source,
       // Notice the warning below about undefined behavior when:
       // 1: You include decorators that emit the same column name
       // 2: You include a query that returns more than 1 row.
-      for (const auto& column : results.rows()[0]) {
-        addDecoration(source, column.first, column.second);
-      }
+      addDecorations(source, generation, results.rows()[0]);
     }
 
     if (results.rows().size() > 1) {
@@ -313,31 +367,44 @@ void runDecorators(DecorationPoint point,
     return;
   }
 
-  // Abstract the use of the decorator parser API.
-  ReadLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
-  auto dp = std::dynamic_pointer_cast<DecoratorsConfigParserPlugin>(parser);
-  if (point == DECORATE_LOAD) {
-    for (const auto& target_source : dp->load_) {
-      if (source.empty() || target_source.first == source) {
-        runDecorators(target_source.first, target_source.second);
+  // Copy the queries to run, then run them without holding the lock.
+  std::vector<std::tuple<std::string, uint64_t, std::vector<std::string>>> runs;
+  {
+    // Abstract the use of the decorator parser API.
+    ReadLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
+    auto dp = std::dynamic_pointer_cast<DecoratorsConfigParserPlugin>(parser);
+    auto addRun = [&runs](const std::string& target_source,
+                          const std::vector<std::string>& queries) {
+      runs.emplace_back(
+          target_source, decorationGeneration(target_source), queries);
+    };
+    if (point == DECORATE_LOAD) {
+      for (const auto& target_source : dp->load_) {
+        if (source.empty() || target_source.first == source) {
+          addRun(target_source.first, target_source.second);
+        }
       }
-    }
-  } else if (point == DECORATE_ALWAYS) {
-    for (const auto& target_source : dp->always_) {
-      if (source.empty() || target_source.first == source) {
-        runDecorators(target_source.first, target_source.second);
+    } else if (point == DECORATE_ALWAYS) {
+      for (const auto& target_source : dp->always_) {
+        if (source.empty() || target_source.first == source) {
+          addRun(target_source.first, target_source.second);
+        }
       }
-    }
-  } else if (point == DECORATE_INTERVAL) {
-    for (const auto& target_source : dp->intervals_) {
-      for (const auto& interval : target_source.second) {
-        if (time % interval.first == 0) {
-          if (source.empty() || target_source.first == source) {
-            runDecorators(target_source.first, interval.second);
+    } else if (point == DECORATE_INTERVAL) {
+      for (const auto& target_source : dp->intervals_) {
+        for (const auto& interval : target_source.second) {
+          if (time % interval.first == 0) {
+            if (source.empty() || target_source.first == source) {
+              addRun(target_source.first, interval.second);
+            }
           }
         }
       }
     }
+  }
+
+  for (const auto& run : runs) {
+    runDecorators(std::get<0>(run), std::get<1>(run), std::get<2>(run));
   }
 }
 

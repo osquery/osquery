@@ -768,9 +768,12 @@ Status Config::updateSource(const std::string& source,
   }
 
   // Get the queries so that we can check which ones updated the SQL.
-  auto queries = schedule_->getSqlQueriesForSource(source);
+  std::map<std::string, std::map<std::string, std::string>> queries;
   {
+    // The schedule is read under its lock, since concurrent config updates
+    // modify it.
     RecursiveLock lock(config_schedule_mutex_);
+    queries = schedule_->getSqlQueriesForSource(source);
     // Remove all packs from this source.
     schedule_->removeAll(source);
     // Remove all files from this source.
@@ -834,7 +837,11 @@ Status Config::updateSource(const std::string& source,
   applyParsers(source, doc.doc(), false);
 
   // Get the updated queries so that we can compare them to old queries.
-  auto newQueries = schedule_->getSqlQueriesForSource(source);
+  std::map<std::string, std::map<std::string, std::string>> newQueries;
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    newQueries = schedule_->getSqlQueriesForSource(source);
+  }
   // Clear the performance stats on updated queries.
   for (const auto& oldPack : queries) {
     if (newQueries.find(oldPack.first) == newQueries.end()) {
