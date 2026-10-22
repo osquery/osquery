@@ -126,7 +126,7 @@ ENROLL_RESPONSE = {"node_key": "this_is_a_node_secret"}
 
 RECEIVED_REQUESTS = []
 
-# POST endpoints that answer with a 307 redirect, used to test the client's
+# GET and POST endpoints that answer with a 307 redirect, used to test the client's
 # redirect policy. Each maps to the redirect Location, where "{port}" is the
 # server's own port.
 REDIRECT_TARGETS = {
@@ -203,6 +203,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         reset_timeout()
         debug("RealSimpleHandler::get %s" % self.path)
         if not self._check_gzip_required():
+            return
+        if self.path in REDIRECT_TARGETS:
+            self.redirect()
             return
         self._set_headers()
         if self.path == "/config":

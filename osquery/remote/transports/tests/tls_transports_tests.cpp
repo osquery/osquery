@@ -35,6 +35,7 @@ DECLARE_string(tls_server_certs);
 DECLARE_bool(tls_accept_gzip);
 DECLARE_bool(tls_session_reuse);
 DECLARE_bool(tls_allow_cross_origin_redirects);
+DECLARE_bool(tls_follow_redirects);
 
 class TLSTransportsTests : public testing::Test {
  public:
@@ -85,6 +86,15 @@ class TLSTransportsTests : public testing::Test {
     JSON params;
     params.addCopy("foo", "bar");
     return r.call(params);
+  }
+
+  /// GET a path on the test server.
+  Status getFromServer(const std::string& path) {
+    auto t = std::make_shared<TLSTransport>();
+    t->disableVerifyPeer();
+    Request<TLSTransport, JSONSerializer> r("https://localhost:" + port_ + path,
+                                            t);
+    return r.call();
   }
 
   /// Count the requests the test server recorded for a command.
@@ -456,6 +466,29 @@ TEST_F(TLSTransportsTests, test_redirect_invalid_location_refused) {
 
   // A refused redirect must not be retried, which would re-send the request.
   EXPECT_EQ(countServerRequests("redirect_bad_port"), 1U);
+}
+
+// With redirects disabled, the redirect response itself, whose body is empty,
+// must not be taken as the server's response.
+TEST_F(TLSTransportsTests, test_redirect_not_followed_fails) {
+  startServer();
+  const auto original_flag = FLAGS_tls_follow_redirects;
+  FLAGS_tls_follow_redirects = false;
+
+  Status status = postToServer("/redirect_same_origin");
+  ASSERT_FALSE(status.ok());
+  EXPECT_NE(status.getMessage().find("Redirect not followed"),
+            std::string::npos)
+      << status.getMessage();
+  EXPECT_EQ(countServerRequests("redirect_same_origin"), 1U);
+
+  status = getFromServer("/redirect_same_origin");
+  ASSERT_FALSE(status.ok());
+  EXPECT_NE(status.getMessage().find("Redirect not followed"),
+            std::string::npos)
+      << status.getMessage();
+
+  FLAGS_tls_follow_redirects = original_flag;
 }
 
 } // namespace osquery
