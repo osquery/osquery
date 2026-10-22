@@ -22,6 +22,7 @@
 #include <osquery/database/database.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
+#include <plugins/config/parsers/decorators.h>
 
 namespace osquery {
 
@@ -122,6 +123,110 @@ TEST_F(ATCConfigParserPluginTests, test_table_attach_and_detach) {
   EXPECT_TRUE(query("SELECT * FROM atc_deadlock_table", results).ok());
 
   ASSERT_TRUE(Config::get().update({{kSource, kConfigWithoutTable}}).ok());
+}
+
+namespace {
+
+const std::string kDecoratorSource{"atc_decorator_test"};
+
+// A config with an ATC table whose only column is `column`, and a load
+// decorator that only succeeds against the table defined with column "other".
+std::string configWithDecoratedTable(const std::string& column) {
+  return R"({
+    "auto_table_construction": {
+      "atc_decorator_table": {
+        "query": "SELECT )" +
+         column + R"( FROM test",
+        "path": "/nonexistent/atc_decorator.db",
+        "columns": [")" +
+         column + R"("]
+      }
+    },
+    "decorators": {
+      "load": ["SELECT COUNT(other) AS atc_load_test FROM atc_decorator_table"]
+    }
+  })";
+}
+
+std::string getLoadDecoration() {
+  std::map<std::string, std::string> decorations;
+  getDecorations(decorations);
+  auto it = decorations.find("atc_load_test");
+  return it == decorations.end() ? "<missing>" : it->second;
+}
+
+} // namespace
+
+// Load decorators run after the ATC tables of the same config are attached,
+// so they can query a table that the config adds.
+TEST_F(ATCConfigParserPluginTests, test_load_decorator_sees_new_table) {
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kDecoratorSource, configWithDecoratedTable("other")}})
+          .ok());
+  EXPECT_EQ(getLoadDecoration(), "0");
+
+  ASSERT_TRUE(
+      Config::get().update({{kDecoratorSource, kConfigWithoutTable}}).ok());
+  EXPECT_EQ(getLoadDecoration(), "<missing>");
+}
+
+// Load decorators see the new definition of a table that a refresh changes.
+TEST_F(ATCConfigParserPluginTests, test_load_decorator_sees_changed_table) {
+  // The decorator's column does not exist in this definition.
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kDecoratorSource, configWithDecoratedTable("value")}})
+          .ok());
+  EXPECT_EQ(getLoadDecoration(), "<missing>");
+
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kDecoratorSource, configWithDecoratedTable("other")}})
+          .ok());
+  EXPECT_EQ(getLoadDecoration(), "0");
+
+  ASSERT_TRUE(
+      Config::get().update({{kDecoratorSource, kConfigWithoutTable}}).ok());
+}
+
+// In a wildcard multi-pack, a pack's discovery query can use an ATC table that
+// an earlier pack defines.
+TEST_F(ATCConfigParserPluginTests, test_multi_pack_discovery_sees_table) {
+  const std::string source{"atc_multi_pack_test"};
+  const std::string config = R"({
+    "packs": {
+      "*": {
+        "atc_defining_pack": {
+          "auto_table_construction": {
+            "atc_discovery_table": {
+              "query": "SELECT value FROM test",
+              "path": "/nonexistent/atc_discovery.db",
+              "columns": ["value"]
+            }
+          },
+          "queries": {"atc_defining_query": {"query": "SELECT 1", "interval": 60}}
+        },
+        "atc_discovering_pack": {
+          "discovery": ["SELECT COUNT(*) FROM atc_discovery_table"],
+          "queries": {"atc_discovered_query": {"query": "SELECT 1", "interval": 60}}
+        }
+      }
+    }
+  })";
+
+  ASSERT_TRUE(Config::get().update({{source, config}}).ok());
+
+  bool discovered = false;
+  Config::get().scheduledQueries(
+      [&discovered](const std::string& name, const ScheduledQuery&) {
+        if (name.find("atc_discovered_query") != std::string::npos) {
+          discovered = true;
+        }
+      });
+  EXPECT_TRUE(discovered);
+
+  ASSERT_TRUE(Config::get().update({{source, kConfigWithoutTable}}).ok());
 }
 
 } // namespace osquery

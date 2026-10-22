@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <set>
+
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
@@ -71,6 +73,9 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
 
   Status update(const std::string& source, const ParserConfig& config) override;
 
+  /// Run the load decorators of the sources that update() received.
+  void afterUpdate() override;
+
   /// Update the set of decorators for a given source.
   void updateDecorations(const std::string& source, const JSON& doc);
 
@@ -90,6 +95,12 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Set of configuration sources to valid intervals.
   std::map<std::string, std::map<uint64_t, std::vector<std::string>>>
       intervals_;
+
+  /// Sources whose load decorators update() left for afterUpdate() to run.
+  std::set<std::string> pending_load_sources_;
+
+  /// Protects pending_load_sources_.
+  Mutex pending_load_sources_mutex_;
 
  public:
   /// The result set of decorations, column names and their values.
@@ -133,7 +144,11 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
     // The run decorators method is designed to have call sites throughout
     // the code base.
     updateDecorations(source, decorations->second);
-    runDecorators(DECORATE_LOAD, 0, source);
+
+    // Load decorators may query tables, such as ATC tables, that parsers
+    // attach in afterUpdate(), so they run in afterUpdate() too.
+    WriteLock lock(pending_load_sources_mutex_);
+    pending_load_sources_.insert(source);
   }
 
   auto doc = JSON::newObject();
@@ -141,6 +156,18 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
   data_ = std::move(doc);
 
   return Status(0, "OK");
+}
+
+void DecoratorsConfigParserPlugin::afterUpdate() {
+  std::set<std::string> sources;
+  {
+    WriteLock lock(pending_load_sources_mutex_);
+    sources.swap(pending_load_sources_);
+  }
+
+  for (const auto& source : sources) {
+    runDecorators(DECORATE_LOAD, 0, source);
+  }
 }
 
 void DecoratorsConfigParserPlugin::clearSources(const std::string& source) {

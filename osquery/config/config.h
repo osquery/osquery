@@ -312,7 +312,8 @@ class Config : private boost::noncopyable {
                     bool pack = false);
 
   /**
-   * @brief Call afterUpdate() on the parsers updated by applyParsers.
+   * @brief Call afterUpdate() on the parsers updated by applyParsers on this
+   * thread.
    *
    * Must be called without holding any config lock. applyParsers calls it for
    * the top-level configuration, and addPack calls it for pack content, which
