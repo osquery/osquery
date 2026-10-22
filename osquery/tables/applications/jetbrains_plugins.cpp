@@ -73,24 +73,48 @@ FileData extractSpecificFileFromArchive(const std::string& archive_file_path,
 
     if (currentPath == targetPath) {
       // Found the target file in the archive
-      file_data.path = currentFile;
+      const auto declared_size = archive_entry_size(entry);
+      if (archive_entry_size_is_set(entry) != 0 &&
+          (declared_size < 0 ||
+           !canAppendJetBrainsPluginXmlBytes(
+               0U, static_cast<std::uint64_t>(declared_size)))) {
+        VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
+                << archive_file_path;
+        return {};
+      }
 
       const void* buffer;
       size_t size;
       int64_t offset;
+      std::vector<char> content;
 
-      while (archive_read_data_block(archive, &buffer, &size, &offset) ==
-             ARCHIVE_OK) {
-        file_data.content.insert(file_data.content.end(),
-                                 (const char*)buffer,
-                                 (const char*)buffer + size);
+      while (true) {
+        result = archive_read_data_block(archive, &buffer, &size, &offset);
+        if (result == ARCHIVE_EOF) {
+          break;
+        }
+
+        if (result != ARCHIVE_OK) {
+          VLOG(1) << "Error reading JetBrains plugin metadata from: "
+                  << archive_file_path << ": " << archive_error_string(archive);
+          return {};
+        }
+
+        if (!canAppendJetBrainsPluginXmlBytes(
+                static_cast<std::uint64_t>(content.size()),
+                static_cast<std::uint64_t>(size))) {
+          VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
+                  << archive_file_path;
+          return {};
+        }
+
+        content.insert(content.end(),
+                       static_cast<const char*>(buffer),
+                       static_cast<const char*>(buffer) + size);
       }
 
-      if (archive_errno(archive) != 0) {
-        VLOG(1) << "Error reading data block: " << archive_error_string(archive)
-                << std::endl;
-      }
-
+      file_data.path = currentFile;
+      file_data.content = std::move(content);
       break;
     }
     // Move to the next entry
@@ -99,12 +123,6 @@ FileData extractSpecificFileFromArchive(const std::string& archive_file_path,
 
   return file_data;
 }
-
-struct PluginAttributes {
-  std::string name;
-  std::string vendor;
-  std::string version;
-};
 
 // Function to extract the contents of a specific tag
 std::string getContentFromTag(const std::string& xml,
