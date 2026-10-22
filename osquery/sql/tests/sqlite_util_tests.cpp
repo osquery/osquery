@@ -7,9 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/carver/carver_utils.h>
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/registry/registry_interface.h>
 #include <osquery/sql/sql.h>
 #include <osquery/sql/sqlite_util.h>
@@ -449,6 +451,38 @@ TEST_F(SQLiteUtilTests, test_enable) {
   // Fake_table is explicitly in enabled_tables and
   // disable_tables, it should be disabled.
   ASSERT_TRUE(SQLiteDBManager::isDisabled("fake_table"));
+}
+
+DECLARE_bool(carver_disable_function);
+
+TEST_F(SQLiteUtilTests, test_carve_function_disabled) {
+  ASSERT_TRUE(FLAGS_carver_disable_function);
+
+  auto sql = SQL("SELECT carve('/tmp/osquery_carve_test') AS c");
+  ASSERT_TRUE(sql.ok());
+  ASSERT_EQ(sql.rows().size(), 1U);
+  EXPECT_EQ(sql.rows()[0].at("c"), "Carve Failed: function disabled");
+}
+
+TEST_F(SQLiteUtilTests, test_carve_function_enabled) {
+  initDatabasePluginForTesting();
+  FLAGS_carver_disable_function = false;
+
+  auto sql = SQL("SELECT carve('/tmp/osquery_carve_test') AS c");
+  FLAGS_carver_disable_function = true;
+  ASSERT_TRUE(sql.ok());
+  ASSERT_EQ(sql.rows().size(), 1U);
+
+  // The result must carry the full GUID of the queued carve request.
+  const std::string prefix = "Carve Started: ";
+  const auto& result = sql.rows()[0].at("c");
+  ASSERT_GT(result.size(), prefix.size());
+  EXPECT_EQ(result.compare(0, prefix.size(), prefix), 0);
+
+  std::string request;
+  auto s = getDatabaseValue(
+      kCarves, kCarverDBPrefix + result.substr(prefix.size()), request);
+  EXPECT_TRUE(s.ok());
 }
 
 TEST_F(SQLiteUtilTests, test_sqlite_authorizer) {

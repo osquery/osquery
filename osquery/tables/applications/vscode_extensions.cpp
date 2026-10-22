@@ -9,12 +9,14 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/applications/vscode_extensions.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/json/json.h>
 
@@ -50,6 +52,18 @@ const std::vector<std::pair<std::string, std::string>> KPathList = {
     {".antigravity-server", "antigravity"},
     {".local/share/code-server", "code_server"},
 };
+
+// Named profiles keep their own extensions.json (same format as the default
+// one) under the user data dir: <user data dir>/Code/User/profiles/<id>/.
+// Only stable Code is handled; forks use differently named user data dirs.
+#if defined(__APPLE__)
+const char* const kVSCodeProfilesDir =
+    "Library/Application Support/Code/User/profiles";
+#elif defined(WIN32)
+const char* const kVSCodeProfilesDir = "AppData/Roaming/Code/User/profiles";
+#else
+const char* const kVSCodeProfilesDir = ".config/Code/User/profiles";
+#endif
 
 void genReadJSONAndAddExtensionRows(const std::string& uid,
                                     const std::string& path,
@@ -137,6 +151,24 @@ void genReadJSONAndAddExtensionRows(const std::string& uid,
   }
 }
 
+void genVSCodeProfileExtensionRows(const std::string& uid,
+                                   const fs::path& profiles_dir,
+                                   const std::string& vscode_edition,
+                                   QueryData& results) {
+  std::vector<std::string> profile_paths;
+  if (!listDirectoriesInDirectory(profiles_dir, profile_paths).ok()) {
+    return;
+  }
+
+  for (const auto& profile_path : profile_paths) {
+    genReadJSONAndAddExtensionRows(
+        uid,
+        (fs::path(profile_path) / "extensions.json").string(),
+        vscode_edition,
+        results);
+  }
+}
+
 struct ConfDir {
   std::string uid;
   fs::path path;
@@ -153,6 +185,7 @@ QueryData genVSCodeExtensions(QueryContext& context) {
 
   // find vscode config directories
   std::set<ConfDir> conf_dirs;
+  std::set<ConfDir> profile_dirs;
   auto users = usersFromContext(context);
   for (const auto& row : users) {
     auto uid = row.find("uid");
@@ -167,12 +200,22 @@ QueryData genVSCodeExtensions(QueryContext& context) {
                                fs::path(directory->second) / path_info.first,
                                path_info.second});
     }
+
+    profile_dirs.insert(
+        ConfDir{uid->second,
+                fs::path(directory->second) / kVSCodeProfilesDir,
+                "vscode"});
   }
 
   for (const auto& conf_dir : conf_dirs) {
     auto path = conf_dir.path / "extensions" / "extensions.json";
     genReadJSONAndAddExtensionRows(
         conf_dir.uid, path.string(), conf_dir.vscode_edition, results);
+  }
+
+  for (const auto& profile_dir : profile_dirs) {
+    genVSCodeProfileExtensionRows(
+        profile_dir.uid, profile_dir.path, profile_dir.vscode_edition, results);
   }
 
   return results;
