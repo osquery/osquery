@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -94,8 +93,11 @@ std::vector<std::string> Query::getStoredQueryNames() {
 }
 
 bool Query::isQueryNameInDatabase() const {
-  auto names = Query::getStoredQueryNames();
-  return std::find(names.begin(), names.end(), name_) != names.end();
+  // A point lookup of the results key: the scheduler calls this on every run,
+  // and scanning the whole queries domain grows with the number of stored
+  // result sets.
+  std::string raw;
+  return getDatabaseValue(kQueries, name_, raw).ok();
 }
 
 static inline void saveQuery(const std::string& name,

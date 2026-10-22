@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #ifdef OSQUERY_WINDOWS
@@ -23,6 +24,21 @@ namespace osquery {
  *
  * @return a string representing the host's current hostname
  */
+/**
+ * @brief CPU time and memory of the calling process.
+ *
+ * The fields use the units of the processes table: milliseconds for the CPU
+ * times and bytes for the resident set size.
+ */
+struct SelfResourceUsage {
+  std::uint64_t user_time_ms{0};
+  std::uint64_t system_time_ms{0};
+  std::uint64_t resident_size{0};
+};
+
+/// Read the calling process' resource usage without a table query.
+bool getSelfResourceUsage(SelfResourceUsage& usage);
+
 std::string getHostname();
 
 /**
