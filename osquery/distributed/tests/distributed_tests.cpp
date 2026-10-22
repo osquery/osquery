@@ -30,6 +30,7 @@ namespace osquery {
 
 DECLARE_string(distributed_tls_read_endpoint);
 DECLARE_string(distributed_tls_write_endpoint);
+DECLARE_uint64(distributed_results_max_bytes);
 
 class DistributedTests : public testing::Test {
  protected:
@@ -256,6 +257,70 @@ TEST_F(DistributedTests, test_check_and_set_as_running) {
       getDatabaseValue(kDistributedRunningQueries, denylistedQueryKey, ts3);
   ASSERT_FALSE(status.ok()); // NotFound
   ASSERT_TRUE(ts3.empty());
+}
+
+namespace {
+
+/// A distributed plugin whose writes always fail.
+class FailingWriteDistributedPlugin : public DistributedPlugin {
+ public:
+  Status getQueries(std::string& json) override {
+    json = "{}";
+    return Status::success();
+  }
+
+  Status writeResults(const std::string& json) override {
+    return Status::failure("write failed");
+  }
+};
+
+DistributedQueryResult makeResult(const std::string& id) {
+  DistributedQueryRequest request;
+  request.id = id;
+  request.query = "SELECT 1";
+  return DistributedQueryResult(
+      request, {{{"value", std::string(100, 'x')}}}, {"value"}, Status(), "");
+}
+
+} // namespace
+
+// Results that fail to write are kept for the next flush, unless they have
+// grown beyond distributed_results_max_bytes.
+TEST_F(DistributedTests, test_failed_results_kept_up_to_max_bytes) {
+  auto& rf = RegistryFactory::get();
+  rf.registry("distributed")
+      ->add("failing_write", std::make_shared<FailingWriteDistributedPlugin>());
+  ASSERT_TRUE(rf.setActive("distributed", "failing_write").ok());
+  const auto max_bytes = FLAGS_distributed_results_max_bytes;
+
+  auto dist = Distributed();
+  dist.addResult(makeResult("q1"));
+  dist.addResult(makeResult("q2"));
+
+  // Under the limit, the results are kept to retry.
+  FLAGS_distributed_results_max_bytes = 1024 * 1024;
+  EXPECT_FALSE(dist.flushCompleted().ok());
+  EXPECT_EQ(dist.results_.size(), 2U);
+
+  // A new result is retried along with the kept ones.
+  dist.addResult(makeResult("q3"));
+  EXPECT_FALSE(dist.flushCompleted().ok());
+  EXPECT_EQ(dist.results_.size(), 3U);
+
+  // Over the limit, they are dropped.
+  FLAGS_distributed_results_max_bytes = 100;
+  EXPECT_FALSE(dist.flushCompleted().ok());
+  EXPECT_EQ(dist.results_.size(), 0U);
+
+  // With no limit, they are always kept.
+  dist.addResult(makeResult("q4"));
+  FLAGS_distributed_results_max_bytes = 0;
+  EXPECT_FALSE(dist.flushCompleted().ok());
+  EXPECT_EQ(dist.results_.size(), 1U);
+
+  // The plugin is left active: re-activating the tls plugin would try to
+  // enroll. Tests that use a distributed plugin activate it themselves.
+  FLAGS_distributed_results_max_bytes = max_bytes;
 }
 
 class DistributedMock : public Distributed {

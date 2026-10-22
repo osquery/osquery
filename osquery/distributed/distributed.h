@@ -370,6 +370,7 @@ class Distributed {
  private:
   friend class DistributedTests;
   FRIEND_TEST(DistributedTests, test_workflow);
+  FRIEND_TEST(DistributedTests, test_failed_results_kept_up_to_max_bytes);
   FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
   FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
   FRIEND_TEST(DistributedTests, test_accept_work_basic);

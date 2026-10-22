@@ -48,6 +48,12 @@ FLAG(uint64,
      86400,
      "Seconds to denylist distributed queries (default 1 day)");
 
+FLAG(uint64,
+     distributed_results_max_bytes,
+     32 * 1024 * 1024,
+     "Maximum size in bytes of distributed query results kept to retry after "
+     "a failed write; larger results are dropped (0 = unlimited)");
+
 DECLARE_bool(verbose);
 
 std::string Distributed::currentRequestId_{""};
@@ -268,11 +274,24 @@ Status Distributed::flushCompleted() {
     return s;
   }
 
+  VLOG(1) << "Writing " << results_.size() << " distributed query results ("
+          << results.size() << " bytes)";
+
   PluginResponse response;
   s = Registry::call("distributed",
                      {{"action", "writeResults"}, {"results", results}},
                      response);
   if (s.ok()) {
+    results_.clear();
+    performance_.clear();
+  } else if (FLAGS_distributed_results_max_bytes > 0 &&
+             results.size() > FLAGS_distributed_results_max_bytes) {
+    // Failed results are kept to retry with the next flush. If writes keep
+    // failing while new queries are still received, for example because the
+    // server rejects the request size, they would grow without bound.
+    LOG(WARNING) << "Dropping " << results_.size()
+                 << " distributed query results (" << results.size()
+                 << " bytes) that could not be written: " << s.getMessage();
     results_.clear();
     performance_.clear();
   }
