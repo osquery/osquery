@@ -7,6 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <future>
+#include <string>
+#include <thread>
+
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
@@ -161,5 +168,94 @@ TEST_F(DecoratorsConfigParserPluginTests, test_invalid_decorators) {
       {"decorators", "1"}};
   status = Config::get().update(decorators_as_number);
   ASSERT_FALSE(status.ok());
+}
+
+namespace {
+
+std::string getDecoration(const std::string& name) {
+  std::map<std::string, std::string> decorations;
+  getDecorations(decorations);
+  auto it = decorations.find(name);
+  return it == decorations.end() ? "<missing>" : it->second;
+}
+
+ConfigParserPlugin::ParserConfig makeDecoratorsConfig(
+    const std::string& load_query) {
+  auto doc = JSON::newObject();
+  EXPECT_TRUE(doc.fromString(R"({"load": [")" + load_query + R"("]})").ok());
+  ConfigParserPlugin::ParserConfig config;
+  config.emplace("decorators", std::move(doc));
+  return config;
+}
+
+} // namespace
+
+// Decorator queries run without decorator locks held. A load decorator that
+// reads osquery_schedule takes the schedule lock, which a concurrent config
+// update holds while it waits for the decorator locks.
+TEST_F(DecoratorsConfigParserPluginTests,
+       test_concurrent_updates_with_schedule_decorator_no_deadlock) {
+  FLAGS_disable_decorators = false;
+
+  auto updates = [](const std::string& source) {
+    for (size_t i = 0; i < 100; ++i) {
+      // Alternate the config so that every update is applied.
+      Config::get().update(
+          {{source,
+            R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
+                "decorators": {"load": ["SELECT COUNT(*) AS schedule_)" +
+                std::to_string(i % 2) + R"( FROM osquery_schedule"]}})"}});
+    }
+  };
+  auto updater_a = std::async(std::launch::async, updates, "deadlock_a");
+  auto updater_b = std::async(std::launch::async, updates, "deadlock_b");
+
+  // Deadlocked threads cannot be joined, so report the failure and exit
+  // instead of hanging the test run.
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  if (updater_a.wait_until(deadline) != std::future_status::ready ||
+      updater_b.wait_until(deadline) != std::future_status::ready) {
+    std::fprintf(stderr,
+                 "Deadlock: concurrent config updates with a load decorator "
+                 "reading osquery_schedule did not finish within 60 seconds\n");
+    std::fflush(stderr);
+    std::_Exit(EXIT_FAILURE);
+  }
+}
+
+// An update's afterUpdate() runs only its own load decorators. If a newer
+// update replaced them, the newer update runs its decorators itself, once its
+// own changes, such as new ATC tables, have been applied.
+TEST_F(DecoratorsConfigParserPluginTests,
+       test_load_decorators_superseded_by_newer_update) {
+  FLAGS_disable_decorators = false;
+  const std::string source{"superseded_test"};
+  auto parser = Config::getParser("decorators");
+  ASSERT_NE(parser, nullptr);
+
+  // Update A runs on its own thread, and B replaces its decorators before A's
+  // afterUpdate() runs.
+  std::promise<void> a_updated;
+  std::promise<void> b_updated;
+  std::thread update_a([&]() {
+    parser->update(source, makeDecoratorsConfig("SELECT 'a' AS superseded"));
+    a_updated.set_value();
+    b_updated.get_future().wait();
+    parser->afterUpdate();
+  });
+  a_updated.get_future().wait();
+  parser->update(source, makeDecoratorsConfig("SELECT 'b' AS superseded"));
+  b_updated.set_value();
+  update_a.join();
+
+  // A must not have run B's decorators, which may need B's changes.
+  EXPECT_EQ(getDecoration("superseded"), "<missing>");
+
+  parser->afterUpdate();
+  EXPECT_EQ(getDecoration("superseded"), "b");
+
+  parser->update(source, {});
+  parser->afterUpdate();
 }
 } // namespace osquery

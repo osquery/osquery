@@ -12,6 +12,7 @@
 #include <functional>
 #include <map>
 #include <queue>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -129,6 +130,13 @@ Mutex config_backup_mutex_;
 RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
+
+/// Parsers updated by applyParsers on this thread whose afterUpdate() has not
+/// run yet. It is per-thread so that concurrent config updates each apply their
+/// own changes, rather than one update returning before another has applied
+/// them.
+thread_local std::vector<std::shared_ptr<ConfigParserPlugin>>
+    config_pending_parsers_;
 
 using PackRef = std::unique_ptr<Pack>;
 
@@ -415,9 +423,13 @@ void Config::addPack(const std::string& name,
         continue;
       }
       addSinglePack(pack.name.GetString(), pack.value);
+      // Apply each pack's changes before the next pack's discovery queries,
+      // which may use a table it defines.
+      applyParserChanges();
     }
   } else {
     addSinglePack(name, obj);
+    applyParserChanges();
   }
 }
 
@@ -756,9 +768,12 @@ Status Config::updateSource(const std::string& source,
   }
 
   // Get the queries so that we can check which ones updated the SQL.
-  auto queries = schedule_->getSqlQueriesForSource(source);
+  std::map<std::string, std::map<std::string, std::string>> queries;
   {
+    // The schedule is read under its lock, since concurrent config updates
+    // modify it.
     RecursiveLock lock(config_schedule_mutex_);
+    queries = schedule_->getSqlQueriesForSource(source);
     // Remove all packs from this source.
     schedule_->removeAll(source);
     // Remove all files from this source.
@@ -822,7 +837,11 @@ Status Config::updateSource(const std::string& source,
   applyParsers(source, doc.doc(), false);
 
   // Get the updated queries so that we can compare them to old queries.
-  auto newQueries = schedule_->getSqlQueriesForSource(source);
+  std::map<std::string, std::map<std::string, std::string>> newQueries;
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    newQueries = schedule_->getSqlQueriesForSource(source);
+  }
   // Clear the performance stats on updated queries.
   for (const auto& oldPack : queries) {
     if (newQueries.find(oldPack.first) == newQueries.end()) {
@@ -913,6 +932,7 @@ void Config::applyParsers(const std::string& source,
     // each top-level-config key. The parser may choose to update the config's
     // internal state
     parser->update(source, parser_config);
+    config_pending_parsers_.push_back(parser);
   };
 
   auto getParser = [=](const PluginRef& plugin, const std::string& name) {
@@ -925,26 +945,50 @@ void Config::applyParsers(const std::string& source,
     return parser;
   };
 
-  RecursiveLock lock(config_schedule_mutex_);
-  auto plugins = RegistryFactory::get().plugins("config_parser");
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    auto plugins = RegistryFactory::get().plugins("config_parser");
 
-  // Always apply the options parser first, others may depend on flags/options.
-  auto options_plugin = plugins.find("options");
-  if (options_plugin != plugins.end()) {
-    auto parser = getParser(options_plugin->second, options_plugin->first);
-    if (parser != nullptr && parser.get() != nullptr) {
-      applyParser(parser, source, obj);
+    // Always apply the options parser first, others may depend on
+    // flags/options.
+    auto options_plugin = plugins.find("options");
+    if (options_plugin != plugins.end()) {
+      auto parser = getParser(options_plugin->second, options_plugin->first);
+      if (parser != nullptr && parser.get() != nullptr) {
+        applyParser(parser, source, obj);
+      }
+    }
+
+    // Iterate each parser.
+    for (const auto& plugin : plugins) {
+      if (plugin.first == "options") {
+        continue;
+      }
+      auto parser = getParser(plugin.second, plugin.first);
+      if (parser != nullptr && parser.get() != nullptr) {
+        applyParser(parser, source, obj);
+      }
     }
   }
 
-  // Iterate each parser.
-  for (const auto& plugin : plugins) {
-    if (plugin.first == "options") {
-      continue;
-    }
-    auto parser = getParser(plugin.second, plugin.first);
-    if (parser != nullptr && parser.get() != nullptr) {
-      applyParser(parser, source, obj);
+  // Pack content is parsed while addPack holds the schedule lock, so addPack
+  // applies the parser changes once it has released it.
+  if (!pack) {
+    applyParserChanges();
+  }
+}
+
+void Config::applyParserChanges() {
+  std::vector<std::shared_ptr<ConfigParserPlugin>> parsers;
+  parsers.swap(config_pending_parsers_);
+
+  // Run in the order the parsers were updated, so the auto_constructed_tables
+  // parser attaches its tables before the decorators parser runs load
+  // decorators that may query them.
+  std::set<ConfigParserPlugin*> applied;
+  for (const auto& parser : parsers) {
+    if (applied.insert(parser.get()).second) {
+      parser->afterUpdate();
     }
   }
 }

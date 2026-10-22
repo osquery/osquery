@@ -53,6 +53,7 @@ function(generatePluginsConfigParsers)
 
   generateIncludeNamespace(plugins_config_parsers "plugins/config/parsers" "FILE_ONLY" ${public_header_files})
 
+  add_test(NAME plugins_config_parsers_tests_autoconstructedtablestests-test COMMAND plugins_config_parsers_tests_autoconstructedtablestests-test)
   add_test(NAME plugins_config_parsers_tests_decoratorstests-test COMMAND plugins_config_parsers_tests_decoratorstests-test)
   add_test(NAME plugins_config_parsers_tests_eventsparsertests-test COMMAND plugins_config_parsers_tests_eventsparsertests-test)
   add_test(NAME plugins_config_parsers_tests_filepathstests-test COMMAND plugins_config_parsers_tests_filepathstests-test)
@@ -60,6 +61,7 @@ function(generatePluginsConfigParsers)
   add_test(NAME plugins_config_parsers_tests_viewstests-test COMMAND plugins_config_parsers_tests_viewstests-test)
 
   set_tests_properties(
+    plugins_config_parsers_tests_autoconstructedtablestests-test
     plugins_config_parsers_tests_decoratorstests-test
     plugins_config_parsers_tests_eventsparsertests-test
     plugins_config_parsers_tests_filepathstests-test
