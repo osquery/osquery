@@ -370,7 +370,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
       (std::istreambuf_iterator<char>()));
   input_file.close();
 
-  if (compressed_data.size() < sizeof(PPREFETCH_COMPRESSED_HEADER)) {
+  if (compressed_data.size() < sizeof(PREFETCH_COMPRESSED_HEADER)) {
     // Not enough data to determine header size.
     return;
   }
@@ -390,7 +390,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
     data = std::move(compressed_data);
   }
 
-  if (data.size() < sizeof(PPREFETCH_FILE_HEADER)) {
+  if (data.size() < sizeof(PREFETCH_FILE_HEADER)) {
     // Not enough data to determine signature.
     return;
   }

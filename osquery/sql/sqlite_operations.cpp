@@ -53,17 +53,16 @@ static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
 
 static void executeCarve(sqlite3_context* ctx) {
   WriteLock lock(kFunctionCarveMutex);
+  std::string result;
   if (!FLAGS_carver_disable_function) {
     std::string new_carve_guid;
     carvePaths(kFunctionCarvePaths, createCarveGuid(), new_carve_guid);
-    sqlite3_result_text(ctx,
-                        std::string("Carve Started: " + new_carve_guid).c_str(),
-                        13,
-                        SQLITE_TRANSIENT);
+    result = "Carve Started: " + new_carve_guid;
   } else {
-    sqlite3_result_text(
-        ctx, "Carve Failed: function disabled", 13, SQLITE_TRANSIENT);
+    result = "Carve Failed: function disabled";
   }
+  sqlite3_result_text(
+      ctx, result.c_str(), static_cast<int>(result.size()), SQLITE_TRANSIENT);
   kFunctionCarvePaths.clear();
 }
 
