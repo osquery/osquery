@@ -42,7 +42,14 @@ std::string sanitizeHttpHeaderValue(const std::string& value) {
 
 Status processRequest(Row& r) {
   try {
-    osquery::http::Client client(TLSTransport().getOptions());
+    // The curl table exists to fetch arbitrary user-supplied URLs, so it always
+    // follows redirects (e.g. URL shorteners and CDNs), including to other
+    // origins, independent of the --tls_follow_redirects and
+    // --tls_allow_cross_origin_redirects settings used by the TLS transport.
+    // Redirects off of HTTPS are still refused by the HTTP client.
+    auto options = TLSTransport().getOptions();
+    options.follow_redirects(true).allow_cross_origin_redirects(true);
+    osquery::http::Client client(options);
     osquery::http::Response response;
     osquery::http::Request request(r["url"]);
 
