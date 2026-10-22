@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
 
@@ -154,7 +155,18 @@ Status Distributed::serializeResults(std::string& json) {
 }
 
 void Distributed::addResult(const DistributedQueryResult& result) {
-  results_.push_back(result);
+  // Results are written keyed by query ID, so only the latest result for an
+  // ID is sent. Replace a result kept from a failed write rather than keeping
+  // both, since a server may reissue the same ID while writes keep failing.
+  auto existing = std::find_if(
+      results_.begin(), results_.end(), [&result](const auto& kept) {
+        return kept.request.id == result.request.id;
+      });
+  if (existing != results_.end()) {
+    *existing = result;
+  } else {
+    results_.push_back(result);
+  }
 }
 
 Status Distributed::runQueries() {

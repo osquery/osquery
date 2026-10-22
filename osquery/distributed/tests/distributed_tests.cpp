@@ -274,12 +274,28 @@ class FailingWriteDistributedPlugin : public DistributedPlugin {
   }
 };
 
-DistributedQueryResult makeResult(const std::string& id) {
+/// Make the distributed plugin whose writes always fail the active one.
+Status activateFailingWritePlugin() {
+  auto& rf = RegistryFactory::get();
+  if (!rf.exists("distributed", "failing_write")) {
+    rf.registry("distributed")
+        ->add("failing_write",
+              std::make_shared<FailingWriteDistributedPlugin>());
+  }
+  return rf.setActive("distributed", "failing_write");
+}
+
+DistributedQueryResult makeResult(const std::string& id,
+                                  const std::string& value = "") {
   DistributedQueryRequest request;
   request.id = id;
   request.query = "SELECT 1";
   return DistributedQueryResult(
-      request, {{{"value", std::string(100, 'x')}}}, {"value"}, Status(), "");
+      request,
+      {{{"value", value.empty() ? std::string(100, 'x') : value}}},
+      {"value"},
+      Status(),
+      "");
 }
 
 } // namespace
@@ -287,10 +303,7 @@ DistributedQueryResult makeResult(const std::string& id) {
 // Results that fail to write are kept for the next flush, unless they have
 // grown beyond distributed_results_max_bytes.
 TEST_F(DistributedTests, test_failed_results_kept_up_to_max_bytes) {
-  auto& rf = RegistryFactory::get();
-  rf.registry("distributed")
-      ->add("failing_write", std::make_shared<FailingWriteDistributedPlugin>());
-  ASSERT_TRUE(rf.setActive("distributed", "failing_write").ok());
+  ASSERT_TRUE(activateFailingWritePlugin().ok());
   const auto max_bytes = FLAGS_distributed_results_max_bytes;
 
   auto dist = Distributed();
@@ -321,6 +334,25 @@ TEST_F(DistributedTests, test_failed_results_kept_up_to_max_bytes) {
   // The plugin is left active: re-activating the tls plugin would try to
   // enroll. Tests that use a distributed plugin activate it themselves.
   FLAGS_distributed_results_max_bytes = max_bytes;
+}
+
+// A server may reissue a query ID while writes keep failing. Only the latest
+// result for an ID is written, so it replaces the kept one; otherwise kept
+// results would grow without the serialized size ever reaching the limit.
+TEST_F(DistributedTests, test_failed_results_replaced_by_same_id) {
+  ASSERT_TRUE(activateFailingWritePlugin().ok());
+
+  auto dist = Distributed();
+  dist.addResult(makeResult("q1"));
+  for (size_t i = 0; i < 10; ++i) {
+    dist.addResult(makeResult("q2", "run " + std::to_string(i)));
+    EXPECT_FALSE(dist.flushCompleted().ok());
+  }
+
+  ASSERT_EQ(dist.results_.size(), 2U);
+  EXPECT_EQ(dist.results_[0].request.id, "q1");
+  EXPECT_EQ(dist.results_[1].request.id, "q2");
+  EXPECT_EQ(dist.results_[1].results[0].at("value"), "run 9");
 }
 
 class DistributedMock : public Distributed {
