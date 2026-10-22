@@ -10,18 +10,13 @@
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/posix/disk_encryption.h>
 #include <osquery/utils/conversions/join.h>
 #include <osquery/utils/linux/block_device_enumeration.h>
 
 extern "C" {
 #include <libcryptsetup.h>
 }
-
-// FIXME: Add enum generation for tables and remove following code
-// Copy of values in disk_encryption.mm
-const std::string kEncryptionStatusEncrypted = "encrypted";
-const std::string kEncryptionStatusUndefined = "undefined";
-const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 namespace osquery {
 namespace tables {

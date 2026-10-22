@@ -47,6 +47,7 @@ extended_schema(DARWIN, [
 ])
 extended_schema(LINUX, [
     Column("cgroup_path", TEXT, "The full hierarchical path of the process's control group"),
+    Column("label", TEXT, "LSM security label (SELinux/AppArmor context) from /proc/<pid>/attr/current"),
 ])
 attributes(cacheable=True, strongly_typed_rows=True)
 implementation("system/processes@genProcesses")

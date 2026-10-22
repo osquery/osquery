@@ -299,6 +299,9 @@ Status getTLSCertificate(const std::string& hostname,
     return Status::failure("Failed to create OpenSSL CTX object");
   }
 
+  // Do not negotiate TLS 1.0 or 1.1, as done by the TLS transport.
+  SSL_CTX_set_options(ctx.get(), SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+
   std::string port = "443";
   auto connect_hostname = hostname;
   auto delim = hostname.find(":");

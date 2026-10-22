@@ -79,6 +79,7 @@ function(generateOsqueryTablesApplications)
   set(public_header_files
     chrome/utils.h
     jetbrains_plugins.h
+    vscode_extensions.h
   )
 
   if(DEFINED PLATFORM_POSIX)
