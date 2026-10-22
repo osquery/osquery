@@ -11,8 +11,11 @@
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 #include <osquery/registry/registry_interface.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/sql.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/sql/tests/sql_test_utils.h>
@@ -96,6 +99,75 @@ TEST_F(SQLiteUtilTests, test_sqlite_instance) {
   // Compare the internal DB to another request with no SQLiteDBInstances
   // in scope, meaning the primary will be returned.
   EXPECT_EQ(internal_db, SQLiteDBManager::get()->db());
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse) {
+  // Hold the primary connection, as a table's generate() does while it runs a
+  // nested query on the same thread.
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  auto first = SQLiteDBManager::get();
+  ASSERT_FALSE(first->isPrimary());
+  auto* first_db = first->db();
+
+  // A nested query while the transient connection is in use gets its own.
+  auto nested = SQLiteDBManager::get();
+  ASSERT_FALSE(nested->isPrimary());
+  EXPECT_NE(nested->db(), first_db);
+  nested.reset();
+
+  // Once released, the next contended request reuses the same connection.
+  first.reset();
+  auto second = SQLiteDBManager::get();
+  ASSERT_FALSE(second->isPrimary());
+  EXPECT_EQ(second->db(), first_db);
+}
+
+class laterTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT)};
+  }
+
+  TableRows generate(QueryContext&) override {
+    TableRows tr;
+    tr.push_back(make_table_row({{"x", "1"}}));
+    return tr;
+  }
+};
+
+TEST_F(SQLiteUtilTests, test_contended_connection_sees_attached_table) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  // Populate this thread's cached transient connection.
+  SQLiteDBManager::get().reset();
+
+  // "test_table" is in this fixture's enable_tables list but has no plugin in
+  // this binary; register one now and attach it, as a late extension would.
+  auto tables = RegistryFactory::get().registry("table");
+  ASSERT_TRUE(
+      tables->add("test_table", std::make_shared<laterTablePlugin>()).ok());
+  auto status = Registry::call(
+      "sql", "sql", {{"action", "attach"}, {"table", "test_table"}});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_TRUE(status.ok()) << status.getMessage();
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0]["x"], "1");
+  }
+
+  // Leave the primary connection and the registry as the other tests expect.
+  status = Registry::call(
+      "sql", "sql", {{"action", "detach"}, {"table", "test_table"}});
+  EXPECT_TRUE(status.ok()) << status.getMessage();
+  tables->remove("test_table");
 }
 
 TEST_F(SQLiteUtilTests, test_reset) {

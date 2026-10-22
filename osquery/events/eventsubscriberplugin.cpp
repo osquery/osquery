@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
+
 #include <osquery/config/config.h>
 #include <osquery/core/flags.h>
 #include <osquery/database/database.h>
@@ -508,6 +510,43 @@ std::string EventSubscriberPlugin::databaseKeyForEventId(Context& context,
          string_event_id;
 }
 
+namespace {
+/// Delete the database keys of every event in the given batches. Event ids
+/// are allocated in increasing order, so runs of consecutive ids are removed
+/// with one range delete each instead of one write per event.
+std::size_t deleteEventBatches(EventSubscriberPlugin::Context& context,
+                               IDatabaseInterface& db_interface,
+                               const EventIndex& event_batch_list) {
+  std::vector<EventID> event_id_list;
+  for (const auto& p : event_batch_list) {
+    event_id_list.insert(event_id_list.end(), p.second.begin(), p.second.end());
+  }
+  std::sort(event_id_list.begin(), event_id_list.end());
+
+  std::size_t error_count{0U};
+  for (std::size_t i = 0U; i < event_id_list.size();) {
+    auto j = i;
+    while (j + 1 < event_id_list.size() &&
+           event_id_list[j + 1] == event_id_list[j] + 1) {
+      ++j;
+    }
+
+    auto status = db_interface.deleteDatabaseRange(
+        kEvents,
+        EventSubscriberPlugin::databaseKeyForEventId(context, event_id_list[i]),
+        EventSubscriberPlugin::databaseKeyForEventId(context,
+                                                     event_id_list[j]));
+    if (!status.ok()) {
+      error_count += j - i + 1;
+    }
+
+    i = j + 1;
+  }
+
+  return error_count;
+}
+} // namespace
+
 void EventSubscriberPlugin::removeOverflowingEventBatches(
     Context& context,
     IDatabaseInterface& db_interface,
@@ -554,23 +593,11 @@ void EventSubscriberPlugin::removeOverflowingEventBatches(
     string_last_query_time = buffer.data();
   }
 
-  std::size_t batches_removed{};
-  for (const auto& p : excess_event_batch_list) {
-    const auto& event_identifier_list = p.second;
-
-    for (auto event_id : event_identifier_list) {
-      auto key = databaseKeyForEventId(context, event_id);
-      auto status = db_interface.deleteDatabaseValue(kEvents, key);
-      if (status.ok()) {
-        ++batches_removed;
-      }
-    }
-  }
-
-  auto failed_delete_count = (excess_event_batch_list.size() - batches_removed);
+  auto failed_delete_count =
+      deleteEventBatches(context, db_interface, excess_event_batch_list);
 
   std::stringstream message;
-  message << "Removed " << batches_removed << " event batches ";
+  message << "Removed " << excess_event_batch_list.size() << " event batches ";
 
   if (failed_delete_count > 0U) {
     message << "(with " << failed_delete_count << " delete errors)  ";
@@ -624,21 +651,8 @@ void EventSubscriberPlugin::expireEventBatches(Context& context,
     context.event_index.erase(range_start, range_end);
   }
 
-  // TODO(alessandro): Implement deleteDatabaseBatch
-  std::size_t error_count{};
-
-  for (const auto& p : expired_event_batch_list) {
-    const auto& event_identifier_list = p.second;
-
-    for (const auto& event_identifier : event_identifier_list) {
-      auto key = databaseKeyForEventId(context, event_identifier);
-      auto status = db_interface.deleteDatabaseValue(kEvents, key);
-      if (!status.ok()) {
-        ++error_count;
-      }
-    }
-  }
-
+  auto error_count =
+      deleteEventBatches(context, db_interface, expired_event_batch_list);
   if (error_count > 0U) {
     LOG(ERROR) << "Failed to expire " << error_count
                << " events due to database errors";

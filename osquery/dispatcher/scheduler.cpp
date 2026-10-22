@@ -21,13 +21,14 @@
 #include <osquery/core/flags.h>
 #include <osquery/core/query.h>
 #include <osquery/core/shutdown.h>
+#include <osquery/core/system.h>
 #include <osquery/database/database.h>
 #include <osquery/logger/data_logger.h>
 #include <osquery/numeric_monitoring/numeric_monitoring.h>
-#include <osquery/process/process.h>
 #include <osquery/profiler/code_profiler.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/expected/expected.h>
+#include <osquery/utils/system/system.h>
 #include <osquery/utils/system/time.h>
 #include <osquery/worker/system/memory.h>
 #include <plugins/config/parsers/decorators.h>
@@ -63,6 +64,17 @@ DECLARE_bool(events_optimize);
 DECLARE_bool(enable_numeric_monitoring);
 DECLARE_bool(verbose);
 
+/// The worker's own CPU times and resident size, shaped like a processes row.
+static Row selfUsageRow() {
+  SelfResourceUsage usage;
+  if (!getSelfResourceUsage(usage)) {
+    return Row();
+  }
+  return Row{{"user_time", std::to_string(usage.user_time_ms)},
+             {"system_time", std::to_string(usage.system_time_ms)},
+             {"resident_size", std::to_string(usage.resident_size)}};
+}
+
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   if (FLAGS_enable_numeric_monitoring) {
     CodeProfiler profiler(
@@ -81,12 +93,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
     return SQLInternal(query.query, true);
   } else {
     // Snapshot the performance and times for the worker before running.
-    auto pid = std::to_string(PlatformProcess::getCurrentPid());
-    auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                              "processes",
-                              "pid",
-                              EQUALS,
-                              pid);
+    auto r0 = selfUsageRow();
 
     using namespace std::chrono;
     auto t0 = steady_clock::now();
@@ -95,20 +102,12 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
     // Snapshot the performance after, and compare.
     auto t1 = steady_clock::now();
-    auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                              "processes",
-                              "pid",
-                              EQUALS,
-                              pid);
+    auto r1 = selfUsageRow();
     if (r0.size() > 0 && r1.size() > 0) {
       // Always called while processes table is working.
       uint64_t size = sql.getSize();
       Config::get().recordQueryPerformance(
-          name,
-          duration_cast<milliseconds>(t1 - t0).count(),
-          size,
-          r0[0],
-          r1[0]);
+          name, duration_cast<milliseconds>(t1 - t0).count(), size, r0, r1);
     }
     return sql;
   }

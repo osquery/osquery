@@ -204,6 +204,35 @@ TEST_F(EventSubscriberPluginTests, expireEventBatches) {
   EXPECT_EQ(context.event_index.size(), 1U);
 }
 
+TEST_F(EventSubscriberPluginTests, expireEventBatchesWithGaps) {
+  MockedOsqueryDatabase mocked_database;
+  EventSubscriberPlugin::Context context;
+  EventSubscriberPlugin::setDatabaseNamespace(context, "type", "name");
+
+  // Ids 3 and 6 are in the database but not in the index (dropped batches);
+  // they must survive an expiry of the runs around them.
+  for (EventID id = 1; id <= 7; ++id) {
+    mocked_database.key_map.insert(
+        {EventSubscriberPlugin::databaseKeyForEventId(context, id), "{}"});
+  }
+  context.event_index = {{1, {1, 2}}, {2, {4, 5}}, {3, {7}}};
+
+  // Expire everything older than time 3; batch 3 is kept as the last valid.
+  EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 4);
+  EXPECT_EQ(context.event_index.size(), 1U);
+
+  std::vector<std::string> remaining;
+  for (const auto& p : mocked_database.key_map) {
+    remaining.push_back(p.first);
+  }
+  std::vector<std::string> expected = {
+      EventSubscriberPlugin::databaseKeyForEventId(context, 3),
+      EventSubscriberPlugin::databaseKeyForEventId(context, 6),
+      EventSubscriberPlugin::databaseKeyForEventId(context, 7),
+  };
+  EXPECT_EQ(remaining, expected);
+}
+
 TEST_F(EventSubscriberPluginTests, generateRows) {
   MockedOsqueryDatabase mocked_database;
   mocked_database.generateEvents("type", "name");
