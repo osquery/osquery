@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <set>
@@ -28,9 +29,20 @@ bool GenerateAuditEventRecord(AuditEventRecord& event_record,
   event_record = {};
 
   audit_reply reply{};
-  reply.type = type;
-  reply.len = contents.size();
-  reply.message = &contents[0];
+  if (contents.size() >= sizeof(reply.msg.data)) {
+    return false;
+  }
+
+  reply.msg.nlh.nlmsg_type = type;
+
+  // The Linux Audit unicast protocol reports the payload length here rather
+  // than the usual header-inclusive Netlink message length.
+  reply.msg.nlh.nlmsg_len =
+      static_cast<decltype(reply.msg.nlh.nlmsg_len)>(contents.size());
+  std::memcpy(NLMSG_DATA(&reply.msg.nlh), contents.data(), contents.size());
+
+  AuditdNetlinkParser::AdjustAuditReply(reply);
+  EXPECT_EQ(reply.len, static_cast<int>(contents.size()));
 
   return AuditdNetlinkParser::ParseAuditReply(reply, event_record);
 }
@@ -423,6 +435,15 @@ TEST_F(ProcessEventsTests, exec_event_processing_reassembles_quoted_chunks) {
                         "a1[1]=\"lo\" a2=\"tail\""});
 
   EXPECT_EQ(event_row.at("cmdline"), "runner hello tail");
+  EXPECT_TRUE(event_row.at("overflows").empty());
+}
+
+TEST_F(ProcessEventsTests,
+       exec_event_processing_reassembles_trailing_unquoted_hex_chunks) {
+  Row event_row;
+  GenerateExecEventRow(event_row, {"argc=1 a0_len=8 a0[0]=4142 a0[1]=4344"});
+
+  EXPECT_EQ(event_row.at("cmdline"), "ABCD");
   EXPECT_TRUE(event_row.at("overflows").empty());
 }
 
