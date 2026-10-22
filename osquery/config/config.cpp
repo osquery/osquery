@@ -131,9 +131,12 @@ RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
 
-/// Parsers updated by applyParsers whose afterUpdate() has not run yet.
-Mutex config_pending_parsers_mutex_;
-std::vector<std::shared_ptr<ConfigParserPlugin>> config_pending_parsers_;
+/// Parsers updated by applyParsers on this thread whose afterUpdate() has not
+/// run yet. It is per-thread so that concurrent config updates each apply their
+/// own changes, rather than one update returning before another has applied
+/// them.
+thread_local std::vector<std::shared_ptr<ConfigParserPlugin>>
+    config_pending_parsers_;
 
 using PackRef = std::unique_ptr<Pack>;
 
@@ -420,14 +423,14 @@ void Config::addPack(const std::string& name,
         continue;
       }
       addSinglePack(pack.name.GetString(), pack.value);
+      // Apply each pack's changes before the next pack's discovery queries,
+      // which may use a table it defines.
+      applyParserChanges();
     }
   } else {
     addSinglePack(name, obj);
+    applyParserChanges();
   }
-
-  // The parsers were applied to the pack content under the schedule lock, which
-  // addSinglePack has released.
-  applyParserChanges();
 }
 
 void Config::removePack(const std::string& pack) {
@@ -922,8 +925,6 @@ void Config::applyParsers(const std::string& source,
     // each top-level-config key. The parser may choose to update the config's
     // internal state
     parser->update(source, parser_config);
-
-    WriteLock pending_lock(config_pending_parsers_mutex_);
     config_pending_parsers_.push_back(parser);
   };
 
@@ -972,11 +973,11 @@ void Config::applyParsers(const std::string& source,
 
 void Config::applyParserChanges() {
   std::vector<std::shared_ptr<ConfigParserPlugin>> parsers;
-  {
-    WriteLock lock(config_pending_parsers_mutex_);
-    parsers.swap(config_pending_parsers_);
-  }
+  parsers.swap(config_pending_parsers_);
 
+  // Run in the order the parsers were updated, so the auto_constructed_tables
+  // parser attaches its tables before the decorators parser runs load
+  // decorators that may query them.
   std::set<ConfigParserPlugin*> applied;
   for (const auto& parser : parsers) {
     if (applied.insert(parser.get()).second) {
