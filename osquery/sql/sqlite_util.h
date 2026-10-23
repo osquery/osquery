@@ -230,6 +230,9 @@ class SQLiteDBManager : private boost::noncopyable {
     return getConnection();
   }
 
+  /// Lock the primary connection's virtual table attach mutex.
+  static RecursiveLock lockPrimaryAttach();
+
   /// See `get` but always return a transient DB connection (for testing).
   static SQLiteDBInstanceRef getUnique();
 

@@ -6,11 +6,35 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsConfigParsersTestsMain)
+  generatePluginsConfigParsersTestsAutoConstructedTablestestsTest()
   generatePluginsConfigParsersTestsDecoratorstestsTest()
   generatePluginsConfigParsersTestsEventsparsertestsTest()
   generatePluginsConfigParsersTestsFilepathstestsTest()
   generatePluginsConfigParsersTestsOptionstestsTest()
   generatePluginsConfigParsersTestsViewstestsTest()
+endfunction()
+
+function(generatePluginsConfigParsersTestsAutoConstructedTablestestsTest)
+  add_osquery_executable(plugins_config_parsers_tests_auto_constructed_tablestests-test auto_constructed_tables_tests.cpp)
+
+  target_link_libraries(plugins_config_parsers_tests_auto_constructed_tablestests-test PRIVATE
+    osquery_cxx_settings
+    osquery_config_tests_testutils
+    osquery_core
+    osquery_database
+    osquery_dispatcher
+    osquery_events
+    osquery_extensions
+    osquery_extensions_implthrift
+    osquery_filesystem
+    osquery_registry
+    osquery_remote_enroll_tlsenroll
+    osquery_utils_json
+    plugins_config_tlsconfig
+    plugins_config_parsers
+    specs_tables
+    thirdparty_googletest
+  )
 endfunction()
 
 function(generatePluginsConfigParsersTestsDecoratorstestsTest)
