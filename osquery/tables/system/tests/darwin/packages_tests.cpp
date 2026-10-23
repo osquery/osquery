@@ -207,6 +207,19 @@ TEST_F(PackagesTests, test_genpackagebom_stops_on_empty_nonleaf_node) {
   QueryData results;
   genPackageBOM(bom_path, results);
   EXPECT_TRUE(results.empty());
+
+  // Point the empty node's forward at itself. If the node were handed to
+  // genBOMPaths, its zero count would skip entry processing and getPaths
+  // would keep returning the same node, so the query would never finish.
+  putBe32(buf, 131, 2);
+  {
+    std::ofstream fout(bom_path, std::ios::binary | std::ios::trunc);
+    fout.write(buf.data(), buf.size());
+  }
+
+  results.clear();
+  genPackageBOM(bom_path, results);
+  EXPECT_TRUE(results.empty());
 }
 } // namespace tables
 } // namespace osquery

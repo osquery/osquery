@@ -271,8 +271,10 @@ void genPackageBOM(const std::string& path, QueryData& results) {
       if (ntohs(paths->count) == 0) {
         // A non-leaf node with no indices has nothing to descend into, and
         // getPaths only sizes the block for the header when count is zero, so
-        // indices[0] would read past the block.
-        break;
+        // indices[0] would read past the block. Return rather than break so
+        // the node never reaches genBOMPaths, which follows forward without
+        // checking isLeaf.
+        return;
       }
       paths = bom.getPaths(paths->indices[0].index0);
     }
