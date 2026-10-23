@@ -1,0 +1,15 @@
+table_name("containerd_snapshot_labels")
+description("Labels for containerd snapshots.")
+schema([
+    Column("name", TEXT, "Snapshot name", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("snapshotter", TEXT, "Snapshotter name", index=True),
+    Column("key", TEXT, "Label key", index=True),
+    Column("value", TEXT, "Label value")
+])
+implementation("applications/containerd@genContainerdSnapshotLabels")
+examples([
+  "select * from containerd_snapshot_labels",
+  "select * from containerd_snapshot_labels where snapshotter = 'overlayfs'",
+  "select * from containerd_snapshot_labels where key = 'containerd.io/gc.ref.content'"
+])

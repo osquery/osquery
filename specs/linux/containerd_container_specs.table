@@ -1,0 +1,23 @@
+table_name("containerd_container_specs")
+description("OCI runtime specification details for containerd containers.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("oci_version", TEXT, "OCI Runtime Specification version"),
+    Column("root_path", TEXT, "Path to the root filesystem"),
+    Column("root_readonly", INTEGER, "Whether the root filesystem is read-only (1=true, 0=false)"),
+    Column("hostname", TEXT, "Container hostname"),
+    Column("process_terminal", INTEGER, "Whether process has terminal (1=true, 0=false)"),
+    Column("process_cwd", TEXT, "Process current working directory"),
+    Column("process_args", TEXT, "Process arguments as comma-separated string"),
+    Column("process_env", TEXT, "Process environment variables as comma-separated string"),
+])
+extended_schema(LINUX, [
+    Column("linux_readonly_paths", TEXT, "Linux readonly paths as comma-separated string"),
+    Column("linux_masked_paths", TEXT, "Linux masked paths as comma-separated string"),
+])
+implementation("applications/containerd@genContainerdContainerSpecs")
+examples([
+  "select * from containerd_container_specs",
+  "select c.*, s.* from containerd_containers c join containerd_container_specs s on c.id = s.id and c.namespace = s.namespace"
+])
