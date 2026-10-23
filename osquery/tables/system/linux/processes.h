@@ -10,5 +10,7 @@
 namespace osquery {
 namespace tables {
 std::string parseProcCGroup(const std::string& content);
+std::string parseProcMapsInode(const std::string& content,
+                               const std::string& path);
 } // namespace tables
 } // namespace osquery
