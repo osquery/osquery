@@ -13,8 +13,13 @@
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/tables/events/linux/process_events.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/system/uptime.h>
 
+#include <algorithm>
+#include <cctype>
+#include <limits>
+#include <map>
 #include <sys/stat.h>
 
 namespace osquery {
@@ -31,6 +36,274 @@ const std::unordered_map<int, std::string> kSyscallNameMap = {
     {__NR_vfork, "vfork"},
 #endif /* __x86_64__ */
 };
+
+enum class AuditArgumentFieldType {
+  Value,
+  Length,
+  Chunk,
+};
+
+struct AuditArgumentField final {
+  std::size_t argument_index{0U};
+  std::size_t chunk_index{0U};
+  AuditArgumentFieldType type{AuditArgumentFieldType::Value};
+};
+
+struct AuditArgument final {
+  bool has_value{false};
+  std::string value;
+
+  bool has_declared_length{false};
+  std::size_t declared_length{0U};
+
+  std::map<std::size_t, std::string> chunks;
+};
+
+bool ParseCanonicalSize(std::size_t& output,
+                        const std::string& value) noexcept {
+  if (value.empty() ||
+      !std::all_of(value.begin(), value.end(), [](unsigned char character) {
+        return std::isdigit(character);
+      })) {
+    return false;
+  }
+
+  auto parsed_value = tryTo<std::size_t>(value);
+  if (parsed_value.isError()) {
+    return false;
+  }
+
+  output = parsed_value.take();
+  return std::to_string(output) == value;
+}
+
+bool IsValidAuditArgumentValue(const std::string& value) noexcept {
+  if (value.size() >= 2U && value.front() == '"' && value.back() == '"') {
+    return value.find('"', 1U) == value.size() - 1U;
+  }
+
+  return !value.empty() && value.size() % 2U == 0U &&
+         std::all_of(value.begin(), value.end(), [](unsigned char character) {
+           return std::isxdigit(character);
+         });
+}
+
+bool ParseAuditArgumentField(AuditArgumentField& output,
+                             const std::string& field_name) noexcept {
+  if (field_name.size() < 2U || field_name.front() != 'a') {
+    return false;
+  }
+
+  std::size_t offset{1U};
+  while (offset < field_name.size() &&
+         std::isdigit(static_cast<unsigned char>(field_name[offset]))) {
+    ++offset;
+  }
+
+  if (offset == 1U) {
+    return false;
+  }
+
+  if (!ParseCanonicalSize(output.argument_index,
+                          field_name.substr(1U, offset - 1U))) {
+    return false;
+  }
+
+  if (offset == field_name.size()) {
+    output.type = AuditArgumentFieldType::Value;
+    return true;
+  }
+
+  if (field_name.compare(offset, std::string::npos, "_len") == 0) {
+    output.type = AuditArgumentFieldType::Length;
+    return true;
+  }
+
+  if (field_name[offset] != '[' || field_name.back() != ']' ||
+      offset + 2U > field_name.size()) {
+    return false;
+  }
+
+  if (!ParseCanonicalSize(
+          output.chunk_index,
+          field_name.substr(offset + 1U, field_name.size() - offset - 2U))) {
+    return false;
+  }
+
+  output.type = AuditArgumentFieldType::Chunk;
+  return true;
+}
+
+Status ReconstructAuditArguments(std::string& output,
+                                 bool& reconstruction_incomplete,
+                                 bool allow_zero_argc_with_a0,
+                                 const AuditEvent& event) noexcept {
+  std::map<std::size_t, AuditArgument> argument_map;
+  bool execve_record_found{false};
+  bool argc_found{false};
+  std::size_t argc{0U};
+
+  reconstruction_incomplete = false;
+
+  for (const auto& record : event.record_list) {
+    if (record.type != AUDIT_EXECVE) {
+      continue;
+    }
+
+    execve_record_found = true;
+
+    for (const auto& field : record.fields) {
+      if (field.first == "argc") {
+        std::size_t parsed_argc{0U};
+        if (!ParseCanonicalSize(parsed_argc, field.second) || argc_found) {
+          reconstruction_incomplete = true;
+          continue;
+        }
+
+        argc = parsed_argc;
+        argc_found = true;
+        continue;
+      }
+
+      AuditArgumentField argument_field;
+      if (!ParseAuditArgumentField(argument_field, field.first)) {
+        if (field.first.size() > 1U && field.first.front() == 'a' &&
+            std::isdigit(static_cast<unsigned char>(field.first[1U]))) {
+          reconstruction_incomplete = true;
+        }
+
+        continue;
+      }
+
+      auto& argument = argument_map[argument_field.argument_index];
+
+      if (argument_field.type == AuditArgumentFieldType::Value) {
+        if (argument.has_value) {
+          reconstruction_incomplete = true;
+          continue;
+        }
+
+        argument.has_value = true;
+        argument.value = field.second;
+
+      } else if (argument_field.type == AuditArgumentFieldType::Length) {
+        std::size_t parsed_length{0U};
+        if (!ParseCanonicalSize(parsed_length, field.second) ||
+            argument.has_declared_length) {
+          reconstruction_incomplete = true;
+          continue;
+        }
+
+        argument.declared_length = parsed_length;
+        argument.has_declared_length = true;
+
+      } else if (!argument.chunks
+                      .emplace(argument_field.chunk_index, field.second)
+                      .second) {
+        reconstruction_incomplete = true;
+      }
+    }
+  }
+
+  if (!execve_record_found) {
+    return Status::failure("Malformed AUDIT_EXECVE event");
+  }
+
+  output.clear();
+  bool first_argument{true};
+  std::size_t expected_argument_index{0U};
+
+  for (const auto& argument_entry : argument_map) {
+    if (argument_entry.first != expected_argument_index) {
+      reconstruction_incomplete = true;
+    }
+
+    if (expected_argument_index != std::numeric_limits<std::size_t>::max()) {
+      ++expected_argument_index;
+    }
+
+    const auto& argument = argument_entry.second;
+    std::string value;
+
+    if (argument.has_value) {
+      if (argument.has_declared_length || !argument.chunks.empty()) {
+        reconstruction_incomplete = true;
+      }
+
+      if (!IsValidAuditArgumentValue(argument.value)) {
+        reconstruction_incomplete = true;
+      }
+
+      value = DecodeAuditPathValues(argument.value);
+
+    } else {
+      if (!argument.has_declared_length || argument.chunks.empty()) {
+        reconstruction_incomplete = true;
+      }
+
+      std::size_t encoded_length{0U};
+      std::size_t expected_chunk_index{0U};
+
+      for (const auto& chunk : argument.chunks) {
+        if (chunk.first != expected_chunk_index) {
+          reconstruction_incomplete = true;
+        }
+
+        if (expected_chunk_index != std::numeric_limits<std::size_t>::max()) {
+          ++expected_chunk_index;
+        }
+
+        const bool quoted = chunk.second.size() >= 2U &&
+                            chunk.second.front() == '"' &&
+                            chunk.second.back() == '"';
+        const auto chunk_encoded_length =
+            quoted ? chunk.second.size() - 2U : chunk.second.size();
+
+        if (chunk_encoded_length >
+            std::numeric_limits<std::size_t>::max() - encoded_length) {
+          reconstruction_incomplete = true;
+        } else {
+          encoded_length += chunk_encoded_length;
+        }
+
+        if (!IsValidAuditArgumentValue(chunk.second)) {
+          reconstruction_incomplete = true;
+        }
+
+        value += DecodeAuditPathValues(chunk.second);
+      }
+
+      if (argument.has_declared_length &&
+          encoded_length != argument.declared_length) {
+        reconstruction_incomplete = true;
+      }
+    }
+
+    if (!first_argument) {
+      output += ' ';
+    }
+
+    output += value;
+    first_argument = false;
+  }
+
+  // Some observed execveat records report argc=0 while still carrying a0.
+  const bool argc_matches =
+      argc_found &&
+      ((argc > 0U && argc == argument_map.size()) ||
+       (argc == 0U && argument_map.empty()) ||
+       (argc == 0U && allow_zero_argc_with_a0 && argument_map.size() == 1U &&
+        argument_map.begin()->first == 0U &&
+        argument_map.begin()->second.has_value &&
+        !argument_map.begin()->second.has_declared_length &&
+        argument_map.begin()->second.chunks.empty()));
+
+  if (!argc_matches) {
+    reconstruction_incomplete = true;
+  }
+
+  return Status::success();
+}
 } // namespace
 
 DECLARE_bool(audit_allow_process_events);
@@ -266,26 +539,19 @@ Status AuditProcessEventSubscriber::ProcessExecveEventData(
 
   CopyFieldFromMap(row, cwd_event_record->fields, "cwd", "");
 
-  // Save the command line parameters
-  const AuditEventRecord* execve_event_record =
-      GetEventRecord(event, AUDIT_EXECVE);
+  bool cmdline_incomplete{false};
+  const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
+  const bool allow_zero_argc_with_a0 =
+      event_data.syscall_number == __NR_execveat;
 
-  if (execve_event_record == nullptr) {
-    return Status::failure("Malformed AUDIT_EXECVE event");
+  auto status = ReconstructAuditArguments(
+      row["cmdline"], cmdline_incomplete, allow_zero_argc_with_a0, event);
+  if (!status.ok()) {
+    return status;
   }
 
-  row["cmdline"].clear();
-
-  for (const auto& arg : execve_event_record->fields) {
-    if (arg.first == "argc") {
-      continue;
-    }
-
-    if (row["cmdline"].size() > 0) {
-      row["cmdline"] += ' ';
-    }
-
-    row["cmdline"] += DecodeAuditPathValues(arg.second);
+  if (cmdline_incomplete) {
+    row["overflows"] = "cmdline";
   }
 
   row["cmdline_size"] = std::to_string(row["cmdline"].size());
