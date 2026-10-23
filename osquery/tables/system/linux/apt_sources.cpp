@@ -145,7 +145,7 @@ void aptSourceToRow(const std::string& source,
   }
 
   std::string content;
-  auto s = readFile(cache_files[0], content);
+  auto s = readFile(cache_files[0], content, 0, false, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
     return;
@@ -197,7 +197,7 @@ static void genAptSource(const std::string& source,
                          Logger& logger) {
   std::string content;
 
-  auto s = readFile(source, content);
+  auto s = readFile(source, content, 0, false, false, false);
   if (!s.ok()) {
     logger.log(google::GLOG_WARNING, s.getMessage());
     return;

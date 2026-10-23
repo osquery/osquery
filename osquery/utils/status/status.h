@@ -77,7 +77,7 @@ class Status {
    * success or failure of an operation. On successful operations, the idiom
    * is for the message to be "OK"
    */
-  const std::string& getMessage() const {
+  std::string getMessage() const {
     return message_;
   }
 
