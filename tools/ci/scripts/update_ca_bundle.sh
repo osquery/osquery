@@ -19,6 +19,9 @@
 
 set -euo pipefail
 
+# sort and comm must agree on collation
+export LC_ALL=C
+
 readonly BUNDLE_URL="https://curl.se/ca/cacert.pem"
 readonly CHECKSUM_URL="https://curl.se/ca/cacert.pem.sha256"
 
@@ -134,7 +137,7 @@ list_subjects() {
   openssl crl2pkcs7 -nocrl -certfile "${1}" \
     | openssl pkcs7 -print_certs -noout \
     | sed -n 's/^subject=[ ]*//p' \
-    | LC_ALL=C sort
+    | sort
 }
 
 bundle_date() {
