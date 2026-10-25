@@ -9,7 +9,11 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/env.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 #include <rpm/header.h>
 #include <rpm/rpmdb.h>
@@ -26,6 +30,7 @@
 #include <boost/optional.hpp>
 
 #include <cstdlib>
+#include <fstream>
 #include <string>
 #include <utility>
 
@@ -34,7 +39,39 @@ using namespace testing;
 namespace osquery {
 namespace tables {
 
+QueryData genRpmPackages(QueryContext& context);
+
 rpmlogCallback gPreviousCallback{nullptr};
+
+/**
+ * librpm reads RPM_CONFIGDIR only once per process, so all tests in this
+ * binary share the configuration directory of the first one to read it. Set
+ * it up before any test runs, with the rpmrc that reading the configuration
+ * requires. Each test still selects its database with the _dbpath macro.
+ */
+class RpmConfigEnvironment : public ::testing::Environment {
+ public:
+  void SetUp() override {
+    namespace fs = boost::filesystem;
+    config_dir_ = fs::temp_directory_path() /
+                  fs::unique_path("osquery-rpm-config-%%%%-%%%%");
+    fs::create_directories(config_dir_);
+    std::ofstream((config_dir_ / "rpmrc").string()).close();
+    setEnvVar("RPM_CONFIGDIR", config_dir_.string());
+    rpmConfigDir();
+  }
+
+  void TearDown() override {
+    unsetEnvVar("RPM_CONFIGDIR");
+    boost::filesystem::remove_all(config_dir_);
+  }
+
+ private:
+  boost::filesystem::path config_dir_;
+};
+
+const auto* const kRpmConfigEnvironment =
+    ::testing::AddGlobalTestEnvironment(new RpmConfigEnvironment);
 
 class RpmTests : public ::testing::Test {
  public:
@@ -44,6 +81,12 @@ class RpmTests : public ::testing::Test {
 
  protected:
   void SetUp() {
+    // Dropping privileges, which the tests do when run as root, looks the
+    // nobody user up through the users table.
+    platformSetup();
+    registryAndPluginInit();
+    initDatabasePluginForTesting();
+
     gPreviousCallback = rpmlogSetCallback(&RpmTests::Callback, nullptr);
   }
 
@@ -159,6 +202,38 @@ TEST_F(RpmTests, test_bdb_packages) {
 
   EXPECT_EQ(expected, packages);
 };
+
+// rpm_packages opens the database before dropping privileges, so it reads a
+// database that only root can open, as when /var/lib/rpm is not readable by
+// other users.
+TEST_F(RpmTests, test_rpm_packages_reads_root_only_database) {
+  if (!isUserAdmin()) {
+    GTEST_SKIP() << "Creating a database only root can open requires root";
+  }
+
+  // Copy the BDB fixture into a directory only its owner, root, can access.
+  namespace fs = boost::filesystem;
+  auto source = fs::absolute(getTestConfigDirectory() / "rpm" / "rpm-bdb");
+  auto db_dir =
+      fs::temp_directory_path() / fs::unique_path("osquery-rpm-%%%%-%%%%");
+  fs::create_directories(db_dir);
+  for (const auto& entry : fs::directory_iterator(source)) {
+    fs::copy_file(entry.path(), db_dir / entry.path().filename());
+  }
+  fs::permissions(db_dir, fs::owner_all);
+  this->setConfig(db_dir.string());
+
+  QueryContext context;
+  auto results = genRpmPackages(context);
+  fs::remove_all(db_dir);
+
+  std::vector<std::string> names;
+  for (const auto& row : results) {
+    names.push_back(row.at("name"));
+  }
+  std::vector<std::string> expected = {"rpm-libs", "rpm-python", "rpm"};
+  EXPECT_EQ(expected, names);
+}
 
 TEST_F(RpmTests, test_sqlite_packages) {
   auto dropper = DropPrivileges::get();
