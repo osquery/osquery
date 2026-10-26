@@ -29,7 +29,7 @@ namespace {
 const std::size_t kMaxFileHandleEntryCount{512U};
 const std::uint64_t kExpirationTime{180U};
 const std::size_t kEventsBeforeExpiration{10000U};
-}
+} // namespace
 
 struct SystemStateTracker::PrivateData final {
   Context context;
@@ -515,7 +515,6 @@ bool SystemStateTracker::openFile(
     int newfd,
     const std::string& path,
     int flags) {
-
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
