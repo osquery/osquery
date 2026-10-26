@@ -33,6 +33,12 @@ function(generateOsqueryTablesEventsEventstable)
       linux/apparmor_events.cpp
     )
 
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND source_files
+        linux/bpf_process_events.cpp
+        linux/bpf_socket_events.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -98,6 +104,8 @@ function(generateOsqueryTablesEventsEventstable)
     set(platform_public_header_files
       linux/process_events.h
       linux/process_file_events.h
+      linux/bpf_process_events.h
+      linux/bpf_socket_events.h
       linux/selinux_events.h
       linux/seccomp_events.h
       linux/apparmor_events.h
@@ -109,6 +117,10 @@ function(generateOsqueryTablesEventsEventstable)
     add_test(NAME osquery_tables_events_tests_seccompeventstests-test COMMAND osquery_tables_events_tests_seccompeventstests-test)
     add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
     add_test(NAME osquery_tables_events_tests_processeventstests-test COMMAND osquery_tables_events_tests_processeventstests-test)
+
+    if(OSQUERY_BUILD_BPF)
+      add_test(NAME osquery_tables_events_tests_bpftests-test COMMAND osquery_tables_events_tests_bpftests-test)
+    endif()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
