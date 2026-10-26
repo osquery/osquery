@@ -43,7 +43,6 @@ PLATFORM_DIRS = {
     "linux": ["linux"],
     "macwin": ["darwin", "windows"],
     "posix": ["darwin", "linux"],
-    "sleuthkit": ["darwin", "linux", "windows"],
     "windows": ["windows"],
 }
 
