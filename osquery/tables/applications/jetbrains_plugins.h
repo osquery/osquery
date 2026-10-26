@@ -7,9 +7,8 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <cstddef>
-#include <cstdint>
-#include <memory>
+#pragma once
+
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -17,20 +16,6 @@
 
 namespace osquery {
 namespace tables {
-
-inline constexpr std::size_t kMaxJetBrainsPluginXmlSize = 4U * 1024U * 1024U;
-
-inline constexpr bool canAppendJetBrainsPluginXmlBytes(
-    std::uint64_t current_size, std::uint64_t next_block_size) noexcept {
-  return current_size <= kMaxJetBrainsPluginXmlSize &&
-         next_block_size <= kMaxJetBrainsPluginXmlSize - current_size;
-}
-
-struct PluginAttributes {
-  std::string name;
-  std::string vendor;
-  std::string version;
-};
 
 enum class JetBrainsProductType {
   CLion,
@@ -144,8 +129,6 @@ const std::unordered_map<JetBrainsProductType, std::string>
         {JetBrainsProductType::WebStorm, "webstorm"}};
 
 const std::string getProductName(const JetBrainsProductType type);
-std::unique_ptr<PluginAttributes> attributesFromJar(
-    const std::string& jar_file_path);
 void putMoreLikelyPluginJarsFirst(
     const std::string& plugin_dir_name,
     std::vector<std::string>& files_in_lib_under_plugin_dir);

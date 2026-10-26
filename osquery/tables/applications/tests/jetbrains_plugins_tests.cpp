@@ -27,6 +27,8 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include "../jetbrains_plugins_internal.h"
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -35,6 +37,10 @@ namespace tables {
 namespace {
 
 const std::vector<char> kZipCentralHeaderSignature = {'P', 'K', 0x01, 0x02};
+const std::string kPluginXmlPath = "META-INF/plugin.xml";
+constexpr std::size_t kSmallExtractionLimit = 1024U;
+
+using jetbrains_plugins_internal::ExtractionStatus;
 
 std::string makePluginXml(std::size_t size) {
   const std::string prefix =
@@ -72,15 +78,6 @@ std::vector<char> readArchiveData(const fs::path& path) {
   EXPECT_TRUE(stream.is_open());
   return {std::istreambuf_iterator<char>(stream),
           std::istreambuf_iterator<char>()};
-}
-
-void setLittleEndian32(std::vector<char>& data,
-                       std::size_t offset,
-                       std::uint32_t value) {
-  ASSERT_LE(offset + sizeof(value), data.size());
-  for (std::size_t index = 0; index < sizeof(value); ++index) {
-    data[offset + index] = static_cast<char>((value >> (index * 8U)) & 0xFFU);
-  }
 }
 
 } // namespace
@@ -128,10 +125,22 @@ class JetbrainsPluginsTest : public ::testing::Test {
   }
 
   void createUnknownSizePluginArchive(const fs::path& path) {
+    createPluginArchive(path, makePluginXml(kSmallExtractionLimit * 2U));
+
+    auto archive_data = readArchiveData(path);
+    const auto central_header =
+        findSignature(archive_data, kZipCentralHeaderSignature);
+    ASSERT_NE(central_header, archive_data.end());
+    archive_data.erase(central_header, archive_data.end());
+    writeArchiveData(path, archive_data);
+  }
+
+  void createTarPluginArchive(const fs::path& path,
+                              const std::string& content) {
     std::unique_ptr<struct archive, decltype(&archive_write_free)>
         archive_writer(archive_write_new(), archive_write_free);
     ASSERT_NE(archive_writer, nullptr);
-    ASSERT_EQ(archive_write_set_format_iso9660(archive_writer.get()),
+    ASSERT_EQ(archive_write_set_format_pax_restricted(archive_writer.get()),
               ARCHIVE_OK);
     ASSERT_EQ(archive_write_open_filename(archive_writer.get(),
                                           path.string().c_str()),
@@ -140,24 +149,35 @@ class JetbrainsPluginsTest : public ::testing::Test {
     std::unique_ptr<struct archive_entry, decltype(&archive_entry_free)> entry(
         archive_entry_new(), archive_entry_free);
     ASSERT_NE(entry, nullptr);
-    archive_entry_set_pathname(entry.get(), "payload");
+    archive_entry_set_pathname(entry.get(), kPluginXmlPath.c_str());
     archive_entry_set_filetype(entry.get(), AE_IFREG);
     archive_entry_set_perm(entry.get(), 0644);
-    archive_entry_set_size(entry.get(), 1);
-    archive_entry_set_nlink(entry.get(), 2);
-    ASSERT_EQ(archive_write_header(archive_writer.get(), entry.get()),
-              ARCHIVE_OK);
-    ASSERT_EQ(archive_write_data(archive_writer.get(), "x", 1), 1);
+    archive_entry_set_size(entry.get(), content.size());
 
-    archive_entry_clear(entry.get());
-    archive_entry_set_pathname(entry.get(), "META-INF/plugin.xml");
-    archive_entry_set_filetype(entry.get(), AE_IFREG);
-    archive_entry_set_perm(entry.get(), 0644);
-    archive_entry_set_hardlink(entry.get(), "payload");
-    archive_entry_set_nlink(entry.get(), 2);
     ASSERT_EQ(archive_write_header(archive_writer.get(), entry.get()),
               ARCHIVE_OK);
+    ASSERT_EQ(archive_write_data(
+                  archive_writer.get(), content.data(), content.size()),
+              static_cast<la_ssize_t>(content.size()));
     ASSERT_EQ(archive_write_close(archive_writer.get()), ARCHIVE_OK);
+  }
+
+  void expectPluginXmlSizeIsUnset(const fs::path& path) {
+    std::unique_ptr<struct archive, decltype(&archive_read_free)>
+        archive_reader(archive_read_new(), archive_read_free);
+    ASSERT_NE(archive_reader, nullptr);
+    ASSERT_EQ(archive_read_support_format_zip(archive_reader.get()),
+              ARCHIVE_OK);
+    ASSERT_EQ(archive_read_open_filename(
+                  archive_reader.get(), path.string().c_str(), 10240),
+              ARCHIVE_OK);
+
+    struct archive_entry* entry{nullptr};
+    ASSERT_EQ(archive_read_next_header(archive_reader.get(), &entry),
+              ARCHIVE_OK);
+    ASSERT_NE(entry, nullptr);
+    ASSERT_STREQ(archive_entry_pathname(entry), kPluginXmlPath.c_str());
+    ASSERT_EQ(archive_entry_size_is_set(entry), 0);
   }
 
   fs::path root_;
@@ -165,72 +185,59 @@ class JetbrainsPluginsTest : public ::testing::Test {
 
 TEST_F(JetbrainsPluginsTest, test_extracts_normal_plugin_xml) {
   const auto archive_path = root_ / "normal.jar";
-  createPluginArchive(archive_path, makePluginXml(1024), 1024);
+  const auto content = makePluginXml(1024);
+  createPluginArchive(archive_path, content, content.size());
 
-  const auto attributes = attributesFromJar(archive_path.string());
-  ASSERT_NE(attributes, nullptr);
-  EXPECT_EQ(attributes->name, "H3");
-  EXPECT_EQ(attributes->vendor, "H3");
-  EXPECT_EQ(attributes->version, "1");
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(),
+          kPluginXmlPath,
+          jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  EXPECT_EQ(result.status, ExtractionStatus::Success);
+  EXPECT_EQ(std::string(result.content.begin(), result.content.end()), content);
 }
 
 TEST_F(JetbrainsPluginsTest, test_accepts_plugin_xml_at_size_limit) {
   const auto archive_path = root_ / "boundary.jar";
-  const auto content = makePluginXml(kMaxJetBrainsPluginXmlSize);
-  createPluginArchive(archive_path, content, kMaxJetBrainsPluginXmlSize);
+  const auto content =
+      makePluginXml(jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  createPluginArchive(archive_path, content, content.size());
 
-  EXPECT_NE(attributesFromJar(archive_path.string()), nullptr);
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(),
+          kPluginXmlPath,
+          jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  EXPECT_EQ(result.status, ExtractionStatus::Success);
+  EXPECT_EQ(result.content.size(),
+            jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
 }
 
 TEST_F(JetbrainsPluginsTest, test_rejects_declared_oversized_plugin_xml) {
   const auto archive_path = root_ / "declared-oversized.jar";
-  const auto content = makePluginXml(kMaxJetBrainsPluginXmlSize + 1U);
-  createPluginArchive(archive_path, content, kMaxJetBrainsPluginXmlSize + 1U);
+  const auto content = makePluginXml(
+      jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize + 1U);
+  createPluginArchive(archive_path, content, content.size());
 
-  EXPECT_EQ(attributesFromJar(archive_path.string()), nullptr);
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(),
+          kPluginXmlPath,
+          jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  EXPECT_EQ(result.status, ExtractionStatus::DeclaredSizeLimitExceeded);
+  EXPECT_TRUE(result.content.empty());
 }
 
-TEST_F(JetbrainsPluginsTest, test_handles_unknown_size_plugin_xml) {
+TEST_F(JetbrainsPluginsTest, test_rejects_unknown_size_during_decompression) {
   const auto archive_path = root_ / "unknown-size.jar";
   createUnknownSizePluginArchive(archive_path);
+  expectPluginXmlSizeIsUnset(archive_path);
 
-  std::unique_ptr<struct archive, decltype(&archive_read_free)> archive_reader(
-      archive_read_new(), archive_read_free);
-  ASSERT_NE(archive_reader, nullptr);
-  ASSERT_EQ(archive_read_support_format_all(archive_reader.get()), ARCHIVE_OK);
-  ASSERT_EQ(archive_read_support_filter_all(archive_reader.get()), ARCHIVE_OK);
-  ASSERT_EQ(archive_read_open_filename(
-                archive_reader.get(), archive_path.string().c_str(), 10240),
-            ARCHIVE_OK);
-
-  struct archive_entry* entry{nullptr};
-  while (archive_read_next_header(archive_reader.get(), &entry) == ARCHIVE_OK &&
-         std::string(archive_entry_pathname(entry)) != "META-INF/plugin.xml") {
-    archive_read_data_skip(archive_reader.get());
-  }
-  ASSERT_NE(entry, nullptr);
-  ASSERT_STREQ(archive_entry_pathname(entry), "META-INF/plugin.xml");
-  ASSERT_EQ(archive_entry_size_is_set(entry), 0);
-
-  EXPECT_EQ(attributesFromJar(archive_path.string()), nullptr);
-}
-
-TEST_F(JetbrainsPluginsTest, test_rejects_underreported_plugin_xml_size) {
-  const auto archive_path = root_ / "underreported-size.jar";
-  const auto content = makePluginXml(kMaxJetBrainsPluginXmlSize + 1U);
-  createPluginArchive(archive_path, content, kMaxJetBrainsPluginXmlSize + 1U);
-
-  auto archive_data = readArchiveData(archive_path);
-  const auto central_header =
-      findSignature(archive_data, kZipCentralHeaderSignature);
-  ASSERT_NE(central_header, archive_data.end());
-  setLittleEndian32(
-      archive_data,
-      static_cast<std::size_t>(central_header - archive_data.begin()) + 24U,
-      1U);
-  writeArchiveData(archive_path, archive_data);
-
-  EXPECT_EQ(attributesFromJar(archive_path.string()), nullptr);
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(), kPluginXmlPath, kSmallExtractionLimit);
+  EXPECT_EQ(result.status, ExtractionStatus::ExpandedSizeLimitExceeded);
+  EXPECT_TRUE(result.content.empty());
 }
 
 TEST_F(JetbrainsPluginsTest, test_discards_partial_malformed_plugin_xml) {
@@ -245,21 +252,48 @@ TEST_F(JetbrainsPluginsTest, test_discards_partial_malformed_plugin_xml) {
   archive_data.erase(central_header - 8, archive_data.end());
   writeArchiveData(archive_path, archive_data);
 
-  EXPECT_EQ(attributesFromJar(archive_path.string()), nullptr);
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(),
+          kPluginXmlPath,
+          jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  EXPECT_EQ(result.status, ExtractionStatus::ArchiveError);
+  EXPECT_TRUE(result.content.empty());
 }
 
 TEST_F(JetbrainsPluginsTest,
        test_oversized_jar_does_not_affect_subsequent_valid_jar) {
   const auto oversized_archive_path = root_ / "oversized.jar";
   const auto valid_archive_path = root_ / "valid.jar";
-  const auto oversized_content = makePluginXml(kMaxJetBrainsPluginXmlSize + 1U);
-  createPluginArchive(oversized_archive_path,
-                      oversized_content,
-                      kMaxJetBrainsPluginXmlSize + 1U);
+  const auto oversized_content = makePluginXml(kSmallExtractionLimit + 1U);
+  createPluginArchive(
+      oversized_archive_path, oversized_content, oversized_content.size());
   createPluginArchive(valid_archive_path, makePluginXml(1024), 1024);
 
-  EXPECT_EQ(attributesFromJar(oversized_archive_path.string()), nullptr);
-  EXPECT_NE(attributesFromJar(valid_archive_path.string()), nullptr);
+  const auto oversized_result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          oversized_archive_path.string(),
+          kPluginXmlPath,
+          kSmallExtractionLimit);
+  const auto valid_result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          valid_archive_path.string(), kPluginXmlPath, kSmallExtractionLimit);
+  EXPECT_EQ(oversized_result.status,
+            ExtractionStatus::DeclaredSizeLimitExceeded);
+  EXPECT_EQ(valid_result.status, ExtractionStatus::Success);
+}
+
+TEST_F(JetbrainsPluginsTest, test_rejects_non_zip_archive) {
+  const auto archive_path = root_ / "plugin.tar";
+  createTarPluginArchive(archive_path, makePluginXml(1024));
+
+  const auto result =
+      jetbrains_plugins_internal::extractSpecificFileFromArchive(
+          archive_path.string(),
+          kPluginXmlPath,
+          jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
+  EXPECT_EQ(result.status, ExtractionStatus::ArchiveError);
+  EXPECT_TRUE(result.content.empty());
 }
 
 TEST_F(JetbrainsPluginsTest, test_fileNameIsLikeVersionedLibraryName) {
