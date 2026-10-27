@@ -14,6 +14,8 @@
 
 #include <osquery/events/linux/bpf/systemstatetracker.h>
 
+#include <cstring>
+
 #include <arpa/inet.h>
 #include <linux/fcntl.h>
 #include <linux/netlink.h>
@@ -1340,12 +1342,45 @@ TEST_F(SystemStateTrackerTests, parse_unix_sockaddr) {
   EXPECT_EQ(address, "/test/path");
 }
 
+TEST_F(SystemStateTrackerTests, parse_unix_sockaddr_without_terminator) {
+  // A full-length sun_path is not required to be NUL-terminated
+  sockaddr_un addr{};
+  addr.sun_family = AF_UNIX;
+  std::memset(addr.sun_path, 'a', sizeof(addr.sun_path));
+
+  std::vector<std::uint8_t> sockaddr(sizeof(addr));
+  std::memcpy(sockaddr.data(), &addr, sizeof(addr));
+
+  std::string address;
+  auto succeeded = SystemStateTracker::parseUnixSockaddr(address, sockaddr);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, std::string(sizeof(addr.sun_path), 'a'));
+}
+
 TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
   std::string address;
   std::uint16_t port;
 
   auto succeeded = SystemStateTracker::parseNetlinkSockaddr(
       address, port, kTestNetlinkSockaddr);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "1");
+  EXPECT_EQ(port, 2);
+}
+
+TEST_F(SystemStateTrackerTests, parse_padded_netlink_sockaddr) {
+  // Captured address buffers can be larger than sockaddr_nl; the trailing
+  // bytes must not be copied past the end of the structure
+  auto sockaddr = kTestNetlinkSockaddr;
+  sockaddr.resize(sizeof(sockaddr_in), 0xFF);
+
+  std::string address;
+  std::uint16_t port;
+
+  auto succeeded =
+      SystemStateTracker::parseNetlinkSockaddr(address, port, sockaddr);
 
   EXPECT_TRUE(succeeded);
   EXPECT_EQ(address, "1");
