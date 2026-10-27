@@ -12,7 +12,8 @@
 # OpenSSL build needs. Only the distribution's own default repositories are
 # used (no EPEL or other third-party repositories).
 #
-# Usage: tools/bootstrap-linux.sh [--with-tests] [--toolchain-prefix <dir>]
+# Usage: tools/bootstrap-linux.sh [--with-tests] [--venv-dir <dir>]
+#                                 [--toolchain-prefix <dir>]
 
 set -euo pipefail
 
@@ -29,14 +30,19 @@ readonly PERL_MODULES=(FindBin IPC::Cmd File::Copy File::Path File::Glob
 readonly SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 with_tests=false
+venv_dir="${HOME}/.venvs/osquery"
 toolchain_prefix="/usr/local"
 
 usage() {
   cat <<EOF
-Usage: $0 [--with-tests] [--toolchain-prefix <dir>]
+Usage: $0 [--with-tests] [--venv-dir <dir>] [--toolchain-prefix <dir>]
 
   --with-tests              Also install the Python test prerequisites into a
-                            virtualenv at ${SOURCE_DIR}/.venv
+                            virtualenv
+  --venv-dir <dir>          Where to create the test virtualenv
+                            (default: ~/.venvs/osquery). Don't share one
+                            between machines, e.g. in a source tree shared
+                            with a VM host.
   --toolchain-prefix <dir>  Where to install the osquery toolchain
                             (default: /usr/local)
 EOF
@@ -54,6 +60,11 @@ fail() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --with-tests) with_tests=true ;;
+    --venv-dir)
+      [[ $# -ge 2 ]] || fail "--venv-dir requires a directory"
+      venv_dir="$2"
+      shift
+      ;;
     --toolchain-prefix)
       [[ $# -ge 2 ]] || fail "--toolchain-prefix requires a directory"
       toolchain_prefix="$2"
@@ -193,9 +204,13 @@ fi
 
 # Optionally set up the Python test prerequisites in a virtualenv.
 if [[ "${with_tests}" == true ]]; then
-  venv_dir="${SOURCE_DIR}/.venv"
   log "Installing Python test prerequisites into ${venv_dir}"
-  python3 -m venv "${venv_dir}"
+  mkdir -p "$(dirname "${venv_dir}")"
+  if ! python3 -m venv "${venv_dir}" || [[ ! -x "${venv_dir}/bin/python3" ]]; then
+    fail "could not create a virtualenv at ${venv_dir}. If that directory" \
+      "holds a virtualenv from another machine (for example, a source tree" \
+      "shared with a VM host), use --venv-dir to choose another location."
+  fi
   "${venv_dir}/bin/pip" install --upgrade pip
   "${venv_dir}/bin/pip" install -r "${SOURCE_DIR}/tools/tests/requirements.txt"
 fi

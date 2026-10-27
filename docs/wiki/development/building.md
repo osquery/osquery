@@ -32,7 +32,7 @@ tools/bootstrap-linux.sh
 make build
 ```
 
-`tools/bootstrap-linux.sh` (also available as `make prerequisites` once `make` is installed) installs the distribution packages (Git, Python 3, Bison, Flex, Make, CMake, Perl, and ccache if it is available), checks that the CMake version and the Perl modules needed by OpenSSL are present, and installs the [osquery toolchain](https://github.com/osquery/osquery-toolchain) to `/usr/local/osquery-toolchain` after verifying its checksum. Run `tools/bootstrap-linux.sh --help` for its options; for example, `--with-tests` also creates a Python virtualenv at `.venv` with the test prerequisites.
+`tools/bootstrap-linux.sh` (also available as `make prerequisites` once `make` is installed) installs the distribution packages (Git, Python 3, Bison, Flex, Make, CMake, Perl, and ccache if it is available), checks that the CMake version and the Perl modules needed by OpenSSL are present, and installs the [osquery toolchain](https://github.com/osquery/osquery-toolchain) to `/usr/local/osquery-toolchain` after verifying its checksum. Run `tools/bootstrap-linux.sh --help` for its options; for example, `--with-tests` also creates a Python virtualenv at `~/.venvs/osquery` (change it with `--venv-dir`) with the test prerequisites.
 
 `make build` configures the `build` folder with the `linux` preset from `CMakePresets.json`, then builds it. Without `make`, the equivalent commands are:
 
@@ -41,7 +41,7 @@ cmake --preset linux
 cmake --build --preset linux -j $(nproc)
 ```
 
-Other useful targets are `make test` (configure with tests enabled, build, then run the tests that don't require root), `make configure`, and `make clean`. For the Python tests, run `tools/bootstrap-linux.sh --with-tests` first and activate the virtualenv with `source .venv/bin/activate`. Set `JOBS` to limit the number of parallel build jobs, for example `make build JOBS=4` on machines with less memory.
+Other useful targets are `make test` (configure with tests enabled, build, then run the tests that don't require root), `make configure`, and `make clean`. For the Python tests, run `tools/bootstrap-linux.sh --with-tests` first and activate the virtualenv with `source ~/.venvs/osquery/bin/activate`. The default location keeps it out of the source tree, so a source tree shared between a host and a VM doesn't end up with one machine's virtualenv overwriting the other's. Set `JOBS` to limit the number of parallel build jobs, for example `make build JOBS=4` on machines with less memory.
 
 Optional extras, which the script doesn't install:
 

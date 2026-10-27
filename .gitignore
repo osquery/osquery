@@ -79,7 +79,7 @@ pyrightconfig.json
 !/external/cmake/cmakelibs.cmake
 !/external/CMakeLists.txt
 
-# Python test virtualenv (tools/bootstrap-linux.sh --with-tests)
+# Python test virtualenv created by the macOS build steps
 /.venv/
 
 # Local CMake presets, and leftovers from a rejected in-source configure
