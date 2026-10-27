@@ -149,10 +149,16 @@ void parseOSVersion(const std::string& path, Row& r) {
 
   std::string content;
   if (readFile(oracleRelease, content).ok()) {
-    // Oracle Linux ships oracle-release alongside a redhat-release, so it must
-    // be checked first. Read it for the version string below, but keep the
-    // platform already derived from os-release (ID=ol) instead of overriding to
-    // rhel as the redhat-release branch does.
+    // Oracle ships oracle-release alongside redhat-release, so check it first
+    // and keep the platform from os-release (ID=ol) instead of overriding to
+    // rhel. On minimal or legacy images that lack os-release, fall back to
+    // ol/rhel so Oracle is not reported as the generic posix default.
+    if (r["platform"].empty() || r["platform"] == "posix") {
+      r["platform"] = "ol";
+    }
+    if (r["platform_like"].empty()) {
+      r["platform_like"] = "rhel";
+    }
   } else if (readFile(redhatRelease, content).ok()) {
     r["platform"] = "rhel";
     r["platform_like"] = "rhel";

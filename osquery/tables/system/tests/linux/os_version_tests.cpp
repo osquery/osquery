@@ -250,5 +250,29 @@ TEST_F(OSVersion, parseAmazonLinux) {
   }
 }
 
+// Minimal or legacy Oracle images may lack os-release; the platform must still
+// be ol (not the generic posix default), with oracle-release taking precedence
+// over the redhat-release it ships alongside.
+TEST_F(OSVersion, parseOSVersionOracleWithoutOSRelease) {
+  writeFile(directory_ / kOracleRelease, kOracleReleaseContent);
+  writeFile(directory_ / kRedhatRelease, kRedhatReleaseContent);
+
+  Row got;
+  parseOSVersion(directory_.string(), got);
+
+  Row want({
+      {"arch", getMachineArchitecture()},
+      {"build", ""},
+      {"major", "1"},
+      {"minor", "2"},
+      {"name", "Oracle Linux Server"},
+      {"patch", "3"},
+      {"platform", "ol"},
+      {"platform_like", "rhel"},
+      {"version", "Oracle Linux Server release 1.2.3"},
+  });
+  ASSERT_EQ(got, want);
+}
+
 } // namespace tables
 } // namespace osquery
