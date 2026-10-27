@@ -78,3 +78,11 @@ pyrightconfig.json
 !/external/examples
 !/external/cmake/cmakelibs.cmake
 !/external/CMakeLists.txt
+
+# Python test virtualenv (tools/bootstrap-linux.sh --with-tests)
+/.venv/
+
+# Local CMake presets, and leftovers from a rejected in-source configure
+/CMakeUserPresets.json
+/CMakeCache.txt
+/CMakeFiles/
