@@ -208,22 +208,8 @@ static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
   }
 
   rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
 
-  if (context.constraints["name"].exists(EQUALS)) {
-    auto names = context.constraints["name"].getAll(EQUALS);
-    for (const auto& name : names) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
-        logger.vlog(
-            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
-      }
-    }
-  }
-
-  Header header;
-  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+  auto emitPackage = [&](Header header) {
     Row r;
     rpmtd td = rpmtdNew();
     r["name"] = getRpmAttribute(header, RPMTAG_NAME, td, logger);
@@ -242,9 +228,28 @@ static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
 
     rpmtdFree(td);
     results.push_back(r);
+  };
+
+  auto scan = [&](rpmdbMatchIterator matches) {
+    Header header;
+    while ((header = rpmdbNextIterator(matches)) != nullptr) {
+      emitPackage(header);
+    }
+    rpmdbFreeIterator(matches);
+  };
+
+  // The name column is `optimized`, so SQLite hands us the whole IN list in
+  // this one call. Do an indexed Name lookup per value -- librpm reads only the
+  // matching headers -- rather than iterating the whole database and filtering
+  // each header by string compare.
+  if (context.constraints["name"].exists(EQUALS)) {
+    for (const auto& name : context.constraints["name"].getAll(EQUALS)) {
+      scan(rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size()));
+    }
+  } else {
+    scan(rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0));
   }
 
-  rpmdbFreeIterator(matches);
   rpmtsFree(ts);
 
   return results;
@@ -340,25 +345,8 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   RpmtsPtr ts(rpmtsCreate());
-  RpmdbIteratorPtr matches(
-      rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
-  if (context.constraints["package"].exists(EQUALS)) {
-    auto packages = context.constraints["package"].getAll(EQUALS);
-    for (const auto& package : packages) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches.get(), RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) !=
-          0) {
-        logger.vlog(
-            1,
-            "Cannot add pattern: (" + package + ") to RPM iterator selector");
-      }
-    }
-  }
-
-  Header header;
-  while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+  auto emitFiles = [&](Header header) {
     RpmtdPtr td(rpmtdNew());
     RpmfiPtr fi(rpmfiNew(ts.get(), header, RPMTAG_BASENAMES, RPMFI_NOHEADER));
     std::string package_name =
@@ -367,12 +355,12 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     auto file_count = rpmfiFC(fi.get());
     if (file_count <= 0) {
       logger.vlog(1, "RPM package " + package_name + " contains 0 files");
-      continue;
+      return;
     } else if (file_count > MAX_RPM_FILES) {
       logger.vlog(1,
                   "RPM package " + package_name + " contains over " +
                       std::to_string(MAX_RPM_FILES) + " files");
-      continue;
+      return;
     }
 
     // Iterate over every file in this package.
@@ -399,6 +387,27 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
       yield(std::move(r));
     }
+  };
+
+  auto scan = [&](RpmdbIteratorPtr matches) {
+    Header header;
+    while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+      emitFiles(header);
+    }
+  };
+
+  // The package column is `optimized`, so SQLite hands us the whole IN list in
+  // this one call. Do an indexed Name lookup per value -- librpm reads only the
+  // matching headers -- rather than iterating the whole database and filtering
+  // each header by string compare.
+  if (context.constraints["package"].exists(EQUALS)) {
+    for (const auto& package : context.constraints["package"].getAll(EQUALS)) {
+      scan(RpmdbIteratorPtr(rpmtsInitIterator(
+          ts.get(), RPMTAG_NAME, package.c_str(), package.size())));
+    }
+  } else {
+    scan(
+        RpmdbIteratorPtr(rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0)));
   }
 }
 } // namespace tables
