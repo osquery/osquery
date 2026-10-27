@@ -7,13 +7,36 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstdint>
+#include <map>
+#include <string>
+#include <vector>
+
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/mutex.h>
 
 namespace osquery {
+
+namespace {
+
+/// A file_paths_query query that update() left for afterUpdate() to run.
+struct PendingFilePathsQuery {
+  std::string source;
+  uint64_t generation;
+  std::string category;
+  std::string query;
+};
+
+/// The queries that update() left for afterUpdate() to run. It is per-thread
+/// like the config's pending parsers, so each config update runs its own
+/// queries.
+thread_local std::vector<PendingFilePathsQuery> kPendingFilePathsQueries;
+
+} // namespace
 
 /**
  * @brief A simple ConfigParserPlugin for an "file_paths" dictionary key.
@@ -30,6 +53,9 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 
   Status update(const std::string& source, const ParserConfig& config) override;
 
+  /// Run the file_paths_query queries that update() received.
+  void afterUpdate() override;
+
  private:
   // Parse and update file_accesses top-level key.
   void updateFileAccesses(const JSON& file_accesses, const std::string& source);
@@ -37,9 +63,11 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   // Parse and update file_paths top-level key.
   void updateFilePaths(const JSON& file_paths, const std::string& source);
 
-  // Parse and update file_paths_query top-level key.
+  // Parse the file_paths_query top-level key, leaving its queries for
+  // afterUpdate() to run.
   void updateFilePathsQuery(const JSON& file_paths_query,
-                            const std::string& source);
+                            const std::string& source,
+                            uint64_t generation);
 
   // Parse and update exclude_paths top-level key.
   void updateExcludePaths(const JSON& exclude_paths);
@@ -47,6 +75,15 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
  private:
   /// The access map binds source to category.
   std::map<std::string, std::vector<std::string>> access_map_;
+
+  /// The generation of each source's files, which changes whenever update()
+  /// replaces them. Paths from queries of a replaced generation are not added.
+  std::map<std::string, uint64_t> generations_;
+
+  /// Protects generations_. It is held while adding a query's paths, so that
+  /// update() cannot remove a source's files between the generation check and
+  /// adding the paths.
+  Mutex generations_mutex_;
 };
 
 Status FilePathsConfigParserPlugin::setUp() {
@@ -116,7 +153,9 @@ void FilePathsConfigParserPlugin::updateFilePaths(const JSON& file_paths,
 }
 
 void FilePathsConfigParserPlugin::updateFilePathsQuery(
-    const JSON& file_paths_query, const std::string& source) {
+    const JSON& file_paths_query,
+    const std::string& source,
+    uint64_t generation) {
 #ifdef OSQUERY_IS_FUZZING
   return;
 #else
@@ -136,27 +175,54 @@ void FilePathsConfigParserPlugin::updateFilePathsQuery(
         continue;
       }
 
-      auto sql = SQL(query.GetString());
-      if (!sql.ok()) {
-        LOG(ERROR) << "Could not add file_paths using file_paths_query '"
-                   << query.GetString() << "': " << sql.getMessageString();
-      } else {
-        for (const auto& row : sql.rows()) {
-          auto pathIt = row.find("path");
-          if (pathIt == row.end()) {
-            LOG(ERROR) << "Cold not find non-empty 'path' column in the "
-                          "results of file_paths_query '"
-                       << query.GetString() << "'";
-          } else {
-            std::string path = pathIt->second;
-            replaceGlobWildcards(path);
-            Config::get().addFile(source, name, path);
-          }
-        }
-      }
+      // The queries may read tables, such as ATC tables, that parsers attach
+      // in afterUpdate(), so they run in afterUpdate() too.
+      kPendingFilePathsQueries.push_back(
+          {source, generation, name, query.GetString()});
     }
   }
 #endif
+}
+
+void FilePathsConfigParserPlugin::afterUpdate() {
+  std::vector<PendingFilePathsQuery> queries;
+  queries.swap(kPendingFilePathsQueries);
+
+  for (const auto& pending : queries) {
+    auto sql = SQL(pending.query);
+    if (!sql.ok()) {
+      LOG(ERROR) << "Could not add file_paths using file_paths_query '"
+                 << pending.query << "': " << sql.getMessageString();
+      continue;
+    }
+
+    std::vector<std::string> paths;
+    for (const auto& row : sql.rows()) {
+      auto pathIt = row.find("path");
+      if (pathIt == row.end()) {
+        LOG(ERROR) << "Cold not find non-empty 'path' column in the "
+                      "results of file_paths_query '"
+                   << pending.query << "'";
+      } else {
+        std::string path = pathIt->second;
+        replaceGlobWildcards(path);
+        paths.push_back(std::move(path));
+      }
+    }
+
+    ReadLock lock(generations_mutex_);
+    auto generation = generations_.find(pending.source);
+    if (generation == generations_.end() ||
+        generation->second != pending.generation) {
+      // A newer update replaced this source's files. It runs its own queries
+      // once its changes, such as new ATC tables, have been applied.
+      continue;
+    }
+
+    for (const auto& path : paths) {
+      Config::get().addFile(pending.source, pending.category, path);
+    }
+  }
 }
 
 void FilePathsConfigParserPlugin::updateExcludePaths(
@@ -194,6 +260,14 @@ void FilePathsConfigParserPlugin::updateExcludePaths(
 
 Status FilePathsConfigParserPlugin::update(const std::string& source,
                                            const ParserConfig& config) {
+  // Start a new generation before removing the source's files, so queries from
+  // an earlier update can no longer add paths once they are removed.
+  uint64_t generation{0};
+  {
+    WriteLock lock(generations_mutex_);
+    generation = ++generations_[source];
+  }
+
   Config::get().removeFiles(source);
   access_map_.erase(source);
 
@@ -208,7 +282,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
   }
 
   if (file_paths_query != config.end()) {
-    updateFilePathsQuery(file_paths_query->second, source);
+    updateFilePathsQuery(file_paths_query->second, source, generation);
   }
 
   auto file_accesses = config.find("file_accesses");
