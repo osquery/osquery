@@ -490,6 +490,10 @@ bool SystemStateTracker::setWorkingDirectory(
     IProcessContextFactory& process_context_factory,
     pid_t process_id,
     const std::string& path) {
+  if (path.empty()) {
+    return false;
+  }
+
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
@@ -497,6 +501,11 @@ bool SystemStateTracker::setWorkingDirectory(
     process_context.cwd = path;
 
   } else {
+    // The process context is empty if it could not be read from procfs
+    if (process_context.cwd.empty()) {
+      return false;
+    }
+
     if (process_context.cwd.back() != '/') {
       process_context.cwd += '/';
     }
@@ -515,6 +524,10 @@ bool SystemStateTracker::openFile(
     int newfd,
     const std::string& path,
     int flags) {
+  if (path.empty() && dirfd == AT_FDCWD) {
+    return false;
+  }
+
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
@@ -523,7 +536,8 @@ bool SystemStateTracker::openFile(
     absolute_path = path;
 
   } else if (dirfd == AT_FDCWD) {
-    if (path.empty()) {
+    // The process context is empty if it could not be read from procfs
+    if (process_context.cwd.empty()) {
       return false;
     }
 

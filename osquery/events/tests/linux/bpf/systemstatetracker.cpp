@@ -534,6 +534,43 @@ TEST_F(SystemStateTrackerTests, set_working_directory_with_path) {
   EXPECT_TRUE(context.event_list.empty());
 }
 
+TEST_F(SystemStateTrackerTests, set_working_directory_with_empty_path) {
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  SystemStateTracker::Context context;
+
+  auto succeeded = SystemStateTracker::setWorkingDirectory(
+      context, *process_context_factory.get(), 1001, "");
+
+  // The path is rejected before a process context is created from procfs
+  EXPECT_FALSE(succeeded);
+  EXPECT_EQ(process_context_factory->invocationCount(), 0U);
+  EXPECT_TRUE(context.process_map.empty());
+}
+
+TEST_F(SystemStateTrackerTests, set_working_directory_with_unknown_cwd) {
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  SystemStateTracker::Context context;
+
+  // The mocked factory fails to capture pid 1002, so its context is empty
+  auto succeeded = SystemStateTracker::setWorkingDirectory(
+      context, *process_context_factory.get(), 1002, "relative_folder");
+
+  EXPECT_FALSE(succeeded);
+  ASSERT_EQ(context.process_map.count(1002), 1U);
+  EXPECT_TRUE(context.process_map.at(1002).cwd.empty());
+
+  // An absolute path does not depend on the previous working directory
+  succeeded = SystemStateTracker::setWorkingDirectory(
+      context, *process_context_factory.get(), 1002, "/home/alessandro");
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(context.process_map.at(1002).cwd, "/home/alessandro");
+}
+
 TEST_F(SystemStateTrackerTests, set_working_directory_with_fd) {
   auto process_context_factory =
       std::make_unique<MockedProcessContextFactory>();
@@ -817,6 +854,63 @@ TEST_F(SystemStateTrackerTests, open_file) {
                              dirfd_folder_path + "/" + dirfd_relative_path));
 
   EXPECT_EQ(process_context_factory->invocationCount(), 1U);
+}
+
+TEST_F(SystemStateTrackerTests, open_file_with_empty_path) {
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  SystemStateTracker::Context context;
+
+  auto succeeded = SystemStateTracker::openFile(
+      context, *process_context_factory.get(), 1001, AT_FDCWD, 16, "", 0);
+
+  // The path is rejected before a process context is created from procfs
+  EXPECT_FALSE(succeeded);
+  EXPECT_EQ(process_context_factory->invocationCount(), 0U);
+  EXPECT_TRUE(context.process_map.empty());
+}
+
+TEST_F(SystemStateTrackerTests, open_file_with_unknown_cwd) {
+  auto process_context_factory =
+      std::make_unique<MockedProcessContextFactory>();
+
+  SystemStateTracker::Context context;
+
+  // The mocked factory fails to capture pid 1002, so its context is empty
+  auto succeeded = SystemStateTracker::openFile(context,
+                                                *process_context_factory.get(),
+                                                1002,
+                                                AT_FDCWD,
+                                                16,
+                                                "test_file",
+                                                0);
+
+  EXPECT_FALSE(succeeded);
+  ASSERT_EQ(context.process_map.count(1002), 1U);
+  EXPECT_TRUE(context.process_map.at(1002).fd_map.empty());
+
+  // An absolute path does not depend on the working directory
+  succeeded = SystemStateTracker::openFile(context,
+                                           *process_context_factory.get(),
+                                           1002,
+                                           AT_FDCWD,
+                                           16,
+                                           "/home/alessandro/test_file",
+                                           0);
+
+  EXPECT_TRUE(succeeded);
+
+  const auto& fd_map = context.process_map.at(1002).fd_map;
+  ASSERT_EQ(fd_map.count(16), 1U);
+
+  const auto& fd_info = fd_map.at(16);
+  ASSERT_TRUE(std::holds_alternative<ProcessContext::FileDescriptor::FileData>(
+      fd_info.data));
+
+  EXPECT_EQ(
+      std::get<ProcessContext::FileDescriptor::FileData>(fd_info.data).path,
+      "/home/alessandro/test_file");
 }
 
 TEST_F(SystemStateTrackerTests, create_socket) {
