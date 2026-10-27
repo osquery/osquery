@@ -102,6 +102,13 @@ static std::string getRpmAttribute(const Header& header,
 //   - State is plain static, not thread_local: all in-process access is under
 //     mutex_, and the only unlocked accessor -- the single-threaded child --
 //     needs no per-thread storage or atomics.
+//   - The rpmlog callback's data pointer, installed by the depth-0 session, is
+//     read by every nested session's notices, so it must outlive the deepest
+//     one. An outer generator can force-unwind (early LIMIT / short-circuited
+//     join) before a nested session ends, freeing a coroutine-stack logger
+//     while depth_ is still nonzero. So in-process callers pass the
+//     process-lifetime GLOGLogger::instance(); the fork-isolated worker passes
+//     its own IPC logger.
 class RpmSession : public boost::noncopyable {
  public:
   [[nodiscard]] static RecursiveLock lock() {
@@ -267,7 +274,7 @@ QueryData genRpmPackages(QueryContext& context) {
 
   // Drop before locking (mirrors genRpmPackageFiles) so the drop's `users`
   // sub-query does not run inside the global rpm critical section.
-  GLOGLogger logger;
+  auto& logger = GLOGLogger::instance();
   auto dropper = DropPrivileges::get();
   if (!dropper->dropTo("nobody") && isUserAdmin()) {
     logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
@@ -316,7 +323,7 @@ using RpmtdPtr = std::unique_ptr<std::remove_pointer_t<rpmtd>, RpmtdDeleter>;
 } // namespace
 
 void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
-  GLOGLogger logger;
+  auto& logger = GLOGLogger::instance();
   auto dropper = DropPrivileges::get();
   if (!dropper->dropTo("nobody") && isUserAdmin()) {
     logger.log(google::GLOG_WARNING,
