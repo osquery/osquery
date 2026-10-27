@@ -32,6 +32,7 @@ endfunction()
 
 function(generateTestsIntegrationTablesTestsTest)
   set(source_files
+    ai_agent_skills.cpp
     carbon_black_info.cpp
     carves.cpp
     certificates.cpp
@@ -85,6 +86,7 @@ function(generateTestsIntegrationTablesTestsTest)
   if(NOT PLATFORM_LINUX OR OSQUERY_BUILD_ROOT_TESTS)
     list(APPEND source_files
       cpu_info.cpp
+      gpu_metrics.cpp
       memory_devices.cpp
     )
   endif()
@@ -121,6 +123,7 @@ function(generateTestsIntegrationTablesTestsTest)
       docker_volume_labels.cpp
       docker_volumes.cpp
       file_events.cpp
+      gpu_info.cpp
       hardware_events.cpp
       homebrew_packages.cpp
       interface_ipv6.cpp
@@ -141,6 +144,7 @@ function(generateTestsIntegrationTablesTestsTest)
       prometheus_metrics.cpp
       shell_history.cpp
       smbios_tables.cpp
+      sshd_config.cpp
       sudoers.cpp
       suid_bin.cpp
       system_controls.cpp
@@ -174,6 +178,7 @@ function(generateTestsIntegrationTablesTestsTest)
       memory_info.cpp
       memory_map.cpp
       msr.cpp
+      flatpak_packages.cpp
       pacman_packages.cpp
       snap_packages.cpp
       portage_keywords.cpp
@@ -305,6 +310,7 @@ function(generateTestsIntegrationTablesTestsTest)
       default_environment.cpp
       disk_info.cpp
       drivers.cpp
+      gpu_info.cpp
       ie_extensions.cpp
       intel_me_info.cpp
       logon_sessions.cpp

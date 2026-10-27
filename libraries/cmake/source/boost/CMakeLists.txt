@@ -153,11 +153,15 @@ function(importBoostInterfaceLibraries)
   # include guard for boost/mpl/aux_/static_cast.hpp and replaces the macro with
   # a constexpr wrapper that returns T, matching the fix Boost applied in 1.82.
   # Also silence the related enum-constexpr-conversion warning.
-  if(PLATFORM_MACOS)
+  if(PLATFORM_MACOS OR PLATFORM_LINUX)
     # This workaround can hopefully be removed when Boost is updated
-    get_filename_component(boost_cmake_dir "${BOOST_ROOT}" DIRECTORY)
     target_compile_options(thirdparty_boost_mpl INTERFACE
       -Wno-enum-constexpr-conversion
+    )
+  endif()
+  if(PLATFORM_MACOS)
+    get_filename_component(boost_cmake_dir "${BOOST_ROOT}" DIRECTORY)
+    target_compile_options(thirdparty_boost_mpl INTERFACE
       "-include" "${boost_cmake_dir}/mpl_static_cast_fix.hpp"
     )
   endif()

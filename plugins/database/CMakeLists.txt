@@ -38,7 +38,7 @@ function(generatePluginsDatabaseRocksdbplugin)
 
   generateIncludeNamespace(plugins_database_rocksdbplugin "plugins/database" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME plugins_database_tests_rocksdbtests-test COMMAND plugins_database_tests_rocksdbtests-test)
+  add_test(NAME plugins_database_tests_mergedtests-test COMMAND plugins_database_tests_mergedtests-test)
 endfunction()
 
 function(generatePluginsDatabaseSqliteplugin)
@@ -63,8 +63,6 @@ function(generatePluginsDatabaseSqliteplugin)
   )
 
   generateIncludeNamespace(plugins_database_sqliteplugin "plugins/database" "FILE_ONLY" ${public_header_files})
-
-  add_test(NAME plugins_database_tests_sqliteplugintests-test COMMAND plugins_database_tests_sqliteplugintests-test)
 endfunction()
 
 osqueryPluginsDatabaseMain()

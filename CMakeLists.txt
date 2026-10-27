@@ -120,7 +120,7 @@ function(importLibraries)
     "Linux,Darwin,Windows:zstd"
     "Linux:dbus"
     "Linux:libcap"
-    "Linux:yaml-cpp"
+    "Linux,Darwin,Windows:yaml-cpp"
   )
 
 

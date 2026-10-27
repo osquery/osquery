@@ -256,10 +256,76 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
+  compiler_cache_lookup:
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: read
+    outputs:
+      caches: ${{ steps.lookup.outputs.result || '{}' }}
+
+    steps:
+    - name: Find compiler cache artifacts from default-branch runs
+      id: lookup
+      # We don't use caches on tags -- we do full clean builds.
+      # When this step doesn't run, later steps will not try to use the cache.
+      if: github.ref_type != 'tag'
+      continue-on-error: true
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const caches = {};
+          const branch = context.payload.repository.default_branch;
+          const repository = `${context.repo.owner}/${context.repo.repo}`;
+          const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
+            ...context.repo,
+            workflow_id: 'hosted_runners.yml',
+            branch,
+            status: 'success',
+            created: `>=${cutoff}`,
+            per_page: 100,
+          });
+
+          for await (const page of pages) {
+            for (const run of page.data) {
+              if (!['push', 'schedule'].includes(run.event) ||
+                  run.head_branch !== branch ||
+                  run.head_repository?.full_name !== repository ||
+                  run.id === context.runId) {
+                continue;
+              }
+
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...context.repo,
+                run_id: run.id,
+                per_page: 100,
+              });
+              for (const artifact of artifacts) {
+                if (!artifact.expired && artifact.name.startsWith('compiler-cache-v1-') &&
+                    !Object.hasOwn(caches, artifact.name)) {
+                  caches[artifact.name] = run.id;
+                }
+              }
+            }
+          }
+
+          core.info(`Compiler cache sources: ${JSON.stringify(caches)}`);
+          return caches;
+
   # The Linux build will only start once we know that the code
   # has been properly formatted
   build_linux:
-    needs: [check_code_style, check_libraries_manifest]
+    needs: [check_code_style, check_libraries_manifest, compiler_cache_lookup]
+
+    permissions:
+      actions: read
+      contents: read
+
+    env:
+      CCACHE_COMPRESS: "true"
+      CCACHE_NOFILECLONE: "true"
+      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_${{ matrix.os }}_${{ matrix.build_type }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)] }}
 
     strategy:
       matrix:
@@ -269,35 +335,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Disk space information
-      shell: bash
-      run: |
-        df -h
-        free -m
-
-    - name: Make space -- uninstalling packages
-      shell: bash
-      run: |
-        packages_to_remove=$(dpkg-query -f '${Package}\n' -W | grep "^clang-.*\|^llvm-.*\|^php.*\|^mono-.*\|^mongodb-.*\
-        \|^libmono-.*\|^temurin-8-jdk\|^temurin-11-jdk\|^temurin-17-jdk\|^dotnet-.*\|^google-chrome-stable\|^microsoft-edge-stable\
-        \|^google-cloud-sdk\|^google-cloud-api\|^azure-cli\|^firefox\|^php\|^hhvm\|^snapd")
-        sudo apt-get purge $packages_to_remove
-        sudo apt-get autoremove -y
-        sudo apt-get clean
-
-    - name: Make space -- removing runtimes
-      shell: bash
-      run: |
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc /usr/local/.ghcup
-
-    - name: Disk space information
-      shell: bash
-      run: |
-        df -h
-        free -m
-
     - name: Install osquery-toolchain
       run: |
         wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
@@ -365,8 +402,8 @@ jobs:
       id: runner_stats
       run: |
         df -h
-        echo "Cores: $(nproc)"
         free -m
+        echo "Cores: $(nproc)"
 
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
@@ -388,12 +425,21 @@ jobs:
         cd ${{ steps.build_paths.outputs.PACKAGING }}
         git checkout ${{ env.PACKAGING_COMMIT }}
 
-    - name: Restore cache (ccache)
-      if: github.ref_type != 'tag'
-      uses: actions/cache/restore@v6
+    - name: Download compiler cache artifact
+      id: compiler_cache_download
+      if: env.COMPILER_CACHE_RUN_ID != ''
+      continue-on-error: true
+      uses: actions/download-artifact@v8
       with:
-        path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
+        github-token: ${{ github.token }}
+        path: ${{ runner.temp }}/compiler-cache
+
+    - name: Restore compiler cache
+      if: steps.compiler_cache_download.outcome == 'success'
+      continue-on-error: true
+      run: tar -xf "${{ runner.temp }}/compiler-cache/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}"
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -412,13 +458,15 @@ jobs:
       run: git submodule sync --recursive
 
     - name: Configure ccache
-      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: |
+        export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
+        export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
+        echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
+        echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --zero-stats
 
     - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
         cmake -G "Unix Makefiles" \
@@ -429,22 +477,12 @@ jobs:
           -DOSQUERY_BUILD_ROOT_TESTS=${{ steps.tests_build_settings.outputs.VALUE }} \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
-    - name: Zero ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: ccache --zero-stats
-
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
       run: ccache -s
 
     - name: Disk space information
@@ -473,7 +511,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
@@ -576,11 +613,6 @@ jobs:
         name: linux_unsigned_release_tgz${{ steps.arch.outputs.suffix }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_TGZ_PATH }}
 
-    # Before we terminate this job, delete the build folder. The cache
-    # actions will require the disk space to create the archives.
-    - name: Reclaim disk space
-      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
-
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
@@ -588,29 +620,50 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
-    - name: Save cache (ccache)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
       with:
-        path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.build_type }}_${{ github.sha }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
 
 
   # The macOS build will only start once we know that the code
   # has been properly formatted
   build_macos:
-    needs: [check_code_style, check_libraries_manifest]
+    needs: [check_code_style, check_libraries_manifest, compiler_cache_lookup]
 
-    runs-on: ${{ matrix.os }}
+    permissions:
+      actions: read
+      contents: read
+
+    runs-on: macos-26
 
     strategy:
       matrix:
         build_type: [Release, Debug]
         architecture: [x86_64, arm64]
-        os: [macos-26, macos-15]
+        exclude:
+          # Debug builds are unused on x86. Tests only run on arm64 and only the release build is used for universal binaries.
+          - build_type: Debug
+            architecture: x86_64
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
+      CCACHE_COMPRESS: "true"
+      CCACHE_NOFILECLONE: "true"
+      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_macOS_${{ matrix.architecture }}_${{ matrix.build_type }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)] }}
 
     steps:
     - name: Select the build job count
@@ -663,12 +716,21 @@ jobs:
         echo "Cores: $(sysctl -n hw.logicalcpu)"
         vm_stat
 
-    - name: Restore cache (ccache)
-      if: github.ref_type != 'tag'
-      uses: actions/cache/restore@v6
+    - name: Download compiler cache artifact
+      id: compiler_cache_download
+      if: env.COMPILER_CACHE_RUN_ID != ''
+      continue-on-error: true
+      uses: actions/download-artifact@v8
       with:
-        path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
+        github-token: ${{ github.token }}
+        path: ${{ runner.temp }}/compiler-cache
+
+    - name: Restore compiler cache
+      if: steps.compiler_cache_download.outcome == 'success'
+      continue-on-error: true
+      run: tar -xf "${{ runner.temp }}/compiler-cache/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}"
 
     - name: Compute the submodule hash
       id: submodule_hash
@@ -695,32 +757,6 @@ jobs:
           coreutils \
           gnu-sed
 
-    - name: Setup python
-      uses: actions/setup-python@v7
-      with:
-        # Pin an exact python version to avoid mismatches between this builder and the test_older_macos runner
-        python-version: '3.13.1'
-        architecture: arm64
-
-    - name: Install tests dependencies
-      id: install_test_deps
-      run: |
-        pip3 install setuptools \
-                      pexpect==3.3 \
-                      psutil \
-                      timeout_decorator \
-                      six \
-                      thrift==0.11.0 \
-                      osquery
-
-    - name: Install CMake
-      shell: bash
-      run: |
-        ${{ steps.build_paths.outputs.REL_SOURCE }}/tools/ci/scripts/macos/install_cmake.sh \
-          "${{ steps.build_paths.outputs.DOWNLOADS }}" \
-          "${{ steps.build_paths.outputs.INSTALL }}" \
-          "3.21.4"
-
     # We don't have enough space on the worker to actually generate all
     # the debug symbols (osquery + dependencies), so we have a flag to
     # disable them when running a Debug build
@@ -735,14 +771,16 @@ jobs:
         fi
 
     - name: Configure ccache
-      run: echo "CCACHE_CONFIGPATH=${{ steps.build_paths.outputs.SOURCE }}/ccache.conf" >> $GITHUB_ENV
+      run: |
+        export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
+        export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
+        echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
+        echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --zero-stats
 
     - name: Configure the project
       shell: bash
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: |
         cmake -G "Unix Makefiles" \
@@ -752,23 +790,13 @@ jobs:
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_NO_DEBUG_SYMBOLS=${{ steps.debug_symbols_settings.outputs.VALUE }} \
           ${{ steps.build_paths.outputs.SOURCE }}
-
-    - name: Zero ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
-      run: ccache --zero-stats
-
+    
     - name: Build the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
 
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
       run: ccache -s
 
     - name: Disk space information
@@ -778,16 +806,53 @@ jobs:
         df -h
         du -sh ${{ steps.build_paths.outputs.BINARY }}
 
-    - name: Run the tests
+    # Package the build tree so test_macos can reuse it to run the tests
+    # concurrently with the install/package steps below, without rebuilding.
+    # CMakeFiles/ and intermediate object files are excluded since ctest
+    # only needs the already-linked test binaries, not the compile artifacts.
+    - name: Package build tree for testing
       if: matrix.architecture == 'arm64'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: ctest --build-nocmake -V
+      run: |
+        tar --zstd -cf ../build_tree.tar.zst \
+          --exclude-vcs \
+          --exclude='CMakeFiles' \
+          --exclude='*.o' \
+          --exclude='*.a' \
+          --exclude='*.h' \
+          --exclude='*.cpp' \
+          --exclude='*.dSYM' \
+          --exclude='*.pyc' \
+          --exclude='*.tar.gz' \
+          --exclude='*.tar.xz' \
+          --exclude='*.tar.zst' \
+          --exclude='*.tar.bz2' \
+          --exclude='*.zip' \
+          --exclude='compile_commands.json' \
+          --exclude='Makefile' \
+          --exclude='.DS_Store' \
+          --exclude='__pycache__/' \
+          --exclude='installed_formulas/' \
+          --exclude='libs/' \
+          --exclude='openssl-prefix/' \
+          --exclude='patched-source/' \
+          --exclude='.cache/' \
+          .
+
+    - name: Store the build tree artifact
+      if: matrix.architecture == 'arm64'
+      uses: actions/upload-artifact@v4.4.0
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: workspace/build_tree.tar.zst
+        # Already zstd-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     - name: Run the install target
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.CCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: |
@@ -797,6 +862,7 @@ jobs:
           -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Create the package data
+      if: matrix.build_type == 'Release'
       working-directory: ${{ steps.build_paths.outputs.PACKAGE_BUILD }}
       run: tar pcvzf package_data.tar.gz -C ${{ steps.build_paths.outputs.PACKAGE_DATA }} .
 
@@ -807,16 +873,13 @@ jobs:
       run: echo "REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH=$(ls ${{ steps.build_paths.outputs.REL_PACKAGE_BUILD }}/package_data.tar.gz)" >> $GITHUB_OUTPUT
 
     - name: Store the ${{ matrix.architecture }} unsigned release package data artifact
-      if: matrix.build_type == 'Release' && matrix.os == 'macos-26'
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v7
       with:
         name: macos_unsigned_release_package_data_${{ matrix.architecture }}
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_PACKAGE_DATA_PATH }}
-
-    # Before we terminate this job, delete the build folder. The cache
-    # actions will require the disk space to create the archives.
-    - name: Reclaim disk space
-      run: rm -rf ${{ steps.build_paths.outputs.BINARY }}
+        # Already gzip-compressed; skip the redundant recompression pass.
+        compression-level: 0
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch && matrix.architecture == 'arm64' && matrix.build_type == 'Release'
@@ -825,16 +888,144 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
-    - name: Save cache (ccache)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
       with:
-        path: ${{ steps.build_paths.outputs.CCACHE }}
-        key: ccache_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.build_type }}_${{ github.sha }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
+
+  # Reuse the build tree(s) produced by build_macos to run the tests.
+  # This allows us to do fewer builds (just use the builds
+  # produced on the newest macOS, which are the ones that we ship)
+  # while still testing on all the configurations.
+  test_macos:
+    needs: build_macos
+
+    # Only test on arm64, matching the original behavior in master
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-26, macos-15]
+        architecture: [arm64]
+        build_type: [Release, Debug]
+
+    steps:
+    - name: Setup the build paths
+      shell: bash
+      id: build_paths
+      run: |
+        rel_build_path="workspace/build"
+        rel_downloads_path="workspace/downloads"
+        rel_install_path="workspace/install"
+
+        mkdir -p ${rel_build_path} ${rel_downloads_path} ${rel_install_path}
+
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "DOWNLOADS=$(pwd)/${rel_downloads_path}" >> $GITHUB_OUTPUT
+        echo "INSTALL=$(pwd)/${rel_install_path}" >> $GITHUB_OUTPUT
+
+    # The python integration tests invoke an absolute path to the cmake
+    # binary that was baked in at configure time in build_macos, so it
+    # must be installed at the same path here too.
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+
+    - name: Install Python dependencies
+      shell: bash
+      run: |
+        python3 -m venv "${{ steps.build_paths.outputs.INSTALL }}/venv"
+        echo "${{ steps.build_paths.outputs.INSTALL }}/venv/bin" >> $GITHUB_PATH
+        "${{ steps.build_paths.outputs.INSTALL }}/venv/bin/pip3" install \
+          pexpect==3.3 \
+          psutil \
+          timeout_decorator \
+          six \
+          thrift==0.11.0 \
+          osquery
+
+    - name: Download the build tree artifact
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: macos_build_tree_${{ matrix.architecture }}_${{ matrix.build_type }}
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}
+
+    - name: Extract the build tree
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        tar --zstd -xf build_tree.tar.zst
+
+    # build_macos always configures on macos-26 (Apple Silicon) hardware,
+    # even for the x86_64 leg (it cross-compiles via CMAKE_OSX_ARCHITECTURES),
+    # so the CTest files it produces have the arm64 hostedtoolcache Python
+    # path baked into their COMMAND/ENVIRONMENT. When tests run on a different
+    # runner, we need to: (1) re-point the interpreter path to what's installed
+    # on this runner, and (2) update PYTHONPATH to include venv site-packages
+    # so test dependencies like psutil are found.
+    - name: Align Python paths and update PYTHONPATH for venv
+      shell: bash
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        baked_python_path="$(grep -rhoE '/[^ ;"]*/bin/python3(\.[0-9]+)?' --include='CTestTestfile.cmake' . | sort -u | head -n1)"
+
+        if [[ -z "${baked_python_path}" ]]; then
+          echo "::error::Could not find the baked Python interpreter path in the build tree"
+          exit 1
+        fi
+
+        actual_python_path="$(python3 -c 'import os, sys; print(os.path.realpath(sys.executable))')"
+        baked_python_realpath="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "${baked_python_path}")"
+        echo "Baked path: ${baked_python_path}"
+        echo "Actual path: ${actual_python_path}"
+
+        if [[ "${baked_python_realpath}" != "${actual_python_path}" ]]; then
+          mkdir -p "$(dirname "${baked_python_path}")"
+          ln -sf "${actual_python_path}" "${baked_python_path}"
+        fi
+
+        # Add venv site-packages to PYTHONPATH so test dependencies are found
+        venv_site_packages=$(find "${{ steps.build_paths.outputs.INSTALL }}/venv/lib" -name "site-packages" -type d | head -n1)
+        
+        if [[ -z "$venv_site_packages" ]]; then
+          echo "::error::Could not find venv site-packages directory in ${{ steps.build_paths.outputs.INSTALL }}/venv/lib"
+          exit 1
+        fi
+
+        # Escape path for use in sed regex replacement
+        venv_escaped=$(printf '%s\n' "$venv_site_packages" | sed -e 's/[\/&]/\\&/g')
+        
+        # Update all CTestTestfile.cmake files to prepend venv site-packages to PYTHONPATH
+        find . -name "CTestTestfile.cmake" -type f -print0 | xargs -0 sed -i '' \
+          "s|PYTHONPATH=\${{ steps.build_paths.outputs.BINARY }}/python_path|PYTHONPATH=$venv_escaped:\${{ steps.build_paths.outputs.BINARY }}/python_path|g"
+
+    - name: Run the tests
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: bash
+      run: |
+        if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
+          ctest --build-nocmake -V \
+            -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
+        else
+          ctest --build-nocmake -V
+        fi
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:
-    needs: build_macos
+    needs: test_macos
 
     runs-on: macos-26
 
@@ -843,17 +1034,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Install CMake
-        shell: bash
-        run: |
-          mkdir -p "workspace/downloads" \
-                   "workspace/install"
-
-          ./tools/ci/scripts/macos/install_cmake.sh \
-            "workspace/downloads" \
-            "workspace/install" \
-            "3.21.4"
 
       - uses: actions/download-artifact@v8
         with:
@@ -924,7 +1104,15 @@ jobs:
   # The Windows build will only start once we know that the code
   # has been properly formatted
   build_windows:
-    needs: [check_code_style, check_libraries_manifest]
+    needs: [check_code_style, check_libraries_manifest, compiler_cache_lookup]
+
+    permissions:
+      actions: read
+      contents: read
+
+    env:
+      COMPILER_CACHE_NAME: compiler-cache-v1-sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-sccache_{0}_{1}_{2}', matrix.os, matrix.bitness, matrix.build_type)] }}
 
     runs-on: ${{ matrix.os }}
 
@@ -973,6 +1161,9 @@ jobs:
         echo "PACKAGING=$base_dir\$rel_packaging_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_DATA=$base_dir\$rel_package_data_path" >> $env:GITHUB_OUTPUT
         echo "PACKAGE_BUILD=$base_dir\$rel_packaging_build" >> $env:GITHUB_OUTPUT
+
+        echo "SCCACHE_DIR=$base_dir\$rel_sccache_path" >> $env:GITHUB_ENV
+
 
     - name: Setup the VC arch
       shell: powershell
@@ -1077,23 +1268,6 @@ jobs:
                               osquery `
                               pywin32
 
-    - name: Install CMake
-      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
-      shell: powershell
-      run: |
-        $long_cmake_ver = "3.21.4"
-        $short_cmake_ver = $($long_cmake_ver.split(".")[0] + "." + $long_cmake_ver.split(".")[1])
-
-        $folder_name = $("cmake-" + $long_cmake_ver + "-windows-x86_64")
-        $archive_name = $($folder_name + ".zip")
-
-        $url = $("https://cmake.org/files/v" + $short_cmake_ver + "/" + $archive_name)
-
-        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
-        7z x -o${{ steps.build_paths.outputs.INSTALL }} -y $archive_name
-
-        echo "${{ steps.build_paths.outputs.INSTALL }}\$folder_name\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
     - name: Install sccache
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -1126,10 +1300,6 @@ jobs:
       shell: cmd
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
-      env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
-
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
@@ -1152,20 +1322,28 @@ jobs:
           ${{ steps.build_paths.outputs.SOURCE }} ^
           %cross_compilation%
 
-    - name: Restore cache (sccache)
-      uses: actions/cache/restore@v6
-      if: github.ref_type != 'tag'
+    - name: Download compiler cache artifact
+      id: compiler_cache_download
+      if: env.COMPILER_CACHE_RUN_ID != ''
+      continue-on-error: true
+      uses: actions/download-artifact@v8
       with:
-        path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
+        github-token: ${{ github.token }}
+        path: ${{ runner.temp }}/compiler-cache
+
+    - name: Restore compiler cache
+      if: steps.compiler_cache_download.outcome == 'success'
+      continue-on-error: true
+      shell: powershell
+      run: |
+        tar -xf "${{ runner.temp }}/compiler-cache/cache.tar" -C "${{ steps.build_paths.outputs.SCCACHE }}"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     - name: Build the project
       shell: cmd
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      env:
-        SCCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
-        SCCACHE_CACHE_SIZE: "5G"
 
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
@@ -1176,6 +1354,10 @@ jobs:
         cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
         if %errorlevel% neq 0 exit /b %errorlevel%
+
+    - name: Print sccache stats
+      shell: cmd
+      run: |
         sccache.exe --show-stats
         sccache.exe --stop-server
 
@@ -1201,7 +1383,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
 
       env:
-        CCACHE_DIR: ${{ steps.build_paths.outputs.SCCACHE }}
         DESTDIR: ${{ steps.build_paths.outputs.PACKAGE_DATA }}
 
       run: cmake --build . --target install -j 3
@@ -1283,12 +1464,6 @@ jobs:
         name: windows${{ matrix.bitness }}_unsigned_release_nupkg
         path: ${{ steps.packages.outputs.REL_UNSIGNED_RELEASE_NUPKG_PATH }}
 
-    # Before we terminate this job, delete the build folder. The cache
-    # actions will require the disk space to create the archives.
-    - name: Reclaim disk space
-      shell: powershell
-      run: rm -r -Force ${{ steps.build_paths.outputs.BINARY }}
-
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch && matrix.bitness == '64' && matrix.build_type == 'Release'
       uses: actions/cache/save@v6
@@ -1296,12 +1471,25 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
-    - name: Save cache (sccache)
-      if: github.ref_name == github.event.repository.default_branch
-      uses: actions/cache/save@v6
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      shell: powershell
+      run: |
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.SCCACHE }}" .
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
       with:
-        path: ${{ steps.build_paths.outputs.SCCACHE }}
-        key: sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}_${{ github.sha }}
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
@@ -1310,8 +1498,9 @@ jobs:
     steps:
       - run: true
     needs:
-      - build_macos
+      - check_source_code
       - build_linux
       - build_windows
+      - build_macos
+      - test_macos
       - build_universal_macos_artifacts
-      - check_source_code

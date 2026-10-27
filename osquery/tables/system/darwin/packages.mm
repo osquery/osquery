@@ -157,8 +157,10 @@ const BOMPaths* BOM::getPaths(int index) const {
     return nullptr;
   }
 
-  // Check the number of indexes.
-  if (paths_size < ntohs(paths->count) * sizeof(BOMPathIndices)) {
+  // Check the number of indexes. The indices array sits behind the
+  // BOMPaths header, so the header size must be part of the bound.
+  if (paths_size <
+      sizeof(BOMPaths) + ntohs(paths->count) * sizeof(BOMPathIndices)) {
     return nullptr;
   }
   return paths;
@@ -176,15 +178,18 @@ void genBOMPaths(const std::string& path,
       uint32_t index0 = paths->indices[j].index0;
       uint32_t index1 = paths->indices[j].index1;
 
-      auto info1 = (const BOMPathInfo1*)bom.getPointer(index0);
-      if (info1 == nullptr) {
-        // Invalid BOMPathInfo1 structure.
+      size_t info1_size;
+      auto info1 = (const BOMPathInfo1*)bom.getPointer(index0, &info1_size);
+      if (info1 == nullptr || info1_size < sizeof(BOMPathInfo1)) {
+        // Invalid BOMPathInfo1 structure or size out of bounds.
         return;
       }
 
-      auto info2 = (const BOMPathInfo2*)bom.getPointer(info1->index);
-      if (info2 == nullptr) {
-        // Invalid BOMPathInfo2 structure.
+      size_t info2_size;
+      auto info2 =
+          (const BOMPathInfo2*)bom.getPointer(info1->index, &info2_size);
+      if (info2 == nullptr || info2_size < sizeof(BOMPathInfo2)) {
+        // Invalid BOMPathInfo2 structure or size out of bounds.
         return;
       }
 
@@ -266,8 +271,13 @@ void genPackageBOM(const std::string& path, QueryData& results) {
     const BOMTree* tree = (const BOMTree*)var_data;
     auto paths = bom.getPaths(tree->child);
     while (paths != nullptr && paths->isLeaf == htons(0)) {
-      if ((BOMPathIndices*)paths->indices == nullptr) {
-        break;
+      if (ntohs(paths->count) == 0) {
+        // A non-leaf node with no indices has nothing to descend into, and
+        // getPaths only sizes the block for the header when count is zero, so
+        // indices[0] would read past the block. Return rather than break so
+        // the node never reaches genBOMPaths, which follows forward without
+        // checking isLeaf.
+        return;
       }
       paths = bom.getPaths(paths->indices[0].index0);
     }

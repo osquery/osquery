@@ -6,29 +6,18 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryNumericmonitoringTestsMain)
-  osqueryNumericmonitoringTestsTest()
-  osqueryNumericmonitoringTestsPreaggregationcacheTest()
+  osqueryNumericmonitoringTestsMergedtestsTest()
 endfunction()
 
-function(osqueryNumericmonitoringTestsTest)
-  add_osquery_executable(osquery_numericmonitoring_tests-test numeric_monitoring.cpp)
-
-  target_link_libraries(osquery_numericmonitoring_tests-test PRIVATE
-    osquery_cxx_settings
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_numericmonitoring
-    osquery_registry
-    tests_helper
-    thirdparty_googletest
+function(osqueryNumericmonitoringTestsMergedtestsTest)
+  set(source_files
+    numeric_monitoring.cpp
+    pre_aggregation_cache.cpp
   )
-endfunction()
 
-function(osqueryNumericmonitoringTestsPreaggregationcacheTest)
-  add_osquery_executable(osquery_numericmonitoring_tests_preaggregationcache-test pre_aggregation_cache.cpp)
+  add_osquery_executable(osquery_numericmonitoring_tests_mergedtests-test ${source_files})
 
-  target_link_libraries(osquery_numericmonitoring_tests_preaggregationcache-test PRIVATE
+  target_link_libraries(osquery_numericmonitoring_tests_mergedtests-test PRIVATE
     osquery_cxx_settings
     osquery_database
     osquery_extensions

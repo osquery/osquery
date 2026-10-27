@@ -199,6 +199,24 @@ http::Client::Options TLSTransport::getInternalOptions() {
   return options;
 }
 
+http::Client::Options TLSTransport::getInternalOptionsForRequest(
+    http::Request& request) {
+  auto options = getInternalOptions();
+
+  if (auto hostname = request.remoteHost()) {
+    options.remote_hostname(*hostname);
+  }
+
+  if (auto port = request.remotePort()) {
+    options.remote_port(*port);
+  } else {
+    options.remote_port("443");
+  }
+
+  options.ssl_connection(true);
+  return options;
+}
+
 inline bool tlsFailure(const std::string& what) {
   if (what.find("Error") == 0 || what.find("refused") != std::string::npos) {
     return false;
@@ -247,7 +265,7 @@ Status TLSTransport::sendRequest() {
   try {
     std::shared_ptr<http::Client> client = getClient();
 
-    client->setOptions(getInternalOptions());
+    client->setOptions(getInternalOptionsForRequest(r));
     response_ = client->get(r);
 
     const auto& response_body = response_.body();
@@ -293,7 +311,7 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
   try {
     std::shared_ptr<http::Client> client = getClient();
-    client->setOptions(getInternalOptions());
+    client->setOptions(getInternalOptionsForRequest(r));
 
     if (verb == HTTP_POST) {
       response_ = client->post(r, (compress) ? compressString(params) : params);

@@ -201,9 +201,14 @@ osqueryd may depend on a config plugin from an extension. If the requested confi
 Seconds delay between extension connectivity checks.
 Extensions are loaded as processes. They are expected to start a thrift service thread. The osqueryd process will continue to check this API. If an extension process is incorrectly stopped, osqueryd will detect the connectivity failure and unregister the extension.
 
-`--extensions_require=custom1,custom1`
+`--extensions_require=custom1,custom2`
 
 Optional comma-delimited set of extension names to require before `osqueryi` or `osqueryd` will start. The tool will fail if the extension has not started according to the interval and timeout.
+Use the name each extension registers, which may differ from its file name. When passing a query to `osqueryi` on the command line together with `--extension`, set this flag as well; otherwise the query may run before the extension's tables are registered and fail with `Error: no such table`.
+
+`--extension=/path/to/extension.ext`
+
+Path to a single extension to load at startup. This flag is only available in `osqueryi`; it is meant for development and testing, and skips the ownership and permission checks applied to `--extensions_autoload`. See the extensions [deployment](../deployment/extensions.md#manually-loading-extensions) page for an example.
 
 `--extensions_default_index=true`
 
@@ -532,13 +537,19 @@ The number of acknowledgments the Kafka leader has to receive before a publish i
 
 `--logger_kafka_compression`
 
-Compression codec to use for compressing message sets. Valid options are ("none", "gzip"). Default is "none".
+Compression codec to use for compressing message sets. Valid options are ("none", "gzip", "snappy", "lz4", "zstd"). Default is "none".
 
 `--buffered_log_max=1000000`
 
 There are multiple logger plugins that use a "buffered logging" implementation. The TLS and AWS loggers use this approach. This flag sets the maximum number of logs to buffer before dropping new logs. If the buffered logs have not been shuttled to the logger destination they will be purged in order of their timestamp. The oldest logs are purged first.
 
 Setting this to value to `0` means unlimited logs will be buffered.
+
+`--buffered_log_max_batch_bytes=16777216`
+
+The maximum number of bytes of buffered logs that a buffered logger plugin reads and sends at once, for each log type (results and statuses). This bounds the memory used to send a batch when individual log lines are large. A line larger than the limit is still sent, in a batch on its own. Lines beyond the limit are sent in later batches.
+
+Setting this value to `0` means the batch is limited only by the plugin's maximum number of lines, such as `--logger_tls_max_lines`.
 
 `--host_identifier=hostname`
 
@@ -594,9 +605,47 @@ Disable distributed queries functionality. By default, this is set to `true` (th
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
 
+`--distributed_results_max_bytes=33554432`
+
+The maximum size in bytes of distributed query results that osqueryd keeps to retry after writing them to the distributed query server fails. Results that fail to write are retried with the next check-in, together with the results of any new queries. If they grow beyond this size, for example because the server keeps rejecting the request, they are dropped and a warning is logged.
+
+Setting this value to `0` means failed results are kept until they are written.
+
 `--tls_accept_gzip=true`
 
 (Default false) Enable the HTTP client to process gzip responses from the server. Will turn on sending an `Accept-Encoding: gzip` header. In the future this flag may default to true, or be removed entirely with the feature always on.
+
+## File carving flags
+
+See [File Carving](../deployment/file-carving.md) for how to request carves through the `carves` table.
+
+`--disable_carver=true`
+
+Disable the file carver. By default, this is set to `true` (carving is disabled). Set this to `false` to enable file carving.
+
+`--carver_disable_function=true`
+
+Disable the `carve()` SQL function, which starts a carve of the paths passed to it from within a query. By default, this is set to `true`. Set this to `false` to allow carving with the function.
+
+`--carver_start_endpoint=`
+
+The TLS/HTTPS endpoint, on the `--tls_hostname` server, used to start a carve session. For example, `/start_uploads`.
+
+`--carver_continue_endpoint=`
+
+The TLS/HTTPS endpoint, on the `--tls_hostname` server, that receives the carved content in blocks after a carve session starts. For example, `/upload_blocks`.
+
+`--carver_block_size=8192`
+
+In bytes, the size of the blocks used to upload carved content to the continue endpoint.
+
+`--carver_compression=false`
+
+Compress carve archives using zstd before uploading them.
+
+`--carver_expiry=86400`
+
+In seconds, how long to keep the metadata of successful carves in the `carves` table.
 
 ## Syslog consumption flags
 

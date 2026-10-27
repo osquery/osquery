@@ -293,7 +293,7 @@ function(librdkafkaMain)
       WITHOUT_WIN32_CONFIG
       WITH_SSL=1
       WITH_ZLIB=1
-      WITH_SNAPPY=0
+      WITH_SNAPPY=1
       WITH_ZSTD=1
       WITH_SASL_SCRAM=1
       WITH_SASL_OAUTHBEARER=1

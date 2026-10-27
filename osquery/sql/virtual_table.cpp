@@ -295,6 +295,16 @@ inline std::string table_doc(const std::string& name) {
   return "https://osquery.io/schema/#" + name;
 }
 
+/// Point to the documentation for a table. Tables provided by extensions are
+/// not in the osquery schema, so do not link to it for them.
+std::string getTableDocHint(const std::string& name) {
+  if (extension_table_list.contains(name)) {
+    return "Table " + name +
+           " is provided by an extension, see the extension's documentation";
+  }
+  return "Please see the table documentation: " + table_doc(name);
+}
+
 static void plan(const std::string& output) {
   if (FLAGS_planner) {
     fprintf(stderr, "osquery planner: %s\n", output.c_str());
@@ -1019,8 +1029,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   // Provide a helpful reference to table documentation within the shell.
   if ((!user_based_satisfied || !required_satisfied || !events_satisfied)) {
     if (isShell()) {
-      LOG(WARNING) << "Please see the table documentation: "
-                   << table_doc(pVtab->content->name);
+      LOG(WARNING) << getTableDocHint(pVtab->content->name);
     }
 
     // Return early if constraints do not make sense.

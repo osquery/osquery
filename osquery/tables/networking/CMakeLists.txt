@@ -119,31 +119,18 @@ function(generateOsqueryTablesNetworking)
 
   generateIncludeNamespace(osquery_tables_networking "osquery/tables/networking" "FULL_PATH" ${public_header_files})
 
-  add_test(NAME osquery_tables_networking_tests_networkingtablestests-test COMMAND osquery_tables_networking_tests_networkingtablestests-test)
+  add_test(NAME osquery_tables_networking_tests_mergedtests-test COMMAND osquery_tables_networking_tests_mergedtests-test)
 
-  set(networkingtablestests-test_env
+  set(mergedtests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     "TEST_HELPER_SCRIPTS_DIR=${CMAKE_BINARY_DIR}/tools/tests"
     "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
   )
 
   set_tests_properties(
-    osquery_tables_networking_tests_networkingtablestests-test
-    PROPERTIES ENVIRONMENT "${networkingtablestests-test_env}"
+    osquery_tables_networking_tests_mergedtests-test
+    PROPERTIES ENVIRONMENT "${mergedtests-test_env}"
   )
-
-  if(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_tables_networking_tests_wifitests-test COMMAND osquery_tables_networking_tests_wifitests-test)
-
-    set_tests_properties(
-      osquery_tables_networking_tests_wifitests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
-  elseif(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_tables_networking_tests_iptablestests-test COMMAND osquery_tables_networking_tests_iptablestests-test)
-  elseif(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_tables_networking_tests_windowsfirewallrulestests-test COMMAND osquery_tables_networking_tests_windowsfirewallrulestests-test)
-  endif()
 
 endfunction()
 

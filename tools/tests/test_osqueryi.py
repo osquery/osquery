@@ -236,6 +236,14 @@ class OsqueryiTest(unittest.TestCase):
         after = int(result[0]['c'])
         self.assertGreater(after, before)
 
+        # Every platform's specs must be registered, not just one foreign
+        # table: one table per platform, native here and foreign elsewhere.
+        query = ("SELECT name FROM osquery_registry WHERE registry = 'table' "
+                 "AND name IN ('alf', 'bitlocker_info', 'iptables');")
+        result = osqueryi2.run_query(query)
+        self.assertEqual(sorted(row['name'] for row in result),
+                         ['alf', 'bitlocker_info', 'iptables'])
+
     def test_time_using_all(self):
         self.osqueryi.run_command(' ')
         result = self.osqueryi.run_command('.all time')

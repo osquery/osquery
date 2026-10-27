@@ -25,8 +25,13 @@ The initial directory is assumed to be `/home/<user>`.
 sudo apt install --no-install-recommends git python3 bison flex make cmake ccache
 
 # Optional: install python tests prerequisites
-sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
+sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel python3-docker
 pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
+
+# Optional: install Docker, which the Docker table tests need, and give your user
+# access to the Docker socket (log out and back in for the group change to apply)
+sudo apt install --no-install-recommends docker.io
+sudo usermod -aG docker $USER
 
 # Optional: install RPM packaging prerequisites
 sudo apt install --no-install-recommends rpm binutils
@@ -205,6 +210,8 @@ ctest -R tests_integration_tables-test -C RelWithDebInfo -V #runs just the windo
 ```
 
 ### Run tests on Linux and macOS
+
+On Linux, the `tools_tests_testfschangestable` test needs the Python `docker` package and a running Docker daemon that your user can access (see the optional test prerequisites in the [Linux](#linux-ubuntu-24) section). The test starts an `ubuntu:18.04` container, so it also needs to be able to pull that image from Docker Hub. If the test cannot connect to `/var/run/docker.sock`, a `FileNotFoundError` means Docker is not installed or not running, and a `PermissionError` means your user is not yet in the `docker` group.
 
 To run the tests and get just a summary report:
 

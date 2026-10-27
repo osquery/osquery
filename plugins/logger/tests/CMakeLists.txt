@@ -6,113 +6,19 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(pluginsLoggerTestsMain)
-  if(OSQUERY_BUILD_AWS)
-    generatePluginsLoggerTestsAwskinesisloggertestsTest()
-  endif()
-  generatePluginsLoggerTestsFilesystemloggertestsTest()
-  generatePluginsLoggerTestsBufferedloggertestsTest()
-  generatePluginsLoggerTestsKafkaproducerloggertestsTest()
-  generatePluginsLoggerTestsTlsloggertestsTest()
-
-  if(DEFINED PLATFORM_POSIX)
-    generatePluginsLoggerTestsSyslogloggertestsTest()
-  endif()
+  generatePluginsLoggerTestsMergedtestsTest()
 endfunction()
 
-function(generatePluginsLoggerTestsFilesystemloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_filesystemloggertests-test
+function(generatePluginsLoggerTestsMergedtestsTest)
+  set(source_files
     filesystem_logger_tests.cpp
     logrotate_tests.cpp
+    buffered_tests.cpp
+    kafka_producer_tests.cpp
+    tls_logger_tests.cpp
   )
 
-  target_link_libraries(plugins_logger_tests_filesystemloggertests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_logger_datalogger
-    osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_logger_filesystemlogger
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generatePluginsLoggerTestsBufferedloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_bufferedloggertests-test buffered_tests.cpp)
-
-  target_link_libraries(plugins_logger_tests_bufferedloggertests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_logger_datalogger
-    osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_logger_buffered
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generatePluginsLoggerTestsKafkaproducerloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_kafkaproducerloggertests-test kafka_producer_tests.cpp)
-
-  target_link_libraries(plugins_logger_tests_kafkaproducerloggertests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_logger_datalogger
-    osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_logger_kafkaproducer
-    tests_helper
-    thirdparty_googletest
-    thirdparty_gflags
-  )
-endfunction()
-
-function(generatePluginsLoggerTestsAwskinesisloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_awskinesisloggertests-test aws_kinesis_logger_tests.cpp)
-
-  target_link_libraries(plugins_logger_tests_awskinesisloggertests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_logger_datalogger
-    osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_logger_awskinesis
-    plugins_logger_buffered
-    tests_helper
-    thirdparty_googletest
-    thirdparty_gflags
-  )
-endfunction()
-
-function(generatePluginsLoggerTestsTlsloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_tlsloggertests-test tls_logger_tests.cpp)
-
-  target_link_libraries(plugins_logger_tests_tlsloggertests-test PRIVATE
+  set(link_libraries
     osquery_cxx_settings
     osquery_core
     osquery_core_plugins
@@ -126,32 +32,29 @@ function(generatePluginsLoggerTestsTlsloggertestsTest)
     osquery_utils_conversions
     osquery_utils_info
     osquery_utils_system_time
+    plugins_logger_buffered
+    plugins_logger_filesystemlogger
+    plugins_logger_kafkaproducer
     plugins_logger_tlslogger
     tests_helper
     thirdparty_googletest
     thirdparty_gflags
   )
-endfunction()
 
-function(generatePluginsLoggerTestsSyslogloggertestsTest)
-  add_osquery_executable(plugins_logger_tests_syslogloggertests-test syslog_logger_tests.cpp)
+  if(OSQUERY_BUILD_AWS)
+    list(APPEND source_files aws_kinesis_logger_tests.cpp)
+    list(APPEND link_libraries plugins_logger_awskinesis)
+  endif()
 
-  target_link_libraries(plugins_logger_tests_syslogloggertests-test PRIVATE
-    osquery_cxx_settings
-    osquery_core
-    osquery_core_plugins
-    osquery_database
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_logger_datalogger
-    osquery_registry
-    osquery_utils_conversions
-    osquery_utils_info
-    osquery_utils_system_time
-    plugins_logger_syslog
-    tests_helper
-    thirdparty_googletest
-    thirdparty_gflags
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND source_files syslog_logger_tests.cpp)
+    list(APPEND link_libraries plugins_logger_syslog)
+  endif()
+
+  add_osquery_executable(plugins_logger_tests_mergedtests-test ${source_files})
+
+  target_link_libraries(plugins_logger_tests_mergedtests-test PRIVATE
+    ${link_libraries}
   )
 endfunction()
 
