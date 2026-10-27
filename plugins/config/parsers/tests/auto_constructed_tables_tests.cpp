@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <future>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -227,6 +228,81 @@ TEST_F(ATCConfigParserPluginTests, test_multi_pack_discovery_sees_table) {
   EXPECT_TRUE(discovered);
 
   ASSERT_TRUE(Config::get().update({{source, kConfigWithoutTable}}).ok());
+}
+
+namespace {
+
+const std::string kFilePathsSource{"atc_file_paths_test"};
+const std::string kFilePathsCategory{"atc_file_paths_category"};
+
+// A config with an ATC table whose only column is `column`, and a
+// file_paths_query that only succeeds against the table defined with column
+// "other".
+std::string configWithFilePathsTable(const std::string& column) {
+  return R"({
+    "auto_table_construction": {
+      "atc_file_paths_table": {
+        "query": "SELECT )" +
+         column + R"( FROM test",
+        "path": "/nonexistent/atc_file_paths.db",
+        "columns": [")" +
+         column + R"("]
+      }
+    },
+    "file_paths_query": {
+      ")" +
+         kFilePathsCategory +
+         R"(": ["SELECT '/atc_file_paths/' || COUNT(other) AS path FROM atc_file_paths_table"]
+    }
+  })";
+}
+
+std::vector<std::string> getQueriedFilePaths() {
+  std::vector<std::string> paths;
+  Config::get().files([&paths](const std::string& category,
+                               const std::vector<std::string>& files) {
+    if (category == kFilePathsCategory) {
+      paths.insert(paths.end(), files.begin(), files.end());
+    }
+  });
+  return paths;
+}
+
+} // namespace
+
+// file_paths_query runs after the ATC tables of the same config are attached,
+// so it can query a table that the config adds.
+TEST_F(ATCConfigParserPluginTests, test_file_paths_query_sees_new_table) {
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kFilePathsSource, configWithFilePathsTable("other")}})
+          .ok());
+  EXPECT_EQ(getQueriedFilePaths(),
+            std::vector<std::string>{"/atc_file_paths/0"});
+
+  ASSERT_TRUE(
+      Config::get().update({{kFilePathsSource, kConfigWithoutTable}}).ok());
+  EXPECT_TRUE(getQueriedFilePaths().empty());
+}
+
+// file_paths_query sees the new definition of a table that a refresh changes.
+TEST_F(ATCConfigParserPluginTests, test_file_paths_query_sees_changed_table) {
+  // The query's column does not exist in this definition.
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kFilePathsSource, configWithFilePathsTable("value")}})
+          .ok());
+  EXPECT_TRUE(getQueriedFilePaths().empty());
+
+  ASSERT_TRUE(
+      Config::get()
+          .update({{kFilePathsSource, configWithFilePathsTable("other")}})
+          .ok());
+  EXPECT_EQ(getQueriedFilePaths(),
+            std::vector<std::string>{"/atc_file_paths/0"});
+
+  ASSERT_TRUE(
+      Config::get().update({{kFilePathsSource, kConfigWithoutTable}}).ok());
 }
 
 } // namespace osquery
