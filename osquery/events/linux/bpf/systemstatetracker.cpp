@@ -1056,7 +1056,7 @@ bool SystemStateTracker::parseUnixSockaddr(
 
   sockaddr_un addr{};
   std::memcpy(&addr, sockaddr.data(), size);
-  path.assign(addr.sun_path, strnlen(addr.sun_path, sizeof(addr.sun_path)));
+  path = addr.sun_path;
 
   return true;
 }
@@ -1212,7 +1212,7 @@ bool SystemStateTracker::parseNetlinkSockaddr(
     return false;
   }
 
-  auto size = std::min(sizeof(sockaddr_nl), sockaddr.size());
+  auto size = std::min(sizeof(sockaddr_in), sockaddr.size());
 
   sockaddr_nl addr{};
   std::memcpy(&addr, sockaddr.data(), size);

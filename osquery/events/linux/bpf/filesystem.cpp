@@ -101,16 +101,8 @@ bool Filesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
   UniqueDir directory(nullptr, closedir);
 
   {
-    // fdopendir takes ownership of the descriptor; give it a duplicate so
-    // the caller's descriptor is left open
-    auto dirfd_copy = fcntl(dirfd, F_DUPFD_CLOEXEC, 0);
-    if (dirfd_copy == -1) {
-      return false;
-    }
-
-    auto dir_obj = fdopendir(dirfd_copy);
+    auto dir_obj = fdopendir(dirfd);
     if (dir_obj == nullptr) {
-      close(dirfd_copy);
       return false;
     }
 
