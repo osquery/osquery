@@ -170,6 +170,64 @@ TEST_F(SQLiteUtilTests, test_contended_connection_sees_attached_table) {
   tables->remove("test_table");
 }
 
+TEST_F(SQLiteUtilTests, test_contended_connection_follows_registry) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  // Populate this thread's cached transient connection.
+  SQLiteDBManager::get().reset();
+
+  // Change the table registry without a direct SQL attach, as happens while
+  // an extension's tables are being registered: the registry change alone
+  // must invalidate the cached connection.
+  auto tables = RegistryFactory::get().registry("table");
+  ASSERT_TRUE(
+      tables->add("test_table", std::make_shared<laterTablePlugin>()).ok());
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    auto status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_TRUE(status.ok()) << status.getMessage();
+  }
+
+  tables->remove("test_table");
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    EXPECT_FALSE(queryInternal("select x from test_table", results, dbc).ok());
+  }
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse_is_clean) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  VirtualTableContent time_table;
+  time_table.name = "time";
+
+  sqlite3* first_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    first_db = dbc->db();
+    dbc->useCache(true);
+
+    // Column introspection does not clear the connection afterwards.
+    std::string query = "select unix_time from time where unix_time > 0";
+    TableColumns columns;
+    ASSERT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
+    ASSERT_TRUE(dbc->tableCalled(time_table));
+  }
+
+  auto dbc = SQLiteDBManager::get();
+  ASSERT_FALSE(dbc->isPrimary());
+  ASSERT_EQ(dbc->db(), first_db);
+  EXPECT_FALSE(dbc->tableCalled(time_table));
+  EXPECT_FALSE(dbc->useCache());
+}
+
 TEST_F(SQLiteUtilTests, test_reset) {
   auto internal_db = SQLiteDBManager::get()->db();
   ASSERT_NE(nullptr, internal_db);

@@ -30,6 +30,8 @@ void RegistryInterface::removeUnsafe(const std::string& item_name) {
   for (const auto& alias : removed_aliases) {
     aliases_.erase(alias);
   }
+
+  ++generation_;
 }
 
 void RegistryInterface::remove(const std::string& item_name) {
@@ -206,6 +208,7 @@ Status RegistryInterface::addPlugin(const std::string& plugin_name,
     internal_.push_back(plugin_name);
   }
 
+  ++generation_;
   return Status::success();
 }
 
@@ -268,6 +271,7 @@ Status RegistryInterface::addExternal(const RouteUUID& uuid,
     if (status.ok()) {
       WriteLock wlock(mutex_);
       external_[route.first] = uuid;
+      ++generation_;
     } else {
       return status;
     }
@@ -305,6 +309,7 @@ void RegistryInterface::removeExternal(const RouteUUID& uuid) {
       external_.erase(item);
       routes_.erase(item);
     }
+    ++generation_;
   }
 }
 

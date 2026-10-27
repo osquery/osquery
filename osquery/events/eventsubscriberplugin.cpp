@@ -511,9 +511,15 @@ std::string EventSubscriberPlugin::databaseKeyForEventId(Context& context,
 }
 
 namespace {
+/// Event keys are compared as strings, and toIndex() pads ids to at least 10
+/// digits. Below this id every key is exactly 10 digits with a leading zero,
+/// so no key of another width can sort inside a range of them.
+constexpr EventID kMaxGroupableEventId{1000000000U};
+
 /// Delete the database keys of every event in the given batches. Event ids
 /// are allocated in increasing order, so runs of consecutive ids are removed
-/// with one range delete each instead of one write per event.
+/// with one range delete each instead of one write per event. Ids from
+/// kMaxGroupableEventId upwards are deleted one key at a time.
 std::size_t deleteEventBatches(EventSubscriberPlugin::Context& context,
                                IDatabaseInterface& db_interface,
                                const EventIndex& event_batch_list) {
@@ -527,6 +533,7 @@ std::size_t deleteEventBatches(EventSubscriberPlugin::Context& context,
   for (std::size_t i = 0U; i < event_id_list.size();) {
     auto j = i;
     while (j + 1 < event_id_list.size() &&
+           event_id_list[j + 1] < kMaxGroupableEventId &&
            event_id_list[j + 1] == event_id_list[j] + 1) {
       ++j;
     }

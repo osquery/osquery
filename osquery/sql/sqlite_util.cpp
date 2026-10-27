@@ -271,15 +271,26 @@ uint64_t SQLInternal::getSize() {
 }
 
 namespace {
-/// Bumped whenever the set of attached tables changes, so a transient
-/// connection cached against an older set is not reused.
+/// Bumped after a direct attach or detach request, so a transient
+/// connection cached against an older set of tables is not reused. Changes
+/// to the table registry are tracked by its own generation.
 std::atomic<std::uint64_t> kAttachGeneration{0};
+
+/// The state of the attached tables a transient connection was built from.
+struct AttachGeneration {
+  std::uint64_t attach{0};
+  std::uint64_t registry{0};
+
+  bool operator==(const AttachGeneration& other) const {
+    return attach == other.attach && registry == other.registry;
+  }
+};
 
 /// A transient connection kept per thread for nested queries, see
 /// SQLiteDBManager::getConnection.
 struct TransientConnectionCache {
   SQLiteDBInstanceRef instance;
-  std::uint64_t generation{0};
+  AttachGeneration generation;
 };
 thread_local TransientConnectionCache kTransientConnection;
 } // namespace
@@ -562,10 +573,20 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   // attached transient connection per thread and hand it out whenever it is
   // idle and still matches the set of attached tables. A nested query inside
   // a nested query finds it busy and falls back to a fresh connection.
+  //
+  // Both generations are read before the tables are attached. They are only
+  // bumped once a change is visible, so a connection built while a table is
+  // being added or removed is stored under the old values and rebuilt later.
+  static const auto table_registry = RegistryFactory::get().registry("table");
   auto& cache = kTransientConnection;
-  auto generation = kAttachGeneration.load();
+  AttachGeneration generation{kAttachGeneration.load(),
+                              table_registry->generation()};
   if (cache.instance && cache.instance.use_count() == 1 &&
       cache.generation == generation) {
+    // Drop per-query state left by the previous user. Callers such as
+    // getQueryColumns do not clear it, and a fresh connection starts empty.
+    cache.instance->clearAffectedTables();
+    cache.instance->useCache(false);
     return cache.instance;
   }
 
