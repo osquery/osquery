@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <future>
+#include <set>
 #include <thread>
 #include <utility>
 
@@ -63,13 +64,10 @@ TEST_F(rpmPackages, test_sanity) {
   }
 }
 
-// Regression test for the generator self-deadlock: rpm_package_files holds the
-// recursive librpm mutex across its yield()s, so a CROSS JOIN (which pins it as
-// the outer scan) runs rpm_packages on the same thread while it's suspended. A
-// non-recursive mutex deadlocks here; it must re-enter and complete instead.
-// Pointed at a checked-in rpmdb fixture so it runs on Ubuntu CI, which has no
-// system rpmdb.
-class rpmPackageFilesDeadlock : public testing::Test {
+// Base fixture that points librpm at the checked-in rpm-sqlite rpmdb via a
+// private ~/.rpmmacros, giving these tests a deterministic package set on CI
+// hosts that have no system rpmdb.
+class rpmSqliteFixture : public testing::Test {
  protected:
   void SetUp() override {
     setUpEnvironment();
@@ -129,6 +127,12 @@ class rpmPackageFilesDeadlock : public testing::Test {
   bool setup_done_{false};
 };
 
+// Regression test for the generator self-deadlock: rpm_package_files holds the
+// recursive librpm mutex across its yield()s, so a CROSS JOIN (which pins it as
+// the outer scan) runs rpm_packages on the same thread while it's suspended. A
+// non-recursive mutex deadlocks here; it must re-enter and complete instead.
+class rpmPackageFilesDeadlock : public rpmSqliteFixture {};
+
 TEST_F(rpmPackageFilesDeadlock, files_join_packages_completes) {
   // Guard against a vacuous pass: an empty table makes the join trivial.
   ASSERT_FALSE(execute_query("select 1 from rpm_package_files limit 1").empty())
@@ -164,6 +168,49 @@ TEST_F(rpmPackageFilesDeadlock, files_join_packages_completes) {
   // untested.
   EXPECT_GT(result.second, 0u)
       << "join returned no rows; the nested rpm_packages scan was never driven";
+}
+
+// Fixture-backed coverage for the indexed per-value constraint path: a single
+// equality and a multi-value IN must return exactly the matching rows -- each
+// present value once (no duplicate from the per-value loop) and absent values
+// dropped (no leakage, no missing).
+class rpmPackagesConstraints : public rpmSqliteFixture {};
+
+TEST_F(rpmPackagesConstraints, name_equals_returns_only_match) {
+  auto rows = execute_query(
+      "select name, version from rpm_packages where name = 'rpm'");
+  ASSERT_EQ(rows.size(), 1u);
+  EXPECT_EQ(rows[0].at("name"), "rpm");
+  EXPECT_EQ(rows[0].at("version"), "4.16.0");
+}
+
+TEST_F(rpmPackagesConstraints, name_in_list_returns_each_present_value_once) {
+  auto rows = execute_query(
+      "select name from rpm_packages "
+      "where name in ('rpm', 'deltarpm', 'osquery-absent')");
+  std::multiset<std::string> names;
+  for (const auto& r : rows) {
+    names.insert(r.at("name"));
+  }
+  // Both present values appear exactly once; the absent value is dropped.
+  EXPECT_EQ(names, (std::multiset<std::string>{"deltarpm", "rpm"}));
+}
+
+TEST_F(rpmPackagesConstraints, package_files_in_honors_constraint) {
+  // Pick a package that actually has files in the fixture rather than assume.
+  auto any = execute_query("select package from rpm_package_files limit 1");
+  ASSERT_FALSE(any.empty());
+  auto package = any[0].at("package");
+
+  auto rows = execute_query(
+      "select distinct package from rpm_package_files "
+      "where package in ('" +
+      package + "', 'osquery-absent')");
+  std::set<std::string> packages;
+  for (const auto& r : rows) {
+    packages.insert(r.at("package"));
+  }
+  EXPECT_EQ(packages, (std::set<std::string>{package}));
 }
 } // namespace table_tests
 } // namespace osquery
