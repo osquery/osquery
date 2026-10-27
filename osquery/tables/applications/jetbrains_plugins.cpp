@@ -31,37 +31,15 @@ namespace tables {
 namespace jetbrains_plugins_internal {
 
 ExtractionResult extractSpecificFileFromArchive(
-    const std::string& archive_file_path,
+    struct archive* archive_reader,
+    const std::string& archive_identifier,
     const std::string& target_file_path,
     std::size_t maximum_decompressed_size) {
   ExtractionResult extraction_result;
-  auto* archive = archive_read_new();
-  if (archive == nullptr) {
-    extraction_result.status = ExtractionStatus::ArchiveError;
-    return extraction_result;
-  }
-
-  auto archive_guard = osquery::scope_guard::create([&archive]() {
-    if (archive_read_free(archive) != ARCHIVE_OK) {
-      VLOG(1) << "Failed to close zip file";
-    }
-  });
-
-  if (archive_read_support_format_zip(archive) != ARCHIVE_OK) {
-    extraction_result.status = ExtractionStatus::ArchiveError;
-    return extraction_result;
-  }
-
-  auto result = archive_read_open_filename(
-      archive, archive_file_path.c_str(), 10240); // 10KB buffer
-  if (result != ARCHIVE_OK) {
-    VLOG(1) << "Failed to open zip file: " << archive_error_string(archive);
-    extraction_result.status = ExtractionStatus::ArchiveError;
-    return extraction_result;
-  }
-
   struct archive_entry* entry{nullptr};
-  while ((result = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
+  auto result = ARCHIVE_OK;
+  while ((result = archive_read_next_header(archive_reader, &entry)) ==
+         ARCHIVE_OK) {
     const auto* current_file = archive_entry_pathname(entry);
     if (current_file == nullptr) {
       extraction_result.status = ExtractionStatus::ArchiveError;
@@ -71,7 +49,7 @@ ExtractionResult extractSpecificFileFromArchive(
     const boost::filesystem::path current_path(current_file);
     const boost::filesystem::path target_path(target_file_path);
     if (current_path != target_path) {
-      archive_read_data_skip(archive);
+      archive_read_data_skip(archive_reader);
       continue;
     }
 
@@ -80,7 +58,7 @@ ExtractionResult extractSpecificFileFromArchive(
         (declared_size < 0 || static_cast<std::uint64_t>(declared_size) >
                                   maximum_decompressed_size)) {
       VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
-              << archive_file_path;
+              << archive_identifier;
       extraction_result.status = ExtractionStatus::DeclaredSizeLimitExceeded;
       return extraction_result;
     }
@@ -91,14 +69,15 @@ ExtractionResult extractSpecificFileFromArchive(
     std::vector<char> content;
 
     while (true) {
-      result = archive_read_data_block(archive, &buffer, &size, &offset);
+      result = archive_read_data_block(archive_reader, &buffer, &size, &offset);
       if (result == ARCHIVE_EOF) {
         break;
       }
 
       if (result != ARCHIVE_OK) {
         VLOG(1) << "Error reading JetBrains plugin metadata from: "
-                << archive_file_path << ": " << archive_error_string(archive);
+                << archive_identifier << ": "
+                << archive_error_string(archive_reader);
         extraction_result.status = ExtractionStatus::ArchiveError;
         return extraction_result;
       }
@@ -106,7 +85,7 @@ ExtractionResult extractSpecificFileFromArchive(
       if (content.size() > maximum_decompressed_size ||
           size > maximum_decompressed_size - content.size()) {
         VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
-                << archive_file_path;
+                << archive_identifier;
         extraction_result.status = ExtractionStatus::ExpandedSizeLimitExceeded;
         return extraction_result;
       }
@@ -127,6 +106,43 @@ ExtractionResult extractSpecificFileFromArchive(
   }
 
   return extraction_result;
+}
+
+ExtractionResult extractSpecificFileFromArchive(
+    const std::string& archive_file_path,
+    const std::string& target_file_path,
+    std::size_t maximum_decompressed_size) {
+  ExtractionResult extraction_result;
+  auto* archive_reader = archive_read_new();
+  if (archive_reader == nullptr) {
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  auto archive_guard = osquery::scope_guard::create([&archive_reader]() {
+    if (archive_read_free(archive_reader) != ARCHIVE_OK) {
+      VLOG(1) << "Failed to close zip file";
+    }
+  });
+
+  if (archive_read_support_format_zip(archive_reader) != ARCHIVE_OK) {
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  const auto result = archive_read_open_filename(
+      archive_reader, archive_file_path.c_str(), 10240); // 10KB buffer
+  if (result != ARCHIVE_OK) {
+    VLOG(1) << "Failed to open zip file: "
+            << archive_error_string(archive_reader);
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  return extractSpecificFileFromArchive(archive_reader,
+                                        archive_file_path,
+                                        target_file_path,
+                                        maximum_decompressed_size);
 }
 
 } // namespace jetbrains_plugins_internal

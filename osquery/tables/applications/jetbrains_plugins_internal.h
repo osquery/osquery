@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+struct archive;
+
 namespace osquery {
 namespace tables {
 namespace jetbrains_plugins_internal {
@@ -32,6 +34,12 @@ struct ExtractionResult final {
   std::string path;
   std::vector<char> content;
 };
+
+ExtractionResult extractSpecificFileFromArchive(
+    struct archive* archive_reader,
+    const std::string& archive_identifier,
+    const std::string& target_file_path,
+    std::size_t maximum_decompressed_size);
 
 ExtractionResult extractSpecificFileFromArchive(
     const std::string& archive_file_path,

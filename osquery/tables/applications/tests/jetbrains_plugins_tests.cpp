@@ -42,6 +42,25 @@ constexpr std::size_t kSmallExtractionLimit = 1024U;
 
 using jetbrains_plugins_internal::ExtractionStatus;
 
+struct MemoryArchiveReader final {
+  const std::vector<char>& data;
+  std::size_t offset{0U};
+};
+
+la_ssize_t readMemoryArchive(struct archive*,
+                             void* client_data,
+                             const void** buffer) {
+  auto& reader = *static_cast<MemoryArchiveReader*>(client_data);
+  if (reader.offset == reader.data.size()) {
+    return 0;
+  }
+
+  *buffer = reader.data.data() + reader.offset;
+  const auto remaining_size = reader.data.size() - reader.offset;
+  reader.offset = reader.data.size();
+  return static_cast<la_ssize_t>(remaining_size);
+}
+
 std::string makePluginXml(std::size_t size) {
   const std::string prefix =
       "<idea-plugin><name>H3</name><vendor>H3</vendor><version>1</version>"
@@ -126,13 +145,6 @@ class JetbrainsPluginsTest : public ::testing::Test {
 
   void createUnknownSizePluginArchive(const fs::path& path) {
     createPluginArchive(path, makePluginXml(kSmallExtractionLimit * 2U));
-
-    auto archive_data = readArchiveData(path);
-    const auto central_header =
-        findSignature(archive_data, kZipCentralHeaderSignature);
-    ASSERT_NE(central_header, archive_data.end());
-    archive_data.erase(central_header, archive_data.end());
-    writeArchiveData(path, archive_data);
   }
 
   void createTarPluginArchive(const fs::path& path,
@@ -162,14 +174,18 @@ class JetbrainsPluginsTest : public ::testing::Test {
     ASSERT_EQ(archive_write_close(archive_writer.get()), ARCHIVE_OK);
   }
 
-  void expectPluginXmlSizeIsUnset(const fs::path& path) {
+  void expectPluginXmlSizeIsUnset(const std::vector<char>& archive_data) {
+    MemoryArchiveReader memory_reader{archive_data};
     std::unique_ptr<struct archive, decltype(&archive_read_free)>
         archive_reader(archive_read_new(), archive_read_free);
     ASSERT_NE(archive_reader, nullptr);
     ASSERT_EQ(archive_read_support_format_zip(archive_reader.get()),
               ARCHIVE_OK);
-    ASSERT_EQ(archive_read_open_filename(
-                  archive_reader.get(), path.string().c_str(), 10240),
+    ASSERT_EQ(archive_read_open(archive_reader.get(),
+                                &memory_reader,
+                                nullptr,
+                                readMemoryArchive,
+                                nullptr),
               ARCHIVE_OK);
 
     struct archive_entry* entry{nullptr};
@@ -231,11 +247,27 @@ TEST_F(JetbrainsPluginsTest, test_rejects_declared_oversized_plugin_xml) {
 TEST_F(JetbrainsPluginsTest, test_rejects_unknown_size_during_decompression) {
   const auto archive_path = root_ / "unknown-size.jar";
   createUnknownSizePluginArchive(archive_path);
-  expectPluginXmlSizeIsUnset(archive_path);
+  const auto archive_data = readArchiveData(archive_path);
+  expectPluginXmlSizeIsUnset(archive_data);
+
+  MemoryArchiveReader memory_reader{archive_data};
+  std::unique_ptr<struct archive, decltype(&archive_read_free)> archive_reader(
+      archive_read_new(), archive_read_free);
+  ASSERT_NE(archive_reader, nullptr);
+  ASSERT_EQ(archive_read_support_format_zip(archive_reader.get()), ARCHIVE_OK);
+  ASSERT_EQ(archive_read_open(archive_reader.get(),
+                              &memory_reader,
+                              nullptr,
+                              readMemoryArchive,
+                              nullptr),
+            ARCHIVE_OK);
 
   const auto result =
       jetbrains_plugins_internal::extractSpecificFileFromArchive(
-          archive_path.string(), kPluginXmlPath, kSmallExtractionLimit);
+          archive_reader.get(),
+          archive_path.string(),
+          kPluginXmlPath,
+          kSmallExtractionLimit);
   EXPECT_EQ(result.status, ExtractionStatus::ExpandedSizeLimitExceeded);
   EXPECT_TRUE(result.content.empty());
 }
