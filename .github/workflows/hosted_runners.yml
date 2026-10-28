@@ -189,6 +189,7 @@ jobs:
         cmake -G "Unix Makefiles" \
           -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
           -DCMAKE_BUILD_TYPE:STRING=Release \
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_BUILD_ROOT_TESTS=ON \
           "${{ steps.build_paths.outputs.SOURCE }}"
@@ -221,6 +222,7 @@ jobs:
         cmake -G "Unix Makefiles" \
           -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
           -DCMAKE_BUILD_TYPE:STRING=Debug \
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_BUILD_ROOT_TESTS=ON \
           "${{ steps.build_paths.outputs.SOURCE }}"
@@ -312,6 +314,7 @@ jobs:
           -DCMAKE_OSX_ARCHITECTURES=arm64 \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
           -DCMAKE_BUILD_TYPE:STRING=Release \
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
           -DOSQUERY_BUILD_TESTS=ON \
           -DOSQUERY_BUILD_ROOT_TESTS=ON \
           "${{ steps.build_paths.outputs.SOURCE }}"
@@ -454,6 +457,7 @@ jobs:
           -DCMAKE_C_COMPILER=cl.exe ^
           -DCMAKE_CXX_COMPILER=cl.exe ^
           -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON ^
           -DCPPCHECK_EXECUTABLE:FILEPATH="${{ steps.cppcheck.outputs.VALUE }}" ^
           -DOSQUERY_BUILD_TESTS=ON ^
           -DPython3_ROOT_DIR="${{ steps.python_root_directory.outputs.VALUE }}" ^
