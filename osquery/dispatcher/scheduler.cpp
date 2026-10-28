@@ -96,11 +96,13 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
             .str()});
   }
   SQLInternal sql(query.query, true);
+  // Take the end time before the profile is reported, so the query's wall time
+  // does not include recording the numeric monitoring points.
+  auto t1 = steady_clock::now();
   // Report the profile for the query alone.
   profiler.reset();
 
   // Snapshot the performance after, and compare.
-  auto t1 = steady_clock::now();
   auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
                             "processes",
                             "pid",

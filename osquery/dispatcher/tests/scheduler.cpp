@@ -116,9 +116,11 @@ TEST_F(SchedulerTests, test_monitor_with_numeric_monitoring) {
   FLAGS_enable_numeric_monitoring = numeric_monitoring;
 
   // Recording numeric monitoring points starts a flusher service; stop it so
-  // the test does not leave a running thread behind.
+  // the test does not leave a running thread behind. Stopping services leaves
+  // the dispatcher refusing new services until it is reset.
   Dispatcher::stopServices();
   Dispatcher::joinServices();
+  Dispatcher::instance().resetStopping();
 }
 
 TEST_F(SchedulerTests, test_output_size) {
