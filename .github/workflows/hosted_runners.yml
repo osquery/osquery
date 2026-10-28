@@ -339,7 +339,7 @@ jobs:
       contents: read
 
     env:
-      CCACHE_COMPRESS: "true"
+      CCACHE_COMPRESS: "false"
       CCACHE_NOFILECLONE: "true"
       COMPILER_CACHE_NAME: compiler-cache-v1-ccache_${{ matrix.os }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
       COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)].run_id }}
@@ -508,11 +508,15 @@ jobs:
       continue-on-error: true
       run: ccache --show-stats --verbose
 
-    - name: Archive compiler cache
+    - name: Recompress and archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
-      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+      run: |
+        ccache --show-compression
+        ccache --recompress 19
+        ccache --show-compression
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
@@ -682,7 +686,7 @@ jobs:
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
-      CCACHE_COMPRESS: "true"
+      CCACHE_COMPRESS: "false"
       CCACHE_NOFILECLONE: "true"
       COMPILER_CACHE_NAME: compiler-cache-v1-ccache_macOS_${{ matrix.architecture }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
       COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)].run_id }}
@@ -827,11 +831,15 @@ jobs:
       continue-on-error: true
       run: ccache --show-stats --verbose
 
-    - name: Archive compiler cache
+    - name: Recompress and archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
-      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+      run: |
+        ccache --show-compression
+        ccache --recompress 19
+        ccache --show-compression
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
