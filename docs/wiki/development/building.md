@@ -275,6 +275,11 @@ The `cppcheck` tool runs some static analysis checks on the C++ code to detect p
    - On Windows: download and run [the cppcheck MSI installer](https://github.com/danmar/cppcheck/releases).
 2. Build the `cppcheck` target: `cmake --build . --target cppcheck`
 
+The target loads `tests/cppcheck/libraries/gnu_attributes.cfg` to ignore GNU
+`__attribute__` annotations during analysis, avoiding a cppcheck parsing error
+on glog's attributed destructors. This does not affect compilation, but attribute
+information (including `noreturn`) is unavailable to the analyzer.
+
 ## Running clang-tidy (Linux only)
 
 The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.
