@@ -356,6 +356,13 @@ static void dfsTraverseDirectories(const std::string& current_path,
        end;
        entry != end;
        entry.increment(ec)) {
+#ifndef WIN32
+    // POSIX glob("dir/*") skips dotfiles; keep that for the first level only.
+    // Windows FindFirstFile("*") returns them, so nothing to skip there.
+    if (depth == 0 && entry->path().filename().string()[0] == '.') {
+      continue;
+    }
+#endif
     if (FLAGS_glob_max_files > 0 &&
         (results.size() - initial_count) >= FLAGS_glob_max_files) {
       truncated = true;
@@ -395,25 +402,34 @@ static void genGlobs(std::string path,
   bool should_expand =
       (path.size() >= 2 && path.substr(path.size() - 2) == "**");
   if (should_expand) {
-    // Replace ** with * since platformGlob doesn't understand ** as recursive
-    // We'll handle recursion manually via dfsTraverseDirectories
-    std::string glob_path = path.substr(0, path.size() - 1);
-    auto initial_results = platformGlob(glob_path);
+    // "dir/**": glob only the directory and stream its children, so the cap
+    // applies during enumeration. "pre**" still needs glob for the prefix
+    // match.
+    const bool stream = path.size() >= 3 && (path[path.size() - 3] == '/' ||
+                                             path[path.size() - 3] == '\\');
+    auto roots = platformGlob(path.substr(0, path.size() - (stream ? 2 : 1)));
 
     const size_t initial_count = results.size();
     bool truncated = false;
 
-    for (const auto& base_dir : initial_results) {
+    for (const auto& root : roots) {
       if (FLAGS_glob_max_files > 0 &&
           (results.size() - initial_count) >= FLAGS_glob_max_files) {
         truncated = true;
         break;
       }
       boost::system::error_code ec;
-      results.push_back(base_dir);
-      if (fs::is_directory(base_dir, ec)) {
-        dfsTraverseDirectories(
-            base_dir, dir_inos, results, 0, initial_count, truncated);
+      if (stream) {
+        if (fs::is_directory(root, ec)) {
+          dfsTraverseDirectories(
+              root, dir_inos, results, 0, initial_count, truncated);
+        }
+      } else {
+        results.push_back(root);
+        if (fs::is_directory(root, ec)) {
+          dfsTraverseDirectories(
+              root, dir_inos, results, 1, initial_count, truncated);
+        }
       }
     }
 
