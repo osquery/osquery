@@ -134,13 +134,7 @@ jobs:
   # This job runs source code analysis tools (currently, just cppcheck)
   check_source_code:
     needs: [check_code_style, check_libraries_manifest]
-
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-
+    runs-on: ubuntu-26.04
     steps:
     - name: Install osquery-toolchain
       run: |
@@ -338,7 +332,7 @@ jobs:
 
   check_source_code_windows:
     needs: [check_code_style, check_libraries_manifest]
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
     - name: Configure git
