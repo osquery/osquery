@@ -57,6 +57,14 @@ TEST_F(ProcMapsInodeTest, path_with_regex_characters) {
   EXPECT_EQ("1312", got);
 }
 
+TEST_F(ProcMapsInodeTest, path_with_newline) {
+  auto got = parseProcMapsInode(
+      "55d0c0a00000-55d0c0a02000 r-xp 00000000 08:01 1312 "
+      "/tmp/a\\012b (deleted)\n",
+      "/tmp/a\nb (deleted)");
+  EXPECT_EQ("1312", got);
+}
+
 TEST_F(ProcMapsInodeTest, path_not_mapped) {
   auto got = parseProcMapsInode(
       "55d0c0a00000-55d0c0a02000 r-xp 00000000 08:01 1312 /tmp/a (deleted)x\n"

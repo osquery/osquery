@@ -17,6 +17,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
@@ -128,6 +129,10 @@ inline std::string readSecurityLabel(const std::string& pid) {
 
 std::string parseProcMapsInode(const std::string& content,
                                const std::string& path) {
+  // The kernel escapes newlines in maps pathnames as "\012"
+  auto escaped_path = path;
+  boost::replace_all(escaped_path, "\n", "\\012");
+
   for (const auto& line : osquery::split(content, "\n")) {
     // Each line is "address perms offset dev inode pathname", the pathname
     // is padded with spaces and may itself contain spaces
@@ -138,7 +143,7 @@ std::string parseProcMapsInode(const std::string& content,
     }
 
     std::getline(stream >> std::ws, pathname);
-    if (pathname == path) {
+    if (pathname == escaped_path) {
       return inode;
     }
   }
