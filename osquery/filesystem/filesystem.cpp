@@ -43,6 +43,11 @@ namespace errc = boost::system::errc;
 namespace osquery {
 
 FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
+FLAG(uint64,
+     glob_max_files,
+     0,
+     "Maximum filesystem entries (files and directories) to expand during "
+     "recursive glob (0 for unbounded)");
 
 /// See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
@@ -330,7 +335,9 @@ static bool isDirVisited(std::set<DirIdentifier>& dir_inos,
 static void dfsTraverseDirectories(const std::string& current_path,
                                    std::set<DirIdentifier>& visited_dirs,
                                    std::vector<std::string>& results,
-                                   size_t depth) {
+                                   size_t depth,
+                                   size_t initial_count,
+                                   bool& truncated) {
   if (depth >= kMaxRecursiveGlobs) {
     return;
   }
@@ -349,6 +356,11 @@ static void dfsTraverseDirectories(const std::string& current_path,
        end;
        entry != end;
        entry.increment(ec)) {
+    if (FLAGS_glob_max_files > 0 &&
+        (results.size() - initial_count) >= FLAGS_glob_max_files) {
+      truncated = true;
+      break;
+    }
     std::string entry_path = entry->path().string();
     bool is_dir = fs::is_directory(entry->status(ec));
 
@@ -361,7 +373,12 @@ static void dfsTraverseDirectories(const std::string& current_path,
     results.push_back(entry_path);
 
     if (is_dir) {
-      dfsTraverseDirectories(entry_path, visited_dirs, results, depth + 1);
+      dfsTraverseDirectories(entry_path,
+                             visited_dirs,
+                             results,
+                             depth + 1,
+                             initial_count,
+                             truncated);
     }
   }
 }
@@ -383,12 +400,26 @@ static void genGlobs(std::string path,
     std::string glob_path = path.substr(0, path.size() - 1);
     auto initial_results = platformGlob(glob_path);
 
+    const size_t initial_count = results.size();
+    bool truncated = false;
+
     for (const auto& base_dir : initial_results) {
+      if (FLAGS_glob_max_files > 0 &&
+          (results.size() - initial_count) >= FLAGS_glob_max_files) {
+        truncated = true;
+        break;
+      }
       boost::system::error_code ec;
       results.push_back(base_dir);
       if (fs::is_directory(base_dir, ec)) {
-        dfsTraverseDirectories(base_dir, dir_inos, results, 0);
+        dfsTraverseDirectories(
+            base_dir, dir_inos, results, 0, initial_count, truncated);
       }
+    }
+
+    if (truncated) {
+      LOG(WARNING) << "Recursive glob reached limit of " << FLAGS_glob_max_files
+                   << " files for: " << path;
     }
   } else {
     auto glob_results = platformGlob(path);
