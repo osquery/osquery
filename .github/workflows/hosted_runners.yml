@@ -514,7 +514,7 @@ jobs:
       continue-on-error: true
       run: |
         ccache --show-compression
-        ccache --recompress 19
+        time ccache --recompress 5
         ccache --show-compression
         tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
@@ -837,7 +837,7 @@ jobs:
       continue-on-error: true
       run: |
         ccache --show-compression
-        ccache --recompress 19
+        time ccache --recompress 5
         ccache --show-compression
         tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
