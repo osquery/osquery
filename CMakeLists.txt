@@ -123,6 +123,11 @@ function(importLibraries)
     "Linux,Darwin,Windows:yaml-cpp"
   )
 
+  if(OSQUERY_BUILD_BPF)
+    list(APPEND library_descriptor_list
+      "Linux:ebpfpub"
+    )
+  endif()
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND library_descriptor_list
@@ -198,7 +203,14 @@ function(importLibraries)
       endif()
 
     else()
-      message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
+      # In case we were trying to import ebpfpub, check whether the build option
+      # has been turned OFF automatically because the installed LLVM libraries
+      # were broken/not compatible
+      if(NOT OSQUERY_BUILD_BPF AND "${library}" STREQUAL "ebpfpub")
+        message(WARNING "ebpfpub could not correctly import the LLVM libraries. BPF support has been disabled")
+      else()
+        message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
+      endif()
     endif()
   endforeach()
 endfunction()
