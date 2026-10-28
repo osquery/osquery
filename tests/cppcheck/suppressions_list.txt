@@ -1,3 +1,6 @@
+# Suppress warnings about missing system headers. cppcheck already has information about these in std.cfg.
+missingIncludeSystem
+
 *:*/libraries/*
 *:*/libs/src/*
 *:*/installed_formulas/*
