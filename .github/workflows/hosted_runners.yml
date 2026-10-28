@@ -204,6 +204,9 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: cmake --build . --target prepare_for_ide
 
+    - name: Enable cppcheck annotations
+      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+
     - name: Run cppcheck (Release)
       shell: bash
       id: release_cppcheck_runner
