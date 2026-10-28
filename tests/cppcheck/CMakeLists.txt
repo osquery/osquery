@@ -51,12 +51,17 @@ function(cppcheckMain)
     set(cppcheck_platform "unix64")
   endif()
 
+  set(cppcheck_build_dir "${CMAKE_BINARY_DIR}/cppcheck-build-dir-${CMAKE_BUILD_TYPE}")
+
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${cppcheck_build_dir}"
     COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options}
-            --enable=all "--platform=${cppcheck_platform}" --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
+            --enable=all "--platform=${cppcheck_platform}"
+            "--cppcheck-build-dir=${cppcheck_build_dir}"
+            --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
             "--template={file}:{line}:{column}: {severity}: {message} [{id}]"
             ${ignored_folders} -q
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
