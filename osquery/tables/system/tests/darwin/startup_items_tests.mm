@@ -11,13 +11,18 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/core/sql/query_data.h>
 #include <osquery/core/tables.h>
+#include <osquery/tables/system/darwin/startup_items.h>
 
-// Mock Objective-C class that mimics the BTM item structure
+namespace fs = boost::filesystem;
+
+// Mock Objective-C classes that mimic the BTM item and user store structures
 // Must be at global scope (Objective-C declarations cannot be in C++
 // namespaces)
-@interface MockBTMItem : NSObject
+@interface MockBTMItem : NSObject<NSSecureCoding>
 @property(nonatomic, strong) NSNumber* type;
 @property(nonatomic, strong) NSString* name;
 @property(nonatomic, strong) NSNumber* disposition;
@@ -26,13 +31,69 @@
 @end
 
 @implementation MockBTMItem
++ (BOOL)supportsSecureCoding {
+  return YES;
+}
+
+- (void)encodeWithCoder:(NSCoder*)coder {
+  [coder encodeObject:self.type forKey:@"type"];
+  [coder encodeObject:self.name forKey:@"name"];
+  [coder encodeObject:self.disposition forKey:@"disposition"];
+  [coder encodeObject:self.url forKey:@"url"];
+  [coder encodeObject:self.programArguments forKey:@"programArguments"];
+}
+
+- (instancetype)initWithCoder:(NSCoder*)coder {
+  if (self = [super init]) {
+    self.type = [coder decodeObjectOfClass:[NSNumber class] forKey:@"type"];
+    self.name = [coder decodeObjectOfClass:[NSString class] forKey:@"name"];
+    self.disposition = [coder decodeObjectOfClass:[NSNumber class]
+                                           forKey:@"disposition"];
+    self.url = [coder decodeObjectOfClass:[NSURL class] forKey:@"url"];
+    self.programArguments =
+        [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class],
+                                                           [NSString class],
+                                                           nil]
+                              forKey:@"programArguments"];
+  }
+  return self;
+}
+@end
+
+@interface MockBTMUserStore : NSObject<NSSecureCoding>
+@property(nonatomic, strong) NSArray* records;
+@end
+
+@implementation MockBTMUserStore
++ (BOOL)supportsSecureCoding {
+  return YES;
+}
+
+- (void)encodeWithCoder:(NSCoder*)coder {
+  [coder encodeObject:self.records forKey:@"records"];
+}
+
+- (instancetype)initWithCoder:(NSCoder*)coder {
+  if (self = [super init]) {
+    self.records =
+        [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class],
+                                                           [MockBTMItem class],
+                                                           nil]
+                              forKey:@"records"];
+  }
+  return self;
+}
 @end
 
 namespace osquery {
 namespace tables {
 
-// Forward declaration of parseItem function
+// Forward declarations of the Objective-C helpers under test
 void parseItem(const std::string& username, id item, QueryData& results);
+void parseUserStore(const std::string& username,
+                    id userStore,
+                    QueryData& results);
+id decodeBtmArchive(const std::string& path, Class cls, NSString* key);
 
 class StartupItemsTests : public testing::Test {};
 
@@ -208,6 +269,193 @@ TEST_F(StartupItemsTests, test_parseItem_mixed_program_arguments) {
 
     // Only string arguments should be included
     EXPECT_EQ(row.at("args"), "/bin/sh -c echo test");
+  }
+}
+
+TEST_F(StartupItemsTests, test_selectBtmDatabaseFiles_global_archive) {
+  auto files = selectBtmDatabaseFiles({
+      "BackgroundItems-v13.btm",
+      "BackgroundItems-v16.btm",
+  });
+
+  EXPECT_EQ(files.global_filename, "BackgroundItems-v16.btm");
+  EXPECT_TRUE(files.user_store_files.empty());
+}
+
+TEST_F(StartupItemsTests, test_selectBtmDatabaseFiles_user_store_archives) {
+  // Directory listing from a Mac upgraded to macOS 27
+  auto files = selectBtmDatabaseFiles({
+      "BackgroundItems-v18-FFFFEEEE-DDDD-CCCC-BBBB-AAAAFFFFFFFE.btm",
+      "BackgroundItems-v13.btm",
+      "BackgroundItems-v18-E7923D33-0FD2-415A-8FFA-25FB57874B5C.btm",
+      "BackgroundItems-v16.btm",
+      "BackgroundItems-v18.btm",
+      "BackgroundItems-v18-FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000000.btm",
+  });
+
+  EXPECT_EQ(files.global_filename, "BackgroundItems-v18.btm");
+  ASSERT_EQ(files.user_store_files.size(), 3U);
+  EXPECT_EQ(files.user_store_files[0].filename,
+            "BackgroundItems-v18-FFFFEEEE-DDDD-CCCC-BBBB-AAAAFFFFFFFE.btm");
+  EXPECT_EQ(files.user_store_files[0].user_identifier,
+            "FFFFEEEE-DDDD-CCCC-BBBB-AAAAFFFFFFFE");
+  EXPECT_EQ(files.user_store_files[1].user_identifier,
+            "E7923D33-0FD2-415A-8FFA-25FB57874B5C");
+  EXPECT_EQ(files.user_store_files[2].user_identifier,
+            "FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000000");
+}
+
+TEST_F(StartupItemsTests, test_selectBtmDatabaseFiles_ignores_older_versions) {
+  // Listing order must not matter
+  for (const auto& filenames : std::vector<std::vector<std::string>>{
+           {"BackgroundItems-v18-E7923D33-0FD2-415A-8FFA-25FB57874B5C.btm",
+            "BackgroundItems-v19.btm"},
+           {"BackgroundItems-v19.btm",
+            "BackgroundItems-v18-E7923D33-0FD2-415A-8FFA-25FB57874B5C.btm"},
+       }) {
+    auto files = selectBtmDatabaseFiles(filenames);
+
+    EXPECT_EQ(files.global_filename, "BackgroundItems-v19.btm");
+    EXPECT_TRUE(files.user_store_files.empty());
+  }
+}
+
+TEST_F(StartupItemsTests, test_selectBtmDatabaseFiles_numeric_versions) {
+  auto files = selectBtmDatabaseFiles({
+      "BackgroundItems-v13.btm",
+      "BackgroundItems-v9.btm",
+  });
+
+  EXPECT_EQ(files.global_filename, "BackgroundItems-v13.btm");
+}
+
+TEST_F(StartupItemsTests, test_selectBtmDatabaseFiles_ignores_other_files) {
+  auto files = selectBtmDatabaseFiles({
+      ".DS_Store",
+      "other.btm",
+      "BackgroundItems-vX.btm",
+      "BackgroundItems-v18-.btm",
+      "BackgroundItems-v18.btm.tmp",
+  });
+
+  EXPECT_TRUE(files.global_filename.empty());
+  EXPECT_TRUE(files.user_store_files.empty());
+}
+
+TEST_F(StartupItemsTests, test_parseUserStore_nil_store) {
+  QueryData results;
+  parseUserStore("testuser", nil, results);
+  EXPECT_EQ(results.size(), 0U);
+}
+
+TEST_F(StartupItemsTests, test_parseUserStore_records) {
+  @autoreleasepool {
+    MockBTMItem* loginItem = [[MockBTMItem alloc] init];
+    loginItem.type = @(0x00004); // LoginItem
+    loginItem.name = @"TestApp";
+
+    MockBTMItem* developerItem = [[MockBTMItem alloc] init];
+    developerItem.type = @(0x00020); // Developer
+
+    MockBTMUserStore* userStore = [[MockBTMUserStore alloc] init];
+    userStore.records = @[ loginItem, developerItem ];
+
+    QueryData results;
+    parseUserStore("testuser", userStore, results);
+
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0].at("username"), "testuser");
+    EXPECT_EQ(results[0].at("name"), "TestApp");
+    EXPECT_EQ(results[0].at("type"), "login item");
+  }
+}
+
+class StartupItemsArchiveTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    temp_dir_ = fs::temp_directory_path() /
+                fs::unique_path("osquery_startup_items_%%%%-%%%%-%%%%-%%%%");
+    fs::create_directories(temp_dir_);
+  }
+
+  void TearDown() override {
+    fs::remove_all(temp_dir_);
+  }
+
+  // Archive a user store with a single login item under the "userStore" key,
+  // like a version 18 BackgroundItems-v18-<uuid>.btm file
+  std::string writeUserStoreArchive() {
+    MockBTMItem* item = [[MockBTMItem alloc] init];
+    item.type = @(0x00004); // LoginItem
+    item.name = @"TestApp";
+    item.disposition = @(0x03); // Enabled | Allowed
+    item.url = [NSURL fileURLWithPath:@"/Applications/TestApp.app"];
+
+    MockBTMUserStore* userStore = [[MockBTMUserStore alloc] init];
+    userStore.records = @[ item ];
+
+    NSKeyedArchiver* archiver =
+        [[NSKeyedArchiver alloc] initRequiringSecureCoding:YES];
+    [archiver encodeObject:userStore forKey:@"userStore"];
+    [archiver finishEncoding];
+
+    auto path = (temp_dir_ / "BackgroundItems-v18-UUID.btm").string();
+    [archiver.encodedData
+        writeToFile:[NSString stringWithUTF8String:path.c_str()]
+         atomically:YES];
+    return path;
+  }
+
+  fs::path temp_dir_;
+};
+
+TEST_F(StartupItemsArchiveTests, test_decodeBtmArchive_user_store) {
+  @autoreleasepool {
+    auto path = writeUserStoreArchive();
+
+    id userStore =
+        decodeBtmArchive(path, [MockBTMUserStore class], @"userStore");
+    ASSERT_TRUE(userStore != nil);
+
+    QueryData results;
+    parseUserStore("testuser", userStore, results);
+
+    ASSERT_EQ(results.size(), 1U);
+    const Row& row = results[0];
+    EXPECT_EQ(row.at("username"), "testuser");
+    EXPECT_EQ(row.at("name"), "TestApp");
+    EXPECT_EQ(row.at("type"), "login item");
+    EXPECT_EQ(row.at("status"), "enabled, allowed");
+    EXPECT_EQ(row.at("path"), "/Applications/TestApp.app");
+  }
+}
+
+TEST_F(StartupItemsArchiveTests, test_decodeBtmArchive_missing_key) {
+  @autoreleasepool {
+    // Version 18 archives have no "store" key, which used to make the table
+    // return no BTM items
+    auto path = writeUserStoreArchive();
+
+    EXPECT_TRUE(decodeBtmArchive(path, [MockBTMUserStore class], @"store") ==
+                nil);
+  }
+}
+
+TEST_F(StartupItemsArchiveTests, test_decodeBtmArchive_wrong_class) {
+  @autoreleasepool {
+    auto path = writeUserStoreArchive();
+
+    EXPECT_TRUE(decodeBtmArchive(path, [MockBTMItem class], @"userStore") ==
+                nil);
+  }
+}
+
+TEST_F(StartupItemsArchiveTests, test_decodeBtmArchive_missing_file) {
+  @autoreleasepool {
+    auto path = (temp_dir_ / "missing.btm").string();
+
+    EXPECT_TRUE(
+        decodeBtmArchive(path, [MockBTMUserStore class], @"userStore") == nil);
   }
 }
 
