@@ -204,9 +204,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: cmake --build . --target prepare_for_ide
 
-    - name: Enable cppcheck annotations
-      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
-
     - name: Run cppcheck (Release)
       shell: bash
       id: release_cppcheck_runner
@@ -250,6 +247,12 @@ jobs:
       with:
         name: cppcheck-debug
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
+
+    - name: Annotate unique cppcheck findings
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+        LC_ALL=C sort -u cppcheck_release.txt cppcheck_debug.txt
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
