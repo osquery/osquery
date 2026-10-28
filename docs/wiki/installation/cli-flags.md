@@ -363,6 +363,12 @@ Comma-delimited list of table names to be disabled. This allows osquery to be la
 
 Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
+`--glob_max_files=0`
+
+Maximum number of filesystem entries (files and directories) to expand during a recursive glob (`**` or `%%`). When set to a positive integer and reached during traversal, recursive walking stops and a warning is logged (`Recursive glob reached limit of <N> files for: <path>`). Defaults to `0` (unbounded).
+
+Too many expanded paths can cause osquery to exceed watchdog memory limits (each expanded path typically consumes ~2 KB to ~4 KB of memory depending on whether full rows or projections like `count(*)` are queried). As a general rule of thumb, `35000` to `50000` is recommended under the default 200 MB watchdog limit, but deployments should monitor warning logs to tune appropriately.
+
 ## Linux-only runtime control flags
 
 `--malloc_trim_threshold=200`
