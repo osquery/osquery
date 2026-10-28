@@ -480,6 +480,55 @@ TEST_F(FilesystemTests, test_glob_max_files_exact_boundary) {
   EXPECT_EQ(results.size(), 20U);
 }
 
+TEST_F(FilesystemTests, test_glob_max_files_flat_directory) {
+  auto dir = test_working_dir_ / "flat";
+  ASSERT_TRUE(fs::create_directory(dir));
+  for (size_t i = 0; i < 30; ++i) {
+    writeTextFile(dir / ("f" + std::to_string(i)), "x");
+  }
+
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 10;
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 10U);
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_hidden_level) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Windows glob returns level-1 dotfiles";
+  }
+
+  auto dir = fs::canonical(test_working_dir_) / "hid";
+  ASSERT_TRUE(fs::create_directories(dir / "sub"));
+  writeTextFile(dir / ".top", "x");
+  writeTextFile(dir / "vis", "x");
+  writeTextFile(dir / "sub" / ".deep", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%%", results);
+
+  EXPECT_FALSE(contains(results, (dir / ".top").string()));
+  EXPECT_TRUE(contains(results, (dir / "vis").string()));
+  EXPECT_TRUE(contains(results, (dir / "sub" / ".deep").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_prefix) {
+  auto dir = test_working_dir_ / "pfx";
+  ASSERT_TRUE(fs::create_directory(dir));
+  writeTextFile(dir / "pre_a", "x");
+  writeTextFile(dir / "pre_b", "x");
+  writeTextFile(dir / "other", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+
+  EXPECT_EQ(results.size(), 2U);
+  EXPECT_FALSE(contains(results, (dir / "other").string()));
+}
+
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(fake_directory_ / "%%", results, GLOB_FOLDERS);
