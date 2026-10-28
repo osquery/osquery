@@ -280,38 +280,40 @@ jobs:
           const pullRequest = context.eventName === 'pull_request' ? context.payload.pull_request : null;
 
           async function findCaches(sourceBranch, sourceRepository, events, suffix = '') {
-            const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
-              ...context.repo,
-              workflow_id: 'hosted_runners.yml',
-              branch: sourceBranch,
-              ...(suffix ? { event: 'pull_request' } : {}),
-              status: 'completed',
-              created: `>=${cutoff}`,
-              per_page: 100,
-            });
+            for (const status of ['in_progress', 'completed']) {
+              const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
+                ...context.repo,
+                workflow_id: 'hosted_runners.yml',
+                branch: sourceBranch,
+                ...(suffix ? { event: 'pull_request' } : {}),
+                status,
+                created: `>=${cutoff}`,
+                per_page: 100,
+              });
 
-            for await (const page of pages) {
-              for (const run of page.data) {
-                if (!events.includes(run.event) ||
-                    run.head_branch !== sourceBranch ||
-                    run.head_repository?.full_name !== sourceRepository ||
-                    run.id === context.runId) {
-                  continue;
-                }
-
-                const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
-                  ...context.repo,
-                  run_id: run.id,
-                  per_page: 100,
-                });
-                for (const artifact of artifacts) {
-                  if (artifact.expired || !artifact.name.startsWith('compiler-cache-v1-') ||
-                      !artifact.name.endsWith(suffix)) {
+              for await (const page of pages) {
+                for (const run of page.data) {
+                  if (!events.includes(run.event) ||
+                      run.head_branch !== sourceBranch ||
+                      run.head_repository?.full_name !== sourceRepository ||
+                      run.id === context.runId) {
                     continue;
                   }
-                  const name = suffix ? artifact.name.slice(0, -suffix.length) : artifact.name;
-                  if (!Object.hasOwn(caches, name)) {
-                    caches[name] = { run_id: run.id, name: artifact.name };
+
+                  const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                    ...context.repo,
+                    run_id: run.id,
+                    per_page: 100,
+                  });
+                  for (const artifact of artifacts) {
+                    if (artifact.expired || !artifact.name.startsWith('compiler-cache-v1-') ||
+                        !artifact.name.endsWith(suffix)) {
+                      continue;
+                    }
+                    const name = suffix ? artifact.name.slice(0, -suffix.length) : artifact.name;
+                    if (!Object.hasOwn(caches, name)) {
+                      caches[name] = { run_id: run.id, name: artifact.name };
+                    }
                   }
                 }
               }
