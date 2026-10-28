@@ -131,8 +131,7 @@ jobs:
       run: python3 tools/codegen/genwebsitejson.py --specs=specs/
 
 
-  # This job runs source code analysis tools (currently, just cppcheck)
-  check_source_code:
+  cppcheck_linux:
     needs: [check_code_style, check_libraries_manifest]
     runs-on: ubuntu-26.04
     steps:
@@ -256,7 +255,7 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
-  check_source_code_macos:
+  cppcheck_macos:
     needs: [check_code_style, check_libraries_manifest]
     runs-on: macos-26
 
@@ -349,9 +348,9 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
-  check_source_code_windows:
+  cppcheck_windows:
     needs: [check_code_style, check_libraries_manifest]
-    runs-on: windows-2025
+    runs-on: windows-2022
 
     steps:
     - name: Configure git
