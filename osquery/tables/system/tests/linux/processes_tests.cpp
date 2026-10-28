@@ -37,5 +37,41 @@ TEST_F(CGroupTest, invalid) {
   EXPECT_EQ("", got);
 }
 
+class ProcMapsInodeTest : public ::testing::Test {};
+
+TEST_F(ProcMapsInodeTest, binary_path) {
+  auto got = parseProcMapsInode(
+      "55d0c0a00000-55d0c0a02000 r--p 00000000 08:01 1312 /usr/bin/cat\n"
+      "55d0c0a02000-55d0c0a07000 r-xp 00002000 08:01 1312 /usr/bin/cat\n",
+      "/usr/bin/cat");
+  EXPECT_EQ("1312", got);
+}
+
+TEST_F(ProcMapsInodeTest, path_with_regex_characters) {
+  const std::string path = "/tmp/a+[b]\\h (deleted)";
+  auto got = parseProcMapsInode(
+      "7f0000000000-7f0000001000 r--p 00000000 08:01 42 /usr/lib/libc.so.6\n"
+      "55d0c0a00000-55d0c0a02000 r-xp 00000000 08:01 1312                  " +
+          path + "\n",
+      path);
+  EXPECT_EQ("1312", got);
+}
+
+TEST_F(ProcMapsInodeTest, path_with_newline) {
+  auto got = parseProcMapsInode(
+      "55d0c0a00000-55d0c0a02000 r-xp 00000000 08:01 1312 "
+      "/tmp/a\\012b (deleted)\n",
+      "/tmp/a\nb (deleted)");
+  EXPECT_EQ("1312", got);
+}
+
+TEST_F(ProcMapsInodeTest, path_not_mapped) {
+  auto got = parseProcMapsInode(
+      "55d0c0a00000-55d0c0a02000 r-xp 00000000 08:01 1312 /tmp/a (deleted)x\n"
+      "7ffc0a000000-7ffc0a021000 rw-p 00000000 00:00 0 [stack]\n",
+      "/tmp/a (deleted)");
+  EXPECT_EQ("", got);
+}
+
 } // namespace tables
 } // namespace osquery

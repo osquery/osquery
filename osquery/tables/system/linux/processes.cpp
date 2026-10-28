@@ -8,7 +8,7 @@
  */
 
 #include <map>
-#include <regex>
+#include <sstream>
 #include <string>
 
 #include <stdlib.h>
@@ -17,6 +17,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
@@ -126,6 +127,30 @@ inline std::string readSecurityLabel(const std::string& pid) {
   return readFile(label_path, content).ok() ? content : "";
 }
 
+std::string parseProcMapsInode(const std::string& content,
+                               const std::string& path) {
+  // The kernel escapes newlines in maps pathnames as "\012"
+  auto escaped_path = path;
+  boost::replace_all(escaped_path, "\n", "\\012");
+
+  for (const auto& line : osquery::split(content, "\n")) {
+    // Each line is "address perms offset dev inode pathname", the pathname
+    // is padded with spaces and may itself contain spaces
+    std::istringstream stream(line);
+    std::string address, perms, offset, dev, inode, pathname;
+    if (!(stream >> address >> perms >> offset >> dev >> inode)) {
+      continue;
+    }
+
+    std::getline(stream >> std::ws, pathname);
+    if (pathname == escaped_path) {
+      return inode;
+    }
+  }
+
+  return {};
+}
+
 // In the case where the linked binary path ends in " (deleted)", and a file
 // actually exists at that path, check whether the inode of that file matches
 // the inode of the mapped file in /proc/%pid/maps
@@ -138,12 +163,10 @@ Status deletedMatchesInode(const std::string& path, const std::string& pid) {
   }
 
   // Extract the expected inode of the binary file from /proc/%pid/maps
-  std::smatch what;
-  std::regex expression("([0-9]+)\\h+\\Q" + path + "\\E");
-  if (!std::regex_search(maps_contents, what, expression)) {
+  auto inode = parseProcMapsInode(maps_contents, path);
+  if (inode.empty()) {
     return Status(-1, "Could not find binary inode in maps file: " + maps_path);
   }
-  std::string inode = what[1];
 
   // stat the file at the expected binary path
   struct stat st;
