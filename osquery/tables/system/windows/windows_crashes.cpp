@@ -96,7 +96,7 @@ class RegisterOutputCallbacks : public IDebugOutputCallbacks {
     }
   }
 
-  STDMETHODIMP_(ULONG) RegisterOutputCallbacks::AddRef(THIS) {
+  STDMETHODIMP_(ULONG) RegisterOutputCallbacks::AddRef(THIS) { // test
     return 1;
   }
 
@@ -667,5 +667,5 @@ QueryData genCrashLogs(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

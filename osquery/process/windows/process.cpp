@@ -8,7 +8,7 @@
  */
 
 #include <sstream>
-#include <vector>
+#include <vector> // test
 
 #include <signal.h>
 
@@ -22,8 +22,8 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-static PlatformPidType __declspec(nothrow)
-    duplicateHandle(osquery::PlatformPidType src) {
+static PlatformPidType __declspec(nothrow) duplicateHandle(
+    osquery::PlatformPidType src) {
   auto handle = kInvalidPid;
 
   if (src != kInvalidPid) {
