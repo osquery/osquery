@@ -281,8 +281,12 @@ on glog's attributed destructors. This does not affect compilation, but attribut
 information (including `noreturn`) is unavailable to the analyzer.
 
 Additional library configurations model Google Test parameterized tests and
-Google Mock matchers. On POSIX, the target models Boost.Asio's local-socket
-support. On macOS, it ignores `API_AVAILABLE` annotations and models runtime
+Google Mock matchers. Modeled test functions are marked `[[maybe_unused]]`
+because Google Test's registration is omitted, preventing spurious
+`unusedFunction` warnings without disabling checks on test bodies or helpers.
+On POSIX, the target defines `BOOST_ASIO_HAS_LOCAL_SOCKETS` for cppcheck so the
+Docker tables' local-socket feature check does not abort analysis.
+On macOS, it ignores `API_AVAILABLE` annotations and models runtime
 availability checks as unknown conditions so both branches remain analyzable.
 These configurations affect only cppcheck, not the compiled code.
 
