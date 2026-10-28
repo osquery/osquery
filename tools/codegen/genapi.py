@@ -30,7 +30,6 @@ CANONICAL_PLATFORMS = {
     "posix": "POSIX-compatible Platforms",
     "windows": "Microsoft Windows",
     "utility": "Utility",
-    "sleuthkit": "The Sleuth Kit",
     "macwin": "MacOS and Windows",
     "linwin": "Linux and Windows"
 }

@@ -266,6 +266,13 @@ std::string rootFolderItem(const std::string& shell_data) {
 }
 
 std::string driveLetterItem(const std::string& shell_data) {
+  // The volume name occupies six hex characters at offset 6. A truncated
+  // record leaves that field absent, in which case substr() yields an empty
+  // string that unhex() passes through; callers strip the trailing separator
+  // with pop_back(), which is undefined on an empty string.
+  if (shell_data.size() < 12) {
+    return "[UNKNOWN DRIVE VOLUME]";
+  }
   std::string volume;
   try {
     volume = boost::algorithm::unhex(shell_data.substr(6, 6));
@@ -389,6 +396,12 @@ std::vector<std::string> ftpItem(const std::string& shell_data) {
 }
 
 std::string propertyViewDrive(const std::string& shell_data) {
+  // The drive name occupies six hex characters at offset 26. A truncated
+  // record makes substr() throw or return empty, and callers then strip the
+  // trailing separator with pop_back(), which is undefined on an empty string.
+  if (shell_data.size() < 32) {
+    return "[UNKNOWN USER PROPERTY DRIVE NAME]";
+  }
   std::string drive_hex = shell_data.substr(26, 6);
   std::string name;
   try {

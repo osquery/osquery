@@ -8,7 +8,7 @@
  */
 
 // Sanity check integration test for gpu_info
-// Spec file: specs/posix/gpu_info.table
+// Spec file: specs/gpu_info.table
 
 #include <osquery/tests/integration/tables/helper.h>
 
