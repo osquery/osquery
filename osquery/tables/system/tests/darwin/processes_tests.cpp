@@ -9,6 +9,9 @@
 
 #include <CoreServices/CoreServices.h>
 
+#include <map>
+#include <string>
+
 #include <gtest/gtest.h>
 #include <osquery/rows/processes.h>
 
@@ -23,6 +26,8 @@ namespace tables {
 void genProcUniquePid(QueryContext& context, int pid, ProcessesRow& r);
 void genProcArch(QueryContext& context, int pid, ProcessesRow& r);
 bool parseProcCmdline(std::string& args, size_t len);
+std::map<std::string, std::string> parseProcEnv(const char* procargs,
+                                                size_t argmax);
 
 class DarwinProcessesTests : public testing::Test {};
 
@@ -61,6 +66,42 @@ TEST_F(DarwinProcessesTests, test_cmdline_parsing) {
   std::replace(cmdline.begin(), cmdline.end(), '0', '\0');
   memcpy(&cmdline[0], &argc, sizeof(argc));
   EXPECT_FALSE(parseProcCmdline(cmdline, cmdline.size()));
+}
+
+TEST_F(DarwinProcessesTests, test_env_parsing) {
+  // Layout: [argc][exec]\0[argv...]\0[env...]\0. argc here is 1, so the first
+  // token after the exec name is the argument and the next is an env pair.
+  int argc = 1;
+
+  // A well-formed buffer parses the single environment pair.
+  std::string procargs("0000/bin/sh0argone0KEY=value0");
+  std::replace(procargs.begin(), procargs.end(), '0', '\0');
+  memcpy(&procargs[0], &argc, sizeof(argc));
+  auto env = parseProcEnv(procargs.data(), procargs.size());
+  ASSERT_EQ(1U, env.count("KEY"));
+  EXPECT_EQ("value", env["KEY"]);
+
+  // The last token runs to the end of the buffer with no trailing null
+  // terminator (a process that overwrote its own argv/envp region). The parse
+  // must bound each read to argmax; reading to the next null would consume the
+  // bytes that follow, which in a live process is adjacent heap memory.
+  procargs.assign(reinterpret_cast<const char*>(&argc), sizeof(argc));
+  procargs += "/bin/sh";
+  procargs += '\0';
+  procargs += "argone";
+  procargs += '\0';
+  procargs += "LEAK=secret";
+  size_t argmax = procargs.size();
+  // Bytes past argmax that a bounded parse must not read.
+  procargs += "_trailing";
+  env = parseProcEnv(procargs.data(), argmax);
+  ASSERT_EQ(1U, env.count("LEAK"));
+  EXPECT_EQ("secret", env["LEAK"]);
+
+  // A buffer too small to hold the leading argument count yields nothing.
+  procargs = "00";
+  std::replace(procargs.begin(), procargs.end(), '0', '\0');
+  EXPECT_TRUE(parseProcEnv(procargs.data(), procargs.size()).empty());
 }
 
 TEST_F(DarwinProcessesTests, test_process_arch) {
