@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <ctime>
+#include <optional>
 
 #include <boost/format.hpp>
 #include <boost/io/quoted.hpp>
@@ -64,54 +65,56 @@ DECLARE_bool(enable_numeric_monitoring);
 DECLARE_bool(verbose);
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
+  // Snapshot the performance and times for the worker before running.
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
+  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+
+  using namespace std::chrono;
+  auto t0 = steady_clock::now();
+  Config::get().recordQueryStart(name);
+
+  // Numeric monitoring, when enabled, also profiles the query. It is in
+  // addition to the performance recorded below, which osquery_schedule reports
+  // and the watchdog uses to find a query that crashed the worker.
+  std::optional<CodeProfiler> profiler;
   if (FLAGS_enable_numeric_monitoring) {
-    CodeProfiler profiler(
-        {(boost::format("scheduler.pack.%s") % query.pack_name).str(),
-         (boost::format("scheduler.global.query.%s.%s") % query.pack_name %
-          query.name)
-             .str(),
-         (boost::format("scheduler.assigned.query.%s.%s.%s") % query.oncall %
-          query.pack_name % query.name)
-             .str(),
-         (boost::format("scheduler.owners.%s") % query.oncall).str(),
-         (boost::format("scheduler.query.%s.%s.%s") %
-          monitoring::hostIdentifierKeys().scheme % query.pack_name %
-          query.name)
-             .str()});
-    return SQLInternal(query.query, true);
-  } else {
-    // Snapshot the performance and times for the worker before running.
-    auto pid = std::to_string(PlatformProcess::getCurrentPid());
-    auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                              "processes",
-                              "pid",
-                              EQUALS,
-                              pid);
-
-    using namespace std::chrono;
-    auto t0 = steady_clock::now();
-    Config::get().recordQueryStart(name);
-    SQLInternal sql(query.query, true);
-
-    // Snapshot the performance after, and compare.
-    auto t1 = steady_clock::now();
-    auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
-                              "processes",
-                              "pid",
-                              EQUALS,
-                              pid);
-    if (r0.size() > 0 && r1.size() > 0) {
-      // Always called while processes table is working.
-      uint64_t size = sql.getSize();
-      Config::get().recordQueryPerformance(
-          name,
-          duration_cast<milliseconds>(t1 - t0).count(),
-          size,
-          r0[0],
-          r1[0]);
-    }
-    return sql;
+    profiler.emplace(std::initializer_list<std::string>{
+        (boost::format("scheduler.pack.%s") % query.pack_name).str(),
+        (boost::format("scheduler.global.query.%s.%s") % query.pack_name %
+         query.name)
+            .str(),
+        (boost::format("scheduler.assigned.query.%s.%s.%s") % query.oncall %
+         query.pack_name % query.name)
+            .str(),
+        (boost::format("scheduler.owners.%s") % query.oncall).str(),
+        (boost::format("scheduler.query.%s.%s.%s") %
+         monitoring::hostIdentifierKeys().scheme % query.pack_name % query.name)
+            .str()});
   }
+  SQLInternal sql(query.query, true);
+  // Take the end time before the profile is reported, so the query's wall time
+  // does not include recording the numeric monitoring points.
+  auto t1 = steady_clock::now();
+  // Report the profile for the query alone.
+  profiler.reset();
+
+  // Snapshot the performance after, and compare.
+  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
+  if (r0.size() > 0 && r1.size() > 0) {
+    // Always called while processes table is working.
+    uint64_t size = sql.getSize();
+    Config::get().recordQueryPerformance(
+        name, duration_cast<milliseconds>(t1 - t0).count(), size, r0[0], r1[0]);
+  }
+  return sql;
 }
 
 Status launchQuery(const std::string& name, const ScheduledQuery& query) {
