@@ -1545,7 +1545,7 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
     int j;
     assert(nArg <= ArraySize(azArg));
     for (j = 1; j < nArg && j < ArraySize(p->colWidth); j++) {
-      p->colWidth[j - 1] = static_cast<int>(integerValue(azArg[j])); // test
+      p->colWidth[j - 1] = static_cast<int>(integerValue(azArg[j]));
     }
   } else {
     fprintf(stderr,

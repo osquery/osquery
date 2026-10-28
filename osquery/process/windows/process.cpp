@@ -8,7 +8,7 @@
  */
 
 #include <sstream>
-#include <vector> // test
+#include <vector>
 
 #include <signal.h>
 
