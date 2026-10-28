@@ -60,6 +60,7 @@ const std::vector<std::string> kFileNameList{
 }
 
 DECLARE_uint64(read_max);
+DECLARE_uint64(glob_max_files);
 
 extern inline Status listInAbsoluteDirectory(const fs::path& path,
                                              std::vector<std::string>& results,
@@ -440,6 +441,43 @@ TEST_F(FilesystemTests, test_wildcard_double) {
                        fs::path(fake_directory_ / "deep1/deep2/level2.txt")
                            .make_preferred()
                            .string()));
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_limit) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 5U);
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_prepopulated_vector) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+
+  std::vector<std::string> results = {"/dummy/1", "/dummy/2", "/dummy/3"};
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  // Pre-existing entries should not count toward current glob's cap
+  EXPECT_EQ(results.size(), 8U);
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_exact_boundary) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 20;
+
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 20U);
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
