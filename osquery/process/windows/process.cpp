@@ -22,8 +22,8 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-static PlatformPidType __declspec(nothrow) duplicateHandle(
-    osquery::PlatformPidType src) {
+static PlatformPidType __declspec(nothrow)
+    duplicateHandle(osquery::PlatformPidType src) {
   auto handle = kInvalidPid;
 
   if (src != kInvalidPid) {
