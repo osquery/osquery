@@ -506,13 +506,13 @@ jobs:
       continue-on-error: true
       run: ccache --show-stats --verbose
 
-    - name: Recompress and archive compiler cache
+    - name: Archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
         ccache --show-compression
-        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+        tar -I 'xz -3 -T0' -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
@@ -825,13 +825,13 @@ jobs:
       continue-on-error: true
       run: ccache --show-stats --verbose
 
-    - name: Recompress and archive compiler cache
+    - name: Archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
         ccache --show-compression
-        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+        tar -I 'xz -3 -T0' -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
