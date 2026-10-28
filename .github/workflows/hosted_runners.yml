@@ -424,7 +424,10 @@ jobs:
       id: cppcheck
       shell: powershell
       run: |
-        $cppcheck = (Get-Command cppcheck.exe -ErrorAction Stop).Source
+        $cppcheck = Join-Path $env:ProgramFiles "Cppcheck\cppcheck.exe"
+        if (-not (Test-Path -LiteralPath $cppcheck -PathType Leaf)) {
+          throw "cppcheck.exe was not installed at $cppcheck"
+        }
         & $cppcheck --version
         echo "VALUE=$cppcheck" >> $env:GITHUB_OUTPUT
 
