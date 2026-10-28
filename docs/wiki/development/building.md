@@ -280,6 +280,12 @@ The target loads `tests/cppcheck/libraries/gnu_attributes.cfg` to ignore GNU
 on glog's attributed destructors. This does not affect compilation, but attribute
 information (including `noreturn`) is unavailable to the analyzer.
 
+Additional library configurations model Google Test parameterized tests and
+Google Mock matchers. On POSIX, the target models Boost.Asio's local-socket
+support. On macOS, it ignores `API_AVAILABLE` annotations and models runtime
+availability checks as unknown conditions so both branches remain analyzable.
+These configurations affect only cppcheck, not the compiled code.
+
 ## Running clang-tidy (Linux only)
 
 The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.

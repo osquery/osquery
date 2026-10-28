@@ -53,6 +53,14 @@ function(cppcheckMain)
 
   set(cppcheck_build_dir "${CMAKE_BINARY_DIR}/cppcheck-build-dir-${CMAKE_BUILD_TYPE}")
 
+  set(platform_libraries)
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/posix.cfg")
+  endif()
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/darwin.cfg")
+  endif()
+
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
@@ -60,6 +68,7 @@ function(cppcheckMain)
     COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/gnu_attributes.cfg"
+            ${platform_libraries}
             ${multithread_options}
             --enable=all "--platform=${cppcheck_platform}"
             "--cppcheck-build-dir=${cppcheck_build_dir}"
