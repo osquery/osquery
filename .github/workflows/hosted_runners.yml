@@ -264,7 +264,7 @@ jobs:
       caches: ${{ steps.lookup.outputs.result || '{}' }}
 
     steps:
-    - name: Find compiler cache artifacts from default-branch runs
+    - name: Find compiler cache artifacts from PR and default-branch runs
       id: lookup
       # We don't use caches on tags -- we do full clean builds.
       # When this step doesn't run, later steps will not try to use the cache.
@@ -277,37 +277,52 @@ jobs:
           const branch = context.payload.repository.default_branch;
           const repository = `${context.repo.owner}/${context.repo.repo}`;
           const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
-            ...context.repo,
-            workflow_id: 'hosted_runners.yml',
-            branch,
-            status: 'success',
-            created: `>=${cutoff}`,
-            per_page: 100,
-          });
+          const pullRequest = context.eventName === 'pull_request' ? context.payload.pull_request : null;
 
-          for await (const page of pages) {
-            for (const run of page.data) {
-              if (!['push', 'schedule'].includes(run.event) ||
-                  run.head_branch !== branch ||
-                  run.head_repository?.full_name !== repository ||
-                  run.id === context.runId) {
-                continue;
-              }
+          async function findCaches(sourceBranch, sourceRepository, events, suffix = '') {
+            const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
+              ...context.repo,
+              workflow_id: 'hosted_runners.yml',
+              branch: sourceBranch,
+              ...(suffix ? { event: 'pull_request' } : {}),
+              status: 'completed',
+              created: `>=${cutoff}`,
+              per_page: 100,
+            });
 
-              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
-                ...context.repo,
-                run_id: run.id,
-                per_page: 100,
-              });
-              for (const artifact of artifacts) {
-                if (!artifact.expired && artifact.name.startsWith('compiler-cache-v1-') &&
-                    !Object.hasOwn(caches, artifact.name)) {
-                  caches[artifact.name] = run.id;
+            for await (const page of pages) {
+              for (const run of page.data) {
+                if (!events.includes(run.event) ||
+                    run.head_branch !== sourceBranch ||
+                    run.head_repository?.full_name !== sourceRepository ||
+                    run.id === context.runId) {
+                  continue;
+                }
+
+                const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                  ...context.repo,
+                  run_id: run.id,
+                  per_page: 100,
+                });
+                for (const artifact of artifacts) {
+                  if (artifact.expired || !artifact.name.startsWith('compiler-cache-v1-') ||
+                      !artifact.name.endsWith(suffix)) {
+                    continue;
+                  }
+                  const name = suffix ? artifact.name.slice(0, -suffix.length) : artifact.name;
+                  if (!Object.hasOwn(caches, name)) {
+                    caches[name] = { run_id: run.id, name: artifact.name };
+                  }
                 }
               }
             }
           }
+
+          if (pullRequest) {
+            await findCaches(pullRequest.head.ref, pullRequest.head.repo.full_name,
+                             ['pull_request'], `-pr-${pullRequest.number}`);
+          }
+          await findCaches(branch, repository, ['push', 'schedule']);
 
           core.info(`Compiler cache sources: ${JSON.stringify(caches)}`);
           return caches;
@@ -324,8 +339,9 @@ jobs:
     env:
       CCACHE_COMPRESS: "true"
       CCACHE_NOFILECLONE: "true"
-      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_${{ matrix.os }}_${{ matrix.build_type }}
-      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)] }}
+      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_${{ matrix.os }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)].run_id }}
+      COMPILER_CACHE_RESTORE_NAME: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)].name }}
 
     strategy:
       matrix:
@@ -431,7 +447,7 @@ jobs:
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
+        name: ${{ env.COMPILER_CACHE_RESTORE_NAME }}
         run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
         github-token: ${{ github.token }}
         path: ${{ runner.temp }}/compiler-cache
@@ -458,11 +474,14 @@ jobs:
       run: git submodule sync --recursive
 
     - name: Configure ccache
+      id: ccache_configuration
       run: |
         export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
         export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
         echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
         echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --version
+        ccache --show-config
         ccache --zero-stats
 
     - name: Configure the project
@@ -483,7 +502,26 @@ jobs:
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      run: ccache -s
+      if: always()
+      continue-on-error: true
+      run: ccache --show-stats --verbose
+
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
 
     - name: Disk space information
       shell: bash
@@ -620,24 +658,6 @@ jobs:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
-    - name: Archive compiler cache
-      id: compiler_cache_archive
-      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-      continue-on-error: true
-      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
-
-    - name: Store compiler cache artifact
-      if: steps.compiler_cache_archive.outcome == 'success'
-      continue-on-error: true
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
-        path: ${{ runner.temp }}/cache.tar
-        retention-days: 7
-        compression-level: 0
-        if-no-files-found: error
-
-
   # The macOS build will only start once we know that the code
   # has been properly formatted
   build_macos:
@@ -662,8 +682,9 @@ jobs:
       MACOS_DEPLOYMENT_TARGET: 10.15
       CCACHE_COMPRESS: "true"
       CCACHE_NOFILECLONE: "true"
-      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_macOS_${{ matrix.architecture }}_${{ matrix.build_type }}
-      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)] }}
+      COMPILER_CACHE_NAME: compiler-cache-v1-ccache_macOS_${{ matrix.architecture }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)].run_id }}
+      COMPILER_CACHE_RESTORE_NAME: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)].name }}
 
     steps:
     - name: Select the build job count
@@ -722,7 +743,7 @@ jobs:
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
+        name: ${{ env.COMPILER_CACHE_RESTORE_NAME }}
         run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
         github-token: ${{ github.token }}
         path: ${{ runner.temp }}/compiler-cache
@@ -771,11 +792,14 @@ jobs:
         fi
 
     - name: Configure ccache
+      id: ccache_configuration
       run: |
         export CCACHE_CONFIGPATH="${{ steps.build_paths.outputs.SOURCE }}/ccache.conf"
         export CCACHE_DIR="${{ steps.build_paths.outputs.CCACHE }}"
         echo "CCACHE_CONFIGPATH=${CCACHE_CONFIGPATH}" >> $GITHUB_ENV
         echo "CCACHE_DIR=${CCACHE_DIR}" >> $GITHUB_ENV
+        ccache --version
+        ccache --show-config
         ccache --zero-stats
 
     - name: Configure the project
@@ -797,7 +821,26 @@ jobs:
       run: cmake --build . -j ${{ steps.build_job_count.outputs.VALUE }}
 
     - name: Print ccache stats
-      run: ccache -s
+      if: always()
+      continue-on-error: true
+      run: ccache --show-stats --verbose
+
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
 
     - name: Disk space information
       shell: bash
@@ -887,23 +930,6 @@ jobs:
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-
-    - name: Archive compiler cache
-      id: compiler_cache_archive
-      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-      continue-on-error: true
-      run: tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
-
-    - name: Store compiler cache artifact
-      if: steps.compiler_cache_archive.outcome == 'success'
-      continue-on-error: true
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
-        path: ${{ runner.temp }}/cache.tar
-        retention-days: 7
-        compression-level: 0
-        if-no-files-found: error
 
   # Reuse the build tree(s) produced by build_macos to run the tests.
   # This allows us to do fewer builds (just use the builds
@@ -1111,8 +1137,9 @@ jobs:
       contents: read
 
     env:
-      COMPILER_CACHE_NAME: compiler-cache-v1-sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}
-      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-sccache_{0}_{1}_{2}', matrix.os, matrix.bitness, matrix.build_type)] }}
+      COMPILER_CACHE_NAME: compiler-cache-v1-sccache_${{ matrix.os }}_${{ matrix.bitness }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
+      COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-sccache_{0}_{1}_{2}', matrix.os, matrix.bitness, matrix.build_type)].run_id }}
+      COMPILER_CACHE_RESTORE_NAME: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-sccache_{0}_{1}_{2}', matrix.os, matrix.bitness, matrix.build_type)].name }}
 
     runs-on: ${{ matrix.os }}
 
@@ -1269,6 +1296,7 @@ jobs:
                               pywin32
 
     - name: Install sccache
+      id: sccache_installation
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
       run: |
@@ -1336,7 +1364,7 @@ jobs:
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
+        name: ${{ env.COMPILER_CACHE_RESTORE_NAME }}
         run-id: ${{ env.COMPILER_CACHE_RUN_ID }}
         github-token: ${{ github.token }}
         path: ${{ runner.temp }}/compiler-cache
@@ -1364,10 +1392,32 @@ jobs:
         if %errorlevel% neq 0 exit /b %errorlevel%
 
     - name: Print sccache stats
+      if: always()
+      continue-on-error: true
       shell: cmd
       run: |
         sccache.exe --show-stats
         sccache.exe --stop-server
+
+    - name: Archive compiler cache
+      id: compiler_cache_archive
+      if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      continue-on-error: true
+      shell: powershell
+      run: |
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.SCCACHE }}" .
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - name: Store compiler cache artifact
+      if: steps.compiler_cache_archive.outcome == 'success'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.COMPILER_CACHE_NAME }}
+        path: ${{ runner.temp }}/cache.tar
+        retention-days: 7
+        compression-level: 0
+        if-no-files-found: error
 
     - name: Disk space information
       id: disk_space_info_post_build
@@ -1478,26 +1528,6 @@ jobs:
       with:
         path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
-
-    - name: Archive compiler cache
-      id: compiler_cache_archive
-      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-      continue-on-error: true
-      shell: powershell
-      run: |
-        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.SCCACHE }}" .
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-    - name: Store compiler cache artifact
-      if: steps.compiler_cache_archive.outcome == 'success'
-      continue-on-error: true
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ env.COMPILER_CACHE_NAME }}
-        path: ${{ runner.temp }}/cache.tar
-        retention-days: 7
-        compression-level: 0
-        if-no-files-found: error
 
   # This job is here as a github status check -- it allows us to move the dependency from
   # being on all the jobs to this single one.
