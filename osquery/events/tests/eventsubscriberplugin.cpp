@@ -9,6 +9,7 @@
 
 #include "mockedosquerydatabase.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -202,6 +203,74 @@ TEST_F(EventSubscriberPluginTests, expireEventBatches) {
   // https://github.com/osquery/osquery/issues/8524)
   EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 15);
   EXPECT_EQ(context.event_index.size(), 1U);
+}
+
+TEST_F(EventSubscriberPluginTests, expireEventBatchesWithGaps) {
+  MockedOsqueryDatabase mocked_database;
+  EventSubscriberPlugin::Context context;
+  EventSubscriberPlugin::setDatabaseNamespace(context, "type", "name");
+
+  // Ids 3 and 6 are in the database but not in the index (dropped batches);
+  // they must survive an expiry of the runs around them.
+  for (EventID id = 1; id <= 7; ++id) {
+    mocked_database.key_map.insert(
+        {EventSubscriberPlugin::databaseKeyForEventId(context, id), "{}"});
+  }
+  context.event_index = {{1, {1, 2}}, {2, {4, 5}}, {3, {7}}};
+
+  // Expire everything older than time 3; batch 3 is kept as the last valid.
+  EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 4);
+  EXPECT_EQ(context.event_index.size(), 1U);
+
+  std::vector<std::string> remaining;
+  for (const auto& p : mocked_database.key_map) {
+    remaining.push_back(p.first);
+  }
+  std::vector<std::string> expected = {
+      EventSubscriberPlugin::databaseKeyForEventId(context, 3),
+      EventSubscriberPlugin::databaseKeyForEventId(context, 6),
+      EventSubscriberPlugin::databaseKeyForEventId(context, 7),
+  };
+  EXPECT_EQ(remaining, expected);
+}
+
+TEST_F(EventSubscriberPluginTests, expireEventBatchesAcrossKeyWidths) {
+  MockedOsqueryDatabase mocked_database;
+  EventSubscriberPlugin::Context context;
+  EventSubscriberPlugin::setDatabaseNamespace(context, "type", "name");
+
+  // Keys are padded to at least 10 digits and compared as strings, so ids on
+  // either side of 1,000,000,000 and 10,000,000,000 do not sort numerically.
+  // 10000000002 is not indexed and sorts between 1000000000 and 1000000001.
+  const std::vector<EventID> id_list = {999999999U,
+                                        1000000000U,
+                                        1000000001U,
+                                        9999999999U,
+                                        10000000000U,
+                                        10000000002U,
+                                        10000000003U};
+  for (auto id : id_list) {
+    mocked_database.key_map.insert(
+        {EventSubscriberPlugin::databaseKeyForEventId(context, id), "{}"});
+  }
+  context.event_index = {{1, {999999999U, 1000000000U, 1000000001U}},
+                         {2, {9999999999U, 10000000000U}},
+                         {3, {10000000003U}}};
+
+  // Expire everything older than time 3; batch 3 is kept as the last valid.
+  EventSubscriberPlugin::expireEventBatches(context, mocked_database, 1, 4);
+  EXPECT_EQ(context.event_index.size(), 1U);
+
+  std::vector<std::string> remaining;
+  for (const auto& p : mocked_database.key_map) {
+    remaining.push_back(p.first);
+  }
+  std::vector<std::string> expected = {
+      EventSubscriberPlugin::databaseKeyForEventId(context, 10000000002U),
+      EventSubscriberPlugin::databaseKeyForEventId(context, 10000000003U),
+  };
+  std::sort(expected.begin(), expected.end());
+  EXPECT_EQ(remaining, expected);
 }
 
 TEST_F(EventSubscriberPluginTests, generateRows) {

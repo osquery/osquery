@@ -41,6 +41,9 @@
   }                                                                            \
   TEST_F(n, test_scan_limit) {                                                 \
     testScanLimit();                                                           \
+  }                                                                            \
+  TEST_F(n, test_scan_prefix) {                                                \
+    testScanPrefix();                                                          \
   }
 
 namespace osquery {
@@ -95,5 +98,6 @@ class DatabasePluginTests : public testing::Test {
   void testDeleteRange();
   void testScan();
   void testScanLimit();
+  void testScanPrefix();
 };
 } // namespace osquery

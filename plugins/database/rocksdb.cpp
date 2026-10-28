@@ -233,7 +233,9 @@ Status RocksDBDatabasePlugin::compactFiles(const std::string& domain) {
       input_file_names.push_back(file.name);
     }
 
-    if (!input_file_names.empty()) {
+    // A level holding a single file is already merged; rewriting it on every
+    // reopen only costs I/O (and holds the database lock) for no change.
+    if (input_file_names.size() > 1) {
       auto s = db_->CompactFiles(
           rocksdb::CompactionOptions(), handle, input_file_names, level.level);
       if (!s.ok()) {
@@ -464,14 +466,17 @@ Status RocksDBDatabasePlugin::scan(const std::string& domain,
     return Status(1, "Could not get iterator for " + domain);
   }
 
+  // Keys are sorted, so seek to the prefix and stop at the first key that
+  // does not carry it instead of walking the whole column family.
   size_t count = 0;
-  for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    auto key = it->key().ToString();
-    if (key.find(prefix) == 0) {
-      results.push_back(std::move(key));
-      if (max > 0 && ++count >= max) {
-        break;
-      }
+  for (it->Seek(prefix); it->Valid(); it->Next()) {
+    auto key = it->key();
+    if (!key.starts_with(prefix)) {
+      break;
+    }
+    results.push_back(key.ToString());
+    if (max > 0 && ++count >= max) {
+      break;
     }
   }
   delete it;

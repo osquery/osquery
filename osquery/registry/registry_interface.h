@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -121,6 +123,17 @@ class RegistryInterface : private boost::noncopyable {
    */
   RegistryRoutes getRoutes() const;
 
+  /**
+   * @brief A counter bumped after every change to the set of items.
+   *
+   * It is bumped only once a change is complete and visible to names(), so a
+   * reader that saw the old value may hold a stale view but never mistakes
+   * a stale view for a current one.
+   */
+  std::uint64_t generation() const {
+    return generation_.load();
+  }
+
  protected:
   /**
    * @brief The only method a plugin user should call.
@@ -232,6 +245,9 @@ class RegistryInterface : private boost::noncopyable {
 
   /// Protect concurrent accesses to object's data
   mutable Mutex mutex_;
+
+  /// See generation().
+  std::atomic<std::uint64_t> generation_{0};
 
  private:
   friend class RegistryFactory;

@@ -155,8 +155,20 @@ Status MockedOsqueryDatabase::deleteDatabaseRange(
     const std::string& domain,
     const std::string& low,
     const std::string& high) const {
-  return Status::failure(
-      "MockedOsqueryDatabase: Unsupported deleteDatabaseRange call");
+  if (domain != kEvents) {
+    throw std::logic_error(
+        "MockedOsqueryDatabase: Invalid domain passed to "
+        "deleteDatabaseRange: " +
+        domain);
+  }
+
+  if (high < low) {
+    return Status::failure("MockedOsqueryDatabase: Invalid range");
+  }
+
+  // Inclusive on both ends, like the RocksDB plugin.
+  key_map.erase(key_map.lower_bound(low), key_map.upper_bound(high));
+  return Status::success();
 }
 
 Status MockedOsqueryDatabase::scanDatabaseKeys(const std::string& domain,
