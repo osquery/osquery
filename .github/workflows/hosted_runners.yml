@@ -339,7 +339,7 @@ jobs:
       contents: read
 
     env:
-      CCACHE_COMPRESS: "false"
+      CCACHE_NOCOMPRESS: "true"
       CCACHE_NOFILECLONE: "true"
       COMPILER_CACHE_NAME: compiler-cache-v1-ccache_${{ matrix.os }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
       COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_{0}_{1}', matrix.os, matrix.build_type)].run_id }}
@@ -686,7 +686,7 @@ jobs:
 
     env:
       MACOS_DEPLOYMENT_TARGET: 10.15
-      CCACHE_COMPRESS: "false"
+      CCACHE_COMPRESS: "true"
       CCACHE_NOFILECLONE: "true"
       COMPILER_CACHE_NAME: compiler-cache-v1-ccache_macOS_${{ matrix.architecture }}_${{ matrix.build_type }}${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
       COMPILER_CACHE_RUN_ID: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)].run_id }}
