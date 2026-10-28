@@ -421,6 +421,14 @@ jobs:
       shell: powershell
       run: choco install cppcheck --no-progress --yes
 
+    - name: Locate cppcheck
+      id: cppcheck
+      shell: powershell
+      run: |
+        $cppcheck = (Get-Command cppcheck.exe -ErrorAction Stop).Source
+        & $cppcheck --version
+        echo "VALUE=$cppcheck" >> $env:GITHUB_OUTPUT
+
     - name: Install Ninja
       working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
       shell: powershell
@@ -448,6 +456,7 @@ jobs:
           -DCMAKE_C_COMPILER=cl.exe ^
           -DCMAKE_CXX_COMPILER=cl.exe ^
           -DCMAKE_BUILD_TYPE=Release ^
+          -DCPPCHECK_EXECUTABLE:FILEPATH="${{ steps.cppcheck.outputs.VALUE }}" ^
           -DOSQUERY_BUILD_TESTS=ON ^
           -DPython3_ROOT_DIR="${{ steps.python_root_directory.outputs.VALUE }}" ^
           "${{ steps.build_paths.outputs.SOURCE }}"
