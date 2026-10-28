@@ -309,6 +309,17 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
   }
 }
 
+/// Generate a row for each receipt plist in a directory ending with a slash.
+void genPackageReceiptsFromDirectory(const std::string& directory,
+                                     QueryData& results) {
+  std::vector<std::string> receipts;
+  if (resolveFilePattern(directory + "%.plist", receipts)) {
+    for (const auto& receipt : receipts) {
+      genPackageReceipt(receipt, results);
+    }
+  }
+}
+
 /**
  * @brief Iterate over each well-known system absolute directory of receipts.
  *
@@ -321,25 +332,15 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
  */
 static inline void genPackagesFromPlists(QueryData& results) {
   for (const auto& path : kPkgReceiptPaths) {
-    std::vector<std::string> receipts;
-    if (resolveFilePattern(path + "%.plist", receipts)) {
-      for (const auto& receipt : receipts) {
-        genPackageReceipt(receipt, results);
-      }
-    }
+    genPackageReceiptsFromDirectory(path, results);
   }
 
   // User home directories may include user-specific receipt lists.
   auto users = getHomeDirectories();
   for (const auto& user : users) {
     for (const auto& path : kPkgReceiptUserPaths) {
-      std::vector<std::string> receipts;
       fs::path receipt_path = user / path;
-      if (resolveFilePattern(receipt_path.string() + "%.plist", receipts)) {
-        for (const auto& receipt : receipts) {
-          genPackageReceipt(receipt, results);
-        }
-      }
+      genPackageReceiptsFromDirectory(receipt_path.string(), results);
     }
   }
 }
