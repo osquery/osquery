@@ -1180,6 +1180,66 @@ TEST_F(VirtualTableTests, test_noindex_constraints) {
   ASSERT_EQ("0", results[1]["straints"]);
 }
 
+/*
+ * An OPTIMIZED column gets its whole IN list in one xFilter call. SQLite
+ * calls xFilter again for every outer row of a join, and for every value of
+ * an IN on another index column, and each call must still see the list.
+ * Like a required column, the table returns nothing without a name.
+ */
+struct OptimizedInTestTablePlugin : public TablePlugin {
+  TableColumns columns() const override {
+    return {
+        std::make_tuple(
+            "name", TEXT_TYPE, ColumnOptions::INDEX | ColumnOptions::OPTIMIZED),
+        std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
+    };
+  }
+
+  TableRows generate(QueryContext& context) override {
+    scans++;
+
+    TableRows tr;
+    auto ids = context.constraints["id"].getAll(EQUALS);
+    auto id = ids.empty() ? std::string("0") : *ids.begin();
+    for (const auto& name : context.constraints["name"].getAll(EQUALS)) {
+      tr.push_back(make_table_row({{"name", name}, {"id", id}}));
+    }
+    return tr;
+  }
+
+  size_t scans{0};
+};
+
+TEST_F(VirtualTableTests, test_optimized_in_constraint_reused) {
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = RegistryFactory::get().registry("table");
+
+  auto tablePlugin = std::make_shared<OptimizedInTestTablePlugin>();
+  table_registry->add("optin", tablePlugin);
+  attachTableInternal("optin", dbc, false);
+
+  QueryData results;
+  queryInternal(
+      "SELECT t.n, o.name FROM (SELECT 1 AS n UNION ALL SELECT 2) t "
+      "CROSS JOIN optin o WHERE o.name IN ('alpha', 'beta')",
+      results,
+      dbc);
+  EXPECT_EQ(2U, tablePlugin->scans);
+  EXPECT_EQ(4U, results.size());
+
+  results.clear();
+  tablePlugin->scans = 0;
+  queryInternal(
+      "SELECT id, name FROM optin WHERE id IN (1, 2) AND name IN ('alpha', "
+      "'beta')",
+      results,
+      dbc);
+  dbc->clearAffectedTables();
+
+  EXPECT_EQ(2U, tablePlugin->scans);
+  EXPECT_EQ(4U, results.size());
+}
+
 class exceptionalTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
