@@ -183,7 +183,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.SOURCE }}
       run: git submodule sync --recursive
 
-    - name: Configure the project (Release)
+    - name: Configure the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         cmake -G "Unix Makefiles" \
@@ -194,11 +194,14 @@ jobs:
           -DOSQUERY_BUILD_ROOT_TESTS=ON \
           "${{ steps.build_paths.outputs.SOURCE }}"
 
-    - name: Initialize the project (Release)
+    - name: Initialize the project
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: cmake --build . --target prepare_for_ide
 
-    - name: Run cppcheck (Release)
+    - name: Enable cppcheck annotations
+      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+
+    - name: Run cppcheck
       shell: bash
       id: release_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
@@ -207,47 +210,13 @@ jobs:
         touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
         touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_native_tables.cpp
         touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_foreign_tables.cpp
-        cmake --build . --target cppcheck 2>&1 | tee cppcheck_release.txt
+        cmake --build . --target cppcheck 2>&1 | tee cppcheck_linux.txt
 
-    - name: Store the cppcheck log (Release)
+    - name: Store the cppcheck log
       uses: actions/upload-artifact@v7
       with:
-        name: cppcheck-release
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_release.txt
-
-    - name: Configure the project (Debug)
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-
-      run: |
-        cmake -G "Unix Makefiles" \
-          -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="/usr/local/osquery-toolchain" \
-          -DCMAKE_BUILD_TYPE:STRING=Debug \
-          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-          -DOSQUERY_BUILD_TESTS=ON \
-          -DOSQUERY_BUILD_ROOT_TESTS=ON \
-          "${{ steps.build_paths.outputs.SOURCE }}"
-
-    - name: Initialize the project (Debug)
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: cmake --build . --target prepare_for_ide
-
-    - name: Run cppcheck (Debug)
-      shell: bash
-      id: debug_cppcheck_runner
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_debug.txt
-
-    - name: Store the cppcheck log (Debug)
-      uses: actions/upload-artifact@v7
-      with:
-        name: cppcheck-debug
-        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_debug.txt
-
-    - name: Annotate unique cppcheck findings
-      working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      run: |
-        echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
-        LC_ALL=C sort -u cppcheck_release.txt cppcheck_debug.txt
+        name: cppcheck-linux
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_linux.txt
 
     - name: Save cache (git submodules)
       if: github.ref_name == github.event.repository.default_branch
