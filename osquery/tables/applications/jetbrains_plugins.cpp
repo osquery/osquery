@@ -22,82 +22,135 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include <cstdint>
+
+#include "jetbrains_plugins_internal.h"
+
 namespace osquery {
 namespace tables {
+namespace jetbrains_plugins_internal {
+
+ExtractionResult extractSpecificFileFromArchive(
+    struct archive* archive_reader,
+    const std::string& archive_identifier,
+    const std::string& target_file_path,
+    std::size_t maximum_decompressed_size) {
+  ExtractionResult extraction_result;
+  struct archive_entry* entry{nullptr};
+  auto result = ARCHIVE_OK;
+  while ((result = archive_read_next_header(archive_reader, &entry)) ==
+         ARCHIVE_OK) {
+    const auto* current_file = archive_entry_pathname(entry);
+    if (current_file == nullptr) {
+      extraction_result.status = ExtractionStatus::ArchiveError;
+      return extraction_result;
+    }
+
+    const boost::filesystem::path current_path(current_file);
+    const boost::filesystem::path target_path(target_file_path);
+    if (current_path != target_path) {
+      archive_read_data_skip(archive_reader);
+      continue;
+    }
+
+    const auto declared_size = archive_entry_size(entry);
+    if (archive_entry_size_is_set(entry) != 0 &&
+        (declared_size < 0 || static_cast<std::uint64_t>(declared_size) >
+                                  maximum_decompressed_size)) {
+      VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
+              << archive_identifier;
+      extraction_result.status = ExtractionStatus::DeclaredSizeLimitExceeded;
+      return extraction_result;
+    }
+
+    const void* buffer{nullptr};
+    std::size_t size{0U};
+    std::int64_t offset{0};
+    std::vector<char> content;
+
+    while (true) {
+      result = archive_read_data_block(archive_reader, &buffer, &size, &offset);
+      if (result == ARCHIVE_EOF) {
+        break;
+      }
+
+      if (result != ARCHIVE_OK) {
+        VLOG(1) << "Error reading JetBrains plugin metadata from: "
+                << archive_identifier << ": "
+                << archive_error_string(archive_reader);
+        extraction_result.status = ExtractionStatus::ArchiveError;
+        return extraction_result;
+      }
+
+      if (content.size() > maximum_decompressed_size ||
+          size > maximum_decompressed_size - content.size()) {
+        VLOG(1) << "Skipping oversized JetBrains plugin metadata in: "
+                << archive_identifier;
+        extraction_result.status = ExtractionStatus::ExpandedSizeLimitExceeded;
+        return extraction_result;
+      }
+
+      content.insert(content.end(),
+                     static_cast<const char*>(buffer),
+                     static_cast<const char*>(buffer) + size);
+    }
+
+    extraction_result.status = ExtractionStatus::Success;
+    extraction_result.path = current_file;
+    extraction_result.content = std::move(content);
+    return extraction_result;
+  }
+
+  if (result != ARCHIVE_EOF) {
+    extraction_result.status = ExtractionStatus::ArchiveError;
+  }
+
+  return extraction_result;
+}
+
+ExtractionResult extractSpecificFileFromArchive(
+    const std::string& archive_file_path,
+    const std::string& target_file_path,
+    std::size_t maximum_decompressed_size) {
+  ExtractionResult extraction_result;
+  auto* archive_reader = archive_read_new();
+  if (archive_reader == nullptr) {
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  auto archive_guard = osquery::scope_guard::create([&archive_reader]() {
+    if (archive_read_free(archive_reader) != ARCHIVE_OK) {
+      VLOG(1) << "Failed to close zip file";
+    }
+  });
+
+  if (archive_read_support_format_zip(archive_reader) != ARCHIVE_OK) {
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  const auto result = archive_read_open_filename(
+      archive_reader, archive_file_path.c_str(), 10240); // 10KB buffer
+  if (result != ARCHIVE_OK) {
+    VLOG(1) << "Failed to open zip file: "
+            << archive_error_string(archive_reader);
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+
+  return extractSpecificFileFromArchive(archive_reader,
+                                        archive_file_path,
+                                        target_file_path,
+                                        maximum_decompressed_size);
+}
+
+} // namespace jetbrains_plugins_internal
+
 // Function to convert JetBrainsProductType enum to string
 const std::string getProductName(const JetBrainsProductType type) {
   auto product = kProductTypeToString.find(type);
   return product->second;
-}
-
-struct FileData {
-  std::string path;
-  std::vector<char> content;
-};
-
-FileData extractSpecificFileFromArchive(const std::string& archive_file_path,
-                                        const std::string& target_file_path) {
-  struct archive* archive;
-  struct archive_entry* entry;
-  int result;
-  FileData file_data;
-
-  archive = archive_read_new();
-  archive_read_support_format_all(archive);
-  archive_read_support_filter_all(archive);
-
-  auto archive_guard = osquery::scope_guard::create([&archive]() {
-    if (archive != nullptr) {
-      int free_result = archive_read_free(archive);
-      if (free_result != ARCHIVE_OK) {
-        VLOG(1) << "Failed to close zip file: " << archive_error_string(archive)
-                << std::endl;
-      }
-    }
-  });
-
-  result = archive_read_open_filename(
-      archive, archive_file_path.c_str(), 10240); // 10KB buffer
-  if (result != ARCHIVE_OK) {
-    VLOG(1) << "Failed to open zip file: " << archive_error_string(archive)
-            << std::endl;
-
-    return file_data;
-  }
-
-  while (archive_read_next_header(archive, &entry) == ARCHIVE_OK) {
-    // Get the current file from the archive entry
-    const char* currentFile = archive_entry_pathname(entry);
-    boost::filesystem::path currentPath(currentFile);
-    boost::filesystem::path targetPath(target_file_path);
-
-    if (currentPath == targetPath) {
-      // Found the target file in the archive
-      file_data.path = currentFile;
-
-      const void* buffer;
-      size_t size;
-      int64_t offset;
-
-      while (archive_read_data_block(archive, &buffer, &size, &offset) ==
-             ARCHIVE_OK) {
-        file_data.content.insert(file_data.content.end(),
-                                 (const char*)buffer,
-                                 (const char*)buffer + size);
-      }
-
-      if (archive_errno(archive) != 0) {
-        VLOG(1) << "Error reading data block: " << archive_error_string(archive)
-                << std::endl;
-      }
-
-      break;
-    }
-    // Move to the next entry
-    archive_read_data_skip(archive);
-  }
-
-  return file_data;
 }
 
 struct PluginAttributes {
@@ -161,7 +214,8 @@ PluginAttributes parsePluginXml(const std::string& xml_content) {
 }
 
 // Extract the plugin.xml file from the plugin archive
-FileData getPluginXMLFile(const std::string& jar_file_path) {
+jetbrains_plugins_internal::ExtractionResult getPluginXMLFile(
+    const std::string& jar_file_path) {
   // The plugin.xml configuration file contains all the information about the
   // plugin, which is displayed in the plugins' settings dialog
   // https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html
@@ -171,8 +225,10 @@ FileData getPluginXMLFile(const std::string& jar_file_path) {
   } else {
     target_file_path = "META-INF/plugin.xml";
   }
-  FileData file_data =
-      extractSpecificFileFromArchive(jar_file_path, target_file_path);
+  auto file_data = jetbrains_plugins_internal::extractSpecificFileFromArchive(
+      jar_file_path,
+      target_file_path,
+      jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize);
 
   return file_data;
 }

@@ -7,8 +7,16 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
+
 namespace osquery {
 namespace tables {
+
 enum class JetBrainsProductType {
   CLion,
   DataGrip,
