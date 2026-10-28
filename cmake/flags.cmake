@@ -27,6 +27,12 @@ function(setupBuildFlags)
 
   target_compile_features(cxx_settings INTERFACE cxx_std_17)
 
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(cxx_settings INTERFACE
+      "SHELL:-Xclang -fno-pch-timestamp"
+    )
+  endif()
+
   # There's no specific C11 conformance on MSVC
   # and recent versions of CMake add the /std:c11 flag to the command line
   # which makes librdkafka compilation fail due to _Thread_local not being defined,
