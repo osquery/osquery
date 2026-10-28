@@ -281,6 +281,18 @@ jobs:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
 
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: bash
+      run: echo "VALUE=$(git -C ${{ steps.build_paths.outputs.SOURCE }} submodule status --recursive | shasum -a 256 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
+
     - name: Install build dependencies
       run: |
         brew install \
@@ -329,6 +341,13 @@ jobs:
         name: cppcheck-macos
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_macos.txt
 
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}/.git/modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+
 
   check_source_code_windows:
     needs: [check_code_style, check_libraries_manifest]
@@ -366,6 +385,23 @@ jobs:
       with:
         fetch-depth: 0
         path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Compute the submodule hash
+      id: submodule_hash
+      shell: powershell
+      run: |
+        $inputStr = (git -C "${{ steps.build_paths.outputs.SOURCE }}" submodule status --recursive) -join "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($inputStr)
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $hash = [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-", "").ToLower()
+        echo "VALUE=$hash" >> $env:GITHUB_OUTPUT
+
+    - name: Restore cache (git submodules)
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
+        restore-keys: gitmodules_${{ runner.os }}
 
     - name: Install Python
       uses: actions/setup-python@v7
@@ -444,6 +480,13 @@ jobs:
       with:
         name: cppcheck-windows
         path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_windows.txt
+
+    - name: Save cache (git submodules)
+      if: github.ref_name == github.event.repository.default_branch
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.build_paths.outputs.SOURCE }}\.git\modules
+        key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
   compiler_cache_lookup:
