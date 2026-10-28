@@ -93,6 +93,9 @@ function(cppcheckMain)
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
   )
+
+  # Analyze the generated table callers without compiling the table libraries.
+  add_dependencies(cppcheck codegen_native_tables_sources codegen_foreign_tables_sources)
 endfunction()
 
 cppcheckMain()

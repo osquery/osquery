@@ -206,10 +206,8 @@ jobs:
       id: release_cppcheck_runner
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
-        # Create generated source files (if not exist) to avoid cppcheck errors
+        # Create the empty executable source to avoid cppcheck errors
         touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
-        touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_native_tables.cpp
-        touch ${{ steps.build_paths.outputs.BINARY }}/specs/amalgamated_foreign_tables.cpp
         cmake --build . --target cppcheck 2>&1 | tee cppcheck_linux.txt
 
     - name: Store the cppcheck log
@@ -299,8 +297,6 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       run: |
         touch osquery/empty_osqueryd_target_source_file.cpp
-        touch specs/amalgamated_native_tables.cpp
-        touch specs/amalgamated_foreign_tables.cpp
 
     - name: Enable cppcheck annotations
       run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
@@ -447,8 +443,6 @@ jobs:
       shell: powershell
       run: |
         New-Item -ItemType File -Force -Path osquery/empty_osqueryd_target_source_file.cpp
-        New-Item -ItemType File -Force -Path specs/amalgamated_native_tables.cpp
-        New-Item -ItemType File -Force -Path specs/amalgamated_foreign_tables.cpp
 
     - name: Enable cppcheck annotations
       shell: powershell
