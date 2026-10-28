@@ -290,6 +290,15 @@ On macOS, it ignores `API_AVAILABLE` annotations and models runtime
 availability checks as unknown conditions so both branches remain analyzable.
 These configurations affect only cppcheck, not the compiled code.
 
+On Linux, the target also defines the architecture macro (`__x86_64__` or
+`__aarch64__`) matching the configured target processor.
+
+The target writes `cppcheck-checkers-report.txt` in the build directory and
+prints it to the build log to
+identify critical errors that prevent complete analysis, including errors
+hidden by diagnostic suppressions. CI uploads this report alongside each
+platform's cppcheck log.
+
 ## Running clang-tidy (Linux only)
 
 The `clang-tidy` executable is shipped along with the osquery toolchain, and it is the recommended way to run it. It is however possible to use the system one, provided it's accessible from the PATH environment variable.

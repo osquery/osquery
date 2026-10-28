@@ -61,6 +61,15 @@ function(cppcheckMain)
     list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/darwin.cfg")
   endif()
 
+  set(platform_options)
+  if(DEFINED PLATFORM_LINUX)
+    if(TARGET_PROCESSOR STREQUAL "x86_64")
+      list(APPEND platform_options "-D__x86_64__=1")
+    elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+      list(APPEND platform_options "-D__aarch64__=1")
+    endif()
+  endif()
+
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
@@ -69,14 +78,17 @@ function(cppcheckMain)
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg"
             "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/gnu_attributes.cfg"
             ${platform_libraries}
+            ${platform_options}
             ${multithread_options}
             --enable=all "--platform=${cppcheck_platform}"
             "--cppcheck-build-dir=${cppcheck_build_dir}"
+            "--checkers-report=${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
             --std=c++17
             "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
             "--template={file}:{line}:{column}: {severity}: {message} [{id}]"
             ${ignored_folders}
             --quiet
+    COMMAND "${CMAKE_COMMAND}" -E cat "${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
