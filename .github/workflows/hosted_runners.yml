@@ -262,6 +262,196 @@ jobs:
         key: gitmodules_${{ runner.os }}_${{ steps.submodule_hash.outputs.VALUE }}
 
 
+  check_source_code_macos:
+    needs: [check_code_style, check_libraries_manifest]
+    runs-on: macos-26
+
+    steps:
+    - name: Setup the build paths
+      id: build_paths
+      shell: bash
+      run: |
+        rel_build_path="workspace/build"
+        rel_source_path="workspace/src"
+
+        mkdir -p "${rel_build_path}" "${rel_source_path}"
+
+        echo "SOURCE=$(pwd)/${rel_source_path}" >> $GITHUB_OUTPUT
+        echo "BINARY=$(pwd)/${rel_build_path}" >> $GITHUB_OUTPUT
+        echo "REL_SOURCE=${rel_source_path}" >> $GITHUB_OUTPUT
+        echo "REL_BINARY=${rel_build_path}" >> $GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Install build dependencies
+      run: |
+        brew install \
+          bison \
+          coreutils \
+          cppcheck \
+          flex \
+          gnu-sed
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: git submodule sync --recursive
+
+    - name: Configure the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+          -DCMAKE_BUILD_TYPE:STRING=Release \
+          -DOSQUERY_BUILD_TESTS=ON \
+          -DOSQUERY_BUILD_ROOT_TESTS=ON \
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Initialize the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: cmake --build . --target prepare_for_ide
+
+    - name: Create generated source files
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        touch osquery/empty_osqueryd_target_source_file.cpp
+        touch specs/amalgamated_native_tables.cpp
+        touch specs/amalgamated_foreign_tables.cpp
+
+    - name: Enable cppcheck annotations
+      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+
+    - name: Run cppcheck
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_macos.txt
+
+    - name: Store the cppcheck log
+      uses: actions/upload-artifact@v7
+      with:
+        name: cppcheck-macos
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_macos.txt
+
+
+  check_source_code_windows:
+    needs: [check_code_style, check_libraries_manifest]
+    runs-on: windows-2022
+
+    steps:
+    - name: Configure git
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.symlinks true
+
+    - name: Setup the build paths
+      id: build_paths
+      shell: powershell
+      run: |
+        $rel_src_path = "w\src"
+        $rel_build_path = "w\build"
+        $rel_downloads_path = "w\downloads"
+        $rel_install_path = "w\install"
+
+        New-Item -ItemType Directory -Force -Path $rel_build_path
+        New-Item -ItemType Directory -Force -Path $rel_downloads_path
+        New-Item -ItemType Directory -Force -Path $rel_install_path
+
+        $base_dir = (Get-Item .).FullName
+        echo "SOURCE=$base_dir\$rel_src_path" >> $env:GITHUB_OUTPUT
+        echo "REL_SOURCE=$($rel_src_path -replace '\\', '/')" >> $env:GITHUB_OUTPUT
+        echo "BINARY=$base_dir\$rel_build_path" >> $env:GITHUB_OUTPUT
+        echo "REL_BINARY=$($rel_build_path -replace '\\', '/')" >> $env:GITHUB_OUTPUT
+        echo "DOWNLOADS=$base_dir\$rel_downloads_path" >> $env:GITHUB_OUTPUT
+        echo "INSTALL=$base_dir\$rel_install_path" >> $env:GITHUB_OUTPUT
+
+    - name: Clone the osquery repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+        path: ${{ steps.build_paths.outputs.REL_SOURCE }}
+
+    - name: Install Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.13.x"
+        architecture: x64
+
+    - name: Locate the Python root directory
+      id: python_root_directory
+      shell: powershell
+      run: |
+        $python_executable_path = (Get-Command python.exe).Definition
+        $python_root_directory = (Get-Item $python_executable_path).Directory.FullName
+        echo "VALUE=$python_root_directory" >> $env:GITHUB_OUTPUT
+
+    - name: Install cppcheck
+      shell: powershell
+      run: choco install cppcheck --no-progress --yes
+
+    - name: Install Ninja
+      working-directory: ${{ steps.build_paths.outputs.DOWNLOADS }}
+      shell: powershell
+      run: |
+        $version = "1.10.0"
+        $archive_name = "ninja-win.zip"
+        $url = "https://github.com/ninja-build/ninja/releases/download/v$version/$archive_name"
+
+        (New-Object System.Net.WebClient).DownloadFile($url, $archive_name)
+        7z x -o${{ steps.build_paths.outputs.INSTALL }}\ninja -y $archive_name
+        echo "${{ steps.build_paths.outputs.INSTALL }}\ninja" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Update the git submodules
+      working-directory: ${{ steps.build_paths.outputs.SOURCE }}
+      run: git submodule sync --recursive
+
+    - name: Configure the project
+      shell: cmd
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        @echo on
+
+        cmake -G Ninja ^
+          -DCMAKE_C_COMPILER=cl.exe ^
+          -DCMAKE_CXX_COMPILER=cl.exe ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DOSQUERY_BUILD_TESTS=ON ^
+          -DPython3_ROOT_DIR="${{ steps.python_root_directory.outputs.VALUE }}" ^
+          "${{ steps.build_paths.outputs.SOURCE }}"
+
+    - name: Initialize the project
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      run: cmake --build . --target prepare_for_ide
+
+    - name: Create generated source files
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: powershell
+      run: |
+        New-Item -ItemType File -Force -Path osquery/empty_osqueryd_target_source_file.cpp
+        New-Item -ItemType File -Force -Path specs/amalgamated_native_tables.cpp
+        New-Item -ItemType File -Force -Path specs/amalgamated_foreign_tables.cpp
+
+    - name: Enable cppcheck annotations
+      shell: powershell
+      run: |
+        $matcher = Join-Path ${{ steps.build_paths.outputs.SOURCE }} ".github/cppcheck-matcher.json"
+        Write-Output "::add-matcher::$matcher"
+
+    - name: Run cppcheck
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: powershell
+      run: cmake --build . --target cppcheck 2>&1 | Tee-Object -FilePath cppcheck_windows.txt
+
+    - name: Store the cppcheck log
+      uses: actions/upload-artifact@v7
+      with:
+        name: cppcheck-windows
+        path: ${{ steps.build_paths.outputs.REL_BINARY }}/cppcheck_windows.txt
+
+
   compiler_cache_lookup:
     runs-on: ubuntu-22.04
     permissions:
