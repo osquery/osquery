@@ -930,8 +930,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
-    // A copy: SQLite may call xFilter many times for one plan (an outer join
-    // row, another IN value), and the IN marker below must survive each call.
+    // A copy: the IN rewrite below must not stick for the next xFilter call.
     auto constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
