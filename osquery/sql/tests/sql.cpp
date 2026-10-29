@@ -310,6 +310,20 @@ TEST_F(SQLTests, test_sql_sha256) {
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
 
+TEST_F(SQLTests, test_sql_hash_embedded_nul) {
+  // x'610062' is "a\0b", every byte must be hashed, not only "a".
+  QueryData d;
+  query(
+      "select md5(x'610062') as md5, sha1(x'610062') as sha1, "
+      "sha256(x'610062') as sha256;",
+      d);
+  ASSERT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["md5"], "70350f6027bce3713f6b76473084309b");
+  EXPECT_EQ(d[0]["sha1"], "4a3dec2d1f8245280855c42db0ee4239f917fdb8");
+  EXPECT_EQ(d[0]["sha256"],
+            "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138");
+}
+
 /*
  * regex_match
  */
