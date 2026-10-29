@@ -217,6 +217,15 @@ alongside other tests under the same parallel job limit. Configure with
 `-DOSQUERY_INTEGRATION_TEST_SHARDS=N` to change the number of shards, or use `1`
 to disable sharding. Linux root-only integration tests remain a separate,
 unsharded test labeled `root-required`.
+On Windows, test processes acquire the named mutex
+`Global\OsqueryETWTestSessions` on the main test thread before initializing ETW.
+The controller holds it until process shutdown, releasing it on the main thread
+after its trace sessions are destroyed. Tests must stop and join their event
+services before exiting. This protects future ETW tests and separate CTest
+invocations without changing production behavior. Acquisition fails explicitly
+after five minutes; abandoned ownership is accepted so existing trace-session
+initialization can reclaim traces left by a crashed test.
+Integration shards without ETW initialization remain fully parallel.
 
 Integration shards and the slower Python suites have explicit CTest `COST`
 estimates so parallel runs schedule them ahead of short tests, including on fresh

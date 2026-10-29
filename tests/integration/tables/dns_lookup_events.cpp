@@ -12,6 +12,8 @@
 
 #include <osquery/config/config.h>
 #include <osquery/dispatcher/dispatcher.h>
+#include <osquery/events/eventfactory.h>
+#include <osquery/events/eventpublisherplugin.h>
 #include <osquery/events/events.h>
 #include <osquery/registry/registry.h>
 #include <osquery/tests/integration/tables/helper.h>
@@ -33,6 +35,11 @@ class dnsLookupEvents : public testing::Test {
 
     // Start eventing framework
     attachEvents();
+
+    auto publisher = EventFactory::getEventPublisher("etw_dns_publisher");
+    ASSERT_NE(publisher, nullptr);
+    ASSERT_FALSE(publisher->isEnding())
+        << "ETW DNS publisher initialization failed; see preceding logs";
   }
 
   void TearDown() override {
