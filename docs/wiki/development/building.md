@@ -193,7 +193,7 @@ CI and the packaged macOS test launcher also default to the processor count,
 unless `CTEST_PARALLEL_LEVEL` is already set. An explicit CTest `-j` or `--parallel`
 option takes precedence over that environment variable.
 
-CI uses `--output-on-failure` rather than verbose output, so each failed test's
+The CMake test targets and CI use `--output-on-failure`, so each failed test's
 output is printed as a non-interleaved block when it finishes. Passing test output
 is suppressed.
 

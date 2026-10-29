@@ -5,6 +5,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
+list(APPEND CMAKE_CTEST_ARGUMENTS --output-on-failure)
+
 if(NOT "${CMAKE_CTEST_ARGUMENTS}" MATCHES "(^|;)(-j[0-9]*|--parallel(=[0-9]+)?)(;|$)")
   include(ProcessorCount)
   ProcessorCount(test_job_count)
