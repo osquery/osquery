@@ -279,6 +279,24 @@ jobs:
           const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
           const pullRequest = context.eventName === 'pull_request' ? context.payload.pull_request : null;
 
+          async function findRunCaches(runId, suffix = '') {
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo,
+              run_id: runId,
+              per_page: 100,
+            });
+            for (const artifact of artifacts) {
+              if (artifact.expired || !artifact.name.startsWith('compiler-cache-v1-') ||
+                  !artifact.name.endsWith(suffix)) {
+                continue;
+              }
+              const name = suffix ? artifact.name.slice(0, -suffix.length) : artifact.name;
+              if (!Object.hasOwn(caches, name)) {
+                caches[name] = { run_id: runId, name: artifact.name };
+              }
+            }
+          }
+
           async function findCaches(sourceBranch, sourceRepository, events, suffix = '') {
             for (const status of ['in_progress', 'completed']) {
               const pages = github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
@@ -300,26 +318,16 @@ jobs:
                     continue;
                   }
 
-                  const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
-                    ...context.repo,
-                    run_id: run.id,
-                    per_page: 100,
-                  });
-                  for (const artifact of artifacts) {
-                    if (artifact.expired || !artifact.name.startsWith('compiler-cache-v1-') ||
-                        !artifact.name.endsWith(suffix)) {
-                      continue;
-                    }
-                    const name = suffix ? artifact.name.slice(0, -suffix.length) : artifact.name;
-                    if (!Object.hasOwn(caches, name)) {
-                      caches[name] = { run_id: run.id, name: artifact.name };
-                    }
-                  }
+                  await findRunCaches(run.id, suffix);
                 }
               }
             }
           }
 
+          // Prefer the previous attempt's artifacts before searching other runs.
+          if (Number(process.env.GITHUB_RUN_ATTEMPT) > 1) {
+            await findRunCaches(context.runId, pullRequest ? `-pr-${pullRequest.number}` : '');
+          }
           if (pullRequest) {
             await findCaches(pullRequest.head.ref, pullRequest.head.repo.full_name,
                              ['pull_request'], `-pr-${pullRequest.number}`);
@@ -531,6 +539,7 @@ jobs:
       with:
         name: ${{ env.COMPILER_CACHE_NAME }}
         path: ${{ runner.temp }}/cache.tar
+        overwrite: true
         retention-days: 7
         compression-level: 0
         if-no-files-found: error
@@ -860,6 +869,7 @@ jobs:
       with:
         name: ${{ env.COMPILER_CACHE_NAME }}
         path: ${{ runner.temp }}/cache.tar
+        overwrite: true
         retention-days: 7
         compression-level: 0
         if-no-files-found: error
@@ -1437,6 +1447,7 @@ jobs:
       with:
         name: ${{ env.COMPILER_CACHE_NAME }}
         path: ${{ runner.temp }}/cache.tar
+        overwrite: true
         retention-days: 7
         compression-level: 0
         if-no-files-found: error
