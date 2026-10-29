@@ -181,7 +181,7 @@ The use of an Administrator shell is recommended because the build process creat
 
 To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
 
-The CMake `test`/`RUN_TESTS` targets run tests in parallel using twice the processor count
+The CMake `test`/`RUN_TESTS` targets run tests in parallel using the processor count
 detected at configuration time on all platforms. To override this default, pass
 CTest arguments when configuring, for example
 `cmake -S . -B build '-DCMAKE_CTEST_ARGUMENTS=-j;2'` (use `-j;1` for serial tests).
