@@ -82,8 +82,11 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
         # This will take a few moments to make sure the client process
-        # dies when the watcher goes away
-        self.assertTrue(daemon.isDead(children[0]))
+        # dies when the watcher goes away: the worker only notices on its
+        # watchdog poll interval and then shuts down gracefully.
+        self.assertTrue(daemon.isDead(children[0]),
+                        "worker %d did not exit after the watcher was killed"
+                        % children[0])
 
     def test_daemon_lost_worker(self):
         # Test that killed workers are respawned by the watcher
