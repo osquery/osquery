@@ -189,7 +189,8 @@ An explicit `-j` or `--parallel` in `CMAKE_CTEST_ARGUMENTS` is preserved.
 When using the automatic default, CTest prints the configured default concurrency
 when tests run, rather than during CMake configuration.
 
-CI and the packaged macOS test launcher also default to the processor count,
+CI defaults to the processor count (twice the processor count on macOS).
+The packaged macOS test launcher defaults to the processor count,
 unless `CTEST_PARALLEL_LEVEL` is already set. An explicit CTest `-j` or `--parallel`
 option takes precedence over that environment variable.
 

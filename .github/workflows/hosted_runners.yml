@@ -1017,7 +1017,7 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
       run: |
-        export CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(sysctl -n hw.logicalcpu)}"
+        export CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(($(sysctl -n hw.logicalcpu) * 2))}"
         if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
           ctest --build-nocmake --output-on-failure \
             -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
