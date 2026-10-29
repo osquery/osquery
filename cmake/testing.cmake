@@ -10,8 +10,11 @@ if(NOT "${CMAKE_CTEST_ARGUMENTS}" MATCHES "(^|;)(-j[0-9]*|--parallel(=[0-9]+)?)(
   ProcessorCount(test_job_count)
 
   if(test_job_count EQUAL 0)
-    message(WARNING "Could not determine the processor count; running tests with one job")
-    set(test_job_count 1)
+    message(WARNING "Could not determine the processor count; setting test concurrency default to 4 jobs")
+    set(test_job_count 4)
+  else()
+    # Multiply by 2 since many tests have waits and don't use a whole CPU efficiently.
+    math(EXPR test_job_count "${test_job_count} * 2")
   endif()
 
   list(APPEND CMAKE_CTEST_ARGUMENTS --parallel "${test_job_count}")
