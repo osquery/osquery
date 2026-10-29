@@ -17,10 +17,7 @@
 #include <osquery/utils/system/uptime.h>
 
 namespace osquery {
-FLAG(bool,
-     audit_allow_apparmor_events,
-     false,
-     "Allow the publisher to process audit events");
+DECLARE_bool(audit_allow_apparmor_events);
 
 REGISTER(AppArmorEventSubscriber, "event_subscriber", "apparmor_events");
 

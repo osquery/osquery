@@ -308,18 +308,6 @@ Status ReconstructAuditArguments(std::string& output,
 
 DECLARE_bool(audit_allow_process_events);
 
-FLAG(bool,
-     audit_allow_fork_process_events,
-     false,
-     "Allow the audit publisher to install process event monitoring rules to "
-     "capture fork/vfork/clone system calls");
-
-FLAG(bool,
-     audit_allow_kill_process_events,
-     false,
-     "Allow the audit publisher to install process event monitoring rules to "
-     "capture kill/tkill/tgkill system calls");
-
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
 Status AuditProcessEventSubscriber::init() {

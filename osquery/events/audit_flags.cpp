@@ -47,4 +47,36 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install filesystem-related rules");
 
+#ifdef OSQUERY_LINUX
+// The Linux audit publishers use these, so they are defined with the events
+// library rather than with the event tables that depend on it.
+
+FLAG(bool,
+     audit_allow_fork_process_events,
+     false,
+     "Allow the audit publisher to install process event monitoring rules to "
+     "capture fork/vfork/clone system calls");
+
+FLAG(bool,
+     audit_allow_kill_process_events,
+     false,
+     "Allow the audit publisher to install process event monitoring rules to "
+     "capture kill/tkill/tgkill system calls");
+
+FLAG(bool,
+     audit_allow_apparmor_events,
+     false,
+     "Allow the publisher to process audit events");
+
+FLAG(bool,
+     audit_allow_seccomp_events,
+     false,
+     "Allow the audit publisher to process seccomp events");
+
+FLAG(bool,
+     audit_allow_selinux_events,
+     false,
+     "Allow the audit publisher to process audit events");
+#endif
+
 } // namespace osquery
