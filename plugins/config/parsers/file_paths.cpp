@@ -17,7 +17,6 @@
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
-#include <osquery/utils/mutex.h>
 
 namespace osquery {
 
@@ -75,15 +74,6 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
  private:
   /// The access map binds source to category.
   std::map<std::string, std::vector<std::string>> access_map_;
-
-  /// The generation of each source's files, which changes whenever update()
-  /// replaces them. Paths from queries of a replaced generation are not added.
-  std::map<std::string, uint64_t> generations_;
-
-  /// Protects generations_. It is held while adding a query's paths, so that
-  /// update() cannot remove a source's files between the generation check and
-  /// adding the paths.
-  Mutex generations_mutex_;
 };
 
 Status FilePathsConfigParserPlugin::setUp() {
@@ -210,18 +200,13 @@ void FilePathsConfigParserPlugin::afterUpdate() {
       }
     }
 
-    ReadLock lock(generations_mutex_);
-    auto generation = generations_.find(pending.source);
-    if (generation == generations_.end() ||
-        generation->second != pending.generation) {
-      // A newer update replaced this source's files. It runs its own queries
-      // once its changes, such as new ATC tables, have been applied.
-      continue;
-    }
-
-    for (const auto& path : paths) {
-      Config::get().addFile(pending.source, pending.category, path);
-    }
+    // Publish only if the source's files were not removed since this query
+    // was deferred: a newer update may have replaced them (it runs its own
+    // queries once its changes, such as new ATC tables, are applied), or the
+    // pack may have been removed entirely. The check is atomic with the
+    // removal and with adding the paths.
+    Config::get().addFiles(
+        pending.source, pending.generation, pending.category, paths);
   }
 }
 
@@ -260,15 +245,9 @@ void FilePathsConfigParserPlugin::updateExcludePaths(
 
 Status FilePathsConfigParserPlugin::update(const std::string& source,
                                            const ParserConfig& config) {
-  // Start a new generation before removing the source's files, so queries from
-  // an earlier update can no longer add paths once they are removed.
-  uint64_t generation{0};
-  {
-    WriteLock lock(generations_mutex_);
-    generation = ++generations_[source];
-  }
-
-  Config::get().removeFiles(source);
+  // Start a new generation with the source's files removed, so queries from
+  // an earlier update can no longer add paths once they are gone.
+  auto generation = Config::get().removeFiles(source);
   access_map_.erase(source);
 
   auto file_paths = config.find("file_paths");

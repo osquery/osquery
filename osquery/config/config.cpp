@@ -445,11 +445,25 @@ void Config::addFile(const std::string& source,
   files_[source][category].push_back(path);
 }
 
-void Config::removeFiles(const std::string& source) {
+uint64_t Config::removeFiles(const std::string& source) {
   RecursiveLock wlock(config_files_mutex_);
   if (files_.count(source)) {
     FileCategories().swap(files_[source]);
   }
+  return ++files_generations_[source];
+}
+
+bool Config::addFiles(const std::string& source,
+                      uint64_t generation,
+                      const std::string& category,
+                      const std::vector<std::string>& paths) {
+  RecursiveLock wlock(config_files_mutex_);
+  if (files_generations_[source] != generation) {
+    return false;
+  }
+  auto& files = files_[source][category];
+  files.insert(files.end(), paths.begin(), paths.end());
+  return true;
 }
 
 /**
@@ -1138,6 +1152,7 @@ void Config::reset() {
 
   schedule_ = std::make_unique<Schedule>();
   std::map<std::string, FileCategories>().swap(files_);
+  std::map<std::string, uint64_t>().swap(files_generations_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;

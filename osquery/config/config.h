@@ -161,8 +161,27 @@ class Config : private boost::noncopyable {
                const std::string& category,
                const std::string& path);
 
-  /// Remove files by source.
-  void removeFiles(const std::string& source);
+  /**
+   * @brief Remove files by source, starting a new generation for it.
+   *
+   * @return the source's new generation, identifying the files added from
+   * now on. Deferred work from an earlier update can compare it against the
+   * generation it started at to tell whether the files were removed since.
+   */
+  uint64_t removeFiles(const std::string& source);
+
+  /**
+   * @brief Add a source's files if its generation still matches.
+   *
+   * Adds nothing and returns false if the source's files were removed since
+   * the generation started, so that a deferred file_paths_query cannot
+   * restore the paths of a pack that a newer update removed. The check and
+   * the publication are atomic with the removal.
+   */
+  bool addFiles(const std::string& source,
+                uint64_t generation,
+                const std::string& category,
+                const std::vector<std::string>& paths);
 
   /**
    * @brief Map a function across the set of scheduled queries
@@ -344,6 +363,9 @@ class Config : private boost::noncopyable {
   /// A set of named categories filled with filesystem globbing paths.
   using FileCategories = std::map<std::string, std::vector<std::string>>;
   std::map<std::string, FileCategories> files_;
+
+  /// The generation of each source's files, bumped whenever they are removed.
+  std::map<std::string, uint64_t> files_generations_;
 
   /// A set of hashes for each source of the config.
   std::map<std::string, std::string> hash_;
