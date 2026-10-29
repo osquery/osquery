@@ -504,15 +504,16 @@ jobs:
     - name: Print ccache stats
       if: always()
       continue-on-error: true
-      run: ccache --show-stats --verbose
+      run: |
+        ccache --show-stats --verbose
+        ccache --show-compression
 
     - name: Archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
-        ccache --show-compression
-        tar -I 'xz -3 -T0' -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
@@ -823,15 +824,16 @@ jobs:
     - name: Print ccache stats
       if: always()
       continue-on-error: true
-      run: ccache --show-stats --verbose
+      run: |
+        ccache --show-stats --verbose
+        ccache --show-compression
 
     - name: Archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
-        ccache --show-compression
-        tar -I 'xz -3 -T0' -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
+        tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
       if: steps.compiler_cache_archive.outcome == 'success'
