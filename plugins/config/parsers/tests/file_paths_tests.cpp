@@ -114,4 +114,48 @@ TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {
   Config::get().update(config_data_);
   EXPECT_EQ(numFiles(), 0U);
 }
+
+namespace {
+
+/// A parser config whose file_paths_query update() defers to afterUpdate().
+ConfigParserPlugin::ParserConfig filePathsQueryConfig() {
+  ConfigParserPlugin::ParserConfig config;
+  auto file_paths_query = JSON::newObject();
+  auto queries = file_paths_query.getArray();
+  file_paths_query.pushCopy("select '/dev/urandom' as path", queries);
+  file_paths_query.addCopy("config_files_query", queries);
+  config.emplace("file_paths_query", std::move(file_paths_query));
+  return config;
+}
+
+} // namespace
+
+TEST_F(FilePathsConfigParserPluginTests, test_pending_query_added) {
+  auto parser = Config::getParser("file_paths");
+  ASSERT_NE(parser, nullptr);
+
+  ASSERT_TRUE(parser->update("awesome", filePathsQueryConfig()).ok());
+  parser->afterUpdate();
+
+  // Without an intervening removal, the deferred query's paths are added.
+  EXPECT_EQ(numFiles(), 1U);
+}
+
+TEST_F(FilePathsConfigParserPluginTests,
+       test_pending_query_invalidated_by_pack_removal) {
+  auto parser = Config::getParser("file_paths");
+  ASSERT_NE(parser, nullptr);
+
+  ASSERT_TRUE(parser->update("awesome", filePathsQueryConfig()).ok());
+
+  // A newer update drops the pack before the first update's afterUpdate()
+  // runs: updateSource()/Schedule::removeAll() remove its files without a
+  // parser update for the pack.
+  Config::get().removeFiles("awesome");
+
+  parser->afterUpdate();
+
+  // The deferred query must not restore the removed pack's paths.
+  EXPECT_EQ(numFiles(), 0U);
+}
 }
