@@ -351,6 +351,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+    - name: Record job start time
+      id: job_start
+      shell: bash
+      run: echo "TIMESTAMP=$(date +%s)" >> "$GITHUB_OUTPUT"
+
     - name: Install osquery-toolchain
       run: |
         wget https://github.com/osquery/osquery-toolchain/releases/download/${{ env.OSQUERY_TOOLCHAIN_VERSION }}/osquery-toolchain-${{ env.OSQUERY_TOOLCHAIN_VERSION }}-$(uname -m).tar.xz 
@@ -508,11 +513,15 @@ jobs:
         ccache --show-stats --verbose
         ccache --show-compression
 
-    - name: Archive compiler cache
+    - name: Evict old entries and archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
+        # Allow one second for timestamp rounding.
+        elapsed_seconds=$(( $(date +%s) - ${{ steps.job_start.outputs.TIMESTAMP }} + 1 ))
+        ccache --evict-older-than "${elapsed_seconds}s"
+        ccache --show-compression
         tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
@@ -688,6 +697,11 @@ jobs:
       COMPILER_CACHE_RESTORE_NAME: ${{ fromJSON(needs.compiler_cache_lookup.outputs.caches)[format('compiler-cache-v1-ccache_macOS_{0}_{1}', matrix.architecture, matrix.build_type)].name }}
 
     steps:
+    - name: Record job start time
+      id: job_start
+      shell: bash
+      run: echo "TIMESTAMP=$(date +%s)" >> "$GITHUB_OUTPUT"
+
     - name: Select the build job count
       shell: bash
       id: build_job_count
@@ -828,11 +842,15 @@ jobs:
         ccache --show-stats --verbose
         ccache --show-compression
 
-    - name: Archive compiler cache
+    - name: Evict old entries and archive compiler cache
       id: compiler_cache_archive
       if: github.event_name == 'pull_request' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       continue-on-error: true
       run: |
+        # Allow one second for timestamp rounding.
+        elapsed_seconds=$(( $(date +%s) - ${{ steps.job_start.outputs.TIMESTAMP }} + 1 ))
+        ccache --evict-older-than "${elapsed_seconds}s"
+        ccache --show-compression
         tar -cf "${{ runner.temp }}/cache.tar" -C "${{ steps.build_paths.outputs.CCACHE }}" .
 
     - name: Store compiler cache artifact
