@@ -39,6 +39,9 @@ function(generatePluginsDatabaseRocksdbplugin)
   generateIncludeNamespace(plugins_database_rocksdbplugin "plugins/database" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME plugins_database_tests_mergedtests-test COMMAND plugins_database_tests_mergedtests-test)
+  if(DEFINED PLATFORM_WINDOWS)
+    set_tests_properties(plugins_database_tests_mergedtests-test PROPERTIES COST 30)
+  endif()
 endfunction()
 
 function(generatePluginsDatabaseSqliteplugin)

@@ -441,6 +441,13 @@ function(generateTestsIntegrationTablesTestsTest)
     endif()
   endif()
 
+  set(integration_test_cost 60)
+  if(DEFINED PLATFORM_WINDOWS)
+    set(integration_test_cost 80)
+  elseif(DEFINED PLATFORM_MACOS)
+    set(integration_test_cost 75)
+  endif()
+
   math(EXPR last_shard_index "${OSQUERY_INTEGRATION_TEST_SHARDS} - 1")
   foreach(shard_index RANGE 0 ${last_shard_index})
     set(test_name tests_integration_tables-test)
@@ -460,7 +467,11 @@ function(generateTestsIntegrationTablesTestsTest)
       )
     endif()
 
-    set_tests_properties("${test_name}" PROPERTIES ENVIRONMENT "${test_environment}")
+    # Start integration shards early, even on fresh builds with no timing history.
+    set_tests_properties("${test_name}" PROPERTIES
+      ENVIRONMENT "${test_environment}"
+      COST "${integration_test_cost}"
+    )
   endforeach()
 endfunction()
 

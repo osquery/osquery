@@ -218,6 +218,14 @@ alongside other tests under the same parallel job limit. Configure with
 to disable sharding. Linux root-only integration tests remain a separate,
 unsharded test labeled `root-required`.
 
+Integration shards and the slower Python suites have explicit CTest `COST`
+estimates so parallel runs schedule them ahead of short tests, including on fresh
+CI builds without timing history.
+Windows uses platform-specific estimates for its slower TLS, ETW, filesystem,
+database/logger plugin, Python, and integration tests.
+macOS also uses platform-specific estimates, prioritizing its particularly slow
+TLS config and transport suites, followed by logger and integration tests.
+
 Use `ctest -R tests_integration_tables-test` to run all non-root integration
 shards; an exact match to `^tests_integration_tables-test$` runs only the first
 shard. On Windows and macOS, `GTEST_FILTER` still selects individual unit tests
