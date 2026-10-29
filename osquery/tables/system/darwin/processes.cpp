@@ -402,9 +402,11 @@ std::map<std::string, std::string> parseProcEnv(const char* procargs,
   const char* end = &procargs[argmax];
   // Then skip the exec/program name. Bound each length to the buffer so a
   // region without a trailing null terminator does not read past the end.
+  // Advance only by the token length; the padding skip below consumes the
+  // terminator when one remains, so the pointer never moves beyond end.
   auto exec_name =
       std::string(current_arg, strnlen(current_arg, end - current_arg));
-  current_arg += exec_name.size() + 1;
+  current_arg += exec_name.size();
   while (current_arg < end) {
     // Skip optional null-character padding.
     if (*current_arg == '\0') {
@@ -424,7 +426,7 @@ std::map<std::string, std::string> parseProcEnv(const char* procargs,
         }
       }
     }
-    current_arg += string_arg.size() + 1;
+    current_arg += string_arg.size();
   }
   return env;
 }

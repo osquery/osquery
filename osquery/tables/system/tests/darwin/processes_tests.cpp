@@ -102,6 +102,13 @@ TEST_F(DarwinProcessesTests, test_env_parsing) {
   procargs = "00";
   std::replace(procargs.begin(), procargs.end(), '0', '\0');
   EXPECT_TRUE(parseProcEnv(procargs.data(), procargs.size()).empty());
+
+  // A buffer holding only the argument count, or an exec name with no
+  // terminator, yields nothing without stepping past the end.
+  procargs.assign(reinterpret_cast<const char*>(&argc), sizeof(argc));
+  EXPECT_TRUE(parseProcEnv(procargs.data(), procargs.size()).empty());
+  procargs += "/bin/sh";
+  EXPECT_TRUE(parseProcEnv(procargs.data(), procargs.size()).empty());
 }
 
 TEST_F(DarwinProcessesTests, test_process_arch) {
