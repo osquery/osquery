@@ -499,12 +499,13 @@ jobs:
       run: |
         # Allow access to the docker socket
         sudo chmod 666 /var/run/docker.sock
-        ctest --build-nocmake -LE "root-required" -V
+        export CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(nproc)}"
+        ctest --build-nocmake -LE "root-required" --output-on-failure
 
     - name: Run the tests as root user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       if: matrix.build_type != 'RelWithDebInfo'
-      run: sudo -u root ctest --build-nocmake -L "root-required" -V
+      run: sudo -u root env CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(nproc)}" ctest --build-nocmake -L "root-required" --output-on-failure
 
     - name: Run the install target
       if: matrix.build_type == 'RelWithDebInfo'
@@ -1016,11 +1017,12 @@ jobs:
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
       run: |
+        export CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(sysctl -n hw.logicalcpu)}"
         if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
-          ctest --build-nocmake -V \
+          ctest --build-nocmake --output-on-failure \
             -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
         else
-          ctest --build-nocmake -V
+          ctest --build-nocmake --output-on-failure
         fi
 
   # This job builds the universal macOS artifacts
@@ -1377,7 +1379,8 @@ jobs:
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ steps.vc_arch.outputs.VC_ARCH }}
         @echo on
-        ctest --build-nocmake -C Release -V
+        if not defined CTEST_PARALLEL_LEVEL set "CTEST_PARALLEL_LEVEL=%NUMBER_OF_PROCESSORS%"
+        ctest --build-nocmake -C Release --output-on-failure
 
     - name: Run the install target
       working-directory: ${{ steps.build_paths.outputs.BINARY }}

@@ -17,6 +17,7 @@ project(osquery)
 
 if(OSQUERY_BUILD_TESTS)
   enable_testing()
+  include(cmake/testing.cmake)
 endif()
 
 include(cmake/globals.cmake)

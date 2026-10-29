@@ -181,6 +181,36 @@ The use of an Administrator shell is recommended because the build process creat
 
 To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
 
+The CMake `test`/`RUN_TESTS` targets run tests in parallel using the processor count
+detected at configuration time on all platforms. To override this default, pass
+CTest arguments when configuring, for example
+`cmake -S . -B build '-DCMAKE_CTEST_ARGUMENTS=-j;2'` (use `-j;1` for serial tests).
+An explicit `-j` or `--parallel` in `CMAKE_CTEST_ARGUMENTS` is preserved.
+When using the automatic default, CTest prints the configured default concurrency
+when tests run, rather than during CMake configuration.
+
+CI and the packaged macOS test launcher also default to the processor count,
+unless `CTEST_PARALLEL_LEVEL` is already set. An explicit CTest `-j` or `--parallel`
+option takes precedence over that environment variable.
+
+CI uses `--output-on-failure` rather than verbose output, so each failed test's
+output is printed as a non-interleaved block when it finishes. Passing test output
+is suppressed.
+
+For direct `ctest` invocations locally, set `CTEST_PARALLEL_LEVEL` in your shell:
+
+```bash
+# Linux
+export CTEST_PARALLEL_LEVEL=$(nproc)
+# macOS
+export CTEST_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu)
+```
+
+```PowerShell
+# Windows
+$Env:CTEST_PARALLEL_LEVEL=$Env:NUMBER_OF_PROCESSORS
+```
+
 ### Run tests on Windows
 
 To run the tests and get just a summary report:
