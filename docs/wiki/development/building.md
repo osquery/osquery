@@ -211,6 +211,18 @@ export CTEST_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu)
 $Env:CTEST_PARALLEL_LEVEL=$Env:NUMBER_OF_PROCESSORS
 ```
 
+Integration table tests are split into GoogleTest shards, defaulting to the
+processor count detected at configuration time. CTest schedules these shards
+alongside other tests under the same parallel job limit. Configure with
+`-DOSQUERY_INTEGRATION_TEST_SHARDS=N` to change the number of shards, or use `1`
+to disable sharding. Linux root-only integration tests remain a separate,
+unsharded test labeled `root-required`.
+
+Use `ctest -R tests_integration_tables-test` to run all non-root integration
+shards; an exact match to `^tests_integration_tables-test$` runs only the first
+shard. On Windows and macOS, `GTEST_FILTER` still selects individual unit tests
+across the shards; Linux retains its existing root/non-root command-line filters.
+
 ### Run tests on Windows
 
 To run the tests and get just a summary report:

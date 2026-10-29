@@ -25,6 +25,7 @@
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
 #include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/system/env.h>
 #include <osquery/utils/system/time.h>
 
 #include <osquery/process/process.h>
@@ -104,7 +105,12 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory += std::to_string(platformGetUid()) + "/";
+  kTestWorkingDirectory += std::to_string(platformGetUid());
+  // Shards must not remove each other's database and socket directories.
+  if (getEnvVar("GTEST_TOTAL_SHARDS")) {
+    kTestWorkingDirectory += "-shard-" + std::to_string(platformGetPid());
+  }
+  kTestWorkingDirectory += "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 
   fs::remove_all(kTestWorkingDirectory);
