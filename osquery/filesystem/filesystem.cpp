@@ -337,12 +337,15 @@ static void dfsTraverseDirectories(const std::string& current_path,
                                    std::vector<std::string>& results,
                                    size_t depth,
                                    size_t initial_count,
-                                   bool& truncated) {
-  if (depth >= kMaxRecursiveGlobs) {
+                                   bool& truncated,
+                                   const std::string& leaf_prefix = "") {
+  if (depth > kMaxRecursiveGlobs) {
     return;
   }
 
-  if (isDirVisited(visited_dirs, current_path)) {
+  // Streaming roots (depth 0) may alias each other through symlinks, so only
+  // descendants are skipped when revisited. The inode is recorded either way.
+  if (isDirVisited(visited_dirs, current_path) && depth > 0) {
     return;
   }
 
@@ -356,13 +359,32 @@ static void dfsTraverseDirectories(const std::string& current_path,
        end;
        entry != end;
        entry.increment(ec)) {
-#ifndef WIN32
-    // POSIX glob("dir/*") skips dotfiles; keep that for the first level only.
-    // Windows FindFirstFile("*") returns them, so nothing to skip there.
-    if (depth == 0 && entry->path().filename().string()[0] == '.') {
+    const auto fname = entry->path().filename().string();
+    if (fname.empty()) {
       continue;
     }
+    if (depth == 0) {
+      if (!leaf_prefix.empty()) {
+#ifdef WIN32
+        if (!boost::algorithm::istarts_with(fname, leaf_prefix)) {
+          continue;
+        }
+#else
+        if (fname.rfind(leaf_prefix, 0) != 0) {
+          continue;
+        }
 #endif
+      } else {
+#ifndef WIN32
+        // POSIX glob("dir/*") skips dotfiles; keep that for the first level
+        // only. Windows FindFirstFile("*") returns them, so nothing to skip
+        // there.
+        if (fname[0] == '.') {
+          continue;
+        }
+#endif
+      }
+    }
     if (FLAGS_glob_max_files > 0 &&
         (results.size() - initial_count) >= FLAGS_glob_max_files) {
       truncated = true;
@@ -373,7 +395,8 @@ static void dfsTraverseDirectories(const std::string& current_path,
 
     // Add trailing separator for directories to match platformGlob behavior
     // (which uses GLOB_MARK to add trailing slashes)
-    if (is_dir && entry_path.back() != '/' && entry_path.back() != '\\') {
+    if (is_dir && !entry_path.empty() && entry_path.back() != '/' &&
+        entry_path.back() != '\\') {
       entry_path += fs::path::preferred_separator;
     }
 
@@ -386,6 +409,9 @@ static void dfsTraverseDirectories(const std::string& current_path,
                              depth + 1,
                              initial_count,
                              truncated);
+      if (truncated) {
+        break;
+      }
     }
   }
 }
@@ -402,12 +428,35 @@ static void genGlobs(std::string path,
   bool should_expand =
       (path.size() >= 2 && path.substr(path.size() - 2) == "**");
   if (should_expand) {
-    // "dir/**": glob only the directory and stream its children, so the cap
-    // applies during enumeration. "pre**" still needs glob for the prefix
-    // match.
-    const bool stream = path.size() >= 3 && (path[path.size() - 3] == '/' ||
-                                             path[path.size() - 3] == '\\');
-    auto roots = platformGlob(path.substr(0, path.size() - (stream ? 2 : 1)));
+    std::string leaf_prefix;
+    size_t sep = std::string::npos;
+    if (path.size() >= 3) {
+      sep = path.find_last_of("/\\", path.size() - 3);
+      if (sep != std::string::npos && path.size() >= sep + 3) {
+        leaf_prefix = path.substr(sep + 1, path.size() - 2 - (sep + 1));
+      }
+    }
+
+    // Literal leaf prefix (or empty for "dir/**") can stream its children
+    // directly, so the cap applies during initial enumeration without
+    // batch-materializing.
+    const bool can_stream =
+        sep != std::string::npos &&
+        leaf_prefix.find_first_of("*?[{") == std::string::npos;
+
+    std::vector<std::string> roots;
+    if (can_stream) {
+      const auto root_pattern = path.substr(0, sep + 1);
+      // A literal root needs no glob, and platformGlob cannot enumerate a bare
+      // Windows drive root such as "C:\".
+      const bool literal =
+          !root_pattern.empty() && root_pattern[0] != '~' &&
+          root_pattern.find_first_of("*?[{") == std::string::npos;
+      roots = literal ? std::vector<std::string>{root_pattern}
+                      : platformGlob(root_pattern);
+    } else {
+      roots = platformGlob(path.substr(0, path.size() - 1));
+    }
 
     const size_t initial_count = results.size();
     bool truncated = false;
@@ -419,16 +468,27 @@ static void genGlobs(std::string path,
         break;
       }
       boost::system::error_code ec;
-      if (stream) {
+      if (can_stream) {
         if (fs::is_directory(root, ec)) {
-          dfsTraverseDirectories(
-              root, dir_inos, results, 0, initial_count, truncated);
+          dfsTraverseDirectories(root,
+                                 dir_inos,
+                                 results,
+                                 0,
+                                 initial_count,
+                                 truncated,
+                                 leaf_prefix);
+          if (truncated) {
+            break;
+          }
         }
       } else {
         results.push_back(root);
         if (fs::is_directory(root, ec)) {
           dfsTraverseDirectories(
               root, dir_inos, results, 1, initial_count, truncated);
+          if (truncated) {
+            break;
+          }
         }
       }
     }

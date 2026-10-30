@@ -529,6 +529,67 @@ TEST_F(FilesystemTests, test_wildcard_double_prefix) {
   EXPECT_FALSE(contains(results, (dir / "other").string()));
 }
 
+TEST_F(FilesystemTests, test_wildcard_double_prefix_limit) {
+  auto dir = test_working_dir_ / "pfx_lim";
+  ASSERT_TRUE(fs::create_directory(dir));
+  for (size_t i = 0; i < 20; ++i) {
+    writeTextFile(dir / ("pre_" + std::to_string(i)), "x");
+  }
+  writeTextFile(dir / "other", "x");
+
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+  for (const auto& r : results) {
+    EXPECT_TRUE(r.find("pre_") != std::string::npos);
+  }
+  EXPECT_FALSE(contains(results, (dir / "other").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_aliased_roots) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Symlink creation needs privileges on Windows";
+  }
+
+  auto dir = fs::canonical(test_working_dir_) / "alias";
+  ASSERT_TRUE(fs::create_directories(dir / "real"));
+  writeTextFile(dir / "real" / "a", "x");
+  fs::create_directory_symlink(dir / "real", dir / "link");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%" / "%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "real" / "a").string()));
+  EXPECT_TRUE(contains(results, (dir / "link" / "a").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_filesystem_root) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern(fake_directory_.root_path() / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_windows_drive_root) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Windows drive root test is Windows-only";
+  }
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern("C:\\%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+}
+
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(fake_directory_ / "%%", results, GLOB_FOLDERS);
