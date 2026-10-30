@@ -223,8 +223,7 @@ void doYARAScanPath(YR_RULES* rules,
   row["path"] = path;
 
   // Perform the scan, using the static YARA subscriber callback.
-  int result = yr_rules_scan_file(
-      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&row, 0);
+  int result = yaraScanFile(rules, path, (void*)&row);
   if (result == ERROR_SUCCESS) {
     results.push_back(std::move(row));
   }

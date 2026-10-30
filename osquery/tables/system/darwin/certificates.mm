@@ -141,11 +141,11 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //  osqueryd: (Security) [com.apple.securityd:security_exception]
 // CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
 static bool isLegacyKeychainFile(const std::string& path) {
-  // A path constraint can match a FIFO. Open it non-blocking so a FIFO with
-  // no writer does not hang the query, and skip special files rather than
-  // reading from them.
-  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
-  if (!file.isValid() || file.isSpecialFile()) {
+  // A path constraint can match a FIFO. Open regular files only, so a FIFO
+  // with no writer does not hang the query and special files are not read.
+  PlatformFile file(path,
+                    PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
     return false;
   }
   std::string header(16, '\0');

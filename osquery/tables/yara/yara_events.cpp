@@ -183,12 +183,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
         continue;
       }
 
-      int result = yr_rules_scan_file(rule_it->second.get(),
-                                      ec->path.c_str(),
-                                      SCAN_FLAGS_FAST_MODE,
-                                      YARACallback,
-                                      (void*)&r,
-                                      0);
+      int result = yaraScanFile(rule_it->second.get(), ec->path, (void*)&r);
 
       if (result != ERROR_SUCCESS) {
         return Status(1, "YARA error: " + std::to_string(result));

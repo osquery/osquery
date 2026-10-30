@@ -29,6 +29,7 @@ function(generateOsqueryTablesYaraTestsTest)
     osquery_tables_system_systemtable
     osquery_utils
     osquery_utils_conversions
+    tests_helper
     thirdparty_boost
     thirdparty_googletest
   )

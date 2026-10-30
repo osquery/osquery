@@ -744,6 +744,12 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     is_nonblock_ = true;
   }
 
+  // A named pipe reached through the path may only identify the caller, never
+  // impersonate it.
+  if ((mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY) {
+    flags_and_attrs |= SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION;
+  }
+
   if (perms != -1) {
     // TODO(#2001): set up a security descriptor based off the perms
   }
@@ -755,6 +761,15 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
                           creation_disposition,
                           flags_and_attrs,
                           nullptr);
+
+  // Pipes and character devices are not files on disk; CreateFileW does not
+  // open directories without FILE_FLAG_BACKUP_SEMANTICS.
+  if (handle_ != INVALID_HANDLE_VALUE &&
+      (mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY &&
+      ::GetFileType(handle_) != FILE_TYPE_DISK) {
+    ::CloseHandle(handle_);
+    handle_ = INVALID_HANDLE_VALUE;
+  }
 
   /// Normally, append is done via the FILE_APPEND_DATA access mask. However,
   /// because we are blanket using GENERIC_WRITE, this will not work. To

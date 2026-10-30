@@ -23,10 +23,78 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#if defined(__linux__) && !defined(O_PATH)
+#define O_PATH 010000000
+#endif
+
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
 namespace osquery {
+
+namespace {
+
+/**
+ * @brief Opens path with oflag, only if it is a regular file.
+ *
+ * On Linux the type is read through an O_PATH descriptor, which neither blocks
+ * nor runs a driver's open, and that same file is then reopened through
+ * /proc/self/fd. Without /proc, and on other platforms, the type is checked
+ * before a path open, where O_NONBLOCK and O_NOCTTY keep a file swapped in
+ * meanwhile from blocking the open or becoming a controlling terminal. Either
+ * way the opened file must be the regular file that was checked.
+ */
+int openRegularFile(const fs::path& path, int oflag, int perms) {
+  oflag |= O_NONBLOCK | O_NOCTTY | O_CLOEXEC;
+
+  struct stat expected;
+  int fd = -1;
+#ifdef __linux__
+  // Kernels older than O_PATH ignore it and open the file for reading, which
+  // O_NONBLOCK and O_NOCTTY keep as harmless.
+  int path_fd =
+      ::open(path.c_str(), O_PATH | O_CLOEXEC | O_NONBLOCK | O_NOCTTY);
+  if (path_fd < 0) {
+    return -1;
+  }
+
+  if (::fstat(path_fd, &expected) < 0 || !S_ISREG(expected.st_mode)) {
+    ::close(path_fd);
+    return -1;
+  }
+
+  auto fd_path = "/proc/self/fd/" + std::to_string(path_fd);
+  fd = ::open(fd_path.c_str(), oflag, perms);
+  int open_errno = errno;
+  ::close(path_fd);
+
+  if (fd < 0 && open_errno != ENOENT) {
+    return -1;
+  }
+#else
+  if (::stat(path.c_str(), &expected) < 0 || !S_ISREG(expected.st_mode)) {
+    return -1;
+  }
+#endif
+
+  if (fd < 0) {
+    fd = ::open(path.c_str(), oflag, perms);
+    if (fd < 0) {
+      return -1;
+    }
+  }
+
+  struct stat opened;
+  if (::fstat(fd, &opened) < 0 || !S_ISREG(opened.st_mode) ||
+      opened.st_dev != expected.st_dev || opened.st_ino != expected.st_ino) {
+    ::close(fd);
+    return -1;
+  }
+
+  return fd;
+}
+
+} // namespace
 
 PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
@@ -80,7 +148,11 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     perms = 0666;
   }
 
-  handle_ = ::open(fname_.c_str(), oflag, perms);
+  if ((mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY) {
+    handle_ = openRegularFile(fname_, oflag, perms);
+  } else {
+    handle_ = ::open(fname_.c_str(), oflag, perms);
+  }
 }
 
 PlatformFile::~PlatformFile() {
