@@ -473,6 +473,20 @@ TEST_F(ChromeUtilsTests, getExtensionFromSnapshot) {
   EXPECT_EQ(computed_identifier, kExpectedComputedExtensionIdentifier);
 }
 
+TEST_F(ChromeUtilsTests, getExtensionFromSnapshot_deeplyNestedManifest) {
+  // Nested deeply enough to overflow the stack of a recursive JSON parser
+  const std::size_t depth = 1000000;
+
+  ChromeProfileSnapshot::Extension snapshot;
+  snapshot.path = kTestExtensionPath;
+  snapshot.manifest =
+      R"({"name": )" + std::string(depth, '[') + std::string(depth, ']') + "}";
+
+  ChromeProfile::Extension extension;
+  auto status = getExtensionFromSnapshot(extension, snapshot);
+  EXPECT_FALSE(status.ok());
+}
+
 TEST_F(ChromeUtilsTests, getChromeProfilesFromSnapshotList) {
   ChromeProfileSnapshot::Extension ref_ext_snapshot;
   ref_ext_snapshot.path = kTestExtensionPath;

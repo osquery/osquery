@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -22,6 +21,7 @@
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/trim.h>
+#include <osquery/utils/property_tree.h>
 
 namespace osquery {
 namespace tables {
@@ -153,8 +153,7 @@ void parseFlatpakAppStream(const std::string& content, Row& r) {
 
   pt::ptree tree;
   try {
-    std::istringstream ss(content);
-    pt::read_xml(ss, tree);
+    readXmlTree(content, tree);
   } catch (const pt::xml_parser::xml_parser_error& e) {
     VLOG(1) << "flatpak_packages: failed to parse AppStream XML: " << e.what();
     return;
