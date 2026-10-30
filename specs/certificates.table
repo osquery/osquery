@@ -19,6 +19,7 @@ schema([
     Column("sha1", TEXT, "SHA1 hash of the raw certificate contents", collate="nocase"),
     Column("path", TEXT, "Path to Keychain or PEM bundle", additional=True, optimized=True),
     Column("serial", TEXT, "Certificate serial number", collate="nocase"),
+    Column("subject_alternative_names", TEXT, "Subject Alternative Names, comma separated and prefixed with their type, e.g. 'DNS:example.com, IP Address:10.0.0.1'"),
 
 ])
 
