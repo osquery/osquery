@@ -25,15 +25,13 @@ namespace {
 /// A file_paths_query query that update() left for afterUpdate() to run.
 struct PendingFilePathsQuery {
   std::string source;
-  uint64_t generation;
   std::string category;
   std::string query;
 };
 
-/// The queries that update() left for afterUpdate() to run. It is per-thread
-/// like the config's pending parsers, so each config update runs its own
-/// queries.
-thread_local std::vector<PendingFilePathsQuery> kPendingFilePathsQueries;
+/// The queries that update() left for afterUpdate() to run. Only accessed
+/// during a config update, which the config's update mutex serializes.
+std::vector<PendingFilePathsQuery> kPendingFilePathsQueries;
 
 } // namespace
 
@@ -65,8 +63,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   // Parse the file_paths_query top-level key, leaving its queries for
   // afterUpdate() to run.
   void updateFilePathsQuery(const JSON& file_paths_query,
-                            const std::string& source,
-                            uint64_t generation);
+                            const std::string& source);
 
   // Parse and update exclude_paths top-level key.
   void updateExcludePaths(const JSON& exclude_paths);
@@ -143,9 +140,7 @@ void FilePathsConfigParserPlugin::updateFilePaths(const JSON& file_paths,
 }
 
 void FilePathsConfigParserPlugin::updateFilePathsQuery(
-    const JSON& file_paths_query,
-    const std::string& source,
-    uint64_t generation) {
+    const JSON& file_paths_query, const std::string& source) {
 #ifdef OSQUERY_IS_FUZZING
   return;
 #else
@@ -167,8 +162,7 @@ void FilePathsConfigParserPlugin::updateFilePathsQuery(
 
       // The queries may read tables, such as ATC tables, that parsers attach
       // in afterUpdate(), so they run in afterUpdate() too.
-      kPendingFilePathsQueries.push_back(
-          {source, generation, name, query.GetString()});
+      kPendingFilePathsQueries.push_back({source, name, query.GetString()});
     }
   }
 #endif
@@ -200,13 +194,9 @@ void FilePathsConfigParserPlugin::afterUpdate() {
       }
     }
 
-    // Publish only if the source's files were not removed since this query
-    // was deferred: a newer update may have replaced them (it runs its own
-    // queries once its changes, such as new ATC tables, are applied), or the
-    // pack may have been removed entirely. The check is atomic with the
-    // removal and with adding the paths.
-    Config::get().addFiles(
-        pending.source, pending.generation, pending.category, paths);
+    for (const auto& path : paths) {
+      Config::get().addFile(pending.source, pending.category, path);
+    }
   }
 }
 
@@ -245,9 +235,7 @@ void FilePathsConfigParserPlugin::updateExcludePaths(
 
 Status FilePathsConfigParserPlugin::update(const std::string& source,
                                            const ParserConfig& config) {
-  // Start a new generation with the source's files removed, so queries from
-  // an earlier update can no longer add paths once they are gone.
-  auto generation = Config::get().removeFiles(source);
+  Config::get().removeFiles(source);
   access_map_.erase(source);
 
   auto file_paths = config.find("file_paths");
@@ -261,7 +249,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
   }
 
   if (file_paths_query != config.end()) {
-    updateFilePathsQuery(file_paths_query->second, source, generation);
+    updateFilePathsQuery(file_paths_query->second, source);
   }
 
   auto file_accesses = config.find("file_accesses");

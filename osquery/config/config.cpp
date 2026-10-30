@@ -131,12 +131,16 @@ RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
 
-/// Parsers updated by applyParsers on this thread whose afterUpdate() has not
-/// run yet. It is per-thread so that concurrent config updates each apply their
-/// own changes, rather than one update returning before another has applied
-/// them.
-thread_local std::vector<std::shared_ptr<ConfigParserPlugin>>
-    config_pending_parsers_;
+/// Serializes whole config updates, including the parser changes applied in
+/// applyParserChanges() after the schedule lock is released. It is the
+/// outermost config lock: nothing may take it while holding another config
+/// lock. Deferred parser work can then only belong to the update that is
+/// running, so no per-update bookkeeping is needed for it.
+RecursiveMutex config_update_mutex_;
+
+/// Parsers updated by applyParsers whose afterUpdate() has not run yet. Only
+/// accessed during a config update, which config_update_mutex_ serializes.
+std::vector<std::shared_ptr<ConfigParserPlugin>> config_pending_parsers_;
 
 using PackRef = std::unique_ptr<Pack>;
 
@@ -445,25 +449,11 @@ void Config::addFile(const std::string& source,
   files_[source][category].push_back(path);
 }
 
-uint64_t Config::removeFiles(const std::string& source) {
+void Config::removeFiles(const std::string& source) {
   RecursiveLock wlock(config_files_mutex_);
   if (files_.count(source)) {
     FileCategories().swap(files_[source]);
   }
-  return ++files_generations_[source];
-}
-
-bool Config::addFiles(const std::string& source,
-                      uint64_t generation,
-                      const std::string& category,
-                      const std::vector<std::string>& paths) {
-  RecursiveLock wlock(config_files_mutex_);
-  if (files_generations_[source] != generation) {
-    return false;
-  }
-  auto& files = files_[source][category];
-  files.insert(files.end(), paths.begin(), paths.end());
-  return true;
 }
 
 /**
@@ -1008,6 +998,11 @@ void Config::applyParserChanges() {
 }
 
 Status Config::update(const ConfigMap& config) {
+  // Serialize whole updates: parser changes deferred past the schedule lock
+  // must not interleave with another update. Every path that updates parsers
+  // (the refresh runner, a config plugin's update action, tests) enters here.
+  RecursiveLock lock(config_update_mutex_);
+
   // A config plugin may call update from an extension. This will update
   // the config instance within the extension process and the update must be
   // reflected in the core.
@@ -1152,7 +1147,6 @@ void Config::reset() {
 
   schedule_ = std::make_unique<Schedule>();
   std::map<std::string, FileCategories>().swap(files_);
-  std::map<std::string, uint64_t>().swap(files_generations_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;

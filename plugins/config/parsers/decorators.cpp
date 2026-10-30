@@ -115,11 +115,10 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   static std::map<std::string, uint64_t> kDecorationGenerations;
 };
 
-/// The sources, and their decorator generations, whose load decorators
-/// update() left for afterUpdate() to run. It is per-thread like the config's
-/// pending parsers, so each config update runs its own load decorators.
-thread_local std::vector<std::pair<std::string, uint64_t>>
-    kPendingLoadDecorators;
+/// The sources whose load decorators update() left for afterUpdate() to run.
+/// Only accessed during a config update, which the config's update mutex
+/// serializes.
+std::vector<std::string> kPendingLoadDecorators;
 
 /// The generation of a source's decorators. kDecorationsConfigMutex must be
 /// held.
@@ -172,8 +171,7 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 
     // Load decorators may query tables, such as ATC tables, that parsers
     // attach in afterUpdate(), so they run in afterUpdate() too.
-    ReadLock lock(kDecorationsConfigMutex);
-    kPendingLoadDecorators.emplace_back(source, decorationGeneration(source));
+    kPendingLoadDecorators.push_back(source);
   }
 
   auto doc = JSON::newObject();
@@ -184,27 +182,15 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 }
 
 void DecoratorsConfigParserPlugin::afterUpdate() {
-  std::vector<std::pair<std::string, uint64_t>> loads;
+  std::vector<std::string> loads;
   loads.swap(kPendingLoadDecorators);
-  if (FLAGS_disable_decorators) {
-    return;
-  }
 
-  for (const auto& load : loads) {
-    std::vector<std::string> queries;
-    {
-      ReadLock lock(kDecorationsConfigMutex);
-      if (decorationGeneration(load.first) != load.second) {
-        // A newer update replaced these decorators. It runs its own once its
-        // changes, such as new ATC tables, have been applied.
-        continue;
-      }
-      auto source_queries = load_.find(load.first);
-      if (source_queries != load_.end()) {
-        queries = source_queries->second;
-      }
+  // A source may be deferred once per pack; run its load decorators once.
+  std::set<std::string> seen;
+  for (const auto& source : loads) {
+    if (seen.insert(source).second) {
+      runDecorators(DECORATE_LOAD, 0, source);
     }
-    runDecorators(load.first, load.second, queries);
   }
 }
 
