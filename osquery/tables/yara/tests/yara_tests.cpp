@@ -198,6 +198,29 @@ TEST_F(YARATest, should_skip_file) {
 #endif
 }
 
+TEST_F(YARATest, test_rule_url_allowed_default_ports) {
+  const std::set<std::string> allowed = {"https://rules.example/rules/.*"};
+
+  EXPECT_TRUE(isRuleUrlAllowed(allowed, "https://rules.example/rules/a.yar"));
+
+  // An explicit default port is the same endpoint as an omitted one.
+  EXPECT_TRUE(
+      isRuleUrlAllowed(allowed, "https://rules.example:443/rules/a.yar"));
+  EXPECT_TRUE(isRuleUrlAllowed({"https://rules.example:443/rules/.*"},
+                               "https://rules.example/rules/a.yar"));
+  EXPECT_TRUE(isRuleUrlAllowed({"http://rules.example/rules/.*"},
+                               "http://rules.example:80/rules/a.yar"));
+
+  // A genuinely different port, scheme, host or path is still rejected.
+  EXPECT_FALSE(
+      isRuleUrlAllowed(allowed, "https://rules.example:8443/rules/a.yar"));
+  EXPECT_FALSE(isRuleUrlAllowed(allowed, "http://rules.example/rules/a.yar"));
+  EXPECT_FALSE(
+      isRuleUrlAllowed(allowed, "http://rules.example:443/rules/a.yar"));
+  EXPECT_FALSE(isRuleUrlAllowed(allowed, "https://other.example/rules/a.yar"));
+  EXPECT_FALSE(isRuleUrlAllowed(allowed, "https://rules.example/other/a.yar"));
+}
+
 TEST_F(YARATest, test_match_string_true) {
   Row r = scanString(alwaysTrue);
   // expect count 1
