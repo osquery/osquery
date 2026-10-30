@@ -317,7 +317,8 @@ Status removePath(const fs::path& path) {
 using DirIdentifier = std::pair<dev_t, ino_t>;
 
 static bool isDirVisited(std::set<DirIdentifier>& dir_inos,
-                         const std::string& path) {
+                         const std::string& path,
+                         bool record) {
   if (path.empty()) {
     return true;
   }
@@ -326,6 +327,14 @@ static bool isDirVisited(std::set<DirIdentifier>& dir_inos,
   // On Windows systems (lstat not implemented) this immediately returns
   if (!platformLstat(path, d_stat).ok()) {
     return false;
+  }
+
+  // Streaming roots (depth 0) are checked without recording: the root is
+  // only used to select initial matches, and recording it here would skip a
+  // later symlink back to this directory. Inserting on the actual descent
+  // preserves master's behavior of traversing such a link exactly once.
+  if (!record) {
+    return dir_inos.count(std::make_pair(d_stat.st_dev, d_stat.st_ino)) != 0;
   }
 
   auto [_, inserted] = dir_inos.emplace(d_stat.st_dev, d_stat.st_ino);
@@ -344,8 +353,9 @@ static void dfsTraverseDirectories(const std::string& current_path,
   }
 
   // Streaming roots (depth 0) may alias each other through symlinks, so only
-  // descendants are skipped when revisited. The inode is recorded either way.
-  if (isDirVisited(visited_dirs, current_path) && depth > 0) {
+  // descendants are skipped when revisited.
+  if (isDirVisited(visited_dirs, current_path, /*record=*/depth > 0) &&
+      depth > 0) {
     return;
   }
 
@@ -431,17 +441,29 @@ static void genGlobs(std::string path,
     std::string leaf_prefix;
     size_t sep = std::string::npos;
     if (path.size() >= 3) {
+#ifdef WIN32
       sep = path.find_last_of("/\\", path.size() - 3);
+#else
+      // On POSIX '\\' is a glob escape, not a separator (glob(3) unescapes),
+      // so escaped patterns must stay on the platformGlob fallback below.
+      sep = path.rfind('/', path.size() - 3);
+#endif
       if (sep != std::string::npos && path.size() >= sep + 3) {
         leaf_prefix = path.substr(sep + 1, path.size() - 2 - (sep + 1));
       }
     }
 
+#ifndef WIN32
+    const bool has_escape = path.find('\\') != std::string::npos;
+#else
+    const bool has_escape = false;
+#endif
+
     // Literal leaf prefix (or empty for "dir/**") can stream its children
     // directly, so the cap applies during initial enumeration without
     // batch-materializing.
     const bool can_stream =
-        sep != std::string::npos &&
+        sep != std::string::npos && !has_escape &&
         leaf_prefix.find_first_of("*?[{") == std::string::npos;
 
     std::vector<std::string> roots;

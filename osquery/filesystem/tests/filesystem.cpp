@@ -590,6 +590,41 @@ TEST_F(FilesystemTests, test_wildcard_double_windows_drive_root) {
   EXPECT_EQ(results.size(), 5U);
 }
 
+TEST_F(FilesystemTests, test_wildcard_double_prefix_parent_symlink) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Symlink creation needs privileges on Windows";
+  }
+
+  // pre_self -> . : a symlink matching the prefix that points back at the
+  // streaming root. Master traverses it once and emits its children.
+  auto dir = fs::canonical(test_working_dir_) / "parent_sym";
+  ASSERT_TRUE(fs::create_directories(dir));
+  writeTextFile(dir / "other", "x");
+  fs::create_directory_symlink(dir, dir / "pre_self");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "pre_self" / "other").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_escaped_space) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "glob escape semantics are POSIX-only";
+  }
+
+  // POSIX glob(3) unescapes "\ " to " "; the streaming split must not treat
+  // the backslash as a separator and must not match the literal path.
+  auto dir = fs::canonical(test_working_dir_) / "esc";
+  ASSERT_TRUE(fs::create_directories(dir / "with space"));
+  writeTextFile(dir / "with space" / "child", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern((dir / "with\\ space").string() + "/%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "with space" / "child").string()));
+}
+
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(fake_directory_ / "%%", results, GLOB_FOLDERS);
