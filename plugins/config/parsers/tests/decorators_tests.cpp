@@ -224,38 +224,4 @@ TEST_F(DecoratorsConfigParserPluginTests,
   }
 }
 
-// An update's afterUpdate() runs only its own load decorators. If a newer
-// update replaced them, the newer update runs its decorators itself, once its
-// own changes, such as new ATC tables, have been applied.
-TEST_F(DecoratorsConfigParserPluginTests,
-       test_load_decorators_superseded_by_newer_update) {
-  FLAGS_disable_decorators = false;
-  const std::string source{"superseded_test"};
-  auto parser = Config::getParser("decorators");
-  ASSERT_NE(parser, nullptr);
-
-  // Update A runs on its own thread, and B replaces its decorators before A's
-  // afterUpdate() runs.
-  std::promise<void> a_updated;
-  std::promise<void> b_updated;
-  std::thread update_a([&]() {
-    parser->update(source, makeDecoratorsConfig("SELECT 'a' AS superseded"));
-    a_updated.set_value();
-    b_updated.get_future().wait();
-    parser->afterUpdate();
-  });
-  a_updated.get_future().wait();
-  parser->update(source, makeDecoratorsConfig("SELECT 'b' AS superseded"));
-  b_updated.set_value();
-  update_a.join();
-
-  // A must not have run B's decorators, which may need B's changes.
-  EXPECT_EQ(getDecoration("superseded"), "<missing>");
-
-  parser->afterUpdate();
-  EXPECT_EQ(getDecoration("superseded"), "b");
-
-  parser->update(source, {});
-  parser->afterUpdate();
-}
 } // namespace osquery

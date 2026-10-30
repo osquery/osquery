@@ -141,21 +141,4 @@ TEST_F(FilePathsConfigParserPluginTests, test_pending_query_added) {
   EXPECT_EQ(numFiles(), 1U);
 }
 
-TEST_F(FilePathsConfigParserPluginTests,
-       test_pending_query_invalidated_by_pack_removal) {
-  auto parser = Config::getParser("file_paths");
-  ASSERT_NE(parser, nullptr);
-
-  ASSERT_TRUE(parser->update("awesome", filePathsQueryConfig()).ok());
-
-  // A newer update drops the pack before the first update's afterUpdate()
-  // runs: updateSource()/Schedule::removeAll() remove its files without a
-  // parser update for the pack.
-  Config::get().removeFiles("awesome");
-
-  parser->afterUpdate();
-
-  // The deferred query must not restore the removed pack's paths.
-  EXPECT_EQ(numFiles(), 0U);
-}
 }

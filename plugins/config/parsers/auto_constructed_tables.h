@@ -9,7 +9,6 @@
 
 #include <osquery/config/config.h>
 #include <osquery/core/tables.h>
-#include <osquery/utils/mutex.h>
 
 namespace osquery {
 /**
@@ -56,15 +55,9 @@ class ATCConfigParserPlugin : public ConfigParserPlugin {
   const std::string kParserKey{"auto_table_construction"};
   const std::string kDatabaseKeyPrefix{"atc."};
 
-  /// Protects data_ and pending_ between update() and afterUpdate(). It is
-  /// never held while waiting on another lock.
-  Mutex data_mutex_;
-
-  /// Serializes attaching and detaching tables in afterUpdate(). update()
-  /// never takes it, so it can be held while waiting on SQLite locks.
-  Mutex apply_mutex_;
-
   /// Whether update() received tables that afterUpdate() has not applied.
+  /// Only accessed during a config update, which the config's update mutex
+  /// serializes.
   bool pending_{false};
 
   Status removeATCTables(const std::set<std::string>& tables);

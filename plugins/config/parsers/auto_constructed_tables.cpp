@@ -124,7 +124,6 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     return Status::success();
   }
 
-  WriteLock lock(data_mutex_);
   {
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
@@ -140,18 +139,14 @@ Status ATCConfigParserPlugin::update(const std::string& source,
 }
 
 void ATCConfigParserPlugin::afterUpdate() {
-  WriteLock apply_lock(apply_mutex_);
-
-  // Work on a copy, so update() is never blocked while tables are attached.
-  JSON tables_config;
-  {
-    WriteLock lock(data_mutex_);
-    if (!pending_) {
-      return;
-    }
-    pending_ = false;
-    tables_config = JSON::newFromValue(data_.doc()[kParserKey]);
+  if (!pending_) {
+    return;
   }
+  pending_ = false;
+
+  // Work on a copy, so the table iteration is not affected if data_ is
+  // replaced by a later update of this parser.
+  auto tables_config = JSON::newFromValue(data_.doc()[kParserKey]);
 
   const auto& ac_tables = tables_config.doc();
   auto tables = RegistryFactory::get().registry("table");
