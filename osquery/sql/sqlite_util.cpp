@@ -22,8 +22,7 @@
 #include <osquery/sql/sql.h>
 
 #include <osquery/utils/conversions/split.h>
-
-#include <boost/lexical_cast.hpp>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 
@@ -563,7 +562,7 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
   for (const auto& row : program_) {
     if (row.at("opcode") == "ResultRow") {
       // The column parsing is finished.
-      auto k = boost::lexical_cast<size_t>(row.at("p1"));
+      auto k = tryTo<size_t>(row.at("p1")).takeOr(0);
       for (const auto& type : column_types) {
         if (type.first - k < columns.size()) {
           std::get<1>(columns[type.first - k]) = type.second;
@@ -573,9 +572,9 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
 
     if (row.at("opcode") == "Copy") {
       // Copy P1 -> P1 + P3 into P2 -> P2 + P3.
-      auto from = boost::lexical_cast<size_t>(row.at("p1"));
-      auto to = boost::lexical_cast<size_t>(row.at("p2"));
-      auto size = boost::lexical_cast<size_t>(row.at("p3"));
+      auto from = tryTo<size_t>(row.at("p1")).takeOr(0);
+      auto to = tryTo<size_t>(row.at("p2")).takeOr(0);
+      auto size = tryTo<size_t>(row.at("p3")).takeOr(0);
       for (size_t i = 0; i <= size; i++) {
         if (column_types.count(from + i)) {
           column_types[to + i] = std::move(column_types[from + i]);
@@ -583,8 +582,8 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
         }
       }
     } else if (row.at("opcode") == "Cast") {
-      auto value = boost::lexical_cast<size_t>(row.at("p1"));
-      auto to = boost::lexical_cast<size_t>(row.at("p2"));
+      auto value = tryTo<size_t>(row.at("p1")).takeOr(0);
+      auto to = tryTo<size_t>(row.at("p2")).takeOr(0);
       switch (to) {
       case 'A': // BLOB
         column_types[value] = BLOB_TYPE;
@@ -611,7 +610,7 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
 
     if (kSQLOpcodes.count(row.at("opcode"))) {
       const auto& op = kSQLOpcodes.at(row.at("opcode"));
-      auto k = boost::lexical_cast<size_t>(row.at(Opcode::regString(op.reg)));
+      auto k = tryTo<size_t>(row.at(Opcode::regString(op.reg))).takeOr(0);
       column_types[k] = op.type;
     }
   }
