@@ -7,6 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -23,6 +27,49 @@ namespace pt = boost::property_tree;
 char* argv0;
 
 namespace osquery {
+namespace {
+
+/**
+ * @brief Encode a binary property list (bplist00) from encoded objects.
+ *
+ * The last object is the top-level one. Offsets and object references are
+ * one byte each, so the objects must fit in the first 256 bytes.
+ */
+std::string binaryPlist(const std::vector<std::string>& objects) {
+  std::string plist = "bplist00";
+  std::string offsets;
+  for (const auto& object : objects) {
+    offsets.push_back(static_cast<char>(plist.size()));
+    plist += object;
+  }
+  uint64_t offset_table = plist.size();
+  plist += offsets;
+
+  // The trailer: 5 unused bytes, the sort version, the size of an offset and
+  // of an object reference, then the number of objects, the top-level object
+  // and the offset of the offset table, as big-endian 64-bit integers.
+  plist += std::string{0, 0, 0, 0, 0, 0, 1, 1};
+  uint64_t count = objects.size();
+  for (uint64_t field : {count, count - 1, offset_table}) {
+    for (int shift = 56; shift >= 0; shift -= 8) {
+      plist.push_back(static_cast<char>((field >> shift) & 0xff));
+    }
+  }
+  return plist;
+}
+
+/// Nest a string in arrays, each holding the previous object twice if shared.
+std::string nestedArraysPlist(size_t levels, bool shared) {
+  std::vector<std::string> objects = {"\x51x"};
+  for (size_t i = 0; i < levels; ++i) {
+    auto previous = static_cast<char>(objects.size() - 1);
+    objects.push_back(shared ? std::string{'\xa2', previous, previous}
+                             : std::string{'\xa1', previous});
+  }
+  return binaryPlist(objects);
+}
+
+} // namespace
 
 class PlistTests : public testing::Test {};
 
@@ -100,5 +147,53 @@ TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
 
   // Verify we parsed the binary blob correctly
   EXPECT_NE(alias.find("Applications/Flux.app"), std::string::npos);
+}
+
+TEST_F(PlistTests, test_parse_plist_content_malformed) {
+  // An OpenStep dictionary left open, which no plist format accepts.
+  pt::ptree tree;
+  auto s = parsePlistContent("{", tree);
+  EXPECT_FALSE(s.ok());
+  EXPECT_FALSE(s.getMessage().empty());
+}
+
+TEST_F(PlistTests, test_parse_plist_content_key_without_utf8) {
+  // A dictionary of two keys sharing one value: "k", and a lone UTF-16
+  // surrogate (U+D800), which has no UTF-8 form.
+  auto content = binaryPlist({
+      std::string{'\x61', '\xd8', '\x00'},
+      "\x51k",
+      "\x51v",
+      std::string{'\xd2', 0, 1, 2, 2},
+  });
+
+  pt::ptree tree;
+  auto s = parsePlistContent(content, tree);
+  EXPECT_TRUE(s.ok()) << s.getMessage();
+  EXPECT_EQ(tree.size(), 1U);
+  EXPECT_EQ(tree.get<std::string>("k", ""), "v");
+}
+
+TEST_F(PlistTests, test_parse_plist_content_nesting_limit) {
+  pt::ptree tree;
+  auto s = parsePlistContent(nestedArraysPlist(64, false), tree);
+  EXPECT_TRUE(s.ok()) << s.getMessage();
+
+  s = parsePlistContent(nestedArraysPlist(65, false), tree);
+  EXPECT_FALSE(s.ok());
+  EXPECT_TRUE(tree.empty());
+}
+
+TEST_F(PlistTests, test_parse_plist_content_shared_containers) {
+  // A binary plist may reference one array from many places.
+  pt::ptree tree;
+  auto s = parsePlistContent(nestedArraysPlist(2, true), tree);
+  EXPECT_TRUE(s.ok()) << s.getMessage();
+  EXPECT_EQ(tree.get_child("root").size(), 2U);
+
+  // 20 levels of such arrays expand 123 bytes into about 2^21 values.
+  s = parsePlistContent(nestedArraysPlist(20, true), tree);
+  EXPECT_FALSE(s.ok());
+  EXPECT_TRUE(tree.empty());
 }
 }

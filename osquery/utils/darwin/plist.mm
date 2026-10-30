@@ -25,6 +25,23 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 /**
+ * @brief The most arrays and dictionaries a property list may nest.
+ *
+ * The filter, and the tables walking its tree, recurse once per level.
+ */
+const size_t kPlistMaxDepth = 64;
+
+/**
+ * @brief The most a property list may grow to as a tree, in bytes.
+ *
+ * Each value counts its tree node, key and data. A binary plist may reference
+ * one object from many places and the tree repeats it each time: N nested
+ * arrays of [previous, previous] are 2^N values. The limit stays well under
+ * the watchdog's worker memory limit.
+ */
+const size_t kPlistMaxTreeSize = 16 * 1024 * 1024;
+
+/**
  * @brief Filter selected data types from deserialized property list.
  *
  * Since a property list supports a superset of JSON types we must pass
@@ -35,31 +52,53 @@ namespace osquery {
  * The filter functions support:
  * NSString, NSDate, NSNumber, YES, NO, NSArray, and NSDictionary.
  * For NSData the result will be base64 encoded as a string type.
+ *
+ * The walk fails past kPlistMaxDepth or once the tree would exceed its
+ * budget, what is left of kPlistMaxTreeSize.
  */
 static Status filterDictionary(id plist,
                                const std::string& root,
-                               pt::ptree& tree);
+                               pt::ptree& tree,
+                               size_t depth,
+                               size_t& budget);
 
 /// See filterDictionary, the mimicked logic with a anonymous key more or less.
-static Status filterArray(id plist, const std::string& root, pt::ptree& tree);
+static Status filterArray(id plist,
+                          const std::string& root,
+                          pt::ptree& tree,
+                          size_t depth,
+                          size_t& budget);
+
+/// Copy a string as UTF-8, "" when it has none (nil, or invalid UTF-16).
+static inline std::string stringFromNSString(NSString* value) {
+  const char* utf8 = [value UTF8String];
+  return (utf8 != nullptr) ? std::string(utf8) : std::string();
+}
+
+/// Charge a value's tree node, key and data to the walk's budget.
+static inline Status chargeValue(size_t& budget,
+                                 size_t key_size,
+                                 size_t data_size) {
+  auto size = sizeof(pt::ptree::value_type) + key_size + data_size;
+  if (size > budget) {
+    return Status::failure("Plist expands beyond the size limit");
+  }
+  budget -= size;
+  return Status::success();
+}
 
 static inline std::string getValue(id value) {
   if ([value isKindOfClass:[NSString class]]) {
-    if ([value UTF8String] != nullptr) {
-      return [value UTF8String];
-    }
+    return stringFromNSString(value);
   } else if ([value isKindOfClass:[NSNumber class]]) {
-    if ([value stringValue] != nullptr &&
-        [[value stringValue] UTF8String] != nullptr) {
-      return [[value stringValue] UTF8String];
-    }
+    return stringFromNSString([value stringValue]);
   } else if ([value isKindOfClass:[NSData class]]) {
     NSString* dataString = [value base64EncodedStringWithOptions:0];
-    return [dataString UTF8String];
+    return stringFromNSString(dataString);
   } else if ([value isKindOfClass:[NSDate class]]) {
     NSNumber* seconds =
         [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-    return [[seconds stringValue] UTF8String];
+    return stringFromNSString([seconds stringValue]);
   } else if ([value isEqual:@(YES)]) {
     return "true";
   } else if ([value isEqual:@(NO)]) {
@@ -70,8 +109,13 @@ static inline std::string getValue(id value) {
 
 static Status filterDictionary(id plist,
                                const std::string& root,
-                               pt::ptree& tree) {
-  Status total_status = Status(0, "OK");
+                               pt::ptree& tree,
+                               size_t depth,
+                               size_t& budget) {
+  if (depth >= kPlistMaxDepth) {
+    return Status::failure("Plist nesting exceeds the depth limit");
+  }
+
   for (id key in [plist allKeys]) {
     if (key == nil || ![key isKindOfClass:[NSString class]]) {
       // Unknown type as dictionary key, most likely a malformed plist.
@@ -83,68 +127,113 @@ static Status filterDictionary(id plist,
       continue;
     }
 
-    auto path_node = std::string([key UTF8String]);
-    if ([value isKindOfClass:[NSArray class]]) {
-      auto status = filterArray(value, path_node, tree);
+    const char* key_string = [key UTF8String];
+    if (key_string == nullptr) {
+      // The key has no UTF-8 form (invalid UTF-16), a malformed plist.
+      continue;
+    }
+
+    auto path_node = std::string(key_string);
+    bool is_array = [value isKindOfClass:[NSArray class]];
+    bool is_dictionary = [value isKindOfClass:[NSDictionary class]];
+    auto data = (is_array || is_dictionary) ? std::string() : getValue(value);
+    auto status = chargeValue(budget, path_node.size(), data.size());
+    if (!status.ok()) {
+      return status;
+    }
+
+    if (is_array) {
+      status = filterArray(value, path_node, tree, depth + 1, budget);
       if (!status.ok()) {
-        total_status = status;
+        return status;
       }
-    } else if ([value isKindOfClass:[NSDictionary class]]) {
+    } else if (is_dictionary) {
       pt::ptree child;
-      auto status = filterDictionary(value, "", child);
+      status = filterDictionary(value, "", child, depth + 1, budget);
       if (!status.ok()) {
-        total_status = status;
+        return status;
       }
       tree.push_back(pt::ptree::value_type(path_node, std::move(child)));
     } else {
-      tree.push_back(
-          pt::ptree::value_type(path_node, pt::ptree(getValue(value))));
+      tree.push_back(pt::ptree::value_type(path_node, pt::ptree(data)));
     }
   }
-  return total_status;
+  return Status::success();
 }
 
-static Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
-  Status total_status = Status(0, "OK");
+static Status filterArray(id plist,
+                          const std::string& root,
+                          pt::ptree& tree,
+                          size_t depth,
+                          size_t& budget) {
+  if (depth >= kPlistMaxDepth) {
+    return Status::failure("Plist nesting exceeds the depth limit");
+  }
+
   pt::ptree child_tree;
   for (id value in plist) {
     if (value == nil) {
       continue;
     }
 
+    bool is_array = [value isKindOfClass:[NSArray class]];
+    bool is_dictionary = [value isKindOfClass:[NSDictionary class]];
+    auto data = (is_array || is_dictionary) ? std::string() : getValue(value);
+    auto status = chargeValue(budget, 0, data.size());
+    if (!status.ok()) {
+      return status;
+    }
+
     pt::ptree child;
-    if ([value isKindOfClass:[NSArray class]]) {
-      auto status = filterArray(value, "", child);
+    if (is_array) {
+      status = filterArray(value, "", child, depth + 1, budget);
       if (!status.ok()) {
-        total_status = status;
+        return status;
       }
-    } else if ([value isKindOfClass:[NSDictionary class]]) {
-      auto status = filterDictionary(value, "", child);
+    } else if (is_dictionary) {
+      status = filterDictionary(value, "", child, depth + 1, budget);
       if (!status.ok()) {
-        total_status = status;
+        return status;
       }
     } else {
-      child.put_value(getValue(value));
+      child.put_value(data);
     }
     child_tree.push_back(std::make_pair("", std::move(child)));
   }
   tree.push_back(pt::ptree::value_type(root, std::move(child_tree)));
-  return total_status;
+  return Status::success();
 }
 
 static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
+  size_t budget = kPlistMaxTreeSize;
+  Status status;
   if ([plist isKindOfClass:[NSDictionary class]]) {
-    return filterDictionary((NSMutableDictionary*)plist, "", tree);
+    status = filterDictionary((NSMutableDictionary*)plist, "", tree, 0, budget);
   } else if ([plist isKindOfClass:[NSArray class]]) {
-    return filterArray((NSMutableArray*)plist, "root", tree);
+    status = filterArray((NSMutableArray*)plist, "root", tree, 0, budget);
   } else if ([plist isKindOfClass:[NSData class]]) {
     tree.push_back(pt::ptree::value_type("data", getValue(plist)));
   } else {
     TLOG << "Unknown type during plist filtering: "
-         << [[plist className] UTF8String];
+         << stringFromNSString([plist className]);
     return Status(1, "Unexpected plist type");
   }
-  return Status(0, "OK");
+
+  if (!status.ok()) {
+    // Return nothing of a plist the walk refused.
+    tree.clear();
+  }
+  return status;
+}
+
+/// Describe why a property list could not be deserialized.
+static std::string plistErrorMessage(NSError* error) {
+  // The failure reason is optional; the description falls back to the code.
+  auto message = stringFromNSString([error localizedFailureReason]);
+  if (message.empty()) {
+    message = stringFromNSString([error localizedDescription]);
+  }
+  return message.empty() ? "Unable to parse plist" : message;
 }
 
 Status parsePlistContent(const std::string& content, pt::ptree& tree) {
@@ -163,7 +252,7 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
                       format:NULL
                        error:&error];
     if (plist_data == nil) {
-      std::string error_message([[error localizedFailureReason] UTF8String]);
+      auto error_message = plistErrorMessage(error);
       VLOG(1) << error_message;
       return Status(1, error_message);
     }
@@ -197,7 +286,7 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
                        error:&error];
     if (plist_data == nil) {
       // The most common error is lack of read permissions.
-      std::string error_message([[error localizedFailureReason] UTF8String]);
+      auto error_message = plistErrorMessage(error);
       VLOG(1) << error_message;
       return Status(1, error_message);
     }
@@ -206,6 +295,7 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
       // Parse the plist data into a core foundation dictionary-literal.
       status = filterPlist(plist_data, tree);
     } @catch (NSException* exception) {
+      tree.clear();
       status = Status(1, "Plist data is corrupted");
     }
   }
