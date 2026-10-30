@@ -367,7 +367,13 @@ Maximum file read size. The daemon or shell will first 'stat' each file before r
 
 Maximum number of filesystem entries (files and directories) to expand during a recursive glob (`**` or `%%`). When set to a positive integer and reached during traversal, recursive walking stops and a warning is logged (`Recursive glob reached limit of <N> files for: <path>`). Defaults to `0` (unbounded).
 
-Too many expanded paths can cause osquery to exceed watchdog memory limits (each expanded path typically consumes ~2 KB to ~4 KB of memory depending on whether full rows or projections like `count(*)` are queried). As a general rule of thumb, `35000` to `50000` is recommended under the default 200 MB watchdog limit, but deployments should monitor warning logs to tune appropriately.
+Too many expanded paths can cause osquery to exceed watchdog memory limits (each expanded path typically consumes ~2 KB to ~4 KB of memory depending on whether full rows or projections like `count(*)` are queried). As a general rule of thumb, `25000` to `35000` is recommended under the default 200 MB watchdog limit. Memory per expanded path varies by platform and query shape (~1.8 KB/path on Linux and macOS, ~3.9 KB/path on Windows), so deployments should monitor warning logs to tune appropriately.
+
+Notes:
+
+- The limit counts files and directories before `GLOB_FILES`/`GLOB_FOLDERS` filtering, so a files-only query can return fewer rows than the limit.
+- Entries are visited in filesystem order rather than `glob()` sorted order. This applies even when the limit is `0` (unbounded): result ordering differs from earlier releases. When the limit is reached, which entries are returned is therefore not deterministic.
+- Patterns with wildcards in the leaf prefix (such as `/dir/p*e%%`) expand with `glob()` before the limit applies.
 
 ## Linux-only runtime control flags
 
