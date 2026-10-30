@@ -7,11 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
-
-#include <aws/core/utils/Outcome.h>
 #include <aws/ec2/EC2Client.h>
 #include <aws/ec2/model/DescribeTagsRequest.h>
+#include <aws/ec2/model/Filter.h>
 
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
@@ -48,33 +46,39 @@ QueryData genEc2InstanceTags(QueryContext& context) {
     return results;
   }
 
-  std::shared_ptr<ec2::EC2Client> client;
-  Status s = makeAWSClient<ec2::EC2Client>(client, aws_region_res.get(), false);
+  initAwsSdk();
+
+  Aws::Client::ClientConfiguration client_config;
+  Status s = setAwsClientConfig(
+      aws_region_res.get(), AWSServiceType::EC2, "", client_config);
   if (!s.ok()) {
-    LOG(WARNING) << "Failed to create EC2 client: " << s.what();
+    LOG(WARNING) << "Failed to configure EC2 client: " << s.what();
     return results;
   }
+
+  auto client = std::make_shared<ec2::EC2Client>(
+      std::make_shared<OsqueryAWSCredentialsProviderChain>(false),
+      client_config);
 
   model::Filter filter;
   filter.WithName("resource-id").AddValues(instance_id);
 
   model::DescribeTagsRequest request;
-  request.SetMaxResults(50); // Max tags per EC2 instance
+  request.SetMaxResults(50);
   request.AddFilters(filter);
 
-  model::DescribeTagsOutcome outcome = client->DescribeTags(request);
+  auto outcome = client->DescribeTags(request);
   if (!outcome.IsSuccess()) {
     VLOG(1) << "Error getting EC2 instance tags: "
             << outcome.GetError().GetMessage();
     return results;
   }
 
-  model::DescribeTagsResponse response = outcome.GetResult();
-  for (const auto& it : response.GetTags()) {
+  for (const auto& tag : outcome.GetResult().GetTags()) {
     Row r;
     r["instance_id"] = instance_id;
-    r["key"] = SQL_TEXT(it.GetKey());
-    r["value"] = SQL_TEXT(it.GetValue());
+    r["key"] = SQL_TEXT(tag.GetKey());
+    r["value"] = SQL_TEXT(tag.GetValue());
     results.push_back(r);
   }
 
