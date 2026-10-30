@@ -224,7 +224,13 @@ Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
       if (file_size > 0) {
         read_size = file_size - offset;
       } else {
-        content.resize(content.size() + kBlockSize);
+        // Grow only when the block filled: a short read means EOF is near, so a
+        // sub-block file (most /proc entries) never over-allocates. Bound the
+        // next read to the remaining buffer.
+        if (offset == content.size()) {
+          content.resize(content.size() + kBlockSize);
+        }
+        read_size = content.size() - offset;
       }
     }
   } while (read_size > 0 &&
@@ -236,6 +242,10 @@ Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
   }
 
   content.resize(offset);
+  // Release the transient block padding; without this a few-hundred-byte /proc
+  // read keeps a full kBlockSize capacity, which inflates RSS across the many
+  // small reads the processes table does.
+  content.shrink_to_fit();
 
   return Status::success();
 }
