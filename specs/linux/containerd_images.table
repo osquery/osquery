@@ -1,0 +1,16 @@
+table_name("containerd_images")
+description("Containerd images information.")
+schema([
+    Column("name", TEXT, "Image name", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("digest", TEXT, "Image digest (hash)"),
+    Column("size", BIGINT, "Image size in bytes"),
+    Column("media_type", TEXT, "Media type of the image"),
+    Column("created_at", TEXT, "Image creation time as string"),
+    Column("updated_at", TEXT, "Image last update time as string"),
+])
+implementation("applications/containerd@genContainerdImages")
+examples([
+  "select * from containerd_images",
+  "select * from containerd_images where namespace = 'k8s.io'"
+])
