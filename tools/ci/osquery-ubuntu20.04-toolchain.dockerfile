@@ -35,7 +35,7 @@ RUN case $(uname -m) in aarch64) ARCH="aarch64" ;; amd64|x86_64) ARCH="x86_64" ;
 	&& rm osquery-toolchain-1.1.0-${ARCH}.tar.xz
 
 FROM base1 as base2
-ENV cmakeVer 3.21.4
+ENV cmakeVer 3.25.3
 RUN case $(uname -m) in aarch64) ARCH="aarch64" ;; amd64|x86_64) ARCH="x86_64" ;; esac \
 	&& wget https://github.com/Kitware/CMake/releases/download/v${cmakeVer}/cmake-${cmakeVer}-Linux-${ARCH}.tar.gz \
 	&& sudo tar xvf cmake-${cmakeVer}-Linux-${ARCH}.tar.gz -C /usr/local --strip 1 \
@@ -45,14 +45,14 @@ FROM base2 AS cppcheck
 ENV cppcheckVer 2.6.3
 WORKDIR /root
 RUN case $(uname -m) in amd64|x86_64) git clone https://github.com/danmar/cppcheck.git \
-		&& apt install -q -y --no-install-recommends clang-9 libpcre3-dev \
-		&& update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 20 \
-		&& update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 20 \
-		&& cd cppcheck && git checkout ${cppcheckVer} && mkdir build && cd build \
-		&& cmake ../ -DCMAKE_BUILD_TYPE=Release -DHAVE_RULES=ON -DUSE_MATCHCOMPILER=ON \
-		&& cmake --build . --target cppcheck -j $(nproc) \
-		&& DESTDIR=../install cmake --build . --target install ;; \
-		*) mkdir -p /root/cppcheck/install/usr/local/ ;; esac
+	&& apt install -q -y --no-install-recommends clang-9 libpcre3-dev \
+	&& update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 20 \
+	&& update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 20 \
+	&& cd cppcheck && git checkout ${cppcheckVer} && mkdir build && cd build \
+	&& cmake ../ -DCMAKE_BUILD_TYPE=Release -DHAVE_RULES=ON -DUSE_MATCHCOMPILER=ON \
+	&& cmake --build . --target cppcheck -j $(nproc) \
+	&& DESTDIR=../install cmake --build . --target install ;; \
+	*) mkdir -p /root/cppcheck/install/usr/local/ ;; esac
 
 FROM base2 AS base3
 RUN locale-gen en_US.UTF-8
