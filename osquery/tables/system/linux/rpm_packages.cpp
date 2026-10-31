@@ -75,12 +75,11 @@ std::string getRpmAttribute(const Header& header,
     const auto* tag_name = rpmTagGetName(tag);
     const auto* package_name =
         header != nullptr ? headerGetString(header, RPMTAG_NAME) : nullptr;
-    logger.vlog(
-        1,
-        std::string("Could not get RPM header tag ") +
-            (tag_name != nullptr ? tag_name : "<unknown>") + " (" +
-            std::to_string(tag) + ") for package " +
-            (package_name != nullptr ? package_name : "<unknown>"));
+    logger.vlog(1,
+                std::string("Could not get RPM header tag ") +
+                    (tag_name != nullptr ? tag_name : "<unknown>") + " (" +
+                    std::to_string(tag) + ") for package " +
+                    (package_name != nullptr ? package_name : "<unknown>"));
     return result;
   }
 

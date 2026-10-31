@@ -120,7 +120,8 @@ TEST_F(RpmAttributeTests, present_epoch_failed_retrieval) {
   ASSERT_EQ(headerPutUint32(header, RPMTAG_EPOCH, &epoch, 1), 1);
   ASSERT_EQ(headerPutString(header, RPMTAG_NAME, "synthetic-package"), 1);
   ASSERT_EQ(headerIsEntry(header, RPMTAG_EPOCH), 1);
-  // Real API failure, not a simulated corrupt package: headerGet rejects null td.
+  // Real API failure, not a simulated corrupt package: headerGet rejects null
+  // td.
   rpmtd invalid_td{nullptr};
   EXPECT_EQ(getRpmAttribute(header, RPMTAG_EPOCH, invalid_td, logger), "");
   ASSERT_EQ(logger.messages.size(), 1U);
@@ -147,10 +148,17 @@ TEST_F(RpmAttributeTests, invalid_header) {
 
 TEST_F(RpmAttributeTests, repeated_attributes) {
   ASSERT_EQ(headerPutString(header, RPMTAG_NAME, "synthetic-package"), 1);
-  const std::vector<rpmTag> tags = {
-      RPMTAG_NAME, RPMTAG_VERSION, RPMTAG_RELEASE, RPMTAG_SOURCERPM,
-      RPMTAG_SIZE, RPMTAG_SHA1HEADER, RPMTAG_ARCH, RPMTAG_EPOCH,
-      RPMTAG_INSTALLTIME, RPMTAG_VENDOR, RPMTAG_GROUP};
+  const std::vector<rpmTag> tags = {RPMTAG_NAME,
+                                    RPMTAG_VERSION,
+                                    RPMTAG_RELEASE,
+                                    RPMTAG_SOURCERPM,
+                                    RPMTAG_SIZE,
+                                    RPMTAG_SHA1HEADER,
+                                    RPMTAG_ARCH,
+                                    RPMTAG_EPOCH,
+                                    RPMTAG_INSTALLTIME,
+                                    RPMTAG_VENDOR,
+                                    RPMTAG_GROUP};
   // Three enumerations of 100 synthetic headers: nine failures per row.
   for (int query = 0; query < 3; ++query) {
     for (int package = 0; package < 100; ++package) {
