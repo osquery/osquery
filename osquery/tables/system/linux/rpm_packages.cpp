@@ -65,13 +65,14 @@ std::string getRpmAttribute(const Header& header,
                             const rpmtd& td,
                             Logger& logger) {
   std::string result;
-  if (headerGet(header, tag, td, HEADERGET_DEFAULT) == 0) {
-    // Epoch is optional, but a failed read alone does not establish absence.
-    if (header != nullptr && td != nullptr && tag == RPMTAG_EPOCH &&
-        headerIsEntry(header, tag) == 0) {
-      return result;
-    }
+  const bool read_failed = headerGet(header, tag, td, HEADERGET_DEFAULT) == 0;
+  // Epoch is optional, but a failed read alone does not establish absence.
+  if (read_failed && header != nullptr && td != nullptr && tag == RPMTAG_EPOCH &&
+      headerIsEntry(header, tag) == 0) {
+    return result;
+  }
 
+  if (read_failed) {
     const auto* tag_name = rpmTagGetName(tag);
     const auto* package_name =
         header != nullptr ? headerGetString(header, RPMTAG_NAME) : nullptr;
