@@ -30,15 +30,19 @@ readonly PERL_MODULES=(FindBin IPC::Cmd File::Copy File::Path File::Glob
 readonly SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 with_tests=false
+assume_yes=false
 venv_dir="${HOME}/.venvs/osquery"
 toolchain_prefix="/usr/local"
 
 usage() {
   cat <<EOF
 Usage: $0 [--with-tests] [--venv-dir <dir>] [--toolchain-prefix <dir>]
+          [--yes]
 
   --with-tests              Also install the Python test prerequisites into a
                             virtualenv
+  --yes                     Answer yes to confirmations, e.g. replace an
+                            existing toolchain without prompting
   --venv-dir <dir>          Where to create the test virtualenv
                             (default: ~/.venvs/osquery). Don't share one
                             between machines, e.g. in a source tree shared
@@ -60,6 +64,7 @@ fail() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --with-tests) with_tests=true ;;
+    --yes) assume_yes=true ;;
     --venv-dir)
       [[ $# -ge 2 ]] || fail "--venv-dir requires a directory"
       venv_dir="$2"
@@ -187,6 +192,16 @@ if [[ -x "${toolchain_dir}/usr/bin/clang" && -f "${toolchain_marker}" && \
   log "osquery toolchain ${TOOLCHAIN_VERSION} already installed at ${toolchain_dir}"
 else
   if [[ -e "${toolchain_dir}" ]]; then
+    if [[ "${assume_yes}" != true ]]; then
+      if [[ -t 0 ]]; then
+        read -r -p "==> Replace the existing toolchain at ${toolchain_dir} with ${TOOLCHAIN_VERSION}? [y/N] " reply
+        [[ "${reply}" =~ ^[Yy]([Ee][Ss])?$ ]] || \
+          fail "aborted; not replacing ${toolchain_dir}"
+      else
+        fail "a different toolchain is installed at ${toolchain_dir};" \
+          "rerun with --yes to replace it"
+      fi
+    fi
     log "Replacing the toolchain at ${toolchain_dir}; osquery ${TOOLCHAIN_VERSION}" \
       "is required (it may be a different version, or predate the marker file)"
     "${sudo[@]}" rm -rf "${toolchain_dir}"
