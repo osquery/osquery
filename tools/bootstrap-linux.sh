@@ -217,11 +217,15 @@ fi
 
 log "Done. To build osquery:"
 if [[ "${toolchain_prefix}" == "/usr/local" ]]; then
-  echo "  cmake --preset linux"
+  echo "  make build"
+  if [[ "${with_tests}" == true ]]; then
+    echo "Run the tests with: make test"
+  fi
 else
+  # The Makefile's targets cannot pass a custom toolchain sysroot.
   echo "  cmake --preset linux -DOSQUERY_TOOLCHAIN_SYSROOT=${toolchain_dir}"
+  echo "  cmake --build --preset linux -j \$(nproc)"
 fi
-echo "  cmake --build --preset linux -j \$(nproc)"
 if [[ "${with_tests}" == true ]]; then
   echo "Activate the test virtualenv with: source ${venv_dir}/bin/activate"
 fi
