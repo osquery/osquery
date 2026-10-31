@@ -140,5 +140,4 @@ TEST_F(FilePathsConfigParserPluginTests, test_pending_query_added) {
   // Without an intervening removal, the deferred query's paths are added.
   EXPECT_EQ(numFiles(), 1U);
 }
-
 }
