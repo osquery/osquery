@@ -180,9 +180,17 @@ case "$(uname -m)" in
 esac
 
 toolchain_dir="${toolchain_prefix}/osquery-toolchain"
-if [[ -x "${toolchain_dir}/usr/bin/clang" ]]; then
-  log "osquery toolchain already installed at ${toolchain_dir}"
+# The toolchain ships no version file, so record the version we installed.
+toolchain_marker="${toolchain_dir}/.osquery-toolchain-version"
+if [[ -x "${toolchain_dir}/usr/bin/clang" && -f "${toolchain_marker}" && \
+      "$(cat "${toolchain_marker}")" == "${TOOLCHAIN_VERSION}" ]]; then
+  log "osquery toolchain ${TOOLCHAIN_VERSION} already installed at ${toolchain_dir}"
 else
+  if [[ -e "${toolchain_dir}" ]]; then
+    log "Replacing the toolchain at ${toolchain_dir}; osquery ${TOOLCHAIN_VERSION}" \
+      "is required (it may be a different version, or predate the marker file)"
+    "${sudo[@]}" rm -rf "${toolchain_dir}"
+  fi
   toolchain_archive="osquery-toolchain-${TOOLCHAIN_VERSION}-$(uname -m).tar.xz"
   toolchain_url="https://github.com/osquery/osquery-toolchain/releases/download/${TOOLCHAIN_VERSION}/${toolchain_archive}"
   download_dir="$(mktemp -d)"
@@ -200,6 +208,7 @@ else
   "${sudo[@]}" mkdir -p "${toolchain_prefix}"
   "${sudo[@]}" tar -xJf "${download_dir}/${toolchain_archive}" \
     -C "${toolchain_prefix}"
+  echo "${TOOLCHAIN_VERSION}" | "${sudo[@]}" tee "${toolchain_marker}" > /dev/null
 fi
 
 # Optionally set up the Python test prerequisites in a virtualenv.
