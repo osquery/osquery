@@ -10,6 +10,11 @@ cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 # Set embedded debug info (this used to be set manually with /Z7)
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
+# An in-source build would overwrite the top-level Makefile.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "In-source builds are not supported; configure into a separate build folder, for example with: cmake --preset <name>")
+endif()
+
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
 # utilities.cmake is a dependency of toolchain.cmake.
