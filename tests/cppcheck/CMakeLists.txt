@@ -45,17 +45,57 @@ function(cppcheckMain)
 
   # We don't care if multithreading disables the unusedFunction check, since that would turn off
   # suppressions (and we don't want to waste time analyzing the source modules)
+  if(DEFINED PLATFORM_WINDOWS)
+    set(cppcheck_platform "win64")
+  else()
+    set(cppcheck_platform "unix64")
+  endif()
+
+  set(cppcheck_build_dir "${CMAKE_BINARY_DIR}/cppcheck-build-dir-${CMAKE_BUILD_TYPE}")
+
+  set(platform_libraries)
+  if(DEFINED PLATFORM_POSIX)
+    list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/posix.cfg")
+  endif()
+  if(DEFINED PLATFORM_MACOS)
+    list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/darwin.cfg")
+  endif()
+
+  set(platform_options)
+  if(DEFINED PLATFORM_LINUX)
+    if(TARGET_PROCESSOR STREQUAL "x86_64")
+      list(APPEND platform_options "-D__x86_64__=1")
+    elseif(TARGET_PROCESSOR STREQUAL "aarch64")
+      list(APPEND platform_options "-D__aarch64__=1")
+    endif()
+  endif()
+
   add_custom_target(
     cppcheck
     COMMAND "${CMAKE_COMMAND}" -E echo "Suppression list: '${cppcheck_suppressions_list}'"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${cppcheck_build_dir}"
     COMMAND cppcheck::cppcheck "--suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions_list.txt"
-            "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg" ${multithread_options}
-            --enable=all --platform=unix64 --std=c++17 "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
-            ${ignored_folders} -q
+            "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/googletest.cfg"
+            "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/gnu_attributes.cfg"
+            ${platform_libraries}
+            ${platform_options}
+            ${multithread_options}
+            --enable=all "--platform=${cppcheck_platform}"
+            "--cppcheck-build-dir=${cppcheck_build_dir}"
+            "--checkers-report=${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
+            --std=c++17
+            "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
+            "--template={file}:{line}:{column}: {severity}: {message} [{id}]"
+            ${ignored_folders}
+            --quiet
+    COMMAND "${CMAKE_COMMAND}" -E cat "${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
     VERBATIM
   )
+
+  # Analyze the generated table callers without compiling the table libraries.
+  add_dependencies(cppcheck codegen_native_tables_sources codegen_foreign_tables_sources)
 endfunction()
 
 cppcheckMain()

@@ -1,0 +1,32 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "cppcheck-error",
+      "severity": "error",
+      "pattern": [
+        {
+          "regexp": "^(.+?):([0-9]+):([0-9]+): error: (.+) \\[([^\\]]+)\\]$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4,
+          "code": 5
+        }
+      ]
+    },
+    {
+      "owner": "cppcheck-warning",
+      "severity": "warning",
+      "pattern": [
+        {
+          "regexp": "^(.+?):([0-9]+):([0-9]+): ((?:warning|style|performance|portability|information|debug): .+) \\[([^\\]]+)\\]$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4,
+          "code": 5
+        }
+      ]
+    }
+  ]
+}
