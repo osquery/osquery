@@ -14,6 +14,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sql.h>
+#include <osquery/sql/sqlite_util.h>
 
 namespace osquery {
 
@@ -28,9 +29,17 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
 
   Status update(const std::string& source, const ParserConfig& config) override;
 
+  /// Create and drop views on the primary connection, which takes SQLite locks.
+  void afterUpdate() override;
+
  private:
   const std::string kConfigViews = "config_views.";
   std::atomic<bool> first_time_{true};
+
+  /// Whether update() received views that afterUpdate() has not applied.
+  /// Only accessed during a config update, which the config's update mutex
+  /// serializes.
+  bool pending_{false};
 };
 
 Status ViewsConfigParserPlugin::update(const std::string& source,
@@ -48,11 +57,25 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
     data_ = std::move(doc);
   }
 
-  const auto& views = data_.doc()["views"];
+  // Views are created and dropped on the primary connection in afterUpdate(),
+  // outside of the config locks, because doing so takes SQLite locks.
+  pending_ = true;
+  return Status::success();
+}
+
+void ViewsConfigParserPlugin::afterUpdate() {
+  if (!pending_) {
+    return;
+  }
+  pending_ = false;
+
+  // Work on a copy, so the view iteration is not affected if data_ is
+  // replaced by a later update of this parser.
+  auto views_config = JSON::newFromValue(data_.doc()["views"]);
+  const auto& views = views_config.doc();
 
   // We use a restricted scope below to change the data structure from
   // an array to a set. This lets us do deletes much more efficiently
-  std::vector<std::string> created_views;
   std::set<std::string> erase_views;
   {
     std::vector<std::string> old_views_vec;
@@ -61,6 +84,10 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       erase_views.insert(view.substr(kConfigViews.size()));
     }
   }
+
+#ifndef OSQUERY_IS_FUZZING
+  auto dbc = SQLiteDBManager::getConnection(true);
+#endif
 
   QueryData r;
   if (views.IsObject()) {
@@ -89,8 +116,10 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       auto s = Status::success();
 #else
       // View has been updated
-      osquery::query("DROP VIEW " + name, r);
-      auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
+      r.clear();
+      queryInternal("DROP VIEW " + name, r, dbc);
+      r.clear();
+      auto s = queryInternal("CREATE VIEW " + name + " AS " + query, r, dbc);
 #endif
       if (s.ok()) {
         setDatabaseValue(kQueries, kConfigViews + name, query);
@@ -104,13 +133,13 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
   // so we tear them down and remove them from the database.
   for (const auto& old_view : erase_views) {
 #ifndef OSQUERY_IS_FUZZING
-    osquery::query("DROP VIEW " + old_view, r);
+    r.clear();
+    queryInternal("DROP VIEW " + old_view, r, dbc);
 #endif
     deleteDatabaseValue(kQueries, kConfigViews + old_view);
   }
 
   first_time_ = false;
-  return Status(0, "OK");
 }
 
 REGISTER_INTERNAL(ViewsConfigParserPlugin, "config_parser", "views");
