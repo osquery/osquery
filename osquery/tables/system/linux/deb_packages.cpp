@@ -13,6 +13,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/linux/idpkgquery.h>
+#include <osquery/utils/mutex.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -37,6 +38,9 @@ struct ErrorLog {
 // From the documentation: this directory contains many files that give
 // information about status of installed or uninstalled packages
 const std::string kAdminDir{"/var/lib/dpkg"};
+
+// libdpkg keeps process-wide state, so only one thread can use it at a time.
+Mutex dpkg_mutex;
 
 void logError(Logger& logger,
               const std::string& message,
@@ -135,6 +139,9 @@ QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
 }
 
 QueryData genDebPackages(QueryContext& context) {
+  // Lock in the parent, not in genDebPackagesImpl: the namespace worker is
+  // forked from here and would inherit the mutex already locked.
+  WriteLock lock(dpkg_mutex);
   if (hasNamespaceConstraint(context)) {
     return generateInNamespace(context, "deb_packages", genDebPackagesImpl);
   } else {
@@ -173,6 +180,7 @@ void genDebPackageFiles(RowYield& yield, QueryContext& context) {
       if (allowed_packages.empty()) {
         // Only initialize dpkg query and generate package list if no package
         // constraint is provided
+        WriteLock lock(dpkg_mutex);
         auto dpkg_query_exp = IDpkgQuery::create(admindir);
         if (dpkg_query_exp.isError()) {
           errorLogBuffer.emplace_back("Failed to open the dpkg database",
