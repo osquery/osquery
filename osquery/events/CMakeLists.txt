@@ -73,6 +73,7 @@ function(generateOsqueryEvents)
         windows/etw/etw_post_processing_pipeline.cpp
         windows/etw/etw_kernel_session.cpp
         windows/etw/etw_controller.cpp
+        windows/etw/etw_test_session_lock.cpp
         windows/etw/etw_publisher.cpp
       )
     endif()	
@@ -193,6 +194,7 @@ function(generateOsqueryEvents)
         windows/etw/etw_kernel_session.h
         windows/etw/etw_data_event.h
         windows/etw/etw_controller.h
+        windows/etw/etw_test_session_lock.h
         windows/etw/etw_concurrent_queue.h
       )
     endif()	
@@ -210,7 +212,8 @@ function(generateOsqueryEvents)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
 
     if(OSQUERY_BUILD_ETW)
-		add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
+      add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
+      set_tests_properties(osquery_tables_events_tests_etwtests-test PROPERTIES COST 90)
     endif()		
   endif()
 endfunction()

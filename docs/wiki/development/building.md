@@ -181,6 +181,66 @@ The use of an Administrator shell is recommended because the build process creat
 
 To build with tests active, add `-DOSQUERY_BUILD_TESTS=ON` to the osquery configure phase, then build the project. CTest will be used to run the tests and give a report.
 
+The CMake `test`/`RUN_TESTS` targets run tests in parallel using the processor count
+detected at configuration time on all platforms. To override this default, pass
+CTest arguments when configuring, for example
+`cmake -S . -B build '-DCMAKE_CTEST_ARGUMENTS=-j;2'` (use `-j;1` for serial tests).
+An explicit `-j` or `--parallel` in `CMAKE_CTEST_ARGUMENTS` is preserved.
+When using the automatic default, CTest prints the configured default concurrency
+when tests run, rather than during CMake configuration.
+
+CI defaults to the processor count (twice the processor count on macOS).
+The packaged macOS test launcher defaults to the processor count,
+unless `CTEST_PARALLEL_LEVEL` is already set. An explicit CTest `-j` or `--parallel`
+option takes precedence over that environment variable.
+
+The CMake test targets and CI use `--output-on-failure`, so each failed test's
+output is printed as a non-interleaved block when it finishes. Passing test output
+is suppressed.
+
+For direct `ctest` invocations locally, set `CTEST_PARALLEL_LEVEL` in your shell:
+
+```bash
+# Linux
+export CTEST_PARALLEL_LEVEL=$(nproc)
+# macOS
+export CTEST_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu)
+```
+
+```PowerShell
+# Windows
+$Env:CTEST_PARALLEL_LEVEL=$Env:NUMBER_OF_PROCESSORS
+```
+
+Integration table tests are split into GoogleTest shards, defaulting to the
+processor count detected at configuration time. CTest schedules these shards
+alongside other tests under the same parallel job limit. Configure with
+`-DOSQUERY_INTEGRATION_TEST_SHARDS=N` to change the number of shards, or use `1`
+to disable sharding. Linux root-only integration tests remain a separate,
+unsharded test labeled `root-required`.
+On Windows, test processes acquire the named mutex
+`Global\OsqueryETWTestSessions` on the main test thread before initializing ETW.
+The controller holds it until process shutdown, releasing it on the main thread
+after its trace sessions are destroyed. Tests must stop and join their event
+services before exiting. This protects future ETW tests and separate CTest
+invocations without changing production behavior. Acquisition fails explicitly
+after five minutes; abandoned ownership is accepted so existing trace-session
+initialization can reclaim traces left by a crashed test.
+Integration shards without ETW initialization remain fully parallel.
+
+Integration shards and the slower Python suites have explicit CTest `COST`
+estimates so parallel runs schedule them ahead of short tests, including on fresh
+CI builds without timing history.
+Windows uses platform-specific estimates for its slower TLS, ETW, filesystem,
+database/logger plugin, Python, and integration tests.
+macOS also uses platform-specific estimates, prioritizing its particularly slow
+TLS config and transport suites, followed by logger and integration tests.
+
+Use `ctest -R tests_integration_tables-test` to run all non-root integration
+shards; an exact match to `^tests_integration_tables-test$` runs only the first
+shard. On Windows and macOS, `GTEST_FILTER` still selects individual unit tests
+across the shards; Linux retains its existing root/non-root command-line filters.
+
 ### Run tests on Windows
 
 To run the tests and get just a summary report:

@@ -317,6 +317,7 @@ void validate_container_rows(const std::string& table_name,
 }
 
 void setUpEnvironment() {
+  setToolType(ToolType::TEST);
   platformSetup();
   registryAndPluginInit();
   initDatabasePluginForTesting();

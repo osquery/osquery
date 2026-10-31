@@ -68,6 +68,9 @@ function(generateOsqueryTablesYaraYaratable)
   generateIncludeNamespace(osquery_tables_yara_yaratable "osquery/tables/yara" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_tables_yara_tests-test COMMAND osquery_tables_yara_tests-test)
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_tables_yara_tests-test PROPERTIES COST 50)
+  endif()
   
 endfunction()
 
