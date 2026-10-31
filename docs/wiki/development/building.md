@@ -57,8 +57,8 @@ On distributions the script doesn't support, install the equivalent of these pac
 sudo apt install --no-install-recommends git python3 bison flex make cmake perl ccache
 
 export ARCH=$(uname -m)
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.3.0/osquery-toolchain-1.3.0-${ARCH}.tar.xz
-sudo tar xvf osquery-toolchain-1.3.0-${ARCH}.tar.xz -C /usr/local
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-${ARCH}.tar.xz
+sudo tar xvf osquery-toolchain-1.2.0-${ARCH}.tar.xz -C /usr/local
 ```
 
 The OpenSSL build runs the first `perl` on your `PATH`, which needs the full set of core modules (including `FindBin` and `IPC::Cmd`). Python test prerequisites are listed in `tools/tests/requirements.txt`.
