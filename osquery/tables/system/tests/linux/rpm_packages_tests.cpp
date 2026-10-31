@@ -10,6 +10,7 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
 #include <osquery/utils/system/env.h>
+#include <osquery/worker/logging/include/logger.h>
 
 #include <rpm/header.h>
 #include <rpm/rpmdb.h>
@@ -25,14 +26,151 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace testing;
 
 namespace osquery {
 namespace tables {
+
+// Internal test seam; this helper is not part of an installed public API.
+std::string getRpmAttribute(const Header& header,
+                            rpmTag tag,
+                            const rpmtd& td,
+                            Logger& logger);
+
+// BEGIN RPM ATTRIBUTE REGRESSIONS
+class RpmAttributeLogger final : public Logger {
+ public:
+  void log(int, const std::string&) override {
+    ADD_FAILURE() << "Unexpected non-verbose diagnostic";
+  }
+
+  void vlog(int severity, const std::string& message) override {
+    EXPECT_EQ(severity, 1);
+    messages.push_back(message);
+  }
+
+  std::vector<std::string> messages;
+};
+
+class RpmAttributeTests : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    header = headerNew();
+    td = rpmtdNew();
+    ASSERT_NE(header, nullptr);
+    ASSERT_NE(td, nullptr);
+  }
+
+  void TearDown() override {
+    rpmtdFree(td);
+    headerFree(header);
+  }
+
+  Header header{nullptr};
+  rpmtd td{nullptr};
+  RpmAttributeLogger logger;
+};
+
+TEST_F(RpmAttributeTests, missing_epoch) {
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_EPOCH, td, logger), "");
+  EXPECT_TRUE(logger.messages.empty());
+}
+
+TEST_F(RpmAttributeTests, present_epoch) {
+  for (std::uint32_t epoch : {0U, 7U}) {
+    headerDel(header, RPMTAG_EPOCH);
+    ASSERT_EQ(headerPutUint32(header, RPMTAG_EPOCH, &epoch, 1), 1);
+    EXPECT_EQ(getRpmAttribute(header, RPMTAG_EPOCH, td, logger),
+              std::to_string(epoch));
+  }
+  EXPECT_TRUE(logger.messages.empty());
+}
+
+TEST_F(RpmAttributeTests, missing_name) {
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_NAME, td, logger), "");
+  ASSERT_EQ(logger.messages.size(), 1U);
+  EXPECT_EQ(logger.messages[0],
+            "Could not get RPM header tag Name (1000) for package <unknown>");
+}
+
+TEST_F(RpmAttributeTests, missing_other_tag_and_container_state) {
+  ASSERT_EQ(headerPutString(header, RPMTAG_NAME, "synthetic-package"), 1);
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_VERSION, td, logger), "");
+  ASSERT_EQ(logger.messages.size(), 1U);
+  EXPECT_EQ(logger.messages[0],
+            "Could not get RPM header tag Version (1001) for package "
+            "synthetic-package");
+  // Diagnostic lookup must not replace the failed tag's container with Name.
+  EXPECT_EQ(td->tag, RPMTAG_VERSION);
+  EXPECT_EQ(td->data, nullptr);
+  EXPECT_EQ(td->count, 0U);
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_NAME, td, logger),
+            "synthetic-package");
+  EXPECT_EQ(logger.messages.size(), 1U);
+}
+
+TEST_F(RpmAttributeTests, present_epoch_failed_retrieval) {
+  std::uint32_t epoch{7};
+  ASSERT_EQ(headerPutUint32(header, RPMTAG_EPOCH, &epoch, 1), 1);
+  ASSERT_EQ(headerPutString(header, RPMTAG_NAME, "synthetic-package"), 1);
+  ASSERT_EQ(headerIsEntry(header, RPMTAG_EPOCH), 1);
+  // Real API failure, not a simulated corrupt package: headerGet rejects null td.
+  rpmtd invalid_td{nullptr};
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_EPOCH, invalid_td, logger), "");
+  ASSERT_EQ(logger.messages.size(), 1U);
+  EXPECT_EQ(logger.messages[0],
+            "Could not get RPM header tag Epoch (1003) for package "
+            "synthetic-package");
+}
+
+TEST_F(RpmAttributeTests, invalid_container_missing_epoch) {
+  rpmtd invalid_td{nullptr};
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_EPOCH, invalid_td, logger), "");
+  ASSERT_EQ(logger.messages.size(), 1U);
+  EXPECT_EQ(logger.messages[0],
+            "Could not get RPM header tag Epoch (1003) for package <unknown>");
+}
+
+TEST_F(RpmAttributeTests, invalid_header) {
+  Header invalid_header{nullptr};
+  EXPECT_EQ(getRpmAttribute(invalid_header, RPMTAG_EPOCH, td, logger), "");
+  ASSERT_EQ(logger.messages.size(), 1U);
+  EXPECT_EQ(logger.messages[0],
+            "Could not get RPM header tag Epoch (1003) for package <unknown>");
+}
+
+TEST_F(RpmAttributeTests, repeated_attributes) {
+  ASSERT_EQ(headerPutString(header, RPMTAG_NAME, "synthetic-package"), 1);
+  const std::vector<rpmTag> tags = {
+      RPMTAG_NAME, RPMTAG_VERSION, RPMTAG_RELEASE, RPMTAG_SOURCERPM,
+      RPMTAG_SIZE, RPMTAG_SHA1HEADER, RPMTAG_ARCH, RPMTAG_EPOCH,
+      RPMTAG_INSTALLTIME, RPMTAG_VENDOR, RPMTAG_GROUP};
+  // Three enumerations of 100 synthetic headers: nine failures per row.
+  for (int query = 0; query < 3; ++query) {
+    for (int package = 0; package < 100; ++package) {
+      for (auto tag : tags) {
+        EXPECT_EQ(getRpmAttribute(header, tag, td, logger),
+                  tag == RPMTAG_NAME ? "synthetic-package" : "");
+      }
+    }
+  }
+  EXPECT_EQ(logger.messages.size(), 2700U);
+}
+
+TEST_F(RpmAttributeTests, malformed_insertion_is_not_retrieval_failure) {
+  std::uint32_t invalid_name{7};
+  EXPECT_EQ(headerPutUint32(header, RPMTAG_NAME, &invalid_name, 1), 0);
+  EXPECT_EQ(headerIsEntry(header, RPMTAG_NAME), 0);
+  EXPECT_EQ(getRpmAttribute(header, RPMTAG_NAME, td, logger), "");
+  EXPECT_EQ(logger.messages.size(), 1U);
+}
+// END RPM ATTRIBUTE REGRESSIONS
 
 rpmlogCallback gPreviousCallback{nullptr};
 
