@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <sstream>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -31,6 +32,23 @@ const std::vector<std::string> kExpectedOutputFieldList = {"datetime",
                                                            "level",
                                                            "keywords",
                                                            "data"};
+
+boost::property_tree::ptree createEventObject(
+    const std::string& event_data_content) {
+  std::stringstream xml_stream;
+  xml_stream << "<Event><System><Provider Name='Test Provider'/>"
+             << "<EventID>1</EventID><Level>1</Level><Task>1</Task>"
+             << "<Keywords>0</Keywords>"
+             << "<TimeCreated SystemTime='2026-10-31T00:00:00.0000000Z'/>"
+             << "<Channel>Application</Channel><Computer>test-host</Computer>"
+             << "</System><EventData>" << event_data_content
+             << "</EventData></Event>";
+
+  boost::property_tree::ptree event_object;
+  boost::property_tree::read_xml(xml_stream, event_object);
+
+  return event_object;
+}
 } // namespace
 
 class WindowsEventsTests : public testing::Test {};
@@ -154,6 +172,82 @@ TEST_F(WindowsEventsTests, invalid_event_parsing) {
   auto status = parseWindowsEventLogPTree(windows_event, event_object);
 
   ASSERT_FALSE(status.ok());
+}
+
+TEST_F(WindowsEventsTests, event_data_serialization) {
+  struct TestCase final {
+    std::string name;
+    std::string event_data;
+    std::string expected_json;
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {"unnamed_data_only",
+       "<Data>one</Data><Data>two</Data>",
+       R"json({"EventData":["one","two"]})json"},
+      {"named_data_only",
+       "<Data Name='First'>one</Data><Data Name='Second'>two</Data>",
+       R"json({"EventData":{"First":"one","Second":"two"}})json"},
+      {"named_data_and_binary",
+       "<Data Name='First'>one</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"First":"one","Binary":"bin"}})json"},
+      {"binary_only",
+       "<Binary>bin</Binary>",
+       R"json({"EventData":{"Binary":"bin"}})json"},
+      {"mixed_data_first",
+       "<Data>one</Data><Data>two</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"Data":["one","two"],"Binary":"bin"}})json"},
+      {"mixed_binary_first",
+       "<Binary>bin</Binary><Data>one</Data><Data>two</Data>",
+       R"json({"EventData":{"Binary":"bin","Data":["one","two"]}})json"},
+      {"single_unnamed_data_and_binary",
+       "<Data>one</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"Data":["one"],"Binary":"bin"}})json"},
+      {"interleaved_data_and_binary",
+       "<Data>one</Data><Binary>bin</Binary><Data>two</Data>",
+       R"json({"EventData":{"Data":["one","two"],"Binary":"bin"}})json"},
+      {"explicit_empty_name",
+       "<Data Name=''>one</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"Data":["one"],"Binary":"bin"}})json"},
+      {"unnamed_first_mixed_names",
+       "<Data>one</Data><Data Name='Second'>two</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"Data":["one","two"],"Binary":"bin"}})json"},
+      {"dotted_sibling_after_data",
+       "<Data>one</Data><Data>two</Data>"
+       "<Data.Extension>meta</Data.Extension>",
+       R"json({"EventData":{"Data":["one","two"],"Data.Extension":"meta"}})json"},
+      {"dotted_sibling_before_data",
+       "<Data.Extension>meta</Data.Extension>"
+       "<Data>one</Data><Data>two</Data>",
+       R"json({"EventData":{"Data.Extension":"meta","Data":["one","two"]}})json"},
+      {"dotted_sibling_interleaved",
+       "<Data>one</Data><Data.Extension>meta</Data.Extension>"
+       "<Data>two</Data>",
+       R"json({"EventData":{"Data":["one","two"],"Data.Extension":"meta"}})json"},
+      {"nested_mixed_data",
+       "<Container><Data>one</Data><Data>two</Data>"
+       "<Binary>bin</Binary></Container>",
+       R"json({"EventData":{"Container":{"Data":["one","two"],"Binary":"bin"}}})json"},
+      {"nested_dotted_sibling",
+       "<Container><Data>one</Data>"
+       "<Data.Extension>meta</Data.Extension><Data>two</Data></Container>",
+       R"json({"EventData":{"Container":{"Data":["one","two"],"Data.Extension":"meta"}}})json"},
+  };
+
+  for (const auto& test_case : test_cases) {
+    SCOPED_TRACE(test_case.name);
+    auto event_object = createEventObject(test_case.event_data);
+
+    WELEvent windows_event;
+    auto status = parseWindowsEventLogPTree(windows_event, event_object);
+
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+    EXPECT_EQ(windows_event.data, test_case.expected_json);
+
+    std::stringstream json_stream(windows_event.data);
+    boost::property_tree::ptree parsed_json;
+    ASSERT_NO_THROW(boost::property_tree::read_json(json_stream, parsed_json));
+  }
 }
 
 TEST_F(WindowsEventsTests, row_generation) {

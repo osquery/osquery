@@ -25,15 +25,16 @@ namespace osquery {
 static inline pt::ptree parseChildNodeToJSONPtree(
     const pt::ptree& event_data_node) {
   pt::ptree event_data;
+
   bool detect_data_type{true};
   bool as_array{false};
+  bool has_non_data{false};
 
   for (const auto& p : event_data_node) {
     const auto& name = p.first;
     const auto& data_field = p.second;
 
-    if (name == "Data") {
-      pt::ptree array_item;
+    if (name == "Data" && detect_data_type) {
       std::string data_name = {};
       auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
       if (data_name_attr_opt.has_value()) {
@@ -41,9 +42,49 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         data_name = data_name_attr.get_value<std::string>("");
       }
 
-      if (detect_data_type) {
-        as_array = data_name.empty();
-        detect_data_type = false;
+      as_array = data_name.empty();
+      detect_data_type = false;
+
+    } else if (name != "Data") {
+      has_non_data = true;
+    }
+  }
+
+  const auto wrap_data_array = as_array && has_non_data;
+  bool data_array_added{false};
+
+  for (const auto& p : event_data_node) {
+    const auto& name = p.first;
+    const auto& data_field = p.second;
+
+    if (name == "Data") {
+      if (wrap_data_array) {
+        if (!data_array_added) {
+          pt::ptree data_array;
+
+          for (const auto& data_child : event_data_node) {
+            if (data_child.first != "Data") {
+              continue;
+            }
+
+            pt::ptree array_item;
+            array_item.put("", data_child.second.get("", ""));
+            data_array.push_back(std::make_pair("", array_item));
+          }
+
+          event_data.push_back(std::make_pair("Data", data_array));
+          data_array_added = true;
+        }
+
+        continue;
+      }
+
+      pt::ptree array_item;
+      std::string data_name = {};
+      auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
+      if (data_name_attr_opt.has_value()) {
+        const auto& data_name_attr = data_name_attr_opt.value();
+        data_name = data_name_attr.get_value<std::string>("");
       }
 
       auto data_value = data_field.get("", "");
@@ -59,14 +100,23 @@ static inline pt::ptree parseChildNodeToJSONPtree(
       // Check if the `data_field` has no children and get
       // the data_value
       if (data_field.empty()) {
-        pt::ptree array_item;
         auto data_value = data_field.get("", "");
-        array_item.put("", data_value);
-        event_data.add_child(name, array_item);
+        pt::ptree child;
+        child.put("", data_value);
+
+        if (wrap_data_array) {
+          event_data.push_back(std::make_pair(name, child));
+        } else {
+          event_data.add_child(name, child);
+        }
       } else {
-        pt::ptree array_item;
         auto child = parseChildNodeToJSONPtree(data_field);
-        event_data.add_child(name, child);
+
+        if (wrap_data_array) {
+          event_data.push_back(std::make_pair(name, child));
+        } else {
+          event_data.add_child(name, child);
+        }
       }
     }
   }
