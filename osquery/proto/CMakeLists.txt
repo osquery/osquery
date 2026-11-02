@@ -12,20 +12,12 @@ function(osqueryProtoMain)
 endfunction()
 
 function(generateContainerdProtos)
-  # grpc library is imported via Findgrpc.cmake in the main library imports
-  # Use protoc and grpc_cpp_plugin built from the grpc library
-  # Get the actual location of the built executables
-  get_target_property(PROTOC_EXECUTABLE protoc RUNTIME_OUTPUT_DIRECTORY)
-  if(NOT PROTOC_EXECUTABLE)
-    set(PROTOC_EXECUTABLE "${PROTOC_PATH}")
-  endif()
-  set(PROTOC_EXECUTABLE "${PROTOC_EXECUTABLE}/protoc")
-
-  get_target_property(GRPC_CPP_PLUGIN_DIR grpc_cpp_plugin RUNTIME_OUTPUT_DIRECTORY)
-  if(NOT GRPC_CPP_PLUGIN_DIR)
-    set(GRPC_CPP_PLUGIN_DIR "${CMAKE_BINARY_DIR}/libs/src/grpc")
-  endif()
-  set(GRPC_CPP_PLUGIN_EXECUTABLE "${GRPC_CPP_PLUGIN_DIR}/grpc_cpp_plugin")
+  # grpc library is imported via Findgrpc.cmake in the main library imports.
+  # Resolve the built tools by target so the path is correct under multi-config
+  # generators (e.g. Ninja Multi-Config emits them in a per-config subdir). The
+  # generate commands below already DEPENDS on these targets.
+  set(PROTOC_EXECUTABLE "$<TARGET_FILE:protoc>")
+  set(GRPC_CPP_PLUGIN_EXECUTABLE "$<TARGET_FILE:grpc_cpp_plugin>")
 
   # Define imported protobuf dependencies
   # These are the google protobuf protos that our containerd protos import

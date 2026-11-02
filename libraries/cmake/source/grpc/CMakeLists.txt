@@ -132,7 +132,6 @@ function(grpcMain)
     c-ares
     thirdparty_zlib
     thirdparty_openssl
-    thirdparty_googletest
   )
 
   target_link_libraries(grpc++ PRIVATE
@@ -140,7 +139,6 @@ function(grpcMain)
     c-ares
     thirdparty_zlib
     thirdparty_openssl
-    thirdparty_googletest
   )
 
   add_library(thirdparty_grpc INTERFACE)
