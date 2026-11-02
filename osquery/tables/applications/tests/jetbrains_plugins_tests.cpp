@@ -328,6 +328,42 @@ TEST_F(JetbrainsPluginsTest, test_rejects_non_zip_archive) {
   EXPECT_TRUE(result.content.empty());
 }
 
+TEST_F(JetbrainsPluginsTest, test_getContentFromTag) {
+  EXPECT_EQ(getContentFromTag("<name>Osquery Plugin</name>", "name"),
+            "Osquery Plugin");
+  EXPECT_EQ(getContentFromTag("<vendor\n    url=\"https://www.osquery.io\"\n"
+                              "    email=\"help@osquery.io\">\n  Osquery\n"
+                              "</vendor>",
+                              "vendor"),
+            "\n  Osquery\n");
+  EXPECT_EQ(getContentFromTag("<version></version>", "version"), "");
+
+  // The opening tag matches by prefix and the first closing tag ends it.
+  EXPECT_EQ(getContentFromTag("<names>a</names><name>b</name>", "name"),
+            "a</names><name>b");
+  EXPECT_EQ(getContentFromTag("<name>a</name><name>b</name>", "name"), "a");
+
+  EXPECT_EQ(getContentFromTag("", "name"), "");
+  EXPECT_EQ(getContentFromTag("<name", "name"), "");
+  EXPECT_EQ(getContentFromTag("<name>unterminated", "name"), "");
+  EXPECT_EQ(getContentFromTag("</name>", "name"), "");
+  EXPECT_EQ(getContentFromTag("<vendor url=\"a\"/>", "vendor"), "");
+}
+
+TEST_F(JetbrainsPluginsTest, test_getContentFromTag_unterminated_tag_input) {
+  // A small plugin.xml with an open tag that never closes must not fail the
+  // query, these used to exceed the complexity limit of std::regex.
+  std::string open_tag_then_brackets("<name>");
+  open_tag_then_brackets.append(16384U, '>');
+  EXPECT_EQ(getContentFromTag(open_tag_then_brackets, "name"), "");
+
+  std::string repeated_open_tags;
+  while (repeated_open_tags.size() < 16384U) {
+    repeated_open_tags += "<name>";
+  }
+  EXPECT_EQ(getContentFromTag(repeated_open_tags, "name"), "");
+}
+
 TEST_F(JetbrainsPluginsTest, test_fileNameIsLikeVersionedLibraryName) {
   // Versioned filenames
   ASSERT_TRUE(fileNameIsLikeVersionedLibraryName("kotlin-stdlib-1.5.0.jar"));
