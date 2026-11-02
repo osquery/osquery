@@ -8,6 +8,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 import argparse
+import re
 import subprocess
 import unittest
 import sys
@@ -55,6 +56,34 @@ windows_expected_libraries = [
 
 
 class ReleaseTests(unittest.TestCase):
+    @unittest.skipUnless(utils.platform() == "win32", "Test for Windows only")
+    def test_windows_hardening(self):
+        output = subprocess.check_output(
+            ["dumpbin", "/HEADERS", "/LOADCONFIG", BUILD_DIR + "/osquery/osqueryd.exe"]
+        ).decode("utf-8")
+
+        # Check emitted PE metadata, not runtime enforcement or instrumentation
+        # of every linked object. CFG needs load-config data as well as its
+        # DLL characteristic; /CETCOMPAT is intentionally not required.
+        expected_properties = [
+            "Dynamic base",
+            "NX compatible",
+            "Control Flow Guard",
+            "CF instrumented",
+            "FID table present",
+        ]
+        if "magic # (PE32+)" in output:
+            expected_properties.append("High Entropy Virtual Addresses")
+
+        for expected_property in expected_properties:
+            with self.subTest(property=expected_property):
+                self.assertIsNotNone(
+                    re.search(
+                        r"(?im)^\s*" + re.escape(expected_property) + r"\s*$", output
+                    ),
+                    msg="Missing Windows hardening metadata: " + expected_property,
+                )
+
     @unittest.skipUnless(
         utils.platform() == "linux" or utils.platform() == "darwin",
         "Test for Darwin and Linux only",
