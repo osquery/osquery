@@ -35,6 +35,8 @@ libraries_without_cpe = [
     "aws-crt-cpp",
     "aws-sdk-cpp",
     "s2n",
+    "re2",
+    "abseil-cpp",
 ]
 
 # These libraries will be ignored from the up to date version check
