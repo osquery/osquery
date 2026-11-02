@@ -83,6 +83,10 @@ std::vector<NamedQuery> genSpotlightSearches(
 
 void releaseQueries(std::vector<NamedQuery>& queries) {
   for (const auto& query : queries) {
+    // Stop the query before releasing it, otherwise the connection to mds
+    // is not torn down and its mach port rights leak. Once enough of them
+    // accumulate, MDQueryExecute fails for every new query.
+    MDQueryStop(query.first);
     CFRelease(query.first);
   }
 }
