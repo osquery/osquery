@@ -113,7 +113,7 @@ TEST_F(RocksDBDatabasePluginTests, test_events_ttl) {
   auto handle = db.getHandleForColumnFamily(kEvents);
   ASSERT_NE(handle, nullptr) << kEvents;
 
-  // ttl should be configured to out custom value
+  // ttl should be configured to 1d
   auto ttl = db.db_->GetOptions(handle).ttl;
   EXPECT_EQ(ttl, 24 * 60 * 60) << kEvents;
 
