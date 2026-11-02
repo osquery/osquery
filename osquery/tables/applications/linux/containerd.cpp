@@ -778,7 +778,7 @@ QueryData genContainerdContainers(QueryContext& context) {
     queryContainersInNamespace(conn, ns, results);
   }
 
-  LOG(INFO) << "Completed query, returned " << results.size() << " rows";
+  VLOG(1) << "Completed query, returned " << results.size() << " rows";
   return results; // Single return path enables NRVO
 }
 
