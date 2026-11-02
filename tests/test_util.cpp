@@ -106,10 +106,8 @@ void initTesting() {
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
   kTestWorkingDirectory += std::to_string(platformGetUid());
-  // Shards must not remove each other's database and socket directories.
-  if (getEnvVar("GTEST_TOTAL_SHARDS")) {
-    kTestWorkingDirectory += "-shard-" + std::to_string(platformGetPid());
-  }
+  // Test processes must not remove each other's database and socket directories.
+  kTestWorkingDirectory += "-" + std::to_string(platformGetPid());
   kTestWorkingDirectory += "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 

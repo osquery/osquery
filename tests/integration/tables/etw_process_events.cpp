@@ -21,6 +21,7 @@
 namespace osquery {
 
 DECLARE_bool(enable_process_etw_events);
+DECLARE_bool(enable_dns_lookup_events);
 
 namespace table_tests {
 
@@ -29,9 +30,10 @@ class etwProcessEvents : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
 
-    // Enable ETW process events
+    // Enable both publishers before attachment, including the other ETW fixture.
     RegistryFactory::get().registry("config_parser")->setUp();
     FLAGS_enable_process_etw_events = true;
+    FLAGS_enable_dns_lookup_events = true;
 
     // Start eventing framework
     attachEvents();

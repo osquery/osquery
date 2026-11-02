@@ -228,6 +228,9 @@ after five minutes; abandoned ownership is accepted so existing trace-session
 initialization can reclaim traces left by a crashed test.
 Integration shards without ETW initialization remain fully parallel.
 
+C++ test working directories include the process ID, isolating temporary
+databases, sockets, and fixtures for both sharded and unsharded executables.
+
 Integration shards and the slower Python suites have explicit CTest `COST`
 estimates so parallel runs schedule them ahead of short tests, including on fresh
 CI builds without timing history.
