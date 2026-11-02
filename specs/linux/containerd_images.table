@@ -6,8 +6,8 @@ schema([
     Column("digest", TEXT, "Image digest (hash)"),
     Column("size", BIGINT, "Image size in bytes"),
     Column("media_type", TEXT, "Media type of the image"),
-    Column("created_at", TEXT, "Image creation time as string"),
-    Column("updated_at", TEXT, "Image last update time as string"),
+    Column("created_at", BIGINT, "Image creation time (seconds since epoch)"),
+    Column("updated_at", BIGINT, "Image last update time (seconds since epoch)"),
 ])
 implementation("applications/containerd@genContainerdImages")
 examples([
