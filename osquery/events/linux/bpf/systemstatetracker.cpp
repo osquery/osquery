@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -1056,7 +1057,10 @@ bool SystemStateTracker::parseUnixSockaddr(
 
   sockaddr_un addr{};
   std::memcpy(&addr, sockaddr.data(), size);
-  path = addr.sun_path;
+
+  // sun_path is not guaranteed to be null terminated when the
+  // captured address fills the field, so bound the read to its size.
+  path.assign(addr.sun_path, strnlen(addr.sun_path, sizeof(addr.sun_path)));
 
   return true;
 }
@@ -1212,7 +1216,7 @@ bool SystemStateTracker::parseNetlinkSockaddr(
     return false;
   }
 
-  auto size = std::min(sizeof(sockaddr_in), sockaddr.size());
+  auto size = std::min(sizeof(sockaddr_nl), sockaddr.size());
 
   sockaddr_nl addr{};
   std::memcpy(&addr, sockaddr.data(), size);
