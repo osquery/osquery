@@ -106,7 +106,8 @@ void initTesting() {
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
   kTestWorkingDirectory += std::to_string(platformGetUid());
-  // Test processes must not remove each other's database and socket directories.
+  // Test processes must not remove each other's database and socket
+  // directories.
   kTestWorkingDirectory += "-" + std::to_string(platformGetPid());
   kTestWorkingDirectory += "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
@@ -127,6 +128,7 @@ void initTesting() {
 void shutdownTesting() {
   shutdownDatabase();
   platformTeardown();
+  fs::remove_all(kTestWorkingDirectory);
 }
 
 #ifdef OSQUERY_WINDOWS

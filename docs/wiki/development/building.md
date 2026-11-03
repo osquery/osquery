@@ -230,6 +230,8 @@ Integration shards without ETW initialization remain fully parallel.
 
 C++ test working directories include the process ID, isolating temporary
 databases, sockets, and fixtures for both sharded and unsharded executables.
+`shutdownTesting()` removes the process-owned directory after releasing its
+database and platform resources.
 
 Integration shards and the slower Python suites have explicit CTest `COST`
 estimates so parallel runs schedule them ahead of short tests, including on fresh
