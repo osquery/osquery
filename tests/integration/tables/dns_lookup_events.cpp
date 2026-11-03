@@ -30,7 +30,8 @@ class dnsLookupEvents : public testing::Test {
   void SetUp() override {
     setUpEnvironment();
 
-    // Enable both publishers before attachment, including the other ETW fixture.
+    // Enable both publishers before attachment, including the other ETW
+    // fixture.
     RegistryFactory::get().registry("config_parser")->setUp();
     FLAGS_enable_dns_lookup_events = true;
     FLAGS_enable_process_etw_events = true;
