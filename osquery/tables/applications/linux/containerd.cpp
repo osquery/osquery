@@ -29,6 +29,7 @@
 #include <memory>
 #include <string_view>
 #include <typeindex>
+#include <set>
 #include <unordered_map>
 
 namespace osquery {
@@ -324,8 +325,18 @@ std::string jsonArrayToString(const rapidjson::Value& arr) {
  * or all available namespaces if no specific namespace is requested.
  */
 std::vector<std::string> getNamespacesToQuery(
-    const ContainerdConnection& conn) {
+    const ContainerdConnection& conn, QueryContext& query_context) {
   std::vector<std::string> namespaces;
+
+  // A `WHERE namespace = ...` / `IN (...)` constraint lets us query only those
+  // namespaces, skipping the ListNamespaces RPC and every other namespace.
+  if (query_context.constraints["namespace"].exists(EQUALS)) {
+    for (const auto& ns :
+         query_context.constraints["namespace"].getAll(EQUALS)) {
+      namespaces.push_back(ns);
+    }
+    return namespaces;
+  }
 
   if (!FLAGS_containerd_namespace.empty()) {
     namespaces.push_back(FLAGS_containerd_namespace);
@@ -536,7 +547,8 @@ void extractLabelsFromEntity(const EntityType& entity,
  */
 [[nodiscard]] std::vector<containerd::services::containers::v1::Container>
 listContainers(const ContainerdConnection& conn,
-               const std::string& namespace_name) {
+               const std::string& namespace_name,
+               const std::set<std::string>& ids = {}) {
   std::vector<containerd::services::containers::v1::Container> containers;
 
   containerd::services::containers::v1::Containers::Stub* stub = nullptr;
@@ -547,6 +559,12 @@ listContainers(const ContainerdConnection& conn,
   }
 
   containerd::services::containers::v1::ListContainersRequest request;
+  // A `WHERE id = ...` / `IN (...)` constraint is pushed to containerd as
+  // "id==<value>" filters (OR-combined) so the daemon returns only those
+  // containers instead of the full inventory.
+  for (const auto& id : ids) {
+    request.add_filters("id==" + id);
+  }
   grpc::ClientContext context;
   createContextWithTimeout(context, namespace_name);
 
@@ -574,6 +592,7 @@ listContainers(const ContainerdConnection& conn,
  */
 void queryContainersInNamespace(const ContainerdConnection& conn,
                                 const std::string& namespace_name,
+                                const std::set<std::string>& ids,
                                 QueryData& results) {
   VLOG(1) << "Querying containerd namespace: " << namespace_name;
 
@@ -581,7 +600,7 @@ void queryContainersInNamespace(const ContainerdConnection& conn,
   // task lookups.
   auto tasks_by_container = getAllTasks(conn, namespace_name);
 
-  for (const auto& container : listContainers(conn, namespace_name)) {
+  for (const auto& container : listContainers(conn, namespace_name, ids)) {
     Row r;
     r["id"] = container.id();
     r["namespace"] = namespace_name;
@@ -751,8 +770,9 @@ void parseOCISpec(const google::protobuf::Any& spec_any,
  */
 void queryContainerSpecsInNamespace(const ContainerdConnection& conn,
                                     const std::string& namespace_name,
+                                    const std::set<std::string>& ids,
                                     QueryData& results) {
-  for (const auto& container : listContainers(conn, namespace_name)) {
+  for (const auto& container : listContainers(conn, namespace_name, ids)) {
     if (container.has_spec()) {
       Row r;
       parseOCISpec(container.spec(), container.id(), namespace_name, r);
@@ -775,13 +795,14 @@ QueryData genContainerdContainers(QueryContext& context) {
   }
 
   QueryData results;
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   // Reserve space: reasonable estimate of 10 containers per namespace
   results.reserve(namespaces.size() * 10);
 
+  const auto ids = context.constraints["id"].getAll(EQUALS);
   for (const auto& ns : namespaces) {
-    queryContainersInNamespace(conn, ns, results);
+    queryContainersInNamespace(conn, ns, ids, results);
   }
 
   VLOG(1) << "Completed query, returned " << results.size() << " rows";
@@ -836,7 +857,7 @@ QueryData genContainerdImages(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 5 images per namespace
@@ -899,7 +920,7 @@ QueryData genContainerdSnapshots(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 20 snapshots per namespace per snapshotter
@@ -970,14 +991,15 @@ QueryData genContainerdContainerLabels(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 10 containers * 5 labels per namespace
   results.reserve(namespaces.size() * 50);
 
+  const auto ids = context.constraints["id"].getAll(EQUALS);
   for (const auto& namespace_name : namespaces) {
-    for (const auto& container : listContainers(conn, namespace_name)) {
+    for (const auto& container : listContainers(conn, namespace_name, ids)) {
       extractLabelsFromEntity(
           container, namespace_name, results, [](Row& r, const auto& c) {
             r["id"] = c.id();
@@ -1038,7 +1060,7 @@ QueryData genContainerdImageLabels(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 5 images * 3 labels per namespace
@@ -1085,7 +1107,7 @@ QueryData genContainerdSnapshotLabels(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 20 snapshots * 2 labels per namespace per
@@ -1154,14 +1176,15 @@ QueryData genContainerdContainerSpecs(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
   // Reserve space: estimate 10 containers per namespace
   results.reserve(namespaces.size() * 10);
 
+  const auto ids = context.constraints["id"].getAll(EQUALS);
   for (const auto& ns : namespaces) {
-    queryContainerSpecsInNamespace(conn, ns, results);
+    queryContainerSpecsInNamespace(conn, ns, ids, results);
   }
 
   return results;
@@ -1181,11 +1204,12 @@ QueryData genContainerdContainerEnvs(QueryContext& context) {
     return {};
   }
 
-  const auto namespaces = getNamespacesToQuery(conn);
+  const auto namespaces = getNamespacesToQuery(conn, context);
 
   QueryData results;
+  const auto ids = context.constraints["id"].getAll(EQUALS);
   for (const auto& ns : namespaces) {
-    for (const auto& container : listContainers(conn, ns)) {
+    for (const auto& container : listContainers(conn, ns, ids)) {
       if (!container.has_spec()) {
         continue;
       }
