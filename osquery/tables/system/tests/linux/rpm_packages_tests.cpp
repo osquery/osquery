@@ -10,7 +10,7 @@
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
 #include <osquery/utils/system/env.h>
-#include <osquery/worker/logging/include/logger.h>
+#include <osquery/worker/logging/logger.h>
 
 #include <rpm/header.h>
 #include <rpm/rpmdb.h>
