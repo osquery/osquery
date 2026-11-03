@@ -586,8 +586,10 @@ void queryContainersInNamespace(const ContainerdConnection& conn,
     r["id"] = container.id();
     r["namespace"] = namespace_name;
     r["image"] = container.image();
-    r["name"] = container.snapshot_key().empty() ? container.id()
-                                                 : container.snapshot_key();
+    // name is the container's user-specified id; snapshot_key names the rootfs
+    // snapshot, which may differ from the id, so expose it separately.
+    r["name"] = container.id();
+    r["snapshot_key"] = container.snapshot_key();
     r["runtime"] = container.has_runtime() ? container.runtime().name() : "";
     r["created_at"] = container.has_created_at()
                           ? formatTimestamp(container.created_at())
@@ -614,8 +616,12 @@ void queryContainersInNamespace(const ContainerdConnection& conn,
     r["pid"] = task_pid;
     r["status"] = task_status;
 
-    // Get namespace information from /proc if we have a valid PID
-    if (!task_pid.empty()) {
+    // Namespace inodes come from /proc/<pid>/ns, so only read them for a task
+    // with a live process. A stopped (or not-yet-started) task's reported PID
+    // may have been recycled by an unrelated process.
+    if (!task_pid.empty() &&
+        (task_status == "running" || task_status == "paused" ||
+         task_status == "pausing")) {
       ProcessNamespaceList namespace_list;
       if (procGetProcessNamespaces(task_pid, namespace_list).ok()) {
         for (const auto& [ns_type, ns_value] : namespace_list) {
