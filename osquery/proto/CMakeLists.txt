@@ -34,15 +34,26 @@ function(generateContainerdProtos)
     COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/containerd
   )
 
-  set(containerd_proto_files
+  set(containerd_service_protos
     containers
     tasks
-    namespaces
+    namespace
     images
     snapshots
   )
 
-  foreach(proto_file_name ${containerd_proto_files})
+  # Message-only types the services import (no gRPC service, so .pb only).
+  set(containerd_type_protos
+    types/descriptor
+    types/mount
+    types/metrics
+    types/task/task
+  )
+
+  # protobuf messages (.pb.{h,cc}) for every service and type proto. The service
+  # files import the type files as "types/<name>.proto", so the source dir is the
+  # single -I root under which both resolve.
+  foreach(proto_file_name ${containerd_service_protos} ${containerd_type_protos})
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
              ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
@@ -51,13 +62,17 @@ function(generateContainerdProtos)
               --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/containerd
               ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
-      DEPENDS ${PROTOBUF_PROTO_DEPS}
-      DEPENDS protoc
+              ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
+              ${PROTOBUF_PROTO_DEPS}
+              protoc
       VERBATIM
       COMMENT "Generating C++ protobuf for ${proto_file_name}"
     )
+  endforeach()
 
+  # gRPC stubs (.grpc.pb.{h,cc}) for the services only; the type protos define no
+  # service.
+  foreach(proto_file_name ${containerd_service_protos})
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.h
              ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.cc
@@ -67,29 +82,33 @@ function(generateContainerdProtos)
               --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
-      DEPENDS ${PROTOBUF_PROTO_DEPS}
-      DEPENDS protoc
-      DEPENDS grpc_cpp_plugin
+              ${CMAKE_CURRENT_SOURCE_DIR}/containerd/${proto_file_name}.proto
+              ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
+              ${PROTOBUF_PROTO_DEPS}
+              protoc
+              grpc_cpp_plugin
       VERBATIM
       COMMENT "Generating C++ gRPC stub for ${proto_file_name}"
     )
   endforeach()
 
+  # Collect generated sources: services contribute message + stub, types message
+  # only.
+  set(containerd_proto_sources)
+  foreach(proto_file_name ${containerd_service_protos})
+    list(APPEND containerd_proto_sources
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.grpc.pb.cc
+    )
+  endforeach()
+  foreach(proto_file_name ${containerd_type_protos})
+    list(APPEND containerd_proto_sources
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
+    )
+  endforeach()
+
   # Create a library with the generated proto sources
-  add_library(osquery_proto_containerd OBJECT
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/containers.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/containers.grpc.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/tasks.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/tasks.grpc.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/namespaces.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/namespaces.grpc.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/images.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/images.grpc.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/snapshots.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/containerd/snapshots.grpc.pb.cc
-  )
+  add_library(osquery_proto_containerd OBJECT ${containerd_proto_sources})
 
   # Link against the built grpc library
   target_link_libraries(osquery_proto_containerd PUBLIC
@@ -102,8 +121,12 @@ function(generateContainerdProtos)
     thirdparty_grpc_warning_suppressions
   )
 
+  # ${CMAKE_CURRENT_BINARY_DIR} makes <containerd/*.pb.h> available to callers;
+  # ${CMAKE_CURRENT_BINARY_DIR}/containerd resolves the generated cross-includes
+  # ("types/<name>.pb.h") the service headers emit.
   target_include_directories(osquery_proto_containerd PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/containerd
   )
 
 endfunction()

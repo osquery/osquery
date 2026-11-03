@@ -16,7 +16,7 @@
 
 #include <containerd/containers.grpc.pb.h>
 #include <containerd/images.grpc.pb.h>
-#include <containerd/namespaces.grpc.pb.h>
+#include <containerd/namespace.grpc.pb.h>
 #include <containerd/snapshots.grpc.pb.h>
 #include <containerd/tasks.grpc.pb.h>
 
@@ -364,19 +364,19 @@ std::vector<std::string> getNamespacesToQuery(
 /**
  * @brief Map containerd task status enum to string.
  */
-std::string mapTaskStatus(containerd::services::tasks::v1::Status status) {
+std::string mapTaskStatus(containerd::v1::types::Status status) {
   switch (status) {
-  case containerd::services::tasks::v1::Status::CREATED:
+  case containerd::v1::types::Status::CREATED:
     return "created";
-  case containerd::services::tasks::v1::Status::RUNNING:
+  case containerd::v1::types::Status::RUNNING:
     return "running";
-  case containerd::services::tasks::v1::Status::STOPPED:
+  case containerd::v1::types::Status::STOPPED:
     return "stopped";
-  case containerd::services::tasks::v1::Status::PAUSED:
+  case containerd::v1::types::Status::PAUSED:
     return "paused";
-  case containerd::services::tasks::v1::Status::PAUSING:
+  case containerd::v1::types::Status::PAUSING:
     return "pausing";
-  case containerd::services::tasks::v1::Status::UNKNOWN:
+  case containerd::v1::types::Status::UNKNOWN:
   default:
     return "unknown";
   }
@@ -386,13 +386,13 @@ std::string mapTaskStatus(containerd::services::tasks::v1::Status status) {
  * @brief Map snapshot kind enum to string.
  */
 std::string mapSnapshotKind(
-    containerd::services::snapshots::v1::Info::Kind kind) {
+    containerd::services::snapshots::v1::Kind kind) {
   switch (kind) {
-  case containerd::services::snapshots::v1::Info::VIEW:
+  case containerd::services::snapshots::v1::VIEW:
     return "view";
-  case containerd::services::snapshots::v1::Info::ACTIVE:
+  case containerd::services::snapshots::v1::ACTIVE:
     return "active";
-  case containerd::services::snapshots::v1::Info::COMMITTED:
+  case containerd::services::snapshots::v1::COMMITTED:
     return "committed";
   default:
     return "unknown";
@@ -460,10 +460,10 @@ std::vector<std::string> getAvailableSnapshotters(
  * indexed by container ID for efficient lookup. This avoids N+1 gRPC calls
  * when querying task information for multiple containers.
  */
-std::unordered_map<std::string, containerd::services::tasks::v1::Process>
+std::unordered_map<std::string, containerd::v1::types::Process>
 getAllTasks(const ContainerdConnection& conn,
             const std::string& namespace_name) {
-  std::unordered_map<std::string, containerd::services::tasks::v1::Process>
+  std::unordered_map<std::string, containerd::v1::types::Process>
       tasks_by_container;
 
   containerd::services::tasks::v1::Tasks::Stub* stub = nullptr;

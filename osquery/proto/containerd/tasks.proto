@@ -1,11 +1,18 @@
-/**
- * Copyright (c) 2014-present, The osquery authors
- *
- * This source code is licensed as defined by the LICENSE file found in the
- * root directory of this source tree.
- *
- * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
- */
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 
 syntax = "proto3";
 
@@ -14,38 +21,84 @@ package containerd.services.tasks.v1;
 import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "types/descriptor.proto";
+import "types/metrics.proto";
+import "types/mount.proto";
+import "types/task/task.proto";
 
 option go_package = "github.com/containerd/containerd/api/services/tasks/v1;tasks";
 
 service Tasks {
+  // Create a task.
   rpc Create(CreateTaskRequest) returns (CreateTaskResponse);
+
+  // Start a process.
   rpc Start(StartRequest) returns (StartResponse);
+
+  // Delete a task and on disk state.
   rpc Delete(DeleteTaskRequest) returns (DeleteResponse);
+
   rpc DeleteProcess(DeleteProcessRequest) returns (DeleteResponse);
+
   rpc Get(GetRequest) returns (GetResponse);
+
   rpc List(ListTasksRequest) returns (ListTasksResponse);
+
+  // Kill a task or process.
   rpc Kill(KillRequest) returns (google.protobuf.Empty);
+
   rpc Exec(ExecProcessRequest) returns (google.protobuf.Empty);
+
   rpc ResizePty(ResizePtyRequest) returns (google.protobuf.Empty);
+
   rpc CloseIO(CloseIORequest) returns (google.protobuf.Empty);
+
   rpc Pause(PauseTaskRequest) returns (google.protobuf.Empty);
+
   rpc Resume(ResumeTaskRequest) returns (google.protobuf.Empty);
+
   rpc ListPids(ListPidsRequest) returns (ListPidsResponse);
+
   rpc Checkpoint(CheckpointTaskRequest) returns (CheckpointTaskResponse);
+
   rpc Update(UpdateTaskRequest) returns (google.protobuf.Empty);
+
   rpc Metrics(MetricsRequest) returns (MetricsResponse);
+
   rpc Wait(WaitRequest) returns (WaitResponse);
 }
 
 message CreateTaskRequest {
   string container_id = 1;
-  repeated Mount rootfs = 3;
+
+  // RootFS provides the pre-chroot mounts to perform in the shim before
+  // executing the container task.
+  //
+  // These are for mounts that cannot be performed in the user namespace.
+  // Typically, these mounts should be resolved from snapshots specified on
+  // the container object.
+  repeated containerd.types.Mount rootfs = 3;
+
   string stdin = 4;
   string stdout = 5;
   string stderr = 6;
   bool terminal = 7;
-  Checkpoint checkpoint = 8;
+
+  containerd.types.Descriptor checkpoint = 8;
+
   google.protobuf.Any options = 9;
+
+  string runtime_path = 10;
+
+  // TaskApiAddress optionally specifies the address of an existing task API
+  // endpoint (e.g. an in-VM agent for sandbox runtimes such as Kata).
+  // When set, containerd connects to this address for task operations instead
+  // of bootstrapping a new shim.  The format is <protocol>+<scheme>://...,
+  // e.g. "ttrpc+unix:///path/to/uds" or "grpc+vsock://<cid>:<port>".
+  string task_api_address = 11;
+  // TaskApiVersion is the shim API version served at TaskApiAddress.
+  // Currently supported values are 2 and 3.
+  uint32 task_api_version = 12;
 }
 
 message CreateTaskResponse {
@@ -84,7 +137,7 @@ message GetRequest {
 }
 
 message GetResponse {
-  Process process = 1;
+  containerd.v1.types.Process process = 1;
 }
 
 message ListTasksRequest {
@@ -92,7 +145,7 @@ message ListTasksRequest {
 }
 
 message ListTasksResponse {
-  repeated Process tasks = 1;
+  repeated containerd.v1.types.Process tasks = 1;
 }
 
 message KillRequest {
@@ -108,7 +161,11 @@ message ExecProcessRequest {
   string stdout = 3;
   string stderr = 4;
   bool terminal = 5;
+  // Spec for starting a process in the target container.
+  //
+  // For runc, this is a process spec, for example.
   google.protobuf.Any spec = 6;
+  // id of the exec process
   string exec_id = 7;
 }
 
@@ -140,7 +197,8 @@ message ListPidsRequest {
 }
 
 message ListPidsResponse {
-  repeated ProcessInfo processes = 1;
+  // Processes includes the process ID and additional process information
+  repeated containerd.v1.types.ProcessInfo processes = 1;
 }
 
 message CheckpointTaskRequest {
@@ -150,12 +208,13 @@ message CheckpointTaskRequest {
 }
 
 message CheckpointTaskResponse {
-  repeated Descriptor descriptors = 1;
+  repeated containerd.types.Descriptor descriptors = 1;
 }
 
 message UpdateTaskRequest {
   string container_id = 1;
   google.protobuf.Any resources = 2;
+  map<string, string> annotations = 3;
 }
 
 message MetricsRequest {
@@ -163,7 +222,7 @@ message MetricsRequest {
 }
 
 message MetricsResponse {
-  repeated Metric metrics = 1;
+  repeated types.Metric metrics = 1;
 }
 
 message WaitRequest {
@@ -174,58 +233,4 @@ message WaitRequest {
 message WaitResponse {
   uint32 exit_status = 1;
   google.protobuf.Timestamp exited_at = 2;
-}
-
-// Process is a running process in a container
-message Process {
-  string container_id = 1;
-  string id = 2;
-  uint32 pid = 3;
-  Status status = 4;
-  string stdin = 5;
-  string stdout = 6;
-  string stderr = 7;
-  bool terminal = 8;
-  uint32 exit_status = 9;
-  google.protobuf.Timestamp exited_at = 10;
-}
-
-enum Status {
-  UNKNOWN = 0;
-  CREATED = 1;
-  RUNNING = 2;
-  STOPPED = 3;
-  PAUSED = 4;
-  PAUSING = 5;
-}
-
-message ProcessInfo {
-  uint32 pid = 1;
-  google.protobuf.Any info = 2;
-}
-
-message Mount {
-  string type = 1;
-  string source = 2;
-  string target = 3;
-  repeated string options = 4;
-}
-
-message Checkpoint {
-  string name = 1;
-  string parent_checkpoint = 2;
-  google.protobuf.Any options = 3;
-}
-
-message Descriptor {
-  string media_type = 1;
-  string digest = 2;
-  int64 size = 3;
-  map<string, string> annotations = 5;
-}
-
-message Metric {
-  google.protobuf.Timestamp timestamp = 1;
-  string id = 2;
-  google.protobuf.Any data = 3;
 }
