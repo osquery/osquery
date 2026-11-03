@@ -5,9 +5,13 @@ This directory contains Protocol Buffer (`.proto`) definitions for containerd's 
 ## Version Information
 
 - **API Version**: containerd v1 API (`/v1` services)
-- **Source**: Official containerd API definitions from https://github.com/containerd/containerd
-- **Compatible with**: containerd 1.6.x, 1.7.x, 2.0.x (v1 API is stable across versions)
-- **Protocol Buffers**: proto3 syntax
+- **Source**: copied **verbatim** from containerd `v2.4.2`
+  (https://github.com/containerd/containerd/tree/v2.4.2/api). The v1 API is wire
+  -stable, so these are compatible with containerd 1.6.x, 1.7.x and 2.x daemons.
+- **License**: each `.proto` keeps its upstream "Copyright The containerd Authors"
+  Apache-2.0 header **unchanged**. Do not add osquery's header or otherwise edit
+  these files — see "Updating" below.
+- **Protocol Buffers**: proto3 syntax (gogo-free)
 - **gRPC Version**: v1.70.2 (see `libraries/cmake/source/grpc/`)
 
 ## Files
@@ -16,9 +20,14 @@ This directory contains Protocol Buffer (`.proto`) definitions for containerd's 
 |------|-------------|---------|
 | `containers.proto` | Container lifecycle management | `containerd.services.containers.v1.Containers` |
 | `images.proto` | Image storage and metadata | `containerd.services.images.v1.Images` |
-| `namespaces.proto` | Namespace isolation | `containerd.services.namespaces.v1.Namespaces` |
+| `namespace.proto` | Namespace isolation | `containerd.services.namespaces.v1.Namespaces` |
 | `snapshots.proto` | Snapshot (filesystem layer) management | `containerd.services.snapshots.v1.Snapshots` |
 | `tasks.proto` | Running container process management | `containerd.services.tasks.v1.Tasks` |
+| `types/*.proto` | Shared message types the services import (`descriptor`, `mount`, `metrics`, `task/task`) | `containerd.types`, `containerd.v1.types` |
+
+The `types/` files are the transitive imports of the services above and are copied
+verbatim from the same containerd tag; the directory layout mirrors containerd's
+`api/` so the `import "types/..."` statements resolve unchanged.
 
 ## Build Process
 
