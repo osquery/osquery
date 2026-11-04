@@ -167,6 +167,16 @@ function(generateTestsIntegrationTablesTestsTest)
     set(platform_source_files
       apt_sources.cpp
       arp_cache.cpp
+      containerd_container_envs.cpp
+      containerd_container_labels.cpp
+      containerd_container_specs.cpp
+      containerd_containers.cpp
+      containerd_image_labels.cpp
+      containerd_images.cpp
+      containerd_namespace_labels.cpp
+      containerd_namespaces.cpp
+      containerd_snapshot_labels.cpp
+      containerd_snapshots.cpp
       intel_me_info.cpp
       iptables.cpp
       kernel_info.cpp
