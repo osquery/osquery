@@ -94,8 +94,10 @@ function(generateOsqueryTablesApplications)
   endif()
 
   if(DEFINED PLATFORM_LINUX)
-    # containerd.cpp needs gRPC and the generated containerd proto library
-    target_link_libraries(osquery_tables_applications PUBLIC
+    # containerd.cpp needs gRPC and the generated containerd proto library.
+    # PRIVATE: only containerd.cpp uses it, so the gRPC/protobuf include surface
+    # must not leak to the rest of this target or its dependents.
+    target_link_libraries(osquery_tables_applications PRIVATE
       osquery_proto_containerd
     )
 
