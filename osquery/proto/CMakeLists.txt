@@ -107,8 +107,23 @@ function(generateContainerdProtos)
     )
   endforeach()
 
+  # The service sources #include the generated type headers (types/*.pb.h), but
+  # protoc generates each proto independently with no ordering between them. Group
+  # the type outputs in a target the library depends on so every type header is
+  # generated before any service source in this library compiles; otherwise a
+  # parallel build can compile a service source before its type header exists.
+  set(containerd_type_outputs)
+  foreach(proto_file_name ${containerd_type_protos})
+    list(APPEND containerd_type_outputs
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
+      ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
+    )
+  endforeach()
+  add_custom_target(osquery_proto_containerd_types DEPENDS ${containerd_type_outputs})
+
   # Create a library with the generated proto sources
   add_library(osquery_proto_containerd OBJECT ${containerd_proto_sources})
+  add_dependencies(osquery_proto_containerd osquery_proto_containerd_types)
 
   # Link against the built grpc library
   target_link_libraries(osquery_proto_containerd PUBLIC
