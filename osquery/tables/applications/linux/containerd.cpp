@@ -27,9 +27,9 @@
 #include <charconv>
 #include <chrono>
 #include <memory>
+#include <set>
 #include <string_view>
 #include <typeindex>
-#include <set>
 #include <unordered_map>
 
 namespace osquery {
@@ -162,7 +162,7 @@ class ContainerdConnection {
    * @return true if stub was successfully retrieved/created, false on failure
    */
   template <typename StubType>
-  bool getStub(typename StubType::Stub** stub_out) const noexcept {
+  bool getStub(typename StubType::Stub** stub_out) const {
     if (!stub_out) {
       return false;
     }
@@ -185,7 +185,6 @@ class ContainerdConnection {
 
     auto* raw_ptr = stub.get();
 
-    // Store with type-erased deleter
     stub_cache_.emplace(type_id,
                         std::shared_ptr<void>(stub.release(), [](void* p) {
                           delete static_cast<typename StubType::Stub*>(p);
@@ -324,8 +323,8 @@ std::string jsonArrayToString(const rapidjson::Value& arr) {
  * Returns either the single namespace specified by FLAGS_containerd_namespace,
  * or all available namespaces if no specific namespace is requested.
  */
-std::vector<std::string> getNamespacesToQuery(
-    const ContainerdConnection& conn, QueryContext& query_context) {
+std::vector<std::string> getNamespacesToQuery(const ContainerdConnection& conn,
+                                              QueryContext& query_context) {
   std::vector<std::string> namespaces;
 
   // A `WHERE namespace = ...` / `IN (...)` constraint lets us query only those
@@ -343,11 +342,12 @@ std::vector<std::string> getNamespacesToQuery(
     return namespaces;
   }
 
-  // List all namespaces
+  // List all namespaces. On failure return empty rather than assuming
+  // "default": that namespace is often empty on Kubernetes nodes (containers
+  // live under "k8s.io"), so inventing it would silently hide every container.
   containerd::services::namespaces::v1::Namespaces::Stub* stub = nullptr;
   if (!conn.getStub<containerd::services::namespaces::v1::Namespaces>(&stub)) {
-    VLOG(1) << "Failed to create namespaces stub";
-    namespaces.push_back("default");
+    LOG(WARNING) << "Failed to create containerd namespaces stub";
     return namespaces;
   }
 
@@ -359,8 +359,8 @@ std::vector<std::string> getNamespacesToQuery(
   grpc::Status status = stub->List(&context, request, &response);
 
   if (!status.ok()) {
-    VLOG(1) << "Error listing namespaces: " << status.error_message();
-    namespaces.push_back("default");
+    LOG(WARNING) << "Error listing containerd namespaces: "
+                 << status.error_message();
     return namespaces;
   }
 
@@ -396,8 +396,7 @@ std::string mapTaskStatus(containerd::v1::types::Status status) {
 /**
  * @brief Map snapshot kind enum to string.
  */
-std::string mapSnapshotKind(
-    containerd::services::snapshots::v1::Kind kind) {
+std::string mapSnapshotKind(containerd::services::snapshots::v1::Kind kind) {
   switch (kind) {
   case containerd::services::snapshots::v1::VIEW:
     return "view";
@@ -471,9 +470,8 @@ std::vector<std::string> getAvailableSnapshotters(
  * indexed by container ID for efficient lookup. This avoids N+1 gRPC calls
  * when querying task information for multiple containers.
  */
-std::unordered_map<std::string, containerd::v1::types::Process>
-getAllTasks(const ContainerdConnection& conn,
-            const std::string& namespace_name) {
+std::unordered_map<std::string, containerd::v1::types::Process> getAllTasks(
+    const ContainerdConnection& conn, const std::string& namespace_name) {
   std::unordered_map<std::string, containerd::v1::types::Process>
       tasks_by_container;
 
@@ -791,7 +789,7 @@ void queryContainerSpecsInNamespace(const ContainerdConnection& conn,
 QueryData genContainerdContainers(QueryContext& context) {
   ContainerdConnection conn(FLAGS_containerd_socket);
   if (!conn.isConnected()) {
-    return {}; // Return empty QueryData directly (enables RVO)
+    return {};
   }
 
   QueryData results;
@@ -806,7 +804,7 @@ QueryData genContainerdContainers(QueryContext& context) {
   }
 
   VLOG(1) << "Completed query, returned " << results.size() << " rows";
-  return results; // Single return path enables NRVO
+  return results;
 }
 
 /**
