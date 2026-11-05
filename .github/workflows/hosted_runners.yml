@@ -303,6 +303,7 @@ jobs:
 
     - name: Run cppcheck
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: bash
       run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_macos.txt
 
     - name: Store the cppcheck log

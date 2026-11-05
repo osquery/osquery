@@ -95,7 +95,11 @@ function(cppcheckMain)
   )
 
   # Analyze the generated table callers without compiling the table libraries.
-  add_dependencies(cppcheck codegen_native_tables_sources codegen_foreign_tables_sources)
+  add_dependencies(cppcheck
+    codegen_native_tables_sources
+    codegen_foreign_tables_sources
+    osquery_rows_processes_header
+  )
 endfunction()
 
 cppcheckMain()
