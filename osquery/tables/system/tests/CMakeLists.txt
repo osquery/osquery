@@ -36,6 +36,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       linux/md_tables_tests.cpp
       linux/pacman_packages_tests.cpp
       linux/snap_packages_tests.cpp
+      linux/startup_items_tests.cpp
       linux/pci_devices_tests.cpp
       linux/pcidb_tests.cpp
       linux/portage_tests.cpp
