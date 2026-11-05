@@ -511,9 +511,15 @@ def run_http_server(bind_port=80, **kwargs):
             context.verify_mode = ssl.CERT_REQUIRED
 
         context.verify_flags = ssl.VERIFY_X509_STRICT
-        debug("Starting TLS/HTTPS server on TCP port: %d" % bind_port)
+        debug("Starting TLS/HTTPS server on TCP port: %d" % httpd.server_port)
     else:
-        debug("Starting HTTP server on TCP port: %d" % bind_port)
+        debug("Starting HTTP server on TCP port: %d" % httpd.server_port)
+
+    if kwargs.get("port_file"):
+        port_file = kwargs["port_file"]
+        with open(port_file + ".tmp", "w") as fh:
+            fh.write(str(httpd.server_port))
+        os.replace(port_file + ".tmp", port_file)
 
     try:
         httpd.serve_forever()
@@ -598,6 +604,11 @@ if __name__ == "__main__":
         default=HTTP_SERVER_REQUIRE_GZIP,
         help="Require clients to send 'Accept-Encoding: gzip' header. "
         "Reject requests without it with 400 Bad Request.",
+    )
+
+    parser.add_argument(
+        "--port-file",
+        help="Atomically publish the bound port after server initialization.",
     )
 
     parser.add_argument(
