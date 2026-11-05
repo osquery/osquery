@@ -64,10 +64,10 @@ Status TLSServerRunner::startAndSetScript(const std::string& port_file,
   args.push_back(port_file);
   args.push_back("0");
 
-  const auto cmd = osquery::join(args, " ");
-  server_ = PlatformProcess::launchTestPythonScript(cmd);
+  server_ = PlatformProcess::launchPythonScript(args);
   if (server_ == nullptr) {
-    return Status::failure("Cannot create test python script: " + cmd);
+    return Status::failure("Cannot create test python script: " +
+                           osquery::join(args, " "));
   }
   return Status::success();
 }
