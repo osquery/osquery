@@ -265,6 +265,40 @@ TEST_F(VirtualTableTests, test_table_alias_hidden_columns) {
           .ok());
 }
 
+TEST_F(VirtualTableTests, test_table_alias_planner_tables) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("hidden_table", std::make_shared<hiddenAliasTablePlugin>());
+  auto dbc = SQLiteDBManager::getUnique();
+
+  // Event subscribers are looked up by the canonical table name.
+  QueryPlanner planner("SELECT path FROM hidden_alias", dbc);
+  EXPECT_EQ(planner.tables(), std::vector<std::string>{"hidden_table"});
+}
+
+TEST_F(VirtualTableTests, test_table_alias_affected_tables) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("hidden_table", std::make_shared<hiddenAliasTablePlugin>());
+  auto dbc = SQLiteDBManager::getUnique();
+
+  QueryData results;
+  ASSERT_TRUE(queryInternal("SELECT * FROM hidden_table WHERE rule = 'r' UNION "
+                            "ALL SELECT * FROM hidden_alias WHERE rule = 'r'",
+                            results,
+                            dbc)
+                  .ok());
+
+  // Both tables' planning state is cleared, not just one of them.
+  std::vector<std::shared_ptr<VirtualTableContent>> contents;
+  for (const auto& table : dbc->affected_tables_) {
+    contents.push_back(table.second);
+  }
+  ASSERT_EQ(contents.size(), 2U);
+  dbc->clearAffectedTables();
+  for (const auto& content : contents) {
+    EXPECT_TRUE(content->constraints.empty());
+  }
+}
+
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");

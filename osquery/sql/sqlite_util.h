@@ -181,8 +181,10 @@ class SQLiteDBInstance : private boost::noncopyable {
   /// See attach_mutex_ but used for the primary database.
   static RecursiveMutex kPrimaryAttachMutex;
 
-  /// Vector of tables that need their constraints cleared after execution.
-  std::map<std::string, std::shared_ptr<VirtualTableContent>> affected_tables_;
+  /// Tables that need their constraints cleared after execution, keyed by
+  /// content since a table and its aliases share a name.
+  std::map<const VirtualTableContent*, std::shared_ptr<VirtualTableContent>>
+      affected_tables_;
 
  private:
   friend class SQLiteDBManager;
@@ -190,6 +192,7 @@ class SQLiteDBInstance : private boost::noncopyable {
 
  private:
   FRIEND_TEST(SQLiteUtilTests, test_affected_tables);
+  FRIEND_TEST(VirtualTableTests, test_table_alias_affected_tables);
 };
 
 using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
