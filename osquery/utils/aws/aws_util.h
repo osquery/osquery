@@ -21,7 +21,6 @@
 #include <aws/core/http/HttpClientFactory.h>
 #include <aws/core/http/standard/StandardHttpResponse.h>
 #include <aws/core/utils/StringUtils.h>
-#include <aws/ec2/EC2Client.h>
 #include <aws/firehose/FirehoseClient.h>
 #include <aws/kinesis/KinesisClient.h>
 #include <aws/sts/STSClient.h>
@@ -285,8 +284,6 @@ Status makeAWSClient(std::shared_ptr<Client>& client,
       return AWSServiceType::Firehose;
     } else if constexpr (std::is_same_v<Client, Aws::STS::STSClient>) {
       return AWSServiceType::STS;
-    } else if constexpr (std::is_same_v<Client, Aws::EC2::EC2Client>) {
-      return AWSServiceType::EC2;
     } else {
       static_assert(always_false<Client>::value, "Unsupported AWS Client type");
     }
