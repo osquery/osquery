@@ -258,9 +258,12 @@ TEST_F(RpmTests, test_rpm_package_files_reads_root_only_database) {
   RowGenerator::pull_type rows(
       [&context](RowYield& yield) { genRpmPackageFiles(yield, context); });
   std::map<std::string, std::vector<std::string>> files;
-  for (const auto& row : rows) {
-    Row r = static_cast<Row>(*row);
+  // No range-for: boost.coroutine2's begin/end overloads in namespace std
+  // clash with its detail:: ones when the yielded type holds std types.
+  while (rows) {
+    Row r = static_cast<Row>(*rows.get());
     files[r.at("package")].push_back(r.at("path"));
+    rows();
   }
   boost::filesystem::remove_all(db_dir);
 
