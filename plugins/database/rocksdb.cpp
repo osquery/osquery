@@ -141,9 +141,27 @@ Status RocksDBDatabasePlugin::setUp() {
         rocksdb::kDefaultColumnFamilyName, options_));
     domain_set.insert(rocksdb::kDefaultColumnFamilyName);
 
+    // events can be high volume and are short-lived by default.
+    // osquery does not compact the column family on start,
+    // so rocksdb triggers compaction only when a file has data
+    // older than ttl or when a rocksdb level exceeds its target size
+    // (e.g., L4 exceeds its 256GB default).
+    //
+    // ttl 1d does not block startup. rocksdb will compact on an update
+    // to the column family.
+    rocksdb::ColumnFamilyOptions events_options(options_);
+    events_options.ttl = 24 * 60 * 60;
+
     for (const auto& cf_name : kDomains) {
-      column_families_.push_back(
-          rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+      // _handles is off-by-one from kDomains, so events are stored in the
+      // queries cf
+      if (cf_name == kQueries) {
+        column_families_.push_back(
+            rocksdb::ColumnFamilyDescriptor(cf_name, events_options));
+      } else {
+        column_families_.push_back(
+            rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+      }
       domain_set.insert(cf_name);
     }
 
@@ -203,6 +221,7 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   for (const auto& cf_name : kDomains) {
+    // events can be large and compaction delays start up time
     if (cf_name != kEvents) {
       auto compact_status = compactFiles(cf_name);
       if (!compact_status.ok()) {
