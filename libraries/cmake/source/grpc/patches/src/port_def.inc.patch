@@ -1,0 +1,14 @@
+diff --git a/third_party/protobuf/src/google/protobuf/port_def.inc b/third_party/protobuf/src/google/protobuf/port_def.inc
+index edd6d5122..432a022ca 100644
+--- a/third_party/protobuf/src/google/protobuf/port_def.inc
++++ b/third_party/protobuf/src/google/protobuf/port_def.inc
+@@ -770,7 +770,8 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
+ #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+ // Turn on -Wdeprecated-enum-enum-conversion. This deprecation comes in C++20
+ // via http://wg21.link/p1120r0.
+-#pragma clang diagnostic error "-Wdeprecated-enum-enum-conversion"
++// NOTE: Disabled for osquery - the toolchain's Clang doesn't support this warning
++// #pragma clang diagnostic error "-Wdeprecated-enum-enum-conversion"
+ // This error has been generally flaky, but we need to disable it specifically
+ // to fix https://github.com/protocolbuffers/protobuf/issues/12313
+ #pragma clang diagnostic ignored "-Wunused-parameter"
