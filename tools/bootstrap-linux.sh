@@ -21,6 +21,7 @@ readonly TOOLCHAIN_VERSION="1.2.0"
 readonly TOOLCHAIN_SHA256_X86_64="5f9755ea9c7306ada1710674b6e61202252883e01f7adc45a2dc602555c05a87"
 readonly TOOLCHAIN_SHA256_AARCH64="82f7f00b0a565416ee2213419c5697108af6694a732971a4231c2491f4270269"
 readonly MINIMUM_CMAKE_VERSION="3.21.4"
+readonly MINIMUM_RAM_GB=8
 
 # Perl modules used by OpenSSL's Configure script. Some distributions (Fedora,
 # RHEL) split these into separate packages that a minimal Perl doesn't include.
@@ -88,6 +89,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$(uname -s)" == "Linux" ]] || fail "this script only supports Linux"
+
+# Building osquery needs at least 8 GB of RAM. MemTotal is a little below the
+# physical RAM size, so round to the nearest GB.
+mem_total_kb="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+mem_total_gb="$(( (mem_total_kb + 524288) / 1048576 ))"
+if [[ "${mem_total_gb}" -lt "${MINIMUM_RAM_GB}" ]]; then
+  fail "this system has ${mem_total_gb} GB of RAM; building osquery requires" \
+    "at least ${MINIMUM_RAM_GB} GB"
+fi
+log "Found ${mem_total_gb} GB of RAM"
 
 if [[ "${EUID}" -eq 0 ]]; then
   sudo=()
