@@ -93,6 +93,7 @@ class Client {
           timeout_(0),
           always_verify_peer_(false),
           follow_redirects_(false),
+          allow_cross_origin_redirects_(false),
           keep_alive_(false),
           ssl_connection_(false),
           accept_gzip_(false) {}
@@ -109,6 +110,14 @@ class Client {
 
     Options& follow_redirects(bool fr) {
       follow_redirects_ = fr;
+      return *this;
+    }
+
+    /// When following redirects, also follow those to a different origin
+    /// (scheme, host, or port). Only same-origin redirects are followed
+    /// otherwise.
+    Options& allow_cross_origin_redirects(bool acor) {
+      allow_cross_origin_redirects_ = acor;
       return *this;
     }
 
@@ -185,6 +194,8 @@ class Client {
              (timeout_ == ropts.timeout_) &&
              (always_verify_peer_ == ropts.always_verify_peer_) &&
              (follow_redirects_ == ropts.follow_redirects_) &&
+             (allow_cross_origin_redirects_ ==
+              ropts.allow_cross_origin_redirects_) &&
              (keep_alive_ == ropts.keep_alive_) &&
              (ssl_connection_ == ropts.ssl_connection_) &&
              (accept_gzip_ == ropts.accept_gzip_);
@@ -203,6 +214,7 @@ class Client {
     int timeout_;
     bool always_verify_peer_;
     bool follow_redirects_;
+    bool allow_cross_origin_redirects_;
     bool keep_alive_;
     bool ssl_connection_;
     bool accept_gzip_;
