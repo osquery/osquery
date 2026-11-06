@@ -7,10 +7,18 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace osquery {
 namespace tables {
 std::string parseProcCGroup(const std::string& content);
 std::string parseProcMapsInode(const std::string& content,
                                const std::string& path);
+
+/// Split a /proc/<pid>/environ block into key/value pairs.
+std::vector<std::pair<std::string, std::string>> parseProcessEnvironment(
+    const std::string& content);
 } // namespace tables
 } // namespace osquery
