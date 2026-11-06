@@ -11,7 +11,9 @@
 #include <osquery/filesystem/posix/xattrs.h>
 #include <osquery/utils/scope_guard.h>
 
+#include <chrono>
 #include <cstdint>
+#include <future>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -20,7 +22,10 @@
 
 #include <gtest/gtest.h>
 
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/xattr.h>
+#include <unistd.h>
 
 #if defined(__APPLE__)
 #define EXTENDED_ATTRIBUTE_PREFIX ""
@@ -134,6 +139,29 @@ TEST_F(XattrTests, getExtendedAttributes) {
 
     const auto& actual_attribute_value = it->second;
     EXPECT_EQ(actual_attribute_value, expected_attribute_value);
+  }
+}
+
+TEST_F(XattrTests, getExtendedAttributesFromFifo) {
+  auto fifo_path = test_file_path.string() + ".fifo";
+  ASSERT_EQ(mkfifo(fifo_path.c_str(), 0600), 0);
+
+  auto fifo_guard =
+      scope_guard::create([&] { boost::filesystem::remove(fifo_path); });
+
+  // Nothing ever opens the write end, so a blocking open() would not return.
+  auto result =
+      std::async(std::launch::async, [&] { getExtendedAttributes(fifo_path); });
+
+  if (result.wait_for(std::chrono::seconds(10)) != std::future_status::ready) {
+    // Open the write end to release the blocked reader before failing.
+    int fd = open(fifo_path.c_str(), O_WRONLY | O_NONBLOCK);
+    result.wait();
+    if (fd >= 0) {
+      close(fd);
+    }
+
+    FAIL() << "getExtendedAttributes blocked on a FIFO";
   }
 }
 } // namespace osquery
