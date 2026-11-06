@@ -272,6 +272,7 @@ function(generateNativeTables)
     "posix/user_events.table:linux,macos"
     "secureboot.table:linux,macos,windows"
     "user_groups.table:linux,macos,windows"
+    "windows/ads.table:windows"
     "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
     "windows/chassis_info.table:windows"
