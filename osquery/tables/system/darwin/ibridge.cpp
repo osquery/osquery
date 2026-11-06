@@ -105,6 +105,9 @@ QueryData genIBridgeInfo(QueryContext& context) {
   }
 
   auto service = IOServiceGetMatchingService(kIOMasterPortDefault, eos);
+  if (service == MACH_PORT_NULL) {
+    return results;
+  }
   CFMutableDictionaryRef properties = nullptr;
   auto kr = IORegistryEntryCreateCFProperties(
       service, &properties, kCFAllocatorDefault, kNilOptions);
