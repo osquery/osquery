@@ -86,6 +86,7 @@ function(generateOsqueryCore)
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files
+      windows/bstr.cpp
       windows/handle.cpp
       windows/platform.cpp
       windows/wmi.cpp
@@ -145,6 +146,7 @@ function(generateOsqueryCore)
 
   if(DEFINED PLATFORM_WINDOWS)
     list(APPEND public_header_files
+      windows/bstr.h
       windows/handle.h
       windows/ntapi.h
       windows/wmi.h
