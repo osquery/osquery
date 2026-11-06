@@ -20,6 +20,7 @@ namespace osquery::tables {
 boost::optional<std::string> generateCertificateSHA1Digest(X509* cert);
 void getCertificateAttributes(X509* cert, bool& is_ca, bool& is_self_signed);
 boost::optional<std::string> getCertificateKeyUsage(X509* cert);
+boost::optional<std::string> getCertificateSubjectAltNames(X509* cert);
 boost::optional<std::string> getCertificateSerialNumber(X509* cert);
 boost::optional<std::string> getCertificateAuthorityKeyID(X509* cert);
 boost::optional<std::string> getCertificateSubjectKeyID(X509* cert);
