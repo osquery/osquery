@@ -31,14 +31,13 @@ TEST_F(platformInfo, test_sanity) {
     {"date", NormalType},
     {"revision", NormalType},
 
+    // Linux also returns firmware_type whenever SMBIOS is readable.
+    {"firmware_type", NonEmptyString},
+
 #ifndef OSQUERY_WINDOWS
     {"address", NormalType},
     {"size", IntOrEmpty},
     {"volume_size", NonNegativeInt},
-#endif
-
-#if defined(__APPLE__) || defined(OSQUERY_WINDOWS)
-    {"firmware_type", NonEmptyString},
 #endif
   };
 
