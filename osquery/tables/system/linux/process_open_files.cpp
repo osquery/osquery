@@ -23,7 +23,14 @@ namespace {
 // are absolute paths and can never start this way.
 bool isNamespaceDescriptor(const std::string& target) {
   static const std::vector<std::string> kNamespaceTypes = {
-      "cgroup", "ipc", "mnt", "net", "pid", "time", "user", "uts",
+      "cgroup",
+      "ipc",
+      "mnt",
+      "net",
+      "pid",
+      "time",
+      "user",
+      "uts",
   };
   if (target.empty() || target.back() != ']') {
     return false;
