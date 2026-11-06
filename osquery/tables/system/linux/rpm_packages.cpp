@@ -60,14 +60,27 @@ namespace tables {
  *
  * @return The string representation of the tag type.
  */
-static std::string getRpmAttribute(const Header& header,
-                                   rpmTag tag,
-                                   const rpmtd& td,
-                                   Logger& logger) {
+std::string getRpmAttribute(const Header& header,
+                            rpmTag tag,
+                            const rpmtd& td,
+                            Logger& logger) {
   std::string result;
-  if (headerGet(header, tag, td, HEADERGET_DEFAULT) == 0) {
-    // Intentional check for a 0 = failure.
-    logger.vlog(1, "Could not get RPM header flag.");
+  const bool read_failed = headerGet(header, tag, td, HEADERGET_DEFAULT) == 0;
+  // Epoch is optional, but a failed read alone does not establish absence.
+  if (read_failed && header != nullptr && td != nullptr && tag == RPMTAG_EPOCH &&
+      headerIsEntry(header, tag) == 0) {
+    return result;
+  }
+
+  if (read_failed) {
+    const auto* tag_name = rpmTagGetName(tag);
+    const auto* package_name =
+        header != nullptr ? headerGetString(header, RPMTAG_NAME) : nullptr;
+    logger.vlog(1,
+                std::string("Could not get RPM header tag ") +
+                    (tag_name != nullptr ? tag_name : "<unknown>") + " (" +
+                    std::to_string(tag) + ") for package " +
+                    (package_name != nullptr ? package_name : "<unknown>"));
     return result;
   }
 
