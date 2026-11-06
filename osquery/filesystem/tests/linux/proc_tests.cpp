@@ -11,7 +11,13 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/linux/proc.h>
+
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <string>
 
 #ifndef ETH_P_ALL
 #define ETH_P_ALL 0x0003
@@ -146,6 +152,49 @@ TEST_F(LinuxProc, test_user_namespace_parser) {
 
   removePath(temp_path);
   EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
+}
+
+// Independent reference reader (raw read() to EOF), to compare against
+// readFile without sharing its buffer-growth logic.
+std::string rawReadAll(const std::string& path) {
+  int fd = ::open(path.c_str(), O_RDONLY);
+  std::string out;
+  if (fd < 0) {
+    return out;
+  }
+  char buf[4096];
+  ssize_t n;
+  while ((n = ::read(fd, buf, sizeof(buf))) > 0) {
+    out.append(buf, static_cast<std::size_t>(n));
+  }
+  ::close(fd);
+  return out;
+}
+
+// readFile's unknown-size path (buffer grown block by block) is only reached by
+// special files, which report size 0 -- /proc entries are the real-world case.
+// cmdline is stable and smaller than one block: exercises the short-read path
+// (grow never triggers) and must return the complete content.
+TEST_F(LinuxProc, readFileReadsShortProcFileCompletely) {
+  std::string content;
+  ASSERT_TRUE(readFile("/proc/self/cmdline", content).ok());
+  EXPECT_FALSE(content.empty());
+  EXPECT_EQ(content, rawReadAll("/proc/self/cmdline"));
+}
+
+// maps is typically larger than one block, exercising the grow-when-full and
+// bounded-read logic. It can shift if mappings change, so compare against a
+// reference read and retry a few times to get a consistent snapshot.
+TEST_F(LinuxProc, readFileReadsMultiBlockProcFileCompletely) {
+  std::string content;
+  bool consistent = false;
+  for (int attempt = 0; attempt < 5 && !consistent; ++attempt) {
+    content.clear();
+    ASSERT_TRUE(readFile("/proc/self/maps", content).ok());
+    consistent = (content == rawReadAll("/proc/self/maps"));
+  }
+  ASSERT_TRUE(consistent) << "/proc/self/maps kept changing between reads";
+  EXPECT_FALSE(content.empty());
 }
 
 } // namespace
