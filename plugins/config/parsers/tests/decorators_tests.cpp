@@ -7,6 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <future>
+#include <string>
+#include <thread>
+
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
@@ -162,4 +169,59 @@ TEST_F(DecoratorsConfigParserPluginTests, test_invalid_decorators) {
   status = Config::get().update(decorators_as_number);
   ASSERT_FALSE(status.ok());
 }
+
+namespace {
+
+std::string getDecoration(const std::string& name) {
+  std::map<std::string, std::string> decorations;
+  getDecorations(decorations);
+  auto it = decorations.find(name);
+  return it == decorations.end() ? "<missing>" : it->second;
+}
+
+ConfigParserPlugin::ParserConfig makeDecoratorsConfig(
+    const std::string& load_query) {
+  auto doc = JSON::newObject();
+  EXPECT_TRUE(doc.fromString(R"({"load": [")" + load_query + R"("]})").ok());
+  ConfigParserPlugin::ParserConfig config;
+  config.emplace("decorators", std::move(doc));
+  return config;
+}
+
+} // namespace
+
+// Decorator queries run without decorator locks held. A load decorator that
+// reads osquery_schedule takes the schedule lock, which a concurrent config
+// update holds while it waits for the decorator locks.
+TEST_F(DecoratorsConfigParserPluginTests,
+       test_concurrent_updates_with_schedule_decorator_no_deadlock) {
+  FLAGS_disable_decorators = false;
+
+  auto updates = [](const std::string& source) {
+    for (size_t i = 0; i < 100; ++i) {
+      // Alternate the config so that every update is applied.
+      Config::get().update(
+          {{source,
+            R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
+                "decorators": {"load": ["SELECT COUNT(*) AS schedule_)" +
+                std::to_string(i % 2) + R"( FROM osquery_schedule"]}})"}});
+    }
+  };
+  auto updater_a = std::async(std::launch::async, updates, "deadlock_a");
+  auto updater_b = std::async(std::launch::async, updates, "deadlock_b");
+
+  // Deadlocked threads cannot be joined, so report the failure and exit
+  // instead of hanging the test run.
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  if (updater_a.wait_until(deadline) != std::future_status::ready ||
+      updater_b.wait_until(deadline) != std::future_status::ready) {
+    std::fprintf(stderr,
+                 "Deadlock: concurrent config updates with a load decorator "
+                 "reading osquery_schedule did not finish within 60 seconds\n");
+    std::fflush(stderr);
+    std::_Exit(EXIT_FAILURE);
+  }
+}
+
 } // namespace osquery

@@ -312,6 +312,15 @@ class Config : private boost::noncopyable {
                     bool pack = false);
 
   /**
+   * @brief Call afterUpdate() on the parsers updated by applyParsers.
+   *
+   * Must be called without holding any config lock. applyParsers calls it for
+   * the top-level configuration, and addPack calls it for pack content, which
+   * is parsed while the schedule lock is held.
+   */
+  void applyParserChanges();
+
+  /**
    * @brief When config sources are updated the config will 'purge'.
    *
    * The general 'purge' action applies to searching for outdated query results,
@@ -557,6 +566,18 @@ class ConfigParserPlugin : public Plugin {
    */
   virtual Status update(const std::string& source,
                         const ParserConfig& config) = 0;
+
+  /**
+   * @brief Apply changes from update() that must not run under config locks.
+   *
+   * Called after update(), once the Config instance has released its locks.
+   * A parser that attaches or detaches tables must do it here, not in
+   * update(): update() runs while the config schedule lock is held, attaching
+   * takes the primary SQLite connection's attach lock, and a query holds that
+   * lock while tables such as osquery_schedule take the schedule lock, so
+   * attaching in update() can deadlock.
+   */
+  virtual void afterUpdate() {}
 
   /// Allow parsers to perform some setup before the configuration is loaded.
   Status setUp() override;
