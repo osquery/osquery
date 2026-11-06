@@ -23,6 +23,7 @@ import threading
 
 # Create a simple TLS/HTTP server.
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import TCPServer
 from urllib.parse import parse_qs
 
 # Script run directory, used for default values
@@ -486,6 +487,14 @@ def reset_timeout():
     TIMEOUT_TIMER.start()
 
 
+class LocalHTTPServer(HTTPServer):
+    def server_bind(self):
+        # HTTPServer.server_bind performs reverse DNS, which can stall on macOS.
+        TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 def run_http_server(bind_port=80, **kwargs):
     global HTTP_SERVER_ENROLL_SECRET
     global ARGS
@@ -500,7 +509,7 @@ def run_http_server(bind_port=80, **kwargs):
 
     reset_timeout()
 
-    httpd = HTTPServer(("localhost", bind_port), RealSimpleHandler)
+    httpd = LocalHTTPServer(("127.0.0.1", bind_port), RealSimpleHandler)
     if ARGS["tls"]:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(certfile=ARGS["cert"], keyfile=ARGS["key"])
