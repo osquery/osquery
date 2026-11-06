@@ -1352,6 +1352,46 @@ TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr) {
   EXPECT_EQ(port, 2);
 }
 
+TEST_F(SystemStateTrackerTests, parse_unix_sockaddr_unterminated) {
+  // A captured AF_UNIX address whose sun_path fills the field with no NUL
+  // terminator. The parser must bound the read to the field size instead of
+  // running off the end of the struct.
+  std::vector<std::uint8_t> sockaddr(sizeof(struct sockaddr_un), 'A');
+  const std::uint16_t family = AF_UNIX;
+  std::memcpy(sockaddr.data(), &family, sizeof(family));
+
+  std::string address;
+  auto succeeded = SystemStateTracker::parseUnixSockaddr(address, sockaddr);
+
+  EXPECT_TRUE(succeeded);
+
+  struct sockaddr_un reference{};
+  EXPECT_LE(address.size(), sizeof(reference.sun_path));
+  EXPECT_EQ(address.find_first_not_of('A'), std::string::npos);
+}
+
+TEST_F(SystemStateTrackerTests, parse_netlink_sockaddr_oversized) {
+  // A captured AF_NETLINK address larger than sockaddr_nl, as a process can
+  // pass through the syscall addrlen argument. The parser must clamp the copy
+  // to the destination struct rather than to sockaddr_in.
+  std::vector<std::uint8_t> sockaddr(sizeof(struct sockaddr_in) + 4U, 0);
+  const std::uint16_t family = AF_NETLINK;
+  std::memcpy(sockaddr.data(), &family, sizeof(family));
+  const std::uint32_t nl_pid = 7U;
+  const std::uint32_t nl_groups = 3U;
+  std::memcpy(sockaddr.data() + 4U, &nl_pid, sizeof(nl_pid));
+  std::memcpy(sockaddr.data() + 8U, &nl_groups, sizeof(nl_groups));
+
+  std::string address;
+  std::uint16_t port{};
+  auto succeeded =
+      SystemStateTracker::parseNetlinkSockaddr(address, port, sockaddr);
+
+  EXPECT_TRUE(succeeded);
+  EXPECT_EQ(address, "3");
+  EXPECT_EQ(port, 7);
+}
+
 TEST_F(SystemStateTrackerTests, createFileHandleIndex) {
   auto index =
       SystemStateTracker::createFileHandleIndex(0x15, {0xAA, 0xBB, 0xCC, 0xDD});
