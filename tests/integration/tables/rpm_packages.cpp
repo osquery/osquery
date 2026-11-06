@@ -37,7 +37,11 @@ class rpmPackages : public testing::Test {
 };
 
 TEST_F(rpmPackages, test_sanity) {
-  auto rows = execute_query("select * from rpm_packages");
+  // rpmdbs also contain gpg-pubkey pseudo-packages, one per imported GPG
+  // key. They have no vendor, arch, or epoch, so they cannot pass the
+  // validation below; exclude them (CI has no rpmdb and never sees them).
+  auto rows =
+      execute_query("select * from rpm_packages where name != 'gpg-pubkey'");
   if (rows.empty()) {
     LOG(WARNING) << "Empty results of query from 'rpm_packages', assume there "
                     "is no rpm on the system";
@@ -59,7 +63,7 @@ TEST_F(rpmPackages, test_sanity) {
   validate_rows(rows, row_map);
 
   if (isPlatform(PlatformType::TYPE_LINUX)) {
-    validate_container_rows("rpm_packages", row_map);
+    validate_container_rows("rpm_packages", row_map, "name != 'gpg-pubkey'");
   }
 }
 
