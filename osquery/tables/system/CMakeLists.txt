@@ -22,6 +22,7 @@ function(generateOsqueryTablesSystemSystemtable)
     ssh_configs.cpp
     system_utils.cpp
     uptime.cpp
+    java_packages.cpp
   )
 
   if(TARGET_PROCESSOR STREQUAL "x86_64")
