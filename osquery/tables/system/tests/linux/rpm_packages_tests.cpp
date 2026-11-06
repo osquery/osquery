@@ -29,10 +29,13 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace testing;
 
@@ -40,6 +43,7 @@ namespace osquery {
 namespace tables {
 
 QueryData genRpmPackages(QueryContext& context);
+void genRpmPackageFiles(RowYield& yield, QueryContext& context);
 
 rpmlogCallback gPreviousCallback{nullptr};
 
@@ -95,6 +99,22 @@ class RpmTests : public ::testing::Test {
     setEnvVar("RPM_CONFIGDIR", path);
     addMacro(nullptr, "_dbpath", nullptr, path.c_str(), 0);
     addMacro(nullptr, "rpmdb", nullptr, path.c_str(), 0);
+  }
+
+  // Copies the BDB fixture into a directory only its owner can access and
+  // points librpm at it. Returns the new directory; the caller removes it.
+  boost::filesystem::path useRootOnlyBdbDatabase() {
+    namespace fs = boost::filesystem;
+    auto source = fs::absolute(getTestConfigDirectory() / "rpm" / "rpm-bdb");
+    auto db_dir =
+        fs::temp_directory_path() / fs::unique_path("osquery-rpm-%%%%-%%%%");
+    fs::create_directories(db_dir);
+    for (const auto& entry : fs::directory_iterator(source)) {
+      fs::copy_file(entry.path(), db_dir / entry.path().filename());
+    }
+    fs::permissions(db_dir, fs::owner_all);
+    this->setConfig(db_dir.string());
+    return db_dir;
   }
 
   void TearDown() {
@@ -211,21 +231,11 @@ TEST_F(RpmTests, test_rpm_packages_reads_root_only_database) {
     GTEST_SKIP() << "Creating a database only root can open requires root";
   }
 
-  // Copy the BDB fixture into a directory only its owner, root, can access.
-  namespace fs = boost::filesystem;
-  auto source = fs::absolute(getTestConfigDirectory() / "rpm" / "rpm-bdb");
-  auto db_dir =
-      fs::temp_directory_path() / fs::unique_path("osquery-rpm-%%%%-%%%%");
-  fs::create_directories(db_dir);
-  for (const auto& entry : fs::directory_iterator(source)) {
-    fs::copy_file(entry.path(), db_dir / entry.path().filename());
-  }
-  fs::permissions(db_dir, fs::owner_all);
-  this->setConfig(db_dir.string());
+  auto db_dir = useRootOnlyBdbDatabase();
 
   QueryContext context;
   auto results = genRpmPackages(context);
-  fs::remove_all(db_dir);
+  boost::filesystem::remove_all(db_dir);
 
   std::vector<std::string> names;
   for (const auto& row : results) {
@@ -233,6 +243,61 @@ TEST_F(RpmTests, test_rpm_packages_reads_root_only_database) {
   }
   std::vector<std::string> expected = {"rpm-libs", "rpm-python", "rpm"};
   EXPECT_EQ(expected, names);
+}
+
+// rpm_package_files has its own open/drop sequence: drive its coroutine
+// against the same root-only database and check the files it yields.
+TEST_F(RpmTests, test_rpm_package_files_reads_root_only_database) {
+  if (!isUserAdmin()) {
+    GTEST_SKIP() << "Creating a database only root can open requires root";
+  }
+
+  auto db_dir = useRootOnlyBdbDatabase();
+
+  QueryContext context;
+  RowGenerator::pull_type rows(
+      [&context](RowYield& yield) { genRpmPackageFiles(yield, context); });
+  std::map<std::string, std::vector<std::string>> files;
+  for (const auto& row : rows) {
+    Row r = static_cast<Row>(*row);
+    files[r.at("package")].push_back(r.at("path"));
+  }
+  boost::filesystem::remove_all(db_dir);
+
+  std::vector<std::string> expected_rpm_libs = {
+      "/usr/lib64/librpm.so.1",
+      "/usr/lib64/librpm.so.1.0.0",
+      "/usr/lib64/librpmbuild.so.1",
+      "/usr/lib64/librpmbuild.so.1.0.0",
+      "/usr/lib64/librpmio.so.1",
+      "/usr/lib64/librpmio.so.1.0.0",
+  };
+  EXPECT_EQ(expected_rpm_libs, files["rpm-libs"]);
+
+  std::vector<std::string> expected_rpm_python = {
+      "/usr/lib64/python2.6/site-packages/rpm",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.py",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.pyc",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.pyo",
+      "/usr/lib64/python2.6/site-packages/rpm/_rpmbmodule.so",
+      "/usr/lib64/python2.6/site-packages/rpm/_rpmmodule.so",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.py",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.pyc",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.pyo",
+  };
+  EXPECT_EQ(expected_rpm_python, files["rpm-python"]);
+
+  // The rpm package's 140 files are too many to list; check the count and a
+  // few paths spanning the package.
+  const auto& rpm_files = files["rpm"];
+  EXPECT_EQ(140U, rpm_files.size());
+  for (const auto* path : {"/bin/rpm",
+                           "/usr/lib/rpm/rpmrc",
+                           "/usr/share/locale/sv/LC_MESSAGES/rpm.mo",
+                           "/var/lib/rpm/Packages"}) {
+    EXPECT_NE(rpm_files.end(),
+              std::find(rpm_files.begin(), rpm_files.end(), path));
+  }
 }
 
 TEST_F(RpmTests, test_sqlite_packages) {
