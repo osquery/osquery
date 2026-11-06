@@ -31,6 +31,9 @@ TEST_F(SystemControlsTest, test_sanity) {
       {"subsystem",
        SpecificValuesCheck{"",
                            "abi",
+                           // Kernels built with FIPS support (Fedora, RHEL)
+                           // expose /proc/sys/crypto/fips_*.
+                           "crypto",
                            "debug",
                            "dev",
                            "fs",
