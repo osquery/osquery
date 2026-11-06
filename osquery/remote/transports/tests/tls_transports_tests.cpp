@@ -80,6 +80,24 @@ class TLSTransportsTests : public testing::Test {
   std::string certs_;
 };
 
+TEST_F(TLSTransportsTests, test_server_startup_failure_and_retry) {
+  ASSERT_FALSE(TLSServerRunner::start(
+      (getTestConfigDirectory() / "missing-server-certificate.pem").string()));
+  EXPECT_TRUE(TLSServerRunner::port().empty());
+
+  ASSERT_TRUE(TLSServerRunner::start());
+  auto port = TLSServerRunner::port();
+  ASSERT_FALSE(port.empty());
+  EXPECT_GT(std::stoul(port), 0U);
+  EXPECT_LE(std::stoul(port), 65535U);
+  ASSERT_TRUE(TLSServerRunner::start());
+  EXPECT_EQ(TLSServerRunner::port(), port);
+
+  TLSServerRunner::stop();
+  EXPECT_TRUE(TLSServerRunner::port().empty());
+  TLSServerRunner::stop();
+}
+
 TEST_F(TLSTransportsTests, test_call) {
   startServer();
 

@@ -7,25 +7,23 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <csignal>
-#include <ctime>
+#include <chrono>
 
-#include <thread>
+#include <boost/filesystem.hpp>
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
-#include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/remote/requests.h>
 #include <osquery/remote/serializers/json.h>
 #include <osquery/remote/tests/test_utils.h>
 #include <osquery/remote/transports/tls.h>
-#include <osquery/sql/sql.h>
 #include <osquery/tests/test_util.h>
 #include <osquery/utils/conversions/join.h>
-#include <osquery/utils/json/json.h>
+#include <osquery/utils/conversions/tryto.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/time.h>
 
 namespace osquery {
@@ -34,9 +32,8 @@ DECLARE_string(tls_hostname);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
-DECLARE_bool(disable_caching);
 
-Status TLSServerRunner::startAndSetScript(const std::string& port,
+Status TLSServerRunner::startAndSetScript(const std::string& port_file,
                                           const std::string& server_cert,
                                           bool verify_client_cert,
                                           bool require_gzip) {
@@ -63,33 +60,15 @@ Status TLSServerRunner::startAndSetScript(const std::string& port,
     args.push_back("--require-gzip");
   }
 
-  args.push_back(port);
+  args.push_back("--port-file");
+  args.push_back(port_file);
+  args.push_back("0");
 
-  const auto cmd = osquery::join(args, " ");
-  server_ = PlatformProcess::launchTestPythonScript(cmd);
+  server_ = PlatformProcess::launchPythonScript(args);
   if (server_ == nullptr) {
-    return Status::failure("Cannot create test python script: " + cmd);
+    return Status::failure("Cannot create test python script: " +
+                           osquery::join(args, " "));
   }
-  return Status::success();
-}
-
-Status TLSServerRunner::getListeningPortPid(const std::string& port,
-                                            std::string& pid) {
-  // Reset the output.
-  pid.clear();
-
-  std::string q = "select pid from listening_ports where port = '" + port + "'";
-
-  auto caching = FLAGS_disable_caching;
-  FLAGS_disable_caching = true;
-  auto results = SQL(q);
-  FLAGS_disable_caching = caching;
-  if (results.rows().empty()) {
-    return Status::failure("No pid listening on port: " + port);
-  }
-
-  const auto& first_row = results.rows()[0];
-  pid = first_row.at("pid");
   return Status::success();
 }
 
@@ -101,67 +80,60 @@ bool TLSServerRunner::start(const std::string& server_cert,
     return true;
   }
 
-  // We need to pick a 'random' port.
-  std::srand((unsigned int)getUnixTime());
-
-  bool started = false;
-  const size_t max_retry = 3;
-  size_t retry = 0;
-  while (retry < max_retry) {
-    // Pick a port in an ephemeral range at random.
-    self.port_ = std::to_string(std::rand() % 10000 + 20000);
-
-    {
-      // Check that the port is not used.
-      std::string pid;
-      if (self.getListeningPortPid(self.port_, pid).ok()) {
-        // Another process is listening on this port.
-        continue;
-      }
-    }
-
-    auto status = self.startAndSetScript(
-        self.port_, server_cert, verify_client_cert, require_gzip);
-    if (!status.ok()) {
-      // This is an unexpected problem, retry without waiting.
-      LOG(WARNING) << status.getMessage();
-      continue;
-    }
-
-    size_t delay = 0;
-    // Expect to wait for the server to listen on the port.
-    while (delay < max_retry * 2 * 1000) {
-      std::string pid;
-      status = self.getListeningPortPid(self.port_, pid);
-      if (!status.ok()) {
-        // No pid listening, we should wait longer.
-        LOG(WARNING) << status.getMessage();
-        sleepFor(100);
-        delay += 100;
-        continue;
-      }
-
-      if (pid == std::to_string(self.server_->pid())) {
-        started = true;
-      } else {
-        // Another process is listening on this pid.
-        LOG(WARNING) << "Another process is listening on port: " << self.port_;
-      }
-      break;
-    }
-
-    if (started) {
-      break;
-    }
-
-    self.stop();
-    sleepFor(1000);
-    ++retry;
-  }
-
-  if (!started) {
+  auto readiness_dir = boost::filesystem::temp_directory_path() /
+                       boost::filesystem::unique_path("osquery-tls-%%%%-%%%%");
+  if (!boost::filesystem::create_directory(readiness_dir)) {
+    LOG(ERROR) << "Cannot create TLS test server readiness directory";
     return false;
   }
+  auto cleanup = scope_guard::create(
+      [&readiness_dir] { boost::filesystem::remove_all(readiness_dir); });
+  auto port_file = (readiness_dir / "port").string();
+  auto start_status = self.startAndSetScript(
+      port_file, server_cert, verify_client_cert, require_gzip);
+  if (!start_status.ok()) {
+    LOG(ERROR) << start_status.getMessage();
+    return false;
+  }
+
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+  while (!boost::filesystem::exists(port_file)) {
+    int exit_status{0};
+    auto process_state = self.server_->checkStatus(exit_status);
+    if (process_state == PROCESS_EXITED) {
+      LOG(ERROR) << "TLS test server exited before publishing its port: "
+                 << exit_status;
+      self.server_.reset();
+      self.port_.clear();
+      return false;
+    }
+    if (process_state == PROCESS_ERROR) {
+      LOG(ERROR) << "Cannot check TLS test server process status";
+      self.stop();
+      return false;
+    }
+    if (std::chrono::steady_clock::now() >= deadline) {
+      LOG(ERROR) << "TLS test server did not publish its bound port in time";
+      self.stop();
+      return false;
+    }
+    sleepFor(100);
+  }
+
+  std::string assigned_port;
+  auto read_status = readFile(port_file, assigned_port);
+  auto port = tryTo<int>(assigned_port);
+  if (!read_status.ok() || port.isError() || port.get() <= 0 ||
+      port.get() > 65535) {
+    LOG(ERROR) << "TLS test server published an invalid port: "
+               << assigned_port;
+    self.stop();
+    return false;
+  }
+  self.port_ = assigned_port;
+
+  const size_t max_retry = 3;
+  size_t retry = 0;
 
   LOG(WARNING) << "Python server process started correctly";
 
@@ -170,7 +142,7 @@ bool TLSServerRunner::start(const std::string& server_cert,
   bool ready_to_serve = false;
 
   /* Temporarily configure the test certificates,
-     so that the client doesn't immediately fails
+     so that the client doesn't immediately fail
      for not finding certificate files */
   std::string client_cert = Flag::getValue("tls_client_cert");
   Flag::updateValue(
@@ -223,6 +195,7 @@ bool TLSServerRunner::start(const std::string& server_cert,
 
   if (!ready_to_serve) {
     LOG(ERROR) << "The Python server was not ready to serve in time";
+    self.stop();
     return false;
   }
 
@@ -273,7 +246,11 @@ void TLSServerRunner::stop() {
   auto& self = instance();
   if (self.server_ != nullptr) {
     self.server_->kill();
+    if (!self.server_->cleanup(std::chrono::seconds(5))) {
+      LOG(ERROR) << "Cannot reap TLS test server process";
+    }
     self.server_.reset();
   }
+  self.port_.clear();
 }
 } // namespace osquery

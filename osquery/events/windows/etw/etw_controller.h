@@ -19,6 +19,7 @@ class EtwProviderConfig;
 class UserEtwSessionRunnable;
 class KernelEtwSessionRunnable;
 class EtwPostProcessorsRunnable;
+class EtwTestSessionLock;
 class Status;
 
 /**
@@ -60,8 +61,8 @@ class EtwController : public boost::noncopyable {
   const std::string runNameKernelETWSession = "OsqueryKernelETWSession";
   const std::string runNamePostProcessingEngine = "EtwPostProcessingEngine";
 
-  EtwController() = default;
-  virtual ~EtwController() = default;
+  EtwController();
+  virtual ~EtwController();
 
   /**
    * @brief Starts the event listening and event processing pipeline. This
@@ -79,6 +80,8 @@ class EtwController : public boost::noncopyable {
   bool isInitialized() const;
 
   std::atomic<bool> initialized_{false};
+  // Tests initialize on the main thread; release there after session teardown.
+  std::unique_ptr<EtwTestSessionLock> testSessionLock_;
   std::shared_ptr<UserEtwSessionRunnable> etwUserSession_{nullptr};
   std::shared_ptr<KernelEtwSessionRunnable> etwKernelSession_{nullptr};
   std::shared_ptr<EtwPostProcessorsRunnable> etwPostProcessingEngine_{nullptr};

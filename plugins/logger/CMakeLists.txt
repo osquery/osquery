@@ -37,6 +37,11 @@ function(pluginsLoggerMain)
 
   if(OSQUERY_BUILD_TESTS)
     add_test(NAME plugins_logger_tests_mergedtests-test COMMAND plugins_logger_tests_mergedtests-test)
+    if(DEFINED PLATFORM_WINDOWS)
+      set_tests_properties(plugins_logger_tests_mergedtests-test PROPERTIES COST 16)
+    elseif(DEFINED PLATFORM_MACOS)
+      set_tests_properties(plugins_logger_tests_mergedtests-test PROPERTIES COST 95)
+    endif()
 
     set(plugins_logger_tests_mergedtests-test_env
       "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

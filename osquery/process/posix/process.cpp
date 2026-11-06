@@ -195,8 +195,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return std::make_shared<PlatformProcess>(ext_pid);
 }
 
-std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
-    const std::string& args) {
+std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+    const std::vector<std::string>& args) {
   const auto osquery_python_path_option =
       getEnvVar("OSQUERY_PYTHON_INTERPRETER_PATH");
 
@@ -206,20 +206,14 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
 
   auto osquery_python_path = *osquery_python_path_option;
 
-  std::vector<std::string> args_array;
-  boost::split(args_array, args, boost::is_any_of(" "));
-
-  if (args_array.empty())
+  if (args.empty())
     return nullptr;
 
-  args_array.insert(args_array.begin(), osquery_python_path);
+  std::vector<const char*> argv_array{osquery_python_path.c_str()};
+  argv_array.reserve(args.size() + 2);
 
-  std::vector<const char*> argv_array;
-
-  for (const auto& arg : args_array) {
-    if (!arg.empty()) {
-      argv_array.push_back(arg.c_str());
-    }
+  for (const auto& arg : args) {
+    argv_array.push_back(arg.c_str());
   }
   argv_array.push_back(nullptr);
   char* const* argv = const_cast<char* const*>(&argv_array[0]);
@@ -230,11 +224,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     // Start a Python script
     ::execvp(osquery_python_path.c_str(), argv);
 
-    std::string args = boost::algorithm::join(args_array, " ");
+    auto arguments = boost::algorithm::join(args, " ");
 
     // Should not reach this if everything executes correctly
     std::cerr << "Could not start process at " << osquery_python_path
-              << ", args: " << args << ", error: " << errno << std::endl;
+              << ", args: " << arguments << ", error: " << errno << std::endl;
     ::exit(EXIT_FAILURE);
   } else if (process_pid > 0) {
     process.reset(new PlatformProcess(process_pid));

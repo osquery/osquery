@@ -31,6 +31,24 @@ function(generateTestsIntegrationTablesIntegrationtestshelper)
 endfunction()
 
 function(generateTestsIntegrationTablesTestsTest)
+  if(NOT DEFINED OSQUERY_INTEGRATION_TEST_SHARDS)
+    include(ProcessorCount)
+    ProcessorCount(integration_test_shards)
+
+    if(integration_test_shards EQUAL 0)
+      message(WARNING "Could not determine the processor count; using one integration test shard")
+      set(integration_test_shards 1)
+    endif()
+
+    set(OSQUERY_INTEGRATION_TEST_SHARDS "${integration_test_shards}" CACHE STRING
+      "Number of CTest shards for integration table tests; use 1 to disable sharding"
+    )
+  endif()
+
+  if(NOT "${OSQUERY_INTEGRATION_TEST_SHARDS}" MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR "OSQUERY_INTEGRATION_TEST_SHARDS must be a positive integer")
+  endif()
+
   set(source_files
     ai_agent_skills.cpp
     carbon_black_info.cpp
@@ -405,14 +423,7 @@ function(generateTestsIntegrationTablesTestsTest)
       set(gtest_filter "${gtest_filter}${root_test_name}")
     endforeach()
 
-    add_test(NAME tests_integration_tables-test
-      COMMAND tests_integration_tables-test "--gtest_filter=-${gtest_filter}"
-    )
-
-    set_tests_properties(
-      tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
+    set(test_arguments "--gtest_filter=-${gtest_filter}")
 
     if(OSQUERY_BUILD_ROOT_TESTS)
       add_test(NAME tests_integration_tables_root-test
@@ -428,17 +439,40 @@ function(generateTestsIntegrationTablesTestsTest)
         PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
       )
     endif()
-
-  else()
-    add_test(NAME tests_integration_tables-test
-      COMMAND tests_integration_tables-test
-    )
-
-    set_tests_properties(
-      tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
   endif()
+
+  set(integration_test_cost 60)
+  if(DEFINED PLATFORM_WINDOWS)
+    set(integration_test_cost 80)
+  elseif(DEFINED PLATFORM_MACOS)
+    set(integration_test_cost 75)
+  endif()
+
+  math(EXPR last_shard_index "${OSQUERY_INTEGRATION_TEST_SHARDS} - 1")
+  foreach(shard_index RANGE 0 ${last_shard_index})
+    set(test_name tests_integration_tables-test)
+    if(shard_index GREATER 0)
+      string(APPEND test_name "-shard-${shard_index}")
+    endif()
+
+    add_test(NAME "${test_name}"
+      COMMAND tests_integration_tables-test ${test_arguments}
+    )
+
+    set(test_environment "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}")
+    if(OSQUERY_INTEGRATION_TEST_SHARDS GREATER 1)
+      list(APPEND test_environment
+        "GTEST_TOTAL_SHARDS=${OSQUERY_INTEGRATION_TEST_SHARDS}"
+        "GTEST_SHARD_INDEX=${shard_index}"
+      )
+    endif()
+
+    # Start integration shards early, even on fresh builds with no timing history.
+    set_tests_properties("${test_name}" PROPERTIES
+      ENVIRONMENT "${test_environment}"
+      COST "${integration_test_cost}"
+    )
+  endforeach()
 endfunction()
 
 testsIntegrationTablesMain()

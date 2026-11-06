@@ -120,6 +120,9 @@ function(generateOsqueryTablesNetworking)
   generateIncludeNamespace(osquery_tables_networking "osquery/tables/networking" "FULL_PATH" ${public_header_files})
 
   add_test(NAME osquery_tables_networking_tests_mergedtests-test COMMAND osquery_tables_networking_tests_mergedtests-test)
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_tables_networking_tests_mergedtests-test PROPERTIES COST 45)
+  endif()
 
   set(mergedtests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

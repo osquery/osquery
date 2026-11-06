@@ -155,6 +155,9 @@ function(generateOsqueryCore)
   generateIncludeNamespace(osquery_core "osquery/core" "FULL_PATH" ${public_header_files})
 
   add_test(NAME osquery_core_tests_processtests-test COMMAND osquery_core_tests_processtests-test)
+  set_tests_properties(osquery_core_tests_processtests-test PROPERTIES
+    ENVIRONMENT "OSQUERY_PYTHON_INTERPRETER_PATH=${OSQUERY_PYTHON_EXECUTABLE}"
+  )
 
   if(DEFINED PLATFORM_WINDOWS)
     add_test(NAME osquery_core_tests_wmitests-test COMMAND osquery_core_tests_wmitests-test)

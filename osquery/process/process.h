@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <boost/noncopyable.hpp>
 
@@ -167,10 +168,12 @@ class PlatformProcess : private boost::noncopyable {
    *
    * This will launch a new Python process to run the specified script and
    * script arguments. This is used within the test harnesses to run example
-   * TLS server scripts.
+   * TLS server scripts. The first argument is the script path. Argument
+   * boundaries and empty arguments are preserved, with Windows quoting applied
+   * automatically.
    */
-  static std::shared_ptr<PlatformProcess> launchTestPythonScript(
-      const std::string& args);
+  static std::shared_ptr<PlatformProcess> launchPythonScript(
+      const std::vector<std::string>& args);
 
  private:
   /**
