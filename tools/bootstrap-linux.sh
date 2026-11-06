@@ -20,7 +20,7 @@ set -euo pipefail
 readonly TOOLCHAIN_VERSION="1.2.0"
 readonly TOOLCHAIN_SHA256_X86_64="5f9755ea9c7306ada1710674b6e61202252883e01f7adc45a2dc602555c05a87"
 readonly TOOLCHAIN_SHA256_AARCH64="82f7f00b0a565416ee2213419c5697108af6694a732971a4231c2491f4270269"
-readonly MINIMUM_CMAKE_VERSION="3.21.4"
+readonly MINIMUM_CMAKE_VERSION="3.25"
 readonly MINIMUM_RAM_GB=8
 
 # Perl modules used by OpenSSL's Configure script. Some distributions (Fedora,
