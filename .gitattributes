@@ -1,0 +1,7 @@
+# Tests hash the contents of checked-in configuration files (for example
+# osquery/config/tests/config_tests.cpp hashes
+# tools/tests/configs/test_parse_items.conf), so their bytes must be
+# identical on every platform. Force LF on checkout regardless of the
+# user's core.autocrlf setting; without this, a default Windows clone
+# (core.autocrlf=true) checks out CRLF and the hash assertions fail (#8532).
+*.conf text eol=lf
