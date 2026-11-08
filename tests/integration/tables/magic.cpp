@@ -33,9 +33,9 @@ TEST_F(magic, test_sanity) {
     GTEST_SKIP() << "TEST_MAGIC_DB is not set";
   }
 
-  auto const data = execute_query("select * from magic where path = '" +
-                                  *magic_db + "' and magic_db_files = '" +
-                                  *magic_db + "'");
+  auto const data =
+      execute_query("select * from magic where path = '" + *magic_db +
+                    "' and magic_db_files = '" + *magic_db + "'");
   ASSERT_EQ(data.size(), 1ul);
 
   ValidationMap row_map = {
