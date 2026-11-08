@@ -7,7 +7,7 @@
 
 function(sqliteMain)
 
-  set(library_root "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(library_root "${OSQUERY_sqlite_ROOT_DIR}")
 
   set(parameter_list
     "SQLITE_MAX_VARIABLE_NUMBER=250000"
