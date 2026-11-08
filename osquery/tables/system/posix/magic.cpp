@@ -23,10 +23,21 @@ namespace tables {
 
 namespace {
 
+// The database compiled at build time from the vendored libmagic rules and
+// installed with osquery. System-provided databases can't be used: .mgc
+// files are locked to the libmagic version that compiled them, and every OS
+// ships one produced by a different version than the vendored library.
+// Each path matches the platform's install destination in
+// cmake/install_directives.cmake.
+#ifdef __linux__
 const std::vector<std::string> kMagicFiles = {
-    "/usr/share/file/magic.mgc",
-    "/usr/share/misc/magic.mgc",
+    "/opt/osquery/share/osquery/magic.mgc",
 };
+#else
+const std::vector<std::string> kMagicFiles = {
+    "/var/osquery/magic.mgc",
+};
+#endif
 
 constexpr char const* kMagicFileDBSep = ":";
 } // namespace

@@ -411,7 +411,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
     set_tests_properties(
       tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
     )
 
     if(OSQUERY_BUILD_ROOT_TESTS)
@@ -425,7 +425,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
       set_tests_properties(
         tests_integration_tables_root-test
-        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
       )
     endif()
 
@@ -436,7 +436,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
     set_tests_properties(
       tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
     )
   endif()
 endfunction()

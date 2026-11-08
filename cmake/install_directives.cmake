@@ -124,6 +124,13 @@ function(generateInstallDirectives)
       DESTINATION "share/osquery/certs"
     )
 
+    # Compiled at build time by the libmagic_file_tool target, from the
+    # rules bundled with the vendored libmagic
+    install(
+      FILES "${CMAKE_BINARY_DIR}/magic.mgc"
+      DESTINATION "share/osquery"
+    )
+
     install(
       FILES "tools/deployment/linux_packaging/osqueryd.sysconfig"
       DESTINATION "/control/deb/etc/default"
@@ -322,6 +329,13 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/certs.pem"
       DESTINATION "/private/var/osquery/certs"
+    )
+
+    # Compiled at build time by the libmagic_file_tool target, from the
+    # rules bundled with the vendored libmagic
+    install(
+      FILES "${CMAKE_BINARY_DIR}/magic.mgc"
+      DESTINATION "/private/var/osquery"
     )
 
     install(
