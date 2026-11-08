@@ -150,8 +150,8 @@ TEST_F(XattrTests, getExtendedAttributesFromFifo) {
       scope_guard::create([&] { boost::filesystem::remove(fifo_path); });
 
   // Nothing ever opens the write end, so a blocking open() would not return.
-  auto result =
-      std::async(std::launch::async, [&] { getExtendedAttributes(fifo_path); });
+  auto result = std::async(std::launch::async,
+                           [&] { return getExtendedAttributes(fifo_path); });
 
   if (result.wait_for(std::chrono::seconds(10)) != std::future_status::ready) {
     // Open the write end to release the blocked reader before failing.
@@ -161,7 +161,13 @@ TEST_F(XattrTests, getExtendedAttributesFromFifo) {
       close(fd);
     }
 
+    result.get().ignoreResult();
     FAIL() << "getExtendedAttributes blocked on a FIFO";
   }
+
+  auto xattr_map_result = result.get();
+  ASSERT_TRUE(xattr_map_result.isValue())
+      << "Error code: "
+      << static_cast<int>(xattr_map_result.getError().getErrorCode());
 }
 } // namespace osquery
