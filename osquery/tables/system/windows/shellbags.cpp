@@ -46,6 +46,20 @@ std::string guidLookup(const std::string& guid) {
   return "{" + guid + "}";
 }
 
+// Maps the shellitem parsers' results to a path component: real GUIDs
+// trigger a registry lookup, "[UNKNOWN ...]" sentinels pass through, and any
+// unexpected empty result becomes a recognizable placeholder so paths never
+// lose a component.
+std::string guidNameOrSentinel(const std::string& guid_string) {
+  if (guid_string.empty()) {
+    return "[UNKNOWN GUID]";
+  }
+  if (guid_string.front() == '[') {
+    return guid_string;
+  }
+  return guidLookup(guid_string);
+}
+
 void parseShellData(const std::string& shell_data,
                     std::vector<std::string>& build_shellbag,
                     QueryData& results,
@@ -89,7 +103,7 @@ void parseShellData(const std::string& shell_data,
       full_path += "\\";
     } else {
       std::string root_name = rootFolderItem(shell_data);
-      name = guidLookup(root_name);
+      name = guidNameOrSentinel(root_name);
       build_shellbag.push_back(name);
       full_path = osquery::join(build_shellbag, "\\");
     }
@@ -109,7 +123,7 @@ void parseShellData(const std::string& shell_data,
          extension_sig == "")) { // Check if GUID exists
       std::string guid_little = shell_data.substr(8, 32);
       std::string guid_string = guidParse(guid_little);
-      std::string guid_name = guidLookup(guid_string);
+      std::string guid_name = guidNameOrSentinel(guid_string);
 
       build_shellbag.push_back(guid_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
@@ -152,7 +166,7 @@ void parseShellData(const std::string& shell_data,
     return;
   } else if (sig == "71") { // Control Panel
     std::string control_guid = controlPanelItem(shell_data);
-    std::string guid_name = guidLookup(control_guid);
+    std::string guid_name = guidNameOrSentinel(control_guid);
 
     build_shellbag.push_back(guid_name);
     std::string full_path = osquery::join(build_shellbag, "\\");
@@ -183,7 +197,7 @@ void parseShellData(const std::string& shell_data,
                             // shell item formats
     if (shell_data.find("EEBBFE23") != std::string::npos) {
       std::string guid_string = variableGuid(shell_data);
-      std::string guid_name = guidLookup(guid_string);
+      std::string guid_name = guidNameOrSentinel(guid_string);
       build_shellbag.push_back(guid_name);
       std::string full_path = osquery::join(build_shellbag, "\\");
       r["path"] = full_path;
@@ -253,7 +267,7 @@ void parseShellData(const std::string& shell_data,
         std::string property_guid = shell_data.substr(226, 32);
         std::string guid_string = guidParse(property_guid);
 
-        std::string guid_name = guidLookup(guid_string);
+        std::string guid_name = guidNameOrSentinel(guid_string);
         build_shellbag.push_back(guid_name);
         std::string full_path = osquery::join(build_shellbag, "\\");
         r["path"] = full_path;
@@ -340,8 +354,18 @@ void parseShellbags(const std::string& path,
     if (rKey.at("data") == "") {
       continue;
     }
-    parseShellData(rKey.at("data"), build_shellbag, results, sid, source);
-    parseShellbags(key_path->second, build_shellbag, results, sid, source);
+    const auto depth = build_shellbag.size();
+    try {
+      parseShellData(rKey.at("data"), build_shellbag, results, sid, source);
+      parseShellbags(key_path->second, build_shellbag, results, sid, source);
+    } catch (const std::exception& e) {
+      // A malformed record must not abort the whole shellbags query, and a
+      // failed record must not leave a partial path behind for its
+      // siblings: restore the path depth and skip its descendants.
+      LOG(WARNING) << "Failed to parse shellbag record: " << e.what();
+      build_shellbag.resize(depth);
+      continue;
+    }
     if (build_shellbag.size() > 0) {
       build_shellbag.pop_back();
     }
@@ -368,8 +392,15 @@ void parseRegistry(const std::string& full_path,
       continue;
     }
     std::vector<std::string> build_shellbag;
-    parseShellData(uKey.at("data"), build_shellbag, results, sid, source);
-    parseShellbags(key_path->second, build_shellbag, results, sid, source);
+    const auto depth = build_shellbag.size();
+    try {
+      parseShellData(uKey.at("data"), build_shellbag, results, sid, source);
+      parseShellbags(key_path->second, build_shellbag, results, sid, source);
+    } catch (const std::exception& e) {
+      LOG(WARNING) << "Failed to parse shellbag record: " << e.what();
+      build_shellbag.resize(depth);
+      continue;
+    }
   }
 }
 
