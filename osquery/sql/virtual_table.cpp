@@ -930,7 +930,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
-    auto& constraints = content->constraints[idxNum];
+    // A copy: the IN rewrite below must not stick for the next xFilter call.
+    auto constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
         // Set the expression from SQLite's now-populated argv.

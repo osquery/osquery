@@ -63,13 +63,16 @@ bool SocketEventSubscriber::parseSockAddr(const std::string& saddr,
   }
 
   // The protocol is not included in the audit message.
-  if (saddr[0] == '0' && saddr[1] == '2') {
+  // The kernel logs the sockaddr with the length the caller passed, so a
+  // failed connect() or bind() can be shorter than the fields read below:
+  // 8 bytes of sockaddr_in and 24 bytes of sockaddr_in6, hex encoded.
+  if (saddr[0] == '0' && saddr[1] == '2' && saddr.size() >= 16) {
     // IPv4
     row["family"] = '2';
     long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);
     row[port_column] = INTEGER(result);
     row[address_column] = ip4FromSaddr(saddr, 8);
-  } else if (saddr[0] == '0' && saddr[1] == 'A') {
+  } else if (saddr[0] == '0' && saddr[1] == 'A' && saddr.size() >= 48) {
     // IPv6
     row["family"] = "10";
     long const result = tryTo<long>(saddr.substr(4, 4), 16).takeOr(0l);

@@ -5,7 +5,10 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+
+# Set embedded debug info (this used to be set manually with /Z7)
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.

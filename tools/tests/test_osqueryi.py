@@ -29,6 +29,14 @@ class OsqueryiTest(unittest.TestCase):
         self.binary = test_base.getLatestOsqueryBinary('osqueryi')
         self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
 
+    def assertCompleted(self, proc):
+        '''Fail with diagnostics if the process was killed by the timeout.'''
+        print(proc.stdout)
+        print(proc.stderr)
+        self.assertFalse(
+            proc.timed_out,
+            "process was killed by the test timeout; stderr: %s" % proc.stderr)
+
     @unittest.skipIf(os.name == "nt", "stderr tests not supported on Windows.")
     def test_error(self):
         '''Test that we throw an error on bad query'''
@@ -45,9 +53,8 @@ class OsqueryiTest(unittest.TestCase):
             "--verbose",
         ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         self.assertEqual(proc.stdout, b"")
-        print(proc.stdout)
-        print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_config_dump(self):
@@ -60,6 +67,7 @@ class OsqueryiTest(unittest.TestCase):
                 "--verbose",
             ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         content = ""
         with open(config, 'r') as fh:
             content = fh.read()
@@ -69,7 +77,6 @@ class OsqueryiTest(unittest.TestCase):
             actual = actual.replace('\r', '')
 
         self.assertEqual(actual, '{"%s": %s}\n' % (config, content))
-        print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_config_check_failure_invalid_path(self):
@@ -81,9 +88,8 @@ class OsqueryiTest(unittest.TestCase):
             "--config_path=/this/path/does/not/exist"
         ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         self.assertNotEqual(proc.stderr, "")
-        print(proc.stdout)
-        print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 1)
 
     def test_config_check_failure_valid_path(self):
@@ -95,6 +101,7 @@ class OsqueryiTest(unittest.TestCase):
             "--config_path=%s" % configFile("test.badconfig"),
         ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
@@ -107,6 +114,7 @@ class OsqueryiTest(unittest.TestCase):
             "--config_plugin=does_not_exist"
         ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)
         # Also do not accept a SIGSEG
@@ -121,9 +129,8 @@ class OsqueryiTest(unittest.TestCase):
                 "--verbose",
             ],
             SHELL_TIMEOUT)
+        self.assertCompleted(proc)
         self.assertEqual(proc.stdout, b"")
-        print (proc.stdout)
-        print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_meta_commands(self):
@@ -180,12 +187,11 @@ class OsqueryiTest(unittest.TestCase):
             ],
             SHELL_TIMEOUT
         )
+        self.assertCompleted(proc)
         if os.name == "nt":
             self.assertEqual(proc.stdout, b"[\r\n  {\"0\":\"0\"}\r\n]\r\n")
         else:
             self.assertEqual(proc.stdout, b"[\n  {\"0\":\"0\"}\n]\n")
-        print(proc.stdout)
-        print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_json_pretty_output(self):
@@ -197,14 +203,13 @@ class OsqueryiTest(unittest.TestCase):
         ],
             SHELL_TIMEOUT
         )
+        self.assertCompleted(proc)
         if os.name == "nt":
             self.assertEqual(
                 proc.stdout, b"[\r\n  {\r\n    \"0\": \"0\"\r\n  }\r\n]\r\n")
         else:
             self.assertEqual(
                 proc.stdout, b"[\n  {\n    \"0\": \"0\"\n  }\n]\n")
-        print(proc.stdout)
-        print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
     def test_time(self):

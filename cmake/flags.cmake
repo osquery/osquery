@@ -27,6 +27,12 @@ function(setupBuildFlags)
 
   target_compile_features(cxx_settings INTERFACE cxx_std_17)
 
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(cxx_settings INTERFACE
+      "SHELL:-Xclang -fno-pch-timestamp"
+    )
+  endif()
+
   # There's no specific C11 conformance on MSVC
   # and recent versions of CMake add the /std:c11 flag to the command line
   # which makes librdkafka compilation fail due to _Thread_local not being defined,
@@ -314,7 +320,6 @@ function(setupBuildFlags)
 
     set(osquery_windows_compile_options
       /W3
-      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7>"
     )
 
     set(windows_common_link_options
@@ -448,9 +453,6 @@ function(setupBuildFlags)
     string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
     string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-
-    string(REPLACE "/Zi" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
     string(REPLACE "/EHsc" "/EHs" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 

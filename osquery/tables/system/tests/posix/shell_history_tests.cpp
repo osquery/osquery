@@ -153,5 +153,43 @@ TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
   fs::remove_all(directory);
 }
 
+TEST_F(ShellHistoryTests, line_split_one_byte_into_read_block) {
+  std::vector<DynamicTableRowHolder> results;
+  auto predicate = [&results](DynamicTableRowHolder& r) {
+    results.push_back(std::move(r));
+  };
+
+  auto directory =
+      fs::temp_directory_path() /
+      fs::unique_path(
+          "osquery.shell_history_tests.line_split_one_byte.%%%%-%%%%");
+  ASSERT_TRUE(fs::create_directory(directory));
+  auto filepath = directory / fs::path(".sh_history");
+
+  // The history file is read in fixed-size blocks. After a 3-byte first line
+  // every line is 2 bytes, so each newline sits at an even offset and every
+  // block boundary splits a line one byte after its start.
+  std::vector<std::string> lines = {"ls"};
+  for (std::size_t i = 0; i < 20000; ++i) {
+    lines.push_back(std::to_string(i % 10));
+  }
+  {
+    auto fout =
+        std::ofstream(filepath.native(), std::ios::out | std::ios::binary);
+    for (const auto& line : lines) {
+      fout << line << '\n';
+    }
+  }
+
+  auto const uid = std::to_string(geteuid());
+  genShellHistoryForUser(
+      uid, std::to_string(getegid()), directory.native(), predicate);
+  ASSERT_EQ(results.size(), lines.size());
+  for (std::size_t i = 0; i < lines.size(); ++i) {
+    EXPECT_EQ(results[i]["command"], lines[i]);
+  }
+  fs::remove_all(directory);
+}
+
 } // namespace tables
 } // namespace osquery
