@@ -102,6 +102,8 @@ class SQLiteDBInstance : private boost::noncopyable {
   SQLiteDBInstance() {
     init();
   }
+  /// Takes the primary database if it is free, otherwise the instance has no
+  /// database until init() is called.
   SQLiteDBInstance(sqlite3*& db, Mutex& mtx);
   ~SQLiteDBInstance();
 

@@ -117,11 +117,19 @@ TEST_F(SQLiteUtilTests, test_contended_connection_reuse) {
   EXPECT_NE(nested->db(), first_db);
   nested.reset();
 
-  // Once released, the next contended request reuses the same connection.
+  // Once released, the next contended request reuses the same connection
+  // without opening a database, so SQLite's allocation count never rises.
   first.reset();
+  // Reset SQLite's allocation high-water mark to the current count.
+  int before = 0;
+  int peak = 0;
+  sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &before, &peak, 1);
   auto second = SQLiteDBManager::get();
+  int after = 0;
+  sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &after, &peak, 0);
   ASSERT_FALSE(second->isPrimary());
   EXPECT_EQ(second->db(), first_db);
+  EXPECT_EQ(peak, before) << "the cache hit allocated in SQLite";
 }
 
 class laterTablePlugin : public TablePlugin {
@@ -196,8 +204,61 @@ TEST_F(SQLiteUtilTests, test_contended_connection_follows_registry) {
     auto dbc = SQLiteDBManager::get();
     ASSERT_FALSE(dbc->isPrimary());
     QueryData results;
-    EXPECT_FALSE(queryInternal("select x from test_table", results, dbc).ok());
+    // A stale connection would still have the table, and fail only later
+    // when it asks the registry for rows.
+    auto status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_NE(status.getMessage().find("no such table"), std::string::npos)
+        << status.getMessage();
   }
+}
+
+/// A table that cannot be attached while its extension is not answering or
+/// while it is still pending.
+class unreliableTablePlugin : public laterTablePlugin {
+ public:
+  Status call(const PluginRequest& request, PluginResponse& response) override {
+    if (unavailable) {
+      return Status::failure("Not responding");
+    }
+    return TablePlugin::call(request, response);
+  }
+
+  TableAttributes attributes() const override {
+    return pending ? TableAttributes::PENDING : TableAttributes::NONE;
+  }
+
+  bool unavailable{true};
+  bool pending{false};
+};
+
+TEST_F(SQLiteUtilTests, test_contended_connection_retries_missing_table) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  auto tables = RegistryFactory::get().registry("table");
+  auto table = std::make_shared<unreliableTablePlugin>();
+  ASSERT_TRUE(tables->add("test_table", table).ok());
+  auto query_table = [] {
+    auto dbc = SQLiteDBManager::get();
+    EXPECT_FALSE(dbc->isPrimary());
+    QueryData results;
+    return queryInternal("select x from test_table", results, dbc);
+  };
+
+  // A transient connection built while the table cannot be attached lacks
+  // it: first its columns request fails, then it is pending.
+  EXPECT_FALSE(query_table().ok());
+  table->unavailable = false;
+  table->pending = true;
+  EXPECT_FALSE(query_table().ok());
+
+  // Neither change moves a generation, so the table is found only if no
+  // connection that missed it was cached.
+  table->pending = false;
+  auto status = query_table();
+  EXPECT_TRUE(status.ok()) << status.getMessage();
+
+  tables->remove("test_table");
 }
 
 TEST_F(SQLiteUtilTests, test_contended_connection_reuse_is_clean) {

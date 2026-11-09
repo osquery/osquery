@@ -24,6 +24,16 @@ namespace osquery {
  *
  * @return a string representing the host's current hostname
  */
+std::string getHostname();
+
+/**
+ * @brief Getter for a host's fully qualified domain name
+ *
+ * @return a string representation of the hosts fully qualified domain name
+ * if the host is joined to a domain, otherwise it simply returns the hostname
+ */
+std::string getFqdn();
+
 /**
  * @brief CPU time and memory of the calling process.
  *
@@ -38,14 +48,4 @@ struct SelfResourceUsage {
 
 /// Read the calling process' resource usage without a table query.
 bool getSelfResourceUsage(SelfResourceUsage& usage);
-
-std::string getHostname();
-
-/**
- * @brief Getter for a host's fully qualified domain name
- *
- * @return a string representation of the hosts fully qualified domain name
- * if the host is joined to a domain, otherwise it simply returns the hostname
- */
-std::string getFqdn();
 } // namespace osquery

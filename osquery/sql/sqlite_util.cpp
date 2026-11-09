@@ -335,9 +335,9 @@ SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
   if (lock_.owns_lock()) {
     primary_ = true;
   } else {
+    // The DB manager opens a transient database only when it has no idle
+    // cached one to hand out.
     db_ = nullptr;
-    VLOG(1) << "DBManager contention: opening transient SQLite database";
-    init();
   }
 }
 
@@ -590,9 +590,16 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
     return cache.instance;
   }
 
-  attachVirtualTables(instance);
+  VLOG(1) << "DBManager contention: opening transient SQLite database";
+  instance->init();
+
+  // Cache the connection only if no table was left out: a table skipped after
+  // a failed columns request, or while still pending, can become available
+  // without either generation changing. An idle cached connection that got
+  // here is stale and is replaced or dropped.
+  bool complete = attachVirtualTables(instance);
   if (!cache.instance || cache.instance.use_count() == 1) {
-    cache.instance = instance;
+    cache.instance = complete ? instance : nullptr;
     cache.generation = generation;
   }
   return instance;

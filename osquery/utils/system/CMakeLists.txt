@@ -234,6 +234,9 @@ function(generateOsqueryUtilsSystem)
   endif()
 
   generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FULL_PATH" ${public_header_files})
+
+  add_test(NAME osquery_utils_system_systemtests-test COMMAND osquery_utils_system_systemtests-test)
+
 endfunction()
 
 function(generateOsqueryUtilsSystemUptime)
