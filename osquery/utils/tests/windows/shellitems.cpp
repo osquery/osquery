@@ -236,4 +236,129 @@ TEST_F(ShellitemTests, test_shellitem_networkshare) {
   ASSERT_TRUE(name == "\\\\vmware-host\\Shared Folders");
 }
 
+TEST_F(ShellitemTests, test_shellitem_rootfolder_truncated) {
+  // The GUID occupies 32 characters at offset 8; this record ends at 38.
+  auto guid = rootFolderItem(std::string(38, '4'));
+  ASSERT_EQ(guid, "[UNKNOWN ROOT FOLDER]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_controlpanel_truncated) {
+  // The GUID occupies 32 characters at offset 28; this record ends at 58.
+  auto guid = controlPanelItem(std::string(58, '4'));
+  ASSERT_EQ(guid, "[UNKNOWN CONTROL PANEL ITEM]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_variableguid_truncated) {
+  auto guid = variableGuid(std::string(58, '4'));
+  ASSERT_EQ(guid, "[UNKNOWN VARIABLE GUID]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_networkshare_truncated) {
+  // The net-id comparison and the path read need twelve characters.
+  auto name = networkShareItem("000041004");
+  ASSERT_EQ(name, "[UNKNOWN NETWORK SHELL ITEM]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_zipcontent_truncated) {
+  // The path-size fields live at offsets 168 and 176 and the path starts
+  // at 184; this record ends at 182, inside the fixed-offset guard that
+  // replaced the throwing substr(184, ...) read.
+  auto path = zipContentItem(std::string(182, '4'));
+  ASSERT_EQ(path, "[ZIP PATH DECODE ERROR]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtpfolder_truncated) {
+  auto name = mtpFolder(std::string(146, '4'));
+  ASSERT_EQ(name, "[UNKNOWN MTP FOLDER NAME]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtpdevice_truncated) {
+  auto name = mtpDevice(std::string(106, '4'));
+  ASSERT_EQ(name, "[UNKNOWN MTP DEVICE NAME]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtproot_truncated) {
+  auto name = mtpRoot(std::string(78, '4'));
+  ASSERT_EQ(name, "[UNKNOWN MTP ROOT NAME]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_controlpanelcategory_truncated) {
+  auto name = controlPanelCategoryItem(std::string(14, '4'));
+  ASSERT_EQ(name, "[UNKNOWN PANEL CATEGORY]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_zipcontent_second_path_truncated) {
+  // A record long enough to pass the first guard (188) but ending before
+  // the second path read at 184 + path_size * 4 + 4. The size fields are
+  // encoded little-endian the way swapEndianess() decodes them: path_size
+  // is 2 (first path read is 8 characters, even-length, unhex succeeds)
+  // and second_path_size is 1, so the second read starts at 196 with only
+  // 195 characters present.
+  std::string data(195, '4');
+  data.replace(168, 4, "0200");
+  data.replace(176, 4, "0100");
+  auto path = zipContentItem(data);
+  ASSERT_EQ(path, "[ZIP PATH DECODE ERROR]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_guidparse_truncated) {
+  // guidParse reads five fields spanning 32 characters; this input ends at
+  // 18, inside the last field read. The parser returns a nonempty
+  // placeholder so caller-built paths keep a recognizable component.
+  auto guid = guidParse(std::string(18, '4'));
+  ASSERT_EQ(guid, "[UNKNOWN GUID]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_propertystore_truncated) {
+  // The store at offset 20 needs its complete GUID by offset + 40 = 60;
+  // this record ends at 38, so no store is usable and the parser returns
+  // the nonempty unknown-store sentinel.
+  std::string data = std::string(20, '4') + "31535053" + std::string(10, '4');
+  std::vector<size_t> wps_list;
+  size_t wps = data.find("31535053");
+  while (wps != std::string::npos) {
+    wps_list.push_back(wps);
+    wps = data.find("31535053", wps + 1);
+  }
+  auto name = propertyStore(data, wps_list);
+  ASSERT_EQ(name, "[UNKNOWN PROPERTY STORE]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_propertystore_unrecognized_guid) {
+  // A store whose GUID is complete but unrecognized reports the GUID even
+  // when the record ends before the name fields.
+  std::string data =
+      "1c000000"
+      "31535053" +
+      std::string(32, '4') + "00000000";
+  std::vector<size_t> wps_list;
+  size_t wps = data.find("31535053");
+  while (wps != std::string::npos) {
+    wps_list.push_back(wps);
+    wps = data.find("31535053", wps + 1);
+  }
+  auto name = propertyStore(data, wps_list);
+  ASSERT_EQ(name.size(), 36U);
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtproot_boundary_unterminated_name) {
+  // An 84-character record ends inside the name read (offset 80) with no
+  // "000000" terminator: the tail "4100" decodes to "A" as it did before
+  // the guards existed.
+  auto name = mtpRoot(std::string(80, '4') + "4100");
+  ASSERT_EQ(name, "A");
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtpfolder_boundary_zero_length_name) {
+  // A record ending exactly at the name read (offset 148) yields a
+  // zero-length name rather than a throw.
+  auto name = mtpFolder(std::string(148, '4'));
+  ASSERT_EQ(name, "");
+}
+
+TEST_F(ShellitemTests, test_shellitem_mtpdevice_boundary_zero_length_name) {
+  auto name = mtpDevice(std::string(108, '4'));
+  ASSERT_EQ(name, "");
+}
+
 } // namespace osquery

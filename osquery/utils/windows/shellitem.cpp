@@ -39,6 +39,13 @@ const std::string kPropertySets[15] = {"000214A1-0000-0000-C000-000000000046",
                                        "F29F85E0-4FF9-1068-AB91-08002B27B3D9"};
 namespace osquery {
 std::string guidParse(const std::string& guid_little) {
+  // The GUID fields span 32 characters; a shorter input comes from a
+  // truncated record and would make the field reads below throw. Callers
+  // append the result to paths, so the placeholder must be nonempty.
+  if (guid_little.size() < 32) {
+    LOG(WARNING) << "Truncated GUID in shell data: " << guid_little;
+    return "[UNKNOWN GUID]";
+  }
   std::vector<std::string> guids;
   guids.push_back(guid_little.substr(0, 8));
   guids.push_back(guid_little.substr(8, 4));
@@ -171,12 +178,23 @@ std::string propertyStore(const std::string& shell_data,
                           const std::vector<size_t>& wps_list) {
   std::string guid_string;
   for (const auto& offsets : wps_list) {
+    // The GUID read spans offsets + 8 .. offsets + 40; skip stores that do
+    // not fully contain it. Stores with a complete but unrecognized GUID
+    // still report their GUID.
+    if (shell_data.size() < offsets + 40) {
+      break;
+    }
     std::string guid_little = shell_data.substr(offsets + 8, 32);
     guid_string = guidParse(guid_little);
     // If GUID property set is found get the property set name
     for (const auto& property_list : kPropertySets) {
       if (guid_string != property_list) {
         continue;
+      }
+      // The name fields reach offsets + 74; a truncated recognized store
+      // still reports its GUID.
+      if (shell_data.size() < offsets + 74) {
+        break;
       }
       std::string name_size = shell_data.substr(offsets + 48, 8);
       name_size = swapEndianess(name_size);
@@ -196,10 +214,15 @@ std::string propertyStore(const std::string& shell_data,
       return name;
     }
   }
-  return guid_string;
+  return guid_string.empty() ? "[UNKNOWN PROPERTY STORE]" : guid_string;
 }
 
 std::string networkShareItem(const std::string& shell_data) {
+  // The net-id comparison and the path read need twelve characters.
+  if (shell_data.size() < 12) {
+    LOG(WARNING) << "Truncated network share shell item: " << shell_data;
+    return "[UNKNOWN NETWORK SHELL ITEM]";
+  }
   for (const auto& net_id : kNetworkShareIds) {
     if (net_id == shell_data.substr(4, 2)) {
       // Network path ends with "00"
@@ -220,11 +243,19 @@ std::string networkShareItem(const std::string& shell_data) {
 }
 
 std::string zipContentItem(const std::string& shell_data) {
+  // The path-size fields live at fixed offsets 168 and 176 and the path
+  // read starts at 184; a record shorter than the path read would make
+  // substr() throw. The separate second-path position check below retains
+  // its own bound.
+  if (shell_data.size() < 184) {
+    LOG(WARNING) << "Truncated zip content shell item: " << shell_data;
+    return "[ZIP PATH DECODE ERROR]";
+  }
   std::string path_size_string = shell_data.substr(168, 4);
   path_size_string = swapEndianess(path_size_string);
   int path_size = tryTo<int>(path_size_string, 16).takeOr(0);
 
-  std::string path = shell_data.substr(184, path_size * 4);
+  std::string path = shell_data.substr(184, static_cast<size_t>(path_size) * 4);
   // Path is in unicode, extra 00
   boost::erase_all(path, "00");
 
@@ -241,9 +272,14 @@ std::string zipContentItem(const std::string& shell_data) {
   int second_path_size = tryTo<int>(second_path_size_string, 16).takeOr(0);
 
   if (second_path_size != 0) {
+    size_t second_path_pos = 184 + (path_size * 4) + 4;
+    if (second_path_pos > shell_data.size()) {
+      LOG(WARNING) << "Truncated zip content shell item: " << shell_data;
+      return "[ZIP PATH DECODE ERROR]";
+    }
     path += "/";
-    std::string second_path =
-        shell_data.substr((184 + (path_size * 4) + 4), second_path_size * 4);
+    std::string second_path = shell_data.substr(
+        second_path_pos, static_cast<size_t>(second_path_size) * 4);
     boost::erase_all(second_path, "00");
 
     try {
@@ -260,6 +296,11 @@ std::string zipContentItem(const std::string& shell_data) {
 }
 
 std::string rootFolderItem(const std::string& shell_data) {
+  // The GUID occupies 32 characters at offset 8.
+  if (shell_data.size() < 40) {
+    LOG(WARNING) << "Truncated root folder shell item: " << shell_data;
+    return "[UNKNOWN ROOT FOLDER]";
+  }
   std::string guid_little = shell_data.substr(8, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
@@ -285,6 +326,11 @@ std::string driveLetterItem(const std::string& shell_data) {
 }
 
 std::string controlPanelCategoryItem(const std::string& shell_data) {
+  if (shell_data.size() < 18) {
+    LOG(WARNING) << "Truncated control panel category shell item: "
+                 << shell_data;
+    return "[UNKNOWN PANEL CATEGORY]";
+  }
   std::string panel_id = shell_data.substr(16, 2);
   if (panel_id == "00") {
     return "All Control Panel Items";
@@ -317,6 +363,11 @@ std::string controlPanelCategoryItem(const std::string& shell_data) {
 }
 
 std::string controlPanelItem(const std::string& shell_data) {
+  // The GUID occupies 32 characters at offset 28.
+  if (shell_data.size() < 60) {
+    LOG(WARNING) << "Truncated control panel shell item: " << shell_data;
+    return "[UNKNOWN CONTROL PANEL ITEM]";
+  }
   std::string guid_little = shell_data.substr(28, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
@@ -324,6 +375,13 @@ std::string controlPanelItem(const std::string& shell_data) {
 
 std::vector<std::string> ftpItem(const std::string& shell_data) {
   std::vector<std::string> ftp_data;
+  // The unicode flag and the URI-size field need eight characters.
+  if (shell_data.size() < 8) {
+    LOG(WARNING) << "Truncated FTP shell item: " << shell_data;
+    ftp_data.push_back("0000000000000000");
+    ftp_data.push_back("[UNKNOWN NAME]");
+    return ftp_data;
+  }
   std::string unicode = shell_data.substr(6, 2);
   std::string uri_size = shell_data.substr(8, 4);
   if (uri_size == "0000") {
@@ -447,16 +505,26 @@ std::string variableFtp(const std::string& shell_data) {
 }
 
 std::string variableGuid(const std::string& shell_data) {
+  // The GUID occupies 32 characters at offset 28.
+  if (shell_data.size() < 60) {
+    LOG(WARNING) << "Truncated variable GUID shell item: " << shell_data;
+    return "[UNKNOWN VARIABLE GUID]";
+  }
   std::string guid_little = shell_data.substr(28, 32);
   std::string guid_string = guidParse(guid_little);
   return guid_string;
 }
 
 std::string mtpFolder(const std::string& shell_data) {
+  // The name starts at offset 148.
+  if (shell_data.size() < 148) {
+    LOG(WARNING) << "Truncated MTP folder shell item: " << shell_data;
+    return "[UNKNOWN MTP FOLDER NAME]";
+  }
   std::string name_size = shell_data.substr(124, 8);
   name_size = swapEndianess(name_size);
   int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(148, size * 4);
+  std::string path_name = shell_data.substr(148, static_cast<size_t>(size) * 4);
   boost::erase_all(path_name, "00");
   std::string name;
   try {
@@ -470,10 +538,15 @@ std::string mtpFolder(const std::string& shell_data) {
 }
 
 std::string mtpDevice(const std::string& shell_data) {
+  // The name starts at offset 108.
+  if (shell_data.size() < 108) {
+    LOG(WARNING) << "Truncated MTP device shell item: " << shell_data;
+    return "[UNKNOWN MTP DEVICE NAME]";
+  }
   std::string name_size = shell_data.substr(76, 8);
   name_size = swapEndianess(name_size);
   int size = tryTo<int>(name_size, 16).takeOr(0);
-  std::string path_name = shell_data.substr(108, size * 4);
+  std::string path_name = shell_data.substr(108, static_cast<size_t>(size) * 4);
   boost::erase_all(path_name, "00");
   std::string name;
   try {
@@ -487,6 +560,11 @@ std::string mtpDevice(const std::string& shell_data) {
 }
 
 std::string mtpRoot(const std::string& shell_data) {
+  // The name starts at offset 80 and ends with the "000000" terminator.
+  if (shell_data.size() < 80) {
+    LOG(WARNING) << "Truncated MTP root shell item: " << shell_data;
+    return "[UNKNOWN MTP ROOT NAME]";
+  }
   size_t name_end = shell_data.find("000000", 80);
   std::string path_name = shell_data.substr(80, name_end - 80);
   boost::erase_all(path_name, "00");
