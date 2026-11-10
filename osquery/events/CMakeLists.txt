@@ -76,7 +76,7 @@ function(generateOsqueryEvents)
         windows/etw/etw_test_session_lock.cpp
         windows/etw/etw_publisher.cpp
       )
-    endif()	
+    endif()
   endif()
 
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL
@@ -197,7 +197,7 @@ function(generateOsqueryEvents)
         windows/etw/etw_test_session_lock.h
         windows/etw/etw_concurrent_queue.h
       )
-    endif()	
+    endif()
   endif()
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
