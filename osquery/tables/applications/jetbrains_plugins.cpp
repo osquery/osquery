@@ -16,7 +16,6 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/scope_guard.h>
-#include <regex>
 
 #define LIBARCHIVE_STATIC
 #include <archive.h>
@@ -162,16 +161,24 @@ struct PluginAttributes {
 // Function to extract the contents of a specific tag
 std::string getContentFromTag(const std::string& xml,
                               const std::string& tag_name) {
-  std::regex tagRegex("<" + tag_name + "[\\s\\S]*?>([\\s\\S]*?)<\\/" +
-                      tag_name + ">");
-  std::smatch match;
-
-  if (std::regex_search(xml, match, tagRegex)) {
-    // match[0] is the entire tag with contents <TagName>contents</TagName>
-    // match[1] is the contents of the tag
-    return match[1];
+  // plugin.xml is user controlled, so this avoids std::regex: backtracking is
+  // superlinear in the input and throws when it exceeds the complexity limit.
+  const auto tag_start = xml.find("<" + tag_name);
+  if (tag_start == std::string::npos) {
+    return "";
   }
-  return "";
+
+  const auto tag_end = xml.find('>', tag_start + tag_name.size() + 1);
+  if (tag_end == std::string::npos) {
+    return "";
+  }
+
+  const auto closing_tag = xml.find("</" + tag_name + ">", tag_end + 1);
+  if (closing_tag == std::string::npos) {
+    return "";
+  }
+
+  return xml.substr(tag_end + 1, closing_tag - tag_end - 1);
 }
 
 // Function to parse the plugin.xml file
