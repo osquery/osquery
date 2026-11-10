@@ -17,11 +17,15 @@
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/sql/tests/sql_test_utils.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/scope_guard.h>
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/variant.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 class SQLiteUtilTests : public testing::Test {
@@ -132,6 +136,124 @@ TEST_F(SQLiteUtilTests, test_aggregate_query) {
   auto status = queryInternal(kTestQuery, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
+}
+
+TEST_F(SQLiteUtilTests, test_aggregate_terms_above_i16_limit_after_reopen) {
+  const auto database_path =
+      fs::temp_directory_path() /
+      fs::unique_path("osquery.sqlite.aggregate_terms.%%%%.%%%%.db");
+  const auto database_cleanup = scope_guard::create([&database_path]() {
+    boost::system::error_code cleanup_error;
+    fs::remove(database_path, cleanup_error);
+  });
+
+  sqlite3* raw_database = nullptr;
+  auto rc = sqlite3_open(database_path.string().c_str(), &raw_database);
+  std::unique_ptr<sqlite3, decltype(&sqlite3_close)> database(raw_database,
+                                                              sqlite3_close);
+  ASSERT_EQ(SQLITE_OK, rc) << (database != nullptr
+                                   ? sqlite3_errmsg(database.get())
+                                   : "sqlite3_open did not return a handle");
+
+  constexpr std::size_t kColumnCount = 2000U;
+  std::string create_tables = "CREATE TABLE many_columns(";
+  for (std::size_t column_index = 0U; column_index < kColumnCount;
+       ++column_index) {
+    if (column_index > 0U) {
+      create_tables += ',';
+    }
+
+    create_tables += "c" + std::to_string(column_index) + " INTEGER";
+  }
+
+  create_tables +=
+      "); CREATE TABLE files(file_name TEXT, folder TEXT, fs_id TEXT);";
+
+  char* error = nullptr;
+  rc = sqlite3_exec(
+      database.get(), create_tables.c_str(), nullptr, nullptr, &error);
+  std::string error_message = error == nullptr ? "" : error;
+  sqlite3_free(error);
+  ASSERT_EQ(SQLITE_OK, rc) << error_message;
+
+  // The zero-based aggregate index first exceeds i16 at term 32,769.
+  constexpr std::size_t kAggregateTermCount = 32769U;
+  // Keep each AND group below SQLITE_MAX_EXPR_DEPTH.
+  constexpr std::size_t kTermGroupSize = 100U;
+  constexpr std::size_t kTableCount =
+      (kAggregateTermCount + kColumnCount - 1U) / kColumnCount;
+
+  std::string create_view =
+      "CREATE VIEW thumbnails AS SELECT t0.c0 AS file_id, "
+      "0 AS last_hit_date, 0 AS hit_count, 0 AS icon_mode FROM ";
+
+  for (std::size_t table_index = 0U; table_index < kTableCount; ++table_index) {
+    if (table_index > 0U) {
+      create_view += ',';
+    }
+
+    create_view += "many_columns AS t" + std::to_string(table_index);
+  }
+
+  create_view += " GROUP BY t0.c0 HAVING ";
+
+  for (std::size_t term_index = 0U; term_index < kAggregateTermCount;
+       ++term_index) {
+    if (term_index > 0U) {
+      create_view += " AND ";
+    }
+
+    if (term_index % kTermGroupSize == 0U) {
+      create_view += '(';
+    }
+
+    create_view += "t" + std::to_string(term_index / kColumnCount) + ".c" +
+                   std::to_string(term_index % kColumnCount) + " IS NOT NULL";
+
+    if ((term_index + 1U) % kTermGroupSize == 0U ||
+        term_index + 1U == kAggregateTermCount) {
+      create_view += ')';
+    }
+  }
+
+  create_view += ';';
+
+  error = nullptr;
+  rc = sqlite3_exec(
+      database.get(), create_view.c_str(), nullptr, nullptr, &error);
+  error_message = error == nullptr ? "" : error;
+  sqlite3_free(error);
+  ASSERT_EQ(SQLITE_OK, rc) << error_message;
+
+  ASSERT_EQ(SQLITE_OK, sqlite3_close(database.get()));
+  database.release();
+
+  raw_database = nullptr;
+  rc = sqlite3_open_v2(
+      database_path.string().c_str(),
+      &raw_database,
+      SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX,
+      nullptr);
+  database.reset(raw_database);
+  ASSERT_EQ(SQLITE_OK, rc) << (database != nullptr
+                                   ? sqlite3_errmsg(database.get())
+                                   : "sqlite3_open did not return a handle");
+
+  const std::string query =
+      "SELECT f.*, last_hit_date, hit_count, icon_mode FROM "
+      "(SELECT rowid, * FROM files) f, "
+      "(SELECT *, max(last_hit_date) AS last_hit_date FROM thumbnails "
+      "GROUP BY file_id) t WHERE t.file_id = rowid;";
+
+  sqlite3_stmt* raw_statement = nullptr;
+  rc = sqlite3_prepare_v2(
+      database.get(), query.c_str(), -1, &raw_statement, nullptr);
+  std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> statement(
+      raw_statement, sqlite3_finalize);
+  ASSERT_EQ(SQLITE_OK, rc) << sqlite3_errmsg(database.get());
+  ASSERT_NE(nullptr, statement.get());
+  EXPECT_EQ(SQLITE_DONE, sqlite3_step(statement.get()))
+      << sqlite3_errmsg(database.get());
 }
 
 TEST_F(SQLiteUtilTests, test_no_results_query) {
