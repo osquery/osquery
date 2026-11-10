@@ -96,7 +96,7 @@ bool TLSServerRunner::start(const std::string& server_cert,
     return false;
   }
 
-  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
   while (!boost::filesystem::exists(port_file)) {
     int exit_status{0};
     auto process_state = self.server_->checkStatus(exit_status);

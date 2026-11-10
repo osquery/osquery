@@ -8,7 +8,7 @@
 function(osqueryEventsMain)
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
-  endif()
+  endif() 
 
   generateOsqueryEvents()
   generateOsqueryEventsEventsregistry()
