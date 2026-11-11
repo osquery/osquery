@@ -314,9 +314,11 @@ class Config : private boost::noncopyable {
   /**
    * @brief Call afterUpdate() on the parsers updated by applyParsers.
    *
-   * Must be called without holding any config lock. applyParsers calls it for
-   * the top-level configuration, and addPack calls it for pack content, which
-   * is parsed while the schedule lock is held.
+   * Callers must hold the update mutex, so the deferred changes cannot
+   * interleave with another update, and must not hold the schedule or files
+   * locks, since the deferred changes run SQL and attach tables. applyParsers
+   * calls it for the top-level configuration, and addPack calls it for pack
+   * content, which is parsed while the schedule lock is held.
    */
   void applyParserChanges();
 
@@ -568,12 +570,14 @@ class ConfigParserPlugin : public Plugin {
   /**
    * @brief Apply changes from update() that must not run under config locks.
    *
-   * Called after update(), once the Config instance has released its locks.
-   * A parser that attaches or detaches tables must do it here, not in
-   * update(): update() runs while the config schedule lock is held, attaching
-   * takes the primary SQLite connection's attach lock, and a query holds that
-   * lock while tables such as osquery_schedule take the schedule lock, so
-   * attaching in update() can deadlock.
+   * Called after update(), once the Config instance has released the locks
+   * that queries also take (the update mutex is still held, so the changes
+   * cannot interleave with another update). A parser that attaches or
+   * detaches tables must do it here, not in update(): update() runs while
+   * the config schedule lock is held, attaching takes the primary SQLite
+   * connection's attach lock, and a query holds that lock while tables such
+   * as osquery_schedule take the schedule lock, so attaching in update() can
+   * deadlock.
    */
   virtual void afterUpdate() {}
 

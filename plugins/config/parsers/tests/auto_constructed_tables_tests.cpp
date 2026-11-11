@@ -105,6 +105,10 @@ TEST_F(ATCConfigParserPluginTests, test_config_update_and_query_no_deadlock) {
     std::_Exit(EXIT_FAILURE);
   }
 
+  // Both workers are finished; propagate any exception they stored.
+  updater.get();
+  querier.get();
+
   // Leave the ATC table detached.
   Config::get().update({{kSource, kConfigWithoutTable}});
 }

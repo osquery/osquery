@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -197,14 +198,20 @@ TEST_F(DecoratorsConfigParserPluginTests,
        test_concurrent_updates_with_schedule_decorator_no_deadlock) {
   FLAGS_disable_decorators = false;
 
-  auto updates = [](const std::string& source) {
+  std::atomic<size_t> failed_updates{0};
+  auto updates = [&failed_updates](const std::string& source) {
     for (size_t i = 0; i < 100; ++i) {
       // Alternate the config so that every update is applied.
-      Config::get().update(
-          {{source,
-            R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
+      if (!Config::get()
+               .update(
+                   {{source,
+                     R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
                 "decorators": {"load": ["SELECT COUNT(*) AS schedule_)" +
-                std::to_string(i % 2) + R"( FROM osquery_schedule"]}})"}});
+                         std::to_string(i % 2) +
+                         R"( FROM osquery_schedule"]}})"}})
+               .ok()) {
+        ++failed_updates;
+      }
     }
   };
   auto updater_a = std::async(std::launch::async, updates, "deadlock_a");
@@ -222,6 +229,12 @@ TEST_F(DecoratorsConfigParserPluginTests,
     std::fflush(stderr);
     std::_Exit(EXIT_FAILURE);
   }
+
+  // Both workers are finished. Propagate any exception they stored, and fail
+  // if any update was not applied.
+  updater_a.get();
+  updater_b.get();
+  EXPECT_EQ(failed_updates.load(), 0U);
 }
 
 // The scheduler runs interval decorators outside of the config update
@@ -233,14 +246,33 @@ TEST_F(DecoratorsConfigParserPluginTests,
        test_interval_decorator_concurrent_update_no_deadlock) {
   FLAGS_disable_decorators = false;
 
-  auto updates = [](const std::string& source) {
+  // Install a schedule-reading interval decorator before the workers start,
+  // on a source that the updater does not replace. The decorator worker then
+  // executes a query on every iteration: without it, the worker could finish
+  // all of its iterations before the updater's first update installs an
+  // interval decorator, and the test would pass without executing any
+  // decorator SQL or exercising the lock ordering.
+  ASSERT_TRUE(
+      Config::get()
+          .update({{"interval_decorator_base",
+                    R"({"decorators": {"interval": {"60": [)"
+                    R"("SELECT COUNT(*) AS base_s FROM osquery_schedule"]}}})"}})
+          .ok());
+
+  std::atomic<size_t> failed_updates{0};
+  auto updates = [&failed_updates](const std::string& source) {
     for (size_t i = 0; i < 100; ++i) {
       // Alternate the config so that every update is applied.
-      Config::get().update(
-          {{source,
-            R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
+      if (!Config::get()
+               .update(
+                   {{source,
+                     R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
                 "decorators": {"interval": {"60": ["SELECT COUNT(*) AS s_)" +
-                std::to_string(i % 2) + R"( FROM osquery_schedule"]}}})"}});
+                         std::to_string(i % 2) +
+                         R"( FROM osquery_schedule"]}}})"}})
+               .ok()) {
+        ++failed_updates;
+      }
     }
   };
   auto interval_runs = [] {
@@ -265,6 +297,12 @@ TEST_F(DecoratorsConfigParserPluginTests,
     std::fflush(stderr);
     std::_Exit(EXIT_FAILURE);
   }
+
+  // Both workers are finished. Propagate any exception they stored, and fail
+  // if any update was not applied.
+  updater.get();
+  decorator.get();
+  EXPECT_EQ(failed_updates.load(), 0U);
 }
 
 } // namespace osquery
