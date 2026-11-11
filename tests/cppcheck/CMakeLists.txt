@@ -96,8 +96,6 @@ function(cppcheckMain)
             --std=c++17
             "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
             "--template={file}:{line}:{column}: {severity}: {message} [{id}]"
-            "--relative-paths=${CMAKE_SOURCE_DIR}"
-            "--relative-paths=${CMAKE_BINARY_DIR}"
             ${ignored_folders}
             --quiet
     COMMAND "${CMAKE_COMMAND}" -E cat "${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
