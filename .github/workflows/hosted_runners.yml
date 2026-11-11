@@ -210,8 +210,7 @@ jobs:
         touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
         # For generated files in build/ns_osquery_*/ directories, map them to workspace/src/
-        # For header files in osquery/*/subdir/*.h, add include/ to match actual source locations
-        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | sed 's|/workspace/src/osquery/\([^/]*\)/\([^/:]*\)/\([^/:]*\.h\):|/workspace/src/osquery/\1/\2/include/\3:|g' | tee cppcheck_linux.txt
+        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | tee cppcheck_linux.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -311,8 +310,7 @@ jobs:
       run: |
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
         # For generated files in build/ns_osquery_*/ directories, map them to workspace/src/
-        # For header files in osquery/*/subdir/*.h, add include/ to match actual source locations
-        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | sed 's|/workspace/src/osquery/\([^/]*\)/\([^/:]*\)/\([^/:]*\.h\):|/workspace/src/osquery/\1/\2/include/\3:|g' | tee cppcheck_macos.txt
+        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | tee cppcheck_macos.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -464,10 +462,9 @@ jobs:
       shell: powershell
       run: |
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
-        # For generated files in build\ns_osquery_*\ directories, map them to workspace\src\
-        # For header files in osquery\*\subdir\*.h, add include\ to match actual source locations
+        # For generated files in build\ns_osquery_*\ directories, map them to src\
         cmake --build . --target cppcheck 2>&1 | ForEach-Object { 
-          $_ -replace '\\build\\ns_osquery_[^\\]+\\', '\build\src\' -replace '(\\build\\src\\osquery\\[^\\]+\\[^\\:]+)\\([^\\:]+\.h):', '$1\include\$2:'
+          $_ -replace '\\build\\ns_osquery_[^\\]+\\', '\src\'
         } | Tee-Object -FilePath cppcheck_windows.txt
 
     - name: Store the cppcheck log
