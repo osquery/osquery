@@ -75,7 +75,7 @@ function(generateOsqueryWorkerIpcLinuxPlatformTableContainerIpc)
     osquery_worker_ipc_linux_tablecontaineripc
   )
 
-  generateIncludeNamespace(osquery_worker_ipc_linux_platformtablecontaineripc "osquery/worker/ipc" FILE_ONLY ${public_header_files})
+  generateIncludeNamespace(osquery_worker_ipc_linux_platformtablecontaineripc "osquery/worker/ipc" FULL_PATH ${public_header_files})
 endfunction()
 
 

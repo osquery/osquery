@@ -106,10 +106,12 @@ function(cppcheckMain)
   )
 
   # Analyze the generated table callers without compiling the table libraries.
+  # Include prepare_for_ide to generate namespace header symlinks for all targets.
   add_dependencies(cppcheck
     codegen_native_tables_sources
     codegen_foreign_tables_sources
     osquery_rows_processes_header
+    prepare_for_ide
   )
 endfunction()
 

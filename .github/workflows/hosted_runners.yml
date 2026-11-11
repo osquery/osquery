@@ -209,8 +209,8 @@ jobs:
         # Create the empty executable source to avoid cppcheck errors
         touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
-        # For generated files in build/ns_osquery_*/ directories, map them to workspace/src/
-        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | tee cppcheck_linux.txt
+        # For generated files in build/ns_*/ directories, map them to workspace/src/
+        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_[^/]*/|/workspace/src/|g' | tee cppcheck_linux.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -309,8 +309,8 @@ jobs:
       shell: bash
       run: |
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
-        # For generated files in build/ns_osquery_*/ directories, map them to workspace/src/
-        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_osquery_[^/]*/|/workspace/src/|g' | tee cppcheck_macos.txt
+        # For generated files in build/ns_*/ directories, map them to workspace/src/
+        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_[^/]*/|/workspace/src/|g' | tee cppcheck_macos.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -459,13 +459,11 @@ jobs:
 
     - name: Run cppcheck
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
-      shell: powershell
+      shell: bash
       run: |
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
-        # For generated files in build\ns_osquery_*\ directories, map them to src\
-        cmake --build . --target cppcheck 2>&1 | ForEach-Object { 
-          $_ -replace '\\build\\ns_osquery_[^\\]+\\', '\src\'
-        } | Tee-Object -FilePath cppcheck_windows.txt
+        # For generated files in build/ns_*/ directories, map them to workspace/src/
+        cmake --build . --target cppcheck 2>&1 | sed 's|/workspace/build/ns_[^/]*/|/workspace/src/|g' | tee cppcheck_windows.txt
 
     - name: Store the cppcheck log
       if: always()
