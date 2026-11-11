@@ -69,6 +69,16 @@ function(cppcheckMain)
       list(APPEND platform_options "-D__aarch64__=1")
     endif()
   endif()
+  if(DEFINED PLATFORM_WINDOWS)
+    collectInterfaceOptionsFromTarget(
+      TARGET osquery_cxx_settings
+      DEFINES windows_definitions
+    )
+    foreach(definition IN LISTS windows_definitions)
+      list(APPEND platform_options "$<$<BOOL:${definition}>:-D${definition}>")
+    endforeach()
+    list(APPEND platform_libraries "--library=${CMAKE_CURRENT_SOURCE_DIR}/libraries/windows.cfg")
+  endif()
 
   add_custom_target(
     cppcheck
@@ -86,11 +96,13 @@ function(cppcheckMain)
             --std=c++17
             "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
             "--template={file}:{line}:{column}: {severity}: {message} [{id}]"
+            "--relative-paths=${CMAKE_SOURCE_DIR}"
             ${ignored_folders}
             --quiet
     COMMAND "${CMAKE_COMMAND}" -E cat "${CMAKE_BINARY_DIR}/cppcheck-checkers-report.txt"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Running Cppcheck ${CPPCHECK_VERSION_STRING}"
+    COMMAND_EXPAND_LISTS
     VERBATIM
   )
 
