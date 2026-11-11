@@ -133,9 +133,14 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
 }
 
 Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
+  // Claim the uuid by erasing it under the write lock so exactly one remover
+  // (the Thrift deregister or the watcher reap) runs the teardown; the other
+  // no-ops. Defense-in-depth: the deadlock itself is broken by removeExternal
+  // not holding the registry lock across its callback (registry_interface.cpp).
+  // On its own this change only prevents a redundant double DROP of the tables.
   {
-    ReadLock lock(mutex_);
-    if (extensions_.count(uuid) == 0) {
+    WriteLock lock(mutex_);
+    if (extensions_.erase(uuid) == 0) {
       return Status(1, "Unknown extension UUID: " + std::to_string(uuid));
     }
   }
@@ -144,8 +149,6 @@ Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
     registry.second->removeExternal(uuid);
   }
 
-  WriteLock lock(mutex_);
-  extensions_.erase(uuid);
   return Status::success();
 }
 

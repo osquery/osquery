@@ -33,6 +33,7 @@ namespace osquery {
 
 DECLARE_string(tls_server_certs);
 DECLARE_bool(tls_accept_gzip);
+DECLARE_bool(tls_session_reuse);
 
 class TLSTransportsTests : public testing::Test {
  public:
@@ -101,6 +102,43 @@ TEST_F(TLSTransportsTests, test_call) {
   JSON recv;
   status = r.getResponse(recv);
   EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TLSTransportsTests, test_connection_reuse) {
+  startServer();
+
+  auto original_session_reuse = FLAGS_tls_session_reuse;
+  FLAGS_tls_session_reuse = true;
+
+  auto transport = std::make_shared<TLSTransport>();
+  transport->disableVerifyPeer();
+
+  auto url = "https://localhost:" + port_ + "/test_connection_id";
+
+  JSON first_response;
+  {
+    Request<TLSTransport, JSONSerializer> request(url, transport);
+    Status status;
+    ASSERT_NO_THROW(status = request.call());
+    ASSERT_TRUE(status.ok()) << getTLSError(status);
+    ASSERT_TRUE(request.getResponse(first_response).ok());
+  }
+
+  JSON second_response;
+  {
+    Request<TLSTransport, JSONSerializer> request(url, transport);
+    Status status;
+    ASSERT_NO_THROW(status = request.call());
+    ASSERT_TRUE(status.ok()) << getTLSError(status);
+    ASSERT_TRUE(request.getResponse(second_response).ok());
+  }
+
+  ASSERT_TRUE(first_response.doc().HasMember("client_port"));
+  ASSERT_TRUE(second_response.doc().HasMember("client_port"));
+  EXPECT_EQ(first_response.doc()["client_port"].GetInt(),
+            second_response.doc()["client_port"].GetInt());
+
+  FLAGS_tls_session_reuse = original_session_reuse;
 }
 
 TEST_F(TLSTransportsTests, test_call_with_params) {

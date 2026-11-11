@@ -9,12 +9,40 @@
 
 #pragma once
 
+#include <cstring>
 #include <memory>
+#include <string>
 #include <type_traits>
 
+#include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/utils/conversions/darwin/cfstring.h>
+
 namespace osquery {
+
+inline std::string stringFromIOKitProperty(CFTypeRef value) {
+  if (value == nullptr) {
+    return {};
+  }
+
+  const auto type_id = CFGetTypeID(value);
+  if (type_id == CFStringGetTypeID()) {
+    return stringFromCFString(static_cast<CFStringRef>(value));
+  }
+  if (type_id == CFDataGetTypeID()) {
+    auto data = static_cast<CFDataRef>(value);
+    const CFIndex length = CFDataGetLength(data);
+    const auto* bytes = CFDataGetBytePtr(data);
+    if (length < 1 || bytes == nullptr) {
+      return {};
+    }
+    const auto* begin = reinterpret_cast<const char*>(bytes);
+    return std::string(begin, strnlen(begin, static_cast<std::size_t>(length)));
+  }
+  return {};
+}
+
 template <typename Type>
 struct ObjectDeleter final {
   static_assert(std::is_same_v<io_object_t, Type>,

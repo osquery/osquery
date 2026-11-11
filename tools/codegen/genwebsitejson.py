@@ -38,14 +38,11 @@ from gentable import *
 PLATFORM_DIRS = {
     "specs": ["darwin", "linux", "windows"],
     "utility": ["darwin", "linux", "windows"],
-    "smart": ["darwin", "linux"],
     "darwin": ["darwin"],
-    "kernel": ["darwin"],
     "linwin": ["linux", "windows"],
     "linux": ["linux"],
     "macwin": ["darwin", "windows"],
     "posix": ["darwin", "linux"],
-    "sleuthkit": ["darwin", "linux"],
     "windows": ["windows"],
 }
 

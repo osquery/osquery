@@ -108,6 +108,8 @@ endif()
 option(OSQUERY_ENABLE_CLANG_TIDY "Enables clang-tidy support")
 set(OSQUERY_CLANG_TIDY_CHECKS "-checks=cert-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,modernize-*,bugprone-*" CACHE STRING "List of checks performed by clang-tidy")
 
+option(OSQUERY_BUILD_BPF "Whether to enable and build BPF support" ON)
+
 set(DEFAULT_BUILD_AWS ON)
 if(DEFINED PLATFORM_WINDOWS AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ARM64")
     message(WARNING "AWS dependency is disabled on windows-arm64 because of missing atomics support")
@@ -149,6 +151,14 @@ if(PLATFORM_MACOS)
   endif()
 endif()
 
+# OSQUERY_USER_AGENT_PREFIX sets the User-Agent prefix osqueryd sends to the
+# TLS server back-end (e.g. for the config and logger endpoints). The osquery
+# version is appended to this prefix, so the default of "osquery/" produces a
+# User-Agent such as "osquery/5.0.0". This can also be overridden at run time
+# with the --tls_user_agent flag.
+set(OSQUERY_USER_AGENT_PREFIX "osquery/" CACHE STRING "User-Agent prefix used for TLS requests to the server back-end")
+
 detectOsqueryVersion()
 
 message(STATUS "osquery version: ${OSQUERY_VERSION_INTERNAL}")
+message(STATUS "osquery User-Agent prefix: ${OSQUERY_USER_AGENT_PREFIX}")

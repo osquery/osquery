@@ -73,6 +73,19 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
   }
 }
 
+rocksdb::Status RocksDBDatabasePlugin::openDB() {
+#if ROCKSDB_MAJOR > 9 || (ROCKSDB_MAJOR == 9 && ROCKSDB_MINOR >= 11)
+  // RocksDB 9.11 added DB::Open() with a std::unique_ptr<DB> output,
+  // RocksDB 11 removed the DB** variant.
+  std::unique_ptr<rocksdb::DB> db;
+  auto s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db);
+  db_ = db.release();
+  return s;
+#else
+  return rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+#endif
+}
+
 Status RocksDBDatabasePlugin::setUp() {
   if (!allowOpen()) {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
@@ -168,13 +181,12 @@ Status RocksDBDatabasePlugin::setUp() {
   close();
 
   // Attempt to create a RocksDB instance and handles.
-  auto s =
-      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+  auto s = openDB();
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+    s = openDB();
   }
 
   if (!s.ok() || db_ == nullptr) {

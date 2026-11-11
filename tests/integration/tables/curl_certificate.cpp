@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <chrono>
+#include <thread>
+
 #include <osquery/tests/integration/tables/helper.h>
 
 namespace osquery {
@@ -20,8 +23,17 @@ class curlCertificate : public testing::Test {
 };
 
 TEST_F(curlCertificate, test_sanity) {
-  auto const data = execute_query(
-      "select * from curl_certificate where hostname = 'www.github.com'");
+  // This test needs a live TLS handshake to www.github.com; retry with
+  // backoff to absorb transient runner network failures rather than failing
+  // the job (#9276).
+  QueryData data;
+  for (int attempt = 0; attempt < 3 && data.empty(); ++attempt) {
+    if (attempt > 0) {
+      std::this_thread::sleep_for(std::chrono::seconds(2 * attempt));
+    }
+    data = execute_query(
+        "select * from curl_certificate where hostname = 'www.github.com'");
+  }
   ASSERT_EQ(data.size(), 1ul);
   ValidationMap row_map = {{"hostname", NormalType},
                            {"common_name", NormalType},
@@ -52,7 +64,10 @@ TEST_F(curlCertificate, test_sanity) {
                            {"basic_constraint", NormalType},
                            {"name_constraints", NormalType},
                            {"policy_constraints", NormalType},
-                           {"pem", NormalType}};
+                           {"pem", NormalType},
+                           {"tls_version", NormalType},
+                           {"cipher_suite", NormalType},
+                           {"cipher_bits", IntType}};
   validate_rows(data, row_map);
 }
 

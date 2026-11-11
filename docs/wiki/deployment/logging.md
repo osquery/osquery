@@ -161,11 +161,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     "pid": "97830"
   },
   "name": "processes",
-  "hostname": "hostname.local",
-  "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "hostIdentifier": "hostname.local",
+  "calendarTime": "Wed Oct  1 00:37:30 2014 UTC",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -179,11 +179,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     "pid": "97650"
   },
   "name": "processes",
-  "hostname": "hostname.local",
-  "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "hostIdentifier": "hostname.local",
+  "calendarTime": "Wed Oct  1 00:37:30 2014 UTC",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -224,9 +224,9 @@ Consider the following example:
   "name": "process_snapshot",
   "hostIdentifier": "hostname.local",
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
-  "unixTime": "1462228052",
-  "epoch": "314159265",
-  "counter": "1",
+  "unixTime": 1462228052,
+  "epoch": 314159265,
+  "counter": 0,
   "numerics": false
 }
 ```
@@ -258,11 +258,11 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
     ]
   },
   "name": "processes",
-  "hostname": "hostname.local",
-  "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850",
-  "epoch": "314159265",
-  "counter": "1",
+  "hostIdentifier": "hostname.local",
+  "calendarTime": "Wed Oct  1 00:37:30 2014 UTC",
+  "unixTime": 1412123850,
+  "epoch": 314159265,
+  "counter": 1,
   "numerics": false
 }
 ```
@@ -279,11 +279,11 @@ To aid with this, osquery maintains an `epoch` marker along with each scheduled 
 
 ### Schedule counter
 
-When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial `added` records. `counter` can be used to identify if the added records are all records from initial query or if they are new records. For initial query results that include all records counter will be **"0"**, while initial results without all records (like event tables) will start at **"1"**. For subsequent query executions counter will be incremented by **1**. When `epoch` changes, counter will be reset back to the initial query state.
+When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial `added` records. `counter` can be used to identify if the added records are all records from initial query or if they are new records. For initial query results that include all records counter will be **0**, while initial results without all records (like event tables) will start at **1**. For subsequent query executions counter will be incremented by **1**. When `epoch` changes, counter will be reset back to the initial query state.
 
 ### Numerics
 
-This is an indicator for all results, `true` if osquery attempted to log numerics as numbers, otherwise `false` indicates they were logged as strings.
+This indicates whether numeric query-column values are logged as JSON numbers (`true`) or strings (`false`). Top-level `unixTime`, `epoch`, and `counter` fields are always JSON numbers.
 
 ### Unique host identification
 

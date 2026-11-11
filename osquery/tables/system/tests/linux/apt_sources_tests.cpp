@@ -246,11 +246,76 @@ TEST_F(AptSourcesImplTests, test_deb822_failures) {
   EXPECT_TRUE(s.ok()) << "missing URL protocol skips that URL";
   EXPECT_EQ(apt_sourecs.size(), 1);
   apt_sourecs.clear();
+}
 
-  s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled: off",
-                       apt_sourecs);
-  EXPECT_TRUE(s.ok()) << "disabled source";
-  EXPECT_EQ(apt_sourecs.size(), 0);
+TEST_F(AptSourcesImplTests, test_deb822_enabled_field) {
+  // The Enabled field follows APT's StringToBool() (apt-pkg/contrib/strutl.cc):
+  // matching is case-insensitive, only an explicit negative disables a stanza,
+  // and an absent or unrecognized value leaves the source enabled.
+  struct EnabledTestCase {
+    std::string value;
+    bool expect_enabled;
+    std::string description;
+  };
+
+  const std::vector<EnabledTestCase> test_cases = {
+      // Negative values recognized by StringToBool()
+      {"no", false, "no"},
+      {"false", false, "false"},
+      {"without", false, "without"},
+      {"off", false, "off"},
+      {"disable", false, "disable"},
+      {"0", false, "0"},
+
+      // Matching is case-insensitive
+      {"No", false, "No (mixed case)"},
+      {"OFF", false, "OFF (upper case)"},
+      {"FaLsE", false, "FaLsE (mixed case)"},
+
+      // Affirmative values recognized by StringToBool(). "yes" and "true" were
+      // previously dropped because the parser only accepted "on".
+      {"yes", true, "yes"},
+      {"true", true, "true"},
+      {"with", true, "with"},
+      {"on", true, "on"},
+      {"enable", true, "enable"},
+      {"1", true, "1"},
+      {"YES", true, "YES (upper case)"},
+
+      // Unrecognized values leave the source enabled: APT's ParseStanza()
+      // calls StringToBool(Enabled) with no Default, so the declared default
+      // of -1 (apt-pkg/contrib/strutl.h) is returned for unknown input, and
+      // the stanza is only skipped when the result is false (0).
+      {"banana", true, "unrecognized value"},
+  };
+
+  for (const auto& test_case : test_cases) {
+    std::vector<AptSource> apt_sources;
+
+    auto block =
+        "URIs: http://example.com\nSuites: main\nEnabled: " + test_case.value;
+    auto s = parseDeb822Block(block, apt_sources);
+
+    // A disabled stanza is skipped, not an error.
+    ASSERT_TRUE(s.ok()) << "Enabled: " << test_case.description
+                        << " failed with " << s.getMessage();
+    EXPECT_EQ(apt_sources.size(), test_case.expect_enabled ? 1U : 0U)
+        << "Enabled: " << test_case.description;
+  }
+
+  // An Enabled field with no value is treated as absent, so the source stays
+  // enabled.
+  std::vector<AptSource> apt_sources;
+  auto s = parseDeb822Block("URIs: http://example.com\nSuites: main\nEnabled:",
+                            apt_sources);
+  EXPECT_TRUE(s.ok()) << "empty Enabled value";
+  EXPECT_EQ(apt_sources.size(), 1U) << "empty Enabled value stays enabled";
+  apt_sources.clear();
+
+  // An absent Enabled field means enabled.
+  s = parseDeb822Block("URIs: http://example.com\nSuites: main", apt_sources);
+  EXPECT_TRUE(s.ok()) << "absent Enabled field";
+  EXPECT_EQ(apt_sources.size(), 1U) << "absent Enabled field stays enabled";
 }
 
 } // namespace tables

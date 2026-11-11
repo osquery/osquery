@@ -62,6 +62,7 @@ function(thriftMain)
     "${library_root}/src/thrift/server/TThreadPoolServer.cpp"
     "${library_root}/src/thrift/TApplicationException.cpp"
     "${library_root}/src/thrift/TOutput.cpp"
+    "${library_root}/src/thrift/TUuid.cpp"
     "${library_root}/src/thrift/transport/SocketCommon.cpp"
     "${library_root}/src/thrift/transport/TBufferTransports.cpp"
     "${library_root}/src/thrift/transport/TFDTransport.cpp"

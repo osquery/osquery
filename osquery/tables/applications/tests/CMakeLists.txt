@@ -8,6 +8,7 @@
 function(generateOsqueryTablesApplicationsTestsApplicationsTablesTestsTest)
   add_osquery_executable(osquery_tables_applications_tests_applicationstablestests-test
     jetbrains_plugins_tests.cpp
+    vscode_extensions_tests.cpp
   )
 
   target_link_libraries(osquery_tables_applications_tests_applicationstablestests-test PRIVATE

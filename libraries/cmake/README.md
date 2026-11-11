@@ -12,6 +12,7 @@ Finally, since we don't want to run their configuration logic and build system w
 The ones under `formula` (currently OpenSSL only) will still use CMake to build, but it passes through a different build system, which CMake executes. They can be submodules or, as in the case of OpenSSL, archives that CMake takes care to download.
 This is because reproducing that build system with CMake has proven to be too complex.
 Particular care is needed for these libraries, as with the `source` ones, so that they do not directly depend on features that are present only on the system they are currently built on.
+See [formula/openssl/README.md](formula/openssl/README.md) for the OpenSSL build options and how to run the OpenSSL test suite.
 
 ## Linux
 

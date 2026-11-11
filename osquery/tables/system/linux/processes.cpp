@@ -8,7 +8,7 @@
  */
 
 #include <map>
-#include <regex>
+#include <sstream>
 #include <string>
 
 #include <stdlib.h>
@@ -17,6 +17,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
@@ -120,6 +121,36 @@ inline std::string readProcLink(const std::string& attr,
   return std::string(linkname.data(), r);
 }
 
+inline std::string readSecurityLabel(const std::string& pid) {
+  auto label_path = getProcAttr("attr/current", pid);
+  std::string content;
+  return readFile(label_path, content).ok() ? content : "";
+}
+
+std::string parseProcMapsInode(const std::string& content,
+                               const std::string& path) {
+  // The kernel escapes newlines in maps pathnames as "\012"
+  auto escaped_path = path;
+  boost::replace_all(escaped_path, "\n", "\\012");
+
+  for (const auto& line : osquery::split(content, "\n")) {
+    // Each line is "address perms offset dev inode pathname", the pathname
+    // is padded with spaces and may itself contain spaces
+    std::istringstream stream(line);
+    std::string address, perms, offset, dev, inode, pathname;
+    if (!(stream >> address >> perms >> offset >> dev >> inode)) {
+      continue;
+    }
+
+    std::getline(stream >> std::ws, pathname);
+    if (pathname == escaped_path) {
+      return inode;
+    }
+  }
+
+  return {};
+}
+
 // In the case where the linked binary path ends in " (deleted)", and a file
 // actually exists at that path, check whether the inode of that file matches
 // the inode of the mapped file in /proc/%pid/maps
@@ -132,12 +163,10 @@ Status deletedMatchesInode(const std::string& path, const std::string& pid) {
   }
 
   // Extract the expected inode of the binary file from /proc/%pid/maps
-  std::smatch what;
-  std::regex expression("([0-9]+)\\h+\\Q" + path + "\\E");
-  if (!std::regex_search(maps_contents, what, expression)) {
+  auto inode = parseProcMapsInode(maps_contents, path);
+  if (inode.empty()) {
     return Status(-1, "Could not find binary inode in maps file: " + maps_path);
   }
-  std::string inode = what[1];
 
   // stat the file at the expected binary path
   struct stat st;
@@ -169,24 +198,41 @@ std::set<std::string> getProcList(const QueryContext& context) {
   return pidlist;
 }
 
+std::vector<std::pair<std::string, std::string>> parseProcessEnvironment(
+    const std::string& content) {
+  std::vector<std::pair<std::string, std::string>> variables;
+
+  const char* variable = content.c_str();
+  const char* end = variable + content.size();
+
+  // Walk the nul-delimited entries. Comparing against the nul byte rather than
+  // > 0 keeps the walk going past an entry whose first byte has the high bit
+  // set, which is negative where char is signed; otherwise every later entry
+  // is dropped. The end bound keeps the read in range for a block that has no
+  // trailing nul.
+  while (variable < end && *variable != '\0') {
+    auto buf = std::string(variable);
+    size_t idx = buf.find_first_of("=");
+
+    variables.emplace_back(buf.substr(0, idx), buf.substr(idx + 1));
+    variable += buf.size() + 1;
+  }
+
+  return variables;
+}
+
 void genProcessEnvironment(const std::string& pid, QueryData& results) {
   auto attr = getProcAttr("environ", pid);
 
   std::string content;
   readFile(attr, content);
-  const char* variable = content.c_str();
 
-  // Stop at the end of nul-delimited string content.
-  while (*variable > 0) {
-    auto buf = std::string(variable);
-    size_t idx = buf.find_first_of("=");
-
+  for (const auto& variable : parseProcessEnvironment(content)) {
     Row r;
     r["pid"] = pid;
-    r["key"] = buf.substr(0, idx);
-    r["value"] = buf.substr(idx + 1);
+    r["key"] = variable.first;
+    r["value"] = variable.second;
     results.push_back(r);
-    variable += buf.size() + 1;
   }
 }
 
@@ -480,6 +526,7 @@ void genProcess(const std::string& pid,
   r["gid"] = proc_stat.real_gid;
   r["egid"] = proc_stat.effective_gid;
   r["sgid"] = proc_stat.saved_gid;
+  r["label"] = readSecurityLabel(pid);
 
   r["on_disk"] = INTEGER(getOnDisk(pid, r["path"]));
 

@@ -1,6 +1,6 @@
 ## ReadTheDocs Wiki
 
-The ReadTheDocs wiki (https://osquery.readthedocs.org/en/stable) is generated using a RTD-configured osquery project and associated GitHub Service. This Service is documented by RTD and more-or-less setup automatically with the project. RTD generates documentation for every version (git tag). It calls the most recent tag 'stable', the most recent commit to master 'devel', and includes links to every past version. The project settings and sidebar for RTD is kept in the root as [mkdocs.yml](https://github.com/osquery/osquery/blob/master/mkdocs.yml).
+The ReadTheDocs wiki (https://osquery.readthedocs.org/en/stable) is generated using a RTD-configured osquery project and associated GitHub Service. This Service is documented by RTD and more-or-less setup automatically with the project. RTD generates documentation for every version (git tag). It calls the most recent tag 'stable', the most recent commit to master 'latest', and includes links to every past version. The project settings and sidebar for RTD is kept in the root as [mkdocs.yml](https://github.com/osquery/osquery/blob/master/mkdocs.yml).
 
 ### Adding a new page
 

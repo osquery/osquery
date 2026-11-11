@@ -7,8 +7,16 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#pragma once
+
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
+
 namespace osquery {
 namespace tables {
+
 enum class JetBrainsProductType {
   CLion,
   DataGrip,
@@ -125,5 +133,7 @@ void putMoreLikelyPluginJarsFirst(
     const std::string& plugin_dir_name,
     std::vector<std::string>& files_in_lib_under_plugin_dir);
 bool fileNameIsLikeVersionedLibraryName(const std::string& name);
+std::string getContentFromTag(const std::string& xml,
+                              const std::string& tag_name);
 } // namespace tables
 } // namespace osquery

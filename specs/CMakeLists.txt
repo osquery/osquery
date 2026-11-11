@@ -24,13 +24,16 @@ function(specsMain)
   generateCopyFileTarget("specs_table_files" "" "REGEX" "*.table" "${TEST_CONFIGS_DIR}/specs")
 endfunction()
 
-function(generateForeignTables spec_file_list)
-  generateTableCategoryAmalgamation("foreign" ${spec_file_list})
+# The caller expands the spec list into separate arguments, so take them all
+# from ARGN; a named parameter would only receive the first spec file.
+function(generateForeignTables)
+  generateTableCategoryAmalgamation("foreign" ${ARGN})
   set(generateForeignTables_output "${generateTableCategoryAmalgamation_output}" PARENT_SCOPE)
 endfunction()
 
 function(generateNativeTables)
   set(platform_independent_spec_files
+    ai_agent_skills.table
     azure_instance_metadata.table
     azure_instance_tags.table
     carbon_black_info.table
@@ -89,6 +92,8 @@ function(generateNativeTables)
     "arp_cache.table:linux,macos,windows"
     "vscode_extensions.table:linux,macos,windows"
     "cpu_info.table:linux,macos,windows"
+    "gpu_info.table:linux,macos,windows"
+    "gpu_metrics.table:linux,macos,windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
     "darwin/alf.table:macos"
@@ -113,7 +118,7 @@ function(generateNativeTables)
     "darwin/fan_speed_sensors.table:macos"
     "darwin/gatekeeper.table:macos"
     "darwin/gatekeeper_approved_apps.table:macos"
-    "darwin/homebrew_packages.table:macos"
+    "darwin/macports_packages.table:macos"
     "darwin/ibridge_info.table:macos"
     "darwin/iokit_devicetree.table:macos"
     "darwin/iokit_registry.table:macos"
@@ -160,6 +165,9 @@ function(generateNativeTables)
     "darwin/xprotect_entries.table:macos"
     "darwin/xprotect_meta.table:macos"
     "darwin/xprotect_reports.table:macos"
+    "device_file.table:linux,macos,windows"
+    "device_hash.table:linux,macos,windows"
+    "device_partitions.table:linux,macos,windows"
     "jetbrains_plugins.table:linux,macos,windows"
     "linux/apparmor_events.table:linux"
     "linux/apparmor_profiles.table:linux"
@@ -182,7 +190,9 @@ function(generateNativeTables)
     "linux/md_drives.table:linux"
     "linux/md_personalities.table:linux"
     "linux/msr.table:linux"
+    "linux/flatpak_packages.table:linux"
     "linux/pacman_packages.table:linux"
+    "linux/snap_packages.table:linux"
     "linux/portage_keywords.table:linux"
     "linux/portage_packages.table:linux"
     "linux/portage_use.table:linux"
@@ -233,6 +243,7 @@ function(generateNativeTables)
     "posix/docker_volumes.table:linux,macos"
     "posix/file_events.table:linux,macos"
     "posix/hardware_events.table:linux,macos"
+    "posix/homebrew_packages.table:linux,macos"
     "posix/interface_ipv6.table:linux,macos"
     "posix/known_hosts.table:linux,macos"
     "posix/last.table:linux,macos"
@@ -252,6 +263,7 @@ function(generateNativeTables)
     "posix/shell_history.table:linux,macos"
     "posix/smbios_tables.table:linux,macos"
     "posix/socket_events.table:linux,macos"
+    "posix/sshd_config.table:linux,macos"
     "posix/sudoers.table:linux,macos"
     "posix/suid_bin.table:linux,macos"
     "posix/system_controls.table:linux,macos"
@@ -259,9 +271,6 @@ function(generateNativeTables)
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
     "secureboot.table:linux,macos,windows"
-    "sleuthkit/device_file.table:linux,macos,windows"
-    "sleuthkit/device_hash.table:linux,macos,windows"
-    "sleuthkit/device_partitions.table:linux,macos,windows"
     "user_groups.table:linux,macos,windows"
     "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
@@ -319,6 +328,12 @@ function(generateNativeTables)
     "windows/process_open_handles.table:windows"
   )
 
+  if(OSQUERY_BUILD_BPF)
+    list(APPEND platform_dependent_spec_files
+      "linux/bpf_process_events.table:linux"
+      "linux/bpf_socket_events.table:linux"
+    )
+  endif()
 
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files

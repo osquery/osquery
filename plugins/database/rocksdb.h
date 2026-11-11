@@ -10,6 +10,7 @@
 #include <atomic>
 
 #include <rocksdb/db.h>
+#include <rocksdb/version.h>
 
 #include <osquery/core/core.h>
 #include <osquery/database/database.h>
@@ -111,6 +112,9 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
    * @return nothing.
    */
   void repairDB();
+
+  /// Open the database, filling db_ and handles_.
+  rocksdb::Status openDB();
 
   /// Flush memtables and trigger compaction.
   void flush();

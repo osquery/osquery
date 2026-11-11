@@ -77,14 +77,21 @@ TEST_F(PacksTests, test_version) {
 }
 
 TEST_F(PacksTests, test_sharding) {
-  auto shard1 = getMachineShard("localhost.localdomain");
-  auto shard2 = getMachineShard("not.localhost.localdomain");
+  // getMachineShard caches its result, and earlier tests in this binary may
+  // have cached the shard of the real hostname, so force this computation.
+  auto shard1 = getMachineShard("localhost.localdomain", true);
+  EXPECT_EQ(shard1, 6U);
+
   // Expect some static caching.
+  auto shard2 = getMachineShard("not.localhost.localdomain");
   EXPECT_EQ(shard1, shard2);
 
   // Bypass the caching.
   shard2 = getMachineShard("not.localhost.localdomain", true);
-  EXPECT_NE(shard1, shard2);
+  EXPECT_EQ(shard2, 94U);
+
+  // Restore the shard of the real hostname for any later tests.
+  getMachineShard("", true);
 }
 
 TEST_F(PacksTests, test_check_platform) {

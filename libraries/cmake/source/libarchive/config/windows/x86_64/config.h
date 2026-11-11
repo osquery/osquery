@@ -367,7 +367,7 @@ typedef uint64_t uintmax_t;
 /* #undef HAVE_ATTR_XATTR_H */
 
 /* Define to 1 if you have the <Bcrypt.h> header file. */
-/* #undef HAVE_BCRYPT_H */
+#define HAVE_BCRYPT_H 1
 
 /* Define to 1 if you have the <bsdxml.h> header file. */
 /* #undef HAVE_BSDXML_H */
@@ -1291,7 +1291,7 @@ typedef uint64_t uintmax_t;
 #endif /* SAFE_TO_DEFINE_EXTENSIONS */
 
 /* Version number of package */
-#define VERSION "3.8.1"
+#define VERSION "3.8.9"
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */

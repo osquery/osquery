@@ -27,6 +27,12 @@ function(setupBuildFlags)
 
   target_compile_features(cxx_settings INTERFACE cxx_std_17)
 
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(cxx_settings INTERFACE
+      "SHELL:-Xclang -fno-pch-timestamp"
+    )
+  endif()
+
   # There's no specific C11 conformance on MSVC
   # and recent versions of CMake add the /std:c11 flag to the command line
   # which makes librdkafka compilation fail due to _Thread_local not being defined,
@@ -71,6 +77,15 @@ function(setupBuildFlags)
 
     if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
       list(APPEND posix_common_compile_options INTERFACE -Oz)
+
+      # Fortified libc calls require optimization, so they are not enabled in
+      # Debug builds. Undefine first to override any default level (the macOS
+      # SDK defaults to 2) without a redefinition warning. C libraries that do
+      # not support level 3 (macOS, older glibc) treat it as level 2.
+      list(APPEND posix_common_compile_options
+        -U_FORTIFY_SOURCE
+        -D_FORTIFY_SOURCE=3
+      )
     endif()
 
     set(osquery_posix_common_defines
@@ -168,9 +183,18 @@ function(setupBuildFlags)
       set(osquery_linux_common_link_options
         -Wl,-z,relro,-z,now
         -Wl,--build-id=sha1
+        -Wl,--gc-sections
       )
 
       set(linux_common_compile_options)
+
+      # Control-flow integrity: Intel CET (IBT and shadow stack) on x86_64,
+      # and PAC/BTI on aarch64.
+      if("${TARGET_PROCESSOR}" STREQUAL "x86_64")
+        list(APPEND linux_common_compile_options -fcf-protection=full)
+      elseif("${TARGET_PROCESSOR}" STREQUAL "aarch64")
+        list(APPEND linux_common_compile_options -mbranch-protection=standard)
+      endif()
 
       set(linux_cxx_link_options
         --no-undefined
@@ -228,6 +252,9 @@ function(setupBuildFlags)
       set(macos_cxx_link_options
         -stdlib=libc++
         -lresolv
+        -Wl,-dead_strip
+        # Release builds carry no debug info, so drop the local symbols too
+        "$<$<CONFIG:Release>:-Wl,-x>"
       )
 
       set(macos_cxx_link_libraries
@@ -293,7 +320,6 @@ function(setupBuildFlags)
 
     set(osquery_windows_compile_options
       /W3
-      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7>"
     )
 
     set(windows_common_link_options
@@ -326,6 +352,20 @@ function(setupBuildFlags)
       comsuppw.lib
       SearchSDK.lib
     )
+
+    # Exploit mitigations. ASLR (with high-entropy 64-bit addresses) and DEP
+    # are linker defaults, but are stated explicitly so they cannot be dropped
+    # silently. Control Flow Guard must be given to the linker as well as the
+    # compiler to take effect.
+    list(APPEND windows_common_link_options
+      /DYNAMICBASE
+      /HIGHENTROPYVA
+      /NXCOMPAT
+      /guard:cf
+    )
+
+    # /CETCOMPAT (CET shadow stacks) is not enabled: on x64, Boost.Context uses
+    # the fcontext backend, whose stack switching violates the shadow stack.
 
     if(OSQUERY_ENABLE_INCREMENTAL_LINKING)
       list(APPEND windows_common_link_options
@@ -413,9 +453,6 @@ function(setupBuildFlags)
     string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
     string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-
-    string(REPLACE "/Zi" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
     string(REPLACE "/EHsc" "/EHs" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 

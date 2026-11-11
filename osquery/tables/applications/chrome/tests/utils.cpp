@@ -52,6 +52,7 @@ constexpr auto kTestProfilePreferences = R"PREFERENCES(
 
 constexpr auto kOutOfProfileTestExtensionPath =
     "C:\\absolute\\path\\to\\extension\\1.00.0_0";
+constexpr auto kTestExtensionPreferencesPath = "extension\\\\1.00.0_0";
 
 #else
 constexpr auto kTestProfilePath = "/home/user/.config/google-chrome/Default";
@@ -83,7 +84,35 @@ constexpr auto kTestProfilePreferences = R"PREFERENCES(
 
 constexpr auto kOutOfProfileTestExtensionPath =
     "/absolute/path/to/extension/1.00.0_0";
+constexpr auto kTestExtensionPreferencesPath = "extension/1.00.0_0";
 #endif
+
+std::string makeTestPreferences(const std::string& extension_properties) {
+  auto properties = extension_properties;
+  if (!properties.empty()) {
+    properties += ",";
+  }
+
+  return R"PREFERENCES({
+  "extensions": {
+    "settings": {
+      "extension_identifier1": {
+        )PREFERENCES" +
+         properties + "\"path\": \"" + kTestExtensionPreferencesPath +
+         R"PREFERENCES("
+      }
+    }
+  },
+  "profile": { "name": "test" }
+})PREFERENCES";
+}
+
+constexpr auto kTestPreferencesWithoutExtension = R"PREFERENCES(
+{
+  "extensions": { "settings": {} },
+  "profile": { "name": "test" }
+}
+)PREFERENCES";
 
 constexpr auto kTestExtensionManifest = R"MANIFEST(
 {
@@ -173,6 +202,25 @@ const std::unordered_map<std::string, std::string>
 
 const std::string kExpectedComputedExtensionIdentifier{
     "cjpalhdlnbpafiamejdnhcphjbkeiagm"};
+
+ChromeProfileList getProfilesForTestPreferences(
+    const std::string& preferences,
+    const std::string& secure_preferences = {}) {
+  ChromeProfileSnapshot::Extension extension_snapshot;
+  extension_snapshot.path = kTestExtensionPath;
+  extension_snapshot.manifest = kTestExtensionManifest;
+
+  ChromeProfileSnapshot snapshot;
+  snapshot.type = ChromeBrowserType::GoogleChrome;
+  snapshot.path = kTestProfilePath;
+  snapshot.preferences = preferences;
+  snapshot.secure_preferences = secure_preferences;
+  snapshot.uid = 1000;
+  snapshot.referenced_extensions.insert(
+      {extension_snapshot.path, extension_snapshot});
+
+  return getChromeProfilesFromSnapshotList({snapshot});
+}
 
 } // namespace
 
@@ -461,10 +509,108 @@ TEST_F(ChromeUtilsTests, getChromeProfilesFromSnapshotList) {
   const auto& unreferenced_extension = profile.extension_list.at(0U);
   ASSERT_FALSE(unreferenced_extension.referenced);
   ASSERT_TRUE(unreferenced_extension.profile_settings.empty());
+  EXPECT_EQ(getExtensionProfileSettingsValue(unreferenced_extension, "state"),
+            "");
 
   const auto& referenced_extension = profile.extension_list.at(1U);
   ASSERT_TRUE(referenced_extension.referenced);
   ASSERT_FALSE(referenced_extension.profile_settings.empty());
+}
+
+TEST_F(ChromeUtilsTests,
+       getChromeProfilesFromSnapshotList_modernExtensionState) {
+  const std::vector<std::pair<std::string, std::string>> test_cases = {
+      {R"("from_webstore": true)", "1"},
+      {R"("disable_reasons": [1])", "0"},
+      {R"("disable_reasons": [])", "1"},
+      {R"("disable_reasons": ["1"])", "1"},
+      {R"("disable_reasons": ["ignored", 1])", "0"},
+      {R"("disable_reasons": 1)", ""},
+      {R"("disable_reasons": {"reason": 1})", ""},
+      {R"("disable_reasons": [0])", "0"},
+      {R"("disable_reasons": [-1])", "0"},
+      {R"("state": 2)", "2"},
+      {R"("state": 1, "disable_reasons": [1])", "1"},
+      {R"("state": {"value": 1})", ""},
+  };
+
+  for (const auto& test_case : test_cases) {
+    SCOPED_TRACE(test_case.first);
+    const auto profile_list =
+        getProfilesForTestPreferences(makeTestPreferences(test_case.first));
+    ASSERT_EQ(profile_list.size(), 1U);
+    ASSERT_EQ(profile_list.at(0).extension_list.size(), 1U);
+
+    const auto& extension = profile_list.at(0).extension_list.at(0);
+    EXPECT_EQ(getExtensionProfileSettingsValue(extension, "state"),
+              test_case.second);
+  }
+}
+
+TEST_F(ChromeUtilsTests,
+       getChromeProfilesFromSnapshotList_modernStateSecurePreferencesFallback) {
+  struct TestCase final {
+    std::string preferences;
+    std::string secure_preferences;
+    std::string expected_state;
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {makeTestPreferences(R"("from_webstore": true)"),
+       makeTestPreferences(R"("disable_reasons": [1])"),
+       "0"},
+      {makeTestPreferences(R"("disable_reasons": [1])"),
+       makeTestPreferences(R"("state": 1)"),
+       "1"},
+      {makeTestPreferences(R"("from_webstore": true)"),
+       makeTestPreferences(R"("disable_reasons": 1)"),
+       ""},
+      {makeTestPreferences(R"("disable_reasons": 1)"),
+       makeTestPreferences(R"("disable_reasons": [1])"),
+       "0"},
+      {makeTestPreferences(R"("state": 1)"),
+       makeTestPreferences(R"("disable_reasons": [1])"),
+       "0"},
+      {makeTestPreferences(R"("disable_reasons": [1])"),
+       makeTestPreferences(R"("disable_reasons": [])"),
+       "1"},
+      {makeTestPreferences(R"("disable_reasons": [1])"),
+       makeTestPreferences(R"("disable_reasons": ["1"])"),
+       "1"},
+      {makeTestPreferences(R"("disable_reasons": [1])"),
+       makeTestPreferences(R"("from_webstore": true)"),
+       "0"},
+  };
+
+  for (const auto& test_case : test_cases) {
+    const auto profile_list = getProfilesForTestPreferences(
+        test_case.preferences, test_case.secure_preferences);
+    ASSERT_EQ(profile_list.size(), 1U);
+    ASSERT_EQ(profile_list.at(0).extension_list.size(), 1U);
+
+    const auto& extension = profile_list.at(0).extension_list.at(0);
+    EXPECT_EQ(getExtensionProfileSettingsValue(extension, "state"),
+              test_case.expected_state);
+  }
+
+  const auto secure_only_profile_list = getProfilesForTestPreferences(
+      kTestPreferencesWithoutExtension,
+      makeTestPreferences(R"("from_webstore": false,
+                              "install_time": "42",
+                              "disable_reasons": [1])"));
+  ASSERT_EQ(secure_only_profile_list.size(), 1U);
+  ASSERT_EQ(secure_only_profile_list.at(0).extension_list.size(), 1U);
+
+  const auto& secure_only_extension =
+      secure_only_profile_list.at(0).extension_list.at(0);
+  EXPECT_EQ(getExtensionProfileSettingsValue(secure_only_extension, "state"),
+            "0");
+  EXPECT_EQ(
+      getExtensionProfileSettingsValue(secure_only_extension, "from_webstore"),
+      "false");
+  EXPECT_EQ(
+      getExtensionProfileSettingsValue(secure_only_extension, "install_time"),
+      "42");
 }
 
 TEST_F(ChromeUtilsTests,

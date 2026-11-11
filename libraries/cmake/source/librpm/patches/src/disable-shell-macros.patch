@@ -1,0 +1,50 @@
+diff --git a/rpmio/macro.c b/rpmio/macro.c
+index b795fd230..0959caea5 100644
+--- a/rpmio/macro.c
++++ b/rpmio/macro.c
+@@ -547,33 +547,18 @@ static void doDnl(MacroBuf mb, rpmMacroEntry me, ARGV_t argv, size_t *parsed)
+ static void
+ doShellEscape(MacroBuf mb, const char * cmd, size_t clen)
+ {
+-    char *buf = NULL;
+-    FILE *shf;
+-    int c;
+-
+-    if (expandThis(mb, cmd, clen, &buf))
+-	goto exit;
+-
+-    if ((shf = popen(buf, "r")) == NULL) {
+-	mbErr(mb, 1, _("Failed to open shell expansion pipe for command: "
+-		"%s: %m \n"), buf);
+-	goto exit;
+-    }
+-
+-    size_t tpos = mb->tpos;
+-    while ((c = fgetc(shf)) != EOF) {
+-	mbAppend(mb, c);
+-    }
+-    (void) pclose(shf);
+-
+-    /* Delete trailing \r \n */
+-    while (mb->tpos > tpos && iseol(mb->buf[mb->tpos-1])) {
+-	mb->buf[--mb->tpos] = '\0';
+-	mb->nb++;
+-    }
+-
+-exit:
+-    _free(buf);
++    /*
++     * osquery parses RPM configuration and databases that can come from an
++     * untrusted source, such as a container queried through the
++     * pid_with_namespace column. Running %(...) shell command macros from such
++     * a source would execute arbitrary commands with osquery's privileges, so
++     * this expansion is disabled: the macro expands to nothing and the rest of
++     * the string is expanded as usual. The command is not macro-expanded
++     * either. osquery only reads package metadata and never needs to run
++     * commands from macros.
++     */
++    mbErr(mb, 0, _("Shell expansion macro %%(%.*s) ignored: disabled in this "
++	"build\n"), (int) clen, cmd);
+ }
+ 
+ /**

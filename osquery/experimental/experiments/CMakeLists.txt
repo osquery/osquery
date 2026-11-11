@@ -7,3 +7,7 @@
 
 add_subdirectory("loader")
 
+if(PLATFORM_LINUX)
+  add_subdirectory("linuxevents")
+endif()
+

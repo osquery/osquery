@@ -40,6 +40,8 @@ const std::set<std::string> kNodeModulesPath = {
 #else
     "/usr/local/lib",
     "/opt/homebrew/lib",
+    // MacPorts
+    "/opt/local/lib",
     "/usr/lib",
     "/home/%/.npm-global/lib",
     "/home/%/.nvm/versions/node/%/lib",
@@ -144,7 +146,7 @@ void genNodePackage(const std::string& file, Row& r, Logger& logger) {
       r["license"] = license.GetString();
     } else {
       // If its not a string, is it a dict with 'url' ?
-      if (license.HasMember("url")) {
+      if (license.IsObject() && license.HasMember("url")) {
         const auto& license_url = license["url"];
         if (license_url.IsString()) {
           // Fallback to displaying deprecated licence url

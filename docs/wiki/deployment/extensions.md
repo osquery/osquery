@@ -60,6 +60,14 @@ Extensions can also be loaded individually on the osquery command line, for exam
 osqueryi --extension /path/to/your_extension.ext
 ```
 
+The extension starts in the background, so its tables may not be registered yet when `osqueryi` runs a query given on the command line. Such a query can fail with `Error: no such table`. To make `osqueryi` wait for the extension first, also pass `--extensions_require` with the name the extension registers (which may differ from its file name):
+
+```sh
+osqueryi --extension /path/to/your_extension.ext --extensions_require=your_extension 'SELECT * FROM your_extension_table;'
+```
+
+The same applies when these flags are set in a flagfile.
+
 ## More Options
 
 Extensions are most useful when used to expose config or logger plugins. Along with auto-loading extensions, you can start daemon services with non-default plugins using `--flagfile=PATH`. The `osqueryd` initscript or SystemV service on Linux searches for a `/etc/osquery/osquery.flags` path containing flags. This is a great place to add non-default extensions options or for replacing plugins:

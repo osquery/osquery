@@ -299,6 +299,8 @@ class Distributed {
   /**
    * @brief Queue a result to be batch sent to the server
    *
+   * A queued result with the same query ID is replaced.
+   *
    * @param result is a DistributedQueryResult object to be sent to the server
    */
   void addResult(const DistributedQueryResult& result);
@@ -370,6 +372,8 @@ class Distributed {
  private:
   friend class DistributedTests;
   FRIEND_TEST(DistributedTests, test_workflow);
+  FRIEND_TEST(DistributedTests, test_failed_results_kept_up_to_max_bytes);
+  FRIEND_TEST(DistributedTests, test_failed_results_replaced_by_same_id);
   FRIEND_TEST(DistributedTests, test_run_queries_with_denylisted_query);
   FRIEND_TEST(DistributedTests, test_check_and_set_as_running);
   FRIEND_TEST(DistributedTests, test_accept_work_basic);

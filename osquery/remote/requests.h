@@ -299,6 +299,7 @@ class Request {
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);
+  FRIEND_TEST(TLSTransportsTests, test_connection_reuse);
   FRIEND_TEST(TLSTransportsTests, test_call_with_params);
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);

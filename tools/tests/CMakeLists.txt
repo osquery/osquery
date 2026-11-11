@@ -91,6 +91,10 @@ function(generatePythonTests)
   # Tests
   addPythonTest(NAME tools_tests_testosqueryd SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryd.py")
   addPythonTest(NAME tools_tests_testosqueryi SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryi.py")
+  addPythonTest(
+    NAME tools_tests_testhttpservercarver
+    SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_http_server_carver.py"
+  )
 
   set(release_test_args
     "--build_dir=${CMAKE_BINARY_DIR}"

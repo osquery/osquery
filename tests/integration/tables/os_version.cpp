@@ -46,6 +46,9 @@ TEST_F(OsVersion, test_sanity) {
 #ifdef OSQUERY_DARWIN
       {"extra", NormalType},
 #endif
+#ifdef OSQUERY_LINUX
+      {"cpe_name", NormalType},
+#endif
   };
 
   validate_rows(data, row_map);

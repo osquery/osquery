@@ -16,6 +16,7 @@
 #import <IOKit/pwr_mgt/IOPMLib.h>
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/darwin/system_profiler.h>
 
 namespace osquery {
 namespace tables {
@@ -90,6 +91,20 @@ BOOL genIopmBatteryInfo(Row& r) {
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthKey]) {
     r["health"] = SQL_TEXT(
         [[batteryInfo objectForKey:@kIOPSBatteryHealthKey] UTF8String]);
+  } else {
+    NSDictionary* __autoreleasing systemProfilerReport = nil;
+    auto status =
+        getSystemProfilerReport("SPPowerDataType", systemProfilerReport);
+    if (status.ok() && systemProfilerReport != nil) {
+      NSArray* items = [systemProfilerReport objectForKey:@"_items"];
+      NSDictionary* powerInfo = [items firstObject];
+      NSDictionary* healthInfo =
+          [powerInfo objectForKey:@"sppower_battery_health_info"];
+      NSString* health = [healthInfo objectForKey:@"sppower_battery_health"];
+      if ([health isKindOfClass:[NSString class]]) {
+        r["health"] = SQL_TEXT([health UTF8String]);
+      }
+    }
   }
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthConditionKey]) {
     r["condition"] = SQL_TEXT([[batteryInfo
@@ -130,6 +145,12 @@ BOOL genAdvancedBatteryInfo(Row& r) {
   if (advancedBatteryInfo == nullptr) {
     return NO;
   }
+  NSMutableDictionary* batteryData = [advancedBatteryInfo mutableCopy];
+  NSDictionary* nestedBatteryData =
+      [advancedBatteryInfo objectForKey:@"BatteryData"];
+  if ([nestedBatteryData isKindOfClass:[NSDictionary class]]) {
+    [batteryData addEntriesFromDictionary:nestedBatteryData];
+  }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSManufacturerKey]) {
     r["manufacturer"] = SQL_TEXT([[advancedBatteryInfo
         objectForKey:@kIOPMPSManufacturerKey] UTF8String]);
@@ -165,17 +186,23 @@ BOOL genAdvancedBatteryInfo(Row& r) {
     r["cycle_count"] = INTEGER(
         [[advancedBatteryInfo objectForKey:@kIOPMPSCycleCountKey] intValue]);
   }
-  if ([advancedBatteryInfo objectForKey:@"DesignCapacity"]) {
-    r["designed_capacity"] = INTEGER(
-        [[advancedBatteryInfo objectForKey:@"DesignCapacity"] intValue]);
+  if ([batteryData objectForKey:@"DesignCapacity"]) {
+    r["designed_capacity"] =
+        INTEGER([[batteryData objectForKey:@"DesignCapacity"] intValue]);
   }
-  if ([advancedBatteryInfo objectForKey:@"AppleRawMaxCapacity"]) {
-    r["max_capacity"] = INTEGER(
-        [[advancedBatteryInfo objectForKey:@"AppleRawMaxCapacity"] intValue]);
+  if ([batteryData objectForKey:@"AppleRawMaxCapacity"]) {
+    r["max_capacity"] =
+        INTEGER([[batteryData objectForKey:@"AppleRawMaxCapacity"] intValue]);
+  } else if ([batteryData objectForKey:@"FullChargeCapacity"]) {
+    r["max_capacity"] =
+        INTEGER([[batteryData objectForKey:@"FullChargeCapacity"] intValue]);
   }
-  if ([advancedBatteryInfo objectForKey:@"AppleRawCurrentCapacity"]) {
-    r["current_capacity"] = INTEGER([[advancedBatteryInfo
-        objectForKey:@"AppleRawCurrentCapacity"] intValue]);
+  if ([batteryData objectForKey:@"AppleRawCurrentCapacity"]) {
+    r["current_capacity"] = INTEGER(
+        [[batteryData objectForKey:@"AppleRawCurrentCapacity"] intValue]);
+  } else if ([batteryData objectForKey:@"RemainingCapacity"]) {
+    r["current_capacity"] =
+        INTEGER([[batteryData objectForKey:@"RemainingCapacity"] intValue]);
   }
   if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] = INTEGER(

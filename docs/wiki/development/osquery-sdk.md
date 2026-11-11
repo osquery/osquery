@@ -130,6 +130,12 @@ The second, and simpler, way to manually load an extension is at the osqueryi co
 ./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_extension.ext
 ```
 
+When passing a query on the command line as well, add `--extensions_require` with the extension's registered name, so `osqueryi` waits for the extension's tables before running the query:
+
+```sh
+./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_extension.ext --extensions_require=example 'SELECT * FROM example;'
+```
+
 ### Building external extensions
 
 Your "external" extension, in the sense that the code is developed and contained somewhere external from the osquery repository, can be built semi-automatically.

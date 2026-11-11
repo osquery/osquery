@@ -110,6 +110,14 @@ TEST_F(ShellitemTests, test_shellitem_driveletterentry) {
   ASSERT_TRUE(name == "C:\\");
 }
 
+TEST_F(ShellitemTests, test_shellitem_driveletterentry_truncated) {
+  // Record ends where the volume field begins, so there is nothing to decode.
+  // parseShellData() calls pop_back() on this result, so it must not be empty.
+  std::string data = "3A5C2F";
+  auto name = driveLetterItem(data);
+  ASSERT_EQ(name, "[UNKNOWN DRIVE VOLUME]");
+}
+
 TEST_F(ShellitemTests, test_shellitem_mtpfolder) {
   std::string data =
       "0E030000080306201907FB000000020020000000000000000000000000000000000080FD"
@@ -190,6 +198,14 @@ TEST_F(ShellitemTests, test_shellitem_propertyviewdrive) {
       "F52F0E164AA3813E560C68BC830000";
   auto name = propertyViewDrive(data);
   ASSERT_TRUE(name == "D:\\");
+}
+
+TEST_F(ShellitemTests, test_shellitem_propertyviewdrive_truncated) {
+  // Record ends where the drive field begins, so there is nothing to decode.
+  // parseShellData() calls pop_back() on this result, so it must not be empty.
+  std::string data = "55001F002F0010B7A6F519002F";
+  auto name = propertyViewDrive(data);
+  ASSERT_EQ(name, "[UNKNOWN USER PROPERTY DRIVE NAME]");
 }
 
 TEST_F(ShellitemTests, test_shellitem_propertystore) {

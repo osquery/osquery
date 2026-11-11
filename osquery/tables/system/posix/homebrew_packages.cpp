@@ -34,8 +34,12 @@ namespace osquery {
 namespace tables {
 
 const std::set<std::string> kHomebrewPrefixes = {
+#ifdef __linux__
+    "/home/linuxbrew/.linuxbrew",
+#else
     "/usr/local",
     "/opt/homebrew",
+#endif
 };
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths(const std::string& root) {

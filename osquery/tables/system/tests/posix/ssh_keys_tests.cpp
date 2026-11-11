@@ -180,6 +180,30 @@ TEST_F(SshKeysTests, rsa_key_unencrypted) {
   EXPECT_EQ(row.at("key_security_bits"), "80");
 }
 
+TEST_F(SshKeysTests, rsa_key_in_subdirectory) {
+  auto results = QueryData{};
+
+  auto nested_directory = ssh_directory / fs::path("nested");
+  ASSERT_TRUE(fs::create_directories(nested_directory));
+
+  auto filepath = nested_directory / fs::path("rsa_unencrypted");
+  {
+    auto fout =
+        std::ofstream(filepath.native(), std::ios::out | std::ios::binary);
+    fout << kRsaUnencrypted;
+  }
+
+  auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
+  genSSHkeyForHosts(
+      uid, std::to_string(getegid()), directory.native(), results, logger);
+  ASSERT_EQ(results.size(), 1u);
+
+  const auto& row = results[0];
+  EXPECT_EQ(row.at("uid"), uid);
+  EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
+}
+
 TEST_F(SshKeysTests, rsa_key_encrypted) {
   auto results = QueryData{};
 

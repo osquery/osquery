@@ -15,13 +15,44 @@
 namespace osquery {
 namespace tables {
 
+namespace {
+
+// Namespace descriptors (nsfs) readlink to "<type>:[<inode>]", e.g.
+// "net:[4026531833]". Like sockets and pipes they are not files and have
+// no filesystem path. Match on the prefix: readlink targets of real files
+// are absolute paths and can never start this way.
+bool isNamespaceDescriptor(const std::string& target) {
+  static const std::vector<std::string> kNamespaceTypes = {
+      "cgroup",
+      "ipc",
+      "mnt",
+      "net",
+      "pid",
+      "time",
+      "user",
+      "uts",
+  };
+  if (target.empty() || target.back() != ']') {
+    return false;
+  }
+  for (const auto& type : kNamespaceTypes) {
+    if (target.compare(0, type.size() + 2, type + ":[") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+} // namespace
+
 void genDescriptors(const std::string& process,
                     const std::map<std::string, std::string>& descriptors,
                     QueryData& results) {
   for (const auto& fd : descriptors) {
     if (fd.second.find("socket:") != std::string::npos ||
         fd.second.find("anon_inode:") != std::string::npos ||
-        fd.second.find("pipe:") != std::string::npos) {
+        fd.second.find("pipe:") != std::string::npos ||
+        isNamespaceDescriptor(fd.second)) {
       // This is NOT a vnode/file descriptor.
       continue;
     }

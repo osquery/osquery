@@ -368,5 +368,92 @@ TEST_F(NpmPackagesUnitTest, test_nested_scoped_packages) {
       << "Did not find @angular/common at depth 1";
 }
 
+TEST_F(NpmPackagesUnitTest, test_non_object_license_is_ignored) {
+  GLOGLogger logger;
+
+  // A package.json comes from a user's node_modules and is fully
+  // attacker-controlled. The deprecated-license fallback inspects a non-string
+  // license as an object; make sure a license that is neither a string nor an
+  // object does not trip the object-member lookup.
+  auto numeric_path =
+      temp_dir_ / "node_modules" / "numeric-license" / "package.json";
+  createPackageJson(numeric_path, R"({
+  "name": "numeric-license",
+  "version": "1.0.0",
+  "description": "Test non-object license",
+  "license": 1
+})");
+
+  auto array_path =
+      temp_dir_ / "node_modules" / "array-license" / "package.json";
+  createPackageJson(array_path, R"({
+  "name": "array-license",
+  "version": "1.0.0",
+  "description": "Test non-object license",
+  "license": ["MIT", "url"]
+})");
+
+  QueryData results;
+  tables::genNodeSiteDirectories(temp_dir_.string(), results, logger, 100);
+
+  EXPECT_EQ(results.size(), 2);
+
+  for (const auto& row : results) {
+    auto name = row.at("name");
+    EXPECT_EQ(row.at("version"), "1.0.0");
+    // The license is not a string or an object, so no license is reported.
+    EXPECT_EQ(row.count("license"), 0U)
+        << "Unexpected license reported for " << name;
+  }
+}
+
+TEST_F(NpmPackagesUnitTest, test_non_object_license_does_not_crash) {
+  GLOGLogger logger;
+
+  // A license that is neither a string nor an object must not crash the parser:
+  // in release builds RapidJSON's HasMember() faults on it, and an unprivileged
+  // user can plant such a package.json under the default scan path.
+  const std::vector<std::string> hostile_licenses = {
+      "42", "[]", "true", "null", R"(["MIT"])"};
+
+  // writeTextFile appends, so each case needs its own package.json.
+  size_t i = 0;
+  for (const auto& license : hostile_licenses) {
+    auto package_path = temp_dir_ / "node_modules" /
+                        ("evil" + std::to_string(i++)) / "package.json";
+    createPackageJson(
+        package_path,
+        R"({"name": "evil", "version": "1.0.0", "license": )" + license + "}");
+
+    Row r;
+    tables::genNodePackage(package_path.string(), r, logger);
+
+    EXPECT_EQ(r["name"], "evil");
+    EXPECT_EQ(r["license"], "") << "license=" << license;
+  }
+}
+
+TEST_F(NpmPackagesUnitTest, test_object_license_url_is_surfaced) {
+  GLOGLogger logger;
+
+  auto with_url = temp_dir_ / "node_modules" / "legacy" / "package.json";
+  createPackageJson(
+      with_url,
+      R"({"name": "legacy", "version": "1.0.0",)"
+      R"( "license": {"type": "ISC", "url": "https://example.com/LICENSE"}})");
+  Row r1;
+  tables::genNodePackage(with_url.string(), r1, logger);
+  EXPECT_EQ(r1["license"], "https://example.com/LICENSE");
+
+  // An object license with no usable url resolves to empty, not to the type.
+  auto no_url = temp_dir_ / "node_modules" / "legacy2" / "package.json";
+  createPackageJson(
+      no_url,
+      R"({"name": "legacy2", "version": "1.0.0", "license": {"type": "ISC"}})");
+  Row r2;
+  tables::genNodePackage(no_url.string(), r2, logger);
+  EXPECT_EQ(r2["license"], "");
+}
+
 } // namespace table_tests
 } // namespace osquery

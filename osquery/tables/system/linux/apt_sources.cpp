@@ -8,9 +8,10 @@
  */
 
 #include <algorithm>
-#include <boost/algorithm/string/compare.hpp>
+#include <array>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/regex.hpp>
-#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/regex/v5/regex_fwd.hpp>
 #include <filesystem>
@@ -211,6 +212,21 @@ static void genAptSource(const std::string& source,
   }
 }
 
+/**
+ * @brief Values that mark a deb822 stanza as disabled.
+ *
+ * This mirrors the negative set accepted by APT's StringToBool()
+ * (apt-pkg/contrib/strutl.cc), which is what
+ * pkgSourceList::Type::ParseStanza() uses to evaluate the Enabled field.
+ * Comparison there is case-insensitive (strcasecmp) and an absent Enabled
+ * field means the source is enabled. An unrecognized value also leaves the
+ * source enabled: ParseStanza() calls StringToBool(Enabled) with no Default,
+ * so the declared default of -1 (apt-pkg/contrib/strutl.h) is returned for
+ * unknown input, and the stanza is only skipped when the result is false (0).
+ */
+constexpr std::array<const char*, 6> kDeb822DisabledValues = {
+    {"no", "false", "without", "off", "disable", "0"}};
+
 Status parseDeb822Block(const std::string& input_block,
                         std::vector<AptSource>& apt_sources) {
   std::vector<std::string> uris;
@@ -254,8 +270,15 @@ Status parseDeb822Block(const std::string& input_block,
       }
     }
 
-    if (key == "enabled" && value != "on") {
-      return Status::success();
+    if (key == "enabled") {
+      auto is_disabled_value = [&value](const char* disabled_value) {
+        return boost::iequals(value, disabled_value);
+      };
+      if (std::any_of(kDeb822DisabledValues.begin(),
+                      kDeb822DisabledValues.end(),
+                      is_disabled_value)) {
+        return Status::success();
+      }
     }
 
     if (key == "uris") {

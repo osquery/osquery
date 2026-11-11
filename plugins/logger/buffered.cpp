@@ -30,6 +30,12 @@ FLAG(uint64,
      1000000,
      "Maximum number of logs in buffered output plugins (0 = unlimited)");
 
+FLAG(uint64,
+     buffered_log_max_batch_bytes,
+     16 * 1024 * 1024,
+     "Maximum bytes of logs that buffered output plugins read and send at "
+     "once, per log type (0 = unlimited)");
+
 DECLARE_bool(decorations_top_level);
 
 const std::chrono::seconds BufferedLogForwarder::kLogPeriod{
@@ -53,89 +59,99 @@ Status BufferedLogForwarder::setUp() {
 void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
   // Get a list of all the buffered log items, with a max of 1024 lines.
   std::vector<std::string> indexes;
-  auto status = scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
+  scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
 
-  // For each index, accumulate the log line into the result or status set.
-  std::vector<std::string> results, statuses;
-  iterate(indexes, ([&results, &statuses, this](std::string& index) {
-            std::string value;
-            auto& target = isResultIndex(index) ? results : statuses;
-            if (getDatabaseValue(kLogs, index, value)) {
-              target.emplace_back(std::move(value));
-            }
-          }));
-
-  // If any results/statuses were found in the flushed buffer, send.
-  if (send_results && !results.empty()) {
-    status = send(results, "result");
-    if (!status.ok()) {
-      VLOG(1) << "Error sending results to logger: " << status.getMessage();
-
-      if (interrupted()) {
-        return;
-      }
-      if (max_backoff_period_ > std::chrono::seconds::zero()) {
-        results_backoff_++;
-        // Apply exponential backoff time.
-        results_backoff_period_ =
-            log_period_ * results_backoff_ * results_backoff_;
-        if (results_backoff_period_ > max_backoff_period_) {
-          results_backoff_period_ = max_backoff_period_;
-          results_backoff_--;
-        }
-        VLOG(1) << "Will attempt to send results again in "
-                << results_backoff_period_.count() << " seconds";
-      }
-    } else {
-      // Clear the results logs once they were sent.
-      iterate(indexes, ([this](std::string& index) {
-                if (!isResultIndex(index)) {
-                  return;
-                }
-                deleteValueWithCount(kLogs, index);
-              }));
-      results_backoff_ = 0;
-      results_backoff_period_ = std::chrono::seconds::zero();
-    }
+  // Each log type is read and sent separately, so only one type's lines are
+  // held in memory at a time, and a type that is backing off is not read.
+  if (send_results && !checkType(indexes, true)) {
+    return;
   }
-
-  if (send_statuses && !statuses.empty()) {
-    status = send(statuses, "status");
-    if (!status.ok()) {
-      VLOG(1) << "Error sending status to logger: " << status.getMessage();
-
-      if (interrupted()) {
-        return;
-      }
-      if (max_backoff_period_ > std::chrono::seconds::zero()) {
-        statuses_backoff_++;
-        // Apply exponential backoff time.
-        statuses_backoff_period_ =
-            log_period_ * statuses_backoff_ * statuses_backoff_;
-        if (statuses_backoff_period_ > max_backoff_period_) {
-          statuses_backoff_period_ = max_backoff_period_;
-          statuses_backoff_--;
-        }
-        VLOG(1) << "Will attempt to send status again in "
-                << statuses_backoff_period_.count() << " seconds";
-      }
-    } else {
-      // Clear the status logs once they were sent.
-      iterate(indexes, ([this](std::string& index) {
-                if (!isStatusIndex(index)) {
-                  return;
-                }
-                deleteValueWithCount(kLogs, index);
-              }));
-      statuses_backoff_ = 0;
-      statuses_backoff_period_ = std::chrono::seconds::zero();
-    }
+  if (send_statuses && !checkType(indexes, false)) {
+    return;
   }
 
   // Purge any logs exceeding the max after our send attempt
   if (FLAGS_buffered_log_max > 0) {
     purge();
   }
+}
+
+bool BufferedLogForwarder::checkType(std::vector<std::string>& indexes,
+                                     bool results) {
+  const std::string log_type = results ? "result" : "status";
+  auto& backoff = results ? results_backoff_ : statuses_backoff_;
+  auto& backoff_period =
+      results ? results_backoff_period_ : statuses_backoff_period_;
+  auto& send_failing = results ? results_send_failing_ : statuses_send_failing_;
+
+  // Accumulate this type's log lines, up to the batch size limit. The first
+  // line is always taken, so a line larger than the limit is still sent.
+  std::vector<std::string> lines;
+  std::vector<std::string> batch_indexes;
+  size_t batch_bytes = 0;
+  bool batch_full = false;
+  iterate(
+      indexes, ([&](std::string& index) {
+        if (batch_full || !isIndex(index, results)) {
+          return;
+        }
+        std::string value;
+        if (getDatabaseValue(kLogs, index, value)) {
+          if (FLAGS_buffered_log_max_batch_bytes > 0 && !lines.empty() &&
+              batch_bytes + value.size() > FLAGS_buffered_log_max_batch_bytes) {
+            // Leave this line, and the rest, for the next check.
+            batch_full = true;
+            return;
+          }
+          batch_bytes += value.size();
+          lines.emplace_back(std::move(value));
+        }
+        batch_indexes.push_back(index);
+      }));
+
+  if (lines.empty()) {
+    return true;
+  }
+
+  auto status = send(lines, log_type);
+  if (!status.ok()) {
+    // Warn on the first failure only, since sending is retried every period.
+    if (!send_failing) {
+      LOG(WARNING) << "Error sending " << log_type
+                   << " logs to logger: " << status.getMessage();
+      send_failing = true;
+    } else {
+      VLOG(1) << "Error sending " << log_type
+              << " logs to logger: " << status.getMessage();
+    }
+
+    if (interrupted()) {
+      return false;
+    }
+    if (max_backoff_period_ > std::chrono::seconds::zero()) {
+      backoff++;
+      // Apply exponential backoff time.
+      backoff_period = log_period_ * backoff * backoff;
+      if (backoff_period > max_backoff_period_) {
+        backoff_period = max_backoff_period_;
+        backoff--;
+      }
+      VLOG(1) << "Will attempt to send " << log_type << " logs again in "
+              << backoff_period.count() << " seconds";
+    }
+    return true;
+  }
+
+  // Clear the logs once they were sent.
+  iterate(batch_indexes,
+          ([this](std::string& index) { deleteValueWithCount(kLogs, index); }));
+  if (send_failing) {
+    LOG(INFO) << "Resumed sending " << log_type << " logs to logger";
+    send_failing = false;
+  }
+  backoff = 0;
+  backoff_period = std::chrono::seconds::zero();
+  return true;
 }
 
 void BufferedLogForwarder::purge() {

@@ -68,10 +68,13 @@ bool Flag::isDefault(const std::string& name) {
 }
 
 std::string Flag::getValue(const std::string& name) {
-  const auto& custom = instance().custom_;
-  auto custom_flag = custom.find(name);
-  if (custom_flag != custom.end()) {
-    return custom_flag->second;
+  {
+    std::lock_guard<std::mutex> lock(instance().custom_mutex_);
+    const auto& custom = instance().custom_;
+    auto custom_flag = custom.find(name);
+    if (custom_flag != custom.end()) {
+      return custom_flag->second;
+    }
   }
 
   std::string current_value;
@@ -136,6 +139,7 @@ Status Flag::updateValue(const std::string& name, const std::string& value) {
     flags::SetCommandLineOption(real_name.c_str(), value.c_str());
     return Status::success();
   } else if (name.find("custom_") == 0) {
+    std::lock_guard<std::mutex> lock(instance().custom_mutex_);
     instance().custom_[name] = value;
   }
   return Status(1, "Flag not found");
@@ -161,8 +165,11 @@ std::map<std::string, FlagInfo> Flag::flags() {
                         flag.current_value,
                         instance().flags_.at(flag.name)};
   }
-  for (const auto& flag : instance().custom_) {
-    flags[flag.first] = {"string", "", "", flag.second, {}};
+  {
+    std::lock_guard<std::mutex> lock(instance().custom_mutex_);
+    for (const auto& flag : instance().custom_) {
+      flags[flag.first] = {"string", "", "", flag.second, {}};
+    }
   }
   return flags;
 }
@@ -231,6 +238,7 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
 }
 
 void Flag::resetCustomFlags() {
+  std::lock_guard<std::mutex> lock(instance().custom_mutex_);
   instance().custom_.clear();
 }
 } // namespace osquery

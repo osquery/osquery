@@ -14,6 +14,7 @@
 #include <sys/sysctl.h>
 
 #include <array>
+#include <cstring>
 #include <map>
 #include <set>
 
@@ -368,6 +369,9 @@ bool parseProcCmdline(std::string& args, size_t len) {
   start = 0;
   while (nargs-- && nul != std::string::npos) {
     nul = args.find('\0', start);
+    if (nul == std::string::npos) {
+      break;
+    }
     args[nul] = ' ';
     start = nul + 1;
   }
@@ -382,32 +386,36 @@ bool parseProcCmdline(std::string& args, size_t len) {
   return true;
 }
 
-std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
+std::map<std::string, std::string> parseProcEnv(const char* procargs,
+                                                size_t argmax) {
   std::map<std::string, std::string> env;
-  std::unique_ptr<char[]> pprocargs{new char[argmax]};
-  char* procargs = pprocargs.get();
-  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
-    return env;
-  }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
+  if (argmax < sizeof(nargs)) {
+    return env;
+  }
   memcpy(&nargs, procargs, sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
-  // Then skip the exec/program name.
-  auto exec_name = std::string(current_arg);
-  current_arg += exec_name.size() + 1;
-  while (current_arg < &procargs[argmax]) {
+  const char* end = &procargs[argmax];
+  // Then skip the exec/program name. Bound each length to the buffer so a
+  // region without a trailing null terminator does not read past the end.
+  // Advance only by the token length; the padding skip below consumes the
+  // terminator when one remains, so the pointer never moves beyond end.
+  auto exec_name =
+      std::string(current_arg, strnlen(current_arg, end - current_arg));
+  current_arg += exec_name.size();
+  while (current_arg < end) {
     // Skip optional null-character padding.
     if (*current_arg == '\0') {
       current_arg++;
       continue;
     }
 
-    auto string_arg = std::string(current_arg);
+    auto string_arg =
+        std::string(current_arg, strnlen(current_arg, end - current_arg));
     if (string_arg.size() > 0) {
       if (nargs > 0) {
         nargs--;
@@ -418,9 +426,20 @@ std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
         }
       }
     }
-    current_arg += string_arg.size() + 1;
+    current_arg += string_arg.size();
   }
   return env;
+}
+
+std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
+  std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  char* procargs = pprocargs.get();
+  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
+  if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
+    return {};
+  }
+
+  return parseProcEnv(procargs, argmax);
 }
 
 void genProcCmdline(const QueryContext& context, int pid, ProcessesRow& r) {
@@ -500,7 +519,7 @@ TableRows genProcesses(QueryContext& context) {
 
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
-    ProcessesRow* r = new ProcessesRow();
+    std::unique_ptr<ProcessesRow> r{new ProcessesRow()};
     r->pid_col = pid;
 
     genProcCmdline(context, pid, *r);
@@ -524,8 +543,7 @@ TableRows genProcesses(QueryContext& context) {
 
     genProcArch(context, pid, *r);
 
-    std::unique_ptr<TableRow> tr(r);
-    results.push_back(std::move(tr));
+    results.push_back(std::move(r));
   }
 
   return results;
