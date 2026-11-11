@@ -366,7 +366,7 @@ The newly created folder will include several components:
 - The example query packs from the repository
 - Folder structures required for logging
 - Windows: small management scripts: `osqueryctl` and `manage-osqueryd.ps1`
-- Linux: systemd units, with initd script wrappers
+- Linux: systemd units
 - macOS: a LaunchDaemon unit
 - Package control files (i.e.: deb-specific configurations, XML data required by WIX to generate MSI, etc..)
 
