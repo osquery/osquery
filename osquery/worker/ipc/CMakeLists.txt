@@ -58,7 +58,7 @@ function(generateOsqueryWorkerIpcPlatformTableContainerIpc)
     )
   else()
     set(public_header_files
-      include/platform_table_container_ipc.h
+      platform_table_container_ipc.h
     )
 
     target_link_libraries(osquery_worker_ipc_platformtablecontaineripc INTERFACE
@@ -73,8 +73,8 @@ endfunction()
 
 function(generateOsqueryWorkerIpcTableChannel)
   set(public_header_files
-    include/table_channel_base.h
-    include/table_channel_factory_base.h
+    table_channel_base.h
+    table_channel_factory_base.h
   )
 
   add_osquery_library(osquery_worker_ipc_tablechannel INTERFACE)
@@ -90,8 +90,8 @@ endfunction()
 function(generateOsqueryWorkerIpcTableIpc)
 
   set(public_header_files
-    include/table_ipc_base.h
-    include/table_ipc_message_handler.h
+    table_ipc_base.h
+    table_ipc_message_handler.h
   )
 
   add_osquery_library(osquery_worker_ipc_tableipc INTERFACE)
