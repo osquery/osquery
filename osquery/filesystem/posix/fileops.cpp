@@ -34,15 +34,73 @@ namespace osquery {
 
 namespace {
 
+#ifdef __linux__
+// Directories are opened only to look up names in them, which needs no read
+// permission.
+const int kDirectoryFlags = O_PATH | O_DIRECTORY | O_CLOEXEC;
+#else
+const int kDirectoryFlags = O_RDONLY | O_DIRECTORY | O_CLOEXEC;
+#endif
+
+/**
+ * @brief Opens the regular file at path without following a symlink that was
+ * not there when the path was resolved.
+ *
+ * The path's symlinks are resolved first. Each directory of the result is then
+ * opened from the one before it, and the file from the last one, none of them
+ * through a symlink, and the file must be a regular file before it is opened.
+ * A path changed after it was resolved makes the open fail, or leads it only
+ * to what was put in those directories themselves, never through a symlink to
+ * a device elsewhere.
+ */
+int openResolvedRegularFile(const fs::path& path,
+                            int oflag,
+                            int perms,
+                            struct stat& expected) {
+  char* resolved = ::realpath(path.c_str(), nullptr);
+  if (resolved == nullptr) {
+    return -1;
+  }
+
+  std::string real_path(resolved);
+  ::free(resolved);
+
+  int dir_fd = ::open("/", kDirectoryFlags);
+  size_t start = 1;
+  size_t end = 0;
+  while (dir_fd >= 0 &&
+         (end = real_path.find('/', start)) != std::string::npos) {
+    auto name = real_path.substr(start, end - start);
+    int next_fd = ::openat(dir_fd, name.c_str(), kDirectoryFlags | O_NOFOLLOW);
+    ::close(dir_fd);
+    dir_fd = next_fd;
+    start = end + 1;
+  }
+
+  if (dir_fd < 0) {
+    return -1;
+  }
+
+  auto name = real_path.substr(start);
+  int fd = -1;
+  if (::fstatat(dir_fd, name.c_str(), &expected, AT_SYMLINK_NOFOLLOW) == 0 &&
+      S_ISREG(expected.st_mode)) {
+    fd = ::openat(dir_fd, name.c_str(), oflag | O_NOFOLLOW, perms);
+  }
+
+  ::close(dir_fd);
+  return fd;
+}
+
 /**
  * @brief Opens path with oflag, only if it is a regular file.
  *
  * On Linux the type is read through an O_PATH descriptor, which neither blocks
  * nor runs a driver's open, and that same file is then reopened through
- * /proc/self/fd. Without /proc, and on other platforms, the type is checked
- * before a path open, where O_NONBLOCK and O_NOCTTY keep a file swapped in
- * meanwhile from blocking the open or becoming a controlling terminal. Either
- * way the opened file must be the regular file that was checked.
+ * /proc/self/fd. Without /proc, and on other platforms, the file is opened by
+ * openResolvedRegularFile, where O_NONBLOCK and O_NOCTTY keep a FIFO swapped
+ * in from blocking the open or a terminal from becoming the controlling one.
+ * Either way the opened file must be the regular file that was checked.
  */
 int openRegularFile(const fs::path& path, int oflag, int perms) {
   oflag |= O_NONBLOCK | O_NOCTTY | O_CLOEXEC;
@@ -71,14 +129,10 @@ int openRegularFile(const fs::path& path, int oflag, int perms) {
   if (fd < 0 && open_errno != ENOENT) {
     return -1;
   }
-#else
-  if (::stat(path.c_str(), &expected) < 0 || !S_ISREG(expected.st_mode)) {
-    return -1;
-  }
 #endif
 
   if (fd < 0) {
-    fd = ::open(path.c_str(), oflag, perms);
+    fd = openResolvedRegularFile(path, oflag, perms, expected);
     if (fd < 0) {
       return -1;
     }

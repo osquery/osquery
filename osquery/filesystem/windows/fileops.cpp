@@ -704,6 +704,20 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
+/**
+ * @brief Tells whether an open handle is a file in a file system.
+ *
+ * Pipes and character devices are not of FILE_TYPE_DISK. Raw disks and
+ * volumes are, but file systems give no file information by handle for them.
+ */
+static bool isRegularFileHandle(HANDLE handle) {
+  BY_HANDLE_FILE_INFORMATION info;
+  return ::GetFileType(handle) == FILE_TYPE_DISK &&
+         ::GetFileInformationByHandle(handle, &info) &&
+         (info.dwFileAttributes &
+          (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_DEVICE)) == 0;
+}
+
 PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
   unsigned long access_mask = 0;
@@ -745,9 +759,10 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
   }
 
   // A named pipe reached through the path may only identify the caller, never
-  // impersonate it.
+  // impersonate it. Reading the file's attributes tells a file from a raw disk.
   if ((mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY) {
     flags_and_attrs |= SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION;
+    access_mask |= FILE_READ_ATTRIBUTES;
   }
 
   if (perms != -1) {
@@ -762,11 +777,9 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
                           flags_and_attrs,
                           nullptr);
 
-  // Pipes and character devices are not files on disk; CreateFileW does not
-  // open directories without FILE_FLAG_BACKUP_SEMANTICS.
   if (handle_ != INVALID_HANDLE_VALUE &&
       (mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY &&
-      ::GetFileType(handle_) != FILE_TYPE_DISK) {
+      !isRegularFileHandle(handle_)) {
     ::CloseHandle(handle_);
     handle_ = INVALID_HANDLE_VALUE;
   }

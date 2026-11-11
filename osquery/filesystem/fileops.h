@@ -141,12 +141,12 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
  * users can write. A FIFO, socket, device or directory at the path, or reached
  * through a symlink, makes the open fail.
  *
- * On Linux the type is checked before any open that could block on a FIFO or
- * run a device driver's open; elsewhere on POSIX it is checked before and
- * after an open that cannot block nor take a controlling terminal. A POSIX
- * descriptor is not inherited by child processes. On Windows a pipe or
- * character device is refused once opened, and a named pipe can identify
- * osquery's user but not impersonate it.
+ * On POSIX the type is checked before any open that could block on a FIFO or
+ * run a device driver's open, and the path is not followed again through a
+ * symlink swapped in after that check; the descriptor is not inherited by
+ * child processes. On Windows a pipe, character device, raw disk or volume is
+ * refused once opened, and a named pipe can identify osquery's user but not
+ * impersonate it.
  */
 #define PF_REGULAR_ONLY 0x0100
 
