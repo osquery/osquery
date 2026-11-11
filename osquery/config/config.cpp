@@ -398,6 +398,12 @@ void Config::addPack(const std::string& name,
                      const rj::Value& obj) {
   assert(obj.IsObject());
 
+  // Serialize with update(): this public entry point runs the same parser
+  // updates and deferred parser changes, and a concurrent call must not
+  // drain another update's callbacks. This is the outermost config lock,
+  // taken before the schedule lock below, matching update()'s order.
+  RecursiveLock lock(config_update_mutex_);
+
   auto addSinglePack = ([this, &source](const std::string pack_name,
                                         const rj::Value& pack_obj) {
     RecursiveLock wlock(config_schedule_mutex_);
