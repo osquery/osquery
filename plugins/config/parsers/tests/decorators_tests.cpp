@@ -224,4 +224,47 @@ TEST_F(DecoratorsConfigParserPluginTests,
   }
 }
 
+// The scheduler runs interval decorators outside of the config update
+// mutex, so this is the path that actually exercises decorator queries
+// running without decorator locks: an interval decorator reading
+// osquery_schedule takes the schedule lock, which a concurrent config
+// update holds while it waits for the decorator locks.
+TEST_F(DecoratorsConfigParserPluginTests,
+       test_interval_decorator_concurrent_update_no_deadlock) {
+  FLAGS_disable_decorators = false;
+
+  auto updates = [](const std::string& source) {
+    for (size_t i = 0; i < 100; ++i) {
+      // Alternate the config so that every update is applied.
+      Config::get().update(
+          {{source,
+            R"({"schedule": {"q": {"query": "SELECT 1", "interval": 60}},
+                "decorators": {"interval": {"60": ["SELECT COUNT(*) AS s_)" +
+                std::to_string(i % 2) + R"( FROM osquery_schedule"]}}})"}});
+    }
+  };
+  auto interval_runs = [] {
+    for (size_t i = 0; i < 100; ++i) {
+      // Mimic the scheduler's execution of interval decorators.
+      runDecorators(DECORATE_INTERVAL, 60);
+    }
+  };
+  auto updater = std::async(std::launch::async, updates, "interval_deadlock");
+  auto decorator = std::async(std::launch::async, interval_runs);
+
+  // Deadlocked threads cannot be joined, so report the failure and exit
+  // instead of hanging the test run.
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  if (updater.wait_until(deadline) != std::future_status::ready ||
+      decorator.wait_until(deadline) != std::future_status::ready) {
+    std::fprintf(stderr,
+                 "Deadlock: an interval decorator reading osquery_schedule "
+                 "concurrent with config updates did not finish within 60 "
+                 "seconds\n");
+    std::fflush(stderr);
+    std::_Exit(EXIT_FAILURE);
+  }
+}
+
 } // namespace osquery
