@@ -199,7 +199,12 @@ jobs:
       run: cmake --build . --target prepare_for_ide
 
     - name: Enable cppcheck annotations
-      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+      run: |
+        # Copy matcher to source root so GitHub's problem matcher can resolve relative paths correctly.
+        # The fromPath is set to the directory containing the matcher file, and cppcheck outputs
+        # paths relative to CMAKE_SOURCE_DIR, so they must be in the same directory.
+        cp ${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json ${{ steps.build_paths.outputs.SOURCE }}/cppcheck-matcher.json
+        echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/cppcheck-matcher.json"
 
     - name: Run cppcheck
       shell: bash
@@ -207,7 +212,9 @@ jobs:
       run: |
         # Create the empty executable source to avoid cppcheck errors
         touch ${{ steps.build_paths.outputs.BINARY }}/osquery/empty_osqueryd_target_source_file.cpp
-        cmake --build . --target cppcheck 2>&1 | tee cppcheck_linux.txt
+        # Strip workspace prefix and generated namespace directories. Paths like
+        # /path/to/build/ns_osquery_core/osquery/core/tables.h become osquery/core/tables.h
+        cmake --build . --target cppcheck 2>&1 | sed "s|${{ steps.build_paths.outputs.SOURCE }}/||g" | sed 's|^build/ns_osquery[^/]*/||' | tee cppcheck_linux.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -298,12 +305,20 @@ jobs:
         touch osquery/empty_osqueryd_target_source_file.cpp
 
     - name: Enable cppcheck annotations
-      run: echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json"
+      run: |
+        # Copy matcher to source root so GitHub's problem matcher can resolve relative paths correctly.
+        # The fromPath is set to the directory containing the matcher file, and cppcheck outputs
+        # paths relative to CMAKE_SOURCE_DIR, so they must be in the same directory.
+        cp ${{ steps.build_paths.outputs.SOURCE }}/.github/cppcheck-matcher.json ${{ steps.build_paths.outputs.SOURCE }}/cppcheck-matcher.json
+        echo "::add-matcher::${{ steps.build_paths.outputs.SOURCE }}/cppcheck-matcher.json"
 
     - name: Run cppcheck
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
-      run: cmake --build . --target cppcheck 2>&1 | tee cppcheck_macos.txt
+      run: |
+        # Strip workspace prefix and generated namespace directories. Paths like
+        # /path/to/build/ns_osquery_core/osquery/core/tables.h become osquery/core/tables.h
+        cmake --build . --target cppcheck 2>&1 | sed "s|${{ steps.build_paths.outputs.SOURCE }}/||g" | sed 's|^build/ns_osquery[^/]*/||' | tee cppcheck_macos.txt
 
     - name: Store the cppcheck log
       if: always()
@@ -447,13 +462,25 @@ jobs:
     - name: Enable cppcheck annotations
       shell: powershell
       run: |
-        $matcher = Join-Path ${{ steps.build_paths.outputs.SOURCE }} ".github/cppcheck-matcher.json"
-        Write-Output "::add-matcher::$matcher"
+        # Copy matcher to source root so GitHub's problem matcher can resolve relative paths correctly.
+        # The fromPath is set to the directory containing the matcher file, and cppcheck outputs
+        # paths relative to CMAKE_SOURCE_DIR, so they must be in the same directory.
+        $source = "${{ steps.build_paths.outputs.SOURCE }}"
+        $matcher_src = Join-Path $source ".github/cppcheck-matcher.json"
+        $matcher_dst = Join-Path $source "cppcheck-matcher.json"
+        Copy-Item -Path $matcher_src -Destination $matcher_dst -Force
+        Write-Output "::add-matcher::$matcher_dst"
 
     - name: Run cppcheck
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: powershell
-      run: cmake --build . --target cppcheck 2>&1 | Tee-Object -FilePath cppcheck_windows.txt
+      run: |
+        # Strip workspace prefix and generated namespace directories. Paths like
+        # /path/to/build/ns_osquery_core/osquery/core/tables.h become osquery/core/tables.h
+        $source = "${{ steps.build_paths.outputs.SOURCE }}"
+        cmake --build . --target cppcheck 2>&1 | ForEach-Object { 
+          $_ -replace [regex]::Escape("$source/"), '' -replace 'build/ns_osquery[^/]*//', ''
+        } | Tee-Object -FilePath cppcheck_windows.txt
 
     - name: Store the cppcheck log
       if: always()
