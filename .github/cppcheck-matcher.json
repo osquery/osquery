@@ -5,12 +5,11 @@
       "severity": "error",
       "pattern": [
         {
-          "regexp": "^(.+?):([0-9]+):([0-9]+): error: (.+) \\[([^\\]]+)\\]$",
+          "regexp": "^(.+?):([0-9]+):([0-9]+): error: (.+) \\[.+\\]$",
           "file": 1,
           "line": 2,
           "column": 3,
-          "message": 4,
-          "code": 5
+          "message": 4
         }
       ]
     },
@@ -19,12 +18,11 @@
       "severity": "warning",
       "pattern": [
         {
-          "regexp": "^(.+?):([0-9]+):([0-9]+): warning: (.+) \\[([^\\]]+)\\]$",
+          "regexp": "^(.+?):([0-9]+):([0-9]+): warning: (.+) \\[.+\\]$",
           "file": 1,
           "line": 2,
           "column": 3,
-          "message": 4,
-          "code": 5
+          "message": 4
         }
       ]
     },
@@ -33,12 +31,11 @@
       "severity": "notice",
       "pattern": [
         {
-          "regexp": "^(.+?):([0-9]+):([0-9]+): ((?:style|performance|portability): .+) \\[([^\\]]+)\\]$",
+          "regexp": "^(.+?):([0-9]+):([0-9]+): ((?:style|performance|portability): .+) \\[.+\\]$",
           "file": 1,
           "line": 2,
           "column": 3,
-          "message": 4,
-          "code": 5
+          "message": 4
         }
       ]
     }
