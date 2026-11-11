@@ -304,7 +304,8 @@ TEST_F(SQLiteUtilTests, test_affected_tables) {
   auto status = queryInternal("SELECT * FROM time", results, dbc);
 
   // Since the table scanned from "time", it should be recorded as affected.
-  EXPECT_EQ(dbc->affected_tables_.count("time"), 1U);
+  ASSERT_EQ(dbc->affected_tables_.size(), 1U);
+  EXPECT_EQ(dbc->affected_tables_.begin()->second->name, "time");
   dbc->clearAffectedTables();
   EXPECT_EQ(dbc->affected_tables_.size(), 0U);
 }
