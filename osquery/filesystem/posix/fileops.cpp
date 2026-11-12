@@ -34,13 +34,27 @@ namespace osquery {
 
 namespace {
 
+/**
+ * @brief Opens the directory name in dir_fd, not through a symlink.
+ *
+ * The directory is opened only to look up names in it. Where the platform has
+ * a search-only open (O_PATH on Linux, O_SEARCH on macOS 13 and later), that
+ * needs no read permission on it, as a plain open() of a path through it
+ * would not.
+ */
+int openDirectoryAt(int dir_fd, const char* name) {
+  const int flags = O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
 #ifdef __linux__
-// Directories are opened only to look up names in them, which needs no read
-// permission.
-const int kDirectoryFlags = O_PATH | O_DIRECTORY | O_CLOEXEC;
+  return ::openat(dir_fd, name, O_PATH | flags);
 #else
-const int kDirectoryFlags = O_RDONLY | O_DIRECTORY | O_CLOEXEC;
+#if defined(__APPLE__) && defined(O_SEARCH)
+  if (__builtin_available(macos 13.0, *)) {
+    return ::openat(dir_fd, name, O_SEARCH | flags);
+  }
 #endif
+  return ::openat(dir_fd, name, O_RDONLY | flags);
+#endif
+}
 
 /**
  * @brief Opens the regular file at path without following a symlink that was
@@ -65,13 +79,13 @@ int openResolvedRegularFile(const fs::path& path,
   std::string real_path(resolved);
   ::free(resolved);
 
-  int dir_fd = ::open("/", kDirectoryFlags);
+  int dir_fd = openDirectoryAt(AT_FDCWD, "/");
   size_t start = 1;
   size_t end = 0;
   while (dir_fd >= 0 &&
          (end = real_path.find('/', start)) != std::string::npos) {
     auto name = real_path.substr(start, end - start);
-    int next_fd = ::openat(dir_fd, name.c_str(), kDirectoryFlags | O_NOFOLLOW);
+    int next_fd = openDirectoryAt(dir_fd, name.c_str());
     ::close(dir_fd);
     dir_fd = next_fd;
     start = end + 1;

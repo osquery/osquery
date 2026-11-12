@@ -185,6 +185,12 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
 
       int result = yaraScanFile(rule_it->second.get(), ec->path, (void*)&r);
 
+      if (result == ERROR_COULD_NOT_OPEN_FILE) {
+        // Not a regular file, or gone since the event: nothing to scan.
+        VLOG(1) << "YARA could not open " << ec->path << ", skipping it";
+        break;
+      }
+
       if (result != ERROR_SUCCESS) {
         return Status(1, "YARA error: " + std::to_string(result));
       }

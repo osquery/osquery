@@ -120,6 +120,27 @@ TEST_F(PosixFilesystemTests, test_regular_only_follows_directory_symlink) {
   EXPECT_EQ(std::string(buffer, sizeof(buffer)), "content");
 }
 
+TEST_F(PosixFilesystemTests, test_regular_only_opens_through_search_only_dir) {
+  // A plain open() of a file needs only search permission on its directories.
+  if (::geteuid() == 0) {
+    GTEST_SKIP() << "Directory permissions do not limit root";
+  }
+
+  auto dir = test_working_dir_ / "search_only";
+  ASSERT_TRUE(fs::create_directory(dir));
+  ASSERT_TRUE(writeTextFile(dir / "file", "content"));
+  ASSERT_EQ(::chmod(dir.c_str(), S_IXUSR), 0);
+
+  bool valid = false;
+  {
+    PlatformFile file(dir / "file",
+                      PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+    valid = file.isValid();
+  }
+  ::chmod(dir.c_str(), S_IRWXU);
+  EXPECT_TRUE(valid);
+}
+
 TEST_F(PosixFilesystemTests, test_regular_only_opens_relative_path) {
   ASSERT_TRUE(writeTextFile(test_working_dir_ / "file", "content"));
 

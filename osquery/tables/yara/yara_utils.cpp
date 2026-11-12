@@ -336,8 +336,9 @@ Status handleRuleFiles(const std::string& category,
 
 int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data) {
 #ifdef WIN32
-  // libyara's own open shares the file with its writers, as PlatformFile's
-  // does not.
+  // Windows file systems hold no FIFOs, and libyara's own open of the path
+  // shares the file with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a file another process has open for writing.
   return yr_rules_scan_file(
       rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, user_data, 0);
 #else

@@ -146,8 +146,9 @@ ExtractionResult extractSpecificFileFromArchive(
   }
 
 #ifdef WIN32
-  // libarchive's own open shares the jar with its writers, as PlatformFile's
-  // does not.
+  // Windows file systems hold no FIFOs, and libarchive's own open of the path
+  // shares the jar with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a jar another process has open for writing.
   const auto result = archive_read_open_filename(
       archive_reader, archive_file_path.c_str(), 10240); // 10KB buffer
 #else
