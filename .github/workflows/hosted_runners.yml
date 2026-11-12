@@ -462,8 +462,9 @@ jobs:
       shell: bash
       run: |
         # Use absolute paths for GitHub's problem matcher to correctly resolve file locations.
-        # For generated files in \build\ns_*\ directories, map them to \src\
-        cmake --build . --target cppcheck 2>&1 | sed 's|\\build\\ns_[^\\]+\\|\\src\\|g' | tee cppcheck_windows.txt
+        # For generated files in build\ns_*\ directories, map them to src\
+        # Handle both forward slashes (Linux/macOS) and backslashes (Windows)
+        cmake --build . --target cppcheck 2>&1 | sed 's|[/\\]build[/\\]ns_[^/\\]*[/\\]|\\src\\|g' | tee cppcheck_windows.txt
 
     - name: Store the cppcheck log
       if: always()
