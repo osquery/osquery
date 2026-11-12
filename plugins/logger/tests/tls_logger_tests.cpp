@@ -19,6 +19,8 @@
 
 namespace osquery {
 DECLARE_bool(disable_database);
+DECLARE_bool(tls_follow_redirects);
+DECLARE_string(logger_tls_endpoint);
 
 class TLSLoggerTests : public testing::Test {
  protected:
@@ -83,4 +85,36 @@ TEST_F(TLSLoggerTests, test_send) {
   TLSServerRunner::unsetClientConfig();
   TLSServerRunner::stop();
 }
+// Logs sent to an endpoint that redirects, with redirects disabled, were not
+// delivered, so they must stay buffered.
+TEST_F(TLSLoggerTests, test_unfollowed_redirect_keeps_logs) {
+  ASSERT_TRUE(TLSServerRunner::start());
+  TLSServerRunner::setClientConfig();
+  const auto follow_redirects = FLAGS_tls_follow_redirects;
+  const auto endpoint = FLAGS_logger_tls_endpoint;
+  FLAGS_tls_follow_redirects = false;
+  FLAGS_logger_tls_endpoint = "/redirect_same_origin";
+
+  auto forwarder = std::make_shared<TLSLogForwarder>();
+  const std::string expected = "{\"redirected\": true}";
+  forwarder->logString(expected);
+  runCheck(forwarder);
+
+  FLAGS_tls_follow_redirects = follow_redirects;
+  FLAGS_logger_tls_endpoint = endpoint;
+  TLSServerRunner::unsetClientConfig();
+  TLSServerRunner::stop();
+
+  bool kept = false;
+  std::vector<std::string> indexes;
+  scanDatabaseKeys(kLogs, indexes);
+  for (const auto& index : indexes) {
+    std::string value;
+    getDatabaseValue(kLogs, index, value);
+    kept = kept || value == expected;
+    deleteDatabaseValue(kLogs, index);
+  }
+  EXPECT_TRUE(kept);
+}
+
 } // namespace osquery
