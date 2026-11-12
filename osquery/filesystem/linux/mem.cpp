@@ -88,6 +88,14 @@ Status readRawMem(size_t base, size_t length, void** buffer) {
   size_t offset = base % getpagesize();
 #endif
 
+  // Check for overflow in offset + length
+  if (offset > SIZE_MAX - length) {
+    close(fd);
+    free(*buffer);
+    *buffer = nullptr;
+    return Status(1, "Integer overflow in offset + length calculation");
+  }
+
   // Use memmap for maximum portability over read().
   auto map = mmap(0, offset + length, PROT_READ, MAP_SHARED, fd, base - offset);
   if (map == MAP_FAILED) {
