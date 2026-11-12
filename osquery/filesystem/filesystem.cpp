@@ -118,20 +118,16 @@ Status readFile(const fs::path& path,
                            file_handle.getFilePath().string());
   }
 
-  const std::uint64_t file_size = file_handle.size();
+  const auto file_size_opt = file_handle.size();
+  if (!file_size_opt) {
+    return Status::failure("Cannot determine size of: " + path.string());
+  }
+  const std::uint64_t file_size = *file_size_opt;
 
   // Fail to read if the file is bigger than the configured limit.
   auto status = checkFileReadLimit(file_size, path, shouldLog);
   if (!status.ok()) {
     return status;
-  }
-
-  const bool isSpecialFile = file_handle.isSpecialFile();
-
-  /* If the file is a regular file on disk and has no data,
-     do not attempt to read */
-  if (!isSpecialFile && file_size == 0) {
-    return Status::success();
   }
 
   ssize_t res = 0;
@@ -156,7 +152,7 @@ Status readFile(const fs::path& path,
 
       predicate({buffer, static_cast<std::size_t>(res)});
     }
-  } while (res > 0 || (!isSpecialFile && file_handle.hasPendingIo()));
+  } while (res > 0 || file_handle.hasPendingIo());
 
   if (res < 0) {
     return Status::failure("Failed to read " + path.string());
@@ -173,21 +169,17 @@ Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
                            file_handle.getFilePath().string());
   }
 
-  const std::uint64_t file_size = file_handle.size();
+  const auto file_size_opt = file_handle.size();
+  if (!file_size_opt) {
+    return Status::failure("Cannot determine size of: " + path.string());
+  }
+  const std::uint64_t file_size = *file_size_opt;
 
   // Fail to read if the file is bigger than the configured limit
   auto status = checkFileReadLimit(file_size, path, shouldLog);
 
   if (!status.ok()) {
     return status;
-  }
-
-  const bool isSpecialFile = file_handle.isSpecialFile();
-
-  /* If the file is a regular file on disk and has no data,
-   do not attempt to read */
-  if (!isSpecialFile && file_size == 0) {
-    return Status::success();
   }
 
   /* We read in blocks only if we don't know the file size;
@@ -227,8 +219,7 @@ Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
         content.resize(content.size() + kBlockSize);
       }
     }
-  } while (read_size > 0 &&
-           (res > 0 || (!isSpecialFile && file_handle.hasPendingIo())));
+  } while (read_size > 0 && (res > 0 || file_handle.hasPendingIo()));
 
   if (res < 0) {
     content.clear();
