@@ -22,6 +22,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/property_tree.h>
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
@@ -80,10 +81,8 @@ void readCrashDumpJSON(const std::string& crashLogFilePath, Row& r) {
 
   try {
     pt::ptree crashLogHeader, crashLogContent;
-    std::istringstream issHeader(rawFileContent.substr(0, contentJsonBegin));
-    pt::read_json(issHeader, crashLogHeader);
-    std::istringstream issContent(rawFileContent.substr(contentJsonBegin));
-    pt::read_json(issContent, crashLogContent);
+    readJsonTree(rawFileContent.substr(0, contentJsonBegin), crashLogHeader);
+    readJsonTree(rawFileContent.substr(contentJsonBegin), crashLogContent);
 
     // Parse the fields represented in the JSON:
     r["pid"] = crashLogContent.get<std::string>("pid", "");

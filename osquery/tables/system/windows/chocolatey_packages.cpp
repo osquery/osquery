@@ -16,6 +16,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
+#include <osquery/utils/property_tree.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -33,10 +34,8 @@ Status genPackage(const fs::path& nuspec, Row& r) {
       return Status(1, "Failed to read nuspec:" + nuspec.string());
     }
 
-    std::stringstream ss;
-    ss << content;
     try {
-      read_xml(ss, propTree);
+      readXmlTree(content, propTree);
     } catch (const pt::xml_parser::xml_parser_error& /* e */) {
       return Status(1, "Failed to parse nuspec xml");
     }

@@ -25,6 +25,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/property_tree.h>
 #include <regex>
 
 namespace fs = boost::filesystem;
@@ -113,9 +114,8 @@ bool getBooleanValueFromJsonFile(const std::string& file_path,
   }
 
   pt::ptree tree;
-  std::istringstream is(content);
   try {
-    pt::read_json(is, tree);
+    readJsonTree(content, tree);
   } catch (const pt::json_parser_error& e) {
     TLOG << "Error parsing JSON from file " << file_path << ": " << e.what();
     return false;
@@ -136,9 +136,8 @@ std::string getAppNameFromJsonManifest(const std::string& file_path) {
   }
 
   pt::ptree tree;
-  std::istringstream is(content);
   try {
-    pt::read_json(is, tree);
+    readJsonTree(content, tree);
   } catch (const pt::json_parser_error& e) {
     TLOG << "Error parsing JSON from file " << file_path << ": " << e.what();
     return "";

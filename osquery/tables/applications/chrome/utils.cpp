@@ -19,6 +19,7 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/json/json.h>
+#include <osquery/utils/property_tree.h>
 
 namespace osquery {
 
@@ -362,10 +363,7 @@ bool parseJsonString(pt::iptree& tree, const std::string& json) {
   tree = {};
 
   try {
-    std::stringstream json_stream;
-    json_stream << json;
-
-    pt::read_json(json_stream, tree);
+    readJsonTree(json, tree);
     return true;
 
   } catch (const pt::json_parser::json_parser_error&) {

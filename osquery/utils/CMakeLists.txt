@@ -48,6 +48,7 @@ function(generateOsqueryUtils)
     base64.cpp
     chars.cpp
     only_movable.cpp
+    property_tree.cpp
     rot13.cpp
   )
 
@@ -85,6 +86,7 @@ function(generateOsqueryUtils)
     map_take.h
     mutex.h
     only_movable.h
+    property_tree.h
     rot13.h
     scope_guard.h
   )
@@ -163,6 +165,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/base64.cpp
     tests/chars.cpp
     tests/map_take.cpp
+    tests/property_tree.cpp
     tests/rot13.cpp
     tests/scope_guard.cpp
   )

@@ -279,6 +279,23 @@ TEST_F(FlatpakPackagesTests, appstream_tolerates_malformed_xml) {
   EXPECT_EQ(r.count("summary"), 0u);
 }
 
+TEST_F(FlatpakPackagesTests, appstream_refuses_deeply_nested_xml) {
+  // Nested deeply enough to overflow the stack of a recursive XML parser
+  const std::size_t depth = 1000000;
+  std::string xml = "<component><summary>Nested</summary>";
+  for (std::size_t i = 0; i < depth; ++i) {
+    xml += "<a>";
+  }
+  for (std::size_t i = 0; i < depth; ++i) {
+    xml += "</a>";
+  }
+  xml += "</component>";
+
+  Row r;
+  parseFlatpakAppStream(xml, r);
+  EXPECT_EQ(r.count("summary"), 0u);
+}
+
 TEST_F(FlatpakPackagesTests, appstream_handles_empty_input) {
   Row r;
   parseFlatpakAppStream("", r);
