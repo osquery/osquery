@@ -9,6 +9,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 #include <osquery/events/eventsubscriber.h>
 #include <osquery/logger/logger.h>
@@ -69,20 +70,24 @@ void SCNetworkEventPublisher::addHostname(
 
 void SCNetworkEventPublisher::addAddress(
     const SCNetworkSubscriptionContextRef& sc) {
-  struct sockaddr* addr;
+  struct sockaddr_storage storage = {};
+  auto* addr = reinterpret_cast<struct sockaddr*>(&storage);
   if (sc->family == AF_INET) {
-    struct sockaddr_in ipv4_addr;
-    ipv4_addr.sin_family = AF_INET;
-    inet_pton(AF_INET, sc->target.c_str(), &ipv4_addr.sin_addr);
-    addr = (struct sockaddr*)&ipv4_addr;
+    auto* ipv4_addr = reinterpret_cast<struct sockaddr_in*>(&storage);
+    ipv4_addr->sin_len = sizeof(struct sockaddr_in);
+    ipv4_addr->sin_family = AF_INET;
+    inet_pton(AF_INET, sc->target.c_str(), &ipv4_addr->sin_addr);
   } else {
-    struct sockaddr_in6 ip6_addr;
-    ip6_addr.sin6_family = AF_INET6;
-    inet_pton(AF_INET6, sc->target.c_str(), &ip6_addr.sin6_addr);
-    addr = (struct sockaddr*)&ip6_addr;
+    auto* ip6_addr = reinterpret_cast<struct sockaddr_in6*>(&storage);
+    ip6_addr->sin6_len = sizeof(struct sockaddr_in6);
+    ip6_addr->sin6_family = AF_INET6;
+    inet_pton(AF_INET6, sc->target.c_str(), &ip6_addr->sin6_addr);
   }
 
   auto target = SCNetworkReachabilityCreateWithAddress(nullptr, addr);
+  if (target == nullptr) {
+    return;
+  }
   target_addresses_.push_back(sc->target);
   addTarget(sc, target);
 }
@@ -182,4 +187,4 @@ Status SCNetworkEventPublisher::run() {
   CFRunLoopRun();
   return Status::success();
 }
-};
+}; // namespace osquery
