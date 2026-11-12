@@ -25,20 +25,19 @@ TEST_F(platformInfo, test_sanity) {
   auto const data = execute_query("select * from platform_info");
 
   ValidationMap row_map = {
-    {"vendor", NormalType},
-    {"version", NormalType},
-    {"extra", NormalType},
-    {"date", NormalType},
-    {"revision", NormalType},
+      {"vendor", NormalType},
+      {"version", NormalType},
+      {"extra", NormalType},
+      {"date", NormalType},
+      {"revision", NormalType},
+
+      // Linux also returns firmware_type whenever SMBIOS is readable.
+      {"firmware_type", NonEmptyString},
 
 #ifndef OSQUERY_WINDOWS
-    {"address", NormalType},
-    {"size", IntOrEmpty},
-    {"volume_size", NonNegativeInt},
-#endif
-
-#if defined(__APPLE__) || defined(OSQUERY_WINDOWS)
-    {"firmware_type", NonEmptyString},
+      {"address", NormalType},
+      {"size", IntOrEmpty},
+      {"volume_size", NonNegativeInt},
 #endif
   };
 
