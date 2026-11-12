@@ -1,0 +1,26 @@
+table_name("containerd_containers")
+description("Containerd containers information.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("name", TEXT, "Container name", index=True),
+    Column("image", TEXT, "Container image (name) used to launch this container"),
+    Column("snapshot_key", TEXT, "Key of the rootfs snapshot used by the container"),
+    Column("runtime", TEXT, "Runtime used for the container"),
+    Column("pid", BIGINT, "Identifier of the initial process"),
+    Column("status", TEXT, "Container status (created, running, paused, stopped, unknown)"),
+    Column("created_at", BIGINT, "Container creation time (seconds since epoch)"),
+    Column("updated_at", BIGINT, "Container last update time (seconds since epoch)"),
+    Column("cgroup_namespace", TEXT, "cgroup namespace"),
+    Column("ipc_namespace", TEXT, "IPC namespace"),
+    Column("mnt_namespace", TEXT, "Mount namespace"),
+    Column("net_namespace", TEXT, "Network namespace"),
+    Column("pid_namespace", TEXT, "PID namespace"),
+    Column("user_namespace", TEXT, "User namespace"),
+    Column("uts_namespace", TEXT, "UTS namespace")
+])
+implementation("applications/containerd@genContainerdContainers")
+examples([
+  "select * from containerd_containers",
+  "select * from containerd_containers where status = 'running'"
+])
