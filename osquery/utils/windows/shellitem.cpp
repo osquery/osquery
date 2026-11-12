@@ -66,15 +66,44 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
   // Find "0400EFBE" offset
   if (shell_data.find("0400EFBE") != std::string::npos) {
     offset = shell_data.find("0400EFBE");
+    // The signature must sit at least eight characters into the record.
+    // A smaller offset underflows entry_offset below, and the resulting
+    // huge value passes the entry_offset <= 0 check that follows.
+    if (offset < 8) {
+      LOG(WARNING)
+          << "Could not find supported file entry extension in shell data: "
+          << shell_data;
+      ShellFileEntryData file_entry{};
+      file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+      return file_entry;
+    }
     extension_sig = shell_data.substr(offset, 8);
     entry_offset = offset - 8;
   }
-  ShellFileEntryData file_entry;
+  ShellFileEntryData file_entry{};
 
   if (entry_offset <= 0) {
     LOG(WARNING)
         << "Could not find supported file entry extension in shell data: "
         << shell_data;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
+  }
+
+  // The string_size field sits at entry_offset + 72; reject records that
+  // do not reach it before substr() throws std::out_of_range, which aborts
+  // the whole shellbags query. Version 7 records start their name at the
+  // same offset, so records ending there (or a little past it) parse with
+  // an empty or partial name; the name-position guard below still protects
+  // the longer versions 8 and 9 reads. A partial field with an odd length
+  // is rejected too: swapEndianess() swaps character pairs, and a one- or
+  // three-character tail makes it write over the string terminator. A
+  // complete four-character field is always safe, whatever follows it.
+  const size_t string_size_pos = entry_offset + 72;
+  const size_t tail = shell_data.size() - string_size_pos;
+  if (shell_data.size() < string_size_pos || (tail % 2 != 0 && tail < 4)) {
+    LOG(WARNING) << "Truncated file entry extension in shell data: "
+                 << shell_data;
     file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
     return file_entry;
   }
@@ -138,6 +167,13 @@ ShellFileEntryData fileEntry(const std::string& shell_data) {
     name_offset = 84;
   } else if (file_entry.version == 7) {
     name_offset = 72;
+  }
+  // substr() throws when the position is past the end of the record; a
+  // record ending exactly at the name field still parses (empty name).
+  if (entry_offset + name_offset > shell_data.size()) {
+    LOG(WARNING) << "Truncated file entry name in shell data: " << shell_data;
+    file_entry.path = "[UNSUPPORTED SHELL EXTENSION]";
+    return file_entry;
   }
   std::string entry_name = shell_data.substr(entry_offset + name_offset);
 
