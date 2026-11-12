@@ -8,6 +8,6 @@
   "task_id": "0",
   "level": "2",
   "keywords": "0x80000000000000",
-  "data": "{\"EventData\":{\"\":\"Windows Defender\",\"\":\"SECURITY_PRODUCT_STATE_ON\",\"Binary\":\"02000000\"}}",
+  "data": "{\"EventData\":{\"Data\":[\"Windows Defender\",\"SECURITY_PRODUCT_STATE_ON\"],\"Binary\":\"02000000\"}}",
   "computer_name": "DESKTOP-4AR7BIA"
 }

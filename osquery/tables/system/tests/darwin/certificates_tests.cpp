@@ -9,17 +9,28 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <future>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <openssl/opensslv.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/logger/logger.h>
 
 #include <osquery/config/tests/test_utils.h>
+#include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tables/system/darwin/keychain.h>
 #include <osquery/tables/system/posix/openssl_utils.h>
 #include <osquery/utils/base64.h>
+#include <osquery/utils/scope_guard.h>
 
 namespace osquery {
 namespace tables {
@@ -102,6 +113,41 @@ TEST_F(CACertsTests, test_certificate_properties) {
   bool is_self_signed{};
   getCertificateAttributes(x_cert, is_ca, is_self_signed);
   EXPECT_TRUE(is_ca);
+}
+
+QueryData genCerts(QueryContext& context);
+
+TEST_F(CACertsTests, test_genCerts_fifo_path) {
+  auto fifo_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path("osquery.tests.%%%%.%%%%.fifo"))
+          .string();
+  ASSERT_EQ(mkfifo(fifo_path.c_str(), 0600), 0);
+
+  auto fifo_guard =
+      scope_guard::create([&] { boost::filesystem::remove(fifo_path); });
+
+  QueryContext context;
+  context.constraints["path"].add(Constraint(EQUALS, fifo_path));
+
+  // Nothing ever opens the write end, so a blocking open() would not return.
+  auto result =
+      std::async(std::launch::async, [&] { return genCerts(context); });
+
+  if (result.wait_for(std::chrono::seconds(10)) != std::future_status::ready) {
+    // Open the write end to release the blocked reader, then close it so a
+    // read that follows sees EOF instead of waiting for data.
+    int fd = open(fifo_path.c_str(), O_WRONLY | O_NONBLOCK);
+    result.wait_for(std::chrono::seconds(1));
+    if (fd >= 0) {
+      close(fd);
+    }
+    result.wait();
+
+    FAIL() << "genCerts blocked on a FIFO";
+  }
+
+  EXPECT_TRUE(result.get().empty());
 }
 } // namespace tables
 } // namespace osquery
