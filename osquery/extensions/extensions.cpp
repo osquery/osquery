@@ -67,6 +67,12 @@ CLI_FLAG(string,
          "Path to the extensions UNIX domain socket");
 
 CLI_FLAG(string,
+         extensions_socket_group,
+         "",
+         "Group name or GID granted access to the extensions UNIX domain "
+         "socket. When set, the socket is created with mode 0660");
+
+CLI_FLAG(string,
          extensions_autoload,
          OSQUERY_HOME "extensions.load",
          "Optional path to a list of autoloaded & managed extensions");
@@ -98,6 +104,7 @@ CLI_FLAG(string,
  * in the alias since we are already within the context of an extension.
  */
 EXTENSION_FLAG_ALIAS(socket, extensions_socket);
+EXTENSION_FLAG_ALIAS(socket_group, extensions_socket_group);
 EXTENSION_FLAG_ALIAS(timeout, extensions_timeout);
 EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 
