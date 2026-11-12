@@ -32,6 +32,9 @@ function(generatePluginsRemoteEnrollTlsenroll)
   generateIncludeNamespace(plugins_remote_enroll_tlsenroll "plugins/remote/enroll" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME plugins_remote_enroll_tlsenrolltests-test COMMAND plugins_remote_enroll_tlsenrolltests-test)
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(plugins_remote_enroll_tlsenrolltests-test PROPERTIES COST 45)
+  endif()
 
   set(tlsenrolltests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

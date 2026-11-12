@@ -305,7 +305,18 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
   // We are autoloading a Python extension, so pass off to our helper
   if (ext_path.extension().wstring() == L".ext") {
-    return launchTestPythonScript(wstringToString(argv));
+    std::vector<std::string> arguments{exec_path};
+    if (verbose) {
+      arguments.push_back("--verbose");
+    }
+    arguments.insert(arguments.end(),
+                     {"--socket",
+                      extensions_socket,
+                      "--timeout",
+                      extensions_timeout,
+                      "--interval",
+                      extensions_interval});
+    return launchPythonScript(arguments);
   } else {
     auto status =
         ::CreateProcess(nullptr,
@@ -332,8 +343,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   }
 }
 
-std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
-    const std::string& args) {
+std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+    const std::vector<std::string>& args) {
+  if (args.empty()) {
+    return nullptr;
+  }
+
   STARTUPINFOW si = {0};
   PROCESS_INFORMATION pi = {nullptr};
   si.cb = sizeof(si);
@@ -344,11 +359,31 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
   }
 
   auto pythonPath = *pythonEnv;
-  auto argv = L"python " + stringToWstring(args);
+
+  std::wstring command_line = L"python";
+  for (const auto& arg : args) {
+    command_line += L" \"";
+    std::size_t backslashes{0};
+    for (auto character : stringToWstring(arg)) {
+      if (character == L'\\') {
+        ++backslashes;
+        continue;
+      }
+
+      // Backslashes preceding a quote must be doubled, then escape the quote.
+      command_line.append(character == L'"' ? backslashes * 2 + 1 : backslashes,
+                          L'\\');
+      command_line += character;
+      backslashes = 0;
+    }
+    // Double trailing backslashes before the closing quote.
+    command_line.append(backslashes * 2, L'\\');
+    command_line += L'"';
+  }
 
   std::shared_ptr<PlatformProcess> process;
   if (::CreateProcessW(stringToWstring(pythonPath).c_str(),
-                       argv.data(),
+                       command_line.data(),
                        nullptr,
                        nullptr,
                        FALSE,
@@ -364,4 +399,5 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
 
   return process;
 }
+
 } // namespace osquery

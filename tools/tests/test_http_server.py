@@ -23,6 +23,7 @@ import threading
 
 # Create a simple TLS/HTTP server.
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import TCPServer
 from urllib.parse import parse_qs
 
 # Script run directory, used for default values
@@ -486,6 +487,14 @@ def reset_timeout():
     TIMEOUT_TIMER.start()
 
 
+class LocalHTTPServer(HTTPServer):
+    def server_bind(self):
+        # HTTPServer.server_bind performs reverse DNS, which can stall on macOS.
+        TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 def run_http_server(bind_port=80, **kwargs):
     global HTTP_SERVER_ENROLL_SECRET
     global ARGS
@@ -498,9 +507,7 @@ def run_http_server(bind_port=80, **kwargs):
             print("Cannot read --enroll_secret: %s" % str(e))
             exit(1)
 
-    reset_timeout()
-
-    httpd = HTTPServer(("localhost", bind_port), RealSimpleHandler)
+    httpd = LocalHTTPServer(("127.0.0.1", bind_port), RealSimpleHandler)
     if ARGS["tls"]:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(certfile=ARGS["cert"], keyfile=ARGS["key"])
@@ -511,9 +518,17 @@ def run_http_server(bind_port=80, **kwargs):
             context.verify_mode = ssl.CERT_REQUIRED
 
         context.verify_flags = ssl.VERIFY_X509_STRICT
-        debug("Starting TLS/HTTPS server on TCP port: %d" % bind_port)
+        debug("Starting TLS/HTTPS server on TCP port: %d" % httpd.server_port)
     else:
-        debug("Starting HTTP server on TCP port: %d" % bind_port)
+        debug("Starting HTTP server on TCP port: %d" % httpd.server_port)
+
+    if kwargs.get("port_file"):
+        port_file = kwargs["port_file"]
+        with open(port_file + ".tmp", "w") as fh:
+            fh.write(str(httpd.server_port))
+        os.replace(port_file + ".tmp", port_file)
+
+    reset_timeout()
 
     try:
         httpd.serve_forever()
@@ -598,6 +613,11 @@ if __name__ == "__main__":
         default=HTTP_SERVER_REQUIRE_GZIP,
         help="Require clients to send 'Accept-Encoding: gzip' header. "
         "Reject requests without it with 400 Bad Request.",
+    )
+
+    parser.add_argument(
+        "--port-file",
+        help="Atomically publish the bound port after server initialization.",
     )
 
     parser.add_argument(

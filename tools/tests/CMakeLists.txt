@@ -91,10 +91,24 @@ function(generatePythonTests)
   # Tests
   addPythonTest(NAME tools_tests_testosqueryd SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryd.py")
   addPythonTest(NAME tools_tests_testosqueryi SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_osqueryi.py")
+  # Seed scheduling estimates so slow suites do not start last on fresh builds.
+  if(DEFINED PLATFORM_WINDOWS)
+    set_tests_properties(tools_tests_testosqueryd PROPERTIES COST 35)
+    set_tests_properties(tools_tests_testosqueryi PROPERTIES COST 75)
+  elseif(DEFINED PLATFORM_MACOS)
+    set_tests_properties(tools_tests_testosqueryd PROPERTIES COST 30)
+    set_tests_properties(tools_tests_testosqueryi PROPERTIES COST 26)
+  else()
+    set_tests_properties(tools_tests_testosqueryd PROPERTIES COST 30)
+    set_tests_properties(tools_tests_testosqueryi PROPERTIES COST 15)
+  endif()
   addPythonTest(
     NAME tools_tests_testhttpservercarver
     SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_http_server_carver.py"
   )
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(tools_tests_testhttpservercarver PROPERTIES COST 36)
+  endif()
 
   set(release_test_args
     "--build_dir=${CMAKE_BINARY_DIR}"
@@ -108,6 +122,7 @@ function(generatePythonTests)
 
   if(PLATFORM_LINUX)
     addPythonTest(NAME tools_tests_testfschangestable SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/test_docker_container_fs_changes_table.py")
+    set_tests_properties(tools_tests_testfschangestable PROPERTIES COST 15)
   endif()
 endfunction()
 
