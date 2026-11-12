@@ -507,8 +507,6 @@ def run_http_server(bind_port=80, **kwargs):
             print("Cannot read --enroll_secret: %s" % str(e))
             exit(1)
 
-    reset_timeout()
-
     httpd = LocalHTTPServer(("127.0.0.1", bind_port), RealSimpleHandler)
     if ARGS["tls"]:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -529,6 +527,8 @@ def run_http_server(bind_port=80, **kwargs):
         with open(port_file + ".tmp", "w") as fh:
             fh.write(str(httpd.server_port))
         os.replace(port_file + ".tmp", port_file)
+
+    reset_timeout()
 
     try:
         httpd.serve_forever()
