@@ -21,7 +21,7 @@ function(generateTestsHelper)
     test_util.h
   )
 
-  generateIncludeNamespace(tests_helper "osquery/tests" "FILE_ONLY" ${public_header_files})
+  generateIncludeNamespace(tests_helper "osquery/tests" FULL_PATH ${public_header_files})
 
   target_link_libraries(tests_helper PUBLIC
     osquery_cxx_settings
