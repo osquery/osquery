@@ -8,7 +8,6 @@
 function(osqueryCoreTestsMain)
   generateOsqueryCoreTestsMergedtestsTest()
 
-  # TODO: This test should actually run as root, but it's currently broken when using that user
   if(DEFINED PLATFORM_POSIX)
     generateOsqueryCoreTestsPermissionstestsTest()
   endif()

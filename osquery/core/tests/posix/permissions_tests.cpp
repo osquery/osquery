@@ -237,7 +237,7 @@ TEST_F(PermissionsTests, test_multi_thread_permissions) {
 
   // Start our permissions thread.
   auto perms_thread = std::make_shared<PermissionsRunnable>();
-  Dispatcher::addService(perms_thread);
+  ASSERT_TRUE(Dispatcher::addService(perms_thread).ok());
 
   // Wait for the permissions thread to write once.
   EXPECT_TRUE(waitForTick(perms_thread));
@@ -258,6 +258,11 @@ TEST_F(PermissionsTests, test_multi_thread_permissions) {
 
   Dispatcher::stopServices();
   Dispatcher::joinServices();
+
+  // stopServices() leaves the dispatcher in the stopping state, which makes
+  // it silently refuse later addService() calls; reset it so the next test
+  // can start its own services.
+  Dispatcher::instance().resetStopping();
 }
 
 TEST_F(PermissionsTests, test_multi_thread_poll) {
@@ -274,7 +279,7 @@ TEST_F(PermissionsTests, test_multi_thread_poll) {
 
   // Start our permissions thread.
   auto pool_thread = std::make_shared<PermissionsPollRunnable>();
-  Dispatcher::addService(pool_thread);
+  ASSERT_TRUE(Dispatcher::addService(pool_thread).ok());
 
   // Wait for the permissions thread to write once.
   EXPECT_TRUE(waitForTick(pool_thread));
@@ -291,5 +296,10 @@ TEST_F(PermissionsTests, test_multi_thread_poll) {
 
   Dispatcher::stopServices();
   Dispatcher::joinServices();
+
+  // stopServices() leaves the dispatcher in the stopping state, which makes
+  // it silently refuse later addService() calls; reset it so the next test
+  // can start its own services.
+  Dispatcher::instance().resetStopping();
 }
 }
