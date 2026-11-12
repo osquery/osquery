@@ -16,40 +16,52 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux (Ubuntu 24)
+## Linux
 
-The initial directory is assumed to be `/home/<user>`.
+These steps support Ubuntu, Debian, Fedora, RHEL, and RHEL-compatible distributions such as AlmaLinux, Rocky Linux, and CentOS Stream. Only the distribution's default repositories are needed; EPEL is not required.
 
 ```bash
-# Install the prerequisites
-sudo apt install --no-install-recommends git python3 bison flex make cmake ccache
-
-# Optional: install python tests prerequisites
-sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel python3-docker
-pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
-
-# Optional: install Docker, which the Docker table tests need, and give your user
-# access to the Docker socket (log out and back in for the group change to apply)
-sudo apt install --no-install-recommends docker.io
-sudo usermod -aG docker $USER
-
-# Optional: install RPM packaging prerequisites
-sudo apt install --no-install-recommends rpm binutils
-
-# Download and install the osquery toolchain for the architecture in use.
-export ARCH=$(uname -m)
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.3.0/osquery-toolchain-1.3.0-${ARCH}.tar.xz
-sudo tar xvf osquery-toolchain-1.3.0-${ARCH}.tar.xz -C /usr/local
-
-# Download source
+# Download source (install git first if needed, with apt or dnf)
 git clone https://github.com/osquery/osquery
 cd osquery
 
+# Install the prerequisites and the osquery toolchain (uses sudo)
+tools/bootstrap-linux.sh
+
 # Build osquery
-mkdir build; cd build
-cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
-cmake --build . -j10 # where 10 is the number of parallel build jobs
+make build
 ```
+
+`tools/bootstrap-linux.sh` (also available as `make prerequisites` once `make` is installed) installs the distribution packages (Git, Python 3, Bison, Flex, Make, CMake, Perl, and ccache if it is available), checks that the CMake version and the Perl modules needed by OpenSSL are present, and installs the [osquery toolchain](https://github.com/osquery/osquery-toolchain) to `/usr/local/osquery-toolchain` after verifying its checksum. Run `tools/bootstrap-linux.sh --help` for its options; for example, `--with-tests` also creates a Python virtualenv at `~/.venvs/osquery` (change it with `--venv-dir`) with the test prerequisites.
+
+`make build` configures the `build` folder with the `linux` preset from `CMakePresets.json`, then builds it. Without `make`, the equivalent commands are:
+
+```bash
+cmake --preset linux
+cmake --build --preset linux -j $(nproc)
+```
+
+Other useful targets are `make test` (configure with tests enabled, build, then run the tests that don't require root), `make configure`, and `make clean`. For the Python tests, run `tools/bootstrap-linux.sh --with-tests` first and activate the virtualenv with `source ~/.venvs/osquery/bin/activate`. The default location keeps it out of the source tree, so a source tree shared between a host and a VM doesn't end up with one machine's virtualenv overwriting the other's. Set `JOBS` to limit the number of parallel build jobs, for example `make build JOBS=4` on machines with less memory.
+
+Optional extras, which the script doesn't install:
+
+- Docker or Podman, for the Docker table tests. On Ubuntu, install `docker.io` and add your user to the `docker` group; on RHEL and Fedora, install `podman` and `podman-docker`.
+- `rpm` (Ubuntu) or `rpm-build` (RHEL, Fedora), and `binutils`, for building packages.
+
+### Manual Linux prerequisites
+
+On distributions the script doesn't support, install the equivalent of these packages, then install the toolchain for your architecture (`x86_64` or `aarch64`):
+
+```bash
+# Ubuntu/Debian package names; use your distribution's equivalents
+sudo apt install --no-install-recommends git python3 bison flex make cmake perl ccache
+
+export ARCH=$(uname -m)
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-${ARCH}.tar.xz
+sudo tar xvf osquery-toolchain-1.2.0-${ARCH}.tar.xz -C /usr/local
+```
+
+The OpenSSL build runs the first `perl` on your `PATH`, which needs the full set of core modules (including `FindBin` and `IPC::Cmd`). Python test prerequisites are listed in `tools/tests/requirements.txt`.
 
 ## macOS
 
