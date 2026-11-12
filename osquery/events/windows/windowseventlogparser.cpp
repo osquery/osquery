@@ -26,7 +26,6 @@ static inline pt::ptree parseChildNodeToJSONPtree(
     const pt::ptree& event_data_node) {
   pt::ptree event_data;
 
-  bool detect_data_type{true};
   bool as_array{false};
   bool has_non_data{false};
 
@@ -34,7 +33,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
     const auto& name = p.first;
     const auto& data_field = p.second;
 
-    if (name == "Data" && detect_data_type) {
+    if (name == "Data") {
       std::string data_name = {};
       auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
       if (data_name_attr_opt.has_value()) {
@@ -42,10 +41,9 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         data_name = data_name_attr.get_value<std::string>("");
       }
 
-      as_array = data_name.empty();
-      detect_data_type = false;
+      as_array = as_array || data_name.empty();
 
-    } else if (name != "Data") {
+    } else {
       has_non_data = true;
     }
   }
