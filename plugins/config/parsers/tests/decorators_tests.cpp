@@ -254,9 +254,10 @@ TEST_F(DecoratorsConfigParserPluginTests,
   // decorator SQL or exercising the lock ordering.
   ASSERT_TRUE(
       Config::get()
-          .update({{"interval_decorator_base",
-                    R"({"decorators": {"interval": {"60": [)"
-                    R"("SELECT COUNT(*) AS base_s FROM osquery_schedule"]}}})"}})
+          .update(
+              {{"interval_decorator_base",
+                R"({"decorators": {"interval": {"60": [)"
+                R"("SELECT COUNT(*) AS base_s FROM osquery_schedule"]}}})"}})
           .ok());
 
   std::atomic<size_t> failed_updates{0};
