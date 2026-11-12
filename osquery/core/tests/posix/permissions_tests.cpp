@@ -112,7 +112,11 @@ TEST_F(PermissionsTests, test_functional_drop) {
     return;
   }
 
-  auto file_path = kTestWorkingDirectory + "permissions-file2";
+  // Under the fixture's directory: nothing in this binary calls initTesting(),
+  // so kTestWorkingDirectory is empty and the file would be created in the
+  // working directory, which may be on a filesystem that does not enforce the
+  // file's mode, such as a VM shared folder.
+  auto file_path = (perm_path_ / "permissions-file2").string();
 
   {
     writeTextFile(file_path, "data");
