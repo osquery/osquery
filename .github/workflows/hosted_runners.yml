@@ -1070,16 +1070,23 @@ jobs:
         find . -name "CTestTestfile.cmake" -type f -print0 | xargs -0 sed -i '' \
           "s|PYTHONPATH=\${{ steps.build_paths.outputs.BINARY }}/python_path|PYTHONPATH=$venv_escaped:\${{ steps.build_paths.outputs.BINARY }}/python_path|g"
 
-    - name: Run the tests
+    - name: Run the tests as normal user
       working-directory: ${{ steps.build_paths.outputs.BINARY }}
       shell: bash
       run: |
         if [[ "${{ matrix.architecture }}" == "x86_64" ]]; then
-          ctest --build-nocmake -V \
+          ctest --build-nocmake -V -LE "root-required" \
             -R '^(tools_tests_testosqueryd|tools_tests_testosqueryi)$'
         else
-          ctest --build-nocmake -V
+          ctest --build-nocmake -V -LE "root-required"
         fi
+
+    # Mirrors the Linux root pass; GitHub-hosted macOS runners allow
+    # passwordless sudo.
+    - name: Run the tests as root user
+      working-directory: ${{ steps.build_paths.outputs.BINARY }}
+      shell: bash
+      run: sudo -u root ctest --build-nocmake -L "root-required" -V
 
   # This job builds the universal macOS artifacts
   build_universal_macos_artifacts:

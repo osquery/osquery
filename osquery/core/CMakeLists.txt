@@ -61,9 +61,14 @@ function(generateOsqueryCoreInit)
 
   generateIncludeNamespace(osquery_core_init "osquery/core" "FILE_ONLY" ${public_header_files})
 
-  # TODO: This test should actually run as root, but it's currently broken when using that user
+  # Most of the suite tests privilege dropping and only runs as root. Not
+  # gated on OSQUERY_BUILD_ROOT_TESTS so that the macOS CI root pass, which
+  # does not enable that option, also runs it.
   if(DEFINED PLATFORM_POSIX)
     add_test(NAME osquery_core_tests_permissionstests-test COMMAND osquery_core_tests_permissionstests-test)
+    set_tests_properties(osquery_core_tests_permissionstests-test PROPERTIES
+      LABELS "root-required"
+    )
   endif()
 
   add_test(NAME osquery_core_tests_mergedtests-test COMMAND osquery_core_tests_mergedtests-test)
