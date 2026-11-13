@@ -81,6 +81,7 @@ bool Client::isSocketOpen() {
 
 void Client::closeSocket() {
   if (isSocketOpen()) {
+    // Errors closing a connection that is being discarded are not useful.
     boost::system::error_code rc;
     sock_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);
     sock_.close(rc);

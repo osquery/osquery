@@ -265,6 +265,7 @@ static std::string findAppStreamPath(const boost::filesystem::path& files_dir,
 
   const auto metainfo =
       files_dir / "share" / "metainfo" / (app_id + ".metainfo.xml");
+  // A file whose existence cannot be checked counts as missing.
   boost::system::error_code ec;
   if (fs::exists(metainfo, ec)) {
     return metainfo.string();

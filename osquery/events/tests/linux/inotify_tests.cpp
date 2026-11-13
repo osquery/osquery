@@ -29,6 +29,9 @@ namespace fs = boost::filesystem;
 namespace osquery {
 DECLARE_bool(enable_file_events);
 
+std::vector<std::string> canonicalDirectoryPaths(
+    const std::vector<std::string>& directories);
+
 const int kMaxEventLatency = 3000;
 
 class INotifyTests : public testing::Test {
@@ -556,4 +559,16 @@ TEST_F(INotifyTests, test_inotify_embedded_wildcards) {
 
   EventFactory::deregisterEventPublisher("inotify");
 }
+
+// A directory that cannot be canonicalized, such as one removed after it was
+// listed for a recursive watch, is skipped instead of becoming "/".
+TEST_F(INotifyTests, test_canonical_directory_paths_skip_failures) {
+  auto existing = fs::canonical(fs::temp_directory_path()).string();
+  auto paths = canonicalDirectoryPaths(
+      {existing, "/nonexistent/osquery-inotify-test-directory"});
+
+  ASSERT_EQ(paths.size(), 1U);
+  EXPECT_EQ(paths[0], existing + '/');
+}
+
 } // namespace osquery

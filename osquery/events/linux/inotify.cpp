@@ -358,6 +358,28 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
   return true;
 }
 
+/**
+ * @brief Returns the canonical paths of directories, each ending in '/'.
+ *
+ * A directory that cannot be canonicalized, such as one removed after it was
+ * listed, is skipped: on error fs::canonical() returns an empty path, which
+ * would otherwise become "/" and watch the root directory.
+ */
+std::vector<std::string> canonicalDirectoryPaths(
+    const std::vector<std::string>& directories) {
+  std::vector<std::string> paths;
+  for (const auto& directory : directories) {
+    boost::system::error_code ec;
+    auto canonical = fs::canonical(directory, ec);
+    if (ec) {
+      VLOG(1) << "Cannot monitor " << directory << ": " << ec.message();
+      continue;
+    }
+    paths.push_back(canonical.string() + '/');
+  }
+  return paths;
+}
+
 bool INotifyEventPublisher::addMonitor(const std::string& path,
                                        INotifySubscriptionContextRef& isc,
                                        uint32_t mask,
@@ -396,10 +418,8 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
     // Get a list of children of this directory (requested recursive watches).
     listDirectoriesInDirectory(path, children, true);
 
-    boost::system::error_code ec;
-    for (const auto& child : children) {
-      auto canonicalized = fs::canonical(child, ec).string() + '/';
-      addMonitor(canonicalized, isc, mask, false);
+    for (const auto& child : canonicalDirectoryPaths(children)) {
+      addMonitor(child, isc, mask, false);
     }
   }
 

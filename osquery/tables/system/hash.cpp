@@ -252,6 +252,8 @@ void expandFSPathConstraints(QueryContext& context,
 
 QueryData genHashImpl(QueryContext& context, Logger& logger) {
   QueryData results;
+  // The checks below treat a path whose type cannot be read as neither a file
+  // nor a directory.
   boost::system::error_code ec;
 
   // The query must provide a predicate with constraints including path or

@@ -339,6 +339,8 @@ static void dfsTraverseDirectories(const std::string& current_path,
     return;
   }
 
+  // Errors are not reported, as with globbing: a path that cannot be read is
+  // not listed, and an error while reading a directory ends its listing.
   boost::system::error_code ec;
   if (!fs::exists(current_path, ec) || !fs::is_directory(current_path, ec)) {
     return;
@@ -386,6 +388,7 @@ static void genGlobs(std::string path,
     for (const auto& base_dir : initial_results) {
       boost::system::error_code ec;
       results.push_back(base_dir);
+      // A path whose type cannot be read is not descended into.
       if (fs::is_directory(base_dir, ec)) {
         dfsTraverseDirectories(base_dir, dir_inos, results, 0);
       }
@@ -433,24 +436,31 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
                                (pattern.size() > 3 && pattern[1] != ':' &&
                                 pattern[2] != '\\' && pattern[2] != '/'))) &&
       pattern[0] != '~') {
-    try {
-      boost::system::error_code ec;
-      pattern = (fs::current_path(ec) / pattern).make_preferred().string();
-    } catch (const fs::filesystem_error& /* e */) {
-      // There is a bug in versions of current_path that still throw.
-    }
+    // If the working directory cannot be found, the pattern stays relative.
+    boost::system::error_code ec;
+    auto working_directory = fs::current_path(ec);
+    auto relative = fs::path(pattern);
+    pattern = (ec ? relative : working_directory / relative)
+                  .make_preferred()
+                  .string();
   }
 
   auto base =
       fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
 
   if (base.size() > 0) {
-    boost::system::error_code ec;
-    auto canonicalized = ((limits & GLOB_NO_CANON) == 0)
-                             ? fs::canonical(base, ec).make_preferred().string()
-                             : base;
+    // A base that cannot be canonicalized, such as one that does not exist,
+    // is globbed as given.
+    auto canonicalized = base;
+    if ((limits & GLOB_NO_CANON) == 0) {
+      boost::system::error_code ec;
+      auto canonical = fs::canonical(base, ec);
+      if (!ec) {
+        canonicalized = canonical.make_preferred().string();
+      }
+    }
 
-    if (canonicalized.size() > 0 && canonicalized != base) {
+    if (canonicalized != base) {
       if (isDirectory(canonicalized)) {
         // Canonicalized directory paths will not include a trailing '/'.
         // However, if the wildcards are applied to files within a directory
@@ -490,8 +500,7 @@ Status listFilesInDirectory(const fs::path& path,
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  // We don't really need the error, but by passing it into
-  // recursive_directory_iterator we invoke the non-throw version.
+  // A path whose type cannot be read counts as not a directory.
   boost::system::error_code ignored_ec;
   if (path.empty() || !pathExists(path) ||
       !fs::is_directory(path, ignored_ec)) {
@@ -633,6 +642,8 @@ const std::string& osqueryHomeDirectory() {
     auto userdir = getHomeDirectory();
     if (userdir.is_initialized() && isWritable(*userdir).ok()) {
       auto osquery_dir = (fs::path(*userdir) / ".osquery");
+      // create_directories() returns whether it created the directory, which
+      // is all that is needed here.
       if (isWritable(osquery_dir) ||
           boost::filesystem::create_directories(osquery_dir, ec)) {
         homedir = osquery_dir.make_preferred().string();
