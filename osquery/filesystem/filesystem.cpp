@@ -465,9 +465,9 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   }
 }
 
-inline Status listInAbsoluteDirectory(const fs::path& path,
-                                      std::vector<std::string>& results,
-                                      GlobLimits limits) {
+Status listInAbsoluteDirectory(const fs::path& path,
+                               std::vector<std::string>& results,
+                               GlobLimits limits) {
   if (path.filename() == "*" && !pathExists(path.parent_path())) {
     return Status(1, "Directory not found: " + path.parent_path().string());
   }

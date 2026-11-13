@@ -24,7 +24,7 @@ using EventTappingSubscriptionContextRef =
 /// This is a dispatched service that handles published EventTapping events.
 class EventTappingConsumerRunner;
 
-class EventTappingEventPublisher
+class EventTappingEventPublisher final
     : public EventPublisher<EventTappingSubscriptionContext,
                             EventTappingEventContext> {
   DECLARE_PUBLISHER("event_tapping");
@@ -45,7 +45,7 @@ class EventTappingEventPublisher
     runnable_name_ = name;
   }
 
-  ~EventTappingEventPublisher() override final;
+  ~EventTappingEventPublisher() override;
 
   static CGEventRef eventCallback(CGEventTapProxy proxy,
                                   CGEventType type,

@@ -80,7 +80,8 @@ TEST_F(EventsTests, test_event_publisher) {
 
   // Test type names.
   auto pub_sub = pub->createSubscriptionContext();
-  EXPECT_EQ(typeid(FakeSubscriptionContext), typeid(*pub_sub));
+  const auto& sub_context = *pub_sub;
+  EXPECT_EQ(typeid(FakeSubscriptionContext), typeid(sub_context));
 
   // This publisher has no type.
   auto basic_pub = std::make_shared<BasicEventPublisher>();

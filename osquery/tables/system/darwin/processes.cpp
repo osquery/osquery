@@ -578,17 +578,18 @@ void genMemoryRegion(int pid,
   r["pid"] = INTEGER(pid);
 
   char addr_str[17] = {0};
-  sprintf(addr_str, "%016lx", address);
+  snprintf(addr_str, sizeof(addr_str), "%016lx", address);
   r["start"] = "0x" + std::string(addr_str);
-  sprintf(addr_str, "%016lx", address + size);
+  snprintf(addr_str, sizeof(addr_str), "%016lx", address + size);
   r["end"] = "0x" + std::string(addr_str);
 
   char perms[5] = {0};
-  sprintf(perms,
-          "%c%c%c",
-          (info.protection & VM_PROT_READ) ? 'r' : '-',
-          (info.protection & VM_PROT_WRITE) ? 'w' : '-',
-          (info.protection & VM_PROT_EXECUTE) ? 'x' : '-');
+  snprintf(perms,
+           sizeof(perms),
+           "%c%c%c",
+           (info.protection & VM_PROT_READ) ? 'r' : '-',
+           (info.protection & VM_PROT_WRITE) ? 'w' : '-',
+           (info.protection & VM_PROT_EXECUTE) ? 'x' : '-');
   // Mimic Linux permissions reporting.
   r["permissions"] = std::string(perms) + 'p';
 
