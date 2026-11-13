@@ -1365,7 +1365,7 @@ TEST_F(SystemStateTrackerTests, parse_unix_sockaddr_unterminated) {
 
   EXPECT_TRUE(succeeded);
 
-  struct sockaddr_un reference{};
+  struct sockaddr_un reference {};
   EXPECT_LE(address.size(), sizeof(reference.sun_path));
   EXPECT_EQ(address.find_first_not_of('A'), std::string::npos);
 }
