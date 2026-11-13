@@ -7,12 +7,18 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/utils/system/system.h>
+
+#include <Shlwapi.h>
+
 #include <regex>
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/windows/programs.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/tables/system/windows/registry.h"
 
@@ -122,6 +128,74 @@ std::string packageFamilyNameFromPackageFullName(
   }
 
   return packageName + "_" + publisherHash;
+}
+
+std::vector<std::string> buildMsResourceUris(const std::string& value,
+                                             const std::string& packageName) {
+  const std::string kPrefix = "ms-resource:";
+  if (value.compare(0, kPrefix.size(), kPrefix) != 0) {
+    return {};
+  }
+
+  auto rest = value.substr(kPrefix.size());
+  if (rest.empty()) {
+    return {};
+  }
+
+  // Already a full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName
+  if (rest.compare(0, 2, "//") == 0) {
+    return {value};
+  }
+
+  if (packageName.empty()) {
+    return {};
+  }
+
+  // Path relative to the package, e.g. ms-resource:/Resources/AppName
+  if (rest[0] == '/') {
+    return {"ms-resource://" + packageName + rest};
+  }
+
+  // A bare key is usually in the default "Resources" map, but some packages
+  // use a path like "LensSDK/Resources/AppStoreName" that is rooted at the
+  // package instead.
+  return {"ms-resource://" + packageName + "/Resources/" + rest,
+          "ms-resource://" + packageName + "/" + rest};
+}
+
+// Resolves an "ms-resource:" manifest string from the package's resources.pri.
+// Uses the .pri path form instead of the package full name form because the
+// latter only works for users the package is registered for, which excludes
+// SYSTEM and packages that are only provisioned.
+std::string resolveMsResource(const std::string& value,
+                              const std::string& packageName,
+                              const std::string& installLocation) {
+  if (installLocation.empty()) {
+    return "";
+  }
+
+  const auto priPath = installLocation + "\\resources.pri";
+  if (!osquery::pathExists(priPath).ok()) {
+    return "";
+  }
+
+  for (const auto& uri : buildMsResourceUris(value, packageName)) {
+    const auto source = stringToWstring("@{" + priPath + "?" + uri + "}");
+    std::vector<wchar_t> buffer(1024, L'\0');
+    auto hr = SHLoadIndirectString(source.c_str(),
+                                   buffer.data(),
+                                   static_cast<UINT>(buffer.size()),
+                                   nullptr);
+    if (hr == S_OK) {
+      auto resolved = wstringToString(buffer.data());
+      if (!resolved.empty()) {
+        return resolved;
+      }
+    }
+  }
+
+  VLOG(1) << "Cannot resolve '" << value << "' from '" << priPath << "'";
+  return "";
 }
 
 // Function to reverse a string
@@ -417,14 +491,30 @@ void genMsixPrograms(const std::string& key,
       // "ms-resource:" prefix means that the string is dynamically
       // generated from a .pri file .pri file is a binary index of all
       // localized and scaled resources compiled from .resw files or
-      // .resources at build time
-      if (!displayName.empty() &&
-          displayName.find("ms-resource") == std::string::npos) {
-        result["name"] = displayName;
+      // .resources at build time. If it can't be resolved, keep the values
+      // from the Identity tag.
+      const auto packageName = result["name"];
+      if (!displayName.empty()) {
+        if (displayName.find("ms-resource") == std::string::npos) {
+          result["name"] = displayName;
+        } else {
+          auto resolved = resolveMsResource(
+              displayName, packageName, result["install_location"]);
+          if (!resolved.empty()) {
+            result["name"] = resolved;
+          }
+        }
       }
-      if (!publisherDisplayName.empty() &&
-          publisherDisplayName.find("ms-resource") == std::string::npos) {
-        result["publisher"] = publisherDisplayName;
+      if (!publisherDisplayName.empty()) {
+        if (publisherDisplayName.find("ms-resource") == std::string::npos) {
+          result["publisher"] = publisherDisplayName;
+        } else {
+          auto resolved = resolveMsResource(
+              publisherDisplayName, packageName, result["install_location"]);
+          if (!resolved.empty()) {
+            result["publisher"] = resolved;
+          }
+        }
       }
     }
 

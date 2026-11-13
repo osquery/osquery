@@ -9,6 +9,9 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 namespace osquery {
@@ -25,6 +28,20 @@ namespace tables {
  * invalid (input must be 32 characters long)
  */
 std::string decodeMsiRegistryGuid(const std::string& encoded);
+
+/*
+ * @brief Builds the candidate resource URIs for an MSIX manifest string such
+ * as "ms-resource:AppName", in the order they should be tried
+ *
+ * @param value the manifest string, e.g. "ms-resource:AppName"
+ * @param packageName the package's Identity Name, e.g. "Microsoft.Todos"
+ * @return the URIs to try, e.g.
+ * {"ms-resource://Microsoft.Todos/Resources/AppName",
+ * "ms-resource://Microsoft.Todos/AppName"}, or an empty vector if the value
+ * isn't an ms-resource string
+ */
+std::vector<std::string> buildMsResourceUris(const std::string& value,
+                                             const std::string& packageName);
 
 } // namespace tables
 } // namespace osquery
