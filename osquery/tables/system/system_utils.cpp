@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
+
+#include <osquery/filesystem/automount.h>
 #include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
 #include <osquery/sql/sql.h>
@@ -46,6 +49,21 @@ QueryData usersFromContext(const QueryContext& context, bool all) {
         "users", "uid", EQUALS, std::to_string(platformGetUid()));
   } else {
     users = SQL::selectAllFrom("users");
+  }
+
+  // Every caller reads files in the users' home directories, which would make
+  // the automounter mount the ones that are not mounted yet.
+  if (!users.empty()) {
+    AutomountHomeFilter automount_filter;
+    users.erase(
+        std::remove_if(users.begin(),
+                       users.end(),
+                       [&automount_filter](const Row& user) {
+                         auto directory = user.find("directory");
+                         return directory != user.end() &&
+                                automount_filter.skip(directory->second);
+                       }),
+        users.end());
   }
   return users;
 }

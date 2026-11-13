@@ -28,6 +28,7 @@
 
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/filesystem/automount.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
@@ -561,11 +562,19 @@ std::set<fs::path> getHomeDirectories() {
   std::set<fs::path> results;
 
   auto users = SQL::selectAllFrom("users");
+  if (users.empty()) {
+    return results;
+  }
+
+  // Callers read files in the home directories, which would make the
+  // automounter mount the ones that are not mounted yet.
+  AutomountHomeFilter automount_filter;
   for (const auto& user : users) {
     // First verify the user has a "directory" entry.
     auto dir_iter = user.find("directory");
-    if (dir_iter != user.end() && user.at("directory").size() > 0) {
-      results.insert(user.at("directory"));
+    if (dir_iter != user.end() && dir_iter->second.size() > 0 &&
+        !automount_filter.skip(dir_iter->second)) {
+      results.insert(dir_iter->second);
     }
   }
 

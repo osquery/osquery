@@ -7,10 +7,14 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <set>
+#include <string>
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/automount.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/tests/test_util.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
@@ -25,6 +29,9 @@ void genNodeSiteDirectories(const std::string& site,
                             QueryData& results,
                             Logger& logger,
                             int max_depth);
+void resolveNodeModulesPattern(const std::string& pattern,
+                               const AutomountHomeFilter& automount_filter,
+                               std::set<std::string>& paths);
 
 } // namespace tables
 } // namespace osquery
@@ -454,6 +461,36 @@ TEST_F(NpmPackagesUnitTest, test_object_license_url_is_surfaced) {
   tables::genNodePackage(no_url.string(), r2, logger);
   EXPECT_EQ(r2["license"], "");
 }
+
+#ifndef WIN32
+TEST_F(NpmPackagesUnitTest, test_user_pattern_skips_unmounted_automount_homes) {
+  // Canonical, because resolving patterns canonicalizes their directories.
+  auto homes = fs::canonical(temp_dir_);
+  for (const auto& user : {"mounted", "unmounted"}) {
+    createPackageJson(homes / user / ".npm-global" / "lib" / "node_modules" /
+                          "pkg" / "package.json",
+                      R"({"name": "pkg", "version": "1.0.0"})");
+  }
+
+  // homes stands for /home as an autofs indirect map in browse mode, which
+  // lists every home directory in the map, with only one of them mounted.
+  AutomountHomeFilter automount_filter(
+      {{"/", "xfs"},
+       {homes.string(), "autofs"},
+       {(homes / "mounted").string(), "nfs4"}});
+
+  std::set<std::string> paths;
+  tables::resolveNodeModulesPattern(
+      (homes / "%" / ".npm-global" / "lib").string(), automount_filter, paths);
+
+  ASSERT_EQ(paths.size(), 1U);
+  auto site = *paths.begin();
+  if (site.back() == '/') {
+    site.pop_back();
+  }
+  EXPECT_EQ(site, (homes / "mounted" / ".npm-global" / "lib").string());
+}
+#endif
 
 } // namespace table_tests
 } // namespace osquery
