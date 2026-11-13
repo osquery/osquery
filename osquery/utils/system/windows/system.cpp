@@ -10,6 +10,9 @@
 #include "system.h"
 
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/system/system.h>
+
+#include <psapi.h>
 
 #include <vector>
 
@@ -35,4 +38,31 @@ std::string getFqdn() {
 
   return {};
 }
+
+bool getSelfResourceUsage(SelfResourceUsage& usage) {
+  // Same sources and conversions as the processes table.
+  auto proc = GetCurrentProcess();
+  FILETIME create_time, exit_time, kernel_time, user_time;
+  if (GetProcessTimes(
+          proc, &create_time, &exit_time, &kernel_time, &user_time) == FALSE) {
+    return false;
+  }
+  ULARGE_INTEGER time;
+  time.HighPart = user_time.dwHighDateTime;
+  time.LowPart = user_time.dwLowDateTime;
+  usage.user_time_ms = time.QuadPart / 10000;
+  time.HighPart = kernel_time.dwHighDateTime;
+  time.LowPart = kernel_time.dwLowDateTime;
+  usage.system_time_ms = time.QuadPart / 10000;
+
+  PROCESS_MEMORY_COUNTERS_EX mem_ctr;
+  if (GetProcessMemoryInfo(proc,
+                           reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&mem_ctr),
+                           sizeof(mem_ctr)) == FALSE) {
+    return false;
+  }
+  usage.resident_size = mem_ctr.WorkingSetSize;
+  return true;
+}
+
 } // namespace osquery

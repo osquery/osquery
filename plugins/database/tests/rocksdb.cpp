@@ -67,6 +67,42 @@ TEST_F(RocksDBDatabasePluginTests, test_corruption) {
   EXPECT_FALSE(pathExists(path_ + ".backup"));
 }
 
+TEST_F(RocksDBDatabasePluginTests, test_reset_keeps_data_and_size) {
+  // Seed enough data to produce SST files, then reopen the database a few
+  // times: every value must survive and the on-disk size must not grow once
+  // the first reopen has merged the flushed files.
+  const std::string value(1024, 'x');
+  DatabaseStringValueList batch;
+  for (int i = 0; i < 2000; i++) {
+    batch.emplace_back("reset_" + std::to_string(i), value);
+  }
+  ASSERT_TRUE(setDatabaseBatch(kQueries, batch).ok());
+
+  auto dir_size = [this]() {
+    std::uintmax_t total = 0;
+    for (const auto& entry : boost::filesystem::directory_iterator(path_)) {
+      if (boost::filesystem::is_regular_file(entry)) {
+        total += boost::filesystem::file_size(entry);
+      }
+    }
+    return total;
+  };
+
+  resetDatabase();
+  auto size_after_first = dir_size();
+  resetDatabase();
+  resetDatabase();
+  // Allow a little slack for the manifest and log bookkeeping of a reopen.
+  EXPECT_LE(dir_size(), size_after_first + 64 * 1024);
+
+  std::string content;
+  for (int i = 0; i < 2000; i += 199) {
+    ASSERT_TRUE(
+        getDatabaseValue(kQueries, "reset_" + std::to_string(i), content).ok());
+    EXPECT_EQ(content, value);
+  }
+}
+
 TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
   auto db = RocksDBDatabasePlugin();
   const auto test_db_path =

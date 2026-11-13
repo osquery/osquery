@@ -102,6 +102,8 @@ class SQLiteDBInstance : private boost::noncopyable {
   SQLiteDBInstance() {
     init();
   }
+  /// Takes the primary database if it is free, otherwise the instance has no
+  /// database until init() is called.
   SQLiteDBInstance(sqlite3*& db, Mutex& mtx);
   ~SQLiteDBInstance();
 
@@ -193,6 +195,7 @@ class SQLiteDBInstance : private boost::noncopyable {
  private:
   FRIEND_TEST(SQLiteUtilTests, test_affected_tables);
   FRIEND_TEST(VirtualTableTests, test_table_alias_affected_tables);
+  FRIEND_TEST(SQLiteUtilTests, test_contended_connection_reuse_is_clean);
 };
 
 using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
