@@ -365,6 +365,10 @@ Maximum file read size. The daemon or shell will first 'stat' each file before r
 
 ## Linux-only runtime control flags
 
+`--automount_home_dirs=false`
+
+Read user home directories that are not mounted yet. Tables that read files in every user's home directory, such as `shell_history`, `authorized_keys`, `chrome_extensions`, `npm_packages` or `startup_items`, skip a home directory that the automounter (autofs, or a systemd automount) has not mounted yet, because reading it would make the automounter mount it, and querying such a table across a fleet would mount every automounted home directory on every host at once. Home directories that are already mounted are read as usual. Set this flag to read every home directory, letting the automounter mount the ones that are not mounted yet.
+
 `--malloc_trim_threshold=200`
 
 Memory threshold in MB used to decide when a malloc_trim will be called to reduce the retained memory.

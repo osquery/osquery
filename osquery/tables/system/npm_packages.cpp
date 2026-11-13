@@ -16,6 +16,7 @@
 #include <utility>
 
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/automount.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/tryto.h>
@@ -230,6 +231,41 @@ void genWinNodePackages(const std::string& keyGlob,
 #endif
 }
 
+/**
+ * @brief Resolves a node_modules location pattern into paths.
+ *
+ * A per-user pattern starts with "<directory>/%/", such as "/home/%/". Its
+ * first level is expanded on its own, and the rest of the pattern is resolved
+ * only in the home directories that automount_filter does not skip: resolving
+ * it in a home directory that is not mounted yet would make the automounter
+ * mount it, and with autofs browse mode, every home directory in the map is
+ * listed whether it is mounted or not.
+ */
+void resolveNodeModulesPattern(const std::string& pattern,
+                               const AutomountHomeFilter& automount_filter,
+                               std::set<std::string>& paths) {
+  auto user_level = pattern.find("/%/");
+  if (user_level == std::string::npos || pattern.find('%') != user_level + 1) {
+    std::vector<std::string> sites;
+    resolveFilePattern(pattern, sites);
+    paths.insert(sites.begin(), sites.end());
+    return;
+  }
+
+  std::vector<std::string> homes;
+  resolveFilePattern(pattern.substr(0, user_level + 2), homes, GLOB_FOLDERS);
+  const auto rest = pattern.substr(user_level + 3);
+  for (const auto& home : homes) {
+    if (automount_filter.skip(home)) {
+      continue;
+    }
+
+    std::vector<std::string> sites;
+    resolveFilePattern(fs::path(home) / rest, sites);
+    paths.insert(sites.begin(), sites.end());
+  }
+}
+
 QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
   QueryData results;
   std::set<std::string> paths;
@@ -245,12 +281,9 @@ QueryData genNodePackagesImpl(QueryContext& context, Logger& logger) {
   if (context.hasConstraint("directory", EQUALS)) {
     paths = context.constraints["directory"].getAll(EQUALS);
   } else {
+    AutomountHomeFilter automount_filter;
     for (const auto& path : kNodeModulesPath) {
-      std::vector<std::string> sites;
-      resolveFilePattern(path, sites);
-      for (const auto& site : sites) {
-        paths.insert(site);
-      }
+      resolveNodeModulesPattern(path, automount_filter, paths);
     }
     if (isPlatform(PlatformType::TYPE_WINDOWS)) {
       // Enumerate any system installed npm packages
