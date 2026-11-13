@@ -128,8 +128,9 @@ http::Client::Options TLSTransport::getOptions() {
                    << server_certificate_file_;
     } else {
       // There is a non-default server certificate set.
+      // If the status cannot be read, its type is not regular_file, which the
+      // Windows check below reports.
       boost::system::error_code ec;
-
       auto status = fs::status(server_certificate_file_, ec);
 
 #ifndef NDEBUG

@@ -421,7 +421,8 @@ void genFileInfoPosix(const fs::path& path,
   r["btime"] = BIGINT(file_stat.st_birthtimespec.tv_sec);
 #endif
 
-  // Type booleans
+  // Type booleans. A path whose status cannot be read gets the type "error",
+  // or "unknown" if it no longer exists.
   boost::system::error_code ec;
   auto status = fs::status(path, ec);
   if (kTypeNames.count(status.type())) {
