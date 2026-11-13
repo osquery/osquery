@@ -357,6 +357,12 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
 Status socketExists(const fs::path& path, bool remove_socket) {
   // This implies that the socket is writable.
   if (pathExists(path).ok()) {
+    // A directory is never a valid socket path; refuse it instead of
+    // removing it, since removal is recursive (#8090).
+    if (isDirectory(path).ok()) {
+      return Status(1,
+                    "Extension socket path is a directory: " + path.string());
+    }
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
     } else if (remove_socket && !removePath(path).ok()) {

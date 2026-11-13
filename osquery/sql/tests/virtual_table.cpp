@@ -204,6 +204,101 @@ TEST_F(VirtualTableTests, test_tableplugin_aliases) {
   EXPECT_EQ(expected_statement, columnDefinition(response, false, false));
 }
 
+class hiddenAliasTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("path", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("rule",
+                        TEXT_TYPE,
+                        ColumnOptions::ADDITIONAL | ColumnOptions::HIDDEN),
+    };
+  }
+
+  std::vector<std::string> aliases() const override {
+    return {"hidden_alias"};
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    // Only return rows for the rule constraints, like yara.
+    TableRows results;
+    for (const auto& rule : context.constraints["rule"].getAll(EQUALS)) {
+      auto r = make_table_row();
+      r["path"] = "p";
+      r["rule"] = rule;
+      results.push_back(std::move(r));
+    }
+    return results;
+  }
+};
+
+TEST_F(VirtualTableTests, test_table_alias_hidden_columns) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("hidden_table", std::make_shared<hiddenAliasTablePlugin>());
+  auto dbc = SQLiteDBManager::getUnique();
+
+  for (const std::string name : {"hidden_table", "hidden_alias"}) {
+    // SELECT * leaves out the hidden column, but it can still be constrained.
+    QueryData all;
+    auto status =
+        queryInternal("SELECT * FROM " + name + " WHERE rule = 'r'", all, dbc);
+    ASSERT_TRUE(status.ok()) << name << ": " << status.getMessage();
+    EXPECT_EQ(all, QueryData({{{"path", "p"}}})) << name;
+
+    QueryData rule;
+    status = queryInternal(
+        "SELECT rule FROM " + name + " WHERE rule = 'r'", rule, dbc);
+    ASSERT_TRUE(status.ok()) << name << ": " << status.getMessage();
+    EXPECT_EQ(rule, QueryData({{{"rule", "r"}}})) << name;
+  }
+
+  // Detaching the table removes its alias too, attaching adds it back.
+  ASSERT_TRUE(detachTableInternal("hidden_table", dbc).ok());
+  QueryData results;
+  EXPECT_FALSE(
+      queryInternal("SELECT * FROM hidden_alias WHERE rule = 'r'", results, dbc)
+          .ok());
+  ASSERT_TRUE(attachTableInternal("hidden_table", dbc, false).ok());
+  EXPECT_TRUE(
+      queryInternal("SELECT * FROM hidden_alias WHERE rule = 'r'", results, dbc)
+          .ok());
+}
+
+TEST_F(VirtualTableTests, test_table_alias_planner_tables) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("hidden_table", std::make_shared<hiddenAliasTablePlugin>());
+  auto dbc = SQLiteDBManager::getUnique();
+
+  // Event subscribers are looked up by the canonical table name.
+  QueryPlanner planner("SELECT path FROM hidden_alias", dbc);
+  EXPECT_EQ(planner.tables(), std::vector<std::string>{"hidden_table"});
+}
+
+TEST_F(VirtualTableTests, test_table_alias_affected_tables) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("hidden_table", std::make_shared<hiddenAliasTablePlugin>());
+  auto dbc = SQLiteDBManager::getUnique();
+
+  QueryData results;
+  ASSERT_TRUE(queryInternal("SELECT * FROM hidden_table WHERE rule = 'r' UNION "
+                            "ALL SELECT * FROM hidden_alias WHERE rule = 'r'",
+                            results,
+                            dbc)
+                  .ok());
+
+  // Both tables' planning state is cleared, not just one of them.
+  std::vector<std::shared_ptr<VirtualTableContent>> contents;
+  for (const auto& table : dbc->affected_tables_) {
+    contents.push_back(table.second);
+  }
+  ASSERT_EQ(contents.size(), 2U);
+  dbc->clearAffectedTables();
+  for (const auto& content : contents) {
+    EXPECT_TRUE(content->constraints.empty());
+  }
+}
+
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");

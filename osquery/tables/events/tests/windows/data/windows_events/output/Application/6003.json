@@ -8,6 +8,6 @@
   "task_id": "0",
   "level": "4",
   "keywords": "0x80000000000000",
-  "data": "{\"EventData\":{\"\":\"SessionEnv\",\"Binary\":\"D9060000\"}}",
+  "data": "{\"EventData\":{\"Data\":[\"SessionEnv\"],\"Binary\":\"D9060000\"}}",
   "computer_name": "DESKTOP-4AR7BIA"
 }

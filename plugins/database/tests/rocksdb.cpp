@@ -130,4 +130,29 @@ TEST_F(RocksDBDatabasePluginTests, test_column_families_rollback) {
   ASSERT_TRUE(s.ok()) << s.getMessage();
   db2.tearDown();
 }
+
+TEST_F(RocksDBDatabasePluginTests, test_events_ttl) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_events_ttl.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+
+  // configures the column families
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  db_dirs_.push_back(test_db_path);
+
+  auto handle = db.getHandleForColumnFamily(kEvents);
+  ASSERT_NE(handle, nullptr) << kEvents;
+
+  // ttl should be configured to 1d
+  auto ttl = db.db_->GetOptions(handle).ttl;
+  EXPECT_EQ(ttl, 24 * 60 * 60) << kEvents;
+
+  db.tearDown();
+}
 } // namespace osquery

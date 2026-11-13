@@ -423,11 +423,11 @@ RecursiveLock SQLiteDBInstance::attachLock() const {
 void SQLiteDBInstance::addAffectedTable(
     std::shared_ptr<VirtualTableContent> table) {
   // An xFilter/scan was requested for this virtual table.
-  affected_tables_.insert(std::make_pair(table->name, std::move(table)));
+  affected_tables_.emplace(table.get(), std::move(table));
 }
 
 bool SQLiteDBInstance::tableCalled(VirtualTableContent const& table) {
-  return (affected_tables_.count(table.name) > 0);
+  return (affected_tables_.count(&table) > 0);
 }
 
 TableAttributes SQLiteDBInstance::getAttributes() const {
@@ -624,6 +624,27 @@ QueryPlanner::QueryPlanner(const std::string& query,
     if (details.size() > 1 && details[0] == "SCAN") {
       tables_.push_back(details[1]);
     }
+  }
+
+  // An alias is a virtual table using its table's module; report that table.
+  {
+    auto lock = instance->attachLock();
+    sqlite3_stmt* stmt = nullptr;
+    sqlite3_prepare_v2(instance->db(),
+                       "SELECT substr(sql, length('CREATE VIRTUAL TABLE ' || "
+                       "name || ' USING ') + 1) FROM sqlite_temp_master WHERE "
+                       "name = ?1 AND sql LIKE 'CREATE VIRTUAL TABLE %'",
+                       -1,
+                       &stmt,
+                       nullptr);
+    for (auto& table : tables_) {
+      sqlite3_bind_text(stmt, 1, table.c_str(), -1, SQLITE_TRANSIENT);
+      if (sqlite3_step(stmt) == SQLITE_ROW) {
+        table = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+      }
+      sqlite3_reset(stmt);
+    }
+    sqlite3_finalize(stmt);
   }
 
   instance->clearAffectedTables();

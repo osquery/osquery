@@ -315,7 +315,11 @@ void ExtensionManagerHandler::getQueryColumns(
 }
 
 ExtensionRunnerInterface::~ExtensionRunnerInterface() {
-  removePath(path_);
+  // Only remove the socket file; removal is recursive, so a directory
+  // at this path must be left alone (#8090).
+  if (!isDirectory(path_).ok()) {
+    removePath(path_);
+  }
 };
 
 ExtensionRunnerInterface::ExtensionRunnerInterface()
