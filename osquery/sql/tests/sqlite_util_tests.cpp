@@ -269,9 +269,6 @@ TEST_F(SQLiteUtilTests, test_contended_connection_reuse_is_clean) {
   auto primary = SQLiteDBManager::get();
   ASSERT_TRUE(primary->isPrimary());
 
-  VirtualTableContent time_table;
-  time_table.name = "time";
-
   sqlite3* first_db = nullptr;
   {
     auto dbc = SQLiteDBManager::get();
@@ -283,14 +280,50 @@ TEST_F(SQLiteUtilTests, test_contended_connection_reuse_is_clean) {
     std::string query = "select unix_time from time where unix_time > 0";
     TableColumns columns;
     ASSERT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
-    ASSERT_TRUE(dbc->tableCalled(time_table));
+    ASSERT_EQ(dbc->affected_tables_.size(), 1U);
+    EXPECT_EQ(dbc->affected_tables_.begin()->second->name, "time");
   }
 
   auto dbc = SQLiteDBManager::get();
   ASSERT_FALSE(dbc->isPrimary());
   ASSERT_EQ(dbc->db(), first_db);
-  EXPECT_FALSE(dbc->tableCalled(time_table));
+  EXPECT_EQ(dbc->affected_tables_.size(), 0U);
   EXPECT_FALSE(dbc->useCache());
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse_not_in_transaction) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  sqlite3* first_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    first_db = dbc->db();
+
+    // The authorizer allows transactions, and a query may leave one open.
+    QueryData results;
+    auto status = queryInternal("BEGIN", results, dbc);
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+    ASSERT_EQ(sqlite3_get_autocommit(first_db), 0);
+  }
+
+  // The connection is replaced instead of being handed out mid-transaction.
+  // The new database is opened before the old one is closed, so the pointers
+  // differ.
+  sqlite3* second_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    second_db = dbc->db();
+    EXPECT_NE(second_db, first_db);
+    EXPECT_NE(sqlite3_get_autocommit(second_db), 0);
+  }
+
+  // The replacement is cached and reused as usual.
+  auto dbc = SQLiteDBManager::get();
+  ASSERT_FALSE(dbc->isPrimary());
+  EXPECT_EQ(dbc->db(), second_db);
 }
 
 TEST_F(SQLiteUtilTests, test_reset) {

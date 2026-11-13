@@ -115,6 +115,9 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
     uint64_t size = sql.getSize();
     Config::get().recordQueryPerformance(
         name, duration_cast<milliseconds>(t1 - t0).count(), size, r0, r1);
+  } else {
+    VLOG(1) << "Not recording performance of scheduled query " << name
+            << ": could not read the worker's resource usage";
   }
   return sql;
 }

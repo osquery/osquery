@@ -577,12 +577,18 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   // Both generations are read before the tables are attached. They are only
   // bumped once a change is visible, so a connection built while a table is
   // being added or removed is stored under the old values and rebuilt later.
+  //
+  // A reused connection is not a fresh database. Anything the allowlists in
+  // sqlite_util.h let an earlier query on this thread leave behind (tables,
+  // views, pragmas) is still there, as on the primary connection. Only an
+  // open transaction is checked: such a connection is replaced below.
   static const auto table_registry = RegistryFactory::get().registry("table");
   auto& cache = kTransientConnection;
   AttachGeneration generation{kAttachGeneration.load(),
                               table_registry->generation()};
   if (cache.instance && cache.instance.use_count() == 1 &&
-      cache.generation == generation) {
+      cache.generation == generation &&
+      sqlite3_get_autocommit(cache.instance->db()) != 0) {
     // Drop per-query state left by the previous user. Callers such as
     // getQueryColumns do not clear it, and a fresh connection starts empty.
     cache.instance->clearAffectedTables();
@@ -596,7 +602,7 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   // Cache the connection only if no table was left out: a table skipped after
   // a failed columns request, or while still pending, can become available
   // without either generation changing. An idle cached connection that got
-  // here is stale and is replaced or dropped.
+  // here is stale or inside a transaction, and is replaced or dropped.
   bool complete = attachVirtualTables(instance);
   if (!cache.instance || cache.instance.use_count() == 1) {
     cache.instance = complete ? instance : nullptr;

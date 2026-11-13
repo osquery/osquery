@@ -459,7 +459,7 @@ Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
     options.sync = false;
   }
   auto s = getDB()->DeleteRange(options, cfh, low, high);
-  if (low <= high) {
+  if (s.ok()) {
     s = getDB()->Delete(options, cfh, high);
   }
   return Status(s.code(), s.ToString());

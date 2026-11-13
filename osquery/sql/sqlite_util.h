@@ -195,6 +195,7 @@ class SQLiteDBInstance : private boost::noncopyable {
  private:
   FRIEND_TEST(SQLiteUtilTests, test_affected_tables);
   FRIEND_TEST(VirtualTableTests, test_table_alias_affected_tables);
+  FRIEND_TEST(SQLiteUtilTests, test_contended_connection_reuse_is_clean);
 };
 
 using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
