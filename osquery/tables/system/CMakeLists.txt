@@ -272,6 +272,7 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_conversions
     osquery_utils_expected
     osquery_utils_system_env
+    osquery_utils_system_errno
     osquery_utils_system_filepath
     osquery_utils_system_systemutils
     osquery_utils_system_time
