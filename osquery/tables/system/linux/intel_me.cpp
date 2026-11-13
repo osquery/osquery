@@ -44,7 +44,10 @@ void genIntelMEVersion(int mei_fd, QueryData& results) {
 
   // The GetFirmwareVersion command is 0x0.
   memset(buffer, 0, sizeof(buffer));
-  write(mei_fd, buffer, 4);
+  if (write(mei_fd, buffer, 4) != 4) {
+    VLOG(1) << "Cannot send the Intel MEI version request";
+    return;
+  }
 
   struct mei_version version;
   auto bytes = read(mei_fd, &version, sizeof(version));
