@@ -41,5 +41,46 @@ TEST_F(ProgramsTablesTest, test_decode_msi_registry_guid) {
             "{237978D0-E7E6-4114-ADCE-3B6BB6C90D54}");
 }
 
+TEST_F(ProgramsTablesTest, test_build_ms_resource_uris) {
+  // Not an ms-resource string
+  ASSERT_TRUE(buildMsResourceUris("Telegram Desktop", "Telegram").empty());
+  ASSERT_TRUE(buildMsResourceUris("ms-resource:", "Microsoft.Todos").empty());
+
+  // Bare key: default Resources map first, then rooted at the package
+  std::vector<std::string> bareKey = {
+      "ms-resource://Microsoft.Todos/Resources/app_name_ms_todo",
+      "ms-resource://Microsoft.Todos/app_name_ms_todo"};
+  ASSERT_EQ(
+      buildMsResourceUris("ms-resource:app_name_ms_todo", "Microsoft.Todos"),
+      bareKey);
+
+  // Relative path containing a resource map
+  std::vector<std::string> relativePath = {
+      "ms-resource://Microsoft.WindowsCamera/Resources/LensSDK/Resources/"
+      "AppStoreName",
+      "ms-resource://Microsoft.WindowsCamera/LensSDK/Resources/AppStoreName"};
+  ASSERT_EQ(buildMsResourceUris("ms-resource:LensSDK/Resources/AppStoreName",
+                                "Microsoft.WindowsCamera"),
+            relativePath);
+
+  // Path rooted at the package
+  std::vector<std::string> rootedPath = {
+      "ms-resource://Microsoft.Todos/Resources/AppName"};
+  ASSERT_EQ(
+      buildMsResourceUris("ms-resource:/Resources/AppName", "Microsoft.Todos"),
+      rootedPath);
+
+  // Already a full URI
+  std::vector<std::string> fullUri = {
+      "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName"};
+  ASSERT_EQ(buildMsResourceUris(
+                "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName",
+                "Microsoft.YourPhone"),
+            fullUri);
+
+  // No package name: only full URIs can be resolved
+  ASSERT_TRUE(buildMsResourceUris("ms-resource:AppName", "").empty());
+}
+
 } // namespace tables
 } // namespace osquery
