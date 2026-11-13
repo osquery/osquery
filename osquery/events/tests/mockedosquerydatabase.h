@@ -10,12 +10,16 @@
 #include <osquery/database/database.h>
 
 #include <map>
+#include <set>
 
 namespace osquery {
 
 class MockedOsqueryDatabase final : public IDatabaseInterface {
  public:
   mutable std::map<std::string, std::string> key_map;
+
+  /// Keys for which deleteDatabaseValue reports a failure
+  std::set<std::string> failed_delete_key_set;
 
   MockedOsqueryDatabase() = default;
   virtual ~MockedOsqueryDatabase() override = default;
