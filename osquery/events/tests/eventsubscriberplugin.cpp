@@ -16,10 +16,41 @@
 #include <gtest/gtest.h>
 
 #include <osquery/events/eventsubscriber.h>
+#include <osquery/logger/logger.h>
 
 namespace osquery {
 
 class EventSubscriberPluginTests : public testing::Test {};
+
+namespace {
+
+/// Collects the warnings logged while it is alive
+class WarningCapture final : public google::LogSink {
+ public:
+  WarningCapture() {
+    google::AddLogSink(this);
+  }
+
+  ~WarningCapture() override {
+    google::RemoveLogSink(this);
+  }
+
+  void send(google::LogSeverity severity,
+            const char* full_filename,
+            const char* base_filename,
+            int line,
+            const struct ::tm* tm_time,
+            const char* message,
+            size_t message_len) override {
+    if (severity == google::GLOG_WARNING) {
+      message_list.emplace_back(message, message_len);
+    }
+  }
+
+  std::vector<std::string> message_list;
+};
+
+} // namespace
 
 TEST_F(EventSubscriberPluginTests, generateEventIdentifier) {
   EventSubscriberPlugin::Context context;
@@ -167,6 +198,61 @@ TEST_F(EventSubscriberPluginTests, removeOverflowingEventBatches) {
       context, mocked_database, 5U);
 
   EXPECT_EQ(context.event_index.size(), 4U);
+}
+
+TEST_F(EventSubscriberPluginTests, removeOverflowingEventBatchesLog) {
+  MockedOsqueryDatabase mocked_database;
+  EventSubscriberPlugin::Context context;
+  EventSubscriberPlugin::setDatabaseNamespace(context, "type", "name");
+
+  // Batches with more than one event; the warning counts batches, see
+  // https://github.com/osquery/osquery/issues/8570
+  context.event_index = {{1, {1, 2, 3}},
+                         {2, {4, 5}},
+                         {3, {6, 7, 8}},
+                         {4, {9, 10, 11}},
+                         {5, {12, 13}},
+                         {6, {14, 15}},
+                         {7, {16}}};
+  for (EventID id = 1; id <= 16; ++id) {
+    mocked_database.key_map.insert(
+        {EventSubscriberPlugin::databaseKeyForEventId(context, id), "{}"});
+  }
+
+  auto remove_batches = [&](std::size_t max_event_batches) {
+    WarningCapture capture;
+    EventSubscriberPlugin::removeOverflowingEventBatches(
+        context, mocked_database, max_event_batches);
+    return capture.message_list;
+  };
+
+  // Batches 1 and 2
+  std::vector<std::string> expected = {
+      "Removed 2 event batches for subscriber: type.name (limit: 5, last "
+      "query: never)"};
+  EXPECT_EQ(remove_batches(5U), expected);
+  EXPECT_EQ(mocked_database.key_map.size(), 11U);
+
+  // A batch is only removed if all of its events are: one event of batch 3
+  // and all of batch 4 fail, batch 5 succeeds
+  for (EventID id : {7, 9, 10, 11, 14, 15}) {
+    mocked_database.failed_delete_key_set.insert(
+        EventSubscriberPlugin::databaseKeyForEventId(context, id));
+  }
+
+  expected = {
+      "Removed 1 of 3 event batches (4 events failed to delete) for "
+      "subscriber: type.name (limit: 2, last query: never)"};
+  EXPECT_EQ(remove_batches(2U), expected);
+  EXPECT_EQ(mocked_database.key_map.size(), 7U);
+
+  // Batch 6, none of its events can be deleted
+  expected = {
+      "Removed 0 of 1 event batches (2 events failed to delete) for "
+      "subscriber: type.name (limit: 1, last query: never)"};
+  EXPECT_EQ(remove_batches(1U), expected);
+  EXPECT_EQ(mocked_database.key_map.size(), 7U);
+  EXPECT_EQ(context.event_index.size(), 1U);
 }
 
 TEST_F(EventSubscriberPluginTests, expireEventBatches) {
