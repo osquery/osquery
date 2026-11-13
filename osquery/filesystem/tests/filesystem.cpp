@@ -61,9 +61,9 @@ const std::vector<std::string> kFileNameList{
 
 DECLARE_uint64(read_max);
 
-extern inline Status listInAbsoluteDirectory(const fs::path& path,
-                                             std::vector<std::string>& results,
-                                             GlobLimits limits);
+Status listInAbsoluteDirectory(const fs::path& path,
+                               std::vector<std::string>& results,
+                               GlobLimits limits);
 
 class FilesystemTests : public testing::Test {
  protected:
