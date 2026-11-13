@@ -393,12 +393,31 @@ function(generateOsqueryTablesSystemSystemtable)
 
   generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
 
-  add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
+  # Tests that need root, because they create a database only root can open.
+  # They run in a separate root-required test so that CI runs them as root;
+  # the regular test excludes them.
+  set(root_only_tests "RpmTests.*_reads_root_only_database")
+
+  if(DEFINED PLATFORM_LINUX)
+    add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test --gtest_filter=-${root_only_tests})
+  else()
+    add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
+  endif()
 
   if(DEFINED PLATFORM_POSIX)
     set_tests_properties(
       osquery_tables_system_tests_mergedtests-test
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+    )
+  endif()
+
+  if(DEFINED PLATFORM_LINUX AND OSQUERY_BUILD_ROOT_TESTS)
+    add_test(NAME osquery_tables_system_tests_mergedtests_root-test COMMAND osquery_tables_system_tests_mergedtests-test --gtest_filter=${root_only_tests})
+    set_tests_properties(
+      osquery_tables_system_tests_mergedtests_root-test
+      PROPERTIES
+        LABELS "root-required"
+        ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
   endif()
 endfunction()
