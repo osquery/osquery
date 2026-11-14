@@ -23,10 +23,153 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#if defined(__linux__) && !defined(O_PATH)
+#define O_PATH 010000000
+#endif
+
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
 namespace osquery {
+
+namespace {
+
+/**
+ * @brief Opens the directory name in dir_fd, not through a symlink.
+ *
+ * On Linux the directory is opened with O_PATH, only to look up names in it,
+ * which needs no read permission on it, as a plain open() of a path through it
+ * would not. Elsewhere (macOS before 11) it is opened for reading, which needs
+ * read permission on it too.
+ */
+int openDirectoryAt(int dir_fd, const char* name) {
+  const int flags = O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
+#ifdef __linux__
+  return ::openat(dir_fd, name, O_PATH | flags);
+#else
+  return ::openat(dir_fd, name, O_RDONLY | flags);
+#endif
+}
+
+/**
+ * @brief Opens the regular file at path without following a symlink that was
+ * not there when the path was resolved.
+ *
+ * The path's symlinks are resolved first, and the result must be a regular
+ * file before it is opened. On macOS 11 and later it is then opened with
+ * O_NOFOLLOW_ANY, which fails if any component of the path is a symlink.
+ * Elsewhere each directory of the result is opened from the one before it, and
+ * the file from the last one, none of them through a symlink. Either way a path
+ * changed after it was resolved makes the open fail, or leads it only to what
+ * was put in those directories themselves, never through a symlink to a device
+ * elsewhere.
+ */
+int openResolvedRegularFile(const fs::path& path,
+                            int oflag,
+                            int perms,
+                            struct stat& expected) {
+  char* resolved = ::realpath(path.c_str(), nullptr);
+  if (resolved == nullptr) {
+    return -1;
+  }
+
+  std::string real_path(resolved);
+  ::free(resolved);
+
+#if defined(__APPLE__) && defined(O_NOFOLLOW_ANY)
+  if (__builtin_available(macos 11.0, *)) {
+    if (::lstat(real_path.c_str(), &expected) < 0 ||
+        !S_ISREG(expected.st_mode)) {
+      return -1;
+    }
+    return ::open(real_path.c_str(), oflag | O_NOFOLLOW_ANY, perms);
+  }
+#endif
+
+  int dir_fd = openDirectoryAt(AT_FDCWD, "/");
+  size_t start = 1;
+  size_t end = 0;
+  while (dir_fd >= 0 &&
+         (end = real_path.find('/', start)) != std::string::npos) {
+    auto name = real_path.substr(start, end - start);
+    int next_fd = openDirectoryAt(dir_fd, name.c_str());
+    ::close(dir_fd);
+    dir_fd = next_fd;
+    start = end + 1;
+  }
+
+  if (dir_fd < 0) {
+    return -1;
+  }
+
+  auto name = real_path.substr(start);
+  int fd = -1;
+  if (::fstatat(dir_fd, name.c_str(), &expected, AT_SYMLINK_NOFOLLOW) == 0 &&
+      S_ISREG(expected.st_mode)) {
+    fd = ::openat(dir_fd, name.c_str(), oflag | O_NOFOLLOW, perms);
+  }
+
+  ::close(dir_fd);
+  return fd;
+}
+
+/**
+ * @brief Opens path with oflag, only if it is a regular file.
+ *
+ * On Linux the type is read through an O_PATH descriptor, which neither blocks
+ * nor runs a driver's open, and that same file is then reopened through
+ * /proc/self/fd. Without /proc, and on other platforms, the file is opened by
+ * openResolvedRegularFile, where O_NONBLOCK and O_NOCTTY keep a FIFO swapped
+ * in from blocking the open or a terminal from becoming the controlling one.
+ * Either way the opened file must be the regular file that was checked.
+ */
+int openRegularFile(const fs::path& path, int oflag, int perms) {
+  oflag |= O_NONBLOCK | O_NOCTTY | O_CLOEXEC;
+
+  struct stat expected;
+  int fd = -1;
+#ifdef __linux__
+  // Kernels older than O_PATH ignore it and open the file for reading, which
+  // O_NONBLOCK and O_NOCTTY keep as harmless.
+  int path_fd =
+      ::open(path.c_str(), O_PATH | O_CLOEXEC | O_NONBLOCK | O_NOCTTY);
+  if (path_fd < 0) {
+    return -1;
+  }
+
+  if (::fstat(path_fd, &expected) < 0 || !S_ISREG(expected.st_mode)) {
+    ::close(path_fd);
+    return -1;
+  }
+
+  auto fd_path = "/proc/self/fd/" + std::to_string(path_fd);
+  fd = ::open(fd_path.c_str(), oflag, perms);
+  int open_errno = errno;
+  ::close(path_fd);
+
+  if (fd < 0 && open_errno != ENOENT) {
+    return -1;
+  }
+#endif
+
+  if (fd < 0) {
+    fd = openResolvedRegularFile(path, oflag, perms, expected);
+    if (fd < 0) {
+      return -1;
+    }
+  }
+
+  struct stat opened;
+  if (::fstat(fd, &opened) < 0 || !S_ISREG(opened.st_mode) ||
+      opened.st_dev != expected.st_dev || opened.st_ino != expected.st_ino) {
+    ::close(fd);
+    return -1;
+  }
+
+  return fd;
+}
+
+} // namespace
 
 PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
@@ -80,7 +223,11 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     perms = 0666;
   }
 
-  handle_ = ::open(fname_.c_str(), oflag, perms);
+  if ((mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY) {
+    handle_ = openRegularFile(fname_, oflag, perms);
+  } else {
+    handle_ = ::open(fname_.c_str(), oflag, perms);
+  }
 }
 
 PlatformFile::~PlatformFile() {
