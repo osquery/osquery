@@ -545,6 +545,12 @@ There are multiple logger plugins that use a "buffered logging" implementation. 
 
 Setting this to value to `0` means unlimited logs will be buffered.
 
+`--buffered_log_max_batch_bytes=16777216`
+
+The maximum number of bytes of buffered logs that a buffered logger plugin reads and sends at once, for each log type (results and statuses). This bounds the memory used to send a batch when individual log lines are large. A line larger than the limit is still sent, in a batch on its own. Lines beyond the limit are sent in later batches.
+
+Setting this value to `0` means the batch is limited only by the plugin's maximum number of lines, such as `--logger_tls_max_lines`.
+
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: `hostname`, `uuid`, `ephemeral`, `instance`, `specified`.
@@ -598,6 +604,12 @@ Disable distributed queries functionality. By default, this is set to `true` (th
 `--distributed_interval=60`
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
+
+`--distributed_results_max_bytes=33554432`
+
+The maximum size in bytes of distributed query results that osqueryd keeps to retry after writing them to the distributed query server fails. Results that fail to write are retried with the next check-in, together with the results of any new queries. If they grow beyond this size, for example because the server keeps rejecting the request, they are dropped and a warning is logged.
+
+Setting this value to `0` means failed results are kept until they are written.
 
 `--tls_accept_gzip=true`
 

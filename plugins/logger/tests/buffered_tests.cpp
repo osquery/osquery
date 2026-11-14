@@ -35,6 +35,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
+DECLARE_uint64(buffered_log_max_batch_bytes);
 DECLARE_bool(decorations_top_level);
 
 // Check that the string matches the StatusLogLine
@@ -105,6 +106,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_multiple);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
+  FRIEND_TEST(BufferedLogForwarderTests, test_split_bytes);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
   FRIEND_TEST(BufferedLogForwarderTests, test_backoff);
@@ -331,6 +333,53 @@ TEST_F(BufferedLogForwarderTests, test_split) {
   EXPECT_CALL(runner2, send(ElementsAre("baz"), "result"))
       .WillOnce(Return(Status(0)));
   runner2.check();
+}
+
+// Verify that the max number of bytes per send is respected
+TEST_F(BufferedLogForwarderTests, test_split_bytes) {
+  const auto max_batch_bytes = FLAGS_buffered_log_max_batch_bytes;
+
+  // Two 3-byte lines fit within 7 bytes, a third does not.
+  FLAGS_buffered_log_max_batch_bytes = 7;
+  StrictMock<MockBufferedLogForwarder> runner;
+  runner.logString("foo");
+  runner.logString("bar");
+  runner.logString("baz");
+
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check();
+
+  // A failed batch is retried, and the remaining line is sent after it.
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+  runner.check();
+
+  // A line larger than the limit is still sent, on its own. Statuses have
+  // their own batch.
+  FLAGS_buffered_log_max_batch_bytes = 2;
+  runner.logString("foo");
+  runner.logString("bar");
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  runner.logStatus({log1});
+
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("bar"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+  runner.check();
+
+  FLAGS_buffered_log_max_batch_bytes = max_batch_bytes;
 }
 
 // Test the purge() function independently of check()

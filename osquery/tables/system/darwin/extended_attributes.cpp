@@ -146,7 +146,10 @@ void parseQuarantineFile(QueryData& results, const std::string& path) {
 
 // Process a file and extract all attribute information, parsed or not.
 void getFileData(QueryData& results, const std::string& path) {
-  int fd = open(path.c_str(), O_RDONLY);
+  // Files from a directory listing are not type checked, and a checked path
+  // can still be replaced by a FIFO before it is opened. Without O_NONBLOCK,
+  // opening a FIFO that has no writer would never return.
+  int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK);
 
   if (fd < 0) {
     if (errno != ENOENT) {

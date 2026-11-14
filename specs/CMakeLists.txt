@@ -92,6 +92,7 @@ function(generateNativeTables)
     "arp_cache.table:linux,macos,windows"
     "vscode_extensions.table:linux,macos,windows"
     "cpu_info.table:linux,macos,windows"
+    "gpu_info.table:linux,macos,windows"
     "gpu_metrics.table:linux,macos,windows"
     "darwin/account_policy_data.table:macos"
     "darwin/ad_config.table:macos"
@@ -164,6 +165,9 @@ function(generateNativeTables)
     "darwin/xprotect_entries.table:macos"
     "darwin/xprotect_meta.table:macos"
     "darwin/xprotect_reports.table:macos"
+    "device_file.table:linux,macos,windows"
+    "device_hash.table:linux,macos,windows"
+    "device_partitions.table:linux,macos,windows"
     "jetbrains_plugins.table:linux,macos,windows"
     "linux/apparmor_events.table:linux"
     "linux/apparmor_profiles.table:linux"
@@ -251,7 +255,6 @@ function(generateNativeTables)
     "posix/memory_error_info.table:linux,macos"
     "posix/mounts.table:linux,macos"
     "posix/oem_strings.table:linux,macos"
-    "posix/gpu_info.table:linux,macos,windows"
     "posix/pci_devices.table:linux,macos"
     "posix/process_envs.table:linux,macos"
     "posix/process_events.table:linux,macos"
@@ -268,9 +271,6 @@ function(generateNativeTables)
     "posix/usb_devices.table:linux,macos"
     "posix/user_events.table:linux,macos"
     "secureboot.table:linux,macos,windows"
-    "sleuthkit/device_file.table:linux,macos,windows"
-    "sleuthkit/device_hash.table:linux,macos,windows"
-    "sleuthkit/device_partitions.table:linux,macos,windows"
     "user_groups.table:linux,macos,windows"
     "windows/background_activities_moderator.table:windows"
     "windows/bitlocker_info.table:windows"
@@ -328,6 +328,12 @@ function(generateNativeTables)
     "windows/process_open_handles.table:windows"
   )
 
+  if(OSQUERY_BUILD_BPF)
+    list(APPEND platform_dependent_spec_files
+      "linux/bpf_process_events.table:linux"
+      "linux/bpf_socket_events.table:linux"
+    )
+  endif()
 
   if(OSQUERY_BUILD_ETW)
     list(APPEND platform_dependent_spec_files

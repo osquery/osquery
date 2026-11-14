@@ -9,7 +9,13 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <future>
+
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/xattr.h>
+#include <unistd.h>
 
 #include <boost/filesystem.hpp>
 
@@ -167,6 +173,45 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
       }
     }
   }
+}
+
+TEST_F(ExtendedAttributesTests, test_extended_attributes_fifo) {
+  auto fifo_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path("osquery.tests.%%%%.%%%%.fifo"))
+          .string();
+  ASSERT_EQ(mkfifo(fifo_path.c_str(), 0600), 0);
+
+  auto fifo_guard =
+      scope_guard::create([&] { boost::filesystem::remove(fifo_path); });
+
+  const unsigned char val[] = {0x62, 0x61, 0x7A}; // baz
+  ASSERT_EQ(setxattr(fifo_path.c_str(), "foobar", val, sizeof(val), 0, 0), 0);
+
+  // Nothing ever opens the write end, so a blocking open() would not return.
+  QueryData results;
+  auto result =
+      std::async(std::launch::async, [&] { getFileData(results, fifo_path); });
+
+  if (result.wait_for(std::chrono::seconds(10)) != std::future_status::ready) {
+    // Open the write end to release the blocked reader before failing.
+    int fd = open(fifo_path.c_str(), O_WRONLY | O_NONBLOCK);
+    result.wait();
+    if (fd >= 0) {
+      close(fd);
+    }
+
+    FAIL() << "getFileData blocked on a FIFO";
+  }
+
+  bool found = false;
+  for (const auto& row : results) {
+    if (row.at("key") == "foobar") {
+      EXPECT_EQ(row.at("value"), "baz");
+      found = true;
+    }
+  }
+  EXPECT_TRUE(found);
 }
 } // namespace tables
 } // namespace osquery

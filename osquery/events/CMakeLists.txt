@@ -27,6 +27,17 @@ function(generateOsqueryEvents)
       linux/socket_events.cpp
     )
 
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND source_files
+        linux/bpf/bpferrorstate.cpp
+        linux/bpf/bpfeventpublisher.cpp
+        linux/bpf/filesystem.cpp
+        linux/bpf/processcontextfactory.cpp
+        linux/bpf/setrlimit.cpp
+        linux/bpf/systemstatetracker.cpp
+        linux/bpf/serializers.cpp
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     list(APPEND source_files
@@ -93,6 +104,11 @@ function(generateOsqueryEvents)
       thirdparty_util-linux
     )
 
+    if(OSQUERY_BUILD_BPF)
+      target_link_libraries(osquery_events PUBLIC
+        thirdparty_ebpfpub
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_WINDOWS)
     target_link_libraries(osquery_events PUBLIC
@@ -127,6 +143,21 @@ function(generateOsqueryEvents)
       linux/udev.h
     )
 
+    if(OSQUERY_BUILD_BPF)
+      list(APPEND platform_public_header_files
+        linux/bpf/bpferrorstate.h
+        linux/bpf/bpfeventpublisher.h
+        linux/bpf/filesystem.h
+        linux/bpf/ifilesystem.h
+        linux/bpf/iprocesscontextfactory.h
+        linux/bpf/isystemstatetracker.h
+        linux/bpf/processcontextfactory.h
+        linux/bpf/setrlimit.h
+        linux/bpf/systemstatetracker.h
+        linux/bpf/serializers.h
+        linux/bpf/uniquedir.h
+      )
+    endif()
 
   elseif(DEFINED PLATFORM_MACOS)
     set(platform_public_header_files
@@ -169,6 +200,10 @@ function(generateOsqueryEvents)
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
+
+  if(DEFINED PLATFORM_LINUX AND OSQUERY_BUILD_BPF)
+    add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
+  endif()
 
   if(DEFINED PLATFORM_WINDOWS)
     add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)

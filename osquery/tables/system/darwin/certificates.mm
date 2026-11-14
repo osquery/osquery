@@ -10,7 +10,6 @@
 #include <array>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <unistd.h>
 
 #include <copyfile.h>
@@ -24,6 +23,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/core.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
@@ -141,13 +141,15 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //  osqueryd: (Security) [com.apple.securityd:security_exception]
 // CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
 static bool isLegacyKeychainFile(const std::string& path) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in.is_open()) {
+  // A path constraint can match a FIFO. Open it non-blocking so a FIFO with
+  // no writer does not hang the query, and skip special files rather than
+  // reading from them.
+  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+  if (!file.isValid() || file.isSpecialFile()) {
     return false;
   }
   std::string header(16, '\0');
-  in.read(header.data(), 16);
-  std::streamsize read = in.gcount();
+  auto read = file.read(header.data(), header.size());
 
   if (read >= 4 && header.compare(0, 4, "kych", 4) == 0) {
     return true;

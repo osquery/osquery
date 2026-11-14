@@ -18,10 +18,7 @@
 #include <osquery/utils/system/uptime.h>
 
 namespace osquery {
-FLAG(bool,
-     audit_allow_selinux_events,
-     false,
-     "Allow the audit publisher to process audit events");
+DECLARE_bool(audit_allow_selinux_events);
 
 REGISTER(SELinuxEventSubscriber, "event_subscriber", "selinux_events");
 
