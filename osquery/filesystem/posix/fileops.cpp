@@ -37,21 +37,16 @@ namespace {
 /**
  * @brief Opens the directory name in dir_fd, not through a symlink.
  *
- * The directory is opened only to look up names in it. Where the platform has
- * a search-only open (O_PATH on Linux, O_SEARCH on macOS 13 and later), that
- * needs no read permission on it, as a plain open() of a path through it
- * would not.
+ * On Linux the directory is opened with O_PATH, only to look up names in it,
+ * which needs no read permission on it, as a plain open() of a path through it
+ * would not. Elsewhere (macOS before 11) it is opened for reading, which needs
+ * read permission on it too.
  */
 int openDirectoryAt(int dir_fd, const char* name) {
   const int flags = O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
 #ifdef __linux__
   return ::openat(dir_fd, name, O_PATH | flags);
 #else
-#if defined(__APPLE__) && defined(O_SEARCH)
-  if (__builtin_available(macos 13.0, *)) {
-    return ::openat(dir_fd, name, O_SEARCH | flags);
-  }
-#endif
   return ::openat(dir_fd, name, O_RDONLY | flags);
 #endif
 }
@@ -60,12 +55,14 @@ int openDirectoryAt(int dir_fd, const char* name) {
  * @brief Opens the regular file at path without following a symlink that was
  * not there when the path was resolved.
  *
- * The path's symlinks are resolved first. Each directory of the result is then
- * opened from the one before it, and the file from the last one, none of them
- * through a symlink, and the file must be a regular file before it is opened.
- * A path changed after it was resolved makes the open fail, or leads it only
- * to what was put in those directories themselves, never through a symlink to
- * a device elsewhere.
+ * The path's symlinks are resolved first, and the result must be a regular
+ * file before it is opened. On macOS 11 and later it is then opened with
+ * O_NOFOLLOW_ANY, which fails if any component of the path is a symlink.
+ * Elsewhere each directory of the result is opened from the one before it, and
+ * the file from the last one, none of them through a symlink. Either way a path
+ * changed after it was resolved makes the open fail, or leads it only to what
+ * was put in those directories themselves, never through a symlink to a device
+ * elsewhere.
  */
 int openResolvedRegularFile(const fs::path& path,
                             int oflag,
@@ -78,6 +75,16 @@ int openResolvedRegularFile(const fs::path& path,
 
   std::string real_path(resolved);
   ::free(resolved);
+
+#if defined(__APPLE__) && defined(O_NOFOLLOW_ANY)
+  if (__builtin_available(macos 11.0, *)) {
+    if (::lstat(real_path.c_str(), &expected) < 0 ||
+        !S_ISREG(expected.st_mode)) {
+      return -1;
+    }
+    return ::open(real_path.c_str(), oflag | O_NOFOLLOW_ANY, perms);
+  }
+#endif
 
   int dir_fd = openDirectoryAt(AT_FDCWD, "/");
   size_t start = 1;
