@@ -146,7 +146,7 @@ void getProcessProperties(const es_process_t* p,
   ec->cwd = getCwdPathFromPid(ec->pid);
 
   ec->uid = audit_token_to_ruid(audit_token);
-  ec->euid = audit_token_to_egid(audit_token);
+  ec->euid = audit_token_to_euid(audit_token);
   ec->gid = audit_token_to_rgid(audit_token);
   ec->egid = audit_token_to_egid(audit_token);
 
