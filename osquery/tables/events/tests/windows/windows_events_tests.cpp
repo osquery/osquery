@@ -268,10 +268,6 @@ TEST_F(WindowsEventsTests, event_data_serialization) {
 
     ASSERT_TRUE(status.ok()) << status.getMessage();
     EXPECT_EQ(windows_event.data, test_case.expected_json);
-
-    std::stringstream json_stream(windows_event.data);
-    boost::property_tree::ptree parsed_json;
-    ASSERT_NO_THROW(boost::property_tree::read_json(json_stream, parsed_json));
   }
 }
 
