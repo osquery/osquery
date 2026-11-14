@@ -90,7 +90,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         array_item.put("", data_value);
         event_data.push_back(std::make_pair("", array_item));
       } else {
-        event_data.put(data_name, data_value);
+        event_data.put(pt::ptree::path_type(data_name, '\0'), data_value);
       }
 
     } else {
@@ -105,7 +105,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         if (wrap_data_array) {
           event_data.push_back(std::make_pair(name, child));
         } else {
-          event_data.add_child(name, child);
+          event_data.add_child(pt::ptree::path_type(name, '\0'), child);
         }
       } else {
         auto child = parseChildNodeToJSONPtree(data_field);
@@ -113,7 +113,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         if (wrap_data_array) {
           event_data.push_back(std::make_pair(name, child));
         } else {
-          event_data.add_child(name, child);
+          event_data.add_child(pt::ptree::path_type(name, '\0'), child);
         }
       }
     }
