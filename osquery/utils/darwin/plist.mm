@@ -83,7 +83,14 @@ static Status filterDictionary(id plist,
       continue;
     }
 
-    auto path_node = std::string([key UTF8String]);
+    // UTF8String returns NULL for a key that has no UTF-8 form, such as one
+    // holding an unpaired UTF-16 surrogate from a binary plist.
+    const char* key_utf8 = [key UTF8String];
+    if (key_utf8 == nullptr) {
+      continue;
+    }
+
+    auto path_node = std::string(key_utf8);
     if ([value isKindOfClass:[NSArray class]]) {
       auto status = filterArray(value, path_node, tree);
       if (!status.ok()) {
