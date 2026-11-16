@@ -163,6 +163,13 @@ class BufferedLogForwarder : public InternalRunnable {
    */
   void purge();
 
+  /**
+   * @brief Purge logs older than the max age
+   *
+   * Uses the buffered_log_max_age flag. Called by check() before sending.
+   */
+  void purgeExpired();
+
   /// Apply any new configuration changes.
   virtual void applyNewConfiguration() {}
 

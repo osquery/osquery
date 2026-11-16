@@ -551,6 +551,12 @@ The maximum number of bytes of buffered logs that a buffered logger plugin reads
 
 Setting this value to `0` means the batch is limited only by the plugin's maximum number of lines, such as `--logger_tls_max_lines`.
 
+`--buffered_log_max_age=0`
+
+The maximum age, in seconds, of logs buffered by a buffered logger plugin. Before each send, buffered logs older than this are discarded instead of sent. This keeps a node that was offline for a long time from sending stale logs when it reconnects.
+
+Setting this value to `0` means buffered logs are kept regardless of age.
+
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: `hostname`, `uuid`, `ephemeral`, `instance`, `specified`.

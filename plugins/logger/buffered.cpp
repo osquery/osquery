@@ -18,6 +18,7 @@
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 #include <osquery/registry/registry.h>
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
@@ -35,6 +36,12 @@ FLAG(uint64,
      16 * 1024 * 1024,
      "Maximum bytes of logs that buffered output plugins read and send at "
      "once, per log type (0 = unlimited)");
+
+FLAG(uint64,
+     buffered_log_max_age,
+     0,
+     "Maximum age in seconds of logs in buffered output plugins. Older logs "
+     "are discarded instead of sent (0 = unlimited)");
 
 DECLARE_bool(decorations_top_level);
 
@@ -57,6 +64,10 @@ Status BufferedLogForwarder::setUp() {
 }
 
 void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
+  if (FLAGS_buffered_log_max_age > 0) {
+    purgeExpired();
+  }
+
   // Get a list of all the buffered log items, with a max of 1024 lines.
   std::vector<std::string> indexes;
   scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
@@ -214,6 +225,55 @@ void BufferedLogForwarder::purge() {
       LOG(ERROR) << "Error deleting value during buffered log purge";
     }
   });
+}
+
+void BufferedLogForwarder::purgeExpired() {
+  uint64_t now = getUnixTime();
+  if (now <= FLAGS_buffered_log_max_age) {
+    return;
+  }
+  uint64_t cutoff = now - FLAGS_buffered_log_max_age;
+
+  size_t dropped = 0;
+  for (bool results : {true, false}) {
+    const auto prefix = genIndexPrefix(results);
+    auto log_time = [&prefix](const std::string& index) {
+      return tryTo<uint64_t>(index.substr(
+          prefix.size(), index.find('_', prefix.size()) - prefix.size()));
+    };
+
+    // Indexes are in ascending order, so the oldest logs come first. Only
+    // read them all when the oldest one has expired.
+    std::vector<std::string> indexes;
+    if (!scanDatabaseKeys(kLogs, indexes, prefix, 1).ok() || indexes.empty()) {
+      continue;
+    }
+    auto oldest = log_time(indexes[0]);
+    if (oldest.isValue() && *oldest >= cutoff) {
+      continue;
+    }
+
+    indexes.clear();
+    if (!scanDatabaseKeys(kLogs, indexes, prefix, 0).ok()) {
+      LOG(ERROR) << "Error scanning DB during buffered log purge";
+      continue;
+    }
+    for (const auto& index : indexes) {
+      auto time = log_time(index);
+      if (time.isError()) {
+        continue;
+      }
+      if (*time >= cutoff || !deleteValueWithCount(kLogs, index).ok()) {
+        break;
+      }
+      dropped++;
+    }
+  }
+
+  if (dropped > 0) {
+    LOG(WARNING) << "Purged " << dropped << " buffered logs older than "
+                 << FLAGS_buffered_log_max_age << " seconds";
+  }
 }
 
 void BufferedLogForwarder::start() {
