@@ -11,6 +11,8 @@
 
 #include <Shlwapi.h>
 
+#include <cctype>
+#include <optional>
 #include <regex>
 
 #include <osquery/core/core.h>
@@ -130,37 +132,79 @@ std::string packageFamilyNameFromPackageFullName(
   return packageName + "_" + publisherHash;
 }
 
+// Returns what follows the "ms-resource:" prefix, or nothing if the value isn't
+// an ms-resource reference. The scheme is case-insensitive, and surrounding
+// whitespace from the manifest is ignored.
+std::optional<std::string> getMsResourceReference(const std::string& value) {
+  const std::string kPrefix = "ms-resource:";
+  auto begin = value.find_first_not_of(" \t\r\n");
+  if (begin == std::string::npos || value.size() - begin < kPrefix.size()) {
+    return std::nullopt;
+  }
+  for (size_t i = 0; i < kPrefix.size(); i++) {
+    if (std::tolower(static_cast<unsigned char>(value[begin + i])) !=
+        kPrefix[i]) {
+      return std::nullopt;
+    }
+  }
+  auto end = value.find_last_not_of(" \t\r\n");
+  return value.substr(begin + kPrefix.size(), end - begin + 1 - kPrefix.size());
+}
+
 std::vector<std::string> buildMsResourceUris(const std::string& value,
                                              const std::string& packageName) {
-  const std::string kPrefix = "ms-resource:";
-  if (value.compare(0, kPrefix.size(), kPrefix) != 0) {
+  auto reference = getMsResourceReference(value);
+  if (!reference || reference->empty()) {
     return {};
   }
+  const auto& rest = *reference;
 
-  auto rest = value.substr(kPrefix.size());
-  if (rest.empty()) {
-    return {};
+  // The path inside the package's resources, starting with "/".
+  std::string path;
+  if (rest.compare(0, 3, "///") == 0) {
+    // Empty authority, e.g. ms-resource:///Resources/AppName. It means the
+    // running app's package, which is this package.
+    path = rest.substr(2);
+  } else if (rest.compare(0, 2, "//") == 0) {
+    // Full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName. Only
+    // resolve references to this package. Package names are case-sensitive.
+    auto slash = rest.find('/', 2);
+    if (slash == std::string::npos ||
+        rest.substr(2, slash - 2) != packageName) {
+      return {};
+    }
+    path = rest.substr(slash);
+  } else if (rest[0] == '/') {
+    // Path rooted at the package, e.g. ms-resource:/Resources/AppName
+    path = rest;
   }
 
-  // Already a full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName
-  if (rest.compare(0, 2, "//") == 0) {
-    return {value};
+  std::vector<std::string> paths;
+  if (!path.empty()) {
+    if (path == "/") {
+      return {};
+    }
+    paths.push_back(path);
+  } else {
+    // A bare key is usually in the default "Resources" map, but some packages
+    // use a path like "LensSDK/Resources/AppStoreName" that is rooted at the
+    // package instead.
+    paths.push_back("/Resources/" + rest);
+    paths.push_back("/" + rest);
   }
 
-  if (packageName.empty()) {
-    return {};
+  std::vector<std::string> uris;
+  if (!packageName.empty()) {
+    for (const auto& p : paths) {
+      uris.push_back("ms-resource://" + packageName + p);
+    }
   }
-
-  // Path relative to the package, e.g. ms-resource:/Resources/AppName
-  if (rest[0] == '/') {
-    return {"ms-resource://" + packageName + rest};
+  // Last, try an empty authority. With an explicit .pri path, this also
+  // resolves packages whose resource map isn't named after the package.
+  for (const auto& p : paths) {
+    uris.push_back("ms-resource://" + p);
   }
-
-  // A bare key is usually in the default "Resources" map, but some packages
-  // use a path like "LensSDK/Resources/AppStoreName" that is rooted at the
-  // package instead.
-  return {"ms-resource://" + packageName + "/Resources/" + rest,
-          "ms-resource://" + packageName + "/" + rest};
+  return uris;
 }
 
 // Resolves an "ms-resource:" manifest string from the package's resources.pri.
@@ -179,9 +223,13 @@ std::string resolveMsResource(const std::string& value,
     return "";
   }
 
+  // Manifest display strings are limited to 256 characters. A larger buffer
+  // leaves room for translations, and longer strings are truncated.
+  constexpr size_t kResourceStringBufferSize = 1024;
+
   for (const auto& uri : buildMsResourceUris(value, packageName)) {
     const auto source = stringToWstring("@{" + priPath + "?" + uri + "}");
-    std::vector<wchar_t> buffer(1024, L'\0');
+    std::vector<wchar_t> buffer(kResourceStringBufferSize, L'\0');
     auto hr = SHLoadIndirectString(source.c_str(),
                                    buffer.data(),
                                    static_cast<UINT>(buffer.size()),
@@ -495,7 +543,7 @@ void genMsixPrograms(const std::string& key,
       // from the Identity tag.
       const auto packageName = result["name"];
       if (!displayName.empty()) {
-        if (displayName.find("ms-resource") == std::string::npos) {
+        if (!getMsResourceReference(displayName)) {
           result["name"] = displayName;
         } else {
           auto resolved = resolveMsResource(
@@ -506,7 +554,7 @@ void genMsixPrograms(const std::string& key,
         }
       }
       if (!publisherDisplayName.empty()) {
-        if (publisherDisplayName.find("ms-resource") == std::string::npos) {
+        if (!getMsResourceReference(publisherDisplayName)) {
           result["publisher"] = publisherDisplayName;
         } else {
           auto resolved = resolveMsResource(

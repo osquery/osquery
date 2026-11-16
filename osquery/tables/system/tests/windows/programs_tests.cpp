@@ -45,41 +45,75 @@ TEST_F(ProgramsTablesTest, test_build_ms_resource_uris) {
   // Not an ms-resource string
   ASSERT_TRUE(buildMsResourceUris("Telegram Desktop", "Telegram").empty());
   ASSERT_TRUE(buildMsResourceUris("ms-resource:", "Microsoft.Todos").empty());
+  ASSERT_TRUE(buildMsResourceUris("ms-resource:/", "Microsoft.Todos").empty());
 
-  // Bare key: default Resources map first, then rooted at the package
+  // Bare key: default Resources map first, then rooted at the package, then
+  // the same paths with an empty authority
   std::vector<std::string> bareKey = {
       "ms-resource://Microsoft.Todos/Resources/app_name_ms_todo",
-      "ms-resource://Microsoft.Todos/app_name_ms_todo"};
+      "ms-resource://Microsoft.Todos/app_name_ms_todo",
+      "ms-resource:///Resources/app_name_ms_todo",
+      "ms-resource:///app_name_ms_todo"};
   ASSERT_EQ(
       buildMsResourceUris("ms-resource:app_name_ms_todo", "Microsoft.Todos"),
       bareKey);
+
+  // The scheme is case-insensitive, and surrounding whitespace is ignored
+  ASSERT_EQ(
+      buildMsResourceUris("MS-Resource:app_name_ms_todo", "Microsoft.Todos"),
+      bareKey);
+  ASSERT_EQ(buildMsResourceUris("  ms-resource:app_name_ms_todo\n",
+                                "Microsoft.Todos"),
+            bareKey);
 
   // Relative path containing a resource map
   std::vector<std::string> relativePath = {
       "ms-resource://Microsoft.WindowsCamera/Resources/LensSDK/Resources/"
       "AppStoreName",
-      "ms-resource://Microsoft.WindowsCamera/LensSDK/Resources/AppStoreName"};
+      "ms-resource://Microsoft.WindowsCamera/LensSDK/Resources/AppStoreName",
+      "ms-resource:///Resources/LensSDK/Resources/AppStoreName",
+      "ms-resource:///LensSDK/Resources/AppStoreName"};
   ASSERT_EQ(buildMsResourceUris("ms-resource:LensSDK/Resources/AppStoreName",
                                 "Microsoft.WindowsCamera"),
             relativePath);
 
   // Path rooted at the package
   std::vector<std::string> rootedPath = {
-      "ms-resource://Microsoft.Todos/Resources/AppName"};
+      "ms-resource://Microsoft.Todos/Resources/AppName",
+      "ms-resource:///Resources/AppName"};
   ASSERT_EQ(
       buildMsResourceUris("ms-resource:/Resources/AppName", "Microsoft.Todos"),
       rootedPath);
 
-  // Already a full URI
+  // Empty authority: the package's own resources, same as a rooted path
+  ASSERT_EQ(buildMsResourceUris("ms-resource:///Resources/AppName",
+                                "Microsoft.Todos"),
+            rootedPath);
+
+  // Full URI for this package
   std::vector<std::string> fullUri = {
-      "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName"};
+      "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName",
+      "ms-resource:///YourPhone/Resources/AppName"};
   ASSERT_EQ(buildMsResourceUris(
                 "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName",
                 "Microsoft.YourPhone"),
             fullUri);
 
-  // No package name: only full URIs can be resolved
-  ASSERT_TRUE(buildMsResourceUris("ms-resource:AppName", "").empty());
+  // Full URI for another package, or with a different case, isn't resolved
+  ASSERT_TRUE(buildMsResourceUris(
+                  "ms-resource://Microsoft.UI.Xaml.2.8/Resources/AppName",
+                  "Microsoft.YourPhone")
+                  .empty());
+  ASSERT_TRUE(buildMsResourceUris(
+                  "ms-resource://microsoft.yourphone/YourPhone/Resources/"
+                  "AppName",
+                  "Microsoft.YourPhone")
+                  .empty());
+
+  // No package name: only the empty authority is tried
+  std::vector<std::string> noPackageName = {"ms-resource:///Resources/AppName",
+                                            "ms-resource:///AppName"};
+  ASSERT_EQ(buildMsResourceUris("ms-resource:AppName", ""), noPackageName);
 }
 
 } // namespace tables
