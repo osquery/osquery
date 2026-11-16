@@ -91,6 +91,25 @@ function(libmagicMain)
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   )
 
+  # The compiled database format version this libmagic loads (VERSIONNO in
+  # src/file.h, which is not a public header). The magic table uses it to
+  # skip databases compiled by other libmagic versions before loading them.
+  file(STRINGS "${library_root}/src/file.h" libmagic_versionno_line
+    REGEX "^#define[ \t]+VERSIONNO[ \t]+[0-9]+"
+  )
+
+  string(REGEX REPLACE "^#define[ \t]+VERSIONNO[ \t]+([0-9]+).*" "\\1"
+    libmagic_db_version "${libmagic_versionno_line}"
+  )
+
+  if(NOT libmagic_db_version MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "Could not read VERSIONNO from libmagic's src/file.h")
+  endif()
+
+  target_compile_definitions(thirdparty_libmagic INTERFACE
+    OSQUERY_LIBMAGIC_DB_VERSION=${libmagic_db_version}
+  )
+
   if(DEFINED PLATFORM_POSIX)
     # Host-side tool used to compile the magic database at build time.
     # Not installed; magic.mgc below is its only product.
