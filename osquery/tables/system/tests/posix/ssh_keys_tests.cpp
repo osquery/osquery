@@ -204,6 +204,27 @@ TEST_F(SshKeysTests, rsa_key_in_subdirectory) {
   EXPECT_EQ(row.at("path"), fs::canonical(filepath).native());
 }
 
+TEST_F(SshKeysTests, symlinked_subdirectory_is_not_followed) {
+  auto results = QueryData{};
+
+  auto outside_directory = directory / fs::path("outside");
+  ASSERT_TRUE(fs::create_directories(outside_directory));
+  {
+    auto filepath = outside_directory / fs::path("rsa_unencrypted");
+    auto fout =
+        std::ofstream(filepath.native(), std::ios::out | std::ios::binary);
+    fout << kRsaUnencrypted;
+  }
+  fs::create_directory_symlink(outside_directory,
+                               ssh_directory / fs::path("link"));
+
+  auto const uid = std::to_string(geteuid());
+  GLOGLogger logger;
+  genSSHkeyForHosts(
+      uid, std::to_string(getegid()), directory.native(), results, logger);
+  ASSERT_EQ(results.size(), 0u);
+}
+
 TEST_F(SshKeysTests, rsa_key_encrypted) {
   auto results = QueryData{};
 
