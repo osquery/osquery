@@ -96,6 +96,15 @@ int YARACallback(YR_SCAN_CONTEXT* context,
                  void* user_data);
 
 /**
+ * @brief Scans the file at path with YARACallback, if it is a regular file.
+ *
+ * Scanned paths are often in user-writable directories, where a FIFO with no
+ * writer would block libyara's own open of the path for good, so on POSIX
+ * the file is opened with PF_REGULAR_ONLY and scanned through its descriptor.
+ */
+int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data);
+
+/**
  * @brief A simple ConfigParserPlugin for a "yara" dictionary key.
  *
  * A straight forward ConfigParserPlugin that requests a single "yara" key.

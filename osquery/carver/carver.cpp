@@ -229,9 +229,10 @@ std::set<fs::path> Carver::carveAll() {
   std::set<fs::path> carvedFiles;
   for (const auto& srcPath : carvePaths_) {
     // Ensure the file is a flat file on disk before carving
-    PlatformFile src(srcPath, PF_OPEN_EXISTING | PF_READ);
-    if (!src.isValid() || isDirectory(srcPath)) {
-      VLOG(1) << "File does not exist on disk or is subdirectory: " << srcPath;
+    PlatformFile src(srcPath, PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+    if (!src.isValid()) {
+      VLOG(1) << "File does not exist on disk or is not a regular file: "
+              << srcPath;
       continue;
     }
 

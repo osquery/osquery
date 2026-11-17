@@ -334,6 +334,28 @@ Status handleRuleFiles(const std::string& category,
   return Status::success();
 }
 
+int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data) {
+#ifdef WIN32
+  // Windows file systems hold no FIFOs, and libyara's own open of the path
+  // shares the file with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a file another process has open for writing.
+  return yr_rules_scan_file(
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, user_data, 0);
+#else
+  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
+    return ERROR_COULD_NOT_OPEN_FILE;
+  }
+
+  return yr_rules_scan_fd(rules,
+                          file.nativeHandle(),
+                          SCAN_FLAGS_FAST_MODE,
+                          YARACallback,
+                          user_data,
+                          0);
+#endif
+}
+
 /**
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
