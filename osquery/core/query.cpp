@@ -8,7 +8,9 @@
  */
 
 #include <algorithm>
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <osquery/core/flagalias.h>
@@ -31,6 +33,91 @@ FLAG(bool,
      false,
      "Use numeric JSON syntax for numeric values");
 FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
+
+namespace {
+
+/// Strong 64-bit finalizer, so that summing per-row hashes below combines
+/// independent bits instead of raw FNV-1a output.
+inline uint64_t mix64(uint64_t hash) {
+  hash += 0x9e3779b97f4a7c15ULL;
+  hash = (hash ^ (hash >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  hash = (hash ^ (hash >> 27)) * 0x94d049bb133111ebULL;
+  return hash ^ (hash >> 31);
+}
+
+/// Random key of the result hash, generated once per installation and kept in
+/// the database, which is readable by root only. Differential results are a
+/// detection mechanism: without the key, an attacker able to control table
+/// contents could craft a result set colliding with the stored hash to hide
+/// rows from the 'added'/'removed' results.
+uint64_t queryHashKey() {
+  static uint64_t key = []() -> uint64_t {
+    std::string raw;
+    if (getDatabaseValue(kPersistentSettings, "diff_hash_key", raw).ok() &&
+        !raw.empty()) {
+      return std::stoull(raw);
+    }
+    std::random_device rd;
+    uint64_t fresh =
+        (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
+    setDatabaseValue(
+        kPersistentSettings, "diff_hash_key", std::to_string(fresh));
+    return fresh;
+  }();
+  return key;
+}
+
+/// Hash of a single row, independent of the column order (rows are maps).
+/// Hashes the raw variant bytes, so it allocates nothing.
+uint64_t hashRow(const RowTyped& row, uint64_t key) {
+  uint64_t hash = 0xcbf29ce484222325ULL;
+  auto fnv1aByte = [&hash](unsigned char byte) {
+    hash ^= byte;
+    hash *= 0x100000001b3ULL;
+  };
+  auto fnv1aSpan = [&fnv1aByte](const unsigned char* bytes, size_t size) {
+    for (size_t i = 0; i < size; ++i) {
+      fnv1aByte(bytes[i]);
+    }
+    fnv1aByte(0x1f);
+  };
+  for (const auto& column : row) {
+    fnv1aSpan(reinterpret_cast<const unsigned char*>(column.first.data()),
+              column.first.size());
+    boost::apply_visitor(
+        [&](const auto& value) {
+          using T = std::decay_t<decltype(value)>;
+          if constexpr (std::is_same_v<T, std::string>) {
+            fnv1aSpan(reinterpret_cast<const unsigned char*>(value.data()),
+                      value.size());
+          } else {
+            // Prefix with the type tag so the same bytes cannot hash the same
+            // under a different variant alternative.
+            fnv1aByte(static_cast<unsigned char>(sizeof(T)));
+            fnv1aSpan(reinterpret_cast<const unsigned char*>(&value),
+                      sizeof(T));
+          }
+        },
+        column.second);
+  }
+  return mix64(hash ^ key);
+}
+
+/// Hash of a result set with the same semantics as diff(): only the multiset
+/// of rows matters, not their order.
+uint64_t hashQueryData(const QueryDataTyped& qd) {
+  const uint64_t key = queryHashKey();
+  // Summing per-row hashes keeps the result order-independent.
+  uint64_t hash = 0;
+  for (const auto& row : qd) {
+    hash += hashRow(row, key);
+  }
+  // Fold the row count in so a result set cannot collide with a shorter one
+  // made of rows hashing to zero.
+  return mix64(hash ^ key ^ qd.size());
+}
+
+} // namespace
 
 uint64_t Query::getPreviousEpoch() const {
   uint64_t epoch = 0;
@@ -144,6 +231,9 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   bool new_query_epoch = false;
   bool new_query_sql = false;
   getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
+  // Event queries replace the stored results wholesale; drop any hash left
+  // by a previous differential use of this query name.
+  deleteDatabaseValue(kQueries, name_ + "hash");
   if (new_query_epoch) {
     auto status = saveQueryResults("[]", current_epoch);
     if (!status.ok()) {
@@ -173,18 +263,29 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
+  // Hash of the current rows; the stored results always end up equal to them,
+  // so it is saved alongside them to let the next run skip the differential.
+  auto current_hash = hashQueryData(current_qd);
   if (!new_query_epoch) {
-    // Get the rows from the last run of this query name.
-    QueryDataSet previous_qd;
-    auto status = getPreviousQueryResults(previous_qd);
-    if (!status.ok()) {
-      return status;
+    std::string stored_hash;
+    auto status = getDatabaseValue(kQueries, name_ + "hash", stored_hash);
+    if (status.ok() && stored_hash == std::to_string(current_hash)) {
+      // The results are identical to the last run: the differential is empty
+      // and the stored results can stay in the database unparsed.
+      update_db = false;
+    } else {
+      // Get the rows from the last run of this query name.
+      QueryDataSet previous_qd;
+      status = getPreviousQueryResults(previous_qd);
+      if (!status.ok()) {
+        return status;
+      }
+
+      // Calculate the differential between previous and current query results.
+      dr = diff(previous_qd, current_qd);
+
+      update_db = (!dr.added.empty() || !dr.removed.empty());
     }
-
-    // Calculate the differential between previous and current query results.
-    dr = diff(previous_qd, current_qd);
-
-    update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
     dr.added = std::move(current_qd);
     target_gd = &dr.added;
@@ -209,6 +310,14 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     if (!status.ok()) {
       return status;
     }
+  }
+
+  // Remember the hash of the stored results so the next run can detect an
+  // empty differential without parsing them.
+  auto status =
+      setDatabaseValue(kQueries, name_ + "hash", std::to_string(current_hash));
+  if (!status.ok()) {
+    return status;
   }
   return Status::success();
 }

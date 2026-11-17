@@ -223,6 +223,43 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_EQ(dr.added.size(), results.size() - 1);
 }
 
+TEST_F(QueryTests, test_add_new_results_unchanged) {
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("unchanged_query", query);
+
+  // Store an initial set of results.
+  uint64_t counter = 128;
+  DiffResults dr;
+  auto results = getTestDBExpectedResults();
+  auto status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(counter, 0UL);
+
+  // Running the same results again produces no differential and does not
+  // increment the counter.
+  counter = 128;
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_TRUE(dr.hasNoResults());
+  EXPECT_EQ(counter, 128UL);
+
+  // The row order does not affect the differential.
+  std::reverse(results.begin(), results.end());
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_TRUE(dr.hasNoResults());
+  EXPECT_EQ(counter, 128UL);
+
+  // A changed result set still produces a differential.
+  results.resize(1);
+  counter = 128;
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(dr.added.size(), 0UL);
+  EXPECT_EQ(dr.removed.size(), getTestDBExpectedResults().size() - 1);
+  EXPECT_EQ(counter, 1UL);
+}
+
 TEST_F(QueryTests, test_get_stored_query_names) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
