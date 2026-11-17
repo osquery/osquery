@@ -318,6 +318,43 @@ std::string jsonArrayToString(const rapidjson::Value& arr) {
 }
 
 /**
+ * @brief List every namespace known to containerd.
+ *
+ * Returns the full Namespace messages (name + labels) so both the namespace
+ * and namespace-labels tables share one RPC path. On failure returns empty and
+ * logs at WARNING: a silently-dropped namespace list hides every container
+ * below it, so the failure must be visible without --verbose.
+ */
+[[nodiscard]] std::vector<containerd::services::namespaces::v1::Namespace>
+listNamespaces(const ContainerdConnection& conn) {
+  std::vector<containerd::services::namespaces::v1::Namespace> namespaces;
+
+  containerd::services::namespaces::v1::Namespaces::Stub* stub = nullptr;
+  if (!conn.getStub<containerd::services::namespaces::v1::Namespaces>(&stub)) {
+    LOG(WARNING) << "Failed to create containerd namespaces stub";
+    return namespaces;
+  }
+
+  containerd::services::namespaces::v1::ListNamespacesRequest request;
+  containerd::services::namespaces::v1::ListNamespacesResponse response;
+  grpc::ClientContext context;
+  createContextWithTimeout(context);
+
+  grpc::Status status = stub->List(&context, request, &response);
+  if (!status.ok()) {
+    LOG(WARNING) << "Error listing containerd namespaces: "
+                 << status.error_message();
+    return namespaces;
+  }
+
+  namespaces.reserve(response.namespaces_size());
+  for (auto& ns : *response.mutable_namespaces()) {
+    namespaces.push_back(std::move(ns));
+  }
+  return namespaces;
+}
+
+/**
  * @brief Get list of containerd namespaces to query.
  *
  * Returns either the single namespace specified by FLAGS_containerd_namespace,
@@ -342,30 +379,11 @@ std::vector<std::string> getNamespacesToQuery(const ContainerdConnection& conn,
     return namespaces;
   }
 
-  // List all namespaces. On failure return empty rather than assuming
-  // "default": that namespace is often empty on Kubernetes nodes (containers
-  // live under "k8s.io"), so inventing it would silently hide every container.
-  containerd::services::namespaces::v1::Namespaces::Stub* stub = nullptr;
-  if (!conn.getStub<containerd::services::namespaces::v1::Namespaces>(&stub)) {
-    LOG(WARNING) << "Failed to create containerd namespaces stub";
-    return namespaces;
-  }
-
-  containerd::services::namespaces::v1::ListNamespacesRequest request;
-  containerd::services::namespaces::v1::ListNamespacesResponse response;
-  grpc::ClientContext context;
-  createContextWithTimeout(context);
-
-  grpc::Status status = stub->List(&context, request, &response);
-
-  if (!status.ok()) {
-    LOG(WARNING) << "Error listing containerd namespaces: "
-                 << status.error_message();
-    return namespaces;
-  }
-
-  namespaces.reserve(response.namespaces_size());
-  for (const auto& ns : response.namespaces()) {
+  // List all namespaces. On failure listNamespaces returns empty, so we return
+  // empty too rather than assuming "default": that namespace is often empty on
+  // Kubernetes nodes (containers live under "k8s.io"), so inventing it would
+  // silently hide every container.
+  for (const auto& ns : listNamespaces(conn)) {
     namespaces.push_back(ns.name());
   }
 
@@ -583,6 +601,90 @@ listContainers(const ContainerdConnection& conn,
   }
 
   return containers;
+}
+
+/**
+ * @brief List every image in a namespace.
+ *
+ * On failure returns empty and logs at WARNING so a partial/missing image
+ * inventory isn't invisible without --verbose.
+ */
+[[nodiscard]] std::vector<containerd::services::images::v1::Image> listImages(
+    const ContainerdConnection& conn, const std::string& namespace_name) {
+  std::vector<containerd::services::images::v1::Image> images;
+
+  containerd::services::images::v1::Images::Stub* stub = nullptr;
+  if (!conn.getStub<containerd::services::images::v1::Images>(&stub)) {
+    LOG(WARNING) << "Failed to create containerd images stub for namespace "
+                 << namespace_name;
+    return images;
+  }
+
+  containerd::services::images::v1::ListImagesRequest request;
+  containerd::services::images::v1::ListImagesResponse response;
+  grpc::ClientContext context;
+  createContextWithTimeout(context, namespace_name);
+
+  grpc::Status status = stub->List(&context, request, &response);
+  if (!status.ok()) {
+    LOG(WARNING) << "Error listing containerd images in namespace "
+                 << namespace_name << ": " << status.error_message();
+    return images;
+  }
+
+  images.reserve(response.images_size());
+  for (auto& image : *response.mutable_images()) {
+    images.push_back(std::move(image));
+  }
+  return images;
+}
+
+/**
+ * @brief Drain the snapshot List stream for one snapshotter into a vector.
+ *
+ * Like listContainers, the stream is fully drained before callers build rows
+ * so per-row work isn't charged against the RPC deadline. NOT_FOUND means the
+ * snapshotter isn't configured and is not an error; any other mid-stream
+ * failure returns the rows already read and logs at WARNING so an incomplete
+ * table isn't invisible without --verbose.
+ */
+[[nodiscard]] std::vector<containerd::services::snapshots::v1::Info>
+listSnapshots(const ContainerdConnection& conn,
+              const std::string& namespace_name,
+              const std::string& snapshotter) {
+  std::vector<containerd::services::snapshots::v1::Info> snapshots;
+
+  containerd::services::snapshots::v1::Snapshots::Stub* stub = nullptr;
+  if (!conn.getStub<containerd::services::snapshots::v1::Snapshots>(&stub)) {
+    LOG(WARNING) << "Failed to create containerd snapshots stub for namespace "
+                 << namespace_name;
+    return snapshots;
+  }
+
+  containerd::services::snapshots::v1::ListSnapshotsRequest request;
+  request.set_snapshotter(snapshotter);
+
+  grpc::ClientContext context;
+  createContextWithTimeout(context, namespace_name);
+
+  auto reader = stub->List(&context, request);
+  StreamReaderGuard guard(reader.get());
+
+  containerd::services::snapshots::v1::ListSnapshotsResponse response;
+  while (reader->Read(&response)) {
+    for (auto& info : *response.mutable_info()) {
+      snapshots.push_back(std::move(info));
+    }
+  }
+
+  grpc::Status status = guard.Finish();
+  if (!status.ok() && status.error_code() != grpc::StatusCode::NOT_FOUND) {
+    LOG(WARNING) << "Error listing snapshots for snapshotter " << snapshotter
+                 << " in namespace " << namespace_name << " after "
+                 << snapshots.size() << " streamed; returning a partial list: "
+                 << status.error_message();
+  }
+  return snapshots;
 }
 
 /**
@@ -816,28 +918,11 @@ QueryData genContainerdNamespaces(QueryContext& context) {
     return {};
   }
 
-  containerd::services::namespaces::v1::Namespaces::Stub* stub = nullptr;
-  if (!conn.getStub<containerd::services::namespaces::v1::Namespaces>(&stub)) {
-    VLOG(1) << "Failed to create namespaces stub";
-    return {};
-  }
-
-  containerd::services::namespaces::v1::ListNamespacesRequest request;
-  containerd::services::namespaces::v1::ListNamespacesResponse response;
-  grpc::ClientContext grpc_context;
-  createContextWithTimeout(grpc_context);
-
-  grpc::Status status = stub->List(&grpc_context, request, &response);
-
-  if (!status.ok()) {
-    VLOG(1) << "Error listing containerd namespaces: "
-            << status.error_message();
-    return {};
-  }
+  const auto namespaces = listNamespaces(conn);
 
   QueryData results;
-  results.reserve(response.namespaces_size());
-  for (const auto& ns : response.namespaces()) {
+  results.reserve(namespaces.size());
+  for (const auto& ns : namespaces) {
     Row r;
     r["name"] = ns.name();
     results.push_back(r);
@@ -862,27 +947,7 @@ QueryData genContainerdImages(QueryContext& context) {
   results.reserve(namespaces.size() * 5);
 
   for (const auto& namespace_name : namespaces) {
-    containerd::services::images::v1::Images::Stub* stub = nullptr;
-    if (!conn.getStub<containerd::services::images::v1::Images>(&stub)) {
-      VLOG(1) << "Failed to create images stub for namespace "
-              << namespace_name;
-      continue;
-    }
-
-    containerd::services::images::v1::ListImagesRequest request;
-    containerd::services::images::v1::ListImagesResponse response;
-    grpc::ClientContext context;
-    createContextWithTimeout(context, namespace_name);
-
-    grpc::Status status = stub->List(&context, request, &response);
-
-    if (!status.ok()) {
-      VLOG(1) << "Error listing containerd images in namespace "
-              << namespace_name << ": " << status.error_message();
-      continue;
-    }
-
-    for (const auto& image : response.images()) {
+    for (const auto& image : listImages(conn, namespace_name)) {
       Row r;
       r["name"] = image.name();
       r["namespace"] = namespace_name;
@@ -932,47 +997,20 @@ QueryData genContainerdSnapshots(QueryContext& context) {
         getAvailableSnapshotters(conn, namespace_name);
 
     for (const auto& snapshotter : available_snapshotters) {
-      containerd::services::snapshots::v1::Snapshots::Stub* stub = nullptr;
-      if (!conn.getStub<containerd::services::snapshots::v1::Snapshots>(
-              &stub)) {
-        VLOG(1) << "Failed to create snapshots stub for namespace "
-                << namespace_name;
-        continue;
-      }
+      for (const auto& info :
+           listSnapshots(conn, namespace_name, snapshotter)) {
+        Row r;
+        r["name"] = info.name();
+        r["namespace"] = namespace_name;
+        r["snapshotter"] = snapshotter;
+        r["parent"] = info.parent();
+        r["kind"] = mapSnapshotKind(info.kind());
+        r["created_at"] =
+            info.has_created_at() ? formatTimestamp(info.created_at()) : "";
+        r["updated_at"] =
+            info.has_updated_at() ? formatTimestamp(info.updated_at()) : "";
 
-      containerd::services::snapshots::v1::ListSnapshotsRequest request;
-      request.set_snapshotter(snapshotter);
-
-      grpc::ClientContext context;
-      createContextWithTimeout(context, namespace_name);
-
-      auto reader = stub->List(&context, request);
-      StreamReaderGuard guard(reader.get());
-
-      containerd::services::snapshots::v1::ListSnapshotsResponse response;
-      while (reader->Read(&response)) {
-        for (const auto& info : response.info()) {
-          Row r;
-          r["name"] = info.name();
-          r["namespace"] = namespace_name;
-          r["snapshotter"] = snapshotter;
-          r["parent"] = info.parent();
-          r["kind"] = mapSnapshotKind(info.kind());
-          r["created_at"] =
-              info.has_created_at() ? formatTimestamp(info.created_at()) : "";
-          r["updated_at"] =
-              info.has_updated_at() ? formatTimestamp(info.updated_at()) : "";
-
-          results.push_back(r); // May throw - guard ensures Finish() is called
-        }
-      }
-
-      // Finish the stream - explicit call allows us to check the status
-      grpc::Status status = guard.Finish();
-      if (!status.ok() && status.error_code() != grpc::StatusCode::NOT_FOUND) {
-        VLOG(1) << "Error listing snapshots for snapshotter " << snapshotter
-                << " in namespace " << namespace_name << ": "
-                << status.error_message();
+        results.push_back(r);
       }
     }
   }
@@ -1017,30 +1055,13 @@ QueryData genContainerdNamespaceLabels(QueryContext& context) {
     return {};
   }
 
-  containerd::services::namespaces::v1::Namespaces::Stub* stub = nullptr;
-  if (!conn.getStub<containerd::services::namespaces::v1::Namespaces>(&stub)) {
-    VLOG(1) << "Failed to create namespaces stub";
-    return {};
-  }
-
-  containerd::services::namespaces::v1::ListNamespacesRequest request;
-  containerd::services::namespaces::v1::ListNamespacesResponse response;
-  grpc::ClientContext grpc_context;
-  createContextWithTimeout(grpc_context);
-
-  grpc::Status status = stub->List(&grpc_context, request, &response);
-
-  if (!status.ok()) {
-    VLOG(1) << "Error listing containerd namespaces: "
-            << status.error_message();
-    return {};
-  }
+  const auto namespaces = listNamespaces(conn);
 
   QueryData results;
   // Reserve space: estimate 3 labels per namespace
-  results.reserve(response.namespaces_size() * 3);
+  results.reserve(namespaces.size() * 3);
 
-  for (const auto& ns : response.namespaces()) {
+  for (const auto& ns : namespaces) {
     extractLabelsFromEntity(ns, ns.name(), results, [](Row& r, const auto& n) {
       r["name"] = n.name();
     });
@@ -1065,27 +1086,7 @@ QueryData genContainerdImageLabels(QueryContext& context) {
   results.reserve(namespaces.size() * 15);
 
   for (const auto& namespace_name : namespaces) {
-    containerd::services::images::v1::Images::Stub* stub = nullptr;
-    if (!conn.getStub<containerd::services::images::v1::Images>(&stub)) {
-      VLOG(1) << "Failed to create images stub for namespace "
-              << namespace_name;
-      continue;
-    }
-
-    containerd::services::images::v1::ListImagesRequest request;
-    containerd::services::images::v1::ListImagesResponse response;
-    grpc::ClientContext context;
-    createContextWithTimeout(context, namespace_name);
-
-    grpc::Status status = stub->List(&context, request, &response);
-
-    if (!status.ok()) {
-      VLOG(1) << "Error listing containerd images in namespace "
-              << namespace_name << ": " << status.error_message();
-      continue;
-    }
-
-    for (const auto& image : response.images()) {
+    for (const auto& image : listImages(conn, namespace_name)) {
       extractLabelsFromEntity(
           image, namespace_name, results, [](Row& r, const auto& i) {
             r["name"] = i.name();
@@ -1120,44 +1121,17 @@ QueryData genContainerdSnapshotLabels(QueryContext& context) {
         getAvailableSnapshotters(conn, namespace_name);
 
     for (const auto& snapshotter : available_snapshotters) {
-      containerd::services::snapshots::v1::Snapshots::Stub* stub = nullptr;
-      if (!conn.getStub<containerd::services::snapshots::v1::Snapshots>(
-              &stub)) {
-        VLOG(1) << "Failed to create snapshots stub for namespace "
-                << namespace_name;
-        continue;
-      }
-
-      containerd::services::snapshots::v1::ListSnapshotsRequest request;
-      request.set_snapshotter(snapshotter);
-
-      grpc::ClientContext context;
-      createContextWithTimeout(context, namespace_name);
-
-      auto reader = stub->List(&context, request);
-      StreamReaderGuard guard(reader.get());
-
-      containerd::services::snapshots::v1::ListSnapshotsResponse response;
-      while (reader->Read(&response)) {
-        for (const auto& info : response.info()) {
-          // Use extractLabelsFromEntity with a lambda that captures snapshotter
-          extractLabelsFromEntity(
-              info,
-              namespace_name,
-              results,
-              [&snapshotter](Row& r, const auto& snapshot_info) {
-                r["name"] = snapshot_info.name();
-                r["snapshotter"] = snapshotter;
-              });
-        }
-      }
-
-      // Finish the stream - explicit call allows us to check the status
-      grpc::Status status = guard.Finish();
-      if (!status.ok() && status.error_code() != grpc::StatusCode::NOT_FOUND) {
-        VLOG(1) << "Error listing snapshots for snapshotter " << snapshotter
-                << " in namespace " << namespace_name << ": "
-                << status.error_message();
+      for (const auto& info :
+           listSnapshots(conn, namespace_name, snapshotter)) {
+        // Use extractLabelsFromEntity with a lambda that captures snapshotter
+        extractLabelsFromEntity(
+            info,
+            namespace_name,
+            results,
+            [&snapshotter](Row& r, const auto& snapshot_info) {
+              r["name"] = snapshot_info.name();
+              r["snapshotter"] = snapshotter;
+            });
       }
     }
   }
