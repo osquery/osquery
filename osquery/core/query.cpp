@@ -94,8 +94,8 @@ std::vector<std::string> Query::getStoredQueryNames() {
 }
 
 bool Query::isQueryNameInDatabase() const {
-  auto names = Query::getStoredQueryNames();
-  return std::find(names.begin(), names.end(), name_) != names.end();
+  std::string results;
+  return getDatabaseValue(kQueries, name_, results).ok();
 }
 
 static inline void saveQuery(const std::string& name,
