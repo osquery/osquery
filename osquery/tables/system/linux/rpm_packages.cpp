@@ -250,12 +250,25 @@ static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
   return results;
 }
 
+// The kernel overflow IDs, which "nobody" maps to on current distributions.
+const uid_t kOverflowUid{65534};
+const gid_t kOverflowGid{65534};
+
+// Drops to "nobody", or to the overflow IDs when that name cannot be resolved.
+// The lookup goes through the `users` table, which only reads /etc/passwd:
+// rpm-ostree systems keep "nobody" in /usr/lib/passwd, and a minimal container
+// may not define it at all.
+static bool dropRpmPrivileges(const DropPrivilegesRef& dropper) {
+  return dropper->dropTo("nobody") ||
+         dropper->dropTo(kOverflowUid, kOverflowGid);
+}
+
 // Namespace-worker entry point. generateInNamespace takes a plain function
 // pointer (so this can't be a lambda): the forked child keeps privileges to
 // enter the namespace, then drops here before touching the rpmdb.
 QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropRpmPrivileges(dropper) && isUserAdmin()) {
     logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
     return {};
   }
@@ -276,7 +289,7 @@ QueryData genRpmPackages(QueryContext& context) {
   // sub-query does not run inside the global rpm critical section.
   auto& logger = GLOGLogger::instance();
   auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropRpmPrivileges(dropper) && isUserAdmin()) {
     logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
     return {};
   }
@@ -325,7 +338,7 @@ using RpmtdPtr = std::unique_ptr<std::remove_pointer_t<rpmtd>, RpmtdDeleter>;
 void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   auto& logger = GLOGLogger::instance();
   auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropRpmPrivileges(dropper) && isUserAdmin()) {
     logger.log(google::GLOG_WARNING,
                "Cannot drop privileges for rpm_packages_files");
     return;
