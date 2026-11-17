@@ -476,7 +476,7 @@ TEST_F(NpmPackagesUnitTest, test_user_pattern_skips_unmounted_automount_homes) {
   // lists every home directory in the map, with only one of them mounted.
   AutomountHomeFilter automount_filter(
       {{"/", "xfs"},
-       {homes.string(), "autofs"},
+       {homes.string(), "autofs", true},
        {(homes / "mounted").string(), "nfs4"}});
 
   std::set<std::string> paths;
@@ -489,6 +489,28 @@ TEST_F(NpmPackagesUnitTest, test_user_pattern_skips_unmounted_automount_homes) {
     site.pop_back();
   }
   EXPECT_EQ(site, (homes / "mounted" / ".npm-global" / "lib").string());
+}
+
+TEST_F(NpmPackagesUnitTest, test_user_pattern_does_not_list_unmounted_home) {
+  auto homes = fs::canonical(temp_dir_);
+  createPackageJson(homes / "user" / ".npm-global" / "lib" / "node_modules" /
+                        "pkg" / "package.json",
+                    R"({"name": "pkg", "version": "1.0.0"})");
+
+  // homes stands for /home as a systemd automount that nothing is mounted on
+  // yet: listing it to find the home directories would mount it. The mount
+  // on homes/user is only there so that skip() would let that home directory
+  // through, which makes this test fail if homes were listed.
+  AutomountHomeFilter automount_filter({{"/", "xfs"},
+                                        {homes.string(), "autofs"},
+                                        {(homes / "user").string(), "nfs4"}});
+  ASSERT_FALSE(automount_filter.skip((homes / "user").string()));
+
+  std::set<std::string> paths;
+  tables::resolveNodeModulesPattern(
+      (homes / "%" / ".npm-global" / "lib").string(), automount_filter, paths);
+
+  EXPECT_TRUE(paths.empty());
 }
 #endif
 

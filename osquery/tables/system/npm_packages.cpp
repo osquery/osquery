@@ -239,7 +239,9 @@ void genWinNodePackages(const std::string& keyGlob,
  * only in the home directories that automount_filter does not skip: resolving
  * it in a home directory that is not mounted yet would make the automounter
  * mount it, and with autofs browse mode, every home directory in the map is
- * listed whether it is mounted or not.
+ * listed whether it is mounted or not. The directory itself is not listed if
+ * that would mount it, as with a systemd automount on /home that nothing is
+ * mounted on yet.
  */
 void resolveNodeModulesPattern(const std::string& pattern,
                                const AutomountHomeFilter& automount_filter,
@@ -249,6 +251,12 @@ void resolveNodeModulesPattern(const std::string& pattern,
     std::vector<std::string> sites;
     resolveFilePattern(pattern, sites);
     paths.insert(sites.begin(), sites.end());
+    return;
+  }
+
+  const auto home_parent =
+      user_level == 0 ? std::string("/") : pattern.substr(0, user_level);
+  if (automount_filter.skipListing(home_parent)) {
     return;
   }
 

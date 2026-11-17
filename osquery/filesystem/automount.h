@@ -18,6 +18,12 @@ namespace osquery {
 struct MountPoint {
   std::string path;
   std::string type;
+
+  /// Whether this is the autofs mount of an indirect map, whose keys are
+  /// mounted on directories under its mount point. A systemd automount and
+  /// each entry of a direct map are instead an autofs mount on the mount
+  /// point itself.
+  bool indirect_map{false};
 };
 
 /**
@@ -44,6 +50,23 @@ bool isUnmountedAutomount(const std::vector<MountPoint>& mounts,
                           const std::string& path);
 
 /**
+ * @brief Tells whether listing a directory would make the automounter mount
+ * it.
+ *
+ * As isUnmountedAutomount(), except for the mount point of an indirect map:
+ * listing it shows the map's keys, mounted or not, without mounting any of
+ * them, so whether each key is mounted is decided separately. Any other
+ * directory on an autofs mount, such as a systemd automount or a direct map
+ * entry that nothing is mounted on yet, is mounted as soon as it is listed.
+ *
+ * @param mounts The mount table, in the order it lists mounts.
+ * @param directory An absolute path. A relative or empty path is never
+ * reported.
+ */
+bool isUnmountedAutomountToList(const std::vector<MountPoint>& mounts,
+                                const std::string& directory);
+
+/**
  * @brief Tells which home directories tables must not read.
  *
  * Tables that read files in every user's home directory would make the
@@ -65,6 +88,16 @@ class AutomountHomeFilter {
 
   /// Tells whether the home directory must not be read, logging it if so.
   bool skip(const std::string& home) const;
+
+  /**
+   * @brief Tells whether a directory holding home directories must not be
+   * listed to find them, logging it if so.
+   *
+   * Listing it would mount it: it is not mounted yet, and it is not the
+   * mount point of an indirect map, whose home directories are each decided
+   * by skip().
+   */
+  bool skipListing(const std::string& directory) const;
 
  private:
   std::vector<MountPoint> mounts_;

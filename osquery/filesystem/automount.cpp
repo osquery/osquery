@@ -89,6 +89,45 @@ bool isAtOrUnder(const std::string& mount_point, const std::string& path) {
          path[mount_point.size()] == '/';
 }
 
+/// Tells whether a comma-separated option list contains the option.
+bool hasOption(const std::string& options, const std::string& option) {
+  std::istringstream list(options);
+  std::string entry;
+  while (std::getline(list, entry, ',')) {
+    if (entry == option) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Finds the mount a path is on.
+ *
+ * That is the mount whose mount point is the longest one that is the path or
+ * one of its parents, and of mounts stacked on one mount point, the last one
+ * listed, which is on top.
+ *
+ * @param target A normalized absolute path.
+ * @param mount_point Receives the normalized mount point of the mount found.
+ * @return The mount, or nullptr if no mount point is the path or a parent.
+ */
+const MountPoint* findContainingMount(const std::vector<MountPoint>& mounts,
+                                      const std::string& target,
+                                      std::string& mount_point) {
+  const MountPoint* containing = nullptr;
+  for (const auto& mount : mounts) {
+    auto candidate = normalizeAbsolutePath(mount.path);
+    // A later mount on an equally long mount point replaces an earlier one.
+    if (isAtOrUnder(candidate, target) &&
+        (containing == nullptr || candidate.size() >= mount_point.size())) {
+      containing = &mount;
+      mount_point = std::move(candidate);
+    }
+  }
+  return containing;
+}
+
 } // namespace
 
 std::vector<MountPoint> parseMountInfo(const std::string& content) {
@@ -118,7 +157,15 @@ std::vector<MountPoint> parseMountInfo(const std::string& content) {
     if (mount_point.empty() || mount_point[0] != '/') {
       continue;
     }
-    mounts.push_back({std::move(mount_point), *(separator + 1)});
+
+    MountPoint mount{std::move(mount_point), *(separator + 1)};
+    // An autofs mount's superblock options say which kind of map it is:
+    // "indirect", or "direct" (including systemd automounts) and "offset",
+    // which are mounted on as soon as they are accessed.
+    if (mount.type == "autofs" && fields.end() - separator > 3) {
+      mount.indirect_map = hasOption(*(separator + 3), "indirect");
+    }
+    mounts.push_back(std::move(mount));
   }
   return mounts;
 }
@@ -129,21 +176,27 @@ bool isUnmountedAutomount(const std::vector<MountPoint>& mounts,
     return false;
   }
 
-  auto target = normalizeAbsolutePath(path);
-  const MountPoint* containing = nullptr;
-  size_t containing_length = 0;
-  for (const auto& mount : mounts) {
-    auto mount_point = normalizeAbsolutePath(mount.path);
-    // Of mounts stacked on one mount point, the last one listed is on top, so
-    // a later mount on an equally long mount point replaces an earlier one.
-    if (isAtOrUnder(mount_point, target) &&
-        mount_point.size() >= containing_length) {
-      containing = &mount;
-      containing_length = mount_point.size();
-    }
+  std::string mount_point;
+  auto containing =
+      findContainingMount(mounts, normalizeAbsolutePath(path), mount_point);
+  return containing != nullptr && containing->type == "autofs";
+}
+
+bool isUnmountedAutomountToList(const std::vector<MountPoint>& mounts,
+                                const std::string& directory) {
+  if (directory.empty() || directory[0] != '/') {
+    return false;
   }
 
-  return containing != nullptr && containing->type == "autofs";
+  auto target = normalizeAbsolutePath(directory);
+  std::string mount_point;
+  auto containing = findContainingMount(mounts, target, mount_point);
+  if (containing == nullptr || containing->type != "autofs") {
+    return false;
+  }
+
+  // The mount point of an indirect map lists its keys without mounting them.
+  return !(containing->indirect_map && mount_point == target);
 }
 
 AutomountHomeFilter::AutomountHomeFilter() {
@@ -174,6 +227,18 @@ bool AutomountHomeFilter::skip(const std::string& home) const {
 
   VLOG(1) << "Skipping home directory " << home
           << " which is not mounted: reading it would make the automounter "
+             "mount it";
+  return true;
+}
+
+bool AutomountHomeFilter::skipListing(const std::string& directory) const {
+  if (FLAGS_automount_home_dirs ||
+      !isUnmountedAutomountToList(mounts_, directory)) {
+    return false;
+  }
+
+  VLOG(1) << "Not listing home directories in " << directory
+          << " which is not mounted: listing it would make the automounter "
              "mount it";
   return true;
 }
