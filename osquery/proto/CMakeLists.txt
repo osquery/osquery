@@ -29,6 +29,13 @@ function(generateContainerdProtos)
     "${PROTOBUF_INCLUDE_DIR}/google/protobuf/timestamp.proto"
   )
 
+  # introspection.proto references google.rpc.Status. protobuf has no such type
+  # and gRPC builds it only in its internal upb form, so there is no C++
+  # google::rpc::Status to reuse. google/rpc/status.proto is therefore vendored
+  # under containerd/ (verbatim, like the containerd protos) and its C++ is
+  # generated below; the service's `import "google/rpc/status.proto"` resolves
+  # off the same source root as the type imports.
+
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd
     COMMAND cmake -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/containerd
@@ -40,6 +47,7 @@ function(generateContainerdProtos)
     namespace
     images
     snapshots
+    introspection
   )
 
   # Message-only types the services import (no gRPC service, so .pb only).
@@ -48,6 +56,8 @@ function(generateContainerdProtos)
     types/mount
     types/metrics
     types/task/task
+    types/introspection
+    types/platform
   )
 
   # protobuf messages (.pb.{h,cc}) for every service and type proto. The service
@@ -92,9 +102,30 @@ function(generateContainerdProtos)
     )
   endforeach()
 
+  # google.rpc.Status, generated from the vendored containerd/google/rpc/
+  # status.proto. Emitted under containerd/ so the "google/rpc/status.pb.h"
+  # include that protoc writes into introspection.pb.h resolves off the same
+  # include root as the service headers.
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/containerd/google/rpc/status.pb.h
+           ${CMAKE_CURRENT_BINARY_DIR}/containerd/google/rpc/status.pb.cc
+    COMMAND ${PROTOC_EXECUTABLE} -I ${CMAKE_CURRENT_SOURCE_DIR}/containerd
+            -I ${PROTOBUF_INCLUDE_DIR}
+            --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/containerd
+            ${CMAKE_CURRENT_SOURCE_DIR}/containerd/google/rpc/status.proto
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/containerd
+            ${CMAKE_CURRENT_SOURCE_DIR}/containerd/google/rpc/status.proto
+            ${PROTOBUF_PROTO_DEPS}
+            protoc
+    VERBATIM
+    COMMENT "Generating C++ protobuf for google/rpc/status"
+  )
+
   # Collect generated sources: services contribute message + stub, types message
   # only.
-  set(containerd_proto_sources)
+  set(containerd_proto_sources
+    ${CMAKE_CURRENT_BINARY_DIR}/containerd/google/rpc/status.pb.cc
+  )
   foreach(proto_file_name ${containerd_service_protos})
     list(APPEND containerd_proto_sources
       ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.cc
@@ -112,7 +143,9 @@ function(generateContainerdProtos)
   # the type outputs in a target the library depends on so every type header is
   # generated before any service source in this library compiles; otherwise a
   # parallel build can compile a service source before its type header exists.
-  set(containerd_type_outputs)
+  set(containerd_type_outputs
+    ${CMAKE_CURRENT_BINARY_DIR}/containerd/google/rpc/status.pb.h
+  )
   foreach(proto_file_name ${containerd_type_protos})
     list(APPEND containerd_type_outputs
       ${CMAKE_CURRENT_BINARY_DIR}/containerd/${proto_file_name}.pb.h
@@ -138,7 +171,7 @@ function(generateContainerdProtos)
 
   # ${CMAKE_CURRENT_BINARY_DIR} makes <containerd/*.pb.h> available to callers;
   # ${CMAKE_CURRENT_BINARY_DIR}/containerd resolves the generated cross-includes
-  # ("types/<name>.pb.h") the service headers emit.
+  # ("types/<name>.pb.h", "google/rpc/status.pb.h") the service headers emit.
   target_include_directories(osquery_proto_containerd PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}/containerd

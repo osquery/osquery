@@ -16,6 +16,7 @@
 
 #include <containerd/containers.grpc.pb.h>
 #include <containerd/images.grpc.pb.h>
+#include <containerd/introspection.grpc.pb.h>
 #include <containerd/namespace.grpc.pb.h>
 #include <containerd/snapshots.grpc.pb.h>
 #include <containerd/tasks.grpc.pb.h>
@@ -23,7 +24,6 @@
 // Include Linux-specific functionality for reading namespace information
 #include <osquery/filesystem/linux/proc.h>
 
-#include <array>
 #include <charconv>
 #include <chrono>
 #include <memory>
@@ -61,10 +61,6 @@ FLAG(string,
 namespace tables {
 
 namespace {
-
-// Common snapshotters supported by containerd
-constexpr std::array<const char*, 4> kSnapshotters = {
-    "overlayfs", "native", "btrfs", "zfs"};
 
 // Timeout for gRPC calls to prevent indefinite blocking on unresponsive
 // containerd
@@ -428,56 +424,54 @@ std::string mapSnapshotKind(containerd::services::snapshots::v1::Kind kind) {
 }
 
 /**
- * @brief Discover which snapshotters are actually available in a namespace.
+ * @brief Return the names of the daemon's usable snapshotter plugins.
  *
- * Performance optimization: Instead of querying all 4 snapshotters (overlayfs,
- * native, btrfs, zfs), discover which ones actually exist. Most containerd
- * installations only use overlayfs, making this a 4x improvement.
- *
- * @param conn ContainerdConnection object
- * @param namespace_name Containerd namespace to check
- * @return Vector of available snapshotter names
+ * The Introspection Plugins API enumerates every registered snapshotter
+ * (overlayfs, devmapper, stargz, nydus, ...), so discovery does not depend on a
+ * fixed list of known names. Snapshotters are daemon-global, so this is queried
+ * once rather than per namespace. A plugin with init_err set failed to
+ * initialize and cannot serve requests, so it is omitted.
  */
 std::vector<std::string> getAvailableSnapshotters(
-    const ContainerdConnection& conn, const std::string& namespace_name) {
+    const ContainerdConnection& conn) {
   std::vector<std::string> result;
-  result.reserve(kSnapshotters.size());
 
-  for (const auto* snapshotter : kSnapshotters) {
-    containerd::services::snapshots::v1::Snapshots::Stub* stub = nullptr;
-    if (!conn.getStub<containerd::services::snapshots::v1::Snapshots>(&stub)) {
-      VLOG(1) << "Failed to create snapshots stub";
-      continue;
-    }
-
-    containerd::services::snapshots::v1::ListSnapshotsRequest request;
-    request.set_snapshotter(snapshotter);
-
-    grpc::ClientContext context;
-    createContextWithTimeout(context, namespace_name);
-
-    auto reader = stub->List(&context, request);
-    StreamReaderGuard guard(reader.get());
-
-    containerd::services::snapshots::v1::ListSnapshotsResponse response;
-    // Try to read one response - if successful, snapshotter exists
-    if (reader->Read(&response)) {
-      result.emplace_back(snapshotter);
-    }
-
-    // Finish the stream - explicit call allows us to check the status
-    grpc::Status status = guard.Finish();
-    // NOT_FOUND is expected for non-configured snapshotters, other errors are
-    // worth noting
-    if (!status.ok() && status.error_code() != grpc::StatusCode::NOT_FOUND) {
-      VLOG(1) << "Error checking snapshotter " << snapshotter
-              << " in namespace " << namespace_name << ": "
-              << status.error_message();
-    }
+  containerd::services::introspection::v1::Introspection::Stub* stub = nullptr;
+  if (!conn.getStub<containerd::services::introspection::v1::Introspection>(
+          &stub)) {
+    LOG(WARNING) << "Failed to create containerd introspection stub";
+    return result;
   }
 
-  VLOG(1) << "Found " << result.size()
-          << " configured snapshotters in namespace " << namespace_name;
+  containerd::services::introspection::v1::PluginsRequest request;
+  request.add_filters("type==io.containerd.snapshotter.v1");
+
+  containerd::services::introspection::v1::PluginsResponse response;
+  grpc::ClientContext context;
+  createContextWithTimeout(context);
+
+  grpc::Status status = stub->Plugins(&context, request, &response);
+  if (!status.ok()) {
+    LOG(WARNING) << "Error listing containerd plugins: "
+                 << status.error_message();
+    return result;
+  }
+
+  for (const auto& plugin : response.plugins()) {
+    // The request filter is advisory; a daemon that ignores it would return
+    // other plugin types, so the type is the authoritative check here.
+    if (plugin.type() != "io.containerd.snapshotter.v1") {
+      continue;
+    }
+    if (plugin.has_init_err()) {
+      VLOG(1) << "Skipping snapshotter " << plugin.id()
+              << " that failed to initialize: " << plugin.init_err().message();
+      continue;
+    }
+    result.push_back(plugin.id());
+  }
+
+  VLOG(1) << "Found " << result.size() << " usable snapshotters";
   return result;
 }
 
@@ -985,18 +979,16 @@ QueryData genContainerdSnapshots(QueryContext& context) {
 
   const auto namespaces = getNamespacesToQuery(conn, context);
 
+  // Snapshotters are daemon-global, so discover them once rather than per
+  // namespace.
+  const auto snapshotters = getAvailableSnapshotters(conn);
+
   QueryData results;
   // Reserve space: estimate 20 snapshots per namespace per snapshotter
-  // Actual allocation will be smaller if fewer snapshotters are configured
-  results.reserve(namespaces.size() * kSnapshotters.size() * 20);
+  results.reserve(namespaces.size() * snapshotters.size() * 20);
 
   for (const auto& namespace_name : namespaces) {
-    // Discover which snapshotters are actually available
-    // Most systems only use overlayfs, so this avoids 3 unnecessary queries
-    const auto available_snapshotters =
-        getAvailableSnapshotters(conn, namespace_name);
-
-    for (const auto& snapshotter : available_snapshotters) {
+    for (const auto& snapshotter : snapshotters) {
       for (const auto& info :
            listSnapshots(conn, namespace_name, snapshotter)) {
         Row r;
@@ -1108,19 +1100,17 @@ QueryData genContainerdSnapshotLabels(QueryContext& context) {
 
   const auto namespaces = getNamespacesToQuery(conn, context);
 
+  // Snapshotters are daemon-global, so discover them once rather than per
+  // namespace.
+  const auto snapshotters = getAvailableSnapshotters(conn);
+
   QueryData results;
   // Reserve space: estimate 20 snapshots * 2 labels per namespace per
-  // snapshotter Actual allocation will be smaller if fewer snapshotters are
-  // configured
-  results.reserve(namespaces.size() * kSnapshotters.size() * 40);
+  // snapshotter
+  results.reserve(namespaces.size() * snapshotters.size() * 40);
 
   for (const auto& namespace_name : namespaces) {
-    // Discover which snapshotters are actually available
-    // Most systems only use overlayfs, so this avoids 3 unnecessary queries
-    const auto available_snapshotters =
-        getAvailableSnapshotters(conn, namespace_name);
-
-    for (const auto& snapshotter : available_snapshotters) {
+    for (const auto& snapshotter : snapshotters) {
       for (const auto& info :
            listSnapshots(conn, namespace_name, snapshotter)) {
         // Use extractLabelsFromEntity with a lambda that captures snapshotter

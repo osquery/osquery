@@ -20,14 +20,23 @@ This directory contains Protocol Buffer (`.proto`) definitions for containerd's 
 |------|-------------|---------|
 | `containers.proto` | Container lifecycle management | `containerd.services.containers.v1.Containers` |
 | `images.proto` | Image storage and metadata | `containerd.services.images.v1.Images` |
+| `introspection.proto` | Plugin/runtime introspection (used for snapshotter discovery) | `containerd.services.introspection.v1.Introspection` |
 | `namespace.proto` | Namespace isolation | `containerd.services.namespaces.v1.Namespaces` |
 | `snapshots.proto` | Snapshot (filesystem layer) management | `containerd.services.snapshots.v1.Snapshots` |
 | `tasks.proto` | Running container process management | `containerd.services.tasks.v1.Tasks` |
-| `types/*.proto` | Shared message types the services import (`descriptor`, `mount`, `metrics`, `task/task`) | `containerd.types`, `containerd.v1.types` |
+| `types/*.proto` | Shared message types the services import (`descriptor`, `mount`, `metrics`, `task/task`, `introspection`, `platform`) | `containerd.types`, `containerd.v1.types` |
 
 The `types/` files are the transitive imports of the services above and are copied
 verbatim from the same containerd tag; the directory layout mirrors containerd's
 `api/` so the `import "types/..."` statements resolve unchanged.
+
+`introspection.proto` additionally imports `google/rpc/status.proto`, which is not
+part of protobuf. gRPC vendors it but builds it only in its internal upb form, so there
+is no C++ `google::rpc::Status` to link against. That file is therefore vendored here as
+`google/rpc/status.proto` (verbatim, Apache-2.0) and its C++ is generated alongside the
+containerd protos. Vendoring it — rather than referencing gRPC's copy — keeps the build
+independent of gRPC's nested `third_party/googleapis` submodule, which osquery's build
+does not check out.
 
 ## Build Process
 
@@ -53,7 +62,8 @@ The generated headers are included as:
 ```cpp
 #include <containerd/containers.grpc.pb.h>
 #include <containerd/images.grpc.pb.h>
-#include <containerd/namespaces.grpc.pb.h>
+#include <containerd/introspection.grpc.pb.h>
+#include <containerd/namespace.grpc.pb.h>
 #include <containerd/snapshots.grpc.pb.h>
 #include <containerd/tasks.grpc.pb.h>
 ```
@@ -103,22 +113,12 @@ cp /tmp/containerd/api/services/snapshots/v1/snapshots.proto osquery/proto/conta
 cp /tmp/containerd/api/services/tasks/v1/tasks.proto osquery/proto/containerd/
 ```
 
-### Step 4: Add Copyright Headers
+### Step 4: Keep the Upstream License Header
 
-Add osquery copyright header to each file:
-```proto
-/**
- * Copyright (c) 2014-present, The osquery authors
- *
- * This source code is licensed as defined by the LICENSE file found in the
- * root directory of this source tree.
- *
- * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
- */
-
-syntax = "proto3";
-// ... rest of proto file
-```
+Do **not** modify the copied files. Each `.proto` keeps its upstream
+"Copyright The containerd Authors" Apache-2.0 header unchanged; do not replace it
+with osquery's header. The files are vendored verbatim so their license and wire
+definitions stay identical to the containerd release they came from.
 
 ### Step 5: Handle Proto Dependencies
 
