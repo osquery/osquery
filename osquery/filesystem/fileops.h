@@ -135,6 +135,7 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
 #define PF_NONBLOCK 0x0020
 #define PF_APPEND 0x0040
+#define PF_NOATIME 0x0080
 
 /**
  * @brief Modes for seeking through a file.

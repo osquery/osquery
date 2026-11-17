@@ -76,6 +76,8 @@ Status readFile(const boost::filesystem::path& path,
  * @param path the path of the file that you would like to read.
  * @param predicate the callback to be called when a chunk is successfully read.
  * @param shouldLog emit log messages using default logger for read size errors.
+ * @param preserveAccessTime request that supported platforms avoid updating
+ * the file access time while reading.
  * @return an instance of Status, indicating success or failure.
  *
  * Functionally behaves the same as the readFile without callback,
@@ -85,7 +87,8 @@ Status readFile(const boost::filesystem::path& path,
  */
 Status readFile(const boost::filesystem::path& path,
                 std::function<void(std::string_view)> predicate,
-                bool shouldLog = true);
+                bool shouldLog = true,
+                bool preserveAccessTime = false);
 
 /**
  * @brief Write text to disk.

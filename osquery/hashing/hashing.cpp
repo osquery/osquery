@@ -129,7 +129,8 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
                              }
                            }
                          }),
-                         false);
+                         false,
+                         true);
 
   if (!status.ok()) {
     VLOG(1) << "Failed to hash " << path << ": " << status.getMessage();
