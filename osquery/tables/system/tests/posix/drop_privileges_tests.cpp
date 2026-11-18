@@ -50,16 +50,17 @@ TEST_F(DropPrivilegesTests, test_unknown_user_drop) {
     return;
   }
 
-  auto nobody = getpwnam("nobody");
-  ASSERT_NE(nobody, nullptr);
+  // Root can drop to any IDs, they do not need to belong to an account.
+  const uid_t fallback_uid{65534};
+  const gid_t fallback_gid{65534};
 
   {
     auto dropper = DropPrivileges::get();
     EXPECT_TRUE(
-        dropper->dropToUserOrIds(unknown_user, nobody->pw_uid, nobody->pw_gid));
+        dropper->dropToUserOrIds(unknown_user, fallback_uid, fallback_gid));
     EXPECT_TRUE(dropper->dropped_);
-    EXPECT_EQ(geteuid(), nobody->pw_uid);
-    EXPECT_EQ(getegid(), nobody->pw_gid);
+    EXPECT_EQ(geteuid(), fallback_uid);
+    EXPECT_EQ(getegid(), fallback_gid);
   }
 
   // Now that the dropper is gone, the effective user/group should be restored.
