@@ -47,7 +47,11 @@ bool isReaderWriterPair(const pipe_info& p1, const pipe_info& p2) {
 }
 
 bool isUnconnectedPipe(ino_t inode, const InodeToPipesMap& pipe_partners) {
-  return (pipe_partners.at(inode).size() == 1);
+  auto it = pipe_partners.find(inode);
+  if (it == pipe_partners.end()) {
+    return false;
+  }
+  return (it->second.size() == 1);
 }
 
 int parseInode(const std::string& pipe_str) {
@@ -180,7 +184,11 @@ void genResults(const std::string& process,
 
   for (const auto& ps :
        pipe_desc_iter->second) { // iterate over vector of pipe_info
-    for (const auto& partner_ps : pipe_partners.at(ps.get().inode)) {
+    auto partner_it = pipe_partners.find(ps.get().inode);
+    if (partner_it == pipe_partners.end()) {
+      continue;
+    }
+    for (const auto& partner_ps : partner_it->second) {
       if (isUnconnectedPipe(ps.get().inode, pipe_partners)) {
         createRow(process, ps, results);
       } else if (isSamePipe(ps, partner_ps) ||

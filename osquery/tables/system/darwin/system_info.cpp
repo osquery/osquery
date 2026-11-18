@@ -9,6 +9,7 @@
 
 #include <mach/mach.h>
 #include <sys/sysctl.h>
+#include <vector>
 
 #include <IOKit/IOKitLib.h>
 #include <SystemConfiguration/SystemConfiguration.h>
@@ -32,20 +33,18 @@ namespace tables {
  */
 std::string getSysctlString(const std::string& name) {
   size_t len = 0;
-  std::string ret;
+  sysctlbyname(name.c_str(), nullptr, &len, nullptr, 0);
 
-  sysctlbyname(name.c_str(), NULL, &len, NULL, 0);
-
-  if (len > 0) {
-    char* value = (char*)malloc(len);
-    if (!sysctlbyname(name.c_str(), value, &len, NULL, 0)) {
-      ret = value;
-    }
-
-    free(value);
+  if (len == 0) {
+    return {};
   }
 
-  return ret;
+  std::vector<char> value(len);
+  if (sysctlbyname(name.c_str(), value.data(), &len, nullptr, 0) != 0) {
+    return {};
+  }
+
+  return std::string(value.data(), len - 1);
 }
 
 static inline void genHostInfo(Row& r) {

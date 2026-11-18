@@ -39,8 +39,11 @@ QueryData genSystemInfo(QueryContext& context) {
   const auto wmiSystemReq =
       WmiRequest::CreateWmiRequest("select * from Win32_ComputerSystem");
   auto wmiExecutedSuccessful = wmiSystemReq.isValue();
+  // Why not select * here?  Because we only use NumberOfCores out of this
+  // structure, however getting the full structure takes a 1s per CPU core
+  // penalty, which really hurts on large CPU systems
   const auto wmiSystemReqProc =
-      WmiRequest::CreateWmiRequest("select * from Win32_Processor");
+      WmiRequest::CreateWmiRequest("select NumberOfCores from Win32_Processor");
   wmiExecutedSuccessful &= wmiSystemReqProc.isValue();
   if (wmiExecutedSuccessful && !wmiSystemReq->results().empty() &&
       !wmiSystemReqProc->results().empty()) {
@@ -56,6 +59,24 @@ QueryData genSystemInfo(QueryContext& context) {
     r["cpu_physical_cores"] = INTEGER(numProcs);
     wmiResults[0].GetString("Manufacturer", r["hardware_vendor"]);
     wmiResults[0].GetString("Model", r["hardware_model"]);
+
+    // For Lenovo models, the hardware_model property is not set propertly.
+    // Instead we can get the required info from the Win32_ComputerSystemProduct
+    // table.
+    std::string lcModel = r["hardware_vendor"];
+    std::transform(lcModel.begin(), lcModel.end(), lcModel.begin(), ::tolower);
+    if (lcModel == "lenovo") {
+      std::string version = r["hardware_model"];
+      const auto wmiSystemProductReq = WmiRequest::CreateWmiRequest(
+          "select * from Win32_ComputerSystemProduct");
+      if (wmiSystemProductReq.isValue() &&
+          !wmiSystemProductReq->results().empty()) {
+        const std::vector<WmiResultItem>& wmiProductResults =
+            wmiSystemProductReq->results();
+        wmiProductResults[0].GetString("Version", r["hardware_model"]);
+        r["hardware_version"] = version;
+      }
+    }
   } else {
     r["cpu_logical_cores"] = "-1";
     r["cpu_sockets"] = "-1";
@@ -98,7 +119,10 @@ QueryData genSystemInfo(QueryContext& context) {
             tryTo<unsigned long int>(key.at("data").substr(8, 2), 16);
         r["cpu_microcode"] = std::to_string(revision_exp.takeOr(0ul));
       }
-      break;
+    } else if (key.at("name") == "ProcessorNameString" &&
+               r.find("cpu_brand") == r.end()) {
+      r["cpu_brand"] = key.at("data");
+      boost::trim(r["cpu_brand"]);
     }
   }
 
@@ -131,8 +155,29 @@ QueryData genSystemInfo(QueryContext& context) {
     break;
   }
 
+  // If we're running in ARM x86 emulation, we can get the true processor type
+  // Only available on Win 10 and later
+  typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS2)(
+      HANDLE hProcess, USHORT * pProcessMachine, USHORT * pNativeMachine);
+
+  auto pIsWow64Process2 = reinterpret_cast<LPFN_ISWOW64PROCESS2>(
+      GetProcAddress(GetModuleHandle(L"kernel32.dll"), "IsWow64Process2"));
+  if (pIsWow64Process2 != nullptr) {
+    USHORT pProcessMachine, pNativeMachine;
+
+    if (pIsWow64Process2(
+            GetCurrentProcess(), &pProcessMachine, &pNativeMachine)) {
+      if (pNativeMachine == IMAGE_FILE_MACHINE_ARM64) {
+        r["emulated_cpu_type"] = r["cpu_type"];
+        r["cpu_type"] = "ARM";
+      }
+    }
+  }
+
   r["cpu_subtype"] = "-1";
-  r["hardware_version"] = "-1";
+  if (r["hardware_version"] == "") {
+    r["hardware_version"] = "-1";
+  }
   return {r};
 }
 }

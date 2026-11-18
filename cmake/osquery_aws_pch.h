@@ -1,0 +1,29 @@
+/**
+ * Copyright (c) 2014-present, The osquery authors
+ *
+ * This source code is licensed as defined by the LICENSE file found in the
+ * root directory of this source tree.
+ *
+ * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
+ */
+
+// Precompiled header for the AWS SDK third-party targets.
+//
+// These headers were identified as the most expensive in ClangBuildAnalyzer.
+//
+// Applied to thirdparty_aws-cpp-sdk-core and reused by all other SDK targets.
+// All include paths below are available via the INTERFACE include directories
+// exported by thirdparty_aws-cpp-sdk-core.
+
+#pragma once
+
+#include <utility>
+
+#include <aws/core/AmazonSerializableWebServiceRequest.h>
+#include <aws/core/AmazonWebServiceRequest.h>
+#include <aws/core/AmazonWebServiceResult.h>
+#include <aws/core/utils/json/JsonSerializer.h>
+#include <aws/core/utils/memory/AWSMemory.h>
+#include <aws/core/utils/memory/stl/AWSMap.h>
+#include <aws/core/utils/memory/stl/AWSString.h>
+#include <aws/core/utils/memory/stl/AWSVector.h>

@@ -6,31 +6,21 @@
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
 function(osqueryDispatcherTestsMain)
-  generateOsqueryDispatcherTestsTest()
-  generateOsqueryDispatcherTestsSchedulerTest()
+  generateOsqueryDispatcherTestsMergedtestsTest()
 endfunction()
 
-function(generateOsqueryDispatcherTestsTest)
-  add_osquery_executable(osquery_dispatcher_tests-test dispatcher.cpp)
+function(generateOsqueryDispatcherTestsMergedtestsTest)
+  set(source_files
+    dispatcher.cpp
+    scheduler.cpp
+  )
 
-  target_link_libraries(osquery_dispatcher_tests-test PRIVATE
+  add_osquery_executable(osquery_dispatcher_tests_mergedtests-test ${source_files})
+
+  target_link_libraries(osquery_dispatcher_tests_mergedtests-test PRIVATE
     osquery_cxx_settings
     osquery_database
     osquery_dispatcher
-    osquery_extensions
-    osquery_extensions_implthrift
-    osquery_registry
-    tests_helper
-    thirdparty_googletest
-  )
-endfunction()
-
-function(generateOsqueryDispatcherTestsSchedulerTest)
-  add_osquery_executable(osquery_dispatcher_tests_scheduler-test scheduler.cpp)
-
-    target_link_libraries(osquery_dispatcher_tests_scheduler-test PRIVATE
-    osquery_cxx_settings
-    osquery_database
     osquery_dispatcher_scheduler
     osquery_extensions
     osquery_extensions_implthrift

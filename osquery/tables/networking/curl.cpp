@@ -18,14 +18,27 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <osquery/logger/logger.h>
-#include <osquery/utils/status/status.h>
 #include <osquery/core/tables.h>
+#include <osquery/logger/logger.h>
+#include <osquery/tables/networking/curl.h>
+#include <osquery/utils/status/status.h>
+
+#include <algorithm>
 
 namespace osquery {
 namespace tables {
 
 const std::string kOsqueryUserAgent{"osquery"};
+
+std::string sanitizeHttpHeaderValue(const std::string& value) {
+  std::string result;
+  result.reserve(value.size());
+  std::copy_if(
+      value.begin(), value.end(), std::back_inserter(result), [](char c) {
+        return c != '\r' && c != '\n';
+      });
+  return result;
+}
 
 Status processRequest(Row& r) {
   try {
@@ -75,8 +88,10 @@ QueryData genCurl(QueryContext& context) {
     Row r;
     r["url"] = request;
     r["method"] = "GET";
-    r["user_agent"] =
-        user_agents.empty() ? kOsqueryUserAgent : *(user_agents.begin());
+    // Sanitize user_agent to prevent HTTP header injection (CRLF injection)
+    r["user_agent"] = user_agents.empty()
+                          ? kOsqueryUserAgent
+                          : sanitizeHttpHeaderValue(*(user_agents.begin()));
 
     auto status = processRequest(r);
     if (!status.ok()) {

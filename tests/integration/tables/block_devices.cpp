@@ -37,6 +37,7 @@ TEST_F(blockDevices, test_sanity) {
   //      {"parent", NormalType}
   //      {"vendor", NormalType}
   //      {"model", NormalType}
+  //      {"serial", NormalType}
   //      {"size", IntType}
   //      {"block_size", IntType}
   //      {"uuid", NormalType}

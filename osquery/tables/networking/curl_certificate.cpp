@@ -299,6 +299,9 @@ Status getTLSCertificate(const std::string& hostname,
     return Status::failure("Failed to create OpenSSL CTX object");
   }
 
+  // Do not negotiate TLS 1.0 or 1.1, as done by the TLS transport.
+  SSL_CTX_set_options(ctx.get(), SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+
   std::string port = "443";
   auto connect_hostname = hostname;
   auto delim = hostname.find(":");
@@ -408,7 +411,8 @@ Status getTLSCertificate(const std::string& hostname,
   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
   auto cert_failure = Status::failure("No certificate");
   ret = SSL_connect(ssl);
-  if (ret != 1) {
+  const bool handshake_complete = (ret == 1);
+  if (!handshake_complete) {
     cert_failure = Status::failure("Failed to begin TLS handshake: " +
                                    std::to_string(ret));
   }
@@ -423,6 +427,30 @@ Status getTLSCertificate(const std::string& hostname,
   Row r;
   r["hostname"] = hostname;
   fillRow(r, cert.get(), dump_certificate, timeout);
+
+  // The negotiated cipher describes the connection rather than the
+  // certificate, and is only meaningful once the handshake has completed.
+  if (handshake_complete) {
+    auto tls_version = SSL_get_version(ssl);
+    if (tls_version != nullptr) {
+      r["tls_version"] = tls_version;
+    }
+
+    auto cipher = SSL_get_current_cipher(ssl);
+    if (cipher != nullptr) {
+      auto cipher_name = SSL_CIPHER_standard_name(cipher);
+      if (cipher_name == nullptr) {
+        cipher_name = SSL_CIPHER_get_name(cipher);
+      }
+
+      if (cipher_name != nullptr) {
+        r["cipher_suite"] = cipher_name;
+      }
+
+      r["cipher_bits"] = INTEGER(SSL_CIPHER_get_bits(cipher, nullptr));
+    }
+  }
+
   results.push_back(r);
   return Status::success();
 }

@@ -28,7 +28,11 @@ namespace osquery {
 namespace tables {
 namespace {
 
+// https://github.com/libyal/libscca/blob/main/documentation/Windows%20Prefetch%20File%20(PF)%20format.asciidoc
+// looks like the best resource for the Prefetch file format.
+
 const std::string kPrefetchLocation = (getSystemRoot() / "Prefetch\\").string();
+const unsigned int kPrefetchVersionWindows11 = 31;
 const unsigned int kPrefetchVersionWindows10 = 30;
 const unsigned int kPrefetchVersionWindows8 = 26;
 const unsigned int kPrefetchVersionWindows7 = 23;
@@ -47,6 +51,7 @@ struct PrefetchFileInfo {
   LONGLONG last_run_time;
   std::string run_times;
   size_t run_count;
+  std::string executable_path;
 };
 
 struct PrefetchVolumeInfo {
@@ -103,7 +108,10 @@ typedef struct _PREFETCH_FILE_INFORMATION {
       FILETIME OtherRunTimes[7];
       DWORD Reserved2[2];
       DWORD RunCount;
-    } v30v2;
+      DWORD Reserved3[2];
+      DWORD HashStringOffset;
+      DWORD HashStringSize;
+    } v30v2, v31; // v31 does not seem to have substantial differences.
   } ext;
 } PREFETCH_FILE_INFORMATION, *PPREFETCH_FILE_INFORMATION;
 
@@ -126,6 +134,22 @@ typedef struct _DIRECTORY_STRING {
 #pragma pack(pop)
 
 } // namespace
+
+std::string parseExecutablePath(const std::vector<UCHAR>& data,
+                                DWORD hash_string_offset,
+                                DWORD hash_string_size) {
+  if (hash_string_offset == 0 ||
+      hash_string_offset + hash_string_size > data.size()) {
+    return {};
+  }
+  auto path_wstr = (PWCHAR)(&data[0] + hash_string_offset);
+  auto max_wchars = hash_string_size / sizeof(WCHAR);
+  auto path_len = wcsnlen_s(path_wstr, max_wchars);
+  if (path_len == 0 || path_len >= max_wchars) {
+    return {};
+  }
+  return wstringToString(path_wstr);
+}
 
 PrefetchHeader parseHeader(const PREFETCH_FILE_HEADER* header) {
   PrefetchHeader result;
@@ -151,6 +175,7 @@ PrefetchFileInfo parseFileInfo(
 
   switch (version) {
   case kPrefetchVersionWindows10:
+  case kPrefetchVersionWindows11:
     last_run_time = prefetch_file_info->ext.v30v2.LastRunTime;
     result.run_count = prefetch_file_info->ext.v30v2.RunCount;
     for (const auto& entry : prefetch_file_info->ext.v30v2.OtherRunTimes) {
@@ -160,7 +185,10 @@ PrefetchFileInfo parseFileInfo(
       }
     }
     result.run_times = osquery::join(run_times, ",");
-
+    result.executable_path =
+        parseExecutablePath(data,
+                            prefetch_file_info->ext.v30v2.HashStringOffset,
+                            prefetch_file_info->ext.v30v2.HashStringSize);
     break;
   case kPrefetchVersionWindows8:
     last_run_time = prefetch_file_info->ext.v26.LastRunTime;
@@ -297,10 +325,12 @@ void parsePrefetchData(RowYield& yield,
   }
 
   const auto version = prefetch_header->Version;
-  if (version != kPrefetchVersionWindows10 &&
+  if (version != kPrefetchVersionWindows11 &&
+      version != kPrefetchVersionWindows10 &&
       version != kPrefetchVersionWindows7 &&
       version != kPrefetchVersionWindows8) {
-    LOG(INFO) << "Unsupported prefetch file version: " << file_path;
+    LOG(INFO) << "Unsupported prefetch file version ("
+              << prefetch_header->Version << "): " << file_path;
     return;
   }
 
@@ -314,6 +344,7 @@ void parsePrefetchData(RowYield& yield,
   auto r = make_table_row();
   r["path"] = file_path;
   r["filename"] = SQL_TEXT(header.filename);
+  r["executable_path"] = SQL_TEXT(file_info.executable_path);
   r["hash"] = header.prefetch_hash;
   r["size"] = INTEGER(header.file_size);
   r["accessed_files_count"] = INTEGER(file_info.files_count);
@@ -339,7 +370,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
       (std::istreambuf_iterator<char>()));
   input_file.close();
 
-  if (compressed_data.size() < sizeof(PPREFETCH_COMPRESSED_HEADER)) {
+  if (compressed_data.size() < sizeof(PREFETCH_COMPRESSED_HEADER)) {
     // Not enough data to determine header size.
     return;
   }
@@ -359,7 +390,7 @@ void parsePrefetch(const std::string& file_path, RowYield& yield) {
     data = std::move(compressed_data);
   }
 
-  if (data.size() < sizeof(PPREFETCH_FILE_HEADER)) {
+  if (data.size() < sizeof(PREFETCH_FILE_HEADER)) {
     // Not enough data to determine signature.
     return;
   }

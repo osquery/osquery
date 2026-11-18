@@ -397,7 +397,7 @@ if args.create_issues:
             library_name = library["name"]
 
             try:
-                issue_description = f"{cve.url}\n\n{cve.description}"
+                issue_description = f"{cve.url}\n\n{cve.description}\n\nNOTE: This is an automated issue created based on the library metadata. Osquery may or may not be affected."
 
                 github_api.createIssue(
                     f"Library {library_name} has vulnerability {cve.name}",

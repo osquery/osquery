@@ -21,6 +21,16 @@ function(generateInstallDirectives)
     )
 
     install(
+      FILES "tools/deployment/linux_packaging/deb/postrm"
+      DESTINATION "/control/deb"
+
+      PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ             GROUP_EXECUTE
+        WORLD_READ             WORLD_EXECUTE
+    )
+
+    install(
       FILES "tools/deployment/linux_packaging/deb/osqueryd.service"
       DESTINATION "/control/deb/lib/systemd/system"
     )

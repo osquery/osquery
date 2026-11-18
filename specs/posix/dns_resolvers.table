@@ -1,5 +1,5 @@
 table_name("dns_resolvers")
-description("Resolvers used by this host.")
+description("Resolvers used by this host. Note: On Windows this data is available in the interface_details table.")
 schema([
     Column("id", INTEGER, "Address type index or order"),
     Column("type", TEXT, "Address type: sortlist, nameserver, search"),

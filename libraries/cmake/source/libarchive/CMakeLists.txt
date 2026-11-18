@@ -33,11 +33,11 @@ function(libarchiveMain)
     "${library_root}/libarchive/archive_entry_stat.c"
     "${library_root}/libarchive/archive_entry_strmode.c"
     "${library_root}/libarchive/archive_entry_xattr.c"
-    "${library_root}/libarchive/archive_getdate.c"
     "${library_root}/libarchive/archive_hmac.c"
     "${library_root}/libarchive/archive_match.c"
     "${library_root}/libarchive/archive_options.c"
     "${library_root}/libarchive/archive_pack_dev.c"
+    "${library_root}/libarchive/archive_parse_date.c"
     "${library_root}/libarchive/archive_pathmatch.c"
     "${library_root}/libarchive/archive_ppmd7.c"
     "${library_root}/libarchive/archive_ppmd8.c"
@@ -91,6 +91,7 @@ function(libarchiveMain)
     "${library_root}/libarchive/archive_read_support_format_zip.c"
     "${library_root}/libarchive/archive_string.c"
     "${library_root}/libarchive/archive_string_sprintf.c"
+    "${library_root}/libarchive/archive_time.c"
     "${library_root}/libarchive/archive_util.c"
     "${library_root}/libarchive/archive_version_details.c"
     "${library_root}/libarchive/archive_virtual.c"
@@ -170,10 +171,28 @@ function(libarchiveMain)
     target_compile_definitions(thirdparty_libarchive PRIVATE
       _CRT_SECURE_NO_DEPRECATE
     )
+
+    # libarchive 3.8.x dropped the deprecated WinCrypt fallback, so the
+    # ARCHIVE_CRYPTO_*_WIN digest backends now require CNG (bcrypt).
+    target_link_libraries(thirdparty_libarchive PRIVATE
+      bcrypt
+    )
   endif()
 
   target_link_libraries(thirdparty_libarchive PRIVATE
     thirdparty_c_settings
+  )
+
+  # Add Zlib support
+  add_library(zlibstatic ALIAS thirdparty_zlib)
+  target_include_directories(thirdparty_libarchive PRIVATE
+    "${CMAKE_BINARY_DIR}/libraries/cmake/source/zlib/src"
+  )
+  target_compile_definitions(thirdparty_libarchive PRIVATE
+    HAVE_ZLIB_H
+  )
+  target_link_libraries(thirdparty_libarchive PRIVATE
+    zlibstatic
   )
 endfunction()
 

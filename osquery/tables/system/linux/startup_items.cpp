@@ -25,6 +25,45 @@ namespace tables {
 const std::vector<std::string> kSystemItemPaths = {"/etc/xdg/autostart/"};
 const std::vector<std::string> kSystemScriptPaths = {"/etc/init.d/"};
 
+void parseDesktopEntry(const std::string& content, Row& r) {
+  // Only keys in the [Desktop Entry] group describe the autostart item.
+  // Other groups, such as [Desktop Action ...], reuse the same key names.
+  // Keys that appear before any group header are kept, as before.
+  bool in_desktop_entry = true;
+  for (const auto& raw_line : osquery::split(content, "\n")) {
+    // Trim before classifying the line: CRLF files leave a '\r' on every
+    // line, and a group header may have trailing spaces.
+    auto line = boost::algorithm::trim_copy(raw_line);
+    if (line.empty() || line[0] == '#') {
+      continue;
+    }
+
+    if (line[0] == '[') {
+      in_desktop_entry = (line == "[Desktop Entry]");
+      continue;
+    }
+
+    if (!in_desktop_entry) {
+      continue;
+    }
+
+    // Split on the first '=' only. Values such as Exec commonly contain
+    // more of them (for example "Exec=env FOO=bar app").
+    auto pos = line.find('=');
+    if (pos == std::string::npos) {
+      continue;
+    }
+
+    auto key = boost::algorithm::trim_copy(line.substr(0, pos));
+    auto value = boost::algorithm::trim_copy(line.substr(pos + 1));
+    if (key == "Name") {
+      r["name"] = std::move(value);
+    } else if (key == "Exec") {
+      r["path"] = std::move(value);
+    }
+  }
+}
+
 void genAutoStartItems(const std::string& sysdir, QueryData& results) {
   std::vector<std::string> dirFiles;
   auto s = osquery::listFilesInDirectory(sysdir, dirFiles, false);
@@ -35,20 +74,7 @@ void genAutoStartItems(const std::string& sysdir, QueryData& results) {
     Row r;
     std::string content;
     if (readFile(file, content)) {
-      for (const auto& line : osquery::split(content, "\n")) {
-        if (line.find("Name=") == 0) {
-          auto details = osquery::split(line, "=");
-          if (details.size() == 2) {
-            r["name"] = details[1];
-          }
-        }
-        if (line.find("Exec=") == 0) {
-          auto details = osquery::split(line, "=");
-          if (details.size() == 2) {
-            r["path"] = details[1];
-          }
-        }
-      }
+      parseDesktopEntry(content, r);
     }
     r["type"] = "Startup Item";
     r["status"] = "enabled";

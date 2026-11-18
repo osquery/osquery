@@ -156,9 +156,9 @@ Status Carver::createPaths() {
   // TODO: Adding in a manifest file of all carved files might be nice.
   carveDir_ =
       fs::temp_directory_path() / fs::path(kCarvePathPrefix + carveGuid_);
-  auto ret = fs::create_directory(carveDir_);
-  if (!ret) {
-    return Status::failure("Failed to create carve file store");
+  auto s = platformCreatePrivateDir(carveDir_);
+  if (!s.ok()) {
+    return s;
   }
 
   // Store the path to our archive for later exfiltration
@@ -229,9 +229,10 @@ std::set<fs::path> Carver::carveAll() {
   std::set<fs::path> carvedFiles;
   for (const auto& srcPath : carvePaths_) {
     // Ensure the file is a flat file on disk before carving
-    PlatformFile src(srcPath, PF_OPEN_EXISTING | PF_READ);
-    if (!src.isValid() || isDirectory(srcPath)) {
-      VLOG(1) << "File does not exist on disk or is subdirectory: " << srcPath;
+    PlatformFile src(srcPath, PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+    if (!src.isValid()) {
+      VLOG(1) << "File does not exist on disk or is not a regular file: "
+              << srcPath;
       continue;
     }
 
@@ -252,6 +253,15 @@ std::set<fs::path> Carver::carveAll() {
       }
     }
 
+    // Capture source timestamps before reading the file, since read() updates
+    // atime on Linux when the filesystem is mounted with strict atime
+    // semantics.
+    PlatformTime srcTimes;
+    bool hasSrcTimes = src.getFileTimes(srcTimes);
+    if (!hasSrcTimes) {
+      VLOG(1) << "Failed to read source file timestamps: " << srcPath;
+    }
+
     PlatformFile dst(dstPath, PF_CREATE_NEW | PF_WRITE);
     if (!dst.isValid()) {
       VLOG(1) << "Destination temporary file is invalid: " << dstPath;
@@ -259,6 +269,12 @@ std::set<fs::path> Carver::carveAll() {
     }
     Status s = blockwiseCopy(src, dst);
     if (s.ok()) {
+      if (hasSrcTimes) {
+        if (!dst.setFileTimes(srcTimes)) {
+          VLOG(1) << "Failed to preserve timestamps for carved file: "
+                  << dstPath;
+        }
+      }
       carvedFiles.insert(dstPath);
     } else {
       VLOG(1) << "Failed to copy file from " << srcPath << " to " << dstPath
@@ -291,6 +307,12 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startUri = TLSRequestHelper::makeURI(FLAGS_carver_start_endpoint);
   Request<TLSTransport, JSONSerializer> startRequest(startUri);
   startRequest.setOption("hostname", FLAGS_tls_hostname);
+  auto node_key = getNodeKey("tls");
+  if (!node_key.empty()) {
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    startRequest.setOption("node_key", node_key);
+  }
 
   // Perform the start request to get the session id
   PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
@@ -299,41 +321,34 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
                                static_cast<double>(FLAGS_carver_block_size)));
   JSON startParams;
 
-  startParams.add("block_count", blkCount);
-  startParams.add("block_size", size_t(FLAGS_carver_block_size));
-  startParams.add("carve_size", pFile.size());
-  startParams.add("carve_id", carveGuid_);
-  startParams.add("request_id", requestId_);
-  startParams.add("node_key", getNodeKey("tls"));
+  startParams.addCopy("block_count", blkCount);
+  startParams.addCopy("block_size", size_t(FLAGS_carver_block_size));
+  startParams.addCopy("carve_size", pFile.size());
+  startParams.addCopy("carve_id", carveGuid_);
+  startParams.addCopy("request_id", requestId_);
+  startParams.addCopy("node_key", node_key);
 
-  auto status = startRequest.call(startParams);
+  JSON startRecv;
+  Status status = fireRequest(startRequest, startParams, startRecv);
   if (!status.ok()) {
     return status;
   }
 
   // The call succeeded, store the session id for future posts
-  JSON startRecv;
-  status = startRequest.getResponse(startRecv);
+  std::string session_id;
+  status = extractSessionId(startRecv, session_id);
   if (!status.ok()) {
     return status;
-  }
-
-  auto it = startRecv.doc().FindMember("session_id");
-  if (it == startRecv.doc().MemberEnd()) {
-    return Status(1, "No session_id received from remote endpoint");
-  }
-  if (!it->value.IsString()) {
-    return Status(1, "Invalid session_id received from remote endpoint");
-  }
-
-  std::string session_id = it->value.GetString();
-  if (session_id.empty()) {
-    return Status(1, "Empty session_id received from remote endpoint");
   }
 
   auto contUri = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
   Request<TLSTransport, JSONSerializer> contRequest(contUri);
   contRequest.setOption("hostname", FLAGS_tls_hostname);
+  if (!node_key.empty()) {
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    contRequest.setOption("node_key", node_key);
+  }
   for (size_t i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);
     auto r = pFile.read(block.data(), FLAGS_carver_block_size);
@@ -344,23 +359,82 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     }
 
     JSON params;
-    params.add("block_id", i);
-    params.add("session_id", session_id);
-    params.add("request_id", requestId_);
-    params.add("data", base64::encode(std::string(block.begin(), block.end())));
+    params.addCopy("block_id", i);
+    params.addRef("session_id", session_id);
+    params.addRef("request_id", requestId_);
+    params.addCopy("data",
+                   base64::encode(std::string(block.begin(), block.end())));
 
-    // TODO: Error sending files.
-    status = contRequest.call(params);
+    status = fireRequest(contRequest, params);
     if (!status.ok()) {
-      VLOG(1) << "Post of carved block " << i
-              << " failed: " << status.getMessage();
-      continue;
+      return status;
     }
   }
 
   updateCarveValue(carveGuid_, "status", kCarverStatusSuccess);
   return Status::success();
-};
+}
+
+Status Carver::fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params) {
+  JSON response;
+  return fireRequest(request, params, response);
+}
+
+Status Carver::fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params,
+                           JSON& response) {
+  Status status;
+  size_t attempts = 3;
+  for (size_t i = 1; i <= attempts; i++) {
+    status = sendRequest(request, params, response);
+    if (status.ok()) {
+      return status;
+    }
+
+    const auto& errMessage = "HTTP(S) request failed: " + status.getMessage();
+    if (i == attempts) {
+      VLOG(1) << errMessage << ", done retrying after " << i << " times";
+    } else {
+      auto sleep_time_seconds = i * i;
+      VLOG(1) << errMessage << ", retrying in " << sleep_time_seconds
+              << " seconds...";
+      if (waitTimeoutOrShutdown(std::chrono::seconds(sleep_time_seconds))) {
+        return Status::failure(errMessage + " (interrupted)");
+      }
+    }
+  }
+
+  return status;
+}
+
+Status Carver::sendRequest(Request<TLSTransport, JSONSerializer>& request,
+                           const JSON& params,
+                           JSON& response) {
+  auto status = request.call(params);
+  if (status.ok()) {
+    return request.getResponse(response);
+  }
+  return status;
+}
+
+Status Carver::extractSessionId(const JSON& response,
+                                std::string& session_id) const {
+  auto it = response.doc().FindMember("session_id");
+  if (it == response.doc().MemberEnd()) {
+    return Status(1, "No session_id received from remote endpoint");
+  }
+  if (!it->value.IsString()) {
+    return Status(1, "Invalid session_id received from remote endpoint");
+  }
+
+  session_id = it->value.GetString();
+  if (session_id.empty()) {
+    return Status(1, "Empty session_id received from remote endpoint");
+  }
+
+  return Status::success();
+}
 
 void scheduleCarves() {
   if (!FLAGS_disable_carver && kCarverPendingCarves &&

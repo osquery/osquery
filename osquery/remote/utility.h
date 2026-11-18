@@ -93,12 +93,18 @@ class TLSRequestHelper : private boost::noncopyable {
     if (FLAGS_tls_node_api) {
       uri_suffix = "&node_key=" + node_key;
     } else {
-      params.add("node_key", node_key);
+      params.addCopy("node_key", node_key);
     }
 
     // Again check for GET to call with/without parameters.
     Request<TLSTransport, TSerializer> request(uri + uri_suffix);
     request.setOption("hostname", FLAGS_tls_hostname);
+
+    // Add node_key as an option so we can surface it
+    // as an HTTP header.
+    if (!node_key.empty()) {
+      request.setOption("node_key", node_key);
+    }
 
     bool compress = false;
     auto it = params_doc.FindMember("_compress");
@@ -129,11 +135,11 @@ class TLSRequestHelper : private boost::noncopyable {
 
     // Restore caller-supplied parameters.
     if (force_post) {
-      params.add("_verb", "POST");
+      params.addCopy("_verb", "POST");
     }
 
     if (compress) {
-      params.add("_compress", true);
+      params.addCopy("_compress", true);
     }
 
     if (!status.ok()) {
@@ -193,7 +199,7 @@ class TLSRequestHelper : private boost::noncopyable {
   template <class TSerializer>
   static Status go(const std::string& uri, JSON& output) {
     JSON params;
-    params.add("_get", true);
+    params.addCopy("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -231,7 +237,7 @@ class TLSRequestHelper : private boost::noncopyable {
   template <class TSerializer>
   static Status go(const std::string& uri, std::string& output) {
     JSON params;
-    params.add("_get", true);
+    params.addCopy("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -260,7 +266,7 @@ class TLSRequestHelper : private boost::noncopyable {
     for (auto& m : params_doc.GetObject()) {
       std::string name = m.name.GetString();
       if (name.find('_') == 0) {
-        override_params.add(name, m.value);
+        override_params.addCopy(name, m.value);
       }
     }
 
@@ -283,7 +289,7 @@ class TLSRequestHelper : private boost::noncopyable {
       }
 
       for (auto& m : override_params_doc.GetObject()) {
-        params.add(m.name.GetString(), m.value);
+        params.addCopy(m.name.GetString(), m.value);
       }
 
       should_shutdown = waitTimeoutOrShutdown(
@@ -307,7 +313,7 @@ class TLSRequestHelper : private boost::noncopyable {
                    std::string& output,
                    const size_t attempts) {
     JSON params;
-    params.add("_get", true);
+    params.addCopy("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output, attempts);
   }
 };

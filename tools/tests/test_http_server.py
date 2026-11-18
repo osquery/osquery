@@ -10,6 +10,8 @@
 import argparse
 import base64
 from datetime import datetime
+import gzip
+import hashlib
 import json
 import os
 import random
@@ -36,6 +38,7 @@ HTTP_SERVER_KEY = "test_server.key"
 HTTP_SERVER_CA = "test_server_ca.pem"
 HTTP_SERVER_USE_ENROLL_SECRET = True
 HTTP_SERVER_ENROLL_SECRET = "test_enroll_secret.txt"
+HTTP_SERVER_REQUIRE_GZIP = False
 
 # Global accessor value for arguments passed to the server
 ARGS = None
@@ -125,6 +128,30 @@ RECEIVED_REQUESTS = []
 FILE_CARVE_DIR = "/tmp/"
 FILE_CARVE_MAP = {}
 
+# Conditional-request (etag) test state for the config endpoint.
+# CONFIG_ETAG_MODE selects the simulated server behavior:
+#   "on"        - assign an etag and honor conditional requests (default)
+#   "off"       - a legacy server: ignore the request etag entirely
+#   "always_ok" - a misbehaving server: always claim the config is unchanged
+CONFIG_ETAG_EVENTS = []
+CONFIG_PAYLOAD_OVERRIDE = None
+CONFIG_ETAG_MODE = "on"
+
+
+def _compute_etag(body_bytes):
+    """Generate an opaque server-assigned validator for a config body."""
+    digest = hashlib.sha256(body_bytes).hexdigest()
+    return "test-server-" + digest
+
+
+def _record_config_event(request_etag, etag, not_modified, body_size):
+    CONFIG_ETAG_EVENTS.append({
+        "request_etag": request_etag,
+        "etag": etag,
+        "not_modified": not_modified,
+        "body_size": body_size,
+    })
+
 
 def debug(response):
     if ARGS["verbose"]:
@@ -142,6 +169,19 @@ TIMEOUT_TIMER = None
 
 
 class RealSimpleHandler(BaseHTTPRequestHandler):
+    def _check_gzip_required(self):
+        """Check if gzip is required and client doesn't support it."""
+        if ARGS.get("require_gzip", False):
+            accept_encoding = self.headers.get("Accept-Encoding", "")
+            if "gzip" not in accept_encoding.lower():
+                self.send_error(
+                    400,
+                    "Bad Request: gzip encoding required. "
+                    "Please send 'Accept-Encoding: gzip' header.",
+                )
+                return False
+        return True
+
     def _set_headers(self):
         self.protocol_version = self.request_version
         self.send_response(200)
@@ -150,9 +190,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         reset_timeout()
         debug("RealSimpleHandler::get %s" % self.path)
+        if not self._check_gzip_required():
+            return
         self._set_headers()
         if self.path == "/config":
             self.config(request, node=True)
+        elif self.path == "/test_connection_id":
+            self.close_connection = False
+            self._reply({"client_port": self.client_address[1]})
         else:
             self._reply(TEST_GET_RESPONSE)
 
@@ -164,8 +209,11 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        global CONFIG_PAYLOAD_OVERRIDE, CONFIG_ETAG_MODE
         reset_timeout()
         debug("RealSimpleHandler::post %s" % self.path)
+        if not self._check_gzip_required():
+            return
         self._set_headers()
         content_len = int(self.headers.get("content-length", 0))
 
@@ -193,6 +241,27 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self.start_carve(request)
         elif self.path == "/carve_block":
             self.continue_carve(request)
+        elif self.path == "/set_config_payload":
+            CONFIG_PAYLOAD_OVERRIDE = request.get("payload")
+            self._reply({})
+        elif self.path == "/set_config_etag_mode":
+            CONFIG_ETAG_MODE = request.get("mode", "on")
+            self._reply({})
+        elif self.path == "/read_etag_events":
+            self._reply(CONFIG_ETAG_EVENTS)
+        elif self.path == "/reset_config_test_state":
+            CONFIG_PAYLOAD_OVERRIDE = None
+            CONFIG_ETAG_MODE = "on"
+            CONFIG_ETAG_EVENTS.clear()
+            # Restore the periodic node-key invalidation to its defaults.
+            # Suppressing invalidation (for tests that assert exact
+            # request sequences) is an explicit opt-in, so a reset never
+            # leaves a shared server with re-enrollment silently disabled.
+            ENROLL_RESET["count"] = 1
+            ENROLL_RESET["max"] = 3
+            if request.get("enroll_invalidation") == "off":
+                ENROLL_RESET["max"] = 0
+            self._reply({})
         else:
             self._reply(TEST_POST_RESPONSE)
 
@@ -237,14 +306,42 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # This endpoint will also invalidate the node secret key (node_key)
         # after several attempts to test re-enrollment.
         ENROLL_RESET["count"] += 1
-        if ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
+        if ENROLL_RESET["max"] and ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
             ENROLL_RESET["first"] = 0
             self._reply(FAILED_ENROLL_RESPONSE)
             return
+
         if node:
-            self._reply(EXAMPLE_NODE_CONFIG)
+            payload = EXAMPLE_NODE_CONFIG
+        elif CONFIG_PAYLOAD_OVERRIDE is not None:
+            payload = CONFIG_PAYLOAD_OVERRIDE
+        else:
+            payload = EXAMPLE_CONFIG
+
+        # Conditional requests: an agent opts in by sending an "etag" field
+        # in the request body. The server answers
+        # with the full config plus an "etag" key, or with the reserved
+        # body {"etag": "ok"} when the agent's etag is current. An agent
+        # that sends no etag receives the config alone, as always.
+        request_etag = request.get("etag")
+        if request_etag is None or CONFIG_ETAG_MODE == "off":
+            _record_config_event(
+                request_etag, None, False,
+                len(json.dumps(payload).encode()))
+            self._reply(payload)
             return
-        self._reply(EXAMPLE_CONFIG)
+
+        etag = _compute_etag(json.dumps(payload).encode())
+        if CONFIG_ETAG_MODE == "always_ok" or request_etag == etag:
+            response = {"etag": "ok"}
+            not_modified = True
+        else:
+            response = dict(payload)
+            response["etag"] = etag
+            not_modified = False
+        _record_config_event(request_etag, etag, not_modified,
+                             len(json.dumps(response).encode()))
+        self._reply(response)
 
     def distributed_read(self, request):
         """A basic distributed read endpoint"""
@@ -301,6 +398,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             request["block_id"]
             in FILE_CARVE_MAP[request["session_id"]]["blocks_received"]
         ):
+            self._reply({})
             return
 
         # Store block data to be reassembled later
@@ -313,6 +411,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             len(FILE_CARVE_MAP[request["session_id"]]["blocks_received"])
             < FILE_CARVE_MAP[request["session_id"]]["block_count"]
         ):
+            self._reply({})
             return
 
         # If not, let's reassemble everything
@@ -341,6 +440,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         f.close()
         debug("File successfully carved to: %s" % out_file_name)
         FILE_CARVE_MAP[request["session_id"]] = {}
+        self._reply({})
 
     def _push_request(self, command, request):
         # Archive the http command and the request body so that unit tests
@@ -351,6 +451,15 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def _reply(self, response):
         debug("Replying: %s" % (str(response)))
         response_bytes = json.dumps(response).encode()
+
+        # Check if client accepts gzip encoding
+        accept_encoding = self.headers.get("Accept-Encoding", "")
+        use_gzip = "gzip" in accept_encoding.lower()
+
+        if use_gzip:
+            # Compress the response body
+            response_bytes = gzip.compress(response_bytes)
+            self.send_header("Content-Encoding", "gzip")
 
         if self.protocol_version == "HTTP/1.1":
             self.send_header("Content-Length", len(response_bytes))
@@ -481,6 +590,14 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Verify the client certificate, to implement mTLS",
+    )
+
+    parser.add_argument(
+        "--require-gzip",
+        action="store_true",
+        default=HTTP_SERVER_REQUIRE_GZIP,
+        help="Require clients to send 'Accept-Encoding: gzip' header. "
+        "Reject requests without it with 400 Bad Request.",
     )
 
     parser.add_argument(

@@ -1,0 +1,19 @@
+table_name("gpu_metrics")
+description("Information about GPU devices on the system, including inventory and runtime telemetry where supported.")
+schema([
+  Column("device_id", TEXT, "The GPU identifier used to correlate rows with other GPU tables. Derived from the PCI slot address when available (e.g. GPU0000:01:00.0); macOS GPUs without a PCI slot use GPUintegrated, while other platforms use an enumeration-based fallback."),
+  Column("gpu_utilization_pct", DOUBLE, "GPU engine utilization as a percentage (0-100)."),
+])
+extended_schema(POSIX, [
+  Column("power_draw_watts", DOUBLE, "Estimated average GPU power draw in Watts over a 500 ms sampling window."),
+])
+extended_schema(DARWIN, [
+  Column("allocated_vram", BIGINT, "Allocated GPU memory in bytes from IOAccelerator."),
+  Column("in_use_vram", BIGINT, "In-use GPU memory in bytes from IOAccelerator."),
+])
+extended_schema(LINUX, [
+  Column("temperature_gpu_celsius", DOUBLE, "GPU core temperature in degrees Celsius."),
+  Column("power_limit_watts", DOUBLE, "Configured GPU power limit in Watts."),
+  Column("fan_speed_pct", DOUBLE, "GPU fan speed as a percentage of maximum (0-100)."),
+])
+implementation("gpu_metrics@genGpuMetrics")

@@ -12,6 +12,7 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
@@ -144,6 +145,17 @@ class BufferedLogForwarder : public InternalRunnable {
   void check(bool send_results = true, bool send_statuses = true);
 
   /**
+   * @brief Read and send a batch of one type of log.
+   *
+   * The batch holds up to buffered_log_max_batch_bytes of the logs in indexes
+   * of the given type. They are deleted once sent; otherwise backoff is
+   * applied.
+   *
+   * @return false if the forwarder was interrupted, otherwise true.
+   */
+  bool checkType(std::vector<std::string>& indexes, bool results);
+
+  /**
    * @brief Purge the oldest logs, if the max is exceeded
    *
    * Uses the buffered_log_max flag to determine the maximum number of buffered
@@ -222,9 +234,17 @@ class BufferedLogForwarder : public InternalRunnable {
   std::chrono::seconds results_backoff_period_ = std::chrono::seconds::zero();
   std::chrono::seconds statuses_backoff_period_ = std::chrono::seconds::zero();
 
+  /// Whether the last attempt to send results or statuses failed.
+  bool results_send_failing_ = false;
+  bool statuses_send_failing_ = false;
+
  private:
   /// Hold an incrementing index for buffering logs
   std::atomic<size_t> log_index_{0};
+
+  /// Randomizes backoff periods
+  std::mt19937 backoff_rng_{static_cast<std::mt19937::result_type>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count())};
 
   /// Stores the count of buffered logs
   unsigned long long int buffer_count_{0};

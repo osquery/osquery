@@ -10,7 +10,10 @@
 // Sanity check integration test for authenticode
 // Spec file: specs/windows/authenticode.table
 
+#include <sstream>
+
 #include <osquery/tests/integration/tables/helper.h>
+#include <osquery/utils/system/env.h>
 
 namespace osquery {
 namespace table_tests {
@@ -23,25 +26,32 @@ class authenticode : public testing::Test {
 };
 
 TEST_F(authenticode, test_sanity) {
-  // 1. Query data
-  auto const data = execute_query("select * from authenticode where path = ''");
-  // 2. Check size before validation
-  // ASSERT_GE(data.size(), 0ul);
-  // ASSERT_EQ(data.size(), 1ul);
-  // ASSERT_EQ(data.size(), 0ul);
-  // 3. Build validation map
-  // See helper.h for available flags
-  // Or use custom DataCheck object
-  // ValidationMap row_map = {
-  //      {"path", NormalType}
-  //      {"original_program_name", NormalType}
-  //      {"serial_number", NormalType}
-  //      {"issuer_name", NormalType}
-  //      {"subject_name", NormalType}
-  //      {"result", NormalType}
-  //}
-  // 4. Perform validation
-  // validate_rows(data, row_map);
+  // notepad.exe is universally present on Windows and is Authenticode-signed
+  // by Microsoft with an SPC_SP_OPUS_INFO publisher info blob that carries a
+  // non-empty pwszProgramName. Asserting original_program_name is non-empty
+  // also guards against regression of GHSA-hr28-jvpx-68cx, where the wrong
+  // output buffer was passed to CryptDecodeObject and the program name was
+  // silently always empty.
+  auto windir = getEnvVar("WINDIR");
+  ASSERT_TRUE(windir);
+  std::stringstream ss;
+  ss << "select * from authenticode "
+        "where path = '"
+     << *windir << "\\System32\\notepad.exe'";
+
+  auto const data = execute_query(ss.str());
+
+  ASSERT_EQ(data.size(), 1ul);
+
+  ValidationMap row_map = {
+      {"path", NonEmptyString},
+      {"original_program_name", NonEmptyString},
+      {"serial_number", NonEmptyString},
+      {"issuer_name", NonEmptyString},
+      {"subject_name", NonEmptyString},
+      {"result", NonEmptyString},
+  };
+  validate_rows(data, row_map);
 }
 
 } // namespace table_tests

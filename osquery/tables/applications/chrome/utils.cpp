@@ -18,6 +18,7 @@
 #include <osquery/utils/base64.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 
@@ -56,12 +57,18 @@ const ChromePathSuffixMap kWindowsPathList = {
     {ChromeBrowserType::GoogleChromeDev, "AppData\\Local\\Google\\Chrome Dev\\User Data"},
     {ChromeBrowserType::GoogleChromeCanary, "AppData\\Local\\Google\\Chrome SxS\\User Data"},
     {ChromeBrowserType::Brave, "AppData\\Roaming\\brave"},
+    {ChromeBrowserType::Brave, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data"},
+    {ChromeBrowserType::BraveBeta, "AppData\\Local\\BraveSoftware\\Brave-Browser-Beta\\User Data"},
+    {ChromeBrowserType::BraveNightly, "AppData\\Local\\BraveSoftware\\Brave-Browser-Nightly\\User Data"},
     {ChromeBrowserType::Chromium, "AppData\\Local\\Chromium"},
     {ChromeBrowserType::Yandex, "AppData\\Local\\Yandex\\YandexBrowser\\User Data"},
     {ChromeBrowserType::Edge, "AppData\\Local\\Microsoft\\Edge\\User Data"},
     {ChromeBrowserType::EdgeBeta, "AppData\\Local\\Microsoft\\Edge Beta\\User Data"},
+    {ChromeBrowserType::EdgeDev, "AppData\\Local\\Microsoft\\Edge Dev\\User Data"},
+    {ChromeBrowserType::EdgeCanary, "AppData\\Local\\Microsoft\\Edge SxS\\User Data"},
     {ChromeBrowserType::Opera, "AppData\\Roaming\\Opera Software\\Opera Stable"},
-    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"}};
+    {ChromeBrowserType::Vivaldi, "AppData\\Local\\Vivaldi\\User Data"},
+    {ChromeBrowserType::PerplexityComet, "AppData\\Local\\Perplexity\\Comet\\User Data"}};
 // clang-format on
 
 // clang-format off
@@ -71,26 +78,44 @@ const ChromePathSuffixMap kMacOsPathList = {
     {ChromeBrowserType::GoogleChromeDev, "Library/Application Support/Google/Chrome Dev"},
     {ChromeBrowserType::GoogleChromeCanary, "Library/Application Support/Google/Chrome Canary"},
     {ChromeBrowserType::Brave, "Library/Application Support/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::BraveBeta, "Library/Application Support/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveNightly, "Library/Application Support/BraveSoftware/Brave-Browser-Nightly"},
     {ChromeBrowserType::Chromium, "Library/Application Support/Chromium"},
     {ChromeBrowserType::Yandex, "Library/Application Support/Yandex/YandexBrowser"},
     {ChromeBrowserType::Edge, "Library/Application Support/Microsoft Edge"},
     {ChromeBrowserType::EdgeBeta, "Library/Application Support/Microsoft Edge Beta"},
+    {ChromeBrowserType::EdgeDev, "Library/Application Support/Microsoft Edge Dev"},
+    {ChromeBrowserType::EdgeCanary, "Library/Application Support/Microsoft Edge Canary"},
     {ChromeBrowserType::Opera, "Library/Application Support/com.operasoftware.Opera"},
     {ChromeBrowserType::Vivaldi, "Library/Application Support/Vivaldi"},
-    {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"}};
+    {ChromeBrowserType::Arc, "Library/Application Support/Arc/User Data"},
+    {ChromeBrowserType::Dia, "Library/Application Support/Dia/User Data"},
+    {ChromeBrowserType::PerplexityComet, "Library/Application Support/Comet"}};
 // clang-format on
 
+// clang-format off
 const ChromePathSuffixMap kLinuxPathList = {
     {ChromeBrowserType::GoogleChrome, ".config/google-chrome"},
     {ChromeBrowserType::GoogleChromeBeta, ".config/google-chrome-beta"},
     {ChromeBrowserType::GoogleChromeDev, ".config/google-chrome-unstable"},
     {ChromeBrowserType::Brave, ".config/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::Brave, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser"},
+    {ChromeBrowserType::BraveBeta, ".config/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveBeta, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser-Beta"},
+    {ChromeBrowserType::BraveNightly, ".config/BraveSoftware/Brave-Browser-Nightly"},
+    {ChromeBrowserType::BraveNightly, ".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser-Nightly"},
     {ChromeBrowserType::Chromium, ".config/chromium"},
     {ChromeBrowserType::Chromium, "snap/chromium/common/chromium"},
+    {ChromeBrowserType::Chromium, ".var/app/org.chromium.Chromium/config/chromium"},
     {ChromeBrowserType::Yandex, ".config/yandex-browser-beta"},
+    {ChromeBrowserType::Edge, ".config/microsoft-edge"},
+    {ChromeBrowserType::EdgeBeta, ".config/microsoft-edge-beta"},
+    {ChromeBrowserType::EdgeDev, ".config/microsoft-edge-dev"},
     {ChromeBrowserType::Opera, ".config/opera"},
     {ChromeBrowserType::Vivaldi, ".config/vivaldi"},
+    {ChromeBrowserType::Vivaldi, ".var/app/com.vivaldi.Vivaldi/config/vivaldi"},
 };
+// clang-format on
 
 /// Maps ChromeBrowserType values to readable strings
 const std::unordered_map<ChromeBrowserType, std::string>
@@ -100,13 +125,19 @@ const std::unordered_map<ChromeBrowserType, std::string>
         {ChromeBrowserType::GoogleChromeDev, "chrome_dev"},
         {ChromeBrowserType::GoogleChromeCanary, "chrome_canary"},
         {ChromeBrowserType::Brave, "brave"},
+        {ChromeBrowserType::BraveBeta, "brave_beta"},
+        {ChromeBrowserType::BraveNightly, "brave_nightly"},
         {ChromeBrowserType::Chromium, "chromium"},
         {ChromeBrowserType::Yandex, "yandex"},
         {ChromeBrowserType::Opera, "opera"},
         {ChromeBrowserType::Edge, "edge"},
-        {ChromeBrowserType::Edge, "edge_beta"},
+        {ChromeBrowserType::EdgeBeta, "edge_beta"},
+        {ChromeBrowserType::EdgeDev, "edge_dev"},
+        {ChromeBrowserType::EdgeCanary, "edge_canary"},
         {ChromeBrowserType::Vivaldi, "vivaldi"},
         {ChromeBrowserType::Arc, "arc"},
+        {ChromeBrowserType::Dia, "dia"},
+        {ChromeBrowserType::PerplexityComet, "comet"},
 };
 
 /// Base paths for built-in extensions; used to silence warnings for
@@ -169,6 +200,139 @@ const ExtensionPropertyMap kExtensionPropertyList = {
 /// Active extension profile settings
 const std::vector<std::string> kExtensionProfileSettingsList = {
     "from_webstore", "state", "install_time"};
+
+enum class ExtensionStateKind {
+  NotFound,
+  Legacy,
+  EnabledByAbsence,
+  Enabled,
+  Disabled,
+  Malformed,
+};
+
+struct ExtensionState final {
+  ExtensionStateKind kind{ExtensionStateKind::NotFound};
+  std::string value;
+};
+
+const rapidjson::Value* getExtensionSettingsRecord(
+    const rapidjson::Document& preferences, const std::string& extension_id) {
+  if (!preferences.IsObject()) {
+    return nullptr;
+  }
+
+  const auto extensions_it = preferences.FindMember("extensions");
+  if (extensions_it == preferences.MemberEnd() ||
+      !extensions_it->value.IsObject()) {
+    return nullptr;
+  }
+
+  const auto& extensions = extensions_it->value;
+  auto settings_it = extensions.FindMember("settings");
+  if (settings_it == extensions.MemberEnd()) {
+    settings_it = extensions.FindMember("opsettings");
+  }
+
+  if (settings_it == extensions.MemberEnd() || !settings_it->value.IsObject()) {
+    return nullptr;
+  }
+
+  const auto extension_it = settings_it->value.FindMember(extension_id.c_str());
+  if (extension_it == settings_it->value.MemberEnd()) {
+    return nullptr;
+  }
+
+  return &extension_it->value;
+}
+
+ExtensionState getExtensionState(const rapidjson::Document& preferences,
+                                 const std::string& extension_id) {
+  const auto* extension = getExtensionSettingsRecord(preferences, extension_id);
+  if (extension == nullptr) {
+    return {};
+  }
+
+  if (!extension->IsObject()) {
+    return {ExtensionStateKind::Malformed, {}};
+  }
+
+  const auto state_it = extension->FindMember("state");
+  if (state_it != extension->MemberEnd()) {
+    const auto& state = state_it->value;
+    if (!state.IsString() && !state.IsNumber() && !state.IsBool()) {
+      return {ExtensionStateKind::Malformed, {}};
+    }
+
+    const auto value = JSON::valueToString(state);
+    if (!value) {
+      return {ExtensionStateKind::Malformed, {}};
+    }
+
+    return {ExtensionStateKind::Legacy, value.get()};
+  }
+
+  const auto disable_reasons_it = extension->FindMember("disable_reasons");
+  if (disable_reasons_it == extension->MemberEnd()) {
+    return {ExtensionStateKind::EnabledByAbsence, "1"};
+  }
+
+  const auto& disable_reasons = disable_reasons_it->value;
+  if (!disable_reasons.IsArray()) {
+    return {ExtensionStateKind::Malformed, {}};
+  }
+
+  // Chromium reads only integer members into its disable-reason set. Unknown
+  // integer values still make that set nonempty; non-integer members do not.
+  for (const auto& disable_reason : disable_reasons.GetArray()) {
+    if (disable_reason.IsInt()) {
+      return {ExtensionStateKind::Disabled, "0"};
+    }
+  }
+
+  return {ExtensionStateKind::Enabled, "1"};
+}
+
+boost::optional<std::string> resolveExtensionState(
+    const boost::optional<ExtensionState>& primary_state,
+    const boost::optional<ExtensionState>& secure_state) {
+  const auto is_decisive = [](const ExtensionState& state) {
+    return state.kind == ExtensionStateKind::Legacy ||
+           state.kind == ExtensionStateKind::Disabled;
+  };
+
+  // Chrome protects extension metadata in Secure Preferences. Prefer the
+  // state derived from a record there, while retaining Preferences as the
+  // fallback for browsers and profiles that use the older location.
+  if (secure_state && is_decisive(secure_state.get())) {
+    return secure_state->value;
+  }
+
+  // A present list is an explicit modern-schema signal, even if Chromium
+  // ignores all of its members. A missing list is weaker: consult an older
+  // Preferences record before inferring that the extension is enabled.
+  if (secure_state && secure_state->kind == ExtensionStateKind::Enabled) {
+    return secure_state->value;
+  }
+
+  if (primary_state && is_decisive(primary_state.get())) {
+    return primary_state->value;
+  }
+
+  if ((primary_state && primary_state->kind == ExtensionStateKind::Malformed) ||
+      (secure_state && secure_state->kind == ExtensionStateKind::Malformed)) {
+    return boost::none;
+  }
+
+  if ((secure_state &&
+       secure_state->kind == ExtensionStateKind::EnabledByAbsence) ||
+      (primary_state &&
+       (primary_state->kind == ExtensionStateKind::EnabledByAbsence ||
+        primary_state->kind == ExtensionStateKind::Enabled))) {
+    return std::string{"1"};
+  }
+
+  return boost::none;
+}
 
 /// A single profile and browser type
 struct ChromeProfilePath final {
@@ -502,10 +666,10 @@ bool captureProfileSnapshotExtensionsFromPath(
 
     if (!status.ok()) {
       if (!isBuiltInChromeExtension(extension_path)) {
-        LOG(INFO) << "Failed to read the following manifest.json file: "
-                  << manifest_path.string()
-                  << ". The extension was referenced by the following profile: "
-                  << profile_path.value;
+        VLOG(1) << "Failed to read the following manifest.json file: "
+                << manifest_path.string()
+                << ". The extension was referenced by the following profile: "
+                << profile_path.value;
       }
 
       continue;
@@ -571,11 +735,10 @@ bool captureProfileSnapshotExtensionsFromPath(
 
       if (!status.ok()) {
         if (!isBuiltInChromeExtension(referenced_ext_path)) {
-          LOG(ERROR)
-              << "Failed to read the following manifest.json file: "
-              << manifest_path.string()
-              << ". The extension was referenced by the following profile: "
-              << profile_path.value;
+          VLOG(1) << "Failed to read the following manifest.json file: "
+                  << manifest_path.string()
+                  << ". The extension was referenced by the following profile: "
+                  << profile_path.value;
         }
 
         continue;
@@ -744,8 +907,10 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
 
     // Parse both configuration files
     pt::iptree parsed_preferences;
+    JSON parsed_preferences_json;
     if (!snapshot.preferences.empty() &&
-        !parseJsonString(parsed_preferences, snapshot.preferences)) {
+        (!parseJsonString(parsed_preferences, snapshot.preferences) ||
+         !parsed_preferences_json.fromString(snapshot.preferences).ok())) {
       LOG(ERROR)
           << "Failed to parse the Preferences file of the following profile: "
           << profile.path;
@@ -754,9 +919,20 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
     }
 
     pt::iptree parsed_secure_preferences;
+    JSON parsed_secure_preferences_json;
     if (!snapshot.secure_preferences.empty() &&
         !parseJsonString(parsed_secure_preferences,
                          snapshot.secure_preferences)) {
+      LOG(ERROR) << "Failed to parse the Secure Preferences file of the "
+                    "following profile: "
+                 << profile.path;
+
+      continue;
+    }
+
+    if (!snapshot.secure_preferences.empty() &&
+        !parsed_secure_preferences_json.fromString(snapshot.secure_preferences)
+             .ok()) {
       LOG(ERROR) << "Failed to parse the Secure Preferences file of the "
                     "following profile: "
                  << profile.path;
@@ -778,6 +954,22 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
                  << profile.path;
 
       continue;
+    }
+
+    // Extract the default search engine settings, if any have been
+    // configured for this profile
+    const auto& opt_search_engine_node = parsed_preferences.get_child_optional(
+        "default_search_provider_data.template_url_data");
+
+    if (opt_search_engine_node) {
+      const auto& search_engine_node = opt_search_engine_node.get();
+
+      profile.search_engine_name =
+          search_engine_node.get_optional<std::string>("short_name");
+      profile.search_engine_keyword =
+          search_engine_node.get_optional<std::string>("keyword");
+      profile.search_engine_url =
+          search_engine_node.get_optional<std::string>("url");
     }
 
     // Parse all the extensions that are inside the profile folder but are
@@ -815,11 +1007,43 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
                                            ext_snapshot.path,
                                            profile.path);
 
+      const auto primary_profile_settings_found = status.ok();
       if (!status.ok()) {
-        status = getExtensionProfileSettings(extension.profile_settings,
-                                             parsed_secure_preferences,
-                                             ext_snapshot.path,
-                                             profile.path);
+        ChromeProfile::Extension::Properties secure_profile_settings;
+        auto secure_status =
+            getExtensionProfileSettings(secure_profile_settings,
+                                        parsed_secure_preferences,
+                                        ext_snapshot.path,
+                                        profile.path);
+
+        if (secure_status.ok()) {
+          extension.profile_settings = std::move(secure_profile_settings);
+          status = secure_status;
+        }
+      }
+
+      const auto extension_id_it =
+          extension.profile_settings.find("referenced_identifier");
+      if (extension_id_it != extension.profile_settings.end()) {
+        boost::optional<ExtensionState> primary_state;
+        if (primary_profile_settings_found) {
+          primary_state = getExtensionState(parsed_preferences_json.doc(),
+                                            extension_id_it->second);
+        }
+
+        boost::optional<ExtensionState> secure_state;
+        if (!snapshot.secure_preferences.empty()) {
+          secure_state = getExtensionState(parsed_secure_preferences_json.doc(),
+                                           extension_id_it->second);
+        }
+
+        const auto resolved_state =
+            resolveExtensionState(primary_state, secure_state);
+        if (resolved_state) {
+          extension.profile_settings["state"] = resolved_state.get();
+        } else {
+          extension.profile_settings.erase("state");
+        }
       }
 
       if (!status.ok()) {
@@ -960,7 +1184,7 @@ Status getExtensionFromSnapshot(
 
   status = localizeExtensionProperties(output);
   if (!status.ok()) {
-    LOG(ERROR) << "Failed to process the localization settngs for the "
+    LOG(ERROR) << "Failed to process the localization settings for the "
                   "following extension: "
                << output.path;
   }

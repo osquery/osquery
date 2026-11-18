@@ -51,9 +51,9 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 
 Status FilePathsConfigParserPlugin::setUp() {
   auto accesses_arr = data_.getArray();
-  data_.add("file_accesses", accesses_arr);
+  data_.addCopy("file_accesses", accesses_arr);
   auto exclude_obj = data_.getObject();
-  data_.add("exclude_paths", exclude_obj);
+  data_.addCopy("exclude_paths", exclude_obj);
 
   access_map_.clear();
   return Status::success();
@@ -84,7 +84,7 @@ void FilePathsConfigParserPlugin::updateFileAccesses(
   for (const auto& category : valid_categories) {
     data_.pushCopy(category, arr);
   }
-  data_.add("file_accesses", arr);
+  data_.addCopy("file_accesses", arr);
 }
 
 void FilePathsConfigParserPlugin::updateFilePaths(const JSON& file_paths,
@@ -181,13 +181,13 @@ void FilePathsConfigParserPlugin::updateExcludePaths(
       std::string path_string = path.GetString();
       data_.pushCopy(path_string, arr);
     }
-    data_.add(category_string, arr, obj);
+    data_.addCopy(category_string, arr, obj);
   }
 
   // Will attempt a merge so be careful that the key is initialized.
   if (!data_.doc().HasMember("exclude_paths")) {
     auto exclude_obj = data_.getObject();
-    data_.add("exclude_paths", exclude_obj);
+    data_.addCopy("exclude_paths", exclude_obj);
   }
   data_.mergeObject(data_.doc()["exclude_paths"], obj);
 }

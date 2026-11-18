@@ -68,6 +68,7 @@ function(generateOsqueryEvents)
       list(APPEND source_files
         windows/etw/etw_user_session.cpp
         windows/etw/etw_publisher_processes.cpp
+        windows/etw/etw_publisher_dns.cpp
         windows/etw/etw_provider_config.cpp
         windows/etw/etw_post_processing_pipeline.cpp
         windows/etw/etw_kernel_session.cpp
@@ -183,6 +184,7 @@ function(generateOsqueryEvents)
     if(OSQUERY_BUILD_ETW)
       list(APPEND platform_public_header_files
         windows/etw/etw_user_session.h
+        windows/etw/etw_publisher_dns.h
         windows/etw/etw_publisher_processes.h
         windows/etw/etw_publisher.h
         windows/etw/etw_provider_config.h
@@ -199,20 +201,11 @@ function(generateOsqueryEvents)
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
 
-  if(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_events_tests_linuxtests-test COMMAND osquery_events_tests_linuxtests-test)
-
-    if(OSQUERY_BUILD_BPF)
-      add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
-    endif()
-  endif()
-
-  if(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_events_tests_fseventstests-test COMMAND osquery_events_tests_fseventstests-test)
+  if(DEFINED PLATFORM_LINUX AND OSQUERY_BUILD_BPF)
+    add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_events_tests_usnjournalreadertests-test COMMAND osquery_events_tests_usnjournalreadertests-test)
     add_test(NAME osquery_tables_events_tests_powershelleventstests-test COMMAND osquery_tables_events_tests_powershelleventstests-test)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
 
@@ -257,7 +250,7 @@ function(generateOsqueryEventsEventsregistry)
 
   generateIncludeNamespace(osquery_events_eventsregistry "osquery/events" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_events_tests-test COMMAND osquery_events_tests-test)
+  add_test(NAME osquery_events_tests_mergedtests-test COMMAND osquery_events_tests_mergedtests-test)
 endfunction()
 
 osqueryEventsMain()

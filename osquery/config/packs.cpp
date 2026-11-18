@@ -8,8 +8,8 @@
  */
 
 #include <algorithm>
-#include <mutex>
 #include <chrono>
+#include <mutex>
 #include <random>
 
 #include <osquery/config/packs.h>
@@ -18,6 +18,8 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sql.h>
+#include <osquery/utils/affixes.h>
+#include <osquery/utils/conversions/join.h>
 #include <osquery/utils/conversions/split.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/version.h>
@@ -179,6 +181,9 @@ void Pack::initialize(const std::string& name,
     return;
   }
 
+  // Track the schedule query names to ensure no duplicates.
+  schedule_queries_.clear();
+
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
     if (!q.value.IsObject() || !q.name.IsString()) {
@@ -205,13 +210,28 @@ void Pack::initialize(const std::string& name,
       }
     }
 
-    if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
-      VLOG(1) << "No query string defined for query " << q.name.GetString();
+    auto query_name = q.name.GetString();
+
+    if (hasAnyPrefix(query_name, kReservedDbPrefixes)) {
+      LOG(WARNING) << "Invalid query name: " << query_name
+                   << " starts with one of the reserved prefixes: "
+                   << join(kReservedDbPrefixes, ", ");
       continue;
     }
 
-    ScheduledQuery query(
-        name_, q.name.GetString(), q.value["query"].GetString());
+    if (hasAnySuffix(query_name, kReservedDbSuffixes)) {
+      LOG(WARNING) << "Invalid query name: " << query_name
+                   << " ends with one of the reserved suffixes: "
+                   << join(kReservedDbSuffixes, ", ");
+      continue;
+    }
+
+    if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
+      VLOG(1) << "No query string defined for query " << query_name;
+      continue;
+    }
+
+    ScheduledQuery query(name_, query_name, q.value["query"].GetString());
 
     query.oncall = oncall;
 
@@ -224,13 +244,19 @@ void Pack::initialize(const std::string& name,
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
-      LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
-                   << ": " << query.interval;
+      LOG(WARNING) << "Query has invalid interval: " << query_name << ": "
+                   << query.interval;
       continue;
     }
 
-    query.splayed_interval =
-        restoreSplayedValue(q.name.GetString(), query.interval);
+    if (schedule_queries_.count(query_name)) {
+      // Duplicated query name.
+      continue;
+    } else {
+      schedule_queries_.emplace(query_name);
+    }
+
+    query.splayed_interval = restoreSplayedValue(query_name, query.interval);
 
     if (!q.value.HasMember("snapshot")) {
       query.options["snapshot"] = false;
@@ -249,15 +275,29 @@ void Pack::initialize(const std::string& name,
       query.options["denylist"] = JSON::valueToBool(q.value["denylist"]);
     }
 
-    schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
+    if (q.value.HasMember("startup_priority")) {
+      query.startup_priority = JSON::valueToSize(q.value["startup_priority"]);
+    }
+
+    schedule_.push_back(std::move(query));
   }
+
+  std::sort(schedule_.begin(),
+            schedule_.end(),
+            [](ScheduledQuery& a, ScheduledQuery& b) {
+              if (a.startup_priority != b.startup_priority) {
+                return a.startup_priority < b.startup_priority;
+              } else {
+                return a.name < b.name;
+              }
+            });
 }
 
-const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
+const std::vector<ScheduledQuery>& Pack::getSchedule() const {
   return schedule_;
 }
 
-std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
+std::vector<ScheduledQuery>& Pack::getSchedule() {
   return schedule_;
 }
 
@@ -340,4 +380,4 @@ bool Pack::checkDiscovery() {
 bool Pack::isActive() const {
   return active_;
 }
-}
+} // namespace osquery

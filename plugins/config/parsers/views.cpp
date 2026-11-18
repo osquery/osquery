@@ -44,7 +44,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(cv->second.doc(), obj);
-    doc.add("views", obj);
+    doc.addCopy("views", obj);
     data_ = std::move(doc);
   }
 

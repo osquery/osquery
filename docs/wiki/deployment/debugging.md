@@ -84,11 +84,11 @@ This line is created when a worker starts and finds a 'dirty bit' toggled for th
 Lines that indicate the watchdog has taken action include either of the following:
 
 ```text
-osqueryd worker (92234) system performance limits exceeded
-osqueryd worker (8368) memory limits exceeded: 99573760
+osqueryd worker (92234) stopping: Maximum sustainable CPU utilization limit 540ms exceeded for 12 seconds
+osqueryd worker (8368) stopping: Memory limits exceeded: 214532096 bytes (limit is 200MB)
 ```
 
-The pid of the offending worker is included in parenthesis.
+The pid of the offending worker is included in parenthesis, followed by the limit that was exceeded.
 
 If the worker finds itself in a re-occurring error state or the watchdog continues to stop the worker, additional lines like the following are created:
 

@@ -241,12 +241,12 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   doc.addRef("name", item.name, obj);
   doc.addRef("hostIdentifier", item.identifier, obj);
   doc.addRef("calendarTime", item.calendar_time, obj);
-  doc.add("unixTime", item.time, obj);
-  doc.add("epoch", static_cast<size_t>(item.epoch), obj);
-  doc.add("counter", static_cast<size_t>(item.counter), obj);
+  doc.addCopy("unixTime", item.time, obj);
+  doc.addCopy("epoch", static_cast<size_t>(item.epoch), obj);
+  doc.addCopy("counter", static_cast<size_t>(item.counter), obj);
 
   // Apply field indicating if numerics are serialized as numbers
-  doc.add("numerics", FLAGS_logger_numerics, obj);
+  doc.addCopy("numerics", FLAGS_logger_numerics, obj);
 
   // Append the decorations.
   if (!item.decorations.empty()) {
@@ -259,7 +259,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
       doc.addRef(name.first, name.second, target_obj);
     }
     if (!FLAGS_decorations_top_level) {
-      doc.add("decorations", dec_obj, obj);
+      doc.addCopy("decorations", dec_obj, obj);
     }
   }
 }
@@ -288,7 +288,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
       return status;
     }
 
-    doc.add("diffResults", obj);
+    doc.addCopy("diffResults", obj);
   } else {
     auto arr = doc.getArray();
     auto status = serializeQueryData(
@@ -297,7 +297,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
       return status;
     }
 
-    doc.add("snapshot", arr);
+    doc.addCopy("snapshot", arr);
     doc.addRef("action", "snapshot");
   }
 
@@ -313,9 +313,9 @@ Status serializeEvent(const QueryLogItem& item,
   auto columns_obj = doc.getObject();
   for (const auto& i : event_obj.GetObject()) {
     // Yield results as a "columns." map to avoid namespace collisions.
-    doc.add(i.name.GetString(), i.value, columns_obj);
+    doc.addCopy(i.name.GetString(), i.value, columns_obj);
   }
-  doc.add("columns", columns_obj, obj);
+  doc.addCopy("columns", columns_obj, obj);
   return Status::success();
 }
 
@@ -339,7 +339,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
       if (!status.ok()) {
         return status;
       }
-      temp_doc.add("snapshot", arr);
+      temp_doc.addCopy("snapshot", arr);
     } else {
       return Status::success();
     }
@@ -350,7 +350,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
       auto obj = doc.getObject();
       serializeEvent(item, row, doc, obj);
       doc.addCopy("action", action.name.GetString(), obj);
-      doc.push(obj);
+      doc.pushCopy(obj);
     }
   }
   return Status::success();

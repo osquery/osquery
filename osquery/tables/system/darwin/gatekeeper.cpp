@@ -16,25 +16,34 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/sql/sqlite_util.h>
+#include <osquery/tables/system/darwin/os_version.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
 
-const std::string kGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
+const std::string kGkeStatusPathBeforeSequoia =
+    "/var/db/SystemPolicy-prefs.plist";
+const std::string kGkeStatusPath =
+    "/var/db/SystemPolicyConfiguration/SystemPolicy-prefs.plist";
 
-const std::string kGkeBundlePath = "/var/db/gke.bundle/Contents/version.plist";
+const std::string kGkeBundlePathBeforeSequoia =
+    "/var/db/gke.bundle/Contents/version.plist";
+const std::string kGkeBundlePath =
+    "/var/db/SystemPolicyConfiguration/gke.bundle/Contents/version.plist";
 
 const std::string kGkeOpaquePath =
     "/var/db/gkopaque.bundle/Contents/version.plist";
 
-const std::string kPolicyDb = "/var/db/SystemPolicy";
+const std::string kPolicyDbBeforeSequoia = "/var/db/SystemPolicy";
+const std::string kPolicyDb = "/var/db/SystemPolicyConfiguration/SystemPolicy";
 
-bool isGateKeeperDevIdEnabled() {
+bool isGateKeeperDevIdEnabled(bool is_sequoia_or_newer) {
   sqlite3* db = nullptr;
   auto rc = sqlite3_open_v2(
-      kPolicyDb.c_str(),
+      is_sequoia_or_newer ? kPolicyDb.c_str() : kPolicyDbBeforeSequoia.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
@@ -77,7 +86,13 @@ bool isGateKeeperDevIdEnabled() {
 QueryData genGateKeeper(QueryContext& context) {
   Row r;
 
-  auto gke_status = SQL::selectAllFrom("plist", "path", EQUALS, kGkeStatusPath);
+  bool is_sequoia_or_newer = isOperatingSystemAtLeastVersion(15, 0, 0);
+
+  auto gke_status = SQL::selectAllFrom(
+      "plist",
+      "path",
+      EQUALS,
+      is_sequoia_or_newer ? kGkeStatusPath : kGkeStatusPathBeforeSequoia);
 
   if (gke_status.empty()) {
     // The absence of the file indicates that Gatekeeper is fully enabled
@@ -91,15 +106,20 @@ QueryData genGateKeeper(QueryContext& context) {
     }
     if (row.at("key") == "enabled" && row.at("value") == "yes") {
       r["assessments_enabled"] = INTEGER(1);
-      r["dev_id_enabled"] =
-          isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
+      r["dev_id_enabled"] = isGateKeeperDevIdEnabled(is_sequoia_or_newer)
+                                ? INTEGER(1)
+                                : INTEGER(0);
     } else {
       r["assessments_enabled"] = INTEGER(0);
       r["dev_id_enabled"] = INTEGER(0);
     }
   }
 
-  auto gke_bundle = SQL::selectAllFrom("plist", "path", EQUALS, kGkeBundlePath);
+  auto gke_bundle = SQL::selectAllFrom(
+      "plist",
+      "path",
+      EQUALS,
+      is_sequoia_or_newer ? kGkeBundlePath : kGkeBundlePathBeforeSequoia);
 
   if (gke_bundle.empty()) {
     r["version"] = std::string();
@@ -150,10 +170,12 @@ void genGateKeeperApprovedAppRow(sqlite3_stmt* const stmt, Row& r) {
 QueryData genGateKeeperApprovedApps(QueryContext& context) {
   QueryData results;
 
+  bool is_sequoia_or_newer = isOperatingSystemAtLeastVersion(15, 0, 0);
+
   sqlite3* db = nullptr;
 
   auto rc = sqlite3_open_v2(
-      kPolicyDb.c_str(),
+      is_sequoia_or_newer ? kPolicyDb.c_str() : kPolicyDbBeforeSequoia.c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);

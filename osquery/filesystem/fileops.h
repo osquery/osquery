@@ -137,6 +137,20 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 #define PF_APPEND 0x0040
 
 /**
+ * Open only an existing regular file, for reading paths that less privileged
+ * users can write. A FIFO, socket, device or directory at the path, or reached
+ * through a symlink, makes the open fail.
+ *
+ * On POSIX the type is checked before any open that could block on a FIFO or
+ * run a device driver's open, and the path is not followed again through a
+ * symlink swapped in after that check; the descriptor is not inherited by
+ * child processes. On Windows a pipe, character device, raw disk or volume is
+ * refused once opened, and a named pipe can identify osquery's user but not
+ * impersonate it.
+ */
+#define PF_REGULAR_ONLY 0x0100
+
+/**
  * @brief Modes for seeking through a file.
  *
  * Provides a platform agnostic enumeration for file seek operations. These
@@ -273,6 +287,9 @@ class PlatformFile : private boost::noncopyable {
   /// Return the modified, created, birth, updated, etc times.
   bool getFileTimes(PlatformTime& times);
 
+  /// Set the access and modification times (atime, mtime) of the file.
+  bool setFileTimes(const PlatformTime& times);
+
   /// Read a number of bytes into a buffer.
   ssize_t read(void* buf, size_t nbyte);
 
@@ -348,6 +365,19 @@ bool platformChmod(const std::string& path, mode_t perms);
  * only.
  */
 bool platformSetSafeDbPerms(const std::string& path);
+
+/**
+ * @brief Creates a directory with only owner-accessible permissions.
+ *
+ * Unlike creating a directory and then restricting it with platformChmod,
+ * this function ensures the directory is created without any group/other access
+ * (i.e., mode 0700 on POSIX, subject to umask), eliminating the race window
+ * where the directory is briefly world-readable or world-writable.
+ *
+ * @param path The path of the directory to create.
+ * @return Status indicating success or failure.
+ */
+Status platformCreatePrivateDir(const boost::filesystem::path& path);
 
 /**
  * @brief Multi-platform implementation of glob.

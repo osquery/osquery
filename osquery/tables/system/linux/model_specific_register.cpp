@@ -54,43 +54,20 @@ struct msr_record_t {
   const uint64_t mask;
   const int is_flag;
 };
+// In member order: name, offset, mask, is_flag.
 const static msr_record_t fields[] = {
-    {.name = "turbo_disabled",
-     .offset = MSR_IA32_MISC_ENABLE,
-     .mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE,
-     .is_flag = true},
-    {.name = "turbo_ratio_limit",
-     .offset = MSR_TURBO_RATIO_LIMIT,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "platform_info",
-     .offset = MSR_PLATFORM_INFO,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "perf_status",
-     .offset = MSR_IA32_PERF_STATUS,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "perf_ctl",
-     .offset = MSR_IA32_PERF_CTL,
-     .mask = INTEL_PERF_CTL_MASK,
-     .is_flag = false},
-    {.name = "feature_control",
-     .offset = MSR_IA32_FEATURE_CONTROL,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "rapl_power_limit",
-     .offset = MSR_PKG_POWER_LIMIT,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "rapl_energy_status",
-     .offset = MSR_PKG_ENERGY_STATUS,
-     .mask = NO_MASK,
-     .is_flag = false},
-    {.name = "rapl_power_units",
-     .offset = MSR_RAPL_POWER_UNIT,
-     .mask = NO_MASK,
-     .is_flag = false}};
+    {"turbo_disabled",
+     MSR_IA32_MISC_ENABLE,
+     MSR_IA32_MISC_ENABLE_TURBO_DISABLE,
+     true},
+    {"turbo_ratio_limit", MSR_TURBO_RATIO_LIMIT, NO_MASK, false},
+    {"platform_info", MSR_PLATFORM_INFO, NO_MASK, false},
+    {"perf_status", MSR_IA32_PERF_STATUS, NO_MASK, false},
+    {"perf_ctl", MSR_IA32_PERF_CTL, INTEL_PERF_CTL_MASK, false},
+    {"feature_control", MSR_IA32_FEATURE_CONTROL, NO_MASK, false},
+    {"rapl_power_limit", MSR_PKG_POWER_LIMIT, NO_MASK, false},
+    {"rapl_energy_status", MSR_PKG_ENERGY_STATUS, NO_MASK, false},
+    {"rapl_power_units", MSR_RAPL_POWER_UNIT, NO_MASK, false}};
 
 void getModelSpecificRegisterData(QueryData &results, int cpu_number) {
   auto msr_filename =

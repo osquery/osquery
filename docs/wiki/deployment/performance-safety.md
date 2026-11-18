@@ -92,7 +92,7 @@ Duration is calculated by taking the subtracting `start_time` - 2 from the curre
 
 ### Understanding Profile.py Categories
 
-The numbers next to the stats in the script output (categories) are determined by the `RANGES` dictionary in `profile.py`
+The numbers next to the stats in the script output (categories) are determined by threshold triplets (warn, error, critical). The built-in defaults are:
 
 ```python
 KB = 1024 * 1024
@@ -106,7 +106,13 @@ RANGES = {
 }
 ```
 
-The script will take the value of the stat and compare it with the tuple at the corresponding stat's key in `RANGES`. If the value is less than the value in the tuple then the index for the value in the tuple is what appears in the script output. If the value for the stat is greater than all values of the tuple, then the length of the tuple is what appears in the script output. For example, if `cpu_time` for a query is 0.2, then you'll see `C: 0` in the script output. If `cpu_time` is 11, then you'll see `C:3` in the script output.
+These thresholds can be overridden at the command line using `--utilization`, `--cpu_time`, `--memory`, `--fds`, and `--duration`. Each flag accepts three values in increasing order (`WARN ERR CRIT`). For example:
+
+```sh
+./tools/analysis/profile.py --config /path/to/osquery.conf --duration 1.0 2.0 5.0 --memory 4194304 8388608 16777216
+```
+
+The script will take the value of the stat and compare it with the threshold triplet. If the value is less than the first threshold it scores `0` (green), less than the second scores `1` (yellow), less than the third scores `2` (orange), and above all three scores `3` (red). For example, if `cpu_time` for a query is 0.2, then you'll see `C: 0` in the script output. If `cpu_time` is 11, then you'll see `C:3` in the script output.
 
 Queries that fail to execute (for example, due to a non-existent table) will return the highest category result `3` and the value `-1` for all statistics.
 

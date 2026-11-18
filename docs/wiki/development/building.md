@@ -4,11 +4,11 @@ osquery supports many flavors of Linux, macOS, and Windows.
 
 While osquery runs on a large number of operating systems, we only provide build instructions for a select few.
 
-The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 14.x.
+The supported compilers are: the osquery toolchain (LLVM/Clang 9.0.1) on Linux, MSVC v142 on Windows, and AppleClang from Xcode Command Line Tools 16.x+.
 
 ## Prerequisites
 
-Git (>= 2.14.0), CMake (>= 3.21.4), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
+Git (>= 2.14.0), CMake (>= 3.25), Python 3 are required to build. The rest of the dependencies are downloaded by CMake.
 
 The default build type is `RelWithDebInfo` (optimizations active + debug symbols) and can be changed in the CMake configure phase by setting the `CMAKE_BUILD_TYPE` flag to `Release` or `Debug`.
 
@@ -16,51 +16,63 @@ The build type is chosen when building on Windows, through the `--config` option
 
 Note: the recommended system memory for building osquery is at least 8GB, or Clang may crash during the compilation of third-party dependencies.
 
-## Linux (Ubuntu 18)
+## Linux
 
-The initial directory is assumed to be `/home/<user>`.
+These steps support Ubuntu, Debian, Fedora, RHEL, and RHEL-compatible distributions such as AlmaLinux, Rocky Linux, and CentOS Stream. Only the distribution's default repositories are needed; EPEL is not required.
 
 ```bash
-# Install the prerequisites
-sudo apt install --no-install-recommends git python3 bison flex make
-
-# Optional: install python tests prerequisites
-sudo apt install --no-install-recommends python3-pip python3-setuptools python3-psutil python3-six python3-wheel
-pip3 install timeout_decorator thrift==0.11.0 osquery pexpect==3.3
-
-# Optional: install RPM packaging prerequisites
-sudo apt install --no-install-recommends rpm binutils
-
-# Download and install the osquery toolchain
-export ARCH=$(uname -m) # There is toolchain support for x86_64 and aarch64.
-wget https://github.com/osquery/osquery-toolchain/releases/download/1.1.0/osquery-toolchain-1.1.0-${ARCH}.tar.xz
-sudo tar xvf osquery-toolchain-1.1.0-${ARCH}.tar.xz -C /usr/local
-
-# Download and install a newer CMake.
-# Afterward, verify that `/usr/local/bin` is in the `PATH` and comes before `/usr/bin`.
-wget https://cmake.org/files/v3.21/cmake-3.21.4-linux-${ARCH}.tar.gz
-sudo tar xvf cmake-3.21.4-linux-${ARCH}.tar.gz -C /usr/local --strip 1
-
-# Download source
+# Download source (install git first if needed, with apt or dnf)
 git clone https://github.com/osquery/osquery
 cd osquery
 
+# Install the prerequisites and the osquery toolchain (uses sudo)
+tools/bootstrap-linux.sh
+
 # Build osquery
-mkdir build; cd build
-cmake -DOSQUERY_TOOLCHAIN_SYSROOT=/usr/local/osquery-toolchain ..
-cmake --build . -j10 # where 10 is the number of parallel build jobs
+make build
 ```
+
+`tools/bootstrap-linux.sh` (also available as `make prerequisites` once `make` is installed) installs the distribution packages (Git, Python 3, Bison, Flex, Make, CMake, Perl, and ccache if it is available), checks that the CMake version and the Perl modules needed by OpenSSL are present, and installs the [osquery toolchain](https://github.com/osquery/osquery-toolchain) to `/usr/local/osquery-toolchain` after verifying its checksum. Run `tools/bootstrap-linux.sh --help` for its options; for example, `--with-tests` also creates a Python virtualenv at `~/.venvs/osquery` (change it with `--venv-dir`) with the test prerequisites.
+
+`make build` configures the `build` folder with the `linux` preset from `CMakePresets.json`, then builds it. Without `make`, the equivalent commands are:
+
+```bash
+cmake --preset linux
+cmake --build --preset linux -j $(nproc)
+```
+
+Other useful targets are `make test` (configure with tests enabled, build, then run the tests that don't require root), `make configure`, and `make clean`. For the Python tests, run `tools/bootstrap-linux.sh --with-tests` first and activate the virtualenv with `source ~/.venvs/osquery/bin/activate`. The default location keeps it out of the source tree, so a source tree shared between a host and a VM doesn't end up with one machine's virtualenv overwriting the other's. Set `JOBS` to limit the number of parallel build jobs, for example `make build JOBS=4` on machines with less memory.
+
+Optional extras, which the script doesn't install:
+
+- Docker or Podman, for the Docker table tests. On Ubuntu, install `docker.io` and add your user to the `docker` group; on RHEL and Fedora, install `podman` and `podman-docker`.
+- `rpm` (Ubuntu) or `rpm-build` (RHEL, Fedora), and `binutils`, for building packages.
+
+### Manual Linux prerequisites
+
+On distributions the script doesn't support, install the equivalent of these packages, then install the toolchain for your architecture (`x86_64` or `aarch64`):
+
+```bash
+# Ubuntu/Debian package names; use your distribution's equivalents
+sudo apt install --no-install-recommends git python3 bison flex make cmake perl ccache
+
+export ARCH=$(uname -m)
+wget https://github.com/osquery/osquery-toolchain/releases/download/1.2.0/osquery-toolchain-1.2.0-${ARCH}.tar.xz
+sudo tar xvf osquery-toolchain-1.2.0-${ARCH}.tar.xz -C /usr/local
+```
+
+The OpenSSL build runs the first `perl` on your `PATH`, which needs the full set of core modules (including `FindBin` and `IPC::Cmd`). Python test prerequisites are listed in `tools/tests/requirements.txt`.
 
 ## macOS
 
 The current build of osquery supports deployment to the same set of macOS versions (macOS 10.15 and newer). _Building_
-osquery from source on macOS now requires macOS 12 Monterey alongwith Xcode 14 or newer.
+osquery from source on macOS requires Xcode 16 or newer.
 
 The initial directory is assumed to be `/Users/<user>`
 
 ### Step 1: Install macOS prerequisites
 
-Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 14 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
+Please ensure [Homebrew](https://brew.sh/) has been installed, and install a _full copy_ of Xcode 16 or newer (not just the Xcode command-line tools, although you need to install those too — launch Xcode after installing or upgrading, and complete its installation of the "additional components" when prompted).
 
 Then do the following.
 
@@ -68,23 +80,24 @@ Then do the following.
 # Install prerequisites
 xcode-select --install
 brew install ccache git git-lfs cmake python clang-format flex bison
-
-# Optional: install python tests prerequisites
-pip3 install --user setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
 ```
 
 ### Step 2: Download and build source on macOS
-
-In the following example, the use of the additional CMake argument `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15` specifies macOS 10.15 as the minimum compatible macOS version to which you can deploy osquery (this affects the version of the macOS SDK used at build time).
 
 ```bash
 # Download source
 git clone https://github.com/osquery/osquery
 cd osquery
 
+# Optional: install Python test prerequisites
+# Homebrew Python uses an externally managed environment, so install these in a virtualenv
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install setuptools pexpect==3.3 psutil timeout_decorator six thrift==0.11.0 osquery
+
 # Configure
 mkdir build; cd build
-cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+cmake ..
 
 # Build
 cmake --build . -j $(sysctl -n hw.ncpu)
@@ -123,7 +136,7 @@ Then sign the osquery binary (update binary and entitlement file paths as approp
 codesign -s - -f --entitlements ./entitlements.plist ./osqueryd
 ```
 
-## Windows 10
+## Windows 11
 
 The initial directory is assumed to be `C:\`
 
@@ -137,15 +150,16 @@ After changing that key, reboot your build machine and re-attempt the build.
 
 Note: It may be easier to install these prerequisites using [Chocolatey](https://chocolatey.org/).
 
-- [CMake](https://cmake.org/) (>= 3.21.4): the MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (e.g., using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer, because it contains an older version than required.
-- Visual Studio 2019 (2 options)
-  1. [Visual Studio 2019 Build Tools Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) (without Visual Studio): In the installer choose the "C++ build tools" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", "C++ ATL tools", and "C++ Clang tools for Windows".
-  2. [Visual Studio 2019 Community Installer](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v142 - VS 2019 C++", "Windows 10 SDK", and "C++ Clang tools for Windows".
+- [CMake](https://cmake.org/download/) (>= 4.0.3): The MSI installer is recommended. During installation, select the option to add it to the system `PATH` for all users. If there is any older version of CMake installed (eg. using Chocolatey), uninstall that version first! Do not install CMake using the Visual Studio Installer.
+- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17): In the installer choose the "Desktop development with C++" workload, then on the right, under "Optional", select "MSVC v143 - VS 2022 C++" (both x64 and ARM64 variants), "Windows 11 SDK", "C++ ATL" (both x64 and ARM64 variants), and "C++ Clang tools for Windows".
 - [Git for Windows](https://github.com/git-for-windows/git/releases/latest): Select "checkout as-is, commit as-is". Later check "Enable symbolic links" support.
 - [Python 3](https://www.python.org/downloads/windows/), specifically the 64-bit version.
-- [Wix Toolset](https://wixtoolset.org/releases/)
 - [Strawberry Perl](https://strawberryperl.com/) for the OpenSSL formula. It is recommended to install it to the default destination path.
+
+Optional:
+
 - [7-Zip](https://www.7-zip.org/) if building the Chocolatey package.
+- [Wix Toolset](https://wixtoolset.org/releases/) if building the MSI package.
 
 ### Optional: Install Python tests prerequisites
 
@@ -156,23 +170,24 @@ Python 3 is assumed to be installed in `C:\Program Files\Python37`
 & 'C:\Program Files\Python37\python.exe' -m pip install setuptools psutil timeout_decorator thrift==0.11.0 osquery pywin32
 ```
 
-The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
-
 ### Step 2: Download and build source on Windows
 
+After installing dependencies, start a fresh PowerShell window as Administrator:
+
 ```PowerShell
-# Using a PowerShell console as Administrator (see note, below)
 # Download source
 git clone https://github.com/osquery/osquery
 cd osquery
 
 # Configure
 mkdir build; cd build
-cmake -G "Visual Studio 16 2019" -A x64 ..
+cmake -G "Visual Studio 17 2022" -A x64 .. # or -A arm64
 
 # Build
 cmake --build . --config RelWithDebInfo -j10 # Number of projects to build in parallel
 ```
+
+The use of an Administrator shell is recommended because the build process creates symbolic links. These [require a special permission to create on Windows](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links), and the simplest solution is to build as Administrator. If you wish, you can instead assign just the `SeCreateSymbolicLinkPrivilege` permission to the user account. The setting can be found in "Local Security Policy" under Security Settings, Local Policies, User Rights Assignment. The user then has to log out and back in for the policy change to apply.
 
 ## Testing
 
@@ -199,14 +214,16 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/main/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
 
 ```PowerShell
 $Env:GTEST_FILTER='windowsEventLog.*'
-ctest -R tests_integration_tests_tables-test -C RelWithDebInfo -V #runs just the windowsEventLog under the integration tables tests
+ctest -R tests_integration_tables-test -C RelWithDebInfo -V #runs just the windowsEventLog under the integration tables tests
 ```
 
 ### Run tests on Linux and macOS
+
+On Linux, the `tools_tests_testfschangestable` test needs the Python `docker` package and a running Docker daemon that your user can access (see the optional test prerequisites in the [Linux](#linux-ubuntu-24) section). The test starts an `ubuntu:18.04` container, so it also needs to be able to pull that image from Docker Hub. If the test cannot connect to `/var/run/docker.sock`, a `FileNotFoundError` means Docker is not installed or not running, and a `PermissionError` means your user is not yet in the `docker` group.
 
 To run the tests and get just a summary report:
 
@@ -226,7 +243,7 @@ To run a single test, in verbose mode:
 ctest -R <testName> -V
 ```
 
-A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/main/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
 
 ```bash
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.

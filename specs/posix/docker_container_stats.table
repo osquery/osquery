@@ -1,7 +1,7 @@
 table_name("docker_container_stats")
 description("Docker container statistics. Queries on this table take at least one second.")
 schema([
-    Column("id", TEXT, "Container ID", index=True, required=True),
+    Column("id", TEXT, "Container ID", index=True, required=True, collate="nocase"),
     Column("name", TEXT, "Container name", index=True),
     Column("pids", INTEGER, "Number of processes"),
     Column("read", BIGINT, "UNIX time when stats were read"),
@@ -22,6 +22,8 @@ schema([
     Column("pre_online_cpus", INTEGER, "Last read online CPUs"),
     Column("memory_usage", BIGINT, "Memory usage"),
     Column("memory_cached", BIGINT, "Memory cached"),
+    Column("memory_inactive_file", BIGINT, "Memory inactive file"),
+    Column("memory_total_inactive_file", BIGINT, "Memory total inactive file"),
     Column("memory_max_usage", BIGINT, "Memory maximum usage"),
     Column("memory_limit", BIGINT, "Memory limit"),
     Column("network_rx_bytes", BIGINT, "Total network bytes read"),

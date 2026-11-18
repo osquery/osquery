@@ -12,11 +12,15 @@
 
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/logger/logger.h>
+
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core/tables.h>
+#include <osquery/utils/conversions/tryto.h>
 
 namespace osquery {
 namespace tables {
@@ -372,6 +376,10 @@ kern_return_t SMCHelper::call(uint32_t selector,
 }
 
 inline uint32_t strtoul(const char *str, size_t size, size_t base) {
+  // Security fix: Prevent shift overflow for sizes > 4 bytes (32-bit limit)
+  if (size > 4) {
+    return 0;
+  }
   uint32_t total = 0;
   for (size_t i = 0; i < size; i++) {
     total += (unsigned char)(str[i]) << (size - 1 - i) * 8;
@@ -379,8 +387,24 @@ inline uint32_t strtoul(const char *str, size_t size, size_t base) {
   return total;
 }
 
-float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
-  // Convert hex string to decimal.
+inline uint64_t strtoull(const char* str, size_t size, size_t base) {
+  // Security fix: Prevent shift overflow for sizes > 8 bytes (64-bit limit)
+  if (size > 8) {
+    return 0;
+  }
+  uint64_t total = 0;
+  for (size_t i = 0; i < size; i++) {
+    total += static_cast<uint64_t>(static_cast<unsigned char>(str[i]))
+             << (size - 1 - i) * 8;
+  }
+  return total;
+}
+
+double getConvertedValue(const std::string& smcType,
+                         const std::string& smcVal) {
+  // Some types are returned w/ whitespace at the end.
+  std::string type = boost::trim_right_copy(smcType);
+
   std::string val;
   try {
     val = boost::algorithm::unhex(smcVal);
@@ -388,19 +412,84 @@ float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
     return -1.0;
   }
 
-  if (val.size() < 2) {
+  int size = val.size();
+
+  if (val.size() < 1) {
+    LOG(ERROR) << "Invalid size 0 for SMC value; type: " << type;
+    return -1.0;
+  }
+  if (val.size() > 8) {
+    LOG(ERROR)
+        << "SMC keys greater than 64 bits are currently unsupported; type: "
+        << type;
     return -1.0;
   }
 
-  float convertedVal = -1.0;
-  if (smcType == "sp78") {
-    convertedVal = (val[0] * 256 + val[1]) / 256.0;
-  } else if (smcType == "fpe2") {
-    convertedVal = (int(val[0]) << 6) + (int(val[1]) >> 2);
-  } else if (smcType == "sp5a") {
-    convertedVal = (val[0] * 256 + val[1]) / 1024.0;
-  }
+  double convertedVal = -1.0;
 
+  // Little-endian 16.16 fixed-point.
+  if (type == "ioft") {
+    std::uint64_t res;
+    std::memcpy(&res, val.data(), sizeof(res));
+    convertedVal = static_cast<double>(res) / 65536.0f;
+  }
+  // Little-endian 32 bit float.
+  else if (type == "flt") {
+    float f;
+    std::memcpy(&f, val.data(), sizeof(f));
+    convertedVal = static_cast<double>(f);
+  }
+  // Big-endian 16 bit fixed/signed points.
+  else if ((type[0] == 'f' || type[0] == 's') && type[1] == 'p') {
+    // The last character represents the # of fractional bits.
+    const char fbc = type[3];
+    const char ibc = type[2];
+    int is_signed = type[0] == 's' ? 1 : 0;
+    int fractionalBits = (fbc >= 'a' ? (fbc - 'a' + 10) : (fbc - '0'));
+    int integerBits = (ibc >= 'a' ? (ibc - 'a' + 10) : (ibc - '0'));
+    // Check that this is a valid type.
+    if (integerBits + fractionalBits + is_signed != 16) {
+      LOG(ERROR) << "Invalid SMC type: " << type << " (integer: " << integerBits
+                 << ", fractional: " << fractionalBits << ")";
+      return -1.0;
+    }
+    // Security fix: Prevent signed shift overflow
+    if (fractionalBits >= 31) {
+      LOG(ERROR) << "Invalid fractional bits for SMC type: " << type
+                 << " (fractional: " << fractionalBits << ")";
+      return -1.0;
+    }
+    int divisor = 1 << fractionalBits;
+    // Get the integer value represented by the decoded hex string, and divide
+    // by the divisor to get the float value.
+    int intVal = strtoul(val.c_str(), size, 16);
+    if (type[0] == 's') {
+      // "sp" types are signed.
+      convertedVal =
+          static_cast<double>(static_cast<int16_t>(intVal)) / divisor;
+    } else {
+      convertedVal = static_cast<double>(intVal) / divisor;
+    }
+  }
+  // Big-endian 8/16/32/64 bit integers.
+  else if ((type[0] == 's' || type[0] == 'u') && type[1] == 'i') {
+    uint64_t intVal = strtoull(val.c_str(), size, 16);
+    if (type[0] == 's') {
+      // signed int
+      if (size == 1) {
+        convertedVal = static_cast<double>(static_cast<int8_t>(intVal));
+      } else if (size == 2) {
+        convertedVal = static_cast<double>(static_cast<int16_t>(intVal));
+      } else if (size == 4) {
+        convertedVal = static_cast<double>(static_cast<int32_t>(intVal));
+      } else if (size == 8) {
+        convertedVal = static_cast<double>(static_cast<int64_t>(intVal));
+      }
+    } else {
+      // unsigned int
+      convertedVal = static_cast<double>(intVal);
+    }
+  }
   return convertedVal;
 }
 
@@ -411,6 +500,11 @@ bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
   memset(&in, 0, sizeof(SMCKeyData_t));
   memset(&out, 0, sizeof(SMCKeyData_t));
   memset(val, 0, sizeof(SMCValue_t));
+
+  // Security fix: Validate key size to prevent heap overread
+  if (key.size() < 4) {
+    return false;
+  }
 
   in.key = strtoul(key.c_str(), 4, 16);
   memcpy(val->key.bytes, key.c_str(), 4);
@@ -441,7 +535,9 @@ bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
 size_t SMCHelper::getKeysCount() const {
   SMCValue_t val;
   read("#KEY", &val);
-  return ((int)val.bytes.bytes[2] << 8) + ((unsigned)val.bytes.bytes[3] & 0xff);
+  // Security fix: Cast to unsigned char before shift to prevent signed overflow
+  return ((unsigned char)val.bytes.bytes[2] << 8) +
+         ((unsigned char)val.bytes.bytes[3] & 0xff);
 }
 
 std::vector<std::string> SMCHelper::getKeys() const {
@@ -577,9 +673,9 @@ void genTemperature(const Row &row, QueryData &results) {
   Row r;
   r["key"] = smcRow.at("key");
   r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
-
-  float celsiusValue = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
-  float fahrenheitValue = (celsiusValue * (9.0 / 5.0)) + 32;
+  double celsiusValue =
+      getConvertedValue(smcRow.at("type"), smcRow.at("value"));
+  double fahrenheitValue = (celsiusValue * (9.0 / 5.0)) + 32;
 
   std::stringstream buff;
   std::stringstream buff2;
@@ -605,7 +701,7 @@ void genPower(const Row &row, QueryData &results) {
   r["key"] = smcRow.at("key");
   r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
 
-  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
+  double value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
 
   std::stringstream buff;
   buff << std::fixed << std::setprecision(2) << value;
@@ -682,7 +778,12 @@ QueryData genFanSpeedSensors(QueryContext &context) {
   }
 
   // Get attributes for each fan.
-  int numFans = std::stoi(smcRow["value"]);
+  // Security fix: Use tryTo to safely convert string to int
+  auto numFansExp = tryTo<int>(smcRow["value"]);
+  if (numFansExp.isError()) {
+    return results;
+  }
+  int numFans = numFansExp.take();
   for (int fanIdx = 0; fanIdx < numFans; fanIdx++) {
     Row r;
     r["fan"] = std::to_string(fanIdx);

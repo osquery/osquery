@@ -14,7 +14,7 @@ namespace osquery {
 namespace {
 
 // Make sure we have an upper limit so we don't risk infinite loops
-const std::size_t kMaxSystemdUnitCount{1000U};
+const std::size_t kMaxSystemdUnitCount{100'000U};
 
 } // namespace
 
@@ -35,7 +35,15 @@ Status ListUnitsMethodHandler::parseReply(
   DBusMessageIter array_it{};
   dbus_message_iter_recurse(&message_it, &array_it);
 
-  for (std::size_t i{0U}; i < kMaxSystemdUnitCount; ++i) {
+  std::size_t count{0U};
+  while (dbus_message_iter_get_arg_type(&array_it) != DBUS_TYPE_INVALID) {
+    if (count == kMaxSystemdUnitCount) {
+      LOG(WARNING) << "Unable to process all systemd units from ListUnits; "
+                      "reached limit of "
+                   << kMaxSystemdUnitCount;
+      break;
+    }
+
     Unit unit = {};
     auto status = readUnitInformation(unit, array_it);
     if (!status.ok()) {
@@ -43,11 +51,10 @@ Status ListUnitsMethodHandler::parseReply(
     }
 
     output.push_back(std::move(unit));
-    if (!dbus_message_iter_has_next(&array_it)) {
+    ++count;
+    if (!dbus_message_iter_next(&array_it)) {
       break;
     }
-
-    dbus_message_iter_next(&array_it);
   }
 
   return Status::success();

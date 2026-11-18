@@ -73,6 +73,19 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
   }
 }
 
+rocksdb::Status RocksDBDatabasePlugin::openDB() {
+#if ROCKSDB_MAJOR > 9 || (ROCKSDB_MAJOR == 9 && ROCKSDB_MINOR >= 11)
+  // RocksDB 9.11 added DB::Open() with a std::unique_ptr<DB> output,
+  // RocksDB 11 removed the DB** variant.
+  std::unique_ptr<rocksdb::DB> db;
+  auto s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db);
+  db_ = db.release();
+  return s;
+#else
+  return rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+#endif
+}
+
 Status RocksDBDatabasePlugin::setUp() {
   if (!allowOpen()) {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
@@ -128,9 +141,27 @@ Status RocksDBDatabasePlugin::setUp() {
         rocksdb::kDefaultColumnFamilyName, options_));
     domain_set.insert(rocksdb::kDefaultColumnFamilyName);
 
+    // events can be high volume and are short-lived by default.
+    // osquery does not compact the column family on start,
+    // so rocksdb triggers compaction only when a file has data
+    // older than ttl or when a rocksdb level exceeds its target size
+    // (e.g., L4 exceeds its 256GB default).
+    //
+    // ttl 1d does not block startup. rocksdb will compact on an update
+    // to the column family.
+    rocksdb::ColumnFamilyOptions events_options(options_);
+    events_options.ttl = 24 * 60 * 60;
+
     for (const auto& cf_name : kDomains) {
-      column_families_.push_back(
-          rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+      // _handles is off-by-one from kDomains, so events are stored in the
+      // queries cf
+      if (cf_name == kQueries) {
+        column_families_.push_back(
+            rocksdb::ColumnFamilyDescriptor(cf_name, events_options));
+      } else {
+        column_families_.push_back(
+            rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+      }
       domain_set.insert(cf_name);
     }
 
@@ -168,13 +199,12 @@ Status RocksDBDatabasePlugin::setUp() {
   close();
 
   // Attempt to create a RocksDB instance and handles.
-  auto s =
-      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+  auto s = openDB();
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+    s = openDB();
   }
 
   if (!s.ok() || db_ == nullptr) {
@@ -191,6 +221,7 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   for (const auto& cf_name : kDomains) {
+    // events can be large and compaction delays start up time
     if (cf_name != kEvents) {
       auto compact_status = compactFiles(cf_name);
       if (!compact_status.ok()) {

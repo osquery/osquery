@@ -16,10 +16,7 @@
 
 namespace osquery {
 
-FLAG(bool,
-     audit_allow_seccomp_events,
-     false,
-     "Allow the audit publisher to process seccomp events");
+DECLARE_bool(audit_allow_seccomp_events);
 
 REGISTER(SeccompEventSubscriber, "event_subscriber", "seccomp_events");
 

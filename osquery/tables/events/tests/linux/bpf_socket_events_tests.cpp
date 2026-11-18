@@ -43,7 +43,8 @@ const std::vector<std::string> kExpectedRowList = {"syscall",
                                                    "local_address",
                                                    "remote_address",
                                                    "local_port",
-                                                   "remote_port"};
+                                                   "remote_port",
+                                                   "duration"};
 
 } // namespace
 

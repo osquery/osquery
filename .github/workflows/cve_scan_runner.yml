@@ -12,12 +12,12 @@ env:
 
 jobs:
   scan-and-open-issues:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
 
     steps:
       - name: Clone the osquery repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install python pre-requisites
         run: |

@@ -53,17 +53,19 @@ void initializeFilesystemAPILocale();
  * @param shouldLog emit log messages using default logger for read size errors.
  * @return an instance of Status, indicating success or failure.
  *
- * This function reads a file from disk in a non-blocking manner. Note that:
- * 1. In every case the amount of bytes read are limited by the read_max flag
- * 2. If the file has a size, it will read up to that size,
+ * This function reads a regular file from disk in a non-blocking manner.
+ * Note that:
+ * 1. Only regular files are read: a FIFO, socket, device or directory at the
+ *    path, or reached through a symlink, is refused (PF_REGULAR_ONLY).
+ *    Tables read paths that other users can write, where such a file would
+ *    block the open, drain another process's pipe or run a device driver's
+ *    open as osquery's user
+ * 2. In every case the amount of bytes read are limited by the read_max flag
+ * 3. If the file has a size, it will read up to that size,
  *    determined at the start, even if the file is then written to
- * 3. If the file has no size and is considered a special file,
- *    (file with no size on Posix or a file type different from FILE_TYPE_DISK
- *    on Windows) it will stop reading when encountering the EOF,
- *    or if the data is not immediately available.
- *    This is to avoid infinite loops, since special files like a FIFO
- *    or a Named Pipe, will cause the logic to retry until some data is written
- *    from the other end, which might never happen
+ * 4. If the file has no size (as /proc and /sys files report),
+ *    it will stop reading when encountering the EOF,
+ *    or if the data is not immediately available
  */
 Status readFile(const boost::filesystem::path& path,
                 std::string& content,
@@ -150,12 +152,13 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
                             bool recursive = false);
 
 /**
- * @brief List all of the directories in a specific directory, non-recursively.
+ * @brief List all of the directories in a specific directory.
  *
  * @param path the path which you would like to list
  * @param results a non-const reference to a vector which will be populated
  * with the directory listing of the path param, assuming that all operations
- * completed successfully.
+ * completed successfully. Directories are returned without trailing directory
+ * separators.
  * @param recursive should the listing descend recursively into the directory.
  *
  * @return an instance of Status, indicating success or failure.

@@ -87,7 +87,7 @@ class patternedPath {
   struct Compare {
     bool operator()(const Path& lhs, const Path& rhs) const {
       size_t psize = (lhs.size() < rhs.size()) ? lhs.size() : rhs.size();
-      unsigned ndx;
+      size_t ndx;
       for (ndx = 0; ndx < psize; ++ndx) {
         if (lhs[ndx] == "**" || rhs[ndx] == "**") {
           return false;
@@ -108,8 +108,10 @@ class patternedPath {
         }
       }
 
-      if ((ndx == rhs.size() && rhs[ndx - 1] == "*") ||
-          (ndx == lhs.size() && lhs[ndx - 1] == "*")) {
+      // An empty path (for example the parent of "/passwd") leaves ndx at 0,
+      // so check it before looking at the last component.
+      if (ndx > 0 && ((ndx == rhs.size() && rhs[ndx - 1] == "*") ||
+                      (ndx == lhs.size() && lhs[ndx - 1] == "*"))) {
         return false;
       }
 

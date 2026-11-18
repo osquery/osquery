@@ -1,7 +1,7 @@
 table_name("docker_images")
 description("Docker images information.")
 schema([
-    Column("id", TEXT, "Image ID"),
+    Column("id", TEXT, "Image ID", collate="nocase"),
     Column("created", BIGINT, "Time of creation as UNIX time"),
     Column("size_bytes", BIGINT, "Size of image in bytes"),
     Column("tags", TEXT, "Comma-separated list of repository tags")

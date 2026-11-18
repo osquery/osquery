@@ -30,10 +30,10 @@ TEST_F(StartupItemsTest, test_sanity) {
   auto const data = execute_query("select * from startup_items");
 
   ValidationMap row_map = {
-      {"name", NonEmptyString},
+      {"name", NormalType},
       {"path", NormalType},
       {"args", NormalType},
-      {"type", SpecificValuesCheck{"Startup Item", "systemd unit"}},
+      {"type", NonEmptyString},
       {"source", NormalType},
       {"status", NonEmptyString},
       {"username", NormalType},

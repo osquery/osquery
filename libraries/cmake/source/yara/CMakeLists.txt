@@ -37,12 +37,21 @@ function(yaraMain)
     "${library_root}/rules.c"
     "${library_root}/scan.c"
     "${library_root}/scanner.c"
+    "${library_root}/simple_str.c"
     "${library_root}/sizedstr.c"
     "${library_root}/stack.c"
     "${library_root}/stopwatch.c"
     "${library_root}/stream.c"
     "${library_root}/strutils.c"
     "${library_root}/threading.c"
+    "${library_root}/tlshc/tlsh.c"
+    "${library_root}/tlshc/tlsh_impl.c"
+    "${library_root}/tlshc/tlsh_util.c"
+    "${library_root}/modules/pe/authenticode-parser/authenticode.c"
+    "${library_root}/modules/pe/authenticode-parser/certificate.c"
+    "${library_root}/modules/pe/authenticode-parser/countersignature.c"
+    "${library_root}/modules/pe/authenticode-parser/helper.c"
+    "${library_root}/modules/pe/authenticode-parser/structs.c"
     "${library_root}/modules/console/console.c"
     "${library_root}/modules/dex/dex.c"
     "${library_root}/modules/dotnet/dotnet.c"
@@ -52,6 +61,7 @@ function(yaraMain)
     "${library_root}/modules/math/math.c"
     "${library_root}/modules/pe/pe.c"
     "${library_root}/modules/pe/pe_utils.c"
+    "${library_root}/modules/string/string.c"
     "${library_root}/modules/tests/tests.c"
     "${library_root}/modules/time/time.c"
   )
@@ -101,7 +111,10 @@ function(yaraMain)
   target_compile_definitions(thirdparty_yara PRIVATE
     DOTNET_MODULE
     HASH_MODULE
+    PE_MODULE
+    STRING_MODULE
     HAVE_LIBCRYPTO=1
+    BUCKETS_256
     ${yara_strutils_definitions}
   )
 

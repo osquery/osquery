@@ -334,6 +334,28 @@ Status handleRuleFiles(const std::string& category,
   return Status::success();
 }
 
+int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data) {
+#ifdef WIN32
+  // Windows file systems hold no FIFOs, and libyara's own open of the path
+  // shares the file with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a file another process has open for writing.
+  return yr_rules_scan_file(
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, user_data, 0);
+#else
+  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
+    return ERROR_COULD_NOT_OPEN_FILE;
+  }
+
+  return yr_rules_scan_fd(rules,
+                          file.nativeHandle(),
+                          SCAN_FLAGS_FAST_MODE,
+                          YARACallback,
+                          user_data,
+                          0);
+#endif
+}
+
 /**
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
@@ -385,7 +407,7 @@ int YARACallback(YR_SCAN_CONTEXT* context,
 
 Status YARAConfigParserPlugin::setUp() {
   auto obj = data_.getObject();
-  data_.add("yara", obj);
+  data_.addCopy("yara", obj);
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
@@ -416,7 +438,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
     } else {
       auto obj = data_.getObject();
       data_.copyFrom(signatures, obj);
-      data_.add("signatures", obj);
+      data_.addCopy("signatures", obj);
 
       for (const auto& element : data_.doc()["signatures"].GetObject()) {
         std::string category = element.name.GetString();
@@ -461,7 +483,7 @@ Status YARAConfigParserPlugin::update(const std::string& source,
     if (file_paths.IsObject()) {
       auto obj = data_.getObject();
       data_.copyFrom(file_paths, obj);
-      data_.add("file_paths", obj);
+      data_.addCopy("file_paths", obj);
     } else {
       VLOG(1) << "YARA file_paths key is invalid";
     }

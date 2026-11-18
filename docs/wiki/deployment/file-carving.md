@@ -26,3 +26,7 @@ Excerpted from [this blog post](https://www.metalliccode.com/carving):
 
 - `carver_compression` turns on Zstd compression for the files being returned
 - `carver_disable_function` allows for using carve as a function
+
+Metadata for successful carves stays in the `carves` table for `--carver_expiry` seconds (default 86400, one day).
+
+All file carving flags are listed in the [command line flags](../installation/cli-flags.md#file-carving-flags) reference.

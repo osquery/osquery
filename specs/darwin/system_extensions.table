@@ -2,7 +2,7 @@ table_name("system_extensions")
 description("macOS (>= 10.15) system extension table.")
 schema([
     Column("path", TEXT, "Original path of system extension"),
-    Column("UUID", TEXT, "Extension unique id"),
+    Column("UUID", TEXT, "Extension unique id", collate="nocase"),
     Column("state", TEXT, "System extension state"),
     Column("identifier", TEXT, "Identifier name", collate="nocase"),
     Column("version", TEXT, "System extension version", collate="version"),

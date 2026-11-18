@@ -35,7 +35,7 @@ Status FeatureVectorsConfigParserPlugin::update(const std::string& source,
   auto doc = JSON::newObject();
   auto obj = doc.getObject();
   doc.copyFrom(fv->second.doc(), obj);
-  doc.add(kFeatureVectorsRootKey, obj);
+  doc.addCopy(kFeatureVectorsRootKey, obj);
   data_ = std::move(doc);
   return Status::success();
 }

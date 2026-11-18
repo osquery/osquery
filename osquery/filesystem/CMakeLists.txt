@@ -138,6 +138,7 @@ function(generateOsqueryFilesystemTest)
   if(DEFINED PLATFORM_LINUX)
     list(APPEND source_files
       tests/linux/proc_tests.cpp
+      tests/linux/mounts_tests.cpp
     )
   endif()
 

@@ -10,6 +10,7 @@
 #include <iomanip>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <osquery/hashing/hashing.h>
 #include <osquery/tables/system/smbios_utils.h>
@@ -599,12 +600,23 @@ void genSMBIOSProcessor(size_t index,
   r["manufacturer"] = dmiString(textAddrs, address[0x07], maxlen);
   r["processor_type"] = INTEGER(static_cast<int>(address[0x05]));
   r["cpu_status"] = INTEGER(static_cast<int>(address[0x18]));
-  r["number_of_cores"] = INTEGER(static_cast<int>(address[0x23]));
-  r["logical_processors"] = INTEGER(static_cast<int>(address[0x25]));
-  uint16_t processorChar = dmiToWord(address, 0x26);
-  r["address_width"] = (processorChar & (1 << 2)) != 0 ? "64" : "32";
   r["current_clock_speed"] = std::to_string(dmiToWord(address, 0x16));
   r["max_clock_speed"] = std::to_string(dmiToWord(address, 0x14));
+
+  // Check for new fields added on SMBIOS 2.5, falling back to runtime
+  // detection on older versions. Note that runtime values can change during
+  // execution, so the fallback is "almost" accurate.
+  if (hdr->length >= 0x28) {
+    r["number_of_cores"] = INTEGER(static_cast<int>(address[0x23]));
+    r["logical_processors"] = INTEGER(static_cast<int>(address[0x25]));
+    uint16_t processorChar = dmiToWord(address, 0x26);
+    r["address_width"] = (processorChar & (1 << 2)) != 0 ? "64" : "32";
+  } else {
+    r["number_of_cores"] = INTEGER(boost::thread::physical_concurrency());
+    r["logical_processors"] = INTEGER(boost::thread::hardware_concurrency());
+    r["address_width"] = (sizeof(void*) == 8) ? "64" : "32";
+  }
+
   results.push_back(r);
 }
 

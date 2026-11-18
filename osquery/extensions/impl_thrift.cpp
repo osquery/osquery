@@ -315,7 +315,11 @@ void ExtensionManagerHandler::getQueryColumns(
 }
 
 ExtensionRunnerInterface::~ExtensionRunnerInterface() {
-  removePath(path_);
+  // Only remove the socket file; removal is recursive, so a directory
+  // at this path must be left alone (#8090).
+  if (!isDirectory(path_).ok()) {
+    removePath(path_);
+  }
 };
 
 ExtensionRunnerInterface::ExtensionRunnerInterface()
@@ -378,10 +382,10 @@ void ExtensionRunnerInterface::init(RouteUUID uuid, bool manager) {
   }
   // Set the global output function for thrift
   if (FLAGS_thrift_verbose) {
-    GlobalOutput.setOutputFunction(
+    TOutput::instance().setOutputFunction(
         [](const char* message) -> void { VLOG(1) << "Thrift: " << message; });
   } else {
-    GlobalOutput.setOutputFunction([](const char* message) -> void {});
+    TOutput::instance().setOutputFunction([](const char* message) -> void {});
   }
 }
 

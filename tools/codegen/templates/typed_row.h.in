@@ -69,7 +69,7 @@ ${ for column in schema: }$\
 ${   if column.type.affinity == "TEXT_TYPE": }$\
     doc.addRef("${ write(column.name) }$", ${ write(column.name) }$_col, obj);
 ${   :else: }$\
-    doc.add("${ write(column.name) }$", ${ write(column.name) }$_col, obj);
+    doc.addCopy("${ write(column.name) }$", ${ write(column.name) }$_col, obj);
 ${   :end-if  }$\
 ${ :end-for }$\
 

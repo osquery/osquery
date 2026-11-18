@@ -25,6 +25,10 @@
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/info/platform_type.h>
 
+#ifdef WIN32
+#include <osquery/utils/conversions/windows/strings.h>
+#endif
+
 namespace osquery {
 namespace table_tests {
 
@@ -103,7 +107,9 @@ class FileTests : public testing::Test {
       }
 
 #ifdef WIN32
-      createShellLink(filepath.replace_extension(".lnk"), filepath);
+      createShellLink(
+          filepath.replace_extension(filepath.extension().string() + ".lnk"),
+          filepath);
 #endif
     }
   }
@@ -134,15 +140,9 @@ boost::optional<std::size_t> getRowIndexForFileName(
 }
 } // namespace
 
-TEST_F(FileTests, test_sanity) {
-  std::string path_constraint =
-      (directory / boost::filesystem::path("%.txt")).string();
-  std::string link_constraint =
-      (directory / boost::filesystem::path("%.lnk")).string();
-  QueryData data =
-      execute_query("select * from file where path like \"" + path_constraint +
-                    "\" OR path like \"" + link_constraint + "\"");
-
+static void test_sanity_common(const QueryData& data,
+                               const boost::filesystem::path& directory,
+                               const std::string& path_constraint) {
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     EXPECT_EQ(data.size(), kFileNameList.size() * 2);
   } else {
@@ -165,7 +165,8 @@ TEST_F(FileTests, test_sanity) {
                            {"btime", NonNegativeInt},
                            {"hard_links", IntType},
                            {"symlink", IntType},
-                           {"type", NonEmptyString}};
+                           {"type", NonEmptyString},
+                           {"symlink_target_path", NormalType}};
 #ifdef WIN32
   row_map["attributes"] = NormalType;
   row_map["volume_serial"] = NormalType;
@@ -206,19 +207,28 @@ TEST_F(FileTests, test_sanity) {
     ASSERT_EQ(row.at("directory"), directory.string());
     ASSERT_EQ(row.at("filename"), test_file_name);
 
-    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-      auto link_path = boost::filesystem::path(expected_path);
+#ifdef WIN32
+    {
+      // Check for corresponding shortcut (.lnk) files
+      auto link_index = getRowIndexForFileName(data, test_file_name + ".lnk");
+      ASSERT_TRUE(link_index.has_value());
+      const auto& row = data.at(link_index.value());
 
-      if (row.at("path").rfind(".lnk") != std::string::npos) {
-        EXPECT_EQ(row.at("shortcut_target_path"),
-                  link_path.replace_extension(".lnk").string());
-        EXPECT_EQ(row.at("shortcut_target_type"), "File");
-        EXPECT_EQ(row.at("shortcut_target_location"), test_file_name);
-        EXPECT_EQ(row.at("shortcut_target_start_in"), directory.string());
-        EXPECT_EQ(row.at("shortcut_target_run"), "Normal window");
-        EXPECT_EQ(row.at("shortcut_target_comment"), "Test shortcut");
-      }
+      auto short_path =
+          stringToWstring(directory.string() + "\\" + test_file_name);
+      // Transform the expected path to a "full path" using GetLongPathNameW
+      wchar_t long_path[MAX_PATH];
+      auto result = GetLongPathNameW(short_path.c_str(), long_path, MAX_PATH);
+      EXPECT_EQ(row.at("shortcut_target_path"), wstringToString(long_path));
+
+      EXPECT_EQ(row.at("shortcut_target_type"), "Text Document");
+      EXPECT_EQ(row.at("shortcut_target_location"),
+                directory.filename().string());
+      EXPECT_EQ(row.at("shortcut_start_in"), directory.string());
+      EXPECT_EQ(row.at("shortcut_run"), "Normal window");
+      EXPECT_EQ(row.at("shortcut_comment"), "Test shortcut");
     }
+#endif
   }
 
   validate_rows(data, row_map);
@@ -226,6 +236,91 @@ TEST_F(FileTests, test_sanity) {
   if (isPlatform(PlatformType::TYPE_LINUX)) {
     validate_container_rows(
         "file", row_map, "path like \"" + path_constraint + "\"");
+  }
+}
+
+TEST_F(FileTests, test_sanity_path) {
+  std::string path_constraint =
+      (directory / boost::filesystem::path("%.txt")).string();
+  std::string link_constraint =
+      (directory / boost::filesystem::path("%.lnk")).string();
+  QueryData data =
+      execute_query("select * from file where path like \"" + path_constraint +
+                    "\" OR path like \"" + link_constraint + "\"");
+
+  test_sanity_common(data, directory, path_constraint);
+}
+
+TEST_F(FileTests, test_sanity_directory) {
+  std::string path_constraint =
+      (directory / boost::filesystem::path("%.txt")).string();
+
+  QueryData data = execute_query(
+      "select * from file where directory = \"" + directory.string() +
+      "\" AND (filename like \"%.txt\" or filename like \"%.lnk\")");
+
+  test_sanity_common(data, directory, path_constraint);
+}
+
+TEST_F(FileTests, test_nested_directory_traversal) {
+  // Create nested directory structure:
+  // 1/a.txt
+  // 1/2/b.txt
+  // 1/2/3/c.txt
+  // 1/2/3/4/d.txt
+  // 5/6 -> ../5
+
+  auto dir1 = directory / "1";
+  auto dir2 = dir1 / "2";
+  auto dir3 = dir2 / "3";
+  auto dir4 = dir3 / "4";
+  auto dir5 = directory / "5";
+
+  ASSERT_TRUE(boost::filesystem::create_directories(dir4));
+  ASSERT_TRUE(boost::filesystem::create_directory(dir5));
+
+  // Create test files
+  std::vector<boost::filesystem::path> test_files = {
+      dir1 / "a.txt", dir2 / "b.txt", dir3 / "c.txt", dir4 / "d.txt"};
+
+  for (const auto& file_path : test_files) {
+    std::ofstream fout(file_path.string(), std::ios::out);
+    fout << "test content";
+    fout.close();
+    ASSERT_TRUE(boost::filesystem::exists(file_path));
+  }
+
+#ifndef WIN32
+  // Create symlink 5/6 -> ../5
+  auto symlink_path = dir5 / "6";
+  boost::filesystem::create_directory_symlink("../5", symlink_path);
+  ASSERT_TRUE(boost::filesystem::is_symlink(symlink_path));
+#endif
+
+  // Query for all files in the test directory using %% pattern
+  std::string path_pattern = (directory / "%%").string();
+  QueryData data = execute_query(
+      "SELECT path, filename, type FROM file WHERE "
+      "path LIKE \"" +
+      path_pattern + "\" AND type = 'regular'");
+
+  // Verify we found all 4 text files
+  std::vector<std::string> expected_files = {
+      "a.txt", "b.txt", "c.txt", "d.txt"};
+  std::unordered_set<std::string> found_files;
+
+  for (const auto& row : data) {
+    auto filename = row.at("filename");
+    if (std::find(expected_files.begin(), expected_files.end(), filename) !=
+        expected_files.end()) {
+      found_files.emplace(filename);
+    }
+  }
+
+  EXPECT_EQ(found_files.size(), expected_files.size());
+  for (const auto& expected : expected_files) {
+    EXPECT_TRUE(found_files.count(expected) > 0)
+        << "Expected file not found: " << expected;
   }
 }
 

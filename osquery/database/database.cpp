@@ -63,6 +63,11 @@ const std::vector<std::string> kDomains = {kPersistentSettings,
                                            kDistributedRunningQueries,
                                            kQueryPerformance};
 
+const std::vector<std::string> kReservedDbPrefixes = {
+    "query.", "cache.", "config_views."};
+const std::vector<std::string> kReservedDbSuffixes = {kDbEpochSuffix,
+                                                      kDbCounterSuffix};
+
 std::atomic<bool> kDBAllowOpen(false);
 std::atomic<bool> kDBInitialized(false);
 std::atomic<bool> kDBChecking(false);
@@ -537,7 +542,7 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
     if (row.Parse(ss.str()).HasParseError()) {
       return Status(1, "Failed to serialize JSON");
     }
-    json.push(row);
+    json.pushCopy(row);
   }
 
   json.toString(out);
@@ -556,7 +561,8 @@ static Status migrateV0V1(void) {
     // Skip over epoch and counter entries, as 0 is parsed by ptree
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
         boost::algorithm::ends_with(key, kDbCounterSuffix) ||
-        boost::algorithm::starts_with(key, "query.")) {
+        boost::algorithm::starts_with(key, "query.") ||
+        boost::algorithm::starts_with(key, "config_views.")) {
       continue;
     }
 
@@ -645,6 +651,9 @@ Status upgradeDatabase(int to_version) {
     } else {
       db_version = ret.get();
     }
+  } else {
+    LOG(INFO) << "Failed to obtain database version. Assume version '"
+              << std::to_string(db_version) << "' and migrate.";
   }
 
   while (db_version != to_version) {

@@ -2,7 +2,7 @@ table_name("system_info")
 description("System information for identification.")
 schema([
     Column("hostname", TEXT, "Network hostname including domain"),
-    Column("uuid", TEXT, "Unique ID provided by the system"),
+    Column("uuid", TEXT, "Unique ID provided by the system", collate="nocase"),
     Column("cpu_type", TEXT, "CPU type"),
     Column("cpu_subtype", TEXT, "CPU subtype"),
     Column("cpu_brand", TEXT, "CPU brand string, contains vendor and model"),
@@ -21,5 +21,8 @@ schema([
     Column("board_serial", TEXT, "Board serial number"),
     Column("computer_name", TEXT, "Friendly computer name (optional)"),
     Column("local_hostname", TEXT, "Local hostname (optional)"),
+])
+extended_schema(WINDOWS, [
+    Column("emulated_cpu_type", TEXT, "Emulated CPU type"),
 ])
 implementation("system/system_info@genSystemInfo")

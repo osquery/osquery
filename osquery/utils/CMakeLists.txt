@@ -44,6 +44,7 @@ endfunction()
 
 function(generateOsqueryUtils)
   set(source_files
+    affixes.cpp
     base64.cpp
     chars.cpp
     only_movable.cpp
@@ -76,6 +77,7 @@ function(generateOsqueryUtils)
   )
 
   set(public_header_files
+    affixes.h
     attribute.h
     base64.h
     chars.h
@@ -157,6 +159,7 @@ endfunction()
 
 function(generateOsqueryUtilsUtilstestsTest)
   set(source_files
+    tests/affixes.cpp
     tests/base64.cpp
     tests/chars.cpp
     tests/map_take.cpp

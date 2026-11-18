@@ -28,7 +28,8 @@ const std::vector<std::string> kExpectedRowList = {"ntime",
                                                    "path",
                                                    "cwd",
                                                    "cmdline",
-                                                   "json_cmdline"};
+                                                   "json_cmdline",
+                                                   "duration"};
 
 // clang-format off
 const tob::ebpfpub::IFunctionTracer::Event::Header kBaseBPFEventHeader = {

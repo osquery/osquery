@@ -830,7 +830,7 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
   uint64_t value = 0;
   for (const auto& entry : tree) {
     const pt::ptree& node = entry.second;
-    if (node.get<std::string>("op", "") == op) {
+    if (boost::iequals(node.get<std::string>("op", ""), op)) {
       value += node.get<uint64_t>("value", 0);
     }
   }
@@ -847,11 +847,11 @@ std::string getIOBytes(const pt::ptree& tree, const std::string& op) {
  * @return Cumulative value for "key".
  */
 std::string getNetworkBytes(const pt::ptree& tree, const std::string& key) {
-  auto opt = tree.get_optional<std::string>(key);
-  if (opt) {
-    return *opt;
+  uint64_t value = 0;
+  for (const auto& node : tree) {
+    value += node.second.get<uint64_t>(key, 0);
   }
-  return "0";
+  return BIGINT(value);
 }
 
 /**
@@ -917,6 +917,10 @@ QueryData genContainerStats(QueryContext& context) {
           BIGINT(container.get<uint64_t>("memory_stats.usage", 0));
       r["memory_cached"] =
           BIGINT(container.get<uint64_t>("memory_stats.stats.cache", 0));
+      r["memory_inactive_file"] = BIGINT(
+          container.get<uint64_t>("memory_stats.stats.inactive_file", 0));
+      r["memory_total_inactive_file"] = BIGINT(
+          container.get<uint64_t>("memory_stats.stats.total_inactive_file", 0));
       r["memory_max_usage"] =
           BIGINT(container.get<uint64_t>("memory_stats.max_usage", 0));
       r["memory_limit"] =

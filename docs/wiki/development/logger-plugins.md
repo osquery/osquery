@@ -9,7 +9,7 @@ If you would like to use services like [scribe](https://github.com/facebookarchi
 This following is a overly simplified logger plugin that writes results to a glog info line.
 
 ```cpp
-#include <osquery/logger.h>
+#include <osquery/logger/logger.h>
 #include <glog/logging.h>
 
 namespace osquery {

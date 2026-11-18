@@ -7,7 +7,7 @@ schema([
     Column("handle", INTEGER, "Table entry handle"),
     Column("header_size", INTEGER, "Header size in bytes"),
     Column("size", INTEGER, "Table entry size in bytes"),
-    Column("md5", TEXT, "MD5 hash of table entry"),
+    Column("md5", TEXT, "MD5 hash of table entry", collate="nocase"),
 ])
 implementation("system/smbios_tables@genSMBIOSTables")
 fuzz_paths([

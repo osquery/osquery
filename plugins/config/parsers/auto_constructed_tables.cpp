@@ -56,7 +56,7 @@ TableRows ATCPlugin::generate(QueryContext& context) {
     if (!s.ok()) {
       LOG(WARNING) << "ATC Table: Error Code: " << s.getCode()
                    << " Could not generate data: " << s.getMessage()
-                   << " for path " << path_;
+                   << " for path " << path;
     }
   }
   return result;
@@ -128,7 +128,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     auto doc = JSON::newObject();
     auto obj = doc.getObject();
     doc.copyFrom(cv->second.doc(), obj);
-    doc.add(kParserKey, obj);
+    doc.addCopy(kParserKey, obj);
     data_ = std::move(doc);
   }
 

@@ -39,6 +39,7 @@ TEST_F(diskEncryption, test_sanity) {
   //      {"type", NormalType}
   //      {"uid", NormalType}
   //      {"user_uuid", NormalType}
+  //      ("filevault_status", NormalType)
   //      {"encryption_status", NormalType}
   //}
   // 4. Perform validation

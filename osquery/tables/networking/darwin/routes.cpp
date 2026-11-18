@@ -7,12 +7,12 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <string>
 #include <iomanip>
+#include <string>
+#include <vector>
 
 #include <ifaddrs.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include <arpa/inet.h>
 #include <net/if_dl.h>
@@ -31,7 +31,7 @@ namespace tables {
 
 typedef std::pair<int, std::string> RouteType;
 typedef std::map<int, std::string> InterfaceMap;
-typedef std::vector<struct sockaddr *> AddressMap;
+typedef std::vector<struct sockaddr*> AddressMap;
 
 constexpr auto kDefaultIPv4Route = "0.0.0.0";
 constexpr auto kDefaultIPv6Route = "::";
@@ -65,7 +65,7 @@ InterfaceMap genInterfaceMap() {
     if (if_addr->ifa_addr != nullptr &&
         if_addr->ifa_addr->sa_family == AF_LINK) {
       auto route_type = std::string(if_addr->ifa_name);
-      auto sdl = (struct sockaddr_dl *)if_addr->ifa_addr;
+      auto sdl = (struct sockaddr_dl*)if_addr->ifa_addr;
       ifmap.insert(it, std::make_pair(sdl->sdl_index, route_type));
     }
   }
@@ -74,9 +74,9 @@ InterfaceMap genInterfaceMap() {
   return ifmap;
 }
 
-Status genRoute(const struct rt_msghdr *route,
-                const AddressMap &addr_map,
-                Row &r) {
+Status genRoute(const struct rt_msghdr* route,
+                const AddressMap& addr_map,
+                Row& r) {
   r["flags"] = INTEGER(route->rtm_flags);
   r["mtu"] = INTEGER(route->rtm_rmx.rmx_mtu);
   r["hopcount"] = INTEGER(route->rtm_rmx.rmx_hopcount);
@@ -109,9 +109,9 @@ Status genRoute(const struct rt_msghdr *route,
   return Status::success();
 }
 
-Status genArp(const struct rt_msghdr *route,
-              const AddressMap &addr_map,
-              Row &r) {
+Status genArp(const struct rt_msghdr* route,
+              const AddressMap& addr_map,
+              Row& r) {
   if (addr_map[RTAX_DST]->sa_family != AF_INET) {
     return Status(1, "Not in ARP cache");
   }
@@ -119,7 +119,7 @@ Status genArp(const struct rt_msghdr *route,
   // The cache will always know the address.
   r["address"] = ipAsString(addr_map[RTAX_DST]);
 
-  auto sdl = (struct sockaddr_dl *)addr_map[RTA_DST];
+  auto sdl = (struct sockaddr_dl*)addr_map[RTA_DST];
   if (sdl->sdl_alen > 0) {
     r["mac"] = macAsString(LLADDR(sdl));
   } else {
@@ -136,7 +136,7 @@ Status genArp(const struct rt_msghdr *route,
   return Status::success();
 }
 
-void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
+void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData& results) {
   size_t table_size;
   int mib[] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_FLAGS, type.first};
   if (sysctl(mib, sizeof(mib) / sizeof(int), nullptr, &table_size, nullptr, 0) <
@@ -145,17 +145,21 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     return;
   }
 
-  auto table = (char *)malloc(table_size);
-  if (sysctl(mib, sizeof(mib) / sizeof(int), table, &table_size, nullptr, 0) <
-      0) {
-    free(table);
+  std::vector<char> table(table_size);
+  if (sysctl(mib,
+             sizeof(mib) / sizeof(int),
+             table.data(),
+             &table_size,
+             nullptr,
+             0) < 0) {
     return;
   }
 
   size_t message_length = 0;
-  for (char *p = table; p < table + table_size; p += message_length) {
-    auto route = (struct rt_msghdr *)p;
-    auto sa = (struct sockaddr *)(route + 1);
+  for (char* p = table.data(); p < table.data() + table_size;
+       p += message_length) {
+    auto route = (struct rt_msghdr*)p;
+    auto sa = (struct sockaddr*)(route + 1);
     message_length = route->rtm_msglen;
 
     // Populate route's sockaddr table (dest, gw, mask).
@@ -163,7 +167,7 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     for (int i = 0; i < RTAX_MAX; i++) {
       if (route->rtm_addrs & (1 << i)) {
         addr_map.push_back(sa);
-        sa = (struct sockaddr *)((char *)sa + (sa->sa_len));
+        sa = (struct sockaddr*)((char*)sa + (sa->sa_len));
       } else {
         addr_map.push_back(nullptr);
       }
@@ -188,29 +192,27 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
       results.push_back(r);
     }
   }
-
-  free(table);
 }
 
-QueryData genArpCache(QueryContext &context) {
+QueryData genArpCache(QueryContext& context) {
   QueryData results;
   InterfaceMap ifmap;
 
   ifmap = genInterfaceMap();
-  for (const auto &arp_type : kArpTypes) {
+  for (const auto& arp_type : kArpTypes) {
     genRouteTableType(arp_type, ifmap, results);
   }
 
   return results;
 }
 
-QueryData genRoutes(QueryContext &context) {
+QueryData genRoutes(QueryContext& context) {
   QueryData results;
   InterfaceMap ifmap;
 
   // Need a map from index->name for each route entry.
   ifmap = genInterfaceMap();
-  for (const auto &route_type : kRouteTypes) {
+  for (const auto& route_type : kRouteTypes) {
     if (context.constraints["type"].notExistsOrMatches(route_type.second)) {
       genRouteTableType(route_type, ifmap, results);
     }
@@ -218,5 +220,5 @@ QueryData genRoutes(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

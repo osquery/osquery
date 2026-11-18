@@ -8,6 +8,7 @@
  */
 
 #include <chrono>
+#include <set>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -35,6 +36,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
+DECLARE_uint64(buffered_log_max_batch_bytes);
 DECLARE_bool(decorations_top_level);
 
 // Check that the string matches the StatusLogLine
@@ -105,9 +107,11 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_multiple);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
+  FRIEND_TEST(BufferedLogForwarderTests, test_split_bytes);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
   FRIEND_TEST(BufferedLogForwarderTests, test_backoff);
+  FRIEND_TEST(BufferedLogForwarderTests, test_backoff_jitter);
 
  private:
   bool checked_{false};
@@ -331,6 +335,53 @@ TEST_F(BufferedLogForwarderTests, test_split) {
   EXPECT_CALL(runner2, send(ElementsAre("baz"), "result"))
       .WillOnce(Return(Status(0)));
   runner2.check();
+}
+
+// Verify that the max number of bytes per send is respected
+TEST_F(BufferedLogForwarderTests, test_split_bytes) {
+  const auto max_batch_bytes = FLAGS_buffered_log_max_batch_bytes;
+
+  // Two 3-byte lines fit within 7 bytes, a third does not.
+  FLAGS_buffered_log_max_batch_bytes = 7;
+  StrictMock<MockBufferedLogForwarder> runner;
+  runner.logString("foo");
+  runner.logString("bar");
+  runner.logString("baz");
+
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check();
+
+  // A failed batch is retried, and the remaining line is sent after it.
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+  runner.check();
+
+  // A line larger than the limit is still sent, on its own. Statuses have
+  // their own batch.
+  FLAGS_buffered_log_max_batch_bytes = 2;
+  runner.logString("foo");
+  runner.logString("bar");
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  runner.logStatus({log1});
+
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("bar"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+  runner.check();
+
+  FLAGS_buffered_log_max_batch_bytes = max_batch_bytes;
 }
 
 // Test the purge() function independently of check()
@@ -640,6 +691,13 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
   runner.logStatus({log1});
 
+  // Backoff waits a random 50-100% of the exponential period.
+  auto expectJittered = [](std::chrono::seconds period,
+                           std::chrono::seconds full) {
+    EXPECT_GE(period, full - full / 2);
+    EXPECT_LE(period, full);
+  };
+
   // Fail to send.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(1, "fail")));
@@ -648,22 +706,24 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+  expectJittered(runner.results_backoff_period_, runner.log_period_);
+  expectJittered(runner.statuses_backoff_period_, runner.log_period_);
 
   // Don't send anything.
+  auto results_period = runner.results_backoff_period_;
+  auto statuses_period = runner.statuses_backoff_period_;
   runner.check(false, false);
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+  ASSERT_EQ(runner.results_backoff_period_, results_period);
+  ASSERT_EQ(runner.statuses_backoff_period_, statuses_period);
 
   // Allow time to tick one period.
   runner.backoffTick();
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, std::chrono::seconds::zero());
-  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_LE(runner.results_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_LE(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
   // Only send results.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -671,17 +731,18 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.check(true, false);
   ASSERT_EQ(runner.results_backoff_, 2);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
-  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+  expectJittered(runner.results_backoff_period_, runner.log_period_ * 4);
+  ASSERT_LE(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
   // Only send statuses.
+  results_period = runner.results_backoff_period_;
   EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(1)));
   runner.check(false, true);
   ASSERT_EQ(runner.results_backoff_, 2);
   ASSERT_EQ(runner.statuses_backoff_, 2);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_ * 4);
+  ASSERT_EQ(runner.results_backoff_period_, results_period);
+  expectJittered(runner.statuses_backoff_period_, runner.log_period_ * 4);
 
   // Fail to send again, hitting the max backoff.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -690,9 +751,9 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
       .WillOnce(Return(Status(1)));
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 2);
-  ASSERT_EQ(runner.results_backoff_period_, runner.max_backoff_period_);
+  expectJittered(runner.results_backoff_period_, runner.max_backoff_period_);
   ASSERT_EQ(runner.statuses_backoff_, 2);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.max_backoff_period_);
+  expectJittered(runner.statuses_backoff_period_, runner.max_backoff_period_);
 
   // Allow send() to succeed.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -723,5 +784,26 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.log_period_ = std::chrono::seconds(2);
   runner.backoffTick();
   ASSERT_TRUE(runner.results_backoff_period_ <= std::chrono::seconds::zero());
+}
+
+TEST_F(BufferedLogForwarderTests, test_backoff_jitter) {
+  StrictMock<MockBufferedLogForwarder> runner;
+  runner.max_backoff_period_ = runner.log_period_ * 5;
+  runner.logString("foo");
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillRepeatedly(Return(Status(1, "fail")));
+
+  // The wait after the same number of failures should vary, so nodes that
+  // started failing together don't retry together.
+  std::set<std::chrono::seconds::rep> periods;
+  for (int i = 0; i < 20; i++) {
+    runner.results_backoff_ = 1;
+    runner.check(true, false);
+    ASSERT_EQ(runner.results_backoff_, 2);
+    ASSERT_GE(runner.results_backoff_period_, runner.log_period_ * 2);
+    ASSERT_LE(runner.results_backoff_period_, runner.log_period_ * 4);
+    periods.insert(runner.results_backoff_period_.count());
+  }
+  EXPECT_GT(periods.size(), 1U);
 }
 } // namespace osquery

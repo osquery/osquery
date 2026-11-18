@@ -2,7 +2,7 @@ table_name("portage_packages")
 description("List of currently installed packages.")
 schema([
     Column("package", TEXT, "Package name"),
-    Column("version", TEXT, "The version which are affected by the use flags, empty means all"),
+    Column("version", TEXT, "The version which are affected by the use flags, empty means all", collate="version"),
     Column("slot", TEXT, "The slot used by package"),
     Column("build_time", BIGINT, "Unix time when package was built"),
     Column("repository", TEXT, "From which repository the ebuild was used"),

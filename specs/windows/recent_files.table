@@ -1,0 +1,16 @@
+table_name("recent_files")
+description("Recently files (as displayed in Start Menu or File Explorer).")
+schema([
+    Column("uid", BIGINT, "The local user ID", index=True, optimized=True),
+    Column("filename", TEXT, "The name of the file"),
+    Column("path", TEXT, "The full path of the file"),
+    Column("type", TEXT, "Display type for the file"),
+    Column("mtime", BIGINT, "Last modification time of the shortcut (usually corresponds to last opened time for the file)"),
+    Column("shortcut_path", TEXT, "Path to the shortcut where Windows stores the recent file data"),
+])
+attributes(user_data=True)
+implementation("system/windows/recent_files@genRecentFiles")
+examples([
+    "SELECT * FROM users CROSS JOIN recent_files USING (uid)",
+    "SELECT recent_files.* FROM users CROSS JOIN recent_files USING (uid) WHERE mtime > unixepoch('now') - 3600",
+])

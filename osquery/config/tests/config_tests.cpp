@@ -117,6 +117,15 @@ class TestConfigPlugin : public ConfigPlugin {
       return Status(1);
     }
 
+    if (unchanged_) {
+      return Status(2, "Config unchanged");
+    }
+
+    if (bad_) {
+      config["data"] = "[]";
+      return Status::success();
+    }
+
     std::string content;
     auto s = readFile(getTestConfigDirectory() / "test_noninline_packs.conf",
                       content);
@@ -132,10 +141,18 @@ class TestConfigPlugin : public ConfigPlugin {
     return Status::success();
   }
 
+  Status configApplied() override {
+    config_applied_count_++;
+    return Status::success();
+  }
+
  public:
   std::atomic<size_t> gen_config_count_{0};
   std::atomic<size_t> gen_pack_count_{0};
+  std::atomic<size_t> config_applied_count_{0};
   std::atomic<bool> fail_{false};
+  std::atomic<bool> unchanged_{false};
+  std::atomic<bool> bad_{false};
 };
 
 class TestDataConfigParserPlugin : public ConfigParserPlugin {
@@ -300,7 +317,7 @@ TEST_F(ConfigTests, test_config_depth) {
 TEST_F(ConfigTests, test_config_too_big) {
   std::string big_config = "{ \"data\" : [ 1";
 
-  for (int i = 0; i < 1 * 1024 * 1024; ++i) {
+  for (int i = 0; i < 4 * 1024 * 1024; ++i) {
     big_config += ",1";
   }
 
@@ -483,6 +500,63 @@ TEST_F(ConfigTests, test_content_update) {
   EXPECT_EQ(count, 0U);
 }
 
+TEST_F(ConfigTests, test_refresh_unchanged_config) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<TestConfigPlugin>();
+  rf.registry("config")->add("test_unchanged", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_unchanged").ok());
+
+  // A refresh that delivers a config applies it and notifies the plugin.
+  auto status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->gen_config_count_, 1U);
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  size_t pack_count = 0;
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
+  EXPECT_GT(pack_count, 0U);
+
+  // A refresh reporting an unchanged config succeeds without an update:
+  // the installed packs remain and no applied notification is sent.
+  plugin->unchanged_ = true;
+  status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->gen_config_count_, 2U);
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  size_t unchanged_pack_count = 0;
+  get().packs(
+      ([&unchanged_pack_count](const Pack& pack) { unchanged_pack_count++; }));
+  EXPECT_EQ(unchanged_pack_count, pack_count);
+
+  rf.registry("config")->remove("test_unchanged");
+  get().reset();
+}
+
+TEST_F(ConfigTests, test_config_applied_notification) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<TestConfigPlugin>();
+  rf.registry("config")->add("test_applied", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_applied").ok());
+
+  // A config that fails to apply is not reported as applied.
+  plugin->bad_ = true;
+  auto status = get().refresh();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(plugin->config_applied_count_, 0U);
+
+  // A config that applies is.
+  plugin->bad_ = false;
+  status = get().refresh();
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(plugin->config_applied_count_, 1U);
+
+  rf.registry("config")->remove("test_applied");
+  get().reset();
+}
+
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
@@ -559,6 +633,61 @@ TEST_F(ConfigTests, test_nondenylist_query) {
   EXPECT_FALSE(query->second);
 }
 
+TEST_F(ConfigTests, test_queryname_validation) {
+  std::string packConfig = R"({
+    "version": "1.5.0",
+    "queries": {
+      "timeepoch": {
+        "query": "SELECT * FROM time",
+        "interval": 5
+      },
+      "query.info": {
+        "query": "select * from osquery_info",
+        "interval": 5
+      },
+      "valid_name": {
+        "query": "select * from etc_hosts",
+        "interval": 5
+      }
+    }
+  })";
+
+  std::string scheduleConfig = R"({
+    "queries": {
+      "valid_counter_query": {
+      "query": "SELECT * FROM time",
+      "interval": 5
+      },
+      "invalid_query_counter": {
+        "query": "select * from osquery_info",
+        "interval": 5
+      }
+    }
+  })";
+
+  JSON packDoc = JSON::newObject();
+  Status status = packDoc.fromString(packConfig);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  JSON scheduleDoc = JSON::newObject();
+  status = scheduleDoc.fromString(scheduleConfig);
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  std::vector<std::string> scheduled_queries;
+  const std::vector<std::string> valid_names = {
+      "pack_query_validation_pack_valid_name", "valid_counter_query"};
+  get().reset();
+  get().addPack("query_validation_pack", "", packDoc.doc());
+  get().addPack("main", "", scheduleDoc.doc());
+
+  get().scheduledQueries(
+      ([&scheduled_queries](std::string name, const ScheduledQuery& query) {
+        scheduled_queries.push_back(std::move(name));
+      }));
+
+  EXPECT_EQ(scheduled_queries, valid_names);
+}
+
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override {
@@ -574,13 +703,13 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     for (const auto& key : config) {
       auto obj = data_.getObject();
       data_.copyFrom(key.second.doc(), obj);
-      data_.add(key.first, obj, data_.doc());
+      data_.addCopy(key.first, obj, data_.doc());
     }
 
     // Set parser-rendered additional data.
     auto obj2 = data_.getObject();
     data_.addRef("key2", "value2", obj2);
-    data_.add("dictionary3", obj2, data_.doc());
+    data_.addCopy("dictionary3", obj2, data_.doc());
     return Status::success();
   }
 

@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
 
@@ -47,6 +48,12 @@ FLAG(uint64,
      distributed_denylist_duration,
      86400,
      "Seconds to denylist distributed queries (default 1 day)");
+
+FLAG(uint64,
+     distributed_results_max_bytes,
+     32 * 1024 * 1024,
+     "Maximum size in bytes of distributed query results kept to retry after "
+     "a failed write; larger results are dropped (0 = unlimited)");
 
 DECLARE_bool(verbose);
 
@@ -116,9 +123,9 @@ Status Distributed::serializeResults(std::string& json) {
     if (!s.ok()) {
       return s;
     }
-    doc.add(result.request.id, arr, queries_obj);
-    doc.add(result.request.id, result.status.getCode(), statuses_obj);
-    doc.add(result.request.id, result.message, messages_obj);
+    doc.addCopy(result.request.id, arr, queries_obj);
+    doc.addCopy(result.request.id, result.status.getCode(), statuses_obj);
+    doc.addCopy(result.request.id, result.message, messages_obj);
 
     auto obj = doc.getObject();
     if (performance_.count(result.request.id) > 0) {
@@ -137,18 +144,29 @@ Status Distributed::serializeResults(std::string& json) {
                     obj.GetAllocator());
     };
 
-    doc.add(result.request.id, obj, stats_obj);
+    doc.addCopy(result.request.id, obj, stats_obj);
   }
 
-  doc.add("queries", queries_obj);
-  doc.add("statuses", statuses_obj);
-  doc.add("messages", messages_obj);
-  doc.add("stats", stats_obj);
+  doc.addCopy("queries", queries_obj);
+  doc.addCopy("statuses", statuses_obj);
+  doc.addCopy("messages", messages_obj);
+  doc.addCopy("stats", stats_obj);
   return doc.toString(json);
 }
 
 void Distributed::addResult(const DistributedQueryResult& result) {
-  results_.push_back(result);
+  // Results are written keyed by query ID, so only the latest result for an
+  // ID is sent. Replace a result kept from a failed write rather than keeping
+  // both, since a server may reissue the same ID while writes keep failing.
+  auto existing = std::find_if(
+      results_.begin(), results_.end(), [&result](const auto& kept) {
+        return kept.request.id == result.request.id;
+      });
+  if (existing != results_.end()) {
+    *existing = result;
+  } else {
+    results_.push_back(result);
+  }
 }
 
 Status Distributed::runQueries() {
@@ -268,11 +286,24 @@ Status Distributed::flushCompleted() {
     return s;
   }
 
+  VLOG(1) << "Writing " << results_.size() << " distributed query results ("
+          << results.size() << " bytes)";
+
   PluginResponse response;
   s = Registry::call("distributed",
                      {{"action", "writeResults"}, {"results", results}},
                      response);
   if (s.ok()) {
+    results_.clear();
+    performance_.clear();
+  } else if (FLAGS_distributed_results_max_bytes > 0 &&
+             results.size() > FLAGS_distributed_results_max_bytes) {
+    // Failed results are kept to retry with the next flush. If writes keep
+    // failing while new queries are still received, for example because the
+    // server rejects the request size, they would grow without bound.
+    LOG(WARNING) << "Dropping " << results_.size()
+                 << " distributed query results (" << results.size()
+                 << " bytes) that could not be written: " << s.getMessage();
     results_.clear();
     performance_.clear();
   }
@@ -502,8 +533,8 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
     return s;
   }
 
-  doc.add("request", request_obj);
-  doc.add("results", results_arr);
+  doc.addCopy("request", request_obj);
+  doc.addCopy("results", results_arr);
   return Status::success();
 }
 

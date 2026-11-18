@@ -35,6 +35,7 @@ TEST_F(NpmPackagesTest, test_sanity) {
       {"license", NormalType},
       {"path", NonEmptyString},
       {"directory", NonEmptyString},
+      {"depth", IntType},
   };
 
   validate_rows(data, row_map);

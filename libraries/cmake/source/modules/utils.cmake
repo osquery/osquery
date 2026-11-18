@@ -51,6 +51,21 @@ function(initializeGitSubmodule submodule_path no_recursive shallow)
     WORKING_DIRECTORY "${working_directory}"
   )
 
+  # A shallow (--depth=1) update only fetches the tip of the submodule's tracked
+  # branch. When the submodule is pinned to a commit that isn't that tip -- for
+  # example after bumping the pin to a tagged release that trails the branch
+  # head -- checking out the recorded commit fails. Fall back to a full,
+  # non-shallow update, which fetches enough history to reach any recorded commit.
+  if(NOT ${process_exit_code} EQUAL 0 AND NOT "${optional_depth_arg}" STREQUAL "")
+    message(WARNING "Shallow update of submodule \"${submodule_path}\" failed; retrying with a full clone.")
+
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" ${optional_protocol_arg} submodule update --init ${optional_recursive_arg} "${submodule_path}"
+      RESULT_VARIABLE process_exit_code
+      WORKING_DIRECTORY "${working_directory}"
+    )
+  endif()
+
   if(NOT ${process_exit_code} EQUAL 0)
     message(FATAL_ERROR "Failed to update the following git submodule: \"${submodule_path}\"")
   endif()

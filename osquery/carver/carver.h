@@ -9,8 +9,12 @@
 
 #pragma once
 
+#include <osquery/carver/carver_utils.h>
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/remote/serializers/json.h>
+#include <osquery/remote/transports/tls.h>
+#include <osquery/utils/json/json.h>
 #include <osquery/utils/status/status.h>
 
 #include <atomic>
@@ -130,6 +134,52 @@ class Carver {
    * carver_start_endpoint and carver_continue_endpoint.
    */
   virtual Status postCarve(const boost::filesystem::path& path);
+  /**
+   * @brief Helper function to fire a request with retries and backoff.
+   *
+   * @param request The request object.
+   * @param params The JSON parameters for the request.
+   * @return The status of the operation.
+   */
+  Status fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                     const JSON& params);
+
+  /**
+   * @brief Helper function to fire a request with retries and backoff and
+   * populate the response JSON.
+   *
+   * @param request The request object.
+   * @param params The JSON parameters for the request.
+   * @param response The JSON response object to populate.
+   * @return The status of the operation.
+   */
+  Status fireRequest(Request<TLSTransport, JSONSerializer>& request,
+                     const JSON& params,
+                     JSON& response);
+
+  /**
+   * @brief Low-level helper function to send a request.
+   *
+   * This is a virtual method to allow mocking in tests.
+   *
+   * @param request The request object.
+   * @param params The JSON parameters for the request.
+   * @param response The JSON response object to populate.
+   * @return The status of the operation.
+   */
+  virtual Status sendRequest(Request<TLSTransport, JSONSerializer>& request,
+                             const JSON& params,
+                             JSON& response);
+
+  /**
+   * @brief Helper function to extract a session ID from a start request
+   * response.
+   *
+   * @param response The JSON response object.
+   * @param session_id The output session ID string.
+   * @return The status of the operation.
+   */
+  Status extractSessionId(const JSON& response, std::string& session_id) const;
 
   /// Helper function to return the carve directory.
   boost::filesystem::path getCarveDir() {

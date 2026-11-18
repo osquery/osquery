@@ -295,6 +295,16 @@ inline std::string table_doc(const std::string& name) {
   return "https://osquery.io/schema/#" + name;
 }
 
+/// Point to the documentation for a table. Tables provided by extensions are
+/// not in the osquery schema, so do not link to it for them.
+std::string getTableDocHint(const std::string& name) {
+  if (extension_table_list.contains(name)) {
+    return "Table " + name +
+           " is provided by an extension, see the extension's documentation";
+  }
+  return "Please see the table documentation: " + table_doc(name);
+}
+
 static void plan(const std::string& output) {
   if (FLAGS_planner) {
     fprintf(stderr, "osquery planner: %s\n", output.c_str());
@@ -597,8 +607,8 @@ int xCreate(sqlite3* db,
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
 
-  // Tables may request aliases as views.
-  std::set<std::string> views;
+  // Tables may request aliases, created as tables using the same module.
+  std::set<std::string> aliases;
 
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
@@ -636,10 +646,10 @@ int xCreate(sqlite3* db,
       pVtab->content->columns.push_back(std::make_tuple(
           cname->second, columnTypeName(ctype->second), options));
     } else if (cid->second == "alias") {
-      // Create associated views for table aliases.
+      // Create associated tables for table aliases.
       auto calias = column.find("alias");
       if (calias != column.end()) {
-        views.insert(calias->second);
+        aliases.insert(calias->second);
       }
     } else if (cid->second == "columnAlias" && cname != column.end()) {
       auto ctarget = column.find("target");
@@ -675,10 +685,13 @@ int xCreate(sqlite3* db,
     }
   }
 
-  // Create the requested 'aliases'.
-  for (const auto& view : views) {
-    statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
-    sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
+  // Create the requested 'aliases' as tables, not views, so they keep hidden
+  // columns. argv[2] is the new table's name; aliases don't create aliases.
+  if (argc > 2 && name == argv[2]) {
+    for (const auto& alias : aliases) {
+      statement = "CREATE VIRTUAL TABLE temp." + alias + " USING " + name;
+      sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
+    }
   }
 
   *ppVtab = (sqlite3_vtab*)pVtab;
@@ -920,7 +933,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
-    auto& constraints = content->constraints[idxNum];
+    // A copy: the IN rewrite below must not stick for the next xFilter call.
+    auto constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
         // Set the expression from SQLite's now-populated argv.
@@ -1019,8 +1033,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   // Provide a helpful reference to table documentation within the shell.
   if ((!user_based_satisfied || !required_satisfied || !events_satisfied)) {
     if (isShell()) {
-      LOG(WARNING) << "Please see the table documentation: "
-                   << table_doc(pVtab->content->name);
+      LOG(WARNING) << getTableDocHint(pVtab->content->name);
     }
 
     // Return early if constraints do not make sense.
@@ -1161,6 +1174,27 @@ Status attachTableInternal(const std::string& name,
 Status detachTableInternal(const std::string& name,
                            const SQLiteDBInstanceRef& instance) {
   auto lock(instance->attachLock());
+
+  // Drop the table's aliases too, they are tables using its module.
+  std::vector<std::string> aliases;
+  sqlite3_stmt* stmt = nullptr;
+  sqlite3_prepare_v2(instance->db(),
+                     "SELECT name FROM sqlite_temp_master WHERE name != ?1 AND "
+                     "sql = 'CREATE VIRTUAL TABLE ' || name || ' USING ' || ?1",
+                     -1,
+                     &stmt,
+                     nullptr);
+  sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    aliases.emplace_back(
+        reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+  }
+  sqlite3_finalize(stmt);
+  for (const auto& alias : aliases) {
+    auto drop = "DROP TABLE IF EXISTS temp." + alias;
+    sqlite3_exec(instance->db(), drop.c_str(), nullptr, nullptr, nullptr);
+  }
+
   auto format = "DROP TABLE IF EXISTS temp." + name;
   int rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {

@@ -221,6 +221,8 @@ On Linux, a companion table called `user_events` is included that provides sever
 
 ## Linux process and socket auditing using BPF
 
+> **Deprecated:** the BPF-based tables (`bpf_process_events`, `bpf_socket_events`) are deprecated and will be removed in osquery 6.0.0. See [#8691](https://github.com/osquery/osquery/issues/8691).
+
 When osquery is running on a recent kernel (>= 4.18), the BPF eventing framework can be used. This event publisher needs to monitor for more system calls to reach feature parity with the Audit-based tables. For this reason, enabling BPF will also enable both the `bpf_process_events` and `bpf_socket_events` tables.
 
 In order to start the publisher and enable the subscribers, the following flags must be passed: `--disable_events=false --enable_bpf_events=true`. The `--verbose` flag can also be extremely useful when setting up the configuration for the first time, since it emit more debug information when something fails.

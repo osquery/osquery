@@ -5,9 +5,9 @@ schema([
     Column("pci_class", TEXT, "PCI Device class"),
     Column("driver", TEXT, "PCI Device used driver"),
     Column("vendor", TEXT, "PCI Device vendor"),
-    Column("vendor_id", TEXT, "Hex encoded PCI Device vendor identifier"),
+    Column("vendor_id", TEXT, "Hex encoded PCI Device vendor identifier", collate="nocase"),
     Column("model", TEXT, "PCI Device model"),
-    Column("model_id", TEXT, "Hex encoded PCI Device model identifier"),
+    Column("model_id", TEXT, "Hex encoded PCI Device model identifier", collate="nocase"),
 
     # Optional columns
     #Column("subsystem", TEXT, "PCI Device subsystem"),
@@ -17,12 +17,12 @@ schema([
 ])
 
 extended_schema(LINUX, [
-    Column("pci_class_id", TEXT, "PCI Device class ID in hex format"),
-    Column("pci_subclass_id", TEXT, "PCI Device  subclass in hex format"),
+    Column("pci_class_id", TEXT, "PCI Device class ID in hex format", collate="nocase"),
+    Column("pci_subclass_id", TEXT, "PCI Device  subclass in hex format", collate="nocase"),
     Column("pci_subclass", TEXT, "PCI Device subclass"),
-    Column("subsystem_vendor_id", TEXT, "Vendor ID of PCI device subsystem"),
+    Column("subsystem_vendor_id", TEXT, "Vendor ID of PCI device subsystem", collate="nocase"),
     Column("subsystem_vendor", TEXT, "Vendor of PCI device subsystem"),
-    Column("subsystem_model_id", TEXT, "Model ID of PCI device subsystem"),
+    Column("subsystem_model_id", TEXT, "Model ID of PCI device subsystem", collate="nocase"),
     Column("subsystem_model", TEXT, "Device description of PCI device subsystem"),
 ])
 

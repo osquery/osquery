@@ -1,10 +1,17 @@
 # Installing on macOS
 
-Continuous Integration currently tests macOS builds of osquery against macOS 11 (see the `os: [macos-` line in
-the `build_macos` section of the [CI
-configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/build.yml). All core functionality of
-osquery should work on macOS 10.15 or newer, although some tables may read data present only on certain versions of
-macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.14 and older are no longer supported.
+Continuous Integration currently tests macOS builds of osquery against macOS 14 and macOS 15 for both x86_64 and arm64 architectures (see the `build_macos` section of the [hosted runners CI configuration](https://github.com/osquery/osquery/blob/master/.github/workflows/hosted_runners.yml)). All core functionality of osquery should work on macOS 10.15 or newer, although some tables may read data present only on certain versions of macOS, as Apple adds new data sources or deprecates others. Versions of macOS 10.14 and older are no longer supported.
+
+## Platform support status
+
+osquery support can vary depending on operating system version, architecture, and available project or community testing. In general, platform support may be described using these categories:
+
+| Status | Meaning |
+| --- | --- |
+| CI tested | The platform is tested by the project’s continuous integration workflows. |
+| Community tested | The platform is not regularly tested in CI, but users or contributors have reported successful use. |
+| May work, not officially supported | The platform may still build or run, but it is not actively tested or guaranteed. |
+| Unsupported | The platform is not expected to work or is no longer supported. |
 
 ## Package Installation
 

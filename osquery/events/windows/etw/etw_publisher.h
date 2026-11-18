@@ -64,6 +64,19 @@ class EtwPublisherBase {
    */
   std::function<void(const EtwEventDataRef&)> getPostProcessorCallback();
 
+ protected:
+  /**
+   * @brief Given the userSid, update the username using a cached value or
+   * looking up the value if no cached value exists.
+   */
+  void updateUserInfo(const std::string& userSid, std::string& username);
+
+  /**
+   * @brief Given an image file (device) path, update to use the logical (eg.
+   * C:) drive
+   */
+  void updateHardVolumeWithLogicalDrive(std::string& path);
+
  private:
   /**
    * @brief Abstract method that has to be implemented in the ETW publisher
@@ -79,6 +92,16 @@ class EtwPublisherBase {
    * @brief Provider name
    */
   std::string name_;
+
+  // Cache for hard volume conversions
+  void initializeHardVolumeConversions();
+  using HardVolumeDriveCollection =
+      std::unordered_map<std::string, std::string>;
+  HardVolumeDriveCollection hardVolumeDrives_;
+
+  // Cache for updateUserInfo
+  using UsernameBySIDCollection = std::unordered_map<std::string, std::string>;
+  UsernameBySIDCollection usernamesBySIDs_;
 };
 
 } // namespace osquery

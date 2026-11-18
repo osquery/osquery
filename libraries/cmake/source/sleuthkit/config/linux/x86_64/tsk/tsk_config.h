@@ -208,7 +208,7 @@
 #define PACKAGE_NAME "sleuthkit"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "sleuthkit 4.11.0"
+#define PACKAGE_STRING "sleuthkit 4.15.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "sleuthkit"
@@ -217,7 +217,7 @@
 /* #undef PACKAGE_URL */
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.11.0"
+#define PACKAGE_VERSION "4.15.0"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -244,7 +244,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "4.11.0"
+#define VERSION "4.15.0"
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
 #ifndef _DARWIN_USE_64_BIT_INODE

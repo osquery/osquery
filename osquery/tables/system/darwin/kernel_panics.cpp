@@ -147,7 +147,7 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
       r["kernel_version"] = *(std::next(it));
     } else if (boost::starts_with(
                    toks[0], "Process name corresponding to current thread") &&
-               std::next(it) != lines.end()) {
+               toks.size() == 2) {
       r["name"] = boost::regex_replace(toks[1], rxSpaces, " ");
     } else if (kKernelPanicKeys.count(toks[0]) != 0 && toks.size() == 2) {
       // all of the other strings defined at the top of this file

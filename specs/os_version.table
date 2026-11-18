@@ -2,7 +2,7 @@ table_name("os_version")
 description("A single row containing the operating system name and version.")
 schema([
     Column("name", TEXT, "Distribution or product name"),
-    Column("version", TEXT, "Pretty, suitable for presentation, OS version"),
+    Column("version", TEXT, "Pretty, suitable for presentation, OS version", collate="version"),
     Column("major", INTEGER, "Major release version"),
     Column("minor", INTEGER, "Minor release version"),
     Column("patch", INTEGER, "Optional patch release"),
@@ -22,6 +22,7 @@ extended_schema(WINDOWS, [
     Column("revision", INTEGER, "Update Build Revision, refers to the specific revision number of a Windows update"),
 ])
 extended_schema(LINUX, [
+    Column("cpe_name", TEXT, "CPE name from /etc/os-release"),
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
     Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
 ])

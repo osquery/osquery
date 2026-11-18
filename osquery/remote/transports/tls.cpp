@@ -22,7 +22,18 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::string kTLSUserAgentBase = "osquery/";
+/// Compile-time default for the User-Agent prefix, set via the
+/// OSQUERY_USER_AGENT_PREFIX CMake option (default "osquery/").
+const std::string kTLSUserAgentBase = STR(OSQUERY_USER_AGENT_PREFIX);
+
+/// User-Agent prefix sent to the TLS server back-end. The osquery version is
+/// appended to this value, so a prefix of "osquery/" yields "osquery/5.0.0".
+/// Defaults to the compile-time OSQUERY_USER_AGENT_PREFIX but can be
+/// overridden at run time.
+CLI_FLAG(string,
+         tls_user_agent,
+         kTLSUserAgentBase,
+         "User-Agent prefix for TLS requests; the osquery version is appended");
 
 /// TLS server hostname.
 CLI_FLAG(string,
@@ -60,6 +71,12 @@ CLI_FLAG(uint32,
          3600,
          "TLS session keep alive timeout in seconds");
 
+/// Enable gzip compression for HTTP response bodies.
+CLI_FLAG(bool,
+         tls_accept_gzip,
+         false,
+         "Enable gzip compression for HTTP responses");
+
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
@@ -91,7 +108,13 @@ TLSTransport::TLSTransport() {
 void TLSTransport::decorateRequest(http::Request& r) {
   r << http::Request::Header("Content-Type", serializer_->getContentType());
   r << http::Request::Header("Accept", serializer_->getContentType());
-  r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
+  r << http::Request::Header("User-Agent", FLAGS_tls_user_agent + kVersion);
+
+  auto node_key = getOption("node_key");
+  if (!node_key.empty()) {
+    r << http::Request::Header(kAuthorizationHeader,
+                               kNodeKeyAuthScheme + " " + node_key);
+  }
 }
 
 http::Client::Options TLSTransport::getOptions() {
@@ -150,6 +173,7 @@ http::Client::Options TLSTransport::getInternalOptions() {
   auto options = getOptions();
 
   options.keep_alive(FLAGS_tls_session_reuse);
+  options.accept_gzip(FLAGS_tls_accept_gzip);
 
   if (FLAGS_proxy_hostname.size() > 0) {
     options.proxy_hostname(FLAGS_proxy_hostname);
@@ -172,6 +196,24 @@ http::Client::Options TLSTransport::getInternalOptions() {
     }
   }
 
+  return options;
+}
+
+http::Client::Options TLSTransport::getInternalOptionsForRequest(
+    http::Request& request) {
+  auto options = getInternalOptions();
+
+  if (auto hostname = request.remoteHost()) {
+    options.remote_hostname(*hostname);
+  }
+
+  if (auto port = request.remotePort()) {
+    options.remote_port(*port);
+  } else {
+    options.remote_port("443");
+  }
+
+  options.ssl_connection(true);
   return options;
 }
 
@@ -223,7 +265,7 @@ Status TLSTransport::sendRequest() {
   try {
     std::shared_ptr<http::Client> client = getClient();
 
-    client->setOptions(getInternalOptions());
+    client->setOptions(getInternalOptionsForRequest(r));
     response_ = client->get(r);
 
     const auto& response_body = response_.body();
@@ -269,7 +311,7 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
   try {
     std::shared_ptr<http::Client> client = getClient();
-    client->setOptions(getInternalOptions());
+    client->setOptions(getInternalOptionsForRequest(r));
 
     if (verb == HTTP_POST) {
       response_ = client->post(r, (compress) ? compressString(params) : params);

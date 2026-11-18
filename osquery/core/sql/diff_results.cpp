@@ -26,14 +26,14 @@ Status serializeDiffResults(const DiffResults& d,
   if (!status.ok()) {
     return status;
   }
-  doc.add("removed", removed_arr, obj);
+  doc.addCopy("removed", removed_arr, obj);
 
   auto added_arr = doc.getArray();
   status = serializeQueryData(d.added, doc, added_arr, asNumeric);
   if (!status.ok()) {
     return status;
   }
-  doc.add("added", added_arr, obj);
+  doc.addCopy("added", added_arr, obj);
   return Status::success();
 }
 

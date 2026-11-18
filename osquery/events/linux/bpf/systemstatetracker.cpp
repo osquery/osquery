@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -29,7 +30,7 @@ namespace {
 const std::size_t kMaxFileHandleEntryCount{512U};
 const std::uint64_t kExpirationTime{180U};
 const std::size_t kEventsBeforeExpiration{10000U};
-}
+} // namespace
 
 struct SystemStateTracker::PrivateData final {
   Context context;
@@ -515,7 +516,6 @@ bool SystemStateTracker::openFile(
     int newfd,
     const std::string& path,
     int flags) {
-
   auto& process_context =
       getProcessContext(context, process_context_factory, process_id);
 
@@ -1057,7 +1057,10 @@ bool SystemStateTracker::parseUnixSockaddr(
 
   sockaddr_un addr{};
   std::memcpy(&addr, sockaddr.data(), size);
-  path = addr.sun_path;
+
+  // sun_path is not guaranteed to be null terminated when the
+  // captured address fills the field, so bound the read to its size.
+  path.assign(addr.sun_path, strnlen(addr.sun_path, sizeof(addr.sun_path)));
 
   return true;
 }
@@ -1213,7 +1216,7 @@ bool SystemStateTracker::parseNetlinkSockaddr(
     return false;
   }
 
-  auto size = std::min(sizeof(sockaddr_in), sockaddr.size());
+  auto size = std::min(sizeof(sockaddr_nl), sockaddr.size());
 
   sockaddr_nl addr{};
   std::memcpy(&addr, sockaddr.data(), size);

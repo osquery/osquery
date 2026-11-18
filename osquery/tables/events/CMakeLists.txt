@@ -61,7 +61,8 @@ function(generateOsqueryTablesEventsEventstable)
 	
     if(OSQUERY_BUILD_ETW)
       list(APPEND source_files
-        windows/etw_process_events.cpp
+      windows/etw_process_events.cpp
+      windows/dns_lookup_events.cpp
       )
     endif()	
   endif()
@@ -116,6 +117,10 @@ function(generateOsqueryTablesEventsEventstable)
     add_test(NAME osquery_tables_events_tests_seccompeventstests-test COMMAND osquery_tables_events_tests_seccompeventstests-test)
     add_test(NAME osquery_tables_events_tests_selinuxeventstests-test COMMAND osquery_tables_events_tests_selinuxeventstests-test)
     add_test(NAME osquery_tables_events_tests_processeventstests-test COMMAND osquery_tables_events_tests_processeventstests-test)
+
+    if(OSQUERY_BUILD_BPF)
+      add_test(NAME osquery_tables_events_tests_bpftests-test COMMAND osquery_tables_events_tests_bpftests-test)
+    endif()
   endif()
 
   if(DEFINED PLATFORM_WINDOWS)
@@ -127,7 +132,8 @@ function(generateOsqueryTablesEventsEventstable)
 	
     if(OSQUERY_BUILD_ETW)
       list(APPEND platform_public_header_files
-        windows/etw_process_events.h
+      windows/etw_process_events.h
+      windows/dns_lookup_events.h
       )
     endif()
 

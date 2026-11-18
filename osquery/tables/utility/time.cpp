@@ -54,7 +54,7 @@ QueryData genTime(QueryContext& context) {
     struct tm local {};
     localtime_r(&osquery_time, &local);
 
-    std::array<char, 5> buffer{};
+    std::array<char, 8> buffer{};
     if (strftime(buffer.data(), buffer.size(), "%Z", &local) == 0) {
       LOG(ERROR)
           << "Failed to extract the local timezone from the current time";
@@ -65,7 +65,7 @@ QueryData genTime(QueryContext& context) {
   }
 
   {
-    std::array<char, 10> buffer{};
+    std::array<char, 32> buffer{};
     if (strftime(buffer.data(), buffer.size(), "%A", &now) == 0) {
       LOG(ERROR) << "Failed to extract the weekday from the current time";
     } else {

@@ -38,13 +38,10 @@ function(generateOsqueryConfig)
 
   generateIncludeNamespace(osquery_config "osquery/config" "FILE_ONLY" ${public_header_files})
 
-  add_test(NAME osquery_config_tests-test COMMAND osquery_config_tests-test)
-
-  add_test(NAME osquery_config_tests_packs-test COMMAND osquery_config_tests_packs-test)
+  add_test(NAME osquery_config_tests_mergedtests-test COMMAND osquery_config_tests_mergedtests-test)
 
   set_tests_properties(
-    osquery_config_tests-test
-    osquery_config_tests_packs-test
+    osquery_config_tests_mergedtests-test
     PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
   )
 

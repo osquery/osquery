@@ -33,6 +33,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/augeas.cpp
       posix/authorized_keys.cpp
       posix/crontab.cpp
+      posix/homebrew_packages.cpp
       posix/known_hosts.cpp
       posix/last.cpp
       posix/load_average.cpp
@@ -41,6 +42,7 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/openssl_utils.cpp
       posix/shell_history.cpp
       posix/smbios_utils.cpp
+      posix/sshd_config.cpp
       posix/sudoers.cpp
       posix/suid_bin.cpp
       posix/system_controls.cpp
@@ -61,6 +63,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/certificates.cpp
       linux/disk_encryption.cpp
       linux/extended_attributes.cpp
+      linux/gpu_metrics.cpp
       linux/groups.cpp
       linux/intel_me.cpp
       linux/kernel_info.cpp
@@ -72,13 +75,17 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/model_specific_register.cpp
       linux/mounts.cpp
       linux/os_version.cpp
+      linux/pacman_packages.cpp
       linux/pci_devices.cpp
       linux/portage.cpp
       linux/process_open_files.cpp
       linux/process_open_pipes.cpp
       linux/processes.cpp
+      linux/flatpak_packages.cpp
       linux/rpm_packages.cpp
+      linux/snap_packages.cpp
       linux/secureboot.cpp
+      linux/secureboot_certificates.cpp
       linux/shadow.cpp
       linux/shared_memory.cpp
       linux/smbios_tables.cpp
@@ -92,6 +99,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
       linux/cpu_info.cpp
+      linux/gpu_info.cpp
       linux/yum_sources.cpp
     )
 
@@ -113,6 +121,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/battery.mm
       darwin/block_devices.cpp
       darwin/certificates.mm
+      darwin/certificate_trust_settings.cpp
       darwin/connected_displays.mm
       darwin/cpu_info.cpp
       darwin/cpu_time.cpp
@@ -123,8 +132,10 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/event_taps.mm
       darwin/extended_attributes.cpp
       darwin/firewall.mm
+      darwin/gpu_metrics.mm
       darwin/gatekeeper.cpp
-      darwin/homebrew_packages.cpp
+      darwin/gpu_info.mm
+      darwin/macports_packages.cpp
       darwin/ibridge.cpp
       darwin/iokit_registry.cpp
       darwin/kernel_extensions.cpp
@@ -138,12 +149,13 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/managed_policies.cpp
       darwin/mdfind.mm
       darwin/mdls.mm
+      darwin/system_profiler.mm
       darwin/mounts.cpp
       darwin/nfs_shares.cpp
       darwin/nvram.cpp
       darwin/os_version.mm
       darwin/packages.mm
-      darwin/password_policy.cpp
+      darwin/password_policy.mm
       darwin/pci_devices.cpp
       darwin/preferences.cpp
       darwin/process_open_descriptors.cpp
@@ -159,7 +171,7 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/sip_config.cpp
       darwin/smbios_tables.cpp
       darwin/smc_keys.cpp
-      darwin/startup_items.cpp
+      darwin/startup_items.mm
       darwin/sysctl_utils.cpp
       darwin/system_extensions.mm
       darwin/system_info.cpp
@@ -187,7 +199,9 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/disk_info.cpp
       windows/dns_cache.cpp
       windows/drivers.cpp
+      windows/gpu_metrics.cpp
       windows/groups.cpp
+      windows/gpu_info.cpp
       windows/ie_extensions.cpp
       windows/intel_me.cpp
       windows/kernel_info.cpp
@@ -223,9 +237,11 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/windows_crashes.cpp
       windows/windows_eventlog.cpp
       windows/windows_optional_features.cpp
+      windows/recent_files.cpp
       windows/windows_search.cpp
       windows/windows_security_products.cpp
       windows/windows_security_center.cpp
+      windows/token_privileges.cpp
       windows/windows_update_history.cpp
       windows/wmi_bios_info.cpp
       windows/wmi_cli_event_consumers.cpp
@@ -235,6 +251,8 @@ function(generateOsqueryTablesSystemSystemtable)
       windows/deviceguard_status.cpp
       windows/tpm_info.cpp
       windows/prefetch.cpp
+      windows/token_privileges.cpp
+      windows/process_open_handles.cpp
     )
   endif()
 
@@ -254,11 +272,13 @@ function(generateOsqueryTablesSystemSystemtable)
     osquery_utils_conversions
     osquery_utils_expected
     osquery_utils_system_env
+    osquery_utils_system_errno
     osquery_utils_system_filepath
     osquery_utils_system_systemutils
     osquery_utils_system_time
     osquery_utils_system_uptime
     osquery_worker_ipc_platformtablecontaineripc
+    osquery_utils_json
     thirdparty_boost
     osquery_rows_processes_header
   )
@@ -283,6 +303,7 @@ function(generateOsqueryTablesSystemSystemtable)
       thirdparty_librpm
       thirdparty_dbus
       thirdparty_libcap
+      thirdparty_yaml-cpp
     )
 
     if(OSQUERY_BUILD_DPKG)
@@ -296,6 +317,7 @@ function(generateOsqueryTablesSystemSystemtable)
       osquery_utils_plist
       osquery_utils_system_profiler
       thirdparty_openssl
+      IOReport
     )
 
     target_link_options(osquery_tables_system_systemtable PRIVATE
@@ -320,11 +342,13 @@ function(generateOsqueryTablesSystemSystemtable)
       posix/known_hosts.h
       posix/shell_history.h
       posix/ssh_keys.h
+      posix/sshd_config.h
       posix/sudoers.h
       posix/sysctl_utils.h
       posix/last.h
       posix/openssl_utils.h
       posix/authorized_keys.h
+      posix/disk_encryption.h
     )
   endif()
 
@@ -350,49 +374,34 @@ function(generateOsqueryTablesSystemSystemtable)
       darwin/keychain.h
       darwin/packages.h
       darwin/smbios_utils.h
+      darwin/os_version.h
+      darwin/startup_items.h
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND platform_public_header_files
+      windows/processes.h
+      windows/programs.h
       windows/registry.h
       windows/certificates.h
+      windows/token_privileges.h
       windows/windows_eventlog.h
       windows/windows_update_history.h
       windows/security_profile_info_utils.h
+      windows/startup_items.h
     )
   endif()
 
   generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
 
+  add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
+
   if(DEFINED PLATFORM_POSIX)
-    add_test(NAME osquery_tables_system_posix_tests-test COMMAND osquery_tables_system_posix_tests-test)
-    add_test(NAME osquery_tables_system_tests_augeastests-test COMMAND osquery_tables_system_tests_augeastests-test)
     set_tests_properties(
-      osquery_tables_system_tests_augeastests-test
+      osquery_tables_system_tests_mergedtests-test
       PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
     )
   endif()
-
-  if(DEFINED PLATFORM_LINUX)
-    add_test(NAME osquery_tables_system_linux_tests-test COMMAND osquery_tables_system_linux_tests-test)
-
-    set_tests_properties(
-      osquery_tables_system_linux_tests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
-  elseif(DEFINED PLATFORM_MACOS)
-    add_test(NAME osquery_tables_system_darwin_keychain_tests-test COMMAND osquery_tables_system_darwin_keychain_tests-test)
-    add_test(NAME osquery_tables_system_darwin_tests-test COMMAND osquery_tables_system_darwin_tests-test)
-
-    set_tests_properties(
-      osquery_tables_system_darwin_tests-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
-    )
-  elseif(DEFINED PLATFORM_WINDOWS)
-    add_test(NAME osquery_tables_system_windows_tests-test COMMAND osquery_tables_system_windows_tests-test)
-  endif()
-
-  add_test(NAME osquery_tables_system_tests_systemtablestests-test COMMAND osquery_tables_system_tests_systemtablestests-test)
 endfunction()
 
 osqueryTablesSystemMain()

@@ -54,14 +54,14 @@ This [complete schema](https://osquery.io/schema/) for all supported platforms i
 On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 
 ```text
-osquery> SELECT pid, name, path WHERE pid>0 FROM processes LIMIT 1;
+osquery> SELECT pid, name, path FROM processes WHERE pid > 0 LIMIT 1;
 +-----+---------+---------------+
 | pid | name    | path          |
 +-----+---------+---------------+
 | 1   | launchd | /sbin/launchd |
 +-----+---------+---------------+
 osquery> .mode line
-osquery> SELECT pid, name, path WHERE pid>0 FROM processes LIMIT 1;
+osquery> SELECT pid, name, path FROM processes WHERE pid > 0 LIMIT 1;
   pid = 1
  name = launchd
  path = /sbin/launchd
@@ -222,7 +222,7 @@ osquery includes the following C-math functions: `sqrt`, `log`, `log10`, `ceil`,
     osquery> select floor(disk_size) as disk_size from disk_info;
     disk_size = 107372805120
 
-    osquery> select power(disk_size) as disk_size from disk_info;
+    osquery> select power(disk_size, 2) as disk_size from disk_info;
     disk_size = 1.15289192793375e+22
 
     osquery> select pi() * disk_size as disk_size from disk_info;
@@ -333,7 +333,7 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 
       uid = 1001
 
-      osquery> select split(uid, ("[1-5]"), 0) from users;
+      osquery> select regex_split(uid, "[1-5]", 0) from users;
       split(uid, 1, 0) = 00
 
       split(uid, 1, 0) = 00
@@ -383,7 +383,7 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
       version_compare('1.0', '1.0') = 0
 
       osquery> select version_compare('4:1.1.0', '4:1.1.0-3', 'ARCH');
-      version_compare('4:1.1.0', '4:1.1.0-3', 1) = 0
+      version_compare('4:1.1.0', '4:1.1.0-3', 'ARCH') = 0
 
       osquery> select version_compare('50.4.1b', '50.4.1c');
       version_compare('50.4.1b', '50.4.1c') = -1

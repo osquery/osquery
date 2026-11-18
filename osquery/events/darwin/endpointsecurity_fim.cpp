@@ -88,7 +88,7 @@ void EndpointSecurityFileEventPublisher::configure() {
 
     for (const auto& p : muted_path_literals_) {
       es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
+      if (__builtin_available(macos 12.0, *)) {
         rc =
             es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
       } else {
@@ -101,7 +101,7 @@ void EndpointSecurityFileEventPublisher::configure() {
 
     for (const auto& p : muted_path_prefixes_) {
       es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
+      if (__builtin_available(macos 12.0, *)) {
         rc = es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_PREFIX);
       } else {
         rc = es_mute_path_prefix(es_file_client_, p.c_str());
@@ -113,7 +113,7 @@ void EndpointSecurityFileEventPublisher::configure() {
 
     for (const auto& p : default_muted_path_literals_) {
       es_return_t rc;
-      if (__builtin_available(macos 13.0, *)) {
+      if (__builtin_available(macos 12.0, *)) {
         rc =
             es_mute_path(es_file_client_, p.c_str(), ES_MUTE_PATH_TYPE_LITERAL);
       } else {

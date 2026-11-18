@@ -121,6 +121,20 @@ QueryData genSystemInfo(QueryContext& context) {
           r["hardware_model"] = dmiString(textAddrs, address[0x05], maxlen);
           r["hardware_version"] = dmiString(textAddrs, address[0x06], maxlen);
           r["hardware_serial"] = dmiString(textAddrs, address[0x07], maxlen);
+
+          // Check if this is a Lenovo model.
+          std::string lcVendor = r["hardware_vendor"];
+          std::transform(
+              lcVendor.begin(), lcVendor.end(), lcVendor.begin(), ::tolower);
+          // Lenovo puts the model in the "Version" string and the product SKU
+          // in the "Model" string, so we'll switch them to be consistent with
+          // other vendors.
+          if (lcVendor == "lenovo") {
+            std::string version = r["hardware_model"];
+            r["hardware_model"] = r["hardware_version"];
+            r["hardware_version"] = version;
+          }
+
           return;
         }
 

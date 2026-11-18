@@ -4,11 +4,11 @@ schema([
   Column("activated", INTEGER, "TPM is activated"),
   Column("enabled", INTEGER, "TPM is enabled"),
   Column("owned", INTEGER, "TPM is owned"),
-  Column("manufacturer_version", TEXT, "TPM version"),
+  Column("manufacturer_version", TEXT, "TPM version", collate="version"),
   Column("manufacturer_id", INTEGER, "TPM manufacturers ID"),
   Column("manufacturer_name", TEXT, "TPM manufacturers name"),
   Column("product_name", TEXT, "Product name of the TPM"),
-  Column("physical_presence_version", TEXT, "Version of the Physical Presence Interface"),
+  Column("physical_presence_version", TEXT, "Version of the Physical Presence Interface", collate="version"),
   Column("spec_version", TEXT, "Trusted Computing Group specification that the TPM supports", collate="version"),
 ])
 implementation("tpm_info@genTpmInfo")

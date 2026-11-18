@@ -36,7 +36,7 @@
 #define HAVE_DECL_DAYLIGHT 1
 
 /* Define to 1 if you have the declaration of `tzname', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_TZNAME 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -278,7 +278,7 @@
 #define HAVE_WORKING_VFORK 1
 
 /* Define to 1 if you have the <xlocale.h> header file. */
-#define HAVE_XLOCALE_H 1
+/* #undef HAVE_XLOCALE_H */
 
 /* Define to 1 if you have the <zlib.h> header file. */
 #define HAVE_ZLIB_H 1
@@ -290,14 +290,14 @@
 /* #undef HAVE_ZSTD_H */
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+ */
 #define LT_OBJDIR ".libs/"
 
 /* Enable lzlib compression support */
 /* #undef LZLIBSUPPORT */
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
-   */
+ */
 /* #undef MAJOR_IN_MKDEV */
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in
@@ -336,25 +336,24 @@
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# define _ALL_SOURCE 1
+#define _ALL_SOURCE 1
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
+#define _GNU_SOURCE 1
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
+#define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# define _TANDEM_SOURCE 1
+#define _TANDEM_SOURCE 1
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# define __EXTENSIONS__ 1
+#define __EXTENSIONS__ 1
 #endif
-
 
 /* Version number of package */
 #define VERSION "5.45"
@@ -362,13 +361,13 @@
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
+#if defined __BIG_ENDIAN__
+#define WORDS_BIGENDIAN 1
+#endif
 #else
-# ifndef WORDS_BIGENDIAN
+#ifndef WORDS_BIGENDIAN
 /* #  undef WORDS_BIGENDIAN */
-# endif
+#endif
 #endif
 
 /* Enable xzlib compression support */
@@ -382,7 +381,7 @@
 
 /* Enable large inode numbers on Mac OS X 10.5.  */
 #ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
+#define _DARWIN_USE_64_BIT_INODE 1
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */

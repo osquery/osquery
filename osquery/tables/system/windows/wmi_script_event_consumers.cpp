@@ -22,22 +22,23 @@ QueryData genScriptConsumers(QueryContext& context) {
   std::stringstream ss;
   ss << "SELECT * FROM ActiveScriptEventConsumer";
 
-  BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
-  const auto request = WmiRequest::CreateWmiRequest(ss.str(), bstr);
-  ::SysFreeString(bstr);
+  for (const auto& ns : kWmiEventNamespaces) {
+    const auto request = WmiRequest::CreateWmiRequest(ss.str(), ns);
 
-  if (request && request->getStatus().ok()) {
-    const auto& results = request->results();
-    for (const auto& result : results) {
-      Row r;
+    if (request && request->getStatus().ok()) {
+      const auto& results = request->results();
+      for (const auto& result : results) {
+        Row r;
 
-      result.GetString("ScriptText", r["script_text"]);
-      result.GetString("ScriptFileName", r["script_file_name"]);
-      result.GetString("ScriptingEngine", r["scripting_engine"]);
-      result.GetString("Name", r["name"]);
-      result.GetString("__CLASS", r["class"]);
-      result.GetString("__RELPATH", r["relative_path"]);
-      results_data.push_back(r);
+        r["namespace"] = std::string(ns.begin(), ns.end());
+        result.GetString("ScriptText", r["script_text"]);
+        result.GetString("ScriptFileName", r["script_file_name"]);
+        result.GetString("ScriptingEngine", r["scripting_engine"]);
+        result.GetString("Name", r["name"]);
+        result.GetString("__CLASS", r["class"]);
+        result.GetString("__RELPATH", r["relative_path"]);
+        results_data.push_back(r);
+      }
     }
   }
 

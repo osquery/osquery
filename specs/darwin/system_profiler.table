@@ -1,0 +1,12 @@
+table_name("system_profiler")
+description("Query system_profiler data types and return the full result as JSON. Returns only the data types specified in the constraints. See available data types with `system_profiler -listDataTypes`.")
+schema([
+    Column("data_type", TEXT, "The system profiler data type (e.g., SPHardwareDataType)", index=True, required=True),
+    Column("value", TEXT, "A JSON representation of the full result dictionary for the data type"),
+])
+implementation("system_profiler@genSystemProfilerResults")
+examples([
+    "SELECT * FROM system_profiler WHERE data_type = 'SPUSBDataType';",
+    "SELECT JSON_EXTRACT(value, '$[0].platform_UUID') AS hardware_uuid FROM system_profiler WHERE data_type = 'SPHardwareDataType';",
+    "SELECT each.value->>'_name' AS name, each.value->>'coreaudio_device_manufacturer' AS manufacturer FROM system_profiler sp, JSON_EACH(sp.value->'[0]._items') each WHERE data_type = 'SPAudioDataType';"
+]) 

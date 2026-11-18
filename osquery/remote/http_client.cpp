@@ -7,12 +7,26 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/core/flags.h>
 #include <osquery/logger/logger.h>
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/requests.h>
 
 #include <boost/asio/connect.hpp>
+#include <chrono>
+
+#ifndef WIN32
+#include <resolv.h>
+#endif
 
 namespace osquery {
+
+FLAG(int32,
+     dns_resolver_refresh_interval,
+     60,
+     "Interval in seconds between DNS resolver state refreshes via res_init(). "
+     "Default: 60 seconds");
+
 namespace http {
 
 const std::string kHTTPSDefaultPort{"443"};
@@ -30,11 +44,10 @@ void Client::callNetworkOperation(std::function<void()> callback) {
   callback();
 
   {
-    boost::system::error_code rc;
-    ioc_.run(rc);
-    ioc_.reset();
-    if (rc) {
-      ec_ = rc;
+    boost::asio::io_context::count_type handlers_executed = ioc_.run();
+    ioc_.restart();
+    if (handlers_executed == 0) {
+      ec_ = boost::asio::error::operation_aborted;
     }
   }
 }
@@ -115,6 +128,22 @@ void Client::createConnection() {
     port = connect_host.substr(pos + 1);
     connect_host = connect_host.substr(0, pos);
   }
+
+#ifndef WIN32
+  // Refresh DNS resolver state periodically to pick up changes to
+  // /etc/resolv.conf (e.g., when VPN connects). This ensures Boost.Asio's
+  // resolver uses the current DNS configuration rather than a stale cached
+  // state.
+  static std::chrono::steady_clock::time_point last_dns_refresh;
+  auto now = std::chrono::steady_clock::now();
+  auto refresh_interval =
+      std::chrono::seconds(FLAGS_dns_resolver_refresh_interval);
+
+  if (now - last_dns_refresh >= refresh_interval) {
+    res_init();
+    last_dns_refresh = now;
+  }
+#endif
 
   // We can resolve async, but there is a handle leak in Windows.
   auto results = r_.resolve(connect_host, port, ec_);
@@ -232,7 +261,7 @@ void Client::encryptConnection() {
   ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
                              client_options_.remote_hostname_->c_str());
 
-  ssl_sock_->set_verify_callback(boost::asio::ssl::rfc2818_verification(
+  ssl_sock_->set_verify_callback(boost::asio::ssl::host_name_verification(
       *client_options_.remote_hostname_));
 
   callNetworkOperation([&]() {
@@ -263,6 +292,10 @@ void Client::sendRequest(STREAM_TYPE& stream,
       host_header_value += ':' + *client_options_.remote_port_;
     }
     req.set(beast_http::field::host, host_header_value);
+  }
+
+  if (client_options_.accept_gzip_) {
+    req.set(beast_http::field::accept_encoding, "gzip");
   }
 
   req.prepare_payload();
@@ -310,6 +343,21 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   if (!client_options_.keep_alive_) {
     closeSocket();
+  }
+}
+
+void Client::decompressGzipResponse(beast_http_response& http_resp) {
+  if (client_options_.accept_gzip_) {
+    std::string content_encoding =
+        std::string(http_resp[beast_http::field::content_encoding]);
+    if (content_encoding == "gzip") {
+      std::string decompressed = osquery::decompressString(http_resp.body());
+      if (!decompressed.empty()) {
+        http_resp.body() = decompressed;
+        http_resp.content_length(decompressed.size());
+        http_resp.erase(beast_http::field::content_encoding);
+      }
+    }
   }
 }
 
@@ -404,7 +452,9 @@ Response Client::sendHTTPRequest(Request& req) {
       case beast_http::status::temporary_redirect:
       case beast_http::status::permanent_redirect: {
         if (!client_options_.follow_redirects_) {
-          return Response(resp.release());
+          beast_http_response http_resp = resp.release();
+          decompressGzipResponse(http_resp);
+          return Response(std::move(http_resp));
         }
 
         if (redirect_attempts++ >= 10) {
@@ -438,8 +488,11 @@ Response Client::sendHTTPRequest(Request& req) {
         req.uri(redir_url);
         break;
       }
-      default:
-        return Response(resp.release());
+      default: {
+        beast_http_response http_resp = resp.release();
+        decompressGzipResponse(http_resp);
+        return Response(std::move(http_resp));
+      }
       }
     } catch (std::exception const& /* e */) {
       closeSocket();

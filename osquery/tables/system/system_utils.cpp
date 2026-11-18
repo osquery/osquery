@@ -7,21 +7,40 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <osquery/sql/sql.h>
-
+#include <osquery/logger/logger.h>
 #include <osquery/process/process.h>
+#include <osquery/sql/sql.h>
 
 namespace osquery {
 namespace tables {
 
 QueryData usersFromContext(const QueryContext& context, bool all) {
   QueryData users;
+
+  // If there is a constraint on uid, use that to limit users.
+  //
+  // If this is linux, there is a special case where we may need to
+  // add the include_remote constraint to get remote users.  Because
+  // we don't have direct knowledge that include_remote is needed, we
+  // first try without it, and if no users are returned, we try again
+  // with the include_remote constraint.  We only do this when a uid
+  // constraint is provided to avoid possible performance issues with
+  // querying all users with include_remote.
+  //
   if (context.hasConstraint("uid", EQUALS)) {
-    context.iteritems("uid", EQUALS, ([&users](const std::string& expr) {
-                        auto user =
-                            SQL::selectAllFrom("users", "uid", EQUALS, expr);
-                        users.insert(users.end(), user.begin(), user.end());
-                      }));
+    context.iteritems(
+        "uid", EQUALS, ([&users](const std::string& expr) {
+          ConstraintMap constraints;
+          constraints["uid"].add(Constraint(EQUALS, expr));
+          auto user = SQL::selectAllFrom("users", "uid", EQUALS, expr);
+#if defined(__linux__)
+          if (user.empty()) {
+            constraints["include_remote"].add(Constraint(EQUALS, "1"));
+            user = SQL::selectFrom({}, "users", std::move(constraints));
+          }
+#endif
+          users.insert(users.end(), user.begin(), user.end());
+        }));
   } else if (!all) {
     users = SQL::selectAllFrom(
         "users", "uid", EQUALS, std::to_string(platformGetUid()));

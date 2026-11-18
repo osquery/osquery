@@ -66,7 +66,7 @@ Status TLSDistributedPlugin::setUp() {
 
 Status TLSDistributedPlugin::getQueries(std::string& json) {
   JSON params;
-  params.add("_verb", "POST");
+  params.addCopy("_verb", "POST");
   return TLSRequestHelper::go<JSONSerializer>(
       read_uri_, params, json, FLAGS_distributed_tls_max_attempts);
 }

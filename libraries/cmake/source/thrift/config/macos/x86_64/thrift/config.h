@@ -39,15 +39,12 @@
 /* #undef PACKAGE_URL */
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.17.0"
+#define PACKAGE_VERSION "0.25.0"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING " 0.17.0"
+#define PACKAGE_STRING " 0.25.0"
 
 /************************** DEFINES *************************/
-
-/* Define if the AI_ADDRCONFIG symbol is unavailable */
-/* #undef AI_ADDRCONFIG */
 
 /* Possible value for SIGNED_RIGHT_SHIFT_IS */
 /* TODO: This is just set to 1 for the moment

@@ -11,7 +11,9 @@
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/linux/idpkgquery.h>
+#include <osquery/utils/mutex.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
 
@@ -20,9 +22,25 @@ namespace tables {
 
 namespace {
 
+// Struct to hold an error we wish to buffer and log later.
+// See #8286
+struct ErrorLog {
+  std::string message;
+  Error<IDpkgQuery::ErrorCode> code;
+  std::string admindir;
+
+  ErrorLog(const std::string& msg,
+           Error<IDpkgQuery::ErrorCode>&& c,
+           const std::string& dir)
+      : message(msg), code(std::move(c)), admindir(dir) {}
+};
+
 // From the documentation: this directory contains many files that give
 // information about status of installed or uninstalled packages
 const std::string kAdminDir{"/var/lib/dpkg"};
+
+// libdpkg keeps process-wide state, so only one thread can use it at a time.
+Mutex dpkg_mutex;
 
 void logError(Logger& logger,
               const std::string& message,
@@ -42,13 +60,13 @@ void logError(Logger& logger,
 
 QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
   std::vector<std::string> admindir_list{};
+  std::vector<ErrorLog> errorLogBuffer{};
 
   if (context.hasConstraint("admindir", EQUALS)) {
     for (const auto& admindir :
          context.constraints["admindir"].getAll(EQUALS)) {
       admindir_list.push_back(admindir);
     }
-
   } else {
     admindir_list.push_back(kAdminDir);
   }
@@ -56,65 +74,74 @@ QueryData genDebPackagesImpl(QueryContext& context, Logger& logger) {
   // Drop to 'nobody' to ensure that the libdpkg library
   // can't change the package database. Privileges will be
   // restored automatically when the `dropper` object goes
-  // out of scope.
+  // out of scope.  In the meantime we'll buffer all logs
+  // since the reduced permissions will block creation
+  // of the log file.
   //
   // Note that this is *NOT* a security feature
-  auto dropper = DropPrivileges::get();
-  dropper->dropTo("nobody");
-
   QueryData results;
+  {
+    auto dropper = DropPrivileges::get();
+    dropper->dropTo("nobody");
 
-  for (const auto& admindir : admindir_list) {
-    if (!pathExists(admindir).ok()) {
-      continue;
+    for (const auto& admindir : admindir_list) {
+      if (!pathExists(admindir).ok()) {
+        continue;
+      }
+      auto dpkg_query_exp = IDpkgQuery::create(admindir);
+      if (dpkg_query_exp.isError()) {
+        errorLogBuffer.emplace_back("Failed to open the dpkg database",
+                                    dpkg_query_exp.takeError(),
+                                    admindir);
+
+        continue;
+      }
+
+      auto dpkg_query = dpkg_query_exp.take();
+
+      auto package_list_exp = dpkg_query->getPackageList();
+      if (package_list_exp.isError()) {
+        errorLogBuffer.emplace_back("Failed to list the packages",
+                                    package_list_exp.takeError(),
+                                    admindir);
+
+        continue;
+      }
+
+      auto package_list = package_list_exp.take();
+
+      for (const auto& package : package_list) {
+        Row r;
+        r["name"] = package.name;
+        r["version"] = package.version;
+        r["arch"] = package.arch;
+        r["status"] = package.status;
+        r["revision"] = package.revision;
+        r["priority"] = package.priority;
+        r["section"] = package.section;
+        r["source"] = package.source;
+        r["size"] = package.size;
+        r["maintainer"] = package.maintainer;
+        r["admindir"] = admindir;
+        r["pid_with_namespace"] = "0";
+
+        results.push_back(std::move(r));
+      }
     }
-    auto dpkg_query_exp = IDpkgQuery::create(admindir);
-    if (dpkg_query_exp.isError()) {
-      logError(logger,
-               "Failed to open the dpkg database",
-               dpkg_query_exp.takeError(),
-               admindir);
+  }
 
-      continue;
-    }
-
-    auto dpkg_query = dpkg_query_exp.take();
-
-    auto package_list_exp = dpkg_query->getPackageList();
-    if (package_list_exp.isError()) {
-      logError(logger,
-               "Failed to list the packages",
-               package_list_exp.takeError(),
-               admindir);
-
-      continue;
-    }
-
-    auto package_list = package_list_exp.take();
-
-    for (const auto& package : package_list) {
-      Row r;
-      r["name"] = package.name;
-      r["version"] = package.version;
-      r["arch"] = package.arch;
-      r["status"] = package.status;
-      r["revision"] = package.revision;
-      r["priority"] = package.priority;
-      r["section"] = package.section;
-      r["source"] = package.source;
-      r["size"] = package.size;
-      r["maintainer"] = package.maintainer;
-      r["admindir"] = admindir;
-      r["pid_with_namespace"] = "0";
-
-      results.push_back(std::move(r));
-    }
+  // Now that we have privileges restored, we can log the errors.
+  for (const auto& errorLog : errorLogBuffer) {
+    logError(logger, errorLog.message, errorLog.code, errorLog.admindir);
   }
 
   return results;
 }
 
 QueryData genDebPackages(QueryContext& context) {
+  // Lock in the parent, not in genDebPackagesImpl: the namespace worker is
+  // forked from here and would inherit the mutex already locked.
+  WriteLock lock(dpkg_mutex);
   if (hasNamespaceConstraint(context)) {
     return generateInNamespace(context, "deb_packages", genDebPackagesImpl);
   } else {
@@ -122,5 +149,95 @@ QueryData genDebPackages(QueryContext& context) {
     return genDebPackagesImpl(context, logger);
   }
 }
+
+void genDebPackageFiles(RowYield& yield, QueryContext& context) {
+  std::vector<std::string> admindir_list{};
+  std::vector<ErrorLog> errorLogBuffer{};
+
+  if (context.hasConstraint("admindir", EQUALS)) {
+    for (const auto& admindir :
+         context.constraints["admindir"].getAll(EQUALS)) {
+      admindir_list.push_back(admindir);
+    }
+  } else {
+    admindir_list.push_back(kAdminDir);
+  }
+
+  {
+    auto dropper = DropPrivileges::get();
+    dropper->dropTo("nobody");
+
+    for (const auto& admindir : admindir_list) {
+      if (!pathExists(admindir).ok()) {
+        continue;
+      }
+
+      std::set<std::string> allowed_packages;
+      if (context.hasConstraint("package", EQUALS)) {
+        allowed_packages = context.constraints["package"].getAll(EQUALS);
+      }
+
+      if (allowed_packages.empty()) {
+        // Only initialize dpkg query and generate package list if no package
+        // constraint is provided
+        // Lock must be released before yield(): SQLite may drive an inner
+        // deb_packages scan on this thread while we're suspended, and
+        // dpkg_mutex is not recursive.
+        WriteLock lock(dpkg_mutex);
+        auto dpkg_query_exp = IDpkgQuery::create(admindir);
+        if (dpkg_query_exp.isError()) {
+          errorLogBuffer.emplace_back("Failed to open the dpkg database",
+                                      dpkg_query_exp.takeError(),
+                                      admindir);
+          continue;
+        }
+        auto dpkg_query = dpkg_query_exp.take();
+
+        auto package_list_exp = dpkg_query->getPackageList();
+        if (package_list_exp.isError()) {
+          errorLogBuffer.emplace_back("Failed to list the packages",
+                                      package_list_exp.takeError(),
+                                      admindir);
+          continue;
+        }
+        for (const auto& package : package_list_exp.take()) {
+          allowed_packages.insert(package.name);
+        }
+      }
+
+      // Process all packages (either from constraints or full list)
+      for (const auto& package_name : allowed_packages) {
+        std::string list_file = admindir + "/info/" + package_name + ".list";
+        if (!pathExists(list_file).ok()) {
+          continue;
+        }
+        std::string file_content;
+        auto status = osquery::readFile(list_file, file_content);
+        if (!status.ok()) {
+          continue;
+        }
+        std::istringstream iss(file_content);
+        std::string file_path;
+        while (std::getline(iss, file_path)) {
+          if (file_path.empty()) {
+            continue;
+          }
+          auto r = make_table_row();
+          r["package"] = package_name;
+          r["path"] = file_path;
+          r["admindir"] = admindir;
+          yield(std::move(r));
+        }
+      }
+    }
+  }
+
+  // Now that we have privileges restored, we can log the errors.
+  GLOGLogger logger;
+  for (const auto& errorLog : errorLogBuffer) {
+    logError(logger, errorLog.message, errorLog.code, errorLog.admindir);
+  }
+}
+
 } // namespace tables
 } // namespace osquery

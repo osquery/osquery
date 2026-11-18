@@ -70,6 +70,11 @@ std::string showCmdToString(int show_cmd) {
 }
 
 boost::optional<LnkData> parseLnkData(const fs::path& link) {
+  // Shortcuts must have a .lnk extension to be usable
+  if (link.extension() != ".lnk") {
+    return boost::none;
+  }
+
   IShellLink* shell_link;
   auto hres = CoCreateInstance(CLSID_ShellLink,
                                nullptr,
@@ -104,21 +109,22 @@ boost::optional<LnkData> parseLnkData(const fs::path& link) {
     return boost::none;
   }
 
-  /* Empty files are still able to be loaded via the ShellLink COM interface,
-     but they are not ShellLink files, so verify that the file
-     contains a header of a certain size */
-  std::string header_size_field_bytes;
-  auto status =
-      readFile(link, header_size_field_bytes, kShellLinkHeaderSizeFieldSize);
+  /* Read only the first 4 bytes of the file to verify the header size */
+  std::ifstream file_reader(link.string(), std::ios::binary);
+  if (!file_reader.is_open()) {
+    return boost::none;
+  }
 
-  if (!status.ok() ||
-      header_size_field_bytes.size() != kShellLinkHeaderSizeFieldSize) {
+  std::array<char, kShellLinkHeaderSizeFieldSize> header_buffer{};
+  file_reader.read(header_buffer.data(), kShellLinkHeaderSizeFieldSize);
+
+  if (file_reader.gcount() < kShellLinkHeaderSizeFieldSize) {
     return boost::none;
   }
 
   std::uint32_t header_size_field_value;
   std::memcpy(&header_size_field_value,
-              header_size_field_bytes.data(),
+              header_buffer.data(),
               kShellLinkHeaderSizeFieldSize);
 
   if (header_size_field_value != kShellLinkHeaderSizeExpectedValue) {
@@ -351,7 +357,8 @@ QueryData genFileWindows(QueryContext& context, Logger& logger) {
       // Iterate over the directory and generate info for each regular file.
       fs::directory_iterator begin(directory_string), end;
       for (; begin != end; ++begin) {
-        genFileInfoWindows(begin->path(), directory_string, "", false, results);
+        genFileInfoWindows(
+            begin->path(), directory_string, "", get_shortcut_data, results);
       }
     } catch (const fs::filesystem_error& /* e */) {
       continue;
@@ -385,6 +392,8 @@ void genFileInfoPosix(const fs::path& path,
   }
   if (S_ISLNK(link_stat.st_mode)) {
     r["symlink"] = "1";
+    fs::path symlink_target = fs::read_symlink(path);
+    r["symlink_target_path"] = symlink_target.string();
   }
 
   if (stat(path.string().c_str(), &file_stat)) {

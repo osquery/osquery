@@ -1538,10 +1538,17 @@ void AuditdFimProcessMap::save(
   if (process_it == data_.end()) {
     process_it = data_.insert({process_id, AuditdFimFdMap(process_id)}).first;
 
-    // Try to limit the amount of processes we are tracking. When
-    // removing, start from the oldest ones
+    // Try to limit the amount of processes we are tracking. When the map
+    // grows too large, evict the entry with the smallest PID (note:
+    // std::map is ordered by key, not insertion order). If the
+    // just-inserted entry happens to be the minimum, skip eviction this
+    // round rather than discarding tracking state for another live process;
+    // the map will be trimmed on the next insertion.
     if (data_.size() > 4096) {
-      data_.erase(data_.begin());
+      auto victim = data_.begin();
+      if (victim != process_it) {
+        data_.erase(victim);
+      }
     }
   }
 

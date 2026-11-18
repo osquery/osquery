@@ -7,24 +7,27 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <cstring>
 #include <string>
 
 #include <zlib.h>
 
+#include <osquery/logger/logger.h>
+
 namespace osquery {
 
-#define MOD_GZIP_ZLIB_WINDOWSIZE 15
+// zlib documentation states to add 16 to the window size to enable gzip
+#define MOD_GZIP_ZLIB_WINDOWSIZE (MAX_WBITS + 16)
 #define MOD_GZIP_ZLIB_CFACTOR 9
+// This buffer size seems to have been adapted in our original code from the
+// zlib example https://zlib.net/zpipe.c
+#define BUFSIZE 16384
 
 std::string compressString(const std::string& data) {
-  z_stream zs;
-  memset(&zs, 0, sizeof(zs));
-
+  z_stream zs{};
   if (deflateInit2(&zs,
                    Z_BEST_COMPRESSION,
                    Z_DEFLATED,
-                   MOD_GZIP_ZLIB_WINDOWSIZE + 16,
+                   MOD_GZIP_ZLIB_WINDOWSIZE,
                    MOD_GZIP_ZLIB_CFACTOR,
                    Z_DEFAULT_STRATEGY) != Z_OK) {
     return std::string();
@@ -35,18 +38,13 @@ std::string compressString(const std::string& data) {
 
   int ret = Z_OK;
   std::string output;
+  char buffer[BUFSIZE] = {0};
+  while (ret == Z_OK) {
+    zs.next_out = reinterpret_cast<Bytef*>(buffer);
+    zs.avail_out = sizeof(buffer);
 
-  {
-    char buffer[16384] = {0};
-    while (ret == Z_OK) {
-      zs.next_out = reinterpret_cast<Bytef*>(buffer);
-      zs.avail_out = sizeof(buffer);
-
-      ret = deflate(&zs, Z_FINISH);
-      if (output.size() < zs.total_out) {
-        output.append(buffer, zs.total_out - output.size());
-      }
-    }
+    ret = deflate(&zs, Z_FINISH);
+    output.append(buffer, sizeof(buffer) - zs.avail_out);
   }
 
   deflateEnd(&zs);
@@ -56,4 +54,35 @@ std::string compressString(const std::string& data) {
 
   return output;
 }
+
+std::string decompressString(const std::string& data) {
+  z_stream zs{};
+  int init_ret = inflateInit2(&zs, MOD_GZIP_ZLIB_WINDOWSIZE);
+  if (init_ret != Z_OK) {
+    LOG(ERROR) << "Failed to initialize zlib inflate: " << zError(init_ret);
+    return std::string();
+  }
+  zs.next_in = (Bytef*)data.data();
+  zs.avail_in = static_cast<uInt>(data.size());
+
+  int ret = Z_OK;
+  std::string output;
+  char buffer[BUFSIZE] = {0};
+  while (ret == Z_OK) {
+    zs.next_out = reinterpret_cast<Bytef*>(buffer);
+    zs.avail_out = sizeof(buffer);
+
+    ret = inflate(&zs, Z_NO_FLUSH);
+    output.append(buffer, sizeof(buffer) - zs.avail_out);
+  }
+
+  inflateEnd(&zs);
+  if (ret != Z_STREAM_END) {
+    const char* error_msg = zs.msg != nullptr ? zs.msg : zError(ret);
+    LOG(ERROR) << "Failed to decompress data: " << error_msg;
+    return std::string();
+  }
+
+  return output;
 }
+} // namespace osquery

@@ -101,6 +101,30 @@ const std::unordered_map<USNJournalEventRecord::Type, std::string>
         {USNJournalEventRecord::Type::FileSecurityAttributesChange, "FileSecurityAttributesChange"}};
 // clang-format on
 
+bool USNJournalEventRecord::isWriteOperation(USNJournalEventRecord::Type type) {
+  switch (type) {
+  case USNJournalEventRecord::Type::FileWrite:
+  case USNJournalEventRecord::Type::DirectoryCreation:
+  case USNJournalEventRecord::Type::DirectoryOverwrite:
+  case USNJournalEventRecord::Type::FileOverwrite:
+  case USNJournalEventRecord::Type::DirectoryTruncation:
+  case USNJournalEventRecord::Type::FileTruncation:
+  case USNJournalEventRecord::Type::TransactedDirectoryChange:
+  case USNJournalEventRecord::Type::TransactedFileChange:
+  case USNJournalEventRecord::Type::FileCreation:
+  case USNJournalEventRecord::Type::DirectoryDeletion:
+  case USNJournalEventRecord::Type::FileDeletion:
+  case USNJournalEventRecord::Type::DirectoryLinkChange:
+  case USNJournalEventRecord::Type::FileLinkChange:
+  case USNJournalEventRecord::Type::DirectoryRename_NewName:
+  case USNJournalEventRecord::Type::FileRename_NewName:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
 namespace {
 /// Read buffer size
 const size_t kUSNJournalReaderBufferSize = 4096U;

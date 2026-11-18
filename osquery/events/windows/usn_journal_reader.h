@@ -28,7 +28,6 @@
 #include <Windows.h>
 #include <winioctl.h>
 
-
 namespace osquery {
 
 /// The USN File Reference Number uniquely identifies a file within a volume
@@ -129,6 +128,9 @@ struct USNJournalEventRecord final {
 
   /// File name
   std::string name;
+
+  /// Returns true if the specified event is a write operation
+  static bool isWriteOperation(Type t);
 };
 
 static_assert(std::is_move_constructible<USNJournalEventRecord>::value,

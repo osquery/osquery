@@ -1,0 +1,21 @@
+table_name("dns_lookup_events")
+description("DNS lookups performed through the Windows DNS stack.")
+schema([
+    Column("eid", INTEGER, "Event ID", hidden=True),
+    Column("time", BIGINT, "Event timestamp in Unix format", hidden=True, additional=True),
+    Column("time_windows", BIGINT, "Event timestamp in Windows format", hidden=True),
+    Column("datetime", DATETIME, "Event timestamp in DATETIME format"),
+    Column("pid", BIGINT, "Process ID of process making the lookup"),
+    Column("path", TEXT, "Path to binary of process making the lookup (sometimes unavailable for very short-lived processes)"),
+    Column("username", TEXT, "User rights - primary token username"),
+    Column("name", TEXT, "Name being queried in lookup"),
+    Column("type", TEXT, "DNS record type of lookup as string"),
+    Column("type_id", INTEGER, "Integer type ID for record type"),
+    Column("status", INTEGER, "Response status code"),
+    Column("response", TEXT, "Results returned by lookup"),
+])
+attributes(event_subscriber=True)
+implementation("dns_lookup_events@dns_lookup_events::genTable")
+examples([
+	"select * from dns_lookup_events;",
+])

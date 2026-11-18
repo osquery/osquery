@@ -32,6 +32,7 @@ TEST_F(PrefetchTest, test_sanity) {
   ValidationMap row_map = {
       {"path", NonEmptyString},
       {"filename", NormalType},
+      {"executable_path", NormalType},
       {"hash", NormalType},
       {"last_run_time", IntType},
       {"other_run_times", NormalType},

@@ -1,0 +1,19 @@
+table_name("process_open_handles")
+description("Enumerate open handles for a specified process.")
+schema([
+    Column("pid", BIGINT, "The process identifier that owns the handle.", required=True, index=True, optimized=True),
+    Column("value", BIGINT, "The handle value"),
+    Column("type", TEXT, "The type of object referenced by the handle."),
+    Column("access", TEXT, "The access permissions of the object referenced by the handle."),
+    Column("name", TEXT, "The value of the object referenced by the handle."),
+    Column("attributes", TEXT, "Object handle attributes."),
+    Column("count", BIGINT, "Handle Count."),
+    Column("raw_pointer_count", BIGINT, "Raw Pointer/Reference Count. Meaning varies, consult Windows docs."),
+    Column("error_stage", TEXT, "Error Stage."),
+    Column("error_code", BIGINT, "Error Code.")
+])
+implementation("system/windows/process_open_handles@genProcessOpenHandles")
+attributes(cacheable=True)
+examples([
+  "select * from process_open_handles where pid = 1234",
+])

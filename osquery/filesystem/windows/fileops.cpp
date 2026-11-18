@@ -12,6 +12,7 @@
 #include <osquery/process/process.h>
 #include <osquery/utils/conversions/windows/strings.h>
 #include <osquery/utils/conversions/windows/windows_time.h>
+#include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/windows/users_groups_helpers.h>
 
 #include <AclAPI.h>
@@ -703,6 +704,20 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
+/**
+ * @brief Tells whether an open handle is a file in a file system.
+ *
+ * Pipes and character devices are not of FILE_TYPE_DISK. Raw disks and
+ * volumes are, but file systems give no file information by handle for them.
+ */
+static bool isRegularFileHandle(HANDLE handle) {
+  BY_HANDLE_FILE_INFORMATION info;
+  return ::GetFileType(handle) == FILE_TYPE_DISK &&
+         ::GetFileInformationByHandle(handle, &info) &&
+         (info.dwFileAttributes &
+          (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_DEVICE)) == 0;
+}
+
 PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
   unsigned long access_mask = 0;
@@ -743,6 +758,13 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     is_nonblock_ = true;
   }
 
+  // A named pipe reached through the path may only identify the caller, never
+  // impersonate it. Reading the file's attributes tells a file from a raw disk.
+  if ((mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY) {
+    flags_and_attrs |= SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION;
+    access_mask |= FILE_READ_ATTRIBUTES;
+  }
+
   if (perms != -1) {
     // TODO(#2001): set up a security descriptor based off the perms
   }
@@ -754,6 +776,13 @@ PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
                           creation_disposition,
                           flags_and_attrs,
                           nullptr);
+
+  if (handle_ != INVALID_HANDLE_VALUE &&
+      (mode & PF_REGULAR_ONLY) == PF_REGULAR_ONLY &&
+      !isRegularFileHandle(handle_)) {
+    ::CloseHandle(handle_);
+    handle_ = INVALID_HANDLE_VALUE;
+  }
 
   /// Normally, append is done via the FILE_APPEND_DATA access mask. However,
   /// because we are blanket using GENERIC_WRITE, this will not work. To
@@ -1073,6 +1102,15 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   }
 
   return (::GetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) !=
+          FALSE);
+}
+
+bool PlatformFile::setFileTimes(const PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) !=
           FALSE);
 }
 
@@ -1461,6 +1499,65 @@ bool platformChmod(const std::string& path, mode_t perms) {
     return false;
   }
   return true;
+}
+
+Status platformCreatePrivateDir(const fs::path& path) {
+  // Build a security descriptor that grants full access only to the creating
+  // user (Creator Owner) and protects the DACL from inheriting ACEs from the
+  // parent directory.
+  // "D:P(A;OICI;FA;;;CO)" = protected DACL; allow file-all-access to Creator
+  // Owner, with Object Inherit + Container Inherit so that files and
+  // subdirectories created inside also receive owner-only permissions.
+  PSECURITY_DESCRIPTOR sd = nullptr;
+  if (!::ConvertStringSecurityDescriptorToSecurityDescriptorW(
+          L"D:P(A;OICI;FA;;;CO)", SDDL_REVISION_1, &sd, nullptr)) {
+    return Status::failure("Failed to create security descriptor");
+  }
+  auto sd_guard = scope_guard::create([&sd] { ::LocalFree(sd); });
+
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(sa);
+  sa.lpSecurityDescriptor = sd;
+  sa.bInheritHandle = FALSE;
+
+  auto wpath = path.wstring();
+  if (!::CreateDirectoryW(wpath.c_str(), &sa)) {
+    return Status::failure("Failed to create private directory: " +
+                           path.string());
+  }
+
+  // Retrieve the DACL we just created and mark it as protected (this seems to
+  // be necessary to allow deleting the directory when we are finished)
+  PACL dacl = nullptr;
+  PSECURITY_DESCRIPTOR current_sd = nullptr;
+  if (::GetNamedSecurityInfoW(const_cast<LPWSTR>(wpath.c_str()),
+                              SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION,
+                              nullptr,
+                              nullptr,
+                              &dacl,
+                              nullptr,
+                              &current_sd) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to get directory DACL");
+  }
+  auto current_sd_guard =
+      scope_guard::create([&current_sd] { ::LocalFree(current_sd); });
+
+  // Reapply the DACL with the protected flag
+  if (::SetNamedSecurityInfoW(
+          const_cast<LPWSTR>(wpath.c_str()),
+          SE_FILE_OBJECT,
+          DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+          nullptr,
+          nullptr,
+          dacl,
+          nullptr) != ERROR_SUCCESS) {
+    ::RemoveDirectoryW(wpath.c_str());
+    return Status::failure("Failed to protect directory DACL");
+  }
+
+  return Status::success();
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
