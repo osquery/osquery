@@ -1,5 +1,5 @@
 table_name("ai_agent_skills")
-description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with an exact directory = <value> constraint. A skill whose directory resolves outside the root it was found under, such as one symlinked in from elsewhere, is not reported.")
+description("AI agent skills (SKILL.md packages) found on the system, including project-scope matches when queried with an exact directory = <value> constraint. A skill whose directory resolves outside the root it was found under, such as one symlinked in from elsewhere, is not reported. SKILL.md frontmatter containing YAML anchors or aliases, or more than 32 nested mapping/sequence collection levels (counting the root mapping), is ignored: frontmatter-derived columns remain empty, but the discovered skill row is still reported.")
 schema([
     Column("name", TEXT, "Skill name from SKILL.md frontmatter"),
     Column("description", TEXT, "Skill description from SKILL.md frontmatter"),

@@ -116,6 +116,12 @@ class AIAgentSkills : public testing::Test {
         writeTextFile(alias_skill_dir / "SKILL.md", aliasSkillMarkdown()).ok());
   }
 
+  void writeSkillMarkdown(const fs::path& directory,
+                          const std::string& content) {
+    ASSERT_TRUE(createDirectory(directory, true).ok());
+    ASSERT_TRUE(writeTextFile(directory / "SKILL.md", content).ok());
+  }
+
   void TearDown() override {
     if (project_dir.empty()) {
       return;
@@ -143,10 +149,14 @@ class AIAgentSkills : public testing::Test {
   static const std::string kHiddenEntriesSkillMarkdown;
 
   // A 16 KiB anchored scalar repeated through 1024 aliases: about 20 KiB on
-  // disk, 16 MiB once every alias is expanded.
+  // disk, 16 MiB once every alias is expanded. Every reported metadata field
+  // is otherwise valid so the test proves the whole frontmatter is rejected.
   static std::string aliasSkillMarkdown() {
-    std::string markdown = "---\nname: alias-skill\nx: &a " +
-                           std::string(16 * 1024, 'A') + "\nallowed-tools: [*a";
+    std::string markdown =
+        "---\nname: alias-skill\ndescription: Alias rejection fixture\n"
+        "license: MIT\ncompatibility: osquery\nmetadata:\n  version: "
+        "1.2.3\nx: &a " +
+        std::string(16 * 1024, 'A') + "\nallowed-tools: [*a";
     for (int i = 1; i < 1024; ++i) {
       markdown += ", *a";
     }
@@ -226,6 +236,34 @@ Body content.
 )";
 
 namespace {
+std::string makeNestedSkillMarkdown(const std::string& name,
+                                    size_t sequence_depth) {
+  return "---\nname: " + name +
+         "\ncompatibility: " + std::string(sequence_depth, '[') + "supported" +
+         std::string(sequence_depth, ']') + "\n---\n";
+}
+
+std::string makeNestedMapSkillMarkdown(const std::string& name,
+                                       size_t map_depth) {
+  std::string nested_value;
+  for (size_t i = 0; i < map_depth; ++i) {
+    nested_value += "{level: ";
+  }
+  nested_value += "supported";
+  nested_value += std::string(map_depth, '}');
+
+  return "---\nname: " + name + "\ncompatibility: " + nested_value +
+         "\n---\n";
+}
+
+std::string makeSizedSkillMarkdown(const std::string& name, size_t total_size) {
+  const std::string prefix = "---\nname: " + name + "\npadding: ";
+  const std::string suffix = "\n---";
+  EXPECT_GE(total_size, prefix.size() + suffix.size());
+  return prefix + std::string(total_size - prefix.size() - suffix.size(), 'a') +
+         suffix;
+}
+
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
   static const Row kEmptyRow;
   for (const auto& row : data) {
@@ -238,6 +276,15 @@ const Row& findRowByPath(const QueryData& data, const std::string& path) {
   // an empty row so callers still fail loudly (via Row::at() throwing)
   // instead of crashing the test runner.
   return data.empty() ? kEmptyRow : data.front();
+}
+
+void expectFrontmatterColumnsEmpty(const Row& row) {
+  EXPECT_TRUE(row.at("name").empty());
+  EXPECT_TRUE(row.at("description").empty());
+  EXPECT_TRUE(row.at("version").empty());
+  EXPECT_TRUE(row.at("license").empty());
+  EXPECT_TRUE(row.at("compatibility").empty());
+  EXPECT_TRUE(row.at("allowed_tools").empty());
 }
 } // namespace
 
@@ -336,11 +383,169 @@ TEST_F(AIAgentSkills, test_aliases_are_not_expanded_when_joined) {
 
   const auto& row =
       findRowByPath(data, (alias_skill_dir / "SKILL.md").string());
-  EXPECT_EQ(row.at("name"), "alias-skill");
-  // Joining would copy the anchored scalar once per alias. The column has to
-  // stay on the order of the file's own size instead.
-  EXPECT_LT(row.at("allowed_tools").size(), aliasSkillMarkdown().size() * 2);
-  EXPECT_EQ(row.at("allowed_tools").rfind("[&", 0), 0U);
+  expectFrontmatterColumnsEmpty(row);
+  EXPECT_EQ(row.at("path"), (alias_skill_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("agent"), "claude");
+  EXPECT_EQ(row.at("scope"), "project");
+  EXPECT_EQ(row.at("directory"), project_dir.string());
+}
+
+TEST_F(AIAgentSkills, test_yaml_sequence_nesting_budget) {
+  const auto supported_dir =
+      project_dir / ".claude" / "skills" / "supported-nesting";
+  const auto excessive_dir =
+      project_dir / ".claude" / "skills" / "excessive-nesting";
+
+  // The top-level map plus 31 sequences reaches the 32-collection limit.
+  writeSkillMarkdown(supported_dir,
+                     makeNestedSkillMarkdown("supported-nesting", 31));
+  // One more nested sequence must be rejected before YAML::Load.
+  writeSkillMarkdown(excessive_dir,
+                     makeNestedSkillMarkdown("excessive-nesting", 32));
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& supported =
+      findRowByPath(data, (supported_dir / "SKILL.md").string());
+  EXPECT_EQ(supported.at("name"), "supported-nesting");
+  EXPECT_FALSE(supported.at("compatibility").empty());
+
+  const auto& excessive =
+      findRowByPath(data, (excessive_dir / "SKILL.md").string());
+  expectFrontmatterColumnsEmpty(excessive);
+}
+
+TEST_F(AIAgentSkills, test_yaml_map_nesting_budget) {
+  const auto supported_dir =
+      project_dir / ".claude" / "skills" / "supported-map-nesting";
+  const auto excessive_dir =
+      project_dir / ".claude" / "skills" / "excessive-map-nesting";
+
+  // The root mapping counts as one collection, so 31 nested mappings are
+  // accepted at the 32-collection limit and 32 nested mappings are rejected.
+  writeSkillMarkdown(supported_dir,
+                     makeNestedMapSkillMarkdown("supported-map-nesting", 31));
+  writeSkillMarkdown(excessive_dir,
+                     makeNestedMapSkillMarkdown("excessive-map-nesting", 32));
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& supported =
+      findRowByPath(data, (supported_dir / "SKILL.md").string());
+  EXPECT_EQ(supported.at("name"), "supported-map-nesting");
+  EXPECT_FALSE(supported.at("compatibility").empty());
+
+  const auto& excessive =
+      findRowByPath(data, (excessive_dir / "SKILL.md").string());
+  expectFrontmatterColumnsEmpty(excessive);
+  EXPECT_EQ(excessive.at("path"), (excessive_dir / "SKILL.md").string());
+  EXPECT_EQ(excessive.at("agent"), "claude");
+  EXPECT_EQ(excessive.at("scope"), "project");
+  EXPECT_EQ(excessive.at("directory"), project_dir.string());
+}
+
+TEST_F(AIAgentSkills, test_yaml_anchors_and_aliases_are_rejected) {
+  const auto anchor_dir = project_dir / ".claude" / "skills" / "anchor-only";
+  const auto aliases_dir =
+      project_dir / ".claude" / "skills" / "repeated-aliases";
+
+  writeSkillMarkdown(anchor_dir, R"(---
+name: anchor-only
+description: Anchor rejection fixture
+license: MIT
+compatibility: &requirements
+  product: codex
+allowed-tools: Read
+metadata:
+  version: 1.2.3
+---
+)");
+  writeSkillMarkdown(aliases_dir, R"(---
+name: repeated-aliases
+a: &a [x, x, x, x, x, x, x, x]
+b: &b [*a, *a, *a, *a, *a, *a, *a, *a]
+c: &c [*b, *b, *b, *b, *b, *b, *b, *b]
+compatibility: *c
+---
+)");
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& anchor =
+      findRowByPath(data, (anchor_dir / "SKILL.md").string());
+  expectFrontmatterColumnsEmpty(anchor);
+
+  const auto& aliases =
+      findRowByPath(data, (aliases_dir / "SKILL.md").string());
+  EXPECT_TRUE(aliases.at("name").empty());
+  EXPECT_TRUE(aliases.at("compatibility").empty());
+}
+
+TEST_F(AIAgentSkills, test_malformed_yaml_is_rejected) {
+  const auto malformed_dir =
+      project_dir / ".claude" / "skills" / "malformed-yaml";
+  writeSkillMarkdown(malformed_dir, R"(---
+name: malformed-yaml
+compatibility: [unterminated
+---
+)");
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& row = findRowByPath(data, (malformed_dir / "SKILL.md").string());
+  EXPECT_TRUE(row.at("name").empty());
+  EXPECT_TRUE(row.at("compatibility").empty());
+}
+
+TEST_F(AIAgentSkills, test_frontmatter_file_size_boundary) {
+  const auto within_limit_dir =
+      project_dir / ".claude" / "skills" / "within-size-limit";
+  const auto over_limit_dir =
+      project_dir / ".claude" / "skills" / "over-size-limit";
+  constexpr size_t kFrontmatterReadLimit = 256 * 1024;
+
+  // The closing fence is entirely inside the read prefix at the exact limit.
+  writeSkillMarkdown(
+      within_limit_dir,
+      makeSizedSkillMarkdown("within-size-limit", kFrontmatterReadLimit));
+  // Moving it one byte farther means the bounded prefix has no closing fence.
+  writeSkillMarkdown(
+      over_limit_dir,
+      makeSizedSkillMarkdown("over-size-limit", kFrontmatterReadLimit + 1));
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& within =
+      findRowByPath(data, (within_limit_dir / "SKILL.md").string());
+  EXPECT_EQ(within.at("name"), "within-size-limit");
+  const auto& over =
+      findRowByPath(data, (over_limit_dir / "SKILL.md").string());
+  EXPECT_TRUE(over.at("name").empty());
+}
+
+TEST_F(AIAgentSkills, test_unicode_frontmatter) {
+  const auto unicode_dir =
+      project_dir / ".claude" / "skills" / "unicode-metadata";
+  writeSkillMarkdown(unicode_dir, R"(---
+name: café
+description: 安全なスキル 🔐
+---
+)");
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& row = findRowByPath(data, (unicode_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("name"), "café");
+  EXPECT_EQ(row.at("description"), "安全なスキル 🔐");
 }
 
 TEST_F(AIAgentSkills, test_hidden_entries_are_not_counted) {
