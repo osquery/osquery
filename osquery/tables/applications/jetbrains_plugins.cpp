@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/applications/jetbrains_plugins.h>
@@ -16,7 +17,6 @@
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/utils/scope_guard.h>
-#include <regex>
 
 #define LIBARCHIVE_STATIC
 #include <archive.h>
@@ -113,6 +113,21 @@ ExtractionResult extractSpecificFileFromArchive(
     const std::string& target_file_path,
     std::size_t maximum_decompressed_size) {
   ExtractionResult extraction_result;
+
+#ifndef WIN32
+  // Plugin directories are user-writable, where a FIFO would block a plain
+  // open of the path for good: the jar is opened as a regular file only and
+  // read through its descriptor.
+  PlatformFile archive_file(archive_file_path,
+                            PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+  if (!archive_file.isValid()) {
+    VLOG(1) << "Zip file does not exist or is not a regular file: "
+            << archive_file_path;
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+#endif
+
   auto* archive_reader = archive_read_new();
   if (archive_reader == nullptr) {
     extraction_result.status = ExtractionStatus::ArchiveError;
@@ -130,8 +145,16 @@ ExtractionResult extractSpecificFileFromArchive(
     return extraction_result;
   }
 
+#ifdef WIN32
+  // Windows file systems hold no FIFOs, and libarchive's own open of the path
+  // shares the jar with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a jar another process has open for writing.
   const auto result = archive_read_open_filename(
       archive_reader, archive_file_path.c_str(), 10240); // 10KB buffer
+#else
+  const auto result = archive_read_open_fd(
+      archive_reader, archive_file.nativeHandle(), 10240); // 10KB buffer
+#endif
   if (result != ARCHIVE_OK) {
     VLOG(1) << "Failed to open zip file: "
             << archive_error_string(archive_reader);
@@ -162,16 +185,24 @@ struct PluginAttributes {
 // Function to extract the contents of a specific tag
 std::string getContentFromTag(const std::string& xml,
                               const std::string& tag_name) {
-  std::regex tagRegex("<" + tag_name + "[\\s\\S]*?>([\\s\\S]*?)<\\/" +
-                      tag_name + ">");
-  std::smatch match;
-
-  if (std::regex_search(xml, match, tagRegex)) {
-    // match[0] is the entire tag with contents <TagName>contents</TagName>
-    // match[1] is the contents of the tag
-    return match[1];
+  // plugin.xml is user controlled, so this avoids std::regex: backtracking is
+  // superlinear in the input and throws when it exceeds the complexity limit.
+  const auto tag_start = xml.find("<" + tag_name);
+  if (tag_start == std::string::npos) {
+    return "";
   }
-  return "";
+
+  const auto tag_end = xml.find('>', tag_start + tag_name.size() + 1);
+  if (tag_end == std::string::npos) {
+    return "";
+  }
+
+  const auto closing_tag = xml.find("</" + tag_name + ">", tag_end + 1);
+  if (closing_tag == std::string::npos) {
+    return "";
+  }
+
+  return xml.substr(tag_end + 1, closing_tag - tag_end - 1);
 }
 
 // Function to parse the plugin.xml file

@@ -111,7 +111,8 @@ void initializeFilesystemAPILocale() {
 Status readFile(const fs::path& path,
                 std::function<void(std::string_view)> predicate,
                 bool shouldLog) {
-  PlatformFile file_handle(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+  PlatformFile file_handle(
+      path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK | PF_REGULAR_ONLY);
 
   if (!file_handle.isValid()) {
     return Status::failure("Cannot open file for reading: " +
@@ -166,7 +167,8 @@ Status readFile(const fs::path& path,
 }
 
 Status readFile(const fs::path& path, std::string& content, bool shouldLog) {
-  PlatformFile file_handle(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+  PlatformFile file_handle(
+      path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK | PF_REGULAR_ONLY);
 
   if (!file_handle.isValid()) {
     return Status::failure("Cannot open file for reading: " +
@@ -465,9 +467,9 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   }
 }
 
-inline Status listInAbsoluteDirectory(const fs::path& path,
-                                      std::vector<std::string>& results,
-                                      GlobLimits limits) {
+Status listInAbsoluteDirectory(const fs::path& path,
+                               std::vector<std::string>& results,
+                               GlobLimits limits) {
   if (path.filename() == "*" && !pathExists(path.parent_path())) {
     return Status(1, "Directory not found: " + path.parent_path().string());
   }

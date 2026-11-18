@@ -861,4 +861,30 @@ TEST_F(FileOpsTests, test_create_private_dir) {
   s = platformCreatePrivateDir(dir_path);
   EXPECT_FALSE(s.ok());
 }
+
+#ifndef WIN32
+TEST_F(FileOpsTests, test_socket_exists_directory) {
+  // A directory passed as the extension socket path must be rejected,
+  // never recursively removed (#8090).
+  auto socket_dir = fake_directory_ / "socket_dir";
+  fs::create_directories(socket_dir);
+
+  auto kept_file = socket_dir / "keep_me";
+  ASSERT_TRUE(writeTextFile(kept_file, "contents").ok());
+
+  EXPECT_FALSE(socketExists(socket_dir, true).ok());
+  EXPECT_FALSE(socketExists(socket_dir, false).ok());
+  EXPECT_TRUE(pathExists(socket_dir).ok());
+  EXPECT_TRUE(pathExists(kept_file).ok());
+}
+
+TEST_F(FileOpsTests, test_socket_exists_removes_stale_file) {
+  // A regular file at the socket path is still removed on request.
+  auto stale_socket = fake_directory_ / "stale_socket";
+  ASSERT_TRUE(writeTextFile(stale_socket, "").ok());
+
+  EXPECT_TRUE(socketExists(stale_socket, true).ok());
+  EXPECT_FALSE(pathExists(stale_socket).ok());
+}
+#endif
 } // namespace osquery

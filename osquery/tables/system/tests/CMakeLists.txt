@@ -26,6 +26,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       posix/authorized_keys_tests.cpp
       posix/augeas_tests.cpp
       posix/magic_tests.cpp
+      posix/crontab_tests.cpp
     )
   endif()
 
@@ -37,6 +38,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       linux/md_tables_tests.cpp
       linux/pacman_packages_tests.cpp
       linux/snap_packages_tests.cpp
+      linux/startup_items_tests.cpp
       linux/pci_devices_tests.cpp
       linux/pcidb_tests.cpp
       linux/portage_tests.cpp

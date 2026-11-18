@@ -496,16 +496,16 @@ std::vector<std::string> findSkillMdFiles(const fs::path& root,
 // Reads up to `max_bytes` of `path`'s content. Used to bound the cost of
 // frontmatter parsing on a large SKILL.md.
 //
-// Opened non-blocking, the way osquery's own readFile() does, and special
-// files are skipped rather than read: anyone who can write to a skills
-// directory can leave a FIFO named SKILL.md there, and a blocking open on
-// one with no writer never returns, which would hang the query for good
-// without burning the CPU the watchdog reaps a worker for.
+// Opened the way osquery's own readFile() does, regular files only: anyone
+// who can write to a skills directory can leave a FIFO named SKILL.md there,
+// and a blocking open on one with no writer never returns, which would hang
+// the query for good without burning the CPU the watchdog reaps a worker for.
 bool readFilePrefix(const std::string& path,
                     size_t max_bytes,
                     std::string& content) {
-  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
-  if (!file.isValid() || file.isSpecialFile()) {
+  PlatformFile file(path,
+                    PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
     return false;
   }
 
