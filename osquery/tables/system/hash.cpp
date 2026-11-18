@@ -28,6 +28,7 @@
 #include <osquery/core/tables.h>
 #include <osquery/sql/dynamic_table_row.h>
 #include <osquery/utils/mutex.h>
+#include <osquery/utils/system/errno.h>
 #include <osquery/utils/info/platform_type.h>
 #include <osquery/worker/ipc/platform_table_container_ipc.h>
 #include <osquery/worker/logging/glog/glog_logger.h>
@@ -101,7 +102,6 @@ struct FileHashCache {
 #if defined(WIN32)
 
 #define stat _stat
-#define strerror_r(e, buf, sz) strerror_s((buf), (sz), (e))
 
 #endif
 
@@ -138,9 +138,9 @@ bool FileHashCache::load(const std::string& path,
 
   struct stat st;
   if (stat(path.c_str(), &st) != 0) {
-    char buf[0x200] = {0};
-    strerror_r(errno, buf, sizeof(buf));
-    logger.log(google::GLOG_WARNING, "Cannot stat file: " + path + ": " + buf);
+    const auto error = errno;
+    logger.log(google::GLOG_WARNING,
+               "Cannot stat file: " + path + ": " + platformStrerr(error));
     return false;
   }
 
