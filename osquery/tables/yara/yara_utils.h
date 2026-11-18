@@ -9,6 +9,9 @@
 
 #pragma once
 
+#include <set>
+#include <string>
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config/config.h>
@@ -89,6 +92,15 @@ Status handleRuleFiles(const std::string& category,
  * Avoid scanning files that could cause hangs or issues.
  */
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode);
+
+/**
+ * Check a signature URL against the allowlist of URL patterns.
+ *
+ * The scheme, host and effective port must match exactly, and the path must
+ * match the allowlist entry's path regex.
+ */
+bool isRuleUrlAllowed(const std::set<std::string>& signature_set,
+                      const std::string& url);
 
 int YARACallback(YR_SCAN_CONTEXT* context,
                  int message,

@@ -77,6 +77,24 @@ CLI_FLAG(bool,
          false,
          "Enable gzip compression for HTTP responses");
 
+/// Follow HTTP redirects for requests made through the TLS transport.
+CLI_FLAG(bool,
+         tls_follow_redirects,
+         true,
+         "Follow HTTP redirects for TLS/HTTPS requests. Enabled by default. "
+         "Only same-origin redirects are followed unless "
+         "--tls_allow_cross_origin_redirects is set, and a redirect off of "
+         "HTTPS is always refused. Set to false to disable following "
+         "redirects entirely");
+
+/// Allow the TLS transport to follow redirects to a different origin.
+CLI_FLAG(bool,
+         tls_allow_cross_origin_redirects,
+         false,
+         "Allow TLS/HTTPS requests to follow redirects to a different scheme, "
+         "host, or port. Redirected requests are re-sent with their headers "
+         "and body, including the node key. Disabled by default");
+
 #ifndef NDEBUG
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
@@ -120,7 +138,10 @@ void TLSTransport::decorateRequest(http::Request& r) {
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
 
-  options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
+  options.follow_redirects(FLAGS_tls_follow_redirects)
+      .allow_cross_origin_redirects(FLAGS_tls_allow_cross_origin_redirects)
+      .always_verify_peer(verify_peer_)
+      .timeout(16);
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
@@ -252,6 +273,34 @@ void printRawStderr(const std::string& s) {
   fprintf(stderr, "%s\n", s.c_str());
 }
 
+/**
+ * Fail a response that is a redirect the HTTP client did not follow.
+ *
+ * With tls_follow_redirects disabled, the client returns the redirect itself.
+ * Its body, often empty, did not come from the destination, so treating it as
+ * a response would make callers, such as the TLS logger, discard data that was
+ * never delivered.
+ */
+static Status checkRedirectNotFollowed(http::Response& response) {
+  switch (response.status()) {
+  // The redirect statuses that the HTTP client follows when it is allowed to.
+  case 301:
+  case 302:
+  case 303:
+  case 304:
+  case 305:
+  case 307:
+  case 308:
+    return Status::failure(
+        "Request error: Redirect not followed because tls_follow_redirects is "
+        "disabled: " +
+        std::to_string(response.status()) + " to " +
+        response.headers()["Location"]);
+  default:
+    return Status::success();
+  }
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status::failure(
@@ -267,6 +316,11 @@ Status TLSTransport::sendRequest() {
 
     client->setOptions(getInternalOptionsForRequest(r));
     response_ = client->get(r);
+
+    auto status = checkRedirectNotFollowed(response_);
+    if (!status.ok()) {
+      return status;
+    }
 
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
@@ -317,6 +371,11 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
       response_ = client->post(r, (compress) ? compressString(params) : params);
     } else {
       response_ = client->put(r, (compress) ? compressString(params) : params);
+    }
+
+    auto status = checkRedirectNotFollowed(response_);
+    if (!status.ok()) {
+      return status;
     }
 
     const auto& response_body = response_.body();

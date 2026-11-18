@@ -8,6 +8,8 @@
  */
 
 #include <map>
+#include <regex>
+#include <set>
 #include <string>
 
 #include <cerrno>
@@ -72,6 +74,20 @@ YaraCompilerCreateResult createCompiler() {
   });
 }
 
+/// The port a URI connects to, using the scheme's default when it is omitted.
+uint16_t effectivePort(const Uri& uri) {
+  if (uri.port() != 0) {
+    return uri.port();
+  }
+  if (uri.scheme() == "https") {
+    return 443;
+  }
+  if (uri.scheme() == "http") {
+    return 80;
+  }
+  return 0;
+}
+
 } // namespace
 
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
@@ -80,6 +96,28 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
     return true;
   }
 
+  return false;
+}
+
+bool isRuleUrlAllowed(const std::set<std::string>& signature_set,
+                      const std::string& url) {
+  Uri test_uri(url);
+  for (const auto& sig : signature_set) {
+    Uri sig_uri(sig);
+
+    // The uri scheme, host and path matches are case sensitive. Ports are
+    // compared after filling in the scheme default, so an omitted port and
+    // its explicit default (e.g. :443 for https) are the same endpoint.
+    if ((sig_uri.host() == test_uri.host()) &&
+        (sig_uri.scheme() == test_uri.scheme()) &&
+        (effectivePort(sig_uri) == effectivePort(test_uri))) {
+      // Check the regex pattern for the allowed URL
+      const std::regex pat(sig_uri.path());
+      if (std::regex_match(test_uri.path(), pat)) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
