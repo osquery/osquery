@@ -48,6 +48,7 @@ function(generateContainerdProtos)
     images
     snapshots
     introspection
+    content
   )
 
   # Message-only types the services import (no gRPC service, so .pb only).

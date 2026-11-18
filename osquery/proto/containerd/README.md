@@ -19,6 +19,7 @@ This directory contains Protocol Buffer (`.proto`) definitions for containerd's 
 | File | Description | Service |
 |------|-------------|---------|
 | `containers.proto` | Container lifecycle management | `containerd.services.containers.v1.Containers` |
+| `content.proto` | Content store access (used to compute image sizes) | `containerd.services.content.v1.Content` |
 | `images.proto` | Image storage and metadata | `containerd.services.images.v1.Images` |
 | `introspection.proto` | Plugin/runtime introspection (used for snapshotter discovery) | `containerd.services.introspection.v1.Introspection` |
 | `namespace.proto` | Namespace isolation | `containerd.services.namespaces.v1.Namespaces` |

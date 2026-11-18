@@ -15,6 +15,7 @@
 #include <osquery/utils/json/json.h>
 
 #include <containerd/containers.grpc.pb.h>
+#include <containerd/content.grpc.pb.h>
 #include <containerd/images.grpc.pb.h>
 #include <containerd/introspection.grpc.pb.h>
 #include <containerd/namespace.grpc.pb.h>
@@ -26,7 +27,9 @@
 
 #include <charconv>
 #include <chrono>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string_view>
 #include <typeindex>
@@ -634,6 +637,196 @@ listContainers(const ContainerdConnection& conn,
 }
 
 /**
+ * @brief Read a content-store blob in full by digest.
+ *
+ * Returns nullopt on RPC failure (e.g. the blob was garbage-collected between
+ * listing and reading) and logs at VLOG: a missing blob only degrades the
+ * computed image size, it does not make the rest of the row wrong.
+ */
+[[nodiscard]] std::optional<std::string> readContentBlob(
+    const ContainerdConnection& conn,
+    const std::string& namespace_name,
+    const std::string& digest) {
+  containerd::services::content::v1::Content::Stub* stub = nullptr;
+  if (!conn.getStub<containerd::services::content::v1::Content>(&stub)) {
+    return std::nullopt;
+  }
+
+  containerd::services::content::v1::ReadContentRequest request;
+  request.set_digest(digest);
+
+  grpc::ClientContext context;
+  createContextWithTimeout(context, namespace_name);
+
+  auto reader = stub->Read(&context, request);
+  StreamReaderGuard guard(reader.get());
+
+  std::string blob;
+  containerd::services::content::v1::ReadContentResponse response;
+  while (reader->Read(&response)) {
+    blob.append(response.data());
+  }
+
+  grpc::Status status = guard.Finish();
+  if (!status.ok()) {
+    VLOG(1) << "Failed to read containerd content blob " << digest
+            << " in namespace " << namespace_name << ": "
+            << status.error_message();
+    return std::nullopt;
+  }
+  return blob;
+}
+
+// OCI and Docker media types for the two manifest shapes that carry child
+// descriptors. Anything else (an image config, a layer) is a leaf whose size
+// is read straight from the descriptor that references it.
+bool isImageIndex(std::string_view media_type) {
+  return media_type == "application/vnd.oci.image.index.v1+json" ||
+         media_type ==
+             "application/vnd.docker.distribution.manifest.list.v2+json";
+}
+
+bool isImageManifest(std::string_view media_type) {
+  return media_type == "application/vnd.oci.image.manifest.v1+json" ||
+         media_type == "application/vnd.docker.distribution.manifest.v2+json";
+}
+
+// OCI architecture of the running host. A multi-arch image is stored as an
+// index of per-platform manifests; `ctr images ls` reports the size of the one
+// matching the host, so size discovery selects the same manifest. This table
+// is Linux-only, so the OS component is always "linux".
+constexpr std::string_view hostOciArch() {
+#if defined(__x86_64__)
+  return "amd64";
+#elif defined(__aarch64__)
+  return "arm64";
+#else
+  return "";
+#endif
+}
+
+int64_t descriptorSize(const rapidjson::Value& descriptor) {
+  if (!descriptor.HasMember("size")) {
+    return 0;
+  }
+  const auto& size = descriptor["size"];
+  if (size.IsInt64()) {
+    return size.GetInt64();
+  }
+  if (size.IsUint64()) {
+    return static_cast<int64_t>(size.GetUint64());
+  }
+  return 0;
+}
+
+std::string descriptorField(const rapidjson::Value& descriptor,
+                            const char* name) {
+  if (descriptor.HasMember(name) && descriptor[name].IsString()) {
+    return descriptor[name].GetString();
+  }
+  return "";
+}
+
+bool manifestMatchesHost(const rapidjson::Value& manifest) {
+  if (!manifest.HasMember("platform") || !manifest["platform"].IsObject()) {
+    return false;
+  }
+  const auto& platform = manifest["platform"];
+  const auto os = platform.HasMember("os") && platform["os"].IsString()
+                      ? std::string_view(platform["os"].GetString())
+                      : std::string_view();
+  const auto arch =
+      platform.HasMember("architecture") && platform["architecture"].IsString()
+          ? std::string_view(platform["architecture"].GetString())
+          : std::string_view();
+  return os == "linux" && !arch.empty() && arch == hostOciArch();
+}
+
+/**
+ * @brief Sum of an image's packed content-store blobs.
+ *
+ * Mirrors containerd's images.Image.Size (what `ctr images ls` prints): every
+ * descriptor reachable from the target, with a multi-arch index narrowed to the
+ * single host-platform manifest. Only index/manifest blobs are read from the
+ * content store; config and layer sizes come from the descriptors those
+ * manifests list, so the common single-manifest image costs one extra RPC.
+ */
+int64_t sumContentSize(const ContainerdConnection& conn,
+                       const std::string& namespace_name,
+                       std::string_view media_type,
+                       const std::string& digest,
+                       int64_t size,
+                       int depth) {
+  int64_t total = size;
+
+  // Only an index or manifest references further blobs. Recursion follows
+  // index -> manifest (config/layers are summed inline, not recursed); the
+  // depth bound leaves headroom for a rare nested index while stopping a
+  // self-referential blob from recursing without end.
+  constexpr int kMaxManifestDepth = 4;
+  if (depth >= kMaxManifestDepth ||
+      (!isImageIndex(media_type) && !isImageManifest(media_type))) {
+    return total;
+  }
+
+  auto blob = readContentBlob(conn, namespace_name, digest);
+  if (!blob) {
+    return total;
+  }
+
+  auto doc = JSON::newObject();
+  if (!doc.fromString(*blob) || !doc.doc().IsObject()) {
+    VLOG(1) << "Failed to parse containerd manifest JSON for " << digest;
+    return total;
+  }
+  const auto& root = doc.doc();
+
+  if (isImageIndex(media_type)) {
+    if (!root.HasMember("manifests") || !root["manifests"].IsArray()) {
+      return total;
+    }
+    for (const auto& manifest : root["manifests"].GetArray()) {
+      if (!manifest.IsObject() || !manifestMatchesHost(manifest)) {
+        continue;
+      }
+      total += sumContentSize(conn,
+                              namespace_name,
+                              descriptorField(manifest, "mediaType"),
+                              descriptorField(manifest, "digest"),
+                              descriptorSize(manifest),
+                              depth + 1);
+      break; // one manifest per host platform, matching containerd
+    }
+    return total;
+  }
+
+  // Image manifest: add the config blob and every layer blob (all leaves).
+  if (root.HasMember("config") && root["config"].IsObject()) {
+    total += descriptorSize(root["config"]);
+  }
+  if (root.HasMember("layers") && root["layers"].IsArray()) {
+    for (const auto& layer : root["layers"].GetArray()) {
+      if (layer.IsObject()) {
+        total += descriptorSize(layer);
+      }
+    }
+  }
+  return total;
+}
+
+[[nodiscard]] int64_t computeImageSize(
+    const ContainerdConnection& conn,
+    const std::string& namespace_name,
+    const containerd::types::Descriptor& target) {
+  return sumContentSize(conn,
+                        namespace_name,
+                        target.media_type(),
+                        target.digest(),
+                        target.size(),
+                        0);
+}
+
+/**
  * @brief Drain the snapshot List stream for one snapshotter into a vector.
  *
  * Like listContainers, the stream is fully drained before callers build rows
@@ -948,11 +1141,12 @@ QueryData genContainerdImages(QueryContext& context) {
 
       if (image.has_target()) {
         r["digest"] = image.target().digest();
-        r["size"] = std::to_string(image.target().size());
+        r["size_bytes"] = std::to_string(
+            computeImageSize(conn, namespace_name, image.target()));
         r["media_type"] = image.target().media_type();
       } else {
         r["digest"] = "";
-        r["size"] = "0";
+        r["size_bytes"] = "0";
         r["media_type"] = "";
       }
 

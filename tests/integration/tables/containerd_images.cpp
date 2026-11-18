@@ -29,7 +29,7 @@ TEST_F(containerdImages, test_sanity) {
       {"name", NormalType},
       {"namespace", NormalType},
       {"digest", NormalType},
-      {"size", NormalType},
+      {"size_bytes", NormalType},
       {"media_type", NormalType},
       {"created_at", NormalType},
       {"updated_at", NormalType},

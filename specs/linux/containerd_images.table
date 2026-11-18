@@ -4,7 +4,7 @@ schema([
     Column("name", TEXT, "Image name", index=True),
     Column("namespace", TEXT, "Containerd namespace", index=True),
     Column("digest", TEXT, "Image digest (hash)"),
-    Column("size", BIGINT, "Image size in bytes"),
+    Column("size_bytes", BIGINT, "Total size of the image's content-store blobs, in bytes (as reported by 'ctr images ls')"),
     Column("media_type", TEXT, "Media type of the image"),
     Column("created_at", BIGINT, "Image creation time (seconds since epoch)"),
     Column("updated_at", BIGINT, "Image last update time (seconds since epoch)"),
