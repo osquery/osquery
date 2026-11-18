@@ -60,6 +60,7 @@ const std::vector<std::string> kFileNameList{
 }
 
 DECLARE_uint64(read_max);
+DECLARE_uint64(glob_max_files);
 
 extern inline Status listInAbsoluteDirectory(const fs::path& path,
                                              std::vector<std::string>& results,
@@ -440,6 +441,188 @@ TEST_F(FilesystemTests, test_wildcard_double) {
                        fs::path(fake_directory_ / "deep1/deep2/level2.txt")
                            .make_preferred()
                            .string()));
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_limit) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 5U);
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_prepopulated_vector) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+
+  std::vector<std::string> results = {"/dummy/1", "/dummy/2", "/dummy/3"};
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  // Pre-existing entries should not count toward current glob's cap
+  EXPECT_EQ(results.size(), 8U);
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_exact_boundary) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 20;
+
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(fake_directory_ / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 20U);
+}
+
+TEST_F(FilesystemTests, test_glob_max_files_flat_directory) {
+  auto dir = test_working_dir_ / "flat";
+  ASSERT_TRUE(fs::create_directory(dir));
+  for (size_t i = 0; i < 30; ++i) {
+    writeTextFile(dir / ("f" + std::to_string(i)), "x");
+  }
+
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 10;
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 10U);
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_hidden_level) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Windows glob returns level-1 dotfiles";
+  }
+
+  auto dir = fs::canonical(test_working_dir_) / "hid";
+  ASSERT_TRUE(fs::create_directories(dir / "sub"));
+  writeTextFile(dir / ".top", "x");
+  writeTextFile(dir / "vis", "x");
+  writeTextFile(dir / "sub" / ".deep", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%%", results);
+
+  EXPECT_FALSE(contains(results, (dir / ".top").string()));
+  EXPECT_TRUE(contains(results, (dir / "vis").string()));
+  EXPECT_TRUE(contains(results, (dir / "sub" / ".deep").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_prefix) {
+  auto dir = test_working_dir_ / "pfx";
+  ASSERT_TRUE(fs::create_directory(dir));
+  writeTextFile(dir / "pre_a", "x");
+  writeTextFile(dir / "pre_b", "x");
+  writeTextFile(dir / "other", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+
+  EXPECT_EQ(results.size(), 2U);
+  EXPECT_FALSE(contains(results, (dir / "other").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_prefix_limit) {
+  auto dir = test_working_dir_ / "pfx_lim";
+  ASSERT_TRUE(fs::create_directory(dir));
+  for (size_t i = 0; i < 20; ++i) {
+    writeTextFile(dir / ("pre_" + std::to_string(i)), "x");
+  }
+  writeTextFile(dir / "other", "x");
+
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+  for (const auto& r : results) {
+    EXPECT_TRUE(r.find("pre_") != std::string::npos);
+  }
+  EXPECT_FALSE(contains(results, (dir / "other").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_aliased_roots) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Symlink creation needs privileges on Windows";
+  }
+
+  auto dir = fs::canonical(test_working_dir_) / "alias";
+  ASSERT_TRUE(fs::create_directories(dir / "real"));
+  writeTextFile(dir / "real" / "a", "x");
+  fs::create_directory_symlink(dir / "real", dir / "link");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "%" / "%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "real" / "a").string()));
+  EXPECT_TRUE(contains(results, (dir / "link" / "a").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_filesystem_root) {
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern(fake_directory_.root_path() / "%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_windows_drive_root) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Windows drive root test is Windows-only";
+  }
+  auto orig_max = FLAGS_glob_max_files;
+  FLAGS_glob_max_files = 5;
+  std::vector<std::string> results;
+  resolveFilePattern("C:\\%%", results);
+  FLAGS_glob_max_files = orig_max;
+
+  EXPECT_EQ(results.size(), 5U);
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_prefix_parent_symlink) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "Symlink creation needs privileges on Windows";
+  }
+
+  // pre_self -> . : a symlink matching the prefix that points back at the
+  // streaming root. Master traverses it once and emits its children.
+  auto dir = fs::canonical(test_working_dir_) / "parent_sym";
+  ASSERT_TRUE(fs::create_directories(dir));
+  writeTextFile(dir / "other", "x");
+  fs::create_directory_symlink(dir, dir / "pre_self");
+
+  std::vector<std::string> results;
+  resolveFilePattern(dir / "pre%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "pre_self" / "other").string()));
+}
+
+TEST_F(FilesystemTests, test_wildcard_double_escaped_space) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "glob escape semantics are POSIX-only";
+  }
+
+  // POSIX glob(3) unescapes "\ " to " "; the streaming split must not treat
+  // the backslash as a separator and must not match the literal path.
+  auto dir = fs::canonical(test_working_dir_) / "esc";
+  ASSERT_TRUE(fs::create_directories(dir / "with space"));
+  writeTextFile(dir / "with space" / "child", "x");
+
+  std::vector<std::string> results;
+  resolveFilePattern((dir / "with\\ space").string() + "/%%", results);
+
+  EXPECT_TRUE(contains(results, (dir / "with space" / "child").string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
