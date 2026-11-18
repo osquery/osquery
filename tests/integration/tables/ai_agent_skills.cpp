@@ -111,6 +111,12 @@ class AIAgentSkills : public testing::Test {
                     .ok());
   }
 
+  void writeSkillMarkdown(const fs::path& directory,
+                          const std::string& content) {
+    ASSERT_TRUE(createDirectory(directory, true).ok());
+    ASSERT_TRUE(writeTextFile(directory / "SKILL.md", content).ok());
+  }
+
   void TearDown() override {
     if (project_dir.empty()) {
       return;
@@ -209,6 +215,21 @@ Body content.
 )";
 
 namespace {
+std::string makeNestedSkillMarkdown(const std::string& name,
+                                    size_t sequence_depth) {
+  return "---\nname: " + name +
+         "\ncompatibility: " + std::string(sequence_depth, '[') + "supported" +
+         std::string(sequence_depth, ']') + "\n---\n";
+}
+
+std::string makeSizedSkillMarkdown(const std::string& name, size_t total_size) {
+  const std::string prefix = "---\nname: " + name + "\npadding: ";
+  const std::string suffix = "\n---";
+  EXPECT_GE(total_size, prefix.size() + suffix.size());
+  return prefix + std::string(total_size - prefix.size() - suffix.size(), 'a') +
+         suffix;
+}
+
 const Row& findRowByPath(const QueryData& data, const std::string& path) {
   static const Row kEmptyRow;
   for (const auto& row : data) {
@@ -310,6 +331,134 @@ TEST_F(AIAgentSkills, test_structured_frontmatter_values) {
   EXPECT_EQ(row.at("allowed_tools"), "Read, Bash(git:*)");
   // Anything structured is emitted in flow style, so it stays on one line.
   EXPECT_EQ(row.at("compatibility"), "{product: claude-code, network: false}");
+}
+
+TEST_F(AIAgentSkills, test_yaml_nesting_budget) {
+  const auto supported_dir =
+      project_dir / ".claude" / "skills" / "supported-nesting";
+  const auto excessive_dir =
+      project_dir / ".claude" / "skills" / "excessive-nesting";
+
+  // The top-level map plus 31 sequences reaches the 32-collection limit.
+  writeSkillMarkdown(supported_dir,
+                     makeNestedSkillMarkdown("supported-nesting", 31));
+  // One more nested sequence must be rejected before YAML::Load.
+  writeSkillMarkdown(excessive_dir,
+                     makeNestedSkillMarkdown("excessive-nesting", 32));
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& supported =
+      findRowByPath(data, (supported_dir / "SKILL.md").string());
+  EXPECT_EQ(supported.at("name"), "supported-nesting");
+  EXPECT_FALSE(supported.at("compatibility").empty());
+
+  const auto& excessive =
+      findRowByPath(data, (excessive_dir / "SKILL.md").string());
+  EXPECT_TRUE(excessive.at("name").empty());
+  EXPECT_TRUE(excessive.at("compatibility").empty());
+}
+
+TEST_F(AIAgentSkills, test_yaml_anchors_and_aliases_are_rejected) {
+  const auto anchor_dir = project_dir / ".claude" / "skills" / "anchor-only";
+  const auto aliases_dir =
+      project_dir / ".claude" / "skills" / "repeated-aliases";
+
+  writeSkillMarkdown(anchor_dir, R"(---
+name: anchor-only
+compatibility: &requirements
+  product: codex
+---
+)");
+  writeSkillMarkdown(aliases_dir, R"(---
+name: repeated-aliases
+a: &a [x, x, x, x, x, x, x, x]
+b: &b [*a, *a, *a, *a, *a, *a, *a, *a]
+c: &c [*b, *b, *b, *b, *b, *b, *b, *b]
+compatibility: *c
+---
+)");
+
+  // Repeat the scan to ensure rejected documents do not leave parser state
+  // behind that changes later results.
+  for (size_t scan = 0; scan < 8; ++scan) {
+    const auto data =
+        execute_query("select * from ai_agent_skills where directory = '" +
+                      project_dir.string() + "'");
+
+    const auto& anchor =
+        findRowByPath(data, (anchor_dir / "SKILL.md").string());
+    EXPECT_TRUE(anchor.at("name").empty());
+    EXPECT_TRUE(anchor.at("compatibility").empty());
+
+    const auto& aliases =
+        findRowByPath(data, (aliases_dir / "SKILL.md").string());
+    EXPECT_TRUE(aliases.at("name").empty());
+    EXPECT_TRUE(aliases.at("compatibility").empty());
+  }
+}
+
+TEST_F(AIAgentSkills, test_malformed_yaml_is_rejected) {
+  const auto malformed_dir =
+      project_dir / ".claude" / "skills" / "malformed-yaml";
+  writeSkillMarkdown(malformed_dir, R"(---
+name: malformed-yaml
+compatibility: [unterminated
+---
+)");
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& row = findRowByPath(data, (malformed_dir / "SKILL.md").string());
+  EXPECT_TRUE(row.at("name").empty());
+  EXPECT_TRUE(row.at("compatibility").empty());
+}
+
+TEST_F(AIAgentSkills, test_frontmatter_file_size_boundary) {
+  const auto within_limit_dir =
+      project_dir / ".claude" / "skills" / "within-size-limit";
+  const auto over_limit_dir =
+      project_dir / ".claude" / "skills" / "over-size-limit";
+  constexpr size_t kFrontmatterReadLimit = 256 * 1024;
+
+  // The closing fence is entirely inside the read prefix at the exact limit.
+  writeSkillMarkdown(
+      within_limit_dir,
+      makeSizedSkillMarkdown("within-size-limit", kFrontmatterReadLimit));
+  // Moving it one byte farther means the bounded prefix has no closing fence.
+  writeSkillMarkdown(
+      over_limit_dir,
+      makeSizedSkillMarkdown("over-size-limit", kFrontmatterReadLimit + 1));
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& within =
+      findRowByPath(data, (within_limit_dir / "SKILL.md").string());
+  EXPECT_EQ(within.at("name"), "within-size-limit");
+  const auto& over =
+      findRowByPath(data, (over_limit_dir / "SKILL.md").string());
+  EXPECT_TRUE(over.at("name").empty());
+}
+
+TEST_F(AIAgentSkills, test_unicode_frontmatter) {
+  const auto unicode_dir =
+      project_dir / ".claude" / "skills" / "unicode-metadata";
+  writeSkillMarkdown(unicode_dir, R"(---
+name: café
+description: 安全なスキル 🔐
+---
+)");
+
+  const auto data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+  const auto& row = findRowByPath(data, (unicode_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("name"), "café");
+  EXPECT_EQ(row.at("description"), "安全なスキル 🔐");
 }
 
 TEST_F(AIAgentSkills, test_hidden_entries_are_not_counted) {
