@@ -13,6 +13,11 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/process/process.h>
 #include <osquery/tables/yara/yara_utils.h>
+#include <osquery/tests/test_util.h>
+
+#ifndef WIN32
+#include <sys/stat.h>
+#endif
 
 #include <boost/filesystem.hpp>
 
@@ -85,12 +90,8 @@ class YARATest : public testing::Test {
 
     auto rules_handle = compiler_result.take();
 
-    int result = yr_rules_scan_file(rules_handle.get(),
-                                    file_to_scan.string().c_str(),
-                                    SCAN_FLAGS_FAST_MODE,
-                                    YARACallback,
-                                    (void*)&r,
-                                    0);
+    int result =
+        yaraScanFile(rules_handle.get(), file_to_scan.string(), (void*)&r);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
     fs::remove_all(rule_file);
@@ -120,12 +121,8 @@ class YARATest : public testing::Test {
     }
 
     auto rules_handle = compiler_result.take();
-    int result = yr_rules_scan_file(rules_handle.get(),
-                                    file_to_scan.string().c_str(),
-                                    SCAN_FLAGS_FAST_MODE,
-                                    YARACallback,
-                                    (void*)&r,
-                                    0);
+    int result =
+        yaraScanFile(rules_handle.get(), file_to_scan.string(), (void*)&r);
     EXPECT_TRUE(result == ERROR_SUCCESS) << " yara error code: " << result;
 
     fs::remove_all(file_to_scan);
@@ -220,6 +217,33 @@ TEST_F(YARATest, test_rule_url_allowed_default_ports) {
   EXPECT_FALSE(isRuleUrlAllowed(allowed, "https://other.example/rules/a.yar"));
   EXPECT_FALSE(isRuleUrlAllowed(allowed, "https://rules.example/other/a.yar"));
 }
+
+#ifndef WIN32
+TEST_F(YARATest, test_scan_refuses_fifo) {
+  // A FIFO with no writer, left where files are scanned, would block the
+  // scan's open for good.
+  auto compiler_result = compileFromString(alwaysTrue);
+  ASSERT_TRUE(compiler_result.isValue())
+      << compiler_result.getError().getMessage();
+  auto rules_handle = compiler_result.take();
+
+  const auto fifo = fs::temp_directory_path() /
+                    fs::unique_path("osquery.tests.yara.%%%%.%%%%.fifo");
+  ASSERT_EQ(::mkfifo(fifo.c_str(), S_IRUSR | S_IWUSR), 0);
+
+  Row r;
+  r["count"] = "0";
+  r["matches"] = "";
+  int result = ERROR_SUCCESS;
+  EXPECT_TRUE(returnsWithoutBlockingOnFifo(fifo, [&]() {
+    result = yaraScanFile(rules_handle.get(), fifo.string(), (void*)&r);
+  }));
+  EXPECT_NE(result, ERROR_SUCCESS);
+  EXPECT_EQ(r["count"], "0");
+
+  fs::remove(fifo);
+}
+#endif
 
 TEST_F(YARATest, test_match_string_true) {
   Row r = scanString(alwaysTrue);

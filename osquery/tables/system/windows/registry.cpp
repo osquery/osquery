@@ -369,8 +369,11 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
       std::string regLinkStr;
       if (lpType == REG_LINK) {
-        regLinkStr =
-            wstringToString(reinterpret_cast<wchar_t*>(bpDataBuff.get()));
+        // RegGetValueW does not null terminate REG_LINK data
+        regLinkStr = wstringToString(
+            std::wstring(reinterpret_cast<wchar_t*>(bpDataBuff.get()),
+                         lpData / sizeof(wchar_t))
+                .c_str());
       }
 
       std::vector<char> regBinary;
@@ -390,10 +393,15 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = data;
         break;
       case REG_DWORD:
-        r["data"] = std::to_string(*((int*)bpDataBuff.get()));
+        if (lpData >= sizeof(DWORD)) {
+          r["data"] = std::to_string(*((int*)bpDataBuff.get()));
+        }
         break;
       case REG_DWORD_BIG_ENDIAN:
-        r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
+        if (lpData >= sizeof(DWORD)) {
+          r["data"] =
+              std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
+        }
         break;
       case REG_EXPAND_SZ:
         r["data"] =
@@ -414,7 +422,9 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = "(zero-length binary value)";
         break;
       case REG_QWORD:
-        r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
+        if (lpData >= sizeof(ULONGLONG)) {
+          r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
+        }
         break;
       case REG_SZ:
         r["data"] =

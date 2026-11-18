@@ -5,7 +5,15 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
 
-cmake_minimum_required(VERSION 3.21.4 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+
+# Set embedded debug info (this used to be set manually with /Z7)
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+
+# An in-source build would overwrite the top-level Makefile.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "In-source builds are not supported; configure into a separate build folder, for example with: cmake --preset <name>")
+endif()
 
 # toolchain.cmake needs to be included before project() because the former sets the compiler path for the custom toolchain,
 # if the user specify it and the latter does compiler detection.
@@ -123,6 +131,11 @@ function(importLibraries)
     "Linux,Darwin,Windows:yaml-cpp"
   )
 
+  if(OSQUERY_BUILD_BPF)
+    list(APPEND library_descriptor_list
+      "Linux:ebpfpub"
+    )
+  endif()
 
   if(OSQUERY_BUILD_AWS)
     list(APPEND library_descriptor_list
@@ -198,7 +211,14 @@ function(importLibraries)
       endif()
 
     else()
-      message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
+      # In case we were trying to import ebpfpub, check whether the build option
+      # has been turned OFF automatically because the installed LLVM libraries
+      # were broken/not compatible
+      if(NOT OSQUERY_BUILD_BPF AND "${library}" STREQUAL "ebpfpub")
+        message(WARNING "ebpfpub could not correctly import the LLVM libraries. BPF support has been disabled")
+      else()
+        message(FATAL_ERROR "The '${library}' library was found but it couldn't be imported correctly")
+      endif()
     endif()
   endforeach()
 endfunction()

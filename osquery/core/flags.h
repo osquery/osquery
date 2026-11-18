@@ -10,6 +10,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <utility>
 
 #include <boost/noncopyable.hpp>
@@ -155,6 +156,9 @@ class Flag : private boost::noncopyable {
 
   /// Configurations may set "custom_" flags.
   std::map<std::string, std::string> custom_;
+
+  /// Protects custom flag lookup, copying, mutation and reset.
+  std::mutex custom_mutex_;
 };
 } // namespace osquery
 

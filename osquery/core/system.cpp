@@ -162,15 +162,34 @@ std::string getHardwareUUID() {
 }
 
 Status getInstanceUUID(std::string& ident) {
+  // Keep the identifier for the lifetime of the process. With
+  // --disable_database the database is memory-backed and is emptied by every
+  // scheduler reset (--schedule_reload), so it cannot be the only copy.
+  static std::string cached_uuid;
+  static std::mutex mutex;
+
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Lookup the instance identifier (UUID) previously generated and stored.
   auto status =
       getDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
   if (ident.size() == 0) {
-    // There was no UUID stored in the database, generate one and store it.
-    ident = osquery::generateNewUUID();
-    return setDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
+    // There was no UUID stored in the database, use the one generated earlier
+    // by this process or generate one and try to store it.
+    if (cached_uuid.empty()) {
+      cached_uuid = osquery::generateNewUUID();
+    }
+    ident = cached_uuid;
+    auto set_status =
+        setDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
+    if (!set_status.ok()) {
+      VLOG(1) << "Could not persist the instance UUID: "
+              << set_status.getMessage();
+    }
+    return Status::success();
   }
 
+  cached_uuid = ident;
   return status;
 }
 
@@ -183,6 +202,12 @@ Status getEphemeralUUID(std::string& ident) {
 
 Status getHostUUID(std::string& ident) {
   static bool checked_hardware_uuid = false;
+  // Keep the identifier for the lifetime of the process. With
+  // --disable_database the database is memory-backed and is emptied by every
+  // scheduler reset (--schedule_reload), so it cannot be the only copy.
+  static std::string cached_uuid;
+  // Set when a generated UUID could not be stored, so the write is retried.
+  static bool persist_pending = false;
   static std::mutex mutex;
 
   std::lock_guard<std::mutex> lock(mutex);
@@ -192,18 +217,41 @@ Status getHostUUID(std::string& ident) {
     std::string hardware_uuid = osquery::getHardwareUUID();
     // If it's valid, store it in the database.
     if (!hardware_uuid.empty() && !isPlaceholderHardwareUUID(hardware_uuid)) {
+      cached_uuid = hardware_uuid;
       setDatabaseValue(kPersistentSettings, "host_uuid_v3", hardware_uuid);
     }
     checked_hardware_uuid = true;
   }
+
+  // A valid hardware UUID always wins over any stored value, and is not lost
+  // if the database is reset after the hardware check.
+  if (!cached_uuid.empty()) {
+    if (persist_pending) {
+      persist_pending =
+          !setDatabaseValue(kPersistentSettings, "host_uuid_v3", cached_uuid)
+               .ok();
+    }
+    ident = cached_uuid;
+    return Status::success();
+  }
+
   // Lookup the host identifier (UUID) previously generated and stored.
   auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   if (ident.size() == 0) {
     // There was no UUID stored in the database, meaning that no valid
-    // hardware UUID was found. Generate a new one and store it.
+    // hardware UUID was found. Generate a new one and try to store it.
     ident = generateNewUUID();
-    return setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
+    cached_uuid = ident;
+    auto set_status =
+        setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
+    if (!set_status.ok()) {
+      VLOG(1) << "Could not persist the host UUID, will retry: "
+              << set_status.getMessage();
+      persist_pending = true;
+    }
+    return Status::success();
   }
+  cached_uuid = ident;
   return status;
 }
 
@@ -284,28 +332,19 @@ DropPrivilegesRef DropPrivileges::get() {
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
   auto parent = path.parent_path().string();
-  auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);
-  if (result.empty()) {
+
+  // Stat the parent directly instead of querying the file table: dropping
+  // privileges should not depend on the SQL stack and a registered file
+  // table. lstat covers both cases the query distinguished, because it never
+  // follows a symlink at the parent path: for a symlink it returns the link's
+  // owner, which is the owner to drop to, and for anything else it matches
+  // stat().
+  struct stat parent_stat;
+  if (lstat(parent.c_str(), &parent_stat) != 0) {
     return false;
   }
 
-  if (result.front().at("symlink") == "1") {
-    // The file is a symlink, inspect the owner of the link.
-    struct stat link_stat;
-    if (lstat(parent.c_str(), &link_stat) != 0) {
-      return false;
-    }
-
-    return dropTo(link_stat.st_uid, link_stat.st_gid);
-  }
-
-  long uid = 0;
-  long gid = 0;
-  if (!ownerFromResult(result.front(), uid, gid)) {
-    return false;
-  }
-
-  return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
+  return dropTo(parent_stat.st_uid, parent_stat.st_gid);
 }
 
 bool DropPrivileges::dropTo(const std::string& user) {

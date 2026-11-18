@@ -18,6 +18,7 @@
 #include <osquery/utils/base64.h>
 #include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/info/platform_type.h>
+#include <osquery/utils/json/json.h>
 
 namespace osquery {
 
@@ -199,6 +200,139 @@ const ExtensionPropertyMap kExtensionPropertyList = {
 /// Active extension profile settings
 const std::vector<std::string> kExtensionProfileSettingsList = {
     "from_webstore", "state", "install_time"};
+
+enum class ExtensionStateKind {
+  NotFound,
+  Legacy,
+  EnabledByAbsence,
+  Enabled,
+  Disabled,
+  Malformed,
+};
+
+struct ExtensionState final {
+  ExtensionStateKind kind{ExtensionStateKind::NotFound};
+  std::string value;
+};
+
+const rapidjson::Value* getExtensionSettingsRecord(
+    const rapidjson::Document& preferences, const std::string& extension_id) {
+  if (!preferences.IsObject()) {
+    return nullptr;
+  }
+
+  const auto extensions_it = preferences.FindMember("extensions");
+  if (extensions_it == preferences.MemberEnd() ||
+      !extensions_it->value.IsObject()) {
+    return nullptr;
+  }
+
+  const auto& extensions = extensions_it->value;
+  auto settings_it = extensions.FindMember("settings");
+  if (settings_it == extensions.MemberEnd()) {
+    settings_it = extensions.FindMember("opsettings");
+  }
+
+  if (settings_it == extensions.MemberEnd() || !settings_it->value.IsObject()) {
+    return nullptr;
+  }
+
+  const auto extension_it = settings_it->value.FindMember(extension_id.c_str());
+  if (extension_it == settings_it->value.MemberEnd()) {
+    return nullptr;
+  }
+
+  return &extension_it->value;
+}
+
+ExtensionState getExtensionState(const rapidjson::Document& preferences,
+                                 const std::string& extension_id) {
+  const auto* extension = getExtensionSettingsRecord(preferences, extension_id);
+  if (extension == nullptr) {
+    return {};
+  }
+
+  if (!extension->IsObject()) {
+    return {ExtensionStateKind::Malformed, {}};
+  }
+
+  const auto state_it = extension->FindMember("state");
+  if (state_it != extension->MemberEnd()) {
+    const auto& state = state_it->value;
+    if (!state.IsString() && !state.IsNumber() && !state.IsBool()) {
+      return {ExtensionStateKind::Malformed, {}};
+    }
+
+    const auto value = JSON::valueToString(state);
+    if (!value) {
+      return {ExtensionStateKind::Malformed, {}};
+    }
+
+    return {ExtensionStateKind::Legacy, value.get()};
+  }
+
+  const auto disable_reasons_it = extension->FindMember("disable_reasons");
+  if (disable_reasons_it == extension->MemberEnd()) {
+    return {ExtensionStateKind::EnabledByAbsence, "1"};
+  }
+
+  const auto& disable_reasons = disable_reasons_it->value;
+  if (!disable_reasons.IsArray()) {
+    return {ExtensionStateKind::Malformed, {}};
+  }
+
+  // Chromium reads only integer members into its disable-reason set. Unknown
+  // integer values still make that set nonempty; non-integer members do not.
+  for (const auto& disable_reason : disable_reasons.GetArray()) {
+    if (disable_reason.IsInt()) {
+      return {ExtensionStateKind::Disabled, "0"};
+    }
+  }
+
+  return {ExtensionStateKind::Enabled, "1"};
+}
+
+boost::optional<std::string> resolveExtensionState(
+    const boost::optional<ExtensionState>& primary_state,
+    const boost::optional<ExtensionState>& secure_state) {
+  const auto is_decisive = [](const ExtensionState& state) {
+    return state.kind == ExtensionStateKind::Legacy ||
+           state.kind == ExtensionStateKind::Disabled;
+  };
+
+  // Chrome protects extension metadata in Secure Preferences. Prefer the
+  // state derived from a record there, while retaining Preferences as the
+  // fallback for browsers and profiles that use the older location.
+  if (secure_state && is_decisive(secure_state.get())) {
+    return secure_state->value;
+  }
+
+  // A present list is an explicit modern-schema signal, even if Chromium
+  // ignores all of its members. A missing list is weaker: consult an older
+  // Preferences record before inferring that the extension is enabled.
+  if (secure_state && secure_state->kind == ExtensionStateKind::Enabled) {
+    return secure_state->value;
+  }
+
+  if (primary_state && is_decisive(primary_state.get())) {
+    return primary_state->value;
+  }
+
+  if ((primary_state && primary_state->kind == ExtensionStateKind::Malformed) ||
+      (secure_state && secure_state->kind == ExtensionStateKind::Malformed)) {
+    return boost::none;
+  }
+
+  if ((secure_state &&
+       secure_state->kind == ExtensionStateKind::EnabledByAbsence) ||
+      (primary_state &&
+       (primary_state->kind == ExtensionStateKind::EnabledByAbsence ||
+        primary_state->kind == ExtensionStateKind::Enabled))) {
+    return std::string{"1"};
+  }
+
+  return boost::none;
+}
 
 /// A single profile and browser type
 struct ChromeProfilePath final {
@@ -773,8 +907,10 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
 
     // Parse both configuration files
     pt::iptree parsed_preferences;
+    JSON parsed_preferences_json;
     if (!snapshot.preferences.empty() &&
-        !parseJsonString(parsed_preferences, snapshot.preferences)) {
+        (!parseJsonString(parsed_preferences, snapshot.preferences) ||
+         !parsed_preferences_json.fromString(snapshot.preferences).ok())) {
       LOG(ERROR)
           << "Failed to parse the Preferences file of the following profile: "
           << profile.path;
@@ -783,9 +919,20 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
     }
 
     pt::iptree parsed_secure_preferences;
+    JSON parsed_secure_preferences_json;
     if (!snapshot.secure_preferences.empty() &&
         !parseJsonString(parsed_secure_preferences,
                          snapshot.secure_preferences)) {
+      LOG(ERROR) << "Failed to parse the Secure Preferences file of the "
+                    "following profile: "
+                 << profile.path;
+
+      continue;
+    }
+
+    if (!snapshot.secure_preferences.empty() &&
+        !parsed_secure_preferences_json.fromString(snapshot.secure_preferences)
+             .ok()) {
       LOG(ERROR) << "Failed to parse the Secure Preferences file of the "
                     "following profile: "
                  << profile.path;
@@ -860,11 +1007,43 @@ ChromeProfileList getChromeProfilesFromSnapshotList(
                                            ext_snapshot.path,
                                            profile.path);
 
+      const auto primary_profile_settings_found = status.ok();
       if (!status.ok()) {
-        status = getExtensionProfileSettings(extension.profile_settings,
-                                             parsed_secure_preferences,
-                                             ext_snapshot.path,
-                                             profile.path);
+        ChromeProfile::Extension::Properties secure_profile_settings;
+        auto secure_status =
+            getExtensionProfileSettings(secure_profile_settings,
+                                        parsed_secure_preferences,
+                                        ext_snapshot.path,
+                                        profile.path);
+
+        if (secure_status.ok()) {
+          extension.profile_settings = std::move(secure_profile_settings);
+          status = secure_status;
+        }
+      }
+
+      const auto extension_id_it =
+          extension.profile_settings.find("referenced_identifier");
+      if (extension_id_it != extension.profile_settings.end()) {
+        boost::optional<ExtensionState> primary_state;
+        if (primary_profile_settings_found) {
+          primary_state = getExtensionState(parsed_preferences_json.doc(),
+                                            extension_id_it->second);
+        }
+
+        boost::optional<ExtensionState> secure_state;
+        if (!snapshot.secure_preferences.empty()) {
+          secure_state = getExtensionState(parsed_secure_preferences_json.doc(),
+                                           extension_id_it->second);
+        }
+
+        const auto resolved_state =
+            resolveExtensionState(primary_state, secure_state);
+        if (resolved_state) {
+          extension.profile_settings["state"] = resolved_state.get();
+        } else {
+          extension.profile_settings.erase("state");
+        }
       }
 
       if (!status.ok()) {

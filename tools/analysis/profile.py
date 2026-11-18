@@ -9,6 +9,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -37,6 +38,12 @@ RANGES = {
 
 def check_leaks_linux(shell, query, count=1, supp_file=None):
     """Run valgrind using the shell and a query, parse leak reports."""
+    if shutil.which("valgrind") is None:
+        raise RuntimeError(
+            "valgrind is required for leak checking on Linux but was "
+            "not found on PATH; install valgrind to use --leaks "
+            "(for example: apt install valgrind)"
+        )
     suppressions = "" if supp_file is None else "--suppressions=%s" % supp_file
     cmd = [
         "valgrind",
@@ -59,12 +66,16 @@ def check_leaks_linux(shell, query, count=1, supp_file=None):
     }
     if args.verbose:
         print(stderr)
-    for line in stderr.split("\n"):
+    # communicate() returns bytes on Python 3; decode before parsing.
+    for line in stderr.decode("utf-8", "replace").split("\n"):
         for key in summary:
             if line.find(key) >= 0:
                 summary[key] = line.split(":")[1].strip()
     if summary["definitely"] is None:
-        raise Exception("Could not execute valgrind correctly")
+        raise Exception(
+            "Could not execute valgrind correctly; no leak summary "
+            "was found in valgrind output"
+        )
     return summary
 
 
