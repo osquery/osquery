@@ -388,6 +388,12 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
+  # The magic tests load the database the build compiles (TEST_MAGIC_DB),
+  # which a build of only this target would otherwise not produce.
+  if(DEFINED PLATFORM_POSIX)
+    add_dependencies(tests_integration_tables-test generate_magic_db)
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     set(root_test_name_list
       "memoryDevices.test_sanity"

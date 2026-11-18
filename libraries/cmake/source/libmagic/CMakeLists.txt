@@ -111,16 +111,76 @@ function(libmagicMain)
   )
 
   if(DEFINED PLATFORM_POSIX)
-    # Host-side tool used to compile the magic database at build time.
-    # Not installed; magic.mgc below is its only product.
+    # Tool that compiles the magic database during the build. Not installed;
+    # magic.mgc below is its only product.
     #
     # A compiled database is needed because .mgc files are locked to the
     # libmagic version that produced them (VERSIONNO in src/file.h), so the
     # databases shipped by the OS are rejected by the vendored library.
+    #
+    # The tool runs on the build host. On macOS it is built for the host's
+    # architecture, which CMAKE_OSX_ARCHITECTURES may not match. Elsewhere it
+    # is built for the target, and a cross-compiled build runs it through
+    # CMAKE_CROSSCOMPILING_EMULATOR. Compiling a database decompresses
+    # nothing, so the tool is built without compression support and links none
+    # of the target's compression libraries. libmagic loads a database written
+    # on a host of either byte order.
+    if(DEFINED PLATFORM_MACOS)
+      if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+        set(libmagic_tool_processor "aarch64")
+      else()
+        set(libmagic_tool_processor "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+      endif()
+
+      set(libmagic_tool_config "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/${libmagic_tool_processor}/config.h")
+    else()
+      set(libmagic_tool_config "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}/config.h")
+    endif()
+
+    if(NOT EXISTS "${libmagic_tool_config}")
+      message(FATAL_ERROR "No libmagic configuration to build libmagic_file_tool with: ${libmagic_tool_config}")
+    endif()
+
+    if(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
+      message(FATAL_ERROR "Cross-compiling needs CMAKE_CROSSCOMPILING_EMULATOR to run libmagic_file_tool, which compiles the magic database")
+    endif()
+
+    # The configuration, with compression support turned off. configure_file
+    # rewrites the copy only when it changes.
+    file(READ "${libmagic_tool_config}" libmagic_tool_config_content)
+    foreach(libmagic_compression_macro
+      HAVE_ZLIB_H ZLIBSUPPORT
+      HAVE_LZMA_H HAVE_LIBLZMA XZLIBSUPPORT
+      HAVE_BZLIB_H BZLIBSUPPORT
+      HAVE_ZSTD_H HAVE_LIBZSTD ZSTDLIBSUPPORT
+      HAVE_LZLIB_H LZLIBSUPPORT
+    )
+      string(REGEX REPLACE
+        "#define ${libmagic_compression_macro} [^\n]*"
+        "/* #undef ${libmagic_compression_macro} */"
+        libmagic_tool_config_content
+        "${libmagic_tool_config_content}"
+      )
+    endforeach()
+
+    set(libmagic_tool_config_dir "${CMAKE_CURRENT_BINARY_DIR}/libmagic_file_tool_config")
+    file(WRITE "${libmagic_tool_config_dir}/config.h.in" "${libmagic_tool_config_content}")
+    configure_file(
+      "${libmagic_tool_config_dir}/config.h.in"
+      "${libmagic_tool_config_dir}/config.h"
+      COPYONLY
+    )
+
     add_executable(libmagic_file_tool
       ${source_files}
       "${library_root}/src/file.c"
     )
+
+    if(DEFINED PLATFORM_MACOS)
+      set_target_properties(libmagic_file_tool PROPERTIES
+        OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}"
+      )
+    endif()
 
     target_compile_definitions(libmagic_file_tool PRIVATE
       ${compile_definition_list}
@@ -135,26 +195,14 @@ function(libmagicMain)
     endif()
 
     target_link_libraries(libmagic_file_tool PRIVATE
-      thirdparty_zlib
-      thirdparty_lzma
       thirdparty_c_settings
     )
 
     target_include_directories(libmagic_file_tool PRIVATE
+      "${libmagic_tool_config_dir}"
       "${library_root}/src"
       "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
-
-    if(DEFINED PLATFORM_LINUX)
-      target_include_directories(libmagic_file_tool PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/config/linux/${TARGET_PROCESSOR}"
-      )
-
-    elseif(DEFINED PLATFORM_MACOS)
-      target_include_directories(libmagic_file_tool PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/config/macos/${TARGET_PROCESSOR}"
-      )
-    endif()
 
     # Compile a magic database matching the vendored library, from the
     # Magdir rules shipped with it. System databases can't be used instead:
@@ -173,10 +221,12 @@ function(libmagicMain)
     string(APPEND libmagic_concat_body "file(WRITE \"\${OUT}\" \"\${out}\")\n")
     file(WRITE "${libmagic_concat_script}" "${libmagic_concat_body}")
 
+    # The tool is named by its target rather than $<TARGET_FILE:...>, so that
+    # a cross-compiled build runs it through CMAKE_CROSSCOMPILING_EMULATOR.
     add_custom_command(
       OUTPUT "${libmagic_compiled_db}"
       COMMAND "${CMAKE_COMMAND}" "-DOUT=${CMAKE_BINARY_DIR}/magic.all" -P "${libmagic_concat_script}"
-      COMMAND $<TARGET_FILE:libmagic_file_tool> -C -m "${CMAKE_BINARY_DIR}/magic.all"
+      COMMAND libmagic_file_tool -C -m "${CMAKE_BINARY_DIR}/magic.all"
       COMMAND "${CMAKE_COMMAND}" -E rename "${CMAKE_BINARY_DIR}/magic.all.mgc" "${libmagic_compiled_db}"
       DEPENDS libmagic_file_tool ${libmagic_magic_fragments}
       COMMENT "Compiling the magic database from the bundled rules"
