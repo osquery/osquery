@@ -25,6 +25,8 @@
 // Include Linux-specific functionality for reading namespace information
 #include <osquery/filesystem/linux/proc.h>
 
+#include <sys/stat.h>
+
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -131,8 +133,14 @@ class ContainerdConnection {
       : socket_address_("unix://" + socket_path),
         channel_(makeChannel(socket_address_)),
         connected_(false) {
-    // Try to connect with a short timeout to validate socket exists
-    // This prevents unclear error messages when containerd is not running
+    // Without this, every containerd_* query pays the WaitForConnected
+    // deadline below on a host that isn't running containerd.
+    struct stat st;
+    if (stat(socket_path.c_str(), &st) != 0 || !S_ISSOCK(st.st_mode)) {
+      VLOG(1) << "No containerd socket at " << socket_path;
+      return;
+    }
+
     auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(1);
     connected_ = channel_->WaitForConnected(deadline);
 
