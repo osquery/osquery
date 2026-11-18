@@ -140,7 +140,7 @@ std::string nodeToString(const YAML::Node& node) {
       // past it, fall back to the emitter below, which writes aliases back
       // out as aliases.
       const auto value = trim(item.Scalar());
-      joined_size += value.size();
+      joined_size += value.size() + 2;
       if (joined_size > kMaxFrontmatterFileSize) {
         all_scalar = false;
         break;
