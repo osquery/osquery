@@ -200,6 +200,8 @@ class OpenedKeychain {
       ref_ = nullptr;
     }
     if (!temp_dir_.empty()) {
+      // Best effort: a copy that cannot be removed is left in the temporary
+      // directory.
       boost::system::error_code ec;
       boost::filesystem::remove_all(temp_dir_, ec);
       temp_dir_.clear();
@@ -249,6 +251,7 @@ static OpenedKeychain openKeychainForPath(const std::string& original_path) {
                  path_to_open.c_str(),
                  nullptr,
                  COPYFILE_CLONE) != 0) {
+      // Best effort, as in reset().
       boost::system::error_code rm_ec;
       boost::filesystem::remove_all(temp_dir, rm_ec);
       return {};
@@ -263,6 +266,7 @@ static OpenedKeychain openKeychainForPath(const std::string& original_path) {
       CFRelease(ref);
     }
     if (!temp_dir.empty()) {
+      // Best effort, as in reset().
       boost::system::error_code ec;
       boost::filesystem::remove_all(temp_dir, ec);
     }
