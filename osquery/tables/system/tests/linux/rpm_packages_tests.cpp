@@ -9,7 +9,6 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
-#include <osquery/tables/system/linux/rpm_packages.h>
 #include <osquery/utils/system/env.h>
 
 #include <rpm/header.h>
@@ -29,7 +28,6 @@
 #include <cstdlib>
 #include <string>
 #include <utility>
-#include <vector>
 
 using namespace testing;
 
@@ -139,7 +137,7 @@ Status queryRpmDb(packageCallback predicate) {
 TEST_F(RpmTests, test_bdb_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto bdb_config = getTestConfigDirectory() / "rpm" / "rpm-bdb";
@@ -165,7 +163,7 @@ TEST_F(RpmTests, test_bdb_packages) {
 TEST_F(RpmTests, test_sqlite_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto sqlite_config = getTestConfigDirectory() / "rpm" / "rpm-sqlite";
@@ -203,7 +201,7 @@ TEST_F(RpmTests, test_sqlite_packages) {
 TEST_F(RpmTests, test_ndb_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto ndb_config = getTestConfigDirectory() / "rpm" / "rpm-ndb";
@@ -268,56 +266,6 @@ TEST_F(RpmTests, test_shell_macros_keep_surrounding_text) {
   EXPECT_EQ(expandRpmMacros("%{osquery_test_path}/Packages"),
             "/var/lib/rpm/Packages");
   delMacro(nullptr, "osquery_test_path");
-}
-
-namespace {
-
-// Stands in for DropPrivileges and records the drops it is asked for.
-struct FakeDropper {
-  bool name_resolves{false};
-  bool ids_drop{true};
-  std::vector<std::string> named_drops;
-  std::vector<std::pair<uid_t, gid_t>> id_drops;
-
-  bool dropTo(const std::string& user) {
-    named_drops.push_back(user);
-    return name_resolves;
-  }
-
-  bool dropTo(uid_t uid, gid_t gid) {
-    id_drops.emplace_back(uid, gid);
-    return ids_drop;
-  }
-};
-
-} // namespace
-
-TEST_F(RpmTests, test_drop_uses_resolved_nobody) {
-  FakeDropper dropper;
-  dropper.name_resolves = true;
-
-  EXPECT_TRUE(dropRpmPrivileges(dropper));
-  EXPECT_EQ(dropper.named_drops, std::vector<std::string>{"nobody"});
-  EXPECT_TRUE(dropper.id_drops.empty());
-}
-
-// rpm-ostree systems do not list "nobody" in /etc/passwd.
-TEST_F(RpmTests, test_drop_falls_back_to_overflow_ids) {
-  FakeDropper dropper;
-
-  EXPECT_TRUE(dropRpmPrivileges(dropper));
-  EXPECT_EQ(dropper.named_drops, std::vector<std::string>{"nobody"});
-
-  const std::vector<std::pair<uid_t, gid_t>> expected{{65534, 65534}};
-  EXPECT_EQ(dropper.id_drops, expected);
-}
-
-TEST_F(RpmTests, test_drop_fails_when_fallback_fails) {
-  FakeDropper dropper;
-  dropper.ids_drop = false;
-
-  EXPECT_FALSE(dropRpmPrivileges(dropper));
-  EXPECT_EQ(dropper.id_drops.size(), 1U);
 }
 
 } // namespace tables

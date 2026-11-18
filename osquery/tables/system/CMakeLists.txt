@@ -363,7 +363,6 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/md_tables.h
       linux/pci_devices.h
       linux/processes.h
-      linux/rpm_packages.h
       linux/smbios_utils.h
     )
 

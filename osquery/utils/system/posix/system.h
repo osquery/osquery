@@ -50,6 +50,18 @@ class DropPrivileges : private boost::noncopyable {
   /// See DropPrivileges::dropToParent but for a user's UID and GID.
   bool dropTo(const std::string& user);
 
+  /**
+   * @brief Attempt to drop privileges to the "nobody" user.
+   *
+   * On Linux this drops to the kernel overflow UID and GID (65534) when the
+   * name cannot be resolved. The lookup goes through the `users` table, which
+   * only reads /etc/passwd: rpm-ostree systems keep "nobody" in
+   * /usr/lib/passwd, and a minimal container may not define it at all.
+   *
+   * @return success if privileges were dropped, otherwise false.
+   */
+  bool dropToNobodyOrOverflow();
+
   /// Check if effective privileges do not match real.
   bool dropped() {
     return (getuid() != geteuid() || getgid() != getegid());
@@ -65,6 +77,9 @@ class DropPrivileges : private boost::noncopyable {
 
  private:
   DropPrivileges() = default;
+
+  /// See DropPrivileges::dropTo but use the UID and GID if the user is unknown.
+  bool dropToUserOrIds(const std::string& user, uid_t uid, gid_t gid);
 
   /// Restore groups if dropping consecutively.
   void restoreGroups();
@@ -95,5 +110,6 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_explicit_drop);
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
+  FRIEND_TEST(DropPrivilegesTests, test_unknown_user_drop);
 };
 } // namespace osquery

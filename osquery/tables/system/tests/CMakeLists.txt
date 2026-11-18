@@ -25,6 +25,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       posix/last_tests.cpp
       posix/authorized_keys_tests.cpp
       posix/augeas_tests.cpp
+      posix/drop_privileges_tests.cpp
     )
   endif()
 
