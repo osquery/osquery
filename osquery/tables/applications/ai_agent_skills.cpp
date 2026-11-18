@@ -8,11 +8,14 @@
  */
 
 #include <set>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <yaml-cpp/eventhandler.h>
 #include <yaml-cpp/yaml.h>
 
 #include <boost/filesystem.hpp>
@@ -83,6 +86,12 @@ const std::unordered_set<std::string> kPrunedDirNames = {
 // past it is never needed, since it is not reported.
 const size_t kMaxFrontmatterFileSize = 256 * 1024;
 
+// Agent Skills metadata is normally only two or three collections deep. Keep
+// the same depth ceiling used for osquery configuration documents so a skill
+// cannot drive yaml-cpp's recursive parser close to its much higher internal
+// limit before a node tree is built.
+const size_t kMaxYamlCollectionDepth = 32;
+
 // Skill directories are inherently shallow (SKILL.md plus scripts/,
 // references/, assets/); these bound resource/script counting cost without
 // exposing a query-configurable knob like npm_packages' max_depth.
@@ -107,6 +116,105 @@ struct ParsedSkill {
   std::string allowed_tools;
   std::string version;
 };
+
+class FrontmatterValidationError final : public std::runtime_error {
+ public:
+  explicit FrontmatterValidationError(const std::string& message)
+      : std::runtime_error(message) {}
+};
+
+// Validates structural complexity through yaml-cpp's event API. This parser
+// path reports scalars and collection boundaries without constructing the
+// YAML::Node graph that YAML::Load creates. Anchors and aliases are not needed
+// by the Agent Skills format, so rejecting them also prevents cyclic or highly
+// connected node graphs from reaching the materializing parse below.
+class FrontmatterEventValidator final : public YAML::EventHandler {
+ public:
+  bool hasAnchor() const {
+    return has_anchor_;
+  }
+
+  void OnDocumentStart(const YAML::Mark& /* mark */) override {}
+  void OnDocumentEnd() override {}
+
+  void OnNull(const YAML::Mark& /* mark */,
+              YAML::anchor_t /* anchor */) override {}
+
+  void OnAlias(const YAML::Mark& /* mark */,
+               YAML::anchor_t /* anchor */) override {
+    throw FrontmatterValidationError(
+        "YAML aliases are not supported in SKILL.md frontmatter");
+  }
+
+  void OnScalar(const YAML::Mark& /* mark */,
+                const std::string& /* tag */,
+                YAML::anchor_t /* anchor */,
+                const std::string& /* value */) override {}
+
+  void OnSequenceStart(const YAML::Mark& /* mark */,
+                       const std::string& /* tag */,
+                       YAML::anchor_t /* anchor */,
+                       YAML::EmitterStyle::value /* style */) override {
+    enterCollection();
+  }
+
+  void OnSequenceEnd() override {
+    collection_depth_--;
+  }
+
+  void OnMapStart(const YAML::Mark& /* mark */,
+                  const std::string& /* tag */,
+                  YAML::anchor_t /* anchor */,
+                  YAML::EmitterStyle::value /* style */) override {
+    enterCollection();
+  }
+
+  void OnMapEnd() override {
+    collection_depth_--;
+  }
+
+  void OnAnchor(const YAML::Mark& /* mark */,
+                const std::string& /* anchor_name */) override {
+    has_anchor_ = true;
+  }
+
+ private:
+  void enterCollection() {
+    if (collection_depth_ >= kMaxYamlCollectionDepth) {
+      throw FrontmatterValidationError(
+          "YAML nesting exceeds the SKILL.md frontmatter limit");
+    }
+    collection_depth_++;
+  }
+
+  size_t collection_depth_{0};
+  bool has_anchor_{false};
+};
+
+bool validateFrontmatter(const std::string& frontmatter) {
+  std::istringstream input(frontmatter);
+  YAML::Parser parser(input);
+  FrontmatterEventValidator validator;
+
+  try {
+    if (!parser.HandleNextDocument(validator)) {
+      return false;
+    }
+    if (validator.hasAnchor()) {
+      VLOG(1) << "ai_agent_skills: rejected SKILL.md frontmatter: YAML anchors "
+                 "are not supported";
+      return false;
+    }
+    return true;
+  } catch (const FrontmatterValidationError& e) {
+    VLOG(1) << "ai_agent_skills: rejected SKILL.md frontmatter: " << e.what();
+  } catch (const YAML::Exception& e) {
+    VLOG(1) << "ai_agent_skills: failed to validate SKILL.md frontmatter: "
+            << e.what();
+  }
+
+  return false;
+}
 
 // Renders a frontmatter value as a single column string. Scalars are taken
 // verbatim (yaml-cpp has already resolved quoting, escapes and block
@@ -143,10 +251,7 @@ std::string nodeToString(const YAML::Node& node) {
   // Flow style is set on the emitter rather than on the node: the `YAML::Flow`
   // manipulator loses to the style a node carries from the document it was
   // parsed out of, whereas these defaults apply to every collection emitted,
-  // at any depth. Restyling the node tree instead would mean walking it, and
-  // a self-referential alias (`compatibility: &a [*a]`) makes that walk
-  // non-terminating; the emitter handles such a node natively, writing it
-  // back out as an alias.
+  // at any depth.
   YAML::Emitter emitter;
   emitter.SetSeqFormat(YAML::Flow);
   emitter.SetMapFormat(YAML::Flow);
@@ -229,6 +334,10 @@ void parseFrontmatter(const std::string& file_content, ParsedSkill& skill) {
   }
 
   std::string frontmatter = file_content.substr(fence_len, close - fence_len);
+
+  if (!validateFrontmatter(frontmatter)) {
+    return;
+  }
 
   YAML::Node doc;
   try {
