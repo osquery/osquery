@@ -22,10 +22,10 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       posix/ssh_keys_tests.cpp
       posix/sshd_config_tests.cpp
       posix/sudoers_tests.cpp
+      posix/drop_privileges_tests.cpp
       posix/last_tests.cpp
       posix/authorized_keys_tests.cpp
       posix/augeas_tests.cpp
-      posix/drop_privileges_tests.cpp
     )
   endif()
 
