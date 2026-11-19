@@ -11,8 +11,11 @@
 #include <osquery/core/core.h>
 #include <osquery/core/flags.h>
 #include <osquery/core/system.h>
+#include <osquery/core/tables.h>
 #include <osquery/database/database.h>
+#include <osquery/registry/registry.h>
 #include <osquery/registry/registry_interface.h>
+#include <osquery/sql/dynamic_table_row.h>
 #include <osquery/sql/sql.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/sql/tests/sql_test_utils.h>
@@ -100,6 +103,227 @@ TEST_F(SQLiteUtilTests, test_sqlite_instance) {
   // Compare the internal DB to another request with no SQLiteDBInstances
   // in scope, meaning the primary will be returned.
   EXPECT_EQ(internal_db, SQLiteDBManager::get()->db());
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse) {
+  // Hold the primary connection, as a table's generate() does while it runs a
+  // nested query on the same thread.
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  auto first = SQLiteDBManager::get();
+  ASSERT_FALSE(first->isPrimary());
+  auto* first_db = first->db();
+
+  // A nested query while the transient connection is in use gets its own.
+  auto nested = SQLiteDBManager::get();
+  ASSERT_FALSE(nested->isPrimary());
+  EXPECT_NE(nested->db(), first_db);
+  nested.reset();
+
+  // Once released, the next contended request reuses the same connection
+  // without opening a database, so SQLite's allocation count never rises.
+  first.reset();
+  // Reset SQLite's allocation high-water mark to the current count.
+  int before = 0;
+  int peak = 0;
+  sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &before, &peak, 1);
+  auto second = SQLiteDBManager::get();
+  int after = 0;
+  sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &after, &peak, 0);
+  ASSERT_FALSE(second->isPrimary());
+  EXPECT_EQ(second->db(), first_db);
+  EXPECT_EQ(peak, before) << "the cache hit allocated in SQLite";
+}
+
+class laterTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT)};
+  }
+
+  TableRows generate(QueryContext&) override {
+    TableRows tr;
+    tr.push_back(make_table_row({{"x", "1"}}));
+    return tr;
+  }
+};
+
+TEST_F(SQLiteUtilTests, test_contended_connection_sees_attached_table) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  // Populate this thread's cached transient connection.
+  SQLiteDBManager::get().reset();
+
+  // "test_table" is in this fixture's enable_tables list but has no plugin in
+  // this binary; register one now and attach it, as a late extension would.
+  auto tables = RegistryFactory::get().registry("table");
+  ASSERT_TRUE(
+      tables->add("test_table", std::make_shared<laterTablePlugin>()).ok());
+  auto status = Registry::call(
+      "sql", "sql", {{"action", "attach"}, {"table", "test_table"}});
+  ASSERT_TRUE(status.ok()) << status.getMessage();
+
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_TRUE(status.ok()) << status.getMessage();
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0]["x"], "1");
+  }
+
+  // Leave the primary connection and the registry as the other tests expect.
+  status = Registry::call(
+      "sql", "sql", {{"action", "detach"}, {"table", "test_table"}});
+  EXPECT_TRUE(status.ok()) << status.getMessage();
+  tables->remove("test_table");
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_follows_registry) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  // Populate this thread's cached transient connection.
+  SQLiteDBManager::get().reset();
+
+  // Change the table registry without a direct SQL attach, as happens while
+  // an extension's tables are being registered: the registry change alone
+  // must invalidate the cached connection.
+  auto tables = RegistryFactory::get().registry("table");
+  ASSERT_TRUE(
+      tables->add("test_table", std::make_shared<laterTablePlugin>()).ok());
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    auto status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_TRUE(status.ok()) << status.getMessage();
+  }
+
+  tables->remove("test_table");
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    QueryData results;
+    // A stale connection would still have the table, and fail only later
+    // when it asks the registry for rows.
+    auto status = queryInternal("select x from test_table", results, dbc);
+    EXPECT_NE(status.getMessage().find("no such table"), std::string::npos)
+        << status.getMessage();
+  }
+}
+
+/// A table that cannot be attached while its extension is not answering or
+/// while it is still pending.
+class unreliableTablePlugin : public laterTablePlugin {
+ public:
+  Status call(const PluginRequest& request, PluginResponse& response) override {
+    if (unavailable) {
+      return Status::failure("Not responding");
+    }
+    return TablePlugin::call(request, response);
+  }
+
+  TableAttributes attributes() const override {
+    return pending ? TableAttributes::PENDING : TableAttributes::NONE;
+  }
+
+  bool unavailable{true};
+  bool pending{false};
+};
+
+TEST_F(SQLiteUtilTests, test_contended_connection_retries_missing_table) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  auto tables = RegistryFactory::get().registry("table");
+  auto table = std::make_shared<unreliableTablePlugin>();
+  ASSERT_TRUE(tables->add("test_table", table).ok());
+  auto query_table = [] {
+    auto dbc = SQLiteDBManager::get();
+    EXPECT_FALSE(dbc->isPrimary());
+    QueryData results;
+    return queryInternal("select x from test_table", results, dbc);
+  };
+
+  // A transient connection built while the table cannot be attached lacks
+  // it: first its columns request fails, then it is pending.
+  EXPECT_FALSE(query_table().ok());
+  table->unavailable = false;
+  table->pending = true;
+  EXPECT_FALSE(query_table().ok());
+
+  // Neither change moves a generation, so the table is found only if no
+  // connection that missed it was cached.
+  table->pending = false;
+  auto status = query_table();
+  EXPECT_TRUE(status.ok()) << status.getMessage();
+
+  tables->remove("test_table");
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse_is_clean) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  sqlite3* first_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    first_db = dbc->db();
+    dbc->useCache(true);
+
+    // Column introspection does not clear the connection afterwards.
+    std::string query = "select unix_time from time where unix_time > 0";
+    TableColumns columns;
+    ASSERT_TRUE(getQueryColumnsInternal(query, columns, dbc).ok());
+    ASSERT_EQ(dbc->affected_tables_.size(), 1U);
+    EXPECT_EQ(dbc->affected_tables_.begin()->second->name, "time");
+  }
+
+  auto dbc = SQLiteDBManager::get();
+  ASSERT_FALSE(dbc->isPrimary());
+  ASSERT_EQ(dbc->db(), first_db);
+  EXPECT_EQ(dbc->affected_tables_.size(), 0U);
+  EXPECT_FALSE(dbc->useCache());
+}
+
+TEST_F(SQLiteUtilTests, test_contended_connection_reuse_not_in_transaction) {
+  auto primary = SQLiteDBManager::get();
+  ASSERT_TRUE(primary->isPrimary());
+
+  sqlite3* first_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    first_db = dbc->db();
+
+    // The authorizer allows transactions, and a query may leave one open.
+    QueryData results;
+    auto status = queryInternal("BEGIN", results, dbc);
+    ASSERT_TRUE(status.ok()) << status.getMessage();
+    ASSERT_EQ(sqlite3_get_autocommit(first_db), 0);
+  }
+
+  // The connection is replaced instead of being handed out mid-transaction.
+  // The new database is opened before the old one is closed, so the pointers
+  // differ.
+  sqlite3* second_db = nullptr;
+  {
+    auto dbc = SQLiteDBManager::get();
+    ASSERT_FALSE(dbc->isPrimary());
+    second_db = dbc->db();
+    EXPECT_NE(second_db, first_db);
+    EXPECT_NE(sqlite3_get_autocommit(second_db), 0);
+  }
+
+  // The replacement is cached and reused as usual.
+  auto dbc = SQLiteDBManager::get();
+  ASSERT_FALSE(dbc->isPrimary());
+  EXPECT_EQ(dbc->db(), second_db);
 }
 
 TEST_F(SQLiteUtilTests, test_reset) {

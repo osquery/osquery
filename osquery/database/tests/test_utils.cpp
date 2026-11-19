@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
 #include <future>
 
 #include <osquery/core/flags.h>
@@ -268,5 +269,31 @@ void DatabasePluginTests::testScanLimit() {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");
   EXPECT_EQ(keys.size(), 2U);
+}
+
+void DatabasePluginTests::testScanPrefix() {
+  // Neighbours that sort just before and after the prefixed keys.
+  getPlugin()->put(kQueries, "scanp", "0");
+  getPlugin()->put(kQueries, "scanp.1", "1");
+  getPlugin()->put(kQueries, "scanp.2", "2");
+  getPlugin()->put(kQueries, "scanp.3", "3");
+  getPlugin()->put(kQueries, "scanp/", "4");
+  getPlugin()->put(kQueries, "scanq.1", "5");
+
+  std::vector<std::string> keys;
+  auto s = getPlugin()->scan(kQueries, keys, "scanp.", 0);
+  EXPECT_TRUE(s.ok());
+  std::sort(keys.begin(), keys.end());
+  EXPECT_EQ(keys, std::vector<std::string>({"scanp.1", "scanp.2", "scanp.3"}));
+
+  keys.clear();
+  s = getPlugin()->scan(kQueries, keys, "scanp.", 2);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(keys.size(), 2U);
+
+  keys.clear();
+  s = getPlugin()->scan(kQueries, keys, "nomatch.", 0);
+  EXPECT_TRUE(s.ok());
+  EXPECT_TRUE(keys.empty());
 }
 } // namespace osquery

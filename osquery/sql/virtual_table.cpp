@@ -1224,7 +1224,7 @@ Status attachFunctionInternal(
   return Status(rc);
 }
 
-void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
+bool attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   if (FLAGS_enable_foreign) {
 #if !defined(OSQUERY_EXTERNAL)
     // Foreign table schema is available for the shell and daemon only.
@@ -1234,11 +1234,13 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
 
   PluginResponse response;
   bool is_extension = false;
+  bool complete = true;
 
   for (const auto& name : RegistryFactory::get().names("table")) {
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);
     if (!status.ok()) {
+      complete = false;
       continue;
     }
     // skip tables in a "pending" state as these will be attached separately
@@ -1255,10 +1257,14 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
       }
     }
     if (!isPending) {
+      // If CREATE VIRTUAL TABLE fails, the module stays registered and a later
+      // query still finds the table, as an eponymous virtual table.
       attachTableInternal(name, instance, is_extension);
     } else {
       VLOG(1) << "Not attaching pending table: " << name;
+      complete = false;
     }
   }
+  return complete;
 }
 } // namespace osquery

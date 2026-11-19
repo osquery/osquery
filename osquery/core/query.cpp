@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -94,8 +93,9 @@ std::vector<std::string> Query::getStoredQueryNames() {
 }
 
 bool Query::isQueryNameInDatabase() const {
-  auto names = Query::getStoredQueryNames();
-  return std::find(names.begin(), names.end(), name_) != names.end();
+  // A point lookup of the results key, rather than a scan of every stored key.
+  std::string raw;
+  return getDatabaseValue(kQueries, name_, raw).ok();
 }
 
 static inline void saveQuery(const std::string& name,
@@ -112,7 +112,17 @@ bool Query::isNewQuerySql() const {
 void Query::getQueryStatus(uint64_t epoch,
                            bool& new_query_epoch,
                            bool& new_query_sql) const {
-  if (!isQueryNameInDatabase()) {
+  std::string previous_json;
+  getQueryStatus(epoch, new_query_epoch, new_query_sql, previous_json);
+}
+
+void Query::getQueryStatus(uint64_t epoch,
+                           bool& new_query_epoch,
+                           bool& new_query_sql,
+                           std::string& previous_json) const {
+  // Same check as isQueryNameInDatabase(), keeping the value so that
+  // addNewResults() diffs against it without reading it a second time.
+  if (!getDatabaseValue(kQueries, name_, previous_json).ok()) {
     // This is the first encounter of the scheduled query.
     new_query_epoch = true;
     new_query_sql = true;
@@ -166,7 +176,8 @@ Status Query::addNewResults(QueryDataTyped current_qd,
                             DiffResults& dr) const {
   bool new_query_epoch = false;
   bool new_query_sql = false;
-  getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
+  std::string previous_json;
+  getQueryStatus(current_epoch, new_query_epoch, new_query_sql, previous_json);
 
   // Use a 'target' avoid copying the query data when serializing and saving.
   // If a differential is requested and needed the target remains the original
@@ -176,16 +187,20 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   if (!new_query_epoch) {
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
-    auto status = getPreviousQueryResults(previous_qd);
+    auto status = deserializeQueryDataJSON(previous_json, previous_qd);
     if (!status.ok()) {
       return status;
     }
+    // The parsed rows replace the raw JSON, which can be large.
+    std::string().swap(previous_json);
 
     // Calculate the differential between previous and current query results.
     dr = diff(previous_qd, current_qd);
 
     update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
+    // Results from another epoch are not diffed, so drop them before saving.
+    std::string().swap(previous_json);
     dr.added = std::move(current_qd);
     target_gd = &dr.added;
   }

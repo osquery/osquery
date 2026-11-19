@@ -23,6 +23,9 @@
 
 #include <osquery/utils/conversions/split.h>
 
+#include <atomic>
+#include <cstdint>
+
 #include <boost/lexical_cast.hpp>
 
 namespace osquery {
@@ -267,6 +270,31 @@ uint64_t SQLInternal::getSize() {
   return size;
 }
 
+namespace {
+/// Bumped after a direct attach or detach request, so a transient
+/// connection cached against an older set of tables is not reused. Changes
+/// to the table registry are tracked by its own generation.
+std::atomic<std::uint64_t> kAttachGeneration{0};
+
+/// The state of the attached tables a transient connection was built from.
+struct AttachGeneration {
+  std::uint64_t attach{0};
+  std::uint64_t registry{0};
+
+  bool operator==(const AttachGeneration& other) const {
+    return attach == other.attach && registry == other.registry;
+  }
+};
+
+/// A transient connection kept per thread for nested queries, see
+/// SQLiteDBManager::getConnection.
+struct TransientConnectionCache {
+  SQLiteDBInstanceRef instance;
+  AttachGeneration generation;
+};
+thread_local TransientConnectionCache kTransientConnection;
+} // namespace
+
 Status SQLiteSQLPlugin::attach(const std::string& name) {
   PluginResponse response;
   auto status =
@@ -283,7 +311,11 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
   auto dbc = SQLiteDBManager::getConnection(true);
 
   // Attach as an extension, allowing read/write tables
-  return attachTableInternal(name, dbc, is_extension);
+  status = attachTableInternal(name, dbc, is_extension);
+  if (status.ok()) {
+    ++kAttachGeneration;
+  }
+  return status;
 }
 
 Status SQLiteSQLPlugin::detach(const std::string& name) {
@@ -291,7 +323,11 @@ Status SQLiteSQLPlugin::detach(const std::string& name) {
   // primary database. To allow this, getConnection can explicitly request the
   // primary instance and avoid the contention decisions.
   auto dbc = SQLiteDBManager::getConnection(true);
-  return detachTableInternal(name, dbc);
+  auto status = detachTableInternal(name, dbc);
+  if (status.ok()) {
+    ++kAttachGeneration;
+  }
+  return status;
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
@@ -299,9 +335,9 @@ SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
   if (lock_.owns_lock()) {
     primary_ = true;
   } else {
+    // The DB manager opens a transient database only when it has no idle
+    // cached one to hand out.
     db_ = nullptr;
-    VLOG(1) << "DBManager contention: opening transient SQLite database";
-    init();
   }
 }
 
@@ -527,10 +563,51 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
 
   // Create a 'database connection' for the managed database instance.
   auto instance = std::make_shared<SQLiteDBInstance>(self.db_, self.mutex_);
-  if (!instance->isPrimary()) {
-    attachVirtualTables(instance);
+  if (instance->isPrimary()) {
+    return instance;
   }
 
+  // The primary connection is busy, most often because a table's generate()
+  // is running a nested query on this same thread. Attaching every virtual
+  // table to a fresh transient connection is the expensive part, so keep one
+  // attached transient connection per thread and hand it out whenever it is
+  // idle and still matches the set of attached tables. A nested query inside
+  // a nested query finds it busy and falls back to a fresh connection.
+  //
+  // Both generations are read before the tables are attached. They are only
+  // bumped once a change is visible, so a connection built while a table is
+  // being added or removed is stored under the old values and rebuilt later.
+  //
+  // A reused connection is not a fresh database. Anything the allowlists in
+  // sqlite_util.h let an earlier query on this thread leave behind (tables,
+  // views, pragmas) is still there, as on the primary connection. Only an
+  // open transaction is checked: such a connection is replaced below.
+  static const auto table_registry = RegistryFactory::get().registry("table");
+  auto& cache = kTransientConnection;
+  AttachGeneration generation{kAttachGeneration.load(),
+                              table_registry->generation()};
+  if (cache.instance && cache.instance.use_count() == 1 &&
+      cache.generation == generation &&
+      sqlite3_get_autocommit(cache.instance->db()) != 0) {
+    // Drop per-query state left by the previous user. Callers such as
+    // getQueryColumns do not clear it, and a fresh connection starts empty.
+    cache.instance->clearAffectedTables();
+    cache.instance->useCache(false);
+    return cache.instance;
+  }
+
+  VLOG(1) << "DBManager contention: opening transient SQLite database";
+  instance->init();
+
+  // Cache the connection only if no table was left out: a table skipped after
+  // a failed columns request, or while still pending, can become available
+  // without either generation changing. An idle cached connection that got
+  // here is stale or inside a transaction, and is replaced or dropped.
+  bool complete = attachVirtualTables(instance);
+  if (!cache.instance || cache.instance.use_count() == 1) {
+    cache.instance = complete ? instance : nullptr;
+    cache.generation = generation;
+  }
   return instance;
 }
 
