@@ -1,0 +1,9 @@
+# Python prerequisites for the osquery Python tests (Linux and macOS).
+# Install into a virtualenv: pip install -r tools/tests/requirements.txt
+setuptools
+docker
+osquery
+pexpect==3.3
+psutil
+thrift==0.11.0
+timeout_decorator

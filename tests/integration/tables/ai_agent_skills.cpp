@@ -66,6 +66,7 @@ class AIAgentSkills : public testing::Test {
     // must not match.
     skill_md_directory_dir =
         project_dir / ".claude" / "skills" / "skill-md-is-a-directory";
+    alias_skill_dir = project_dir / ".claude" / "skills" / "alias-skill";
 
     ASSERT_TRUE(createDirectory(skill_dir / "scripts", true).ok());
     ASSERT_TRUE(writeTextFile(skill_dir / "SKILL.md", kSkillMarkdown).ok());
@@ -109,6 +110,10 @@ class AIAgentSkills : public testing::Test {
     ASSERT_TRUE(writeTextFile(skill_md_directory_dir / "SKILL.md" / "inner.txt",
                               "not frontmatter\n")
                     .ok());
+
+    ASSERT_TRUE(createDirectory(alias_skill_dir, true).ok());
+    ASSERT_TRUE(
+        writeTextFile(alias_skill_dir / "SKILL.md", aliasSkillMarkdown()).ok());
   }
 
   void TearDown() override {
@@ -129,12 +134,24 @@ class AIAgentSkills : public testing::Test {
   fs::path structured_skill_dir;
   fs::path hidden_entries_skill_dir;
   fs::path skill_md_directory_dir;
+  fs::path alias_skill_dir;
 
   static const std::string kSkillMarkdown;
   static const std::string kBlockScalarSkillMarkdown;
   static const std::string kEmptyFrontmatterSkillMarkdown;
   static const std::string kStructuredSkillMarkdown;
   static const std::string kHiddenEntriesSkillMarkdown;
+
+  // A 16 KiB anchored scalar repeated through 1024 aliases: about 20 KiB on
+  // disk, 16 MiB once every alias is expanded.
+  static std::string aliasSkillMarkdown() {
+    std::string markdown = "---\nname: alias-skill\nx: &a " +
+                           std::string(16 * 1024, 'A') + "\nallowed-tools: [*a";
+    for (int i = 1; i < 1024; ++i) {
+      markdown += ", *a";
+    }
+    return markdown + "]\n---\n\nBody content.\n";
+  }
 };
 
 const std::string AIAgentSkills::kSkillMarkdown = R"(---
@@ -229,7 +246,7 @@ TEST_F(AIAgentSkills, test_sanity) {
       execute_query("select * from ai_agent_skills where directory = '" +
                     project_dir.string() + "'");
 
-  ASSERT_EQ(data.size(), 5ul);
+  ASSERT_EQ(data.size(), 6ul);
 
   ValidationMap row_map = {
       {"name", NormalType},
@@ -310,6 +327,20 @@ TEST_F(AIAgentSkills, test_structured_frontmatter_values) {
   EXPECT_EQ(row.at("allowed_tools"), "Read, Bash(git:*)");
   // Anything structured is emitted in flow style, so it stays on one line.
   EXPECT_EQ(row.at("compatibility"), "{product: claude-code, network: false}");
+}
+
+TEST_F(AIAgentSkills, test_aliases_are_not_expanded_when_joined) {
+  auto const data =
+      execute_query("select * from ai_agent_skills where directory = '" +
+                    project_dir.string() + "'");
+
+  const auto& row =
+      findRowByPath(data, (alias_skill_dir / "SKILL.md").string());
+  EXPECT_EQ(row.at("name"), "alias-skill");
+  // Joining would copy the anchored scalar once per alias. The column has to
+  // stay on the order of the file's own size instead.
+  EXPECT_LT(row.at("allowed_tools").size(), aliasSkillMarkdown().size() * 2);
+  EXPECT_EQ(row.at("allowed_tools").rfind("[&", 0), 0U);
 }
 
 TEST_F(AIAgentSkills, test_hidden_entries_are_not_counted) {

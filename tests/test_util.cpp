@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <deque>
+#include <future>
 #include <random>
 #include <sstream>
 #include <thread>
@@ -36,6 +37,9 @@
 #include <osquery/core/windows/global_users_groups_cache.h>
 #include <osquery/system/usersgroups/windows/groups_service.h>
 #include <osquery/system/usersgroups/windows/users_service.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace fs = boost::filesystem;
@@ -196,5 +200,28 @@ TableRows genRows(EventSubscriberPlugin* sub) {
   }
   return results;
 }
+
+#ifndef OSQUERY_WINDOWS
+bool returnsWithoutBlockingOnFifo(const fs::path& fifo,
+                                  std::function<void()> read) {
+  auto done = std::async(std::launch::async, std::move(read));
+  if (done.wait_for(std::chrono::seconds(5)) == std::future_status::ready) {
+    return true;
+  }
+
+  // A writer's open wakes a blocked reader's open, which then completes even
+  // though the writer is gone, and its reads see the end of the file. read()
+  // may open the FIFO again, so this goes on until it returns.
+  do {
+    int writer = ::open(fifo.c_str(), O_WRONLY | O_NONBLOCK);
+    if (writer >= 0) {
+      ::close(writer);
+    }
+  } while (done.wait_for(std::chrono::milliseconds(100)) !=
+           std::future_status::ready);
+
+  return false;
+}
+#endif
 
 } // namespace osquery

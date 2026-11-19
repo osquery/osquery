@@ -45,7 +45,10 @@ static void hashSqliteValue(sqlite3_context* ctx,
     return;
   }
 
-  auto result = hashFromBuffer(ht, input, strlen(input));
+  // Hash every byte of the value, not only up to the first NUL. This must be
+  // called after sqlite3_value_text so the size matches the text encoding.
+  auto size = static_cast<size_t>(sqlite3_value_bytes(argv[0]));
+  auto result = hashFromBuffer(ht, input, size);
   sqlite3_result_text(
       ctx, result.c_str(), static_cast<int>(result.size()), SQLITE_TRANSIENT);
 }

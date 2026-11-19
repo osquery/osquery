@@ -19,7 +19,10 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/sql/query_data.h>
+#include <osquery/core/system.h>
+#include <osquery/database/database.h>
 #include <osquery/filesystem/filesystem.h>
+#include <osquery/registry/registry_interface.h>
 #include <osquery/tables/system/darwin/packages.h>
 
 namespace fs = boost::filesystem;
@@ -28,6 +31,8 @@ namespace osquery {
 namespace tables {
 
 void genPackageBOM(const std::string& path, QueryData& results);
+void genPackageReceiptsFromDirectory(const std::string& directory,
+                                     QueryData& results);
 
 class PackagesTests : public testing::Test {
  protected:
@@ -70,6 +75,23 @@ void putBe32(std::vector<char>& buf, size_t offset, uint32_t value) {
 void putBe16(std::vector<char>& buf, size_t offset, uint16_t value) {
   uint16_t be = htons(value);
   std::memcpy(&buf[offset], &be, sizeof(be));
+}
+
+void writeReceipt(const fs::path& path,
+                  const std::string& identifier,
+                  const std::string& filename) {
+  std::ofstream fout(path.string());
+  fout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+       << "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" "
+       << "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+       << "<plist version=\"1.0\"><dict>"
+       << "<key>InstallDate</key><date>2026-01-02T03:04:05Z</date>"
+       << "<key>InstallPrefixPath</key><string>Applications</string>"
+       << "<key>InstallProcessName</key><string>installer</string>"
+       << "<key>PackageFileName</key><string>" << filename << "</string>"
+       << "<key>PackageIdentifier</key><string>" << identifier << "</string>"
+       << "<key>PackageVersion</key><string>1.0.0</string>"
+       << "</dict></plist>\n";
 }
 
 } // namespace
@@ -220,6 +242,44 @@ TEST_F(PackagesTests, test_genpackagebom_stops_on_empty_nonleaf_node) {
   results.clear();
   genPackageBOM(bom_path, results);
   EXPECT_TRUE(results.empty());
+}
+// Receipts are read from disk on every generation, so receipts added or
+// removed after a previous query are reflected in the next one. The private
+// PackageKit API previously used here cached receipts for the lifetime of the
+// process.
+TEST_F(PackagesTests, test_receipts_reflect_disk_changes) {
+  platformSetup();
+  registryAndPluginInit();
+  initDatabasePluginForTesting();
+
+  auto directory = directory_.string() + "/";
+  auto first = directory_ / "com.example.first.plist";
+  auto second = directory_ / "com.example.second.plist";
+
+  // The receipt filename does not match the original package filename.
+  writeReceipt(first, "com.example.first", "first-component.pkg");
+
+  QueryData results;
+  genPackageReceiptsFromDirectory(directory, results);
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["package_id"], "com.example.first");
+  EXPECT_EQ(results[0]["package_filename"], "first-component.pkg");
+  EXPECT_EQ(results[0]["version"], "1.0.0");
+  EXPECT_EQ(results[0]["location"], "Applications");
+  EXPECT_EQ(results[0]["installer_name"], "installer");
+  EXPECT_EQ(results[0]["install_time"], "1767323045");
+  EXPECT_EQ(results[0]["path"], fs::canonical(first).string());
+
+  writeReceipt(second, "com.example.second", "second-component.pkg");
+  results.clear();
+  genPackageReceiptsFromDirectory(directory, results);
+  EXPECT_EQ(results.size(), 2U);
+
+  fs::remove(first);
+  results.clear();
+  genPackageReceiptsFromDirectory(directory, results);
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["package_id"], "com.example.second");
 }
 } // namespace tables
 } // namespace osquery
