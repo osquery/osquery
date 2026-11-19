@@ -39,6 +39,9 @@ function(generateOsqueryConfig)
   generateIncludeNamespace(osquery_config "osquery/config" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_config_tests_mergedtests-test COMMAND osquery_config_tests_mergedtests-test)
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_config_tests_mergedtests-test PROPERTIES COST 11)
+  endif()
 
   set_tests_properties(
     osquery_config_tests_mergedtests-test

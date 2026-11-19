@@ -119,8 +119,8 @@ def getUserId():
 
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-TEMP_DIR = os.path.join(tempfile.gettempdir(),
-                          "osquery-tests-python-%s" % (getUserId()))
+_TEMP_DIRECTORY = tempfile.TemporaryDirectory(prefix="osquery-tests-python")
+TEMP_DIR = _TEMP_DIRECTORY.name
 TEMP_NAME = os.path.join(TEMP_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {

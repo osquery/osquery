@@ -89,6 +89,11 @@ function(generateOsqueryFilesystem)
   generateIncludeNamespace(osquery_filesystem "osquery/filesystem" "FULL_PATH" ${public_header_files})
 
   add_test(NAME osquery_filesystem_filesystemtests-test COMMAND osquery_filesystem_filesystemtests-test)
+  if(DEFINED PLATFORM_WINDOWS)
+    set_tests_properties(osquery_filesystem_filesystemtests-test PROPERTIES COST 80)
+  elseif(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_filesystem_filesystemtests-test PROPERTIES COST 8)
+  endif()
 
   set_tests_properties(
     osquery_filesystem_filesystemtests-test

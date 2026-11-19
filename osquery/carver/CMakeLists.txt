@@ -41,6 +41,9 @@ function(generateOsqueryCarver)
   generateIncludeNamespace(osquery_carver "osquery/carver" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_carver_tests-test COMMAND osquery_carver_tests-test)
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_carver_tests-test PROPERTIES COST 17)
+  endif()
 endfunction()
 
 

@@ -11,11 +11,16 @@
 #include <osquery/events/windows/etw/etw_kernel_session.h>
 #include <osquery/events/windows/etw/etw_post_processing_pipeline.h>
 #include <osquery/events/windows/etw/etw_provider_config.h>
+#include <osquery/events/windows/etw/etw_test_session_lock.h>
 #include <osquery/events/windows/etw/etw_user_session.h>
 #include <osquery/utils/conversions/windows/strings.h>
+#include <osquery/utils/info/tool_type.h>
 #include <osquery/utils/status/status.h>
 
 namespace osquery {
+
+EtwController::EtwController() = default;
+EtwController::~EtwController() = default;
 
 // Returns a reference to the single global EtwController instance
 EtwController& EtwController::instance() {
@@ -121,6 +126,16 @@ bool EtwController::isInitialized() const {
 Status EtwController::initialize() {
   if (initialized_) {
     return Status::success();
+  }
+
+  // In tests, acquire a global ETW test session lock to serialize access to
+  // host-wide ETW session names. This allows running most tests concurrently
+  // without conflicting with other ETW tests.
+  if (getToolType() == ToolType::TEST && !testSessionLock_) {
+    auto status = EtwTestSessionLock::acquire(testSessionLock_);
+    if (!status.ok()) {
+      return status;
+    }
   }
 
   // Initializing concurrent ETW event queue
