@@ -3,7 +3,7 @@ description("Detailed information and stats of network interfaces.")
 schema([
     Column("interface", TEXT, "Interface name"),
     Column("mac", TEXT, "MAC of interface (optional)", collate="nocase"),
-    Column("type", INTEGER, "Interface type (includes virtual)"),
+    Column("type", INTEGER, "Platform interface type value: Linux ARPHRD_*, macOS/FreeBSD IFT_*, Windows IF_TYPE_*"),
     Column("mtu", INTEGER, "Network MTU"),
     Column("metric", INTEGER, "Metric based on the speed of the interface"),
     Column("flags", INTEGER, "Flags (netdevice) for the device"),
