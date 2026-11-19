@@ -17,11 +17,13 @@ endfunction()
 
 function(generateOsqueryFilesystem)
   set(source_files
+    automount.cpp
     file_compression.cpp
     filesystem.cpp
   )
 
   set(public_header_files
+    automount.h
     fileops.h
     filesystem.h
   )
@@ -117,6 +119,7 @@ endfunction()
 function(generateOsqueryFilesystemTest)
 
   set(source_files
+    tests/automount_tests.cpp
     tests/fileops.cpp
     tests/filesystem.cpp
   )
