@@ -381,7 +381,7 @@ function(rocksdbMain)
     if(NOT PLATFORM_WINDOWS)
       set_source_files_properties("${crc32_impl}" PROPERTIES
         COMPILE_FLAGS
-          "-msse4.2 -mpclmul"
+          "-msse4.2"
         SKIP_PRECOMPILE_HEADERS
           ON
       )
@@ -389,14 +389,8 @@ function(rocksdbMain)
 
     target_compile_definitions(thirdparty_rocksdb PRIVATE
       HAVE_SSE42
+      NO_THREEWAY_CRC32C
     )
-
-    # Enable PCLMUL only if we are on posix platforms, or on Windows 64bit
-    if(DEFINED PLATFORM_POSIX OR (DEFINED PLATFORM_WINDOWS AND CMAKE_SIZEOF_VOID_P EQUAL 8))
-      target_compile_definitions(thirdparty_rocksdb PRIVATE
-        HAVE_PCLMUL
-      )
-    endif()
 
   elseif(TARGET_PROCESSOR STREQUAL "aarch64")
     target_sources(thirdparty_rocksdb PRIVATE
