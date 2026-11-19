@@ -231,9 +231,6 @@ class PlatformFile : private boost::noncopyable {
 
   ~PlatformFile();
 
-  /// Checks to see if the file object is "special file".
-  bool isSpecialFile() const;
-
   /**
    * @brief Checks to see if there are any pending IO operations.
    *
@@ -299,8 +296,8 @@ class PlatformFile : private boost::noncopyable {
   /// Use the platform-specific seek.
   off_t seek(off_t offset, SeekMode mode);
 
-  /// Inspect the file size.
-  size_t size() const;
+  /// Returns the file size, or boost::none if the size cannot be determined.
+  boost::optional<size_t> size() const;
 
  private:
   boost::filesystem::path fname_;
