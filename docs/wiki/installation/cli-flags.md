@@ -186,6 +186,10 @@ Disable extension API. See the [SDK development](../development/osquery-sdk.md) 
 Path to the extensions UNIX domain socket.
 [Extensions](../deployment/extensions.md) use a UNIX domain socket for communication. It is very uncommon to change the location of the file. The osquery shell may use extensions, but the socket location is relative to the user invoking the shell and does not support concurrent shells.
 
+`--extensions_socket_group=osquery`
+
+Group name or numeric GID granted access to the extensions UNIX domain socket. When set, the socket file is set to mode `0660` and assigned to the requested group before listening begins. This allows extension processes to run as an unprivileged user and connect to a socket owned by root. If the group cannot be resolved or if setting permissions/ownership fails, osquery will log an error and exit with a failure status. When running unprivileged extensions, configure `--extensions_socket` in a directory writable by the extension group (e.g., `/var/run/osquery/`) rather than the default root-owned directory so the extension can create its client socket. When launching independent extension processes serving their own sockets, pass `--socket_group` to the extension binary directly. This flag has no effect on Windows, where extensions use a named pipe.
+
 `--extensions_autoload=/etc/osquery/extensions.load`
 
 Optional path to a list of auto-loaded and managed extensions.
