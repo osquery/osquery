@@ -53,6 +53,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       darwin/apps_tests.cpp
       darwin/asl_tests.cpp
       darwin/certificates_tests.cpp
+      darwin/crashes_tests.cpp
       darwin/extended_attributes_tests.cpp
       darwin/firewall_tests.cpp
       darwin/kernel_panics_tests.cpp

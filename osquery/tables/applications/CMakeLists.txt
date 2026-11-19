@@ -61,6 +61,7 @@ function(generateOsqueryTablesApplications)
     osquery_config
     osquery_filesystem
     osquery_tables_system_systemtable
+    osquery_utils
     osquery_utils_conversions
     osquery_utils_info
     osquery_utils_json
