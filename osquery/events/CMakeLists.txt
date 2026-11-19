@@ -8,7 +8,7 @@
 function(osqueryEventsMain)
   if(OSQUERY_BUILD_TESTS)
     add_subdirectory("tests")
-  endif() 
+  endif()
 
   generateOsqueryEvents()
   generateOsqueryEventsEventsregistry()
@@ -202,7 +202,6 @@ function(generateOsqueryEvents)
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
 
-
   if(DEFINED PLATFORM_LINUX AND OSQUERY_BUILD_BPF)
     add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
   endif()
@@ -214,7 +213,7 @@ function(generateOsqueryEvents)
     if(OSQUERY_BUILD_ETW)
       add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
       set_tests_properties(osquery_tables_events_tests_etwtests-test PROPERTIES COST 90)
-    endif()		
+    endif()
   endif()
 endfunction()
 
