@@ -127,12 +127,25 @@ std::string nodeToString(const YAML::Node& node) {
   if (node.IsSequence()) {
     std::vector<std::string> items;
     bool all_scalar = true;
+    size_t joined_size = 0;
     for (const auto& item : node) {
       if (!item.IsScalar()) {
         all_scalar = false;
         break;
       }
-      items.push_back(std::string(trim(item.Scalar())));
+
+      // An alias (`[*a, *a, ...]`) repeats a scalar without repeating its
+      // bytes, so joining copies of it can grow far past the frontmatter
+      // that was read. Scalars written out in full stay within that size;
+      // past it, fall back to the emitter below, which writes aliases back
+      // out as aliases.
+      const auto value = trim(item.Scalar());
+      joined_size += value.size() + 2;
+      if (joined_size > kMaxFrontmatterFileSize) {
+        all_scalar = false;
+        break;
+      }
+      items.push_back(std::string(value));
     }
 
     if (all_scalar) {
