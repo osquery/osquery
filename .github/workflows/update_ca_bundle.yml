@@ -1,0 +1,90 @@
+name: update-ca-bundle
+
+# Refresh tools/deployment/certs.pem from the curl project's copy of the
+# Mozilla CA store, and open (or update) a pull request when it changes.
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "43 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-ca-bundle
+  cancel-in-progress: false
+
+env:
+  BUNDLE_PATH: tools/deployment/certs.pem
+  PR_BRANCH: automation/update-ca-bundle
+
+jobs:
+  update-ca-bundle:
+    # Scheduled runs have event_name 'schedule', so forks only run this when
+    # someone triggers it by hand
+    if: github.repository == 'osquery/osquery' || github.event_name == 'workflow_dispatch'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Clone the osquery repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Download and verify the CA bundle
+        id: update
+        run: |
+          ./tools/ci/scripts/update_ca_bundle.sh "${BUNDLE_PATH}" "${RUNNER_TEMP}/pr_body.md"
+
+          if git diff --quiet -- "${BUNDLE_PATH}" ; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Open or update the pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          bundle_date="$(sed -n 's/^## Certificate data from Mozilla as of: //p' "${BUNDLE_PATH}" | head -n 1)"
+          title="deployment: Update Mozilla CA certificate store (${bundle_date})"
+
+          # If the open PR already carries this exact bundle, leave it alone
+          if git fetch --depth=1 origin "${PR_BRANCH}" 2>/dev/null \
+            && git diff --quiet FETCH_HEAD -- "${BUNDLE_PATH}" ; then
+            echo "${PR_BRANCH} already contains this bundle"
+            pr_up_to_date=true
+          else
+            pr_up_to_date=false
+          fi
+
+          if [[ "${pr_up_to_date}" == "false" ]] ; then
+            git checkout -B "${PR_BRANCH}"
+            git add "${BUNDLE_PATH}"
+            git commit -m "${title}" -m "Downloaded from https://curl.se/ca/cacert.pem"
+            git push --force origin "${PR_BRANCH}"
+          fi
+
+          pr_number="$(gh pr list --head "${PR_BRANCH}" --base "${BASE_BRANCH}" \
+            --state open --json number --jq '.[0].number // empty')"
+
+          if [[ -z "${pr_number}" ]] ; then
+            gh pr create --head "${PR_BRANCH}" --base "${BASE_BRANCH}" \
+              --title "${title}" --body-file "${RUNNER_TEMP}/pr_body.md"
+          elif [[ "${pr_up_to_date}" == "false" ]] ; then
+            gh pr edit "${pr_number}" \
+              --title "${title}" --body-file "${RUNNER_TEMP}/pr_body.md"
+          fi

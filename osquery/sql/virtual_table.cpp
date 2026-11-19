@@ -607,8 +607,8 @@ int xCreate(sqlite3* db,
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
 
-  // Tables may request aliases as views.
-  std::set<std::string> views;
+  // Tables may request aliases, created as tables using the same module.
+  std::set<std::string> aliases;
 
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
@@ -646,10 +646,10 @@ int xCreate(sqlite3* db,
       pVtab->content->columns.push_back(std::make_tuple(
           cname->second, columnTypeName(ctype->second), options));
     } else if (cid->second == "alias") {
-      // Create associated views for table aliases.
+      // Create associated tables for table aliases.
       auto calias = column.find("alias");
       if (calias != column.end()) {
-        views.insert(calias->second);
+        aliases.insert(calias->second);
       }
     } else if (cid->second == "columnAlias" && cname != column.end()) {
       auto ctarget = column.find("target");
@@ -685,10 +685,13 @@ int xCreate(sqlite3* db,
     }
   }
 
-  // Create the requested 'aliases'.
-  for (const auto& view : views) {
-    statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
-    sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
+  // Create the requested 'aliases' as tables, not views, so they keep hidden
+  // columns. argv[2] is the new table's name; aliases don't create aliases.
+  if (argc > 2 && name == argv[2]) {
+    for (const auto& alias : aliases) {
+      statement = "CREATE VIRTUAL TABLE temp." + alias + " USING " + name;
+      sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
+    }
   }
 
   *ppVtab = (sqlite3_vtab*)pVtab;
@@ -1171,6 +1174,27 @@ Status attachTableInternal(const std::string& name,
 Status detachTableInternal(const std::string& name,
                            const SQLiteDBInstanceRef& instance) {
   auto lock(instance->attachLock());
+
+  // Drop the table's aliases too, they are tables using its module.
+  std::vector<std::string> aliases;
+  sqlite3_stmt* stmt = nullptr;
+  sqlite3_prepare_v2(instance->db(),
+                     "SELECT name FROM sqlite_temp_master WHERE name != ?1 AND "
+                     "sql = 'CREATE VIRTUAL TABLE ' || name || ' USING ' || ?1",
+                     -1,
+                     &stmt,
+                     nullptr);
+  sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    aliases.emplace_back(
+        reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+  }
+  sqlite3_finalize(stmt);
+  for (const auto& alias : aliases) {
+    auto drop = "DROP TABLE IF EXISTS temp." + alias;
+    sqlite3_exec(instance->db(), drop.c_str(), nullptr, nullptr, nullptr);
+  }
+
   auto format = "DROP TABLE IF EXISTS temp." + name;
   int rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {

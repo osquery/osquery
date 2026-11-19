@@ -14,6 +14,7 @@
 #ifdef WIN32
 #include <sys/utime.h>
 #else
+#include <sys/stat.h>
 #include <sys/time.h>
 #endif
 
@@ -27,6 +28,7 @@
 #include <osquery/hashing/hashing.h>
 #include <osquery/registry/registry.h>
 #include <osquery/sql/sql.h>
+#include <osquery/tests/test_util.h>
 #include <osquery/utils/base64.h>
 #include <osquery/utils/json/json.h>
 
@@ -56,6 +58,7 @@ class FakeCarver : public Carver {
   FRIEND_TEST(CarverTests, test_carve_start);
   FRIEND_TEST(CarverTests, test_carve_files_not_exists);
   FRIEND_TEST(CarverTests, test_carve_preserves_timestamps);
+  FRIEND_TEST(CarverTests, test_carve_skips_fifo);
 };
 
 class FakeCarverRunner : public CarverRunner<FakeCarver> {
@@ -342,6 +345,27 @@ TEST_F(CarverTests, test_carve_files_not_exists) {
   const auto carves = carve.carveAll();
   EXPECT_TRUE(carves.empty());
 }
+
+#ifndef WIN32
+TEST_F(CarverTests, test_carve_skips_fifo) {
+  // Carve paths are often in user-writable directories, where a FIFO with no
+  // writer would block the carve's open for good.
+  const auto fifoPath = getFilesToCarveDir() / "fifo";
+  ASSERT_EQ(::mkfifo(fifoPath.c_str(), S_IRUSR | S_IWUSR), 0);
+  const auto filePath = getFilesToCarveDir() / "file.txt";
+  ASSERT_TRUE(writeTextFile(filePath, "content").ok());
+
+  const std::set<std::string> pathsToCarve = {fifoPath.string(),
+                                              filePath.string()};
+  FakeCarver carve(pathsToCarve, createCarveGuid(), createCarveGuid());
+  ASSERT_TRUE(carve.createPaths().ok());
+
+  std::set<fs::path> carvedFiles;
+  EXPECT_TRUE(returnsWithoutBlockingOnFifo(
+      fifoPath, [&carve, &carvedFiles]() { carvedFiles = carve.carveAll(); }));
+  EXPECT_EQ(carvedFiles.size(), 1U);
+}
+#endif
 
 TEST_F(CarverTests, test_compression_decompression) {
   auto const test_data_file = getWorkingDir() / "test.data";

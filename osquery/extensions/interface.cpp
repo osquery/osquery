@@ -221,7 +221,10 @@ void removeStalePaths(const std::string& manager) {
   // Attempt to remove all stale extension sockets.
   resolveFilePattern(manager + ".*", paths);
   for (const auto& path : paths) {
-    removePath(path);
+    // Removal is recursive; never remove a directory (#8090).
+    if (!isDirectory(path).ok()) {
+      removePath(path);
+    }
   }
 }
 

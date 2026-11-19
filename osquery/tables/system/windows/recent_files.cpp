@@ -16,22 +16,31 @@
 #include <osquery/utils/scope_guard.h>
 #include <osquery/utils/system/errno.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <filesystem>
 #include <shlobj_core.h>
 
 namespace osquery {
 namespace tables {
 
+std::string getRecentFilesQuery(const std::string& user_path_prefix) {
+  // The profile path comes from the account name, which can contain a single
+  // quote (C:\Users\O'Brien), so escape it before it goes into the literal.
+  auto escaped_prefix =
+      boost::algorithm::replace_all_copy(user_path_prefix, "'", "''");
+  return "SELECT filename, path, mtime, shortcut_target_path, "
+         "shortcut_target_type FROM file WHERE shortcut_target_type != 'File "
+         "folder' AND path LIKE '" +
+         escaped_prefix +
+         "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\%.lnk' ORDER BY "
+         "mtime DESC";
+}
+
 void genRecentFilesForUser(QueryData& results,
                            const std::string& user_path_prefix,
                            const std::int64_t& uid) {
-  SQL sql(
-      "SELECT filename, path, mtime, shortcut_target_path, "
-      "shortcut_target_type FROM file WHERE shortcut_target_type != 'File "
-      "folder' AND path LIKE '" +
-      user_path_prefix +
-      "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\%.lnk' ORDER BY mtime "
-      "DESC");
+  SQL sql(getRecentFilesQuery(user_path_prefix));
   if (!sql.ok()) {
     LOG(ERROR) << "Failed to list recent files: "
                << sql.getStatus().getMessage();

@@ -146,7 +146,10 @@ void parseQuarantineFile(QueryData& results, const std::string& path) {
 
 // Process a file and extract all attribute information, parsed or not.
 void getFileData(QueryData& results, const std::string& path) {
-  int fd = open(path.c_str(), O_RDONLY);
+  // Files from a directory listing are not type checked, and a checked path
+  // can still be replaced by a FIFO before it is opened. Without O_NONBLOCK,
+  // opening a FIFO that has no writer would never return.
+  int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK);
 
   if (fd < 0) {
     if (errno != ENOENT) {
@@ -213,7 +216,8 @@ QueryData genXattr(QueryContext& context) {
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     boost::system::error_code ec;
-    // Folders can have extended attributes too
+    // Folders can have extended attributes too. A path whose type cannot be
+    // read is skipped.
     if (!(boost::filesystem::is_regular_file(path, ec) ||
           boost::filesystem::is_directory(path, ec))) {
       continue;

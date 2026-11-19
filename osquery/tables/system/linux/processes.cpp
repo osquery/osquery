@@ -198,24 +198,41 @@ std::set<std::string> getProcList(const QueryContext& context) {
   return pidlist;
 }
 
+std::vector<std::pair<std::string, std::string>> parseProcessEnvironment(
+    const std::string& content) {
+  std::vector<std::pair<std::string, std::string>> variables;
+
+  const char* variable = content.c_str();
+  const char* end = variable + content.size();
+
+  // Walk the nul-delimited entries. Comparing against the nul byte rather than
+  // > 0 keeps the walk going past an entry whose first byte has the high bit
+  // set, which is negative where char is signed; otherwise every later entry
+  // is dropped. The end bound keeps the read in range for a block that has no
+  // trailing nul.
+  while (variable < end && *variable != '\0') {
+    auto buf = std::string(variable);
+    size_t idx = buf.find_first_of("=");
+
+    variables.emplace_back(buf.substr(0, idx), buf.substr(idx + 1));
+    variable += buf.size() + 1;
+  }
+
+  return variables;
+}
+
 void genProcessEnvironment(const std::string& pid, QueryData& results) {
   auto attr = getProcAttr("environ", pid);
 
   std::string content;
   readFile(attr, content);
-  const char* variable = content.c_str();
 
-  // Stop at the end of nul-delimited string content.
-  while (*variable > 0) {
-    auto buf = std::string(variable);
-    size_t idx = buf.find_first_of("=");
-
+  for (const auto& variable : parseProcessEnvironment(content)) {
     Row r;
     r["pid"] = pid;
-    r["key"] = buf.substr(0, idx);
-    r["value"] = buf.substr(idx + 1);
+    r["key"] = variable.first;
+    r["value"] = variable.second;
     results.push_back(r);
-    variable += buf.size() + 1;
   }
 }
 
