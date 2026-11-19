@@ -213,7 +213,7 @@ static inline std::string toHexStr(T num, int width = 4) {
  * @param address A pointer to the examined structure.
  * @Param offset The field index into address.
  */
-inline uint16_t dmiToWord(uint8_t* address, uint8_t offset) {
+inline uint16_t dmiToWord(uint8_t* address, size_t offset) {
   return (static_cast<uint16_t>(address[offset + 1]) << 8) |
          static_cast<uint16_t>(address[offset]);
 }
@@ -225,7 +225,7 @@ inline uint16_t dmiToWord(uint8_t* address, uint8_t offset) {
  * @param address A pointer to the examined structure.
  * @Param offset The field index into address.
  */
-inline uint32_t dmiToDWord(uint8_t* address, uint8_t offset) {
+inline uint32_t dmiToDWord(uint8_t* address, size_t offset) {
   return (static_cast<uint32_t>(address[offset + 3]) << 24) |
          (static_cast<uint32_t>(address[offset + 2]) << 16) |
          (static_cast<uint32_t>(address[offset + 1]) << 8) |
@@ -239,7 +239,7 @@ inline uint32_t dmiToDWord(uint8_t* address, uint8_t offset) {
  * @param address A pointer to the examined structure.
  * @Param offset The field index into address.
  */
-inline uint64_t dmiToQWord(uint8_t* address, uint8_t offset) {
+inline uint64_t dmiToQWord(uint8_t* address, size_t offset) {
   return (static_cast<uint64_t>(address[offset + 7]) << 56) |
          (static_cast<uint64_t>(address[offset + 6]) << 48) |
          (static_cast<uint64_t>(address[offset + 5]) << 40) |
@@ -250,7 +250,7 @@ inline uint64_t dmiToQWord(uint8_t* address, uint8_t offset) {
          static_cast<uint64_t>(address[offset]);
 }
 
-static inline std::string dmiWordToHexStr(uint8_t* address, uint8_t offset) {
+static inline std::string dmiWordToHexStr(uint8_t* address, size_t offset) {
   auto word = dmiToWord(address, offset);
   return toHexStr(word);
 }
