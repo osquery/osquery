@@ -168,7 +168,7 @@ inline Status genStrings(QueryData& results) {
 
   // Do the same to grab the optional hypervisor ID.
   cpuid(0x40000000, 0, regs);
-  if (regs[0] && 0xFF000000 != 0) {
+  if (regs[0] & 0xFF000000) {
     std::stringstream hypervisor;
     hypervisor << std::hex << std::setw(8) << std::setfill('0')
                << static_cast<int>(regs[0]);
