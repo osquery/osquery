@@ -110,6 +110,48 @@ TEST_F(SocketEventsTableTests, failed_blocking_connect_syscall) {
   }
 }
 
+TEST_F(SocketEventsTableTests, failed_connect_with_truncated_sockaddr) {
+  const bool kAllowFailedEvents{true};
+  const bool kAllowUnixSocketEvents{false};
+  const bool kAllowAcceptEvents{false};
+  const bool kAllowNullAcceptEvents{false};
+
+  // connect() logs the sockaddr with the length the caller passed, even
+  // when the syscall then fails with EINVAL
+  const std::vector<std::string> kTruncatedSaddrList = {
+      "0200",
+      "020000",
+      "0A00",
+      "0A001F9100000000FE80000000000000022522FF",
+  };
+
+  auto audit_event = kSucceededConnectEvent;
+  auto& syscall_data = boost::get<SyscallAuditEventData>(audit_event.data);
+
+  syscall_data.succeeded = false;
+  audit_event.record_list.at(0).fields["success"] = "no";
+  audit_event.record_list.at(0).fields["exit"] = std::to_string(-EINVAL);
+
+  for (const auto& saddr : kTruncatedSaddrList) {
+    Row row;
+    bool unix_socket{false};
+    EXPECT_FALSE(SocketEventSubscriber::parseSockAddr(saddr, row, unix_socket));
+
+    audit_event.record_list.at(1).fields["saddr"] = saddr;
+
+    std::vector<Row> emitted_row_list;
+    auto status = SocketEventSubscriber::ProcessEvents(emitted_row_list,
+                                                       {audit_event},
+                                                       kAllowFailedEvents,
+                                                       kAllowUnixSocketEvents,
+                                                       kAllowAcceptEvents,
+                                                       kAllowNullAcceptEvents);
+
+    EXPECT_TRUE(status.ok());
+    EXPECT_TRUE(emitted_row_list.empty());
+  }
+}
+
 TEST_F(SocketEventsTableTests, succeeded_non_blocking_connect_syscall) {
   const bool kAllowUnixSocketEvents{false};
   const bool kAllowAcceptEvents{false};

@@ -29,6 +29,7 @@ const std::vector<std::string> kCronSearchDirs = {
     "/var/at/tabs/", // user mac:lion
     "/var/spool/cron/", // user linux:centos
     "/var/spool/cron/crontabs/", // user linux:debian
+    "/var/spool/cron/tabs/", // user linux:suse
 };
 
 std::vector<std::string> cronFromFile(const std::string& path, Logger& logger) {
@@ -70,6 +71,14 @@ void genCronLine(const std::string& path,
   auto iterator = columns.begin();
   for (; iterator != columns.end(); ++iterator) {
     if (index == 0) {
+      // A leading '-' tells cronie not to log the job's runs to syslog, as
+      // SUSE's /etc/crontab does. It is not part of the schedule.
+      if (iterator->at(0) == '-') {
+        iterator->erase(0, 1);
+        if (iterator->empty()) {
+          return;
+        }
+      }
       if ((*iterator).at(0) == '@') {
         // If the first value is an 'at' then skip to the command.
         r["event"] = *iterator;
@@ -103,14 +112,20 @@ void genCronLine(const std::string& path,
   results.push_back(r);
 }
 
-QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
+/**
+ * @brief Generates the rows of the system and user crontabs under root.
+ *
+ * root prefixes every crontab location: it is empty for the host's own
+ * crontabs, and a directory standing for / in tests.
+ */
+QueryData genCronTabUnder(const std::string& root, Logger& logger) {
   QueryData results;
   std::vector<std::string> file_list;
 
-  file_list.push_back(kSystemCron);
+  file_list.push_back(root + kSystemCron);
 
   for (const auto& cron_dir : kCronSearchDirs) {
-    osquery::listFilesInDirectory(cron_dir, file_list);
+    osquery::listFilesInDirectory(root + cron_dir, file_list);
   }
 
   for (const auto& file_path : file_list) {
@@ -121,6 +136,10 @@ QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
   }
 
   return results;
+}
+
+QueryData genCronTabImpl(QueryContext& context, Logger& logger) {
+  return genCronTabUnder("", logger);
 }
 
 QueryData genCronTab(QueryContext& context) {

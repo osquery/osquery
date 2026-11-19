@@ -92,10 +92,8 @@ void genShellHistoryFromFile(
       newline = history_state.content.find('\n', last_newline);
     }
 
-    if (last_newline != history_state.content.size() - 1) {
-      // We need to buffer the end of the string.
-      history_state.content = history_state.content.substr(last_newline);
-    }
+    // We need to buffer the end of the string.
+    history_state.content.erase(0, last_newline);
   };
 
   if (!readFile(history_file, parseChunk)) {

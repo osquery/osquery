@@ -133,5 +133,7 @@ void putMoreLikelyPluginJarsFirst(
     const std::string& plugin_dir_name,
     std::vector<std::string>& files_in_lib_under_plugin_dir);
 bool fileNameIsLikeVersionedLibraryName(const std::string& name);
+std::string getContentFromTag(const std::string& xml,
+                              const std::string& tag_name);
 } // namespace tables
 } // namespace osquery

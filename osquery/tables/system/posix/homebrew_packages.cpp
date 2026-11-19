@@ -25,6 +25,7 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/property_tree.h>
 #include <regex>
 
 namespace fs = boost::filesystem;
@@ -84,12 +85,14 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
 
 // Looking for a "auto_updates true" line in a .rb file
 bool checkAutoUpdatesInRubyFile(const std::string& file_path) {
-  std::ifstream file(file_path);
-  if (!file.is_open()) {
-    TLOG << "Error opening file " << file_path;
+  std::string content;
+  auto status = osquery::readFile(file_path, content);
+  if (!status.ok()) {
+    TLOG << status.toString();
     return false;
   }
 
+  std::istringstream file(content);
   std::string line;
   std::regex auto_updates_regex(R"(^\s*auto_updates\s*true\s*$)");
   while (std::getline(file, line)) {
@@ -113,9 +116,8 @@ bool getBooleanValueFromJsonFile(const std::string& file_path,
   }
 
   pt::ptree tree;
-  std::istringstream is(content);
   try {
-    pt::read_json(is, tree);
+    readJsonTree(content, tree);
   } catch (const pt::json_parser_error& e) {
     TLOG << "Error parsing JSON from file " << file_path << ": " << e.what();
     return false;
@@ -136,9 +138,8 @@ std::string getAppNameFromJsonManifest(const std::string& file_path) {
   }
 
   pt::ptree tree;
-  std::istringstream is(content);
   try {
-    pt::read_json(is, tree);
+    readJsonTree(content, tree);
   } catch (const pt::json_parser_error& e) {
     TLOG << "Error parsing JSON from file " << file_path << ": " << e.what();
     return "";
@@ -165,12 +166,14 @@ std::string getAppNameFromJsonManifest(const std::string& file_path) {
 
 // Looking for a pattern like "app 'App.app'" in the .rb metadata file
 std::string getAppNameFromRubyManifest(const std::string& file_path) {
-  std::ifstream file(file_path);
-  if (!file.is_open()) {
-    TLOG << "Error opening file " << file_path;
+  std::string content;
+  auto status = osquery::readFile(file_path, content);
+  if (!status.ok()) {
+    TLOG << status.toString();
     return "";
   }
 
+  std::istringstream file(content);
   std::string line;
   std::regex app_regex(R"(^\s*app\s*\"(.*.app)\"\s*$)");
   while (std::getline(file, line)) {

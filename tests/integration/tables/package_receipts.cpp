@@ -45,5 +45,32 @@ TEST_F(packageReceipts, test_sanity) {
   // validate_rows(data, row_map);
 }
 
+TEST_F(packageReceipts, test_filter_by_package_filename) {
+  auto const all =
+      execute_query("select package_filename from package_receipts");
+  std::string filename;
+  for (const auto& row : all) {
+    const auto& value = row.at("package_filename");
+    if (!value.empty() && value.find('\'') == std::string::npos) {
+      filename = value;
+      break;
+    }
+  }
+  if (filename.empty()) {
+    GTEST_SKIP() << "No package receipts with a package filename";
+  }
+
+  // Receipt plists are named after the package identifier, so a match must
+  // come from the receipt contents rather than its path.
+  auto const data = execute_query(
+      "select package_filename from package_receipts where "
+      "package_filename = '" +
+      filename + "'");
+  ASSERT_FALSE(data.empty());
+  for (const auto& row : data) {
+    EXPECT_EQ(row.at("package_filename"), filename);
+  }
+}
+
 } // namespace table_tests
 } // namespace osquery

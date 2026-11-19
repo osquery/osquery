@@ -37,12 +37,23 @@ class rpmPackages : public testing::Test {
 };
 
 TEST_F(rpmPackages, test_sanity) {
-  auto rows = execute_query("select * from rpm_packages");
+  // rpmdbs can contain pseudo-packages (e.g. gpg-pubkey entries, one per
+  // imported GPG key) that have no vendor, arch, or epoch and so cannot pass
+  // the validation below. Rather than excluding them by name, select only
+  // rows that satisfy the invariant being validated (CI has no rpmdb and
+  // never sees any of this).
+  auto rows = execute_query(
+      "select * from rpm_packages where vendor != '' and arch != ''");
   if (rows.empty()) {
     LOG(WARNING) << "Empty results of query from 'rpm_packages', assume there "
                     "is no rpm on the system";
     return;
   }
+
+  // Any real rpm install has more than a handful of proper packages; fewer
+  // would mean the filter (or the table's vendor/arch parsing) is broken,
+  // not that the system is minimal.
+  ASSERT_GE(rows.size(), 5u);
 
   ValidationMap row_map = {{"name", NonEmptyString},
                            {"version", NormalType},
@@ -59,7 +70,8 @@ TEST_F(rpmPackages, test_sanity) {
   validate_rows(rows, row_map);
 
   if (isPlatform(PlatformType::TYPE_LINUX)) {
-    validate_container_rows("rpm_packages", row_map);
+    validate_container_rows(
+        "rpm_packages", row_map, "vendor != '' and arch != ''");
   }
 }
 

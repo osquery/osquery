@@ -112,7 +112,11 @@ TEST_F(PermissionsTests, test_functional_drop) {
     return;
   }
 
-  auto file_path = kTestWorkingDirectory + "permissions-file2";
+  // Under the fixture's directory: nothing in this binary calls initTesting(),
+  // so kTestWorkingDirectory is empty and the file would be created in the
+  // working directory, which may be on a filesystem that does not enforce the
+  // file's mode, such as a VM shared folder.
+  auto file_path = (perm_path_ / "permissions-file2").string();
 
   {
     writeTextFile(file_path, "data");
@@ -237,7 +241,7 @@ TEST_F(PermissionsTests, test_multi_thread_permissions) {
 
   // Start our permissions thread.
   auto perms_thread = std::make_shared<PermissionsRunnable>();
-  Dispatcher::addService(perms_thread);
+  ASSERT_TRUE(Dispatcher::addService(perms_thread).ok());
 
   // Wait for the permissions thread to write once.
   EXPECT_TRUE(waitForTick(perms_thread));
@@ -258,6 +262,11 @@ TEST_F(PermissionsTests, test_multi_thread_permissions) {
 
   Dispatcher::stopServices();
   Dispatcher::joinServices();
+
+  // stopServices() leaves the dispatcher in the stopping state, which makes
+  // it silently refuse later addService() calls; reset it so the next test
+  // can start its own services.
+  Dispatcher::instance().resetStopping();
 }
 
 TEST_F(PermissionsTests, test_multi_thread_poll) {
@@ -274,7 +283,7 @@ TEST_F(PermissionsTests, test_multi_thread_poll) {
 
   // Start our permissions thread.
   auto pool_thread = std::make_shared<PermissionsPollRunnable>();
-  Dispatcher::addService(pool_thread);
+  ASSERT_TRUE(Dispatcher::addService(pool_thread).ok());
 
   // Wait for the permissions thread to write once.
   EXPECT_TRUE(waitForTick(pool_thread));
@@ -291,5 +300,10 @@ TEST_F(PermissionsTests, test_multi_thread_poll) {
 
   Dispatcher::stopServices();
   Dispatcher::joinServices();
+
+  // stopServices() leaves the dispatcher in the stopping state, which makes
+  // it silently refuse later addService() calls; reset it so the next test
+  // can start its own services.
+  Dispatcher::instance().resetStopping();
 }
 }

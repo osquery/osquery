@@ -1,5 +1,5 @@
 table_name("crashes")
-description("Application, System, and Mobile App crash logs.")
+description("Application and Mobile App crash logs. For system crashes (kernel panics), see the kernel_panics table.")
 schema([
     Column("type", TEXT, "Type of crash log"),
     Column("pid", BIGINT, "Process (or thread) ID of the crashed process"),

@@ -9,6 +9,9 @@
 
 #pragma once
 
+#include <set>
+#include <string>
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config/config.h>
@@ -90,10 +93,28 @@ Status handleRuleFiles(const std::string& category,
  */
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode);
 
+/**
+ * Check a signature URL against the allowlist of URL patterns.
+ *
+ * The scheme, host and effective port must match exactly, and the path must
+ * match the allowlist entry's path regex.
+ */
+bool isRuleUrlAllowed(const std::set<std::string>& signature_set,
+                      const std::string& url);
+
 int YARACallback(YR_SCAN_CONTEXT* context,
                  int message,
                  void* message_data,
                  void* user_data);
+
+/**
+ * @brief Scans the file at path with YARACallback, if it is a regular file.
+ *
+ * Scanned paths are often in user-writable directories, where a FIFO with no
+ * writer would block libyara's own open of the path for good, so on POSIX
+ * the file is opened with PF_REGULAR_ONLY and scanned through its descriptor.
+ */
+int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data);
 
 /**
  * @brief A simple ConfigParserPlugin for a "yara" dictionary key.
