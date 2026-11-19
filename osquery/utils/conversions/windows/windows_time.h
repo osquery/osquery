@@ -45,4 +45,16 @@ LONGLONG littleEndianToUnixTime(const std::string& time_data);
  */
 LONGLONG parseFatTime(const std::string& dos_data);
 
+/**
+ * @brief Windows helper function for parsing locale-specific date strings
+ * to Unix epoch. Handles common formats seen in WMI string properties:
+ * - M/D/YYYY or MM/DD/YYYY (US locale, with slashes)
+ * - YYYY-MM-DD (ISO format, with dashes)
+ * - D-M-YYYY or DD-MM-YYYY (European locales, with dashes)
+ *
+ * @param date_str A date string in one of the supported formats
+ * @returns The unix epoch timestamp (at midnight UTC), or 0 if parsing fails
+ */
+LONGLONG parseDateToUnixTime(const std::string& date_str);
+
 } // namespace osquery
