@@ -188,6 +188,53 @@ boost::optional<std::string> getCertificateKeyUsage(X509* cert) {
   return output;
 }
 
+boost::optional<std::string> getCertificateSubjectAltNames(X509* cert) {
+  auto general_names = static_cast<GENERAL_NAMES*>(
+      X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
+
+  if (general_names == nullptr) {
+    return boost::none;
+  }
+
+  std::unique_ptr<GENERAL_NAMES, void (*)(GENERAL_NAMES*)> unique_general_names(
+      general_names, GENERAL_NAMES_free);
+
+  auto unique_mem_bio = createUniqueBIO();
+  if (unique_mem_bio == nullptr) {
+    return boost::none;
+  }
+
+  auto name_count = sk_GENERAL_NAME_num(general_names);
+  for (int i = 0; i < name_count; ++i) {
+    auto general_name = sk_GENERAL_NAME_value(general_names, i);
+    if (general_name == nullptr) {
+      continue;
+    }
+
+    auto unique_tmp_bio = createUniqueBIO();
+    if (unique_tmp_bio == nullptr) {
+      continue;
+    }
+
+    if (GENERAL_NAME_print(unique_tmp_bio.get(), general_name) == 0) {
+      continue;
+    }
+
+    auto opt_printed = getMemoryBackedBIOContentsAsString(unique_tmp_bio.get());
+    if (!opt_printed.has_value() || opt_printed->empty()) {
+      continue;
+    }
+
+    if (BIO_pending(unique_mem_bio.get()) != 0) {
+      BIO_puts(unique_mem_bio.get(), ", ");
+    }
+
+    BIO_puts(unique_mem_bio.get(), opt_printed->c_str());
+  }
+
+  return getMemoryBackedBIOContentsAsString(unique_mem_bio.get());
+}
+
 boost::optional<std::string> getCertificateSerialNumber(X509* cert) {
   auto serial = X509_get_serialNumber(cert);
   if (serial == nullptr) {
