@@ -137,7 +137,7 @@ Status queryRpmDb(packageCallback predicate) {
 TEST_F(RpmTests, test_bdb_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto bdb_config = getTestConfigDirectory() / "rpm" / "rpm-bdb";
@@ -163,7 +163,7 @@ TEST_F(RpmTests, test_bdb_packages) {
 TEST_F(RpmTests, test_sqlite_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto sqlite_config = getTestConfigDirectory() / "rpm" / "rpm-sqlite";
@@ -201,7 +201,7 @@ TEST_F(RpmTests, test_sqlite_packages) {
 TEST_F(RpmTests, test_ndb_packages) {
   auto dropper = DropPrivileges::get();
   if (isUserAdmin()) {
-    ASSERT_TRUE(dropper->dropTo("nobody"));
+    ASSERT_TRUE(dropper->dropToNobodyOrOverflow());
   }
 
   auto ndb_config = getTestConfigDirectory() / "rpm" / "rpm-ndb";
