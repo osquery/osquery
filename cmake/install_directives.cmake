@@ -21,16 +21,6 @@ function(generateInstallDirectives)
     )
 
     install(
-      FILES "tools/deployment/linux_packaging/deb/postrm"
-      DESTINATION "/control/deb"
-
-      PERMISSIONS
-        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-        GROUP_READ             GROUP_EXECUTE
-        WORLD_READ             WORLD_EXECUTE
-    )
-
-    install(
       FILES "tools/deployment/linux_packaging/deb/osqueryd.service"
       DESTINATION "/control/deb/lib/systemd/system"
     )
@@ -38,28 +28,6 @@ function(generateInstallDirectives)
     install(
       FILES "tools/deployment/linux_packaging/deb/copyright"
       DESTINATION "/control/deb"
-    )
-
-    install(
-      FILES "tools/deployment/linux_packaging/deb/osquery.initd"
-      DESTINATION "/control/deb/etc/init.d"
-      RENAME "osqueryd"
-
-      PERMISSIONS
-        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-        GROUP_READ             GROUP_EXECUTE
-        WORLD_READ             WORLD_EXECUTE
-    )
-
-    install(
-      FILES "tools/deployment/linux_packaging/rpm/osquery.initd"
-      DESTINATION "/control/rpm/etc/init.d"
-      RENAME "osqueryd"
-
-      PERMISSIONS
-        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-        GROUP_READ             GROUP_EXECUTE
-        WORLD_READ             WORLD_EXECUTE
     )
 
     install(
