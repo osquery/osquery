@@ -36,8 +36,9 @@ FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
 
 namespace {
 
-/// Strong 64-bit finalizer, so that summing per-row hashes below combines
-/// independent bits instead of raw FNV-1a output.
+/// The splitmix64 finalizer (Steele, Lea and Flood, "Fast Splittable
+/// PseudoRandom Number Generators", 2014), used to spread the bits of each
+/// row hash before they are combined.
 inline uint64_t mix64(uint64_t hash) {
   hash += 0x9e3779b97f4a7c15ULL;
   hash = (hash ^ (hash >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -68,9 +69,12 @@ uint64_t queryHashKey() {
 }
 
 /// Hash of a single row, independent of the column order (rows are maps).
-/// Hashes the raw variant bytes, so it allocates nothing.
+/// The key is applied while the bytes are absorbed, so a collision found for
+/// one key does not hold for another, and the variant index is hashed too, so
+/// the same bytes cannot hash the same under a different value type.
+/// Allocates nothing.
 uint64_t hashRow(const RowTyped& row, uint64_t key) {
-  uint64_t hash = 0xcbf29ce484222325ULL;
+  uint64_t hash = 0xcbf29ce484222325ULL ^ key;
   auto fnv1aByte = [&hash](unsigned char byte) {
     hash ^= byte;
     hash *= 0x100000001b3ULL;
@@ -84,6 +88,7 @@ uint64_t hashRow(const RowTyped& row, uint64_t key) {
   for (const auto& column : row) {
     fnv1aSpan(reinterpret_cast<const unsigned char*>(column.first.data()),
               column.first.size());
+    fnv1aByte(static_cast<unsigned char>(column.second.which()));
     boost::apply_visitor(
         [&](const auto& value) {
           using T = std::decay_t<decltype(value)>;
@@ -91,30 +96,38 @@ uint64_t hashRow(const RowTyped& row, uint64_t key) {
             fnv1aSpan(reinterpret_cast<const unsigned char*>(value.data()),
                       value.size());
           } else {
-            // Prefix with the type tag so the same bytes cannot hash the same
-            // under a different variant alternative.
-            fnv1aByte(static_cast<unsigned char>(sizeof(T)));
             fnv1aSpan(reinterpret_cast<const unsigned char*>(&value),
                       sizeof(T));
           }
         },
         column.second);
   }
-  return mix64(hash ^ key);
+  return mix64(hash);
 }
 
 /// Hash of a result set with the same semantics as diff(): only the multiset
-/// of rows matters, not their order.
+/// of rows matters, not their order. Combining the sorted per-row hashes keeps
+/// duplicate rows counted while removing the order.
 uint64_t hashQueryData(const QueryDataTyped& qd) {
   const uint64_t key = queryHashKey();
-  // Summing per-row hashes keeps the result order-independent.
-  uint64_t hash = 0;
+  std::vector<uint64_t> row_hashes;
+  row_hashes.reserve(qd.size());
   for (const auto& row : qd) {
-    hash += hashRow(row, key);
+    row_hashes.push_back(hashRow(row, key));
   }
-  // Fold the row count in so a result set cannot collide with a shorter one
-  // made of rows hashing to zero.
-  return mix64(hash ^ key ^ qd.size());
+  std::sort(row_hashes.begin(), row_hashes.end());
+  uint64_t hash = 0xcbf29ce484222325ULL ^ key;
+  auto fnv1aValue = [&hash](uint64_t value) {
+    const auto* bytes = reinterpret_cast<const unsigned char*>(&value);
+    for (size_t i = 0; i < sizeof(value); ++i) {
+      hash ^= bytes[i];
+      hash *= 0x100000001b3ULL;
+    }
+  };
+  for (const auto& row_hash : row_hashes) {
+    fnv1aValue(row_hash);
+  }
+  return mix64(hash);
 }
 
 } // namespace
@@ -165,13 +178,16 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   return Status::success();
 }
 
-Status Query::saveQueryResults(const std::string& json, uint64_t epoch) const {
-  auto status = setDatabaseValue(kQueries, name_, json);
-  if (!status.ok()) {
-    return status;
-  }
-
-  return setDatabaseValue(kQueries, name_ + "epoch", std::to_string(epoch));
+Status Query::saveQueryResults(const std::string& json,
+                               uint64_t epoch,
+                               const std::string& hash) const {
+  // Save the results, their epoch and their hash together, so a partial
+  // write cannot leave a hash describing different results.
+  DatabaseStringValueList data;
+  data.push_back({name_, json});
+  data.push_back({name_ + "epoch", std::to_string(epoch)});
+  data.push_back({name_ + "hash", hash});
+  return setDatabaseBatch(kQueries, data);
 }
 
 std::vector<std::string> Query::getStoredQueryNames() {
@@ -231,11 +247,11 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   bool new_query_epoch = false;
   bool new_query_sql = false;
   getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
-  // Event queries replace the stored results wholesale; drop any hash left
-  // by a previous differential use of this query name.
-  deleteDatabaseValue(kQueries, name_ + "hash");
   if (new_query_epoch) {
-    auto status = saveQueryResults("[]", current_epoch);
+    // Store the hash of the empty result set together with the results, so
+    // the stored hash keeps describing the stored results.
+    auto status = saveQueryResults(
+        "[]", current_epoch, std::to_string(hashQueryData(QueryDataTyped{})));
     if (!status.ok()) {
       return status;
     }
@@ -271,7 +287,10 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     auto status = getDatabaseValue(kQueries, name_ + "hash", stored_hash);
     if (status.ok() && stored_hash == std::to_string(current_hash)) {
       // The results are identical to the last run: the differential is empty
-      // and the stored results can stay in the database unparsed.
+      // and the stored results can stay in the database unparsed. The output
+      // differential is reset, as the caller may reuse it across runs.
+      dr.added.clear();
+      dr.removed.clear();
       update_db = false;
     } else {
       // Get the rows from the last run of this query name.
@@ -299,7 +318,16 @@ Status Query::addNewResults(QueryDataTyped current_qd,
       return status;
     }
 
-    status = saveQueryResults(json, current_epoch);
+    status =
+        saveQueryResults(json, current_epoch, std::to_string(current_hash));
+    if (!status.ok()) {
+      return status;
+    }
+  } else if (!new_query_epoch) {
+    // The differential was empty: remember the hash of the unchanged results
+    // so the next run can skip them.
+    auto status = setDatabaseValue(
+        kQueries, name_ + "hash", std::to_string(current_hash));
     if (!status.ok()) {
       return status;
     }
@@ -310,14 +338,6 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     if (!status.ok()) {
       return status;
     }
-  }
-
-  // Remember the hash of the stored results so the next run can detect an
-  // empty differential without parsing them.
-  auto status =
-      setDatabaseValue(kQueries, name_ + "hash", std::to_string(current_hash));
-  if (!status.ok()) {
-    return status;
   }
   return Status::success();
 }
