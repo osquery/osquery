@@ -12,6 +12,7 @@
 #include <rocksdb/db.h>
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
+#include <rocksdb/table.h>
 
 #include <osquery/core/flags.h>
 #include <osquery/filesystem/fileops.h>
@@ -129,6 +130,14 @@ Status RocksDBDatabasePlugin::setUp() {
         static_cast<int>(FLAGS_rocksdb_merge_number);
     options_.max_background_flushes =
         static_cast<int>(FLAGS_rocksdb_background_flushes);
+
+    // Pin BlockBasedTable options to maintain on-disk compatibility with
+    // previous RocksDB releases (format_version 5, CRC32c checksum).
+    rocksdb::BlockBasedTableOptions table_options;
+    table_options.format_version = 5;
+    table_options.checksum = rocksdb::kCRC32c;
+    options_.table_factory.reset(
+        rocksdb::NewBlockBasedTableFactory(table_options));
 
     // Create an environment to replace the default logger.
     if (logger_ == nullptr) {

@@ -119,4 +119,102 @@ TEST_F(RocksDBDatabasePluginTests, test_events_ttl) {
 
   db.tearDown();
 }
+
+TEST_F(RocksDBDatabasePluginTests, test_version_matches) {
+  EXPECT_EQ(ROCKSDB_MAJOR, 10);
+  EXPECT_EQ(ROCKSDB_MINOR, 6);
+  EXPECT_EQ(ROCKSDB_PATCH, 2);
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_open_close_cycles) {
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_open_close_cycles.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  for (int i = 0; i < 50; ++i) {
+    auto db = RocksDBDatabasePlugin();
+    auto s = db.setUp();
+    ASSERT_TRUE(s.ok()) << "Cycle " << i << " failed: " << s.getMessage();
+    db.tearDown();
+  }
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_table_options_pinned) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_table_options_pinned.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  // Populate data in a domain so an SST file is flushed
+  std::string value = "test_value";
+  s = db.put(kQueries, "test_key", value);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  rocksdb::FlushOptions flush_opts;
+  auto rs = db.db_->Flush(flush_opts, db.getHandleForColumnFamily(kQueries));
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
+
+  rocksdb::TablePropertiesCollection props;
+  rs = db.db_->GetPropertiesOfAllTables(db.getHandleForColumnFamily(kQueries),
+                                        &props);
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
+  ASSERT_GT(props.size(), 0U);
+
+  for (const auto& kv : props) {
+    EXPECT_EQ(kv.second->format_version, 5U)
+        << "format_version must be pinned to 5 for backward compatibility";
+  }
+
+  db.tearDown();
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_domain_isolation) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_domain_isolation.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  const std::string common_key = "shared_key";
+  ASSERT_TRUE(db.put(kPersistentSettings, common_key, "config_val").ok());
+  ASSERT_TRUE(db.put(kQueries, common_key, "queries_val").ok());
+  ASSERT_TRUE(db.put(kEvents, common_key, "events_val").ok());
+  ASSERT_TRUE(db.put(kLogs, common_key, "logs_val").ok());
+  ASSERT_TRUE(db.put(kCarves, common_key, "carves_val").ok());
+
+  std::string val;
+  ASSERT_TRUE(db.get(kPersistentSettings, common_key, val).ok());
+  EXPECT_EQ(val, "config_val");
+
+  ASSERT_TRUE(db.get(kQueries, common_key, val).ok());
+  EXPECT_EQ(val, "queries_val");
+
+  ASSERT_TRUE(db.get(kEvents, common_key, val).ok());
+  EXPECT_EQ(val, "events_val");
+
+  ASSERT_TRUE(db.get(kLogs, common_key, val).ok());
+  EXPECT_EQ(val, "logs_val");
+
+  ASSERT_TRUE(db.get(kCarves, common_key, val).ok());
+  EXPECT_EQ(val, "carves_val");
+
+  db.tearDown();
+}
 } // namespace osquery
