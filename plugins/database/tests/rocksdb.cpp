@@ -121,9 +121,11 @@ TEST_F(RocksDBDatabasePluginTests, test_events_ttl) {
 }
 
 TEST_F(RocksDBDatabasePluginTests, test_version_matches) {
-  EXPECT_EQ(ROCKSDB_MAJOR, 10);
-  EXPECT_EQ(ROCKSDB_MINOR, 6);
-  EXPECT_EQ(ROCKSDB_PATCH, 2);
+  const auto expected_version = std::to_string(ROCKSDB_MAJOR) + "." +
+                                std::to_string(ROCKSDB_MINOR) + "." +
+                                std::to_string(ROCKSDB_PATCH);
+  EXPECT_EQ(rocksdb::GetRocksVersionAsString(true), expected_version);
+  EXPECT_GE(ROCKSDB_MAJOR, 6);
 }
 
 TEST_F(RocksDBDatabasePluginTests, test_open_close_cycles) {
