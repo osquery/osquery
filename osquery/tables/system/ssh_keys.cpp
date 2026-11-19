@@ -143,6 +143,32 @@ std::string keyTypeAsString(int key_type) {
   }
 }
 
+const size_t kMaxSshDirDepth = 64;
+
+Status listSshKeyFiles(const boost::filesystem::path& dir,
+                       size_t depth,
+                       std::vector<std::string>& files) {
+  auto status = listFilesInDirectory(dir, files, false);
+  if (!status.ok() || depth >= kMaxSshDirDepth) {
+    return status;
+  }
+
+  std::vector<std::string> subdirs;
+  if (!listDirectoriesInDirectory(dir, subdirs, false).ok()) {
+    return status;
+  }
+
+  for (const auto& subdir : subdirs) {
+    boost::system::error_code ec;
+    if (boost::filesystem::is_symlink(
+            boost::filesystem::symlink_status(subdir, ec))) {
+      continue;
+    }
+    listSshKeyFiles(subdir, depth + 1, files);
+  }
+  return status;
+}
+
 void genSSHkeyForHosts(const std::string& uid,
                        const std::string& gid,
                        const std::string& directory,
@@ -152,7 +178,7 @@ void genSSHkeyForHosts(const std::string& uid,
   boost::filesystem::path keys_dir = directory;
   keys_dir /= kSSHUserKeysDir;
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(keys_dir, files_list, true);
+  auto status = listSshKeyFiles(keys_dir, 0, files_list);
   if (!status.ok()) {
     return;
   }
