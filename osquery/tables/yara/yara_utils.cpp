@@ -8,6 +8,8 @@
  */
 
 #include <map>
+#include <regex>
+#include <set>
 #include <string>
 
 #include <cerrno>
@@ -72,6 +74,20 @@ YaraCompilerCreateResult createCompiler() {
   });
 }
 
+/// The port a URI connects to, using the scheme's default when it is omitted.
+uint16_t effectivePort(const Uri& uri) {
+  if (uri.port() != 0) {
+    return uri.port();
+  }
+  if (uri.scheme() == "https") {
+    return 443;
+  }
+  if (uri.scheme() == "http") {
+    return 80;
+  }
+  return 0;
+}
+
 } // namespace
 
 bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
@@ -80,6 +96,28 @@ bool yaraShouldSkipFile(const std::string& path, mode_t st_mode) {
     return true;
   }
 
+  return false;
+}
+
+bool isRuleUrlAllowed(const std::set<std::string>& signature_set,
+                      const std::string& url) {
+  Uri test_uri(url);
+  for (const auto& sig : signature_set) {
+    Uri sig_uri(sig);
+
+    // The uri scheme, host and path matches are case sensitive. Ports are
+    // compared after filling in the scheme default, so an omitted port and
+    // its explicit default (e.g. :443 for https) are the same endpoint.
+    if ((sig_uri.host() == test_uri.host()) &&
+        (sig_uri.scheme() == test_uri.scheme()) &&
+        (effectivePort(sig_uri) == effectivePort(test_uri))) {
+      // Check the regex pattern for the allowed URL
+      const std::regex pat(sig_uri.path());
+      if (std::regex_match(test_uri.path(), pat)) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -332,6 +370,28 @@ Status handleRuleFiles(const std::string& category,
   }
 
   return Status::success();
+}
+
+int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data) {
+#ifdef WIN32
+  // Windows file systems hold no FIFOs, and libyara's own open of the path
+  // shares the file with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a file another process has open for writing.
+  return yr_rules_scan_file(
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, user_data, 0);
+#else
+  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
+    return ERROR_COULD_NOT_OPEN_FILE;
+  }
+
+  return yr_rules_scan_fd(rules,
+                          file.nativeHandle(),
+                          SCAN_FLAGS_FAST_MODE,
+                          YARACallback,
+                          user_data,
+                          0);
+#endif
 }
 
 /**

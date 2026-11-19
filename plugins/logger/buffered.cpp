@@ -136,6 +136,11 @@ bool BufferedLogForwarder::checkType(std::vector<std::string>& indexes,
         backoff_period = max_backoff_period_;
         backoff--;
       }
+      // Wait a random 50-100% of the backoff, so nodes that failed at the same
+      // time don't retry, and resume, in lockstep.
+      backoff_period -= std::chrono::seconds(
+          std::uniform_int_distribution<std::chrono::seconds::rep>(
+              0, backoff_period.count() / 2)(backoff_rng_));
       VLOG(1) << "Will attempt to send " << log_type << " logs again in "
               << backoff_period.count() << " seconds";
     }

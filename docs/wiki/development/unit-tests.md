@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-The above code is very simple. If you're unfamiliar with the syntax/concepts of the Google Test framework, read the [Google Test Primer](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#basic-concepts).
+The above code is very simple. If you're unfamiliar with the syntax/concepts of the Google Test framework, read the [Google Test Primer](https://github.com/google/googletest/blob/main/docs/primer.md#basic-concepts).
 
 ## Building a test
 
@@ -52,4 +52,4 @@ After you specify the test sources, add whatever libraries you have to link agai
 
 ## Extending a test
 
-Your test is just C++ code. Use the [Google Test documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#assertions) to assist you in writing meaningful tests.
+Your test is just C++ code. Use the [Google Test documentation](https://github.com/google/googletest/blob/main/docs/primer.md#assertions) to assist you in writing meaningful tests.

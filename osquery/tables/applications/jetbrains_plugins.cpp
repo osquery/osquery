@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <osquery/core/tables.h>
+#include <osquery/filesystem/fileops.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 #include <osquery/tables/applications/jetbrains_plugins.h>
@@ -112,6 +113,21 @@ ExtractionResult extractSpecificFileFromArchive(
     const std::string& target_file_path,
     std::size_t maximum_decompressed_size) {
   ExtractionResult extraction_result;
+
+#ifndef WIN32
+  // Plugin directories are user-writable, where a FIFO would block a plain
+  // open of the path for good: the jar is opened as a regular file only and
+  // read through its descriptor.
+  PlatformFile archive_file(archive_file_path,
+                            PF_OPEN_EXISTING | PF_READ | PF_REGULAR_ONLY);
+  if (!archive_file.isValid()) {
+    VLOG(1) << "Zip file does not exist or is not a regular file: "
+            << archive_file_path;
+    extraction_result.status = ExtractionStatus::ArchiveError;
+    return extraction_result;
+  }
+#endif
+
   auto* archive_reader = archive_read_new();
   if (archive_reader == nullptr) {
     extraction_result.status = ExtractionStatus::ArchiveError;
@@ -129,8 +145,16 @@ ExtractionResult extractSpecificFileFromArchive(
     return extraction_result;
   }
 
+#ifdef WIN32
+  // Windows file systems hold no FIFOs, and libarchive's own open of the path
+  // shares the jar with its writers. PlatformFile's shares it with readers
+  // only, so it would fail on a jar another process has open for writing.
   const auto result = archive_read_open_filename(
       archive_reader, archive_file_path.c_str(), 10240); // 10KB buffer
+#else
+  const auto result = archive_read_open_fd(
+      archive_reader, archive_file.nativeHandle(), 10240); // 10KB buffer
+#endif
   if (result != ARCHIVE_OK) {
     VLOG(1) << "Failed to open zip file: "
             << archive_error_string(archive_reader);

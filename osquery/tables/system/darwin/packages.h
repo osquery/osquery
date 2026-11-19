@@ -16,6 +16,12 @@
 namespace osquery {
 namespace tables {
 
+// The structures below overlay records of a BOM file, several of which end in
+// variable-length data. Flexible array members are a C99 feature, which clang
+// supports in C++ as an extension.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc99-extensions"
+
 // Structure details based on work from Joseph Coffland, Julian Devlin
 struct BOMHeader {
   // Always "BOMStore"
@@ -64,7 +70,9 @@ struct BOMVar {
 
 struct BOMVars {
   uint32_t count;
-  BOMVar list[];
+  // BOMVar records, each followed by its name, so they cannot be indexed as
+  // an array: BOM::getVariable() walks them by offset.
+  uint8_t list[];
 } __attribute__((packed));
 
 struct BOMPathIndices {
@@ -111,6 +119,8 @@ struct BOMFile {
   uint32_t parent;
   char name[];
 } __attribute__((packed));
+
+#pragma clang diagnostic pop
 
 class BOM {
  public:

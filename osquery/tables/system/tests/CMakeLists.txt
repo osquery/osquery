@@ -25,6 +25,8 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       posix/last_tests.cpp
       posix/authorized_keys_tests.cpp
       posix/augeas_tests.cpp
+      posix/magic_tests.cpp
+      posix/crontab_tests.cpp
     )
   endif()
 
@@ -70,6 +72,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       windows/certificates_tests.cpp
       windows/processes_tests.cpp
       windows/programs_tests.cpp
+      windows/recent_files_tests.cpp
       windows/registry_tests.cpp
       windows/token_privileges_tests.cpp
       windows/windows_eventlog_tests.cpp

@@ -669,6 +669,12 @@ Maximum number of logs to ingest per run (~200ms between runs). Use this as a fa
 
 Augeas lenses are bundled with osquery distributions. On Linux they are installed in `/opt/osquery/share/osquery/lenses`. On macOS, lenses are installed in the `/private/var/osquery/lenses` directory. Specify the path to the directory containing custom or different version lenses files.
 
+## Magic flags
+
+`--magic_db_files=/opt/osquery/share/osquery/magic.mgc:/usr/share/file/magic.mgc:/usr/share/misc/magic.mgc`
+
+Colon-separated list of magic databases the `magic` table loads when a query does not constrain `magic_db_files`. osquery distributions bundle a compiled database, installed as `/opt/osquery/share/osquery/magic.mgc` on Linux and `/private/var/osquery/magic.mgc` on macOS, which is the first entry of the default list on each platform. A compiled database only loads in the libmagic version that produced it, so entries that osquery's libmagic cannot load are skipped: missing files, and databases compiled by another libmagic version, which is usually the case for the system's. Entries may also be magic rule files or directories of them. A list given in a query's `magic_db_files` constraint is loaded as given.
+
 ## Docker flags
 
 `--docker_socket=/var/run/docker.sock`
