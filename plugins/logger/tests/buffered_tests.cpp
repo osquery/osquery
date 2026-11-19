@@ -473,10 +473,20 @@ TEST_F(BufferedLogForwarderTests, test_purge_max_age) {
   runner.check();
 
   FLAGS_buffered_log_max_age = 100;
+  runner.logString("fresh", time);
+  std::vector<std::string> indexes;
+  scanDatabaseKeys(kLogs, indexes, runner.index_name_, 0);
+  EXPECT_FALSE(runner.purgeExpired(indexes));
+  EXPECT_CALL(runner, send(ElementsAre("fresh"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
   runner.logString("old", time - 200);
   runner.logStatus({log1}, time - 200);
   runner.logString("new1", time);
   runner.logString("new2", time);
+  // Times are not zero padded, so this key sorts after the new ones.
+  runner.logString("y2k", 946684800);
   // A key without a time is left alone.
   setDatabaseValue(kLogs, "mock_r_.odd_1", "odd");
 

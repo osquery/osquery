@@ -64,13 +64,15 @@ Status BufferedLogForwarder::setUp() {
 }
 
 void BufferedLogForwarder::check(bool send_results, bool send_statuses) {
-  if (FLAGS_buffered_log_max_age > 0) {
-    purgeExpired();
-  }
-
   // Get a list of all the buffered log items, with a max of 1024 lines.
   std::vector<std::string> indexes;
   scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
+
+  // If any of them expired, purge every expired log and get the list again.
+  if (FLAGS_buffered_log_max_age > 0 && purgeExpired(indexes)) {
+    indexes.clear();
+    scanDatabaseKeys(kLogs, indexes, index_name_, max_log_lines_);
+  }
 
   // Each log type is read and sent separately, so only one type's lines are
   // held in memory at a time, and a type that is backing off is not read.
@@ -227,53 +229,43 @@ void BufferedLogForwarder::purge() {
   });
 }
 
-void BufferedLogForwarder::purgeExpired() {
+bool BufferedLogForwarder::purgeExpired(
+    const std::vector<std::string>& indexes) {
   uint64_t now = getUnixTime();
   if (now <= FLAGS_buffered_log_max_age) {
-    return;
+    return false;
   }
   uint64_t cutoff = now - FLAGS_buffered_log_max_age;
 
+  // Result and status prefixes have the same length.
+  const auto prefix_size = genIndexPrefix(true).size();
+  auto expired = [&](const std::string& index) {
+    if (index.size() <= prefix_size) {
+      return false;
+    }
+    auto time = tryTo<uint64_t>(
+        index.substr(prefix_size, index.find('_', prefix_size) - prefix_size));
+    return time.isValue() && *time < cutoff;
+  };
+  if (std::none_of(indexes.begin(), indexes.end(), expired)) {
+    return false;
+  }
+
+  // Times are not zero padded, so the keys are not in time order.
+  std::vector<std::string> all;
+  if (!scanDatabaseKeys(kLogs, all, index_name_, 0).ok()) {
+    LOG(ERROR) << "Error scanning DB during buffered log purge";
+    return false;
+  }
   size_t dropped = 0;
-  for (bool results : {true, false}) {
-    const auto prefix = genIndexPrefix(results);
-    auto log_time = [&prefix](const std::string& index) {
-      return tryTo<uint64_t>(index.substr(
-          prefix.size(), index.find('_', prefix.size()) - prefix.size()));
-    };
-
-    // Indexes are in ascending order, so the oldest logs come first. Only
-    // read them all when the oldest one has expired.
-    std::vector<std::string> indexes;
-    if (!scanDatabaseKeys(kLogs, indexes, prefix, 1).ok() || indexes.empty()) {
-      continue;
-    }
-    auto oldest = log_time(indexes[0]);
-    if (oldest.isValue() && *oldest >= cutoff) {
-      continue;
-    }
-
-    indexes.clear();
-    if (!scanDatabaseKeys(kLogs, indexes, prefix, 0).ok()) {
-      LOG(ERROR) << "Error scanning DB during buffered log purge";
-      continue;
-    }
-    for (const auto& index : indexes) {
-      auto time = log_time(index);
-      if (time.isError()) {
-        continue;
-      }
-      if (*time >= cutoff || !deleteValueWithCount(kLogs, index).ok()) {
-        break;
-      }
+  for (const auto& index : all) {
+    if (expired(index) && deleteValueWithCount(kLogs, index).ok()) {
       dropped++;
     }
   }
-
-  if (dropped > 0) {
-    LOG(WARNING) << "Purged " << dropped << " buffered logs older than "
-                 << FLAGS_buffered_log_max_age << " seconds";
-  }
+  LOG(WARNING) << "Purged " << dropped << " buffered logs older than "
+               << FLAGS_buffered_log_max_age << " seconds";
+  return true;
 }
 
 void BufferedLogForwarder::start() {

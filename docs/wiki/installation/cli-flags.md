@@ -553,7 +553,7 @@ Setting this value to `0` means the batch is limited only by the plugin's maximu
 
 `--buffered_log_max_age=0`
 
-The maximum age, in seconds, of logs buffered by a buffered logger plugin. Before each send, buffered logs older than this are discarded instead of sent. This keeps a node that was offline for a long time from sending stale logs when it reconnects.
+The maximum age, in seconds, of logs buffered by a buffered logger plugin. Before each send, buffered logs older than this are discarded instead of sent. This keeps a node that was offline for a long time from sending stale logs when it reconnects. Age is measured from when the log was buffered, by the system clock.
 
 Setting this value to `0` means buffered logs are kept regardless of age.
 
