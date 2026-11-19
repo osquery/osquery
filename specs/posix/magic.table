@@ -2,7 +2,7 @@ table_name("magic")
 description("Magic number recognition library table.")
 schema([
     Column("path", TEXT, "Absolute path to target file", required=True, index=True),
-    Column("magic_db_files", TEXT, "Colon(:) separated list of files where the magic db file can be found. By default one of the following is used: /usr/share/file/magic/magic, /usr/share/misc/magic or /usr/share/misc/magic.mgc", additional=True),
+    Column("magic_db_files", TEXT, "Colon(:) separated list of magic databases to load. Without this constraint the table loads the entries of --magic_db_files that the bundled libmagic can load: by default the database shipped with osquery, and the system's if it was compiled for the same libmagic database format", additional=True),
     Column("data", TEXT, "Magic number data from libmagic"),
     Column("mime_type", TEXT, "MIME type data from libmagic"),
     Column("mime_encoding", TEXT, "MIME encoding data from libmagic"),

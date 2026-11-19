@@ -9,9 +9,12 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <boost/filesystem/path.hpp>
 
 #include <osquery/config/config.h>
 #include <osquery/core/core.h>
@@ -74,6 +77,17 @@ TableRows genRows(EventSubscriberPlugin* sub);
 #ifdef OSQUERY_WINDOWS
 void initUsersAndGroupsServices(bool init_users, bool init_groups);
 void deinitUsersAndGroupsServices(bool deinit_users, bool deinit_groups);
+#else
+/**
+ * @brief Runs read() and tells whether it returned within a few seconds.
+ *
+ * For testing that a reader refuses a FIFO without blocking on it: a blocking
+ * open() of a FIFO with no writer never returns. If read() has not returned
+ * in time, the FIFO is opened for writing, which lets that open complete and
+ * read() end, so the test fails instead of hanging.
+ */
+bool returnsWithoutBlockingOnFifo(const boost::filesystem::path& fifo,
+                                  std::function<void()> read);
 #endif
 
 } // namespace osquery

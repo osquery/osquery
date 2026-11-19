@@ -30,6 +30,7 @@ void decorateFileEvent(const std::string& path, bool hash, Row& r) {
     }
   }
 
+  // A path whose type cannot be read is not hashed.
   std::error_code ec;
   if (hash && std::filesystem::is_regular_file(path, ec)) {
     auto hashes = hashMultiFromFile(
