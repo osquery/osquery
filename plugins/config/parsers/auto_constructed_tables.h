@@ -55,6 +55,11 @@ class ATCConfigParserPlugin : public ConfigParserPlugin {
   const std::string kParserKey{"auto_table_construction"};
   const std::string kDatabaseKeyPrefix{"atc."};
 
+  /// Whether update() received tables that afterUpdate() has not applied.
+  /// Only accessed during a config update, which the config's update mutex
+  /// serializes.
+  bool pending_{false};
+
   Status removeATCTables(const std::set<std::string>& tables);
   std::set<std::string> registeredATCTables();
 
@@ -65,5 +70,8 @@ class ATCConfigParserPlugin : public ConfigParserPlugin {
 
   Status setUp() override;
   Status update(const std::string& source, const ParserConfig& config) override;
+
+  /// Attach and detach tables, which takes SQLite locks.
+  void afterUpdate() override;
 };
 } // namespace osquery
