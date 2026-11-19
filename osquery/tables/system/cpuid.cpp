@@ -122,7 +122,8 @@ static inline void registerToString(int reg, std::stringstream& stream) {
 }
 
 static inline bool isBitSet(size_t bit, unsigned int reg) {
-  return ((reg & (1 << bit)) != 0);
+  // Unsigned literal: 1 << 31 (e.g. avx512vl, hypervisor) overflows signed int.
+  return ((reg & (1U << bit)) != 0);
 }
 
 inline Status genStrings(QueryData& results) {
