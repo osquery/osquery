@@ -12,6 +12,8 @@
 #include <osquery/sql/sql.h>
 #include <plugins/database/rocksdb.h>
 
+#include <rocksdb/table.h>
+
 #include <boost/filesystem.hpp>
 
 namespace osquery {
@@ -172,6 +174,14 @@ TEST_F(RocksDBDatabasePluginTests, test_table_options_pinned) {
                                         &props);
   ASSERT_TRUE(rs.ok()) << rs.ToString();
   ASSERT_GT(props.size(), 0U);
+
+  const auto* table_opts =
+      db.options_.table_factory->GetOptions<rocksdb::BlockBasedTableOptions>();
+  ASSERT_NE(table_opts, nullptr);
+  EXPECT_EQ(table_opts->format_version, 5U)
+      << "format_version must be pinned to 5 for backward compatibility";
+  EXPECT_EQ(table_opts->checksum, rocksdb::kCRC32c)
+      << "checksum must be pinned to kCRC32c for backward compatibility";
 
   for (const auto& kv : props) {
     EXPECT_EQ(kv.second->format_version, 5U)
