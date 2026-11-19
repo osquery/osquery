@@ -7,8 +7,10 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 
 #include <osquery/core/tables.h>
 #include <osquery/events/darwin/diskarbitration.h>
@@ -29,6 +31,9 @@ namespace errc = boost::system::errc;
 namespace osquery {
 
 const std::string kIOHIDXClassPath{"IOService:/IOResources/IOHDIXController/"};
+
+/// Length of the master checksum field in the UDIF (koly) trailer.
+const uint32_t kUdifChecksumFieldSize{128};
 
 REGISTER(DiskArbitrationEventPublisher, "event_publisher", "diskarbitration");
 
@@ -198,10 +203,12 @@ std::string DiskArbitrationEventPublisher::extractUdifChecksum(
     dmg_file.read((char*)&checksum_size, sizeof(checksum_size));
     // checksum_size is in big endian and we need to byte swap
     checksum_size = CFSwapInt32(checksum_size);
+    // The size comes from the image, so never read past the checksum field.
+    checksum_size = std::min(checksum_size, kUdifChecksumFieldSize);
 
     dmg_file.seekg(-152L, std::ios::end); // checksum offset
-    unsigned char* u_buffer = new unsigned char[checksum_size];
-    dmg_file.read((char*)u_buffer, checksum_size);
+    std::vector<unsigned char> u_buffer(checksum_size);
+    dmg_file.read((char*)u_buffer.data(), checksum_size);
     // we don't want to byte swap checksum as disk utility/hdiutil doesn't
     std::stringstream checksum;
     for (size_t i = 0; i < checksum_size; i++) {
@@ -210,7 +217,6 @@ std::string DiskArbitrationEventPublisher::extractUdifChecksum(
                  << (unsigned int)u_buffer[i];
       }
     }
-    delete[] u_buffer;
     dmg_file.close();
     return checksum.str();
   }
