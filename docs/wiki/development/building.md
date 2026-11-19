@@ -251,7 +251,9 @@ CI builds without timing history.
 Windows uses platform-specific estimates for its slower TLS, ETW, filesystem,
 database/logger plugin, Python, and integration tests.
 macOS also uses platform-specific estimates, prioritizing its particularly slow
-TLS config and transport suites, followed by logger and integration tests.
+TLS config and transport suites, followed by logger and integration tests. These
+costs are generated based on `Testing/Temporary/CTestCostData.txt` and can be
+updated from those values collected on a dev machine, or in CI.
 
 Use `ctest -R tests_integration_tables-test` to run all non-root integration
 shards; an exact match to `^tests_integration_tables-test$` runs only the first
