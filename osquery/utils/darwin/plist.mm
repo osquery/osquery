@@ -9,6 +9,8 @@
 
 #include "plist.h"
 
+#include <algorithm>
+
 #import <Foundation/Foundation.h>
 
 #include <boost/filesystem/path.hpp>
@@ -32,14 +34,26 @@ namespace osquery {
 const size_t kPlistMaxDepth = 64;
 
 /**
- * @brief The most a property list may grow to as a tree, in bytes.
+ * @brief The most any property list may grow to as a tree, in bytes.
  *
  * Each value counts its tree node, key and data. A binary plist may reference
  * one object from many places and the tree repeats it each time: N nested
- * arrays of [previous, previous] are 2^N values. The limit stays well under
- * the watchdog's worker memory limit.
+ * arrays of [previous, previous] are 2^N values.
  */
 const size_t kPlistMaxTreeSize = 16 * 1024 * 1024;
+
+/**
+ * @brief How many times its own size a larger property list's tree may be.
+ *
+ * An XML plist of short strings and numbers makes a tree about three times
+ * its size, so a large ordinary file fits while shared references do not.
+ */
+const size_t kPlistMaxTreeSizePerByte = 4;
+
+/// The most a property list of this many bytes may grow to as a tree.
+static inline size_t plistTreeBudget(size_t content_size) {
+  return std::max(kPlistMaxTreeSize, kPlistMaxTreeSizePerByte * content_size);
+}
 
 /**
  * @brief Filter selected data types from deserialized property list.
@@ -54,7 +68,7 @@ const size_t kPlistMaxTreeSize = 16 * 1024 * 1024;
  * For NSData the result will be base64 encoded as a string type.
  *
  * The walk fails past kPlistMaxDepth or once the tree would exceed its
- * budget, what is left of kPlistMaxTreeSize.
+ * budget, what is left of plistTreeBudget().
  */
 static Status filterDictionary(id plist,
                                const std::string& root,
@@ -204,8 +218,9 @@ static Status filterArray(id plist,
   return Status::success();
 }
 
-static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
-  size_t budget = kPlistMaxTreeSize;
+static inline Status filterPlist(NSData* plist,
+                                 pt::ptree& tree,
+                                 size_t budget) {
   Status status;
   if ([plist isKindOfClass:[NSDictionary class]]) {
     status = filterDictionary((NSMutableDictionary*)plist, "", tree, 0, budget);
@@ -257,7 +272,7 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
       return Status(1, error_message);
     }
     // Parse the plist data into a core foundation dictionary-literal.
-    return filterPlist(plist_data, tree);
+    return filterPlist(plist_data, tree, plistTreeBudget(content.size()));
   }
 }
 
@@ -293,7 +308,8 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
 
     @try {
       // Parse the plist data into a core foundation dictionary-literal.
-      status = filterPlist(plist_data, tree);
+      status =
+          filterPlist(plist_data, tree, plistTreeBudget(plist_content.size()));
     } @catch (NSException* exception) {
       tree.clear();
       status = Status(1, "Plist data is corrupted");

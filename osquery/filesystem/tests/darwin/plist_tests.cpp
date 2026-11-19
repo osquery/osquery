@@ -196,4 +196,24 @@ TEST_F(PlistTests, test_parse_plist_content_shared_containers) {
   EXPECT_FALSE(s.ok());
   EXPECT_TRUE(tree.empty());
 }
+
+TEST_F(PlistTests, test_parse_plist_content_large) {
+  // An ordinary XML plist whose tree comes to more than 16 MiB parses: the
+  // limit grows with the size of the input.
+  const size_t count = 300000;
+  std::string content =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+      "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" "
+      "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+      "<plist version=\"1.0\">\n<array>\n";
+  for (size_t i = 0; i < count; ++i) {
+    content += "<string>0123456789</string>\n";
+  }
+  content += "</array>\n</plist>\n";
+
+  pt::ptree tree;
+  auto s = parsePlistContent(content, tree);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+  EXPECT_EQ(tree.get_child("root").size(), count);
+}
 }
