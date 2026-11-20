@@ -187,12 +187,14 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
           continue;
         }
 
-        int result = yr_rules_scan_file(rule_it->second.get(),
-                                        event.path.c_str(),
-                                        SCAN_FLAGS_FAST_MODE,
-                                        YARACallback,
-                                        (void*)&r,
-                                        0);
+        int result = yaraScanFile(rule_it->second.get(), event.path, (void*)&r);
+
+        if (result == ERROR_COULD_NOT_OPEN_FILE) {
+          // Gone since the event, or not shared by its writer: the rest of
+          // the batch is still scanned.
+          VLOG(1) << "YARA could not open " << event.path << ", skipping it";
+          break;
+        }
 
         if (result != ERROR_SUCCESS) {
           return Status(1, "YARA error: " + std::to_string(result));

@@ -214,7 +214,7 @@ To run a single test, in verbose mode:
 ctest -R <test name> -C <RelWithDebInfo|Release|Debug> -V
 ```
 
-A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/main/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
 
 ```PowerShell
 $Env:GTEST_FILTER='windowsEventLog.*'
@@ -243,7 +243,7 @@ To run a single test, in verbose mode:
 ctest -R <testName> -V
 ```
 
-A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
+A "single" test case often still involves dozens or hundreds of unit tests. To run a single _unit test_, you can pass the [`GTEST_FILTER`](https://github.com/google/googletest/blob/main/docs/advanced.md#running-a-subset-of-the-tests) variable, for example:
 
 ```bash
 GTEST_FILTER=sharedMemory.* ctest -R <testName> -V #runs just the sharedMemory tests under the <testName> set.

@@ -200,6 +200,7 @@ void genNodeSiteDirectories(const std::string& site,
       if (max_depth == -1 || depth < max_depth) {
         fs::path pkg_dir = fs::path(path).parent_path();
         fs::path nested_modules = pkg_dir / "node_modules";
+        // A directory whose type cannot be read is not searched.
         boost::system::error_code ec;
         if (fs::is_directory(nested_modules, ec)) {
           dirs_to_search.emplace_back(pkg_dir.string(), depth + 1);

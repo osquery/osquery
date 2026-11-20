@@ -388,6 +388,12 @@ function(generateTestsIntegrationTablesTestsTest)
     thirdparty_googletest
   )
 
+  # The magic tests load the database the build compiles (TEST_MAGIC_DB),
+  # which a build of only this target would otherwise not produce.
+  if(DEFINED PLATFORM_POSIX)
+    add_dependencies(tests_integration_tables-test generate_magic_db)
+  endif()
+
   if(DEFINED PLATFORM_LINUX)
     set(root_test_name_list
       "memoryDevices.test_sanity"
@@ -411,7 +417,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
     set_tests_properties(
       tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
     )
 
     if(OSQUERY_BUILD_ROOT_TESTS)
@@ -425,7 +431,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
       set_tests_properties(
         tests_integration_tables_root-test
-        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+        PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
       )
     endif()
 
@@ -436,7 +442,7 @@ function(generateTestsIntegrationTablesTestsTest)
 
     set_tests_properties(
       tests_integration_tables-test
-      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"
+      PROPERTIES ENVIRONMENT "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR};TEST_MAGIC_DB=${CMAKE_BINARY_DIR}/magic.mgc"
     )
   endif()
 endfunction()

@@ -138,7 +138,8 @@ Status getSecureBootModeFromValue(UniqueCFTypeRef& value,
   return Status::success();
 }
 
-Status getIntelSecureBootSetting(Row& row) {
+// Only called when building for Intel, but compiled on every architecture.
+[[maybe_unused]] Status getIntelSecureBootSetting(Row& row) {
   SecureBootMode mode{SecureBootMode::NoSecurity};
 
   UniqueIoRegistryEntry options_entry;

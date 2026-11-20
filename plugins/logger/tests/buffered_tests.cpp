@@ -8,6 +8,7 @@
  */
 
 #include <chrono>
+#include <set>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -110,6 +111,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
   FRIEND_TEST(BufferedLogForwarderTests, test_backoff);
+  FRIEND_TEST(BufferedLogForwarderTests, test_backoff_jitter);
 
  private:
   bool checked_{false};
@@ -689,6 +691,13 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
   runner.logStatus({log1});
 
+  // Backoff waits a random 50-100% of the exponential period.
+  auto expectJittered = [](std::chrono::seconds period,
+                           std::chrono::seconds full) {
+    EXPECT_GE(period, full - full / 2);
+    EXPECT_LE(period, full);
+  };
+
   // Fail to send.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(1, "fail")));
@@ -697,22 +706,24 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+  expectJittered(runner.results_backoff_period_, runner.log_period_);
+  expectJittered(runner.statuses_backoff_period_, runner.log_period_);
 
   // Don't send anything.
+  auto results_period = runner.results_backoff_period_;
+  auto statuses_period = runner.statuses_backoff_period_;
   runner.check(false, false);
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_);
+  ASSERT_EQ(runner.results_backoff_period_, results_period);
+  ASSERT_EQ(runner.statuses_backoff_period_, statuses_period);
 
   // Allow time to tick one period.
   runner.backoffTick();
   ASSERT_EQ(runner.results_backoff_, 1);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, std::chrono::seconds::zero());
-  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_LE(runner.results_backoff_period_, std::chrono::seconds::zero());
+  ASSERT_LE(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
   // Only send results.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -720,17 +731,18 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.check(true, false);
   ASSERT_EQ(runner.results_backoff_, 2);
   ASSERT_EQ(runner.statuses_backoff_, 1);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
-  ASSERT_EQ(runner.statuses_backoff_period_, std::chrono::seconds::zero());
+  expectJittered(runner.results_backoff_period_, runner.log_period_ * 4);
+  ASSERT_LE(runner.statuses_backoff_period_, std::chrono::seconds::zero());
 
   // Only send statuses.
+  results_period = runner.results_backoff_period_;
   EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log1)), "status"))
       .WillOnce(Return(Status(1)));
   runner.check(false, true);
   ASSERT_EQ(runner.results_backoff_, 2);
   ASSERT_EQ(runner.statuses_backoff_, 2);
-  ASSERT_EQ(runner.results_backoff_period_, runner.log_period_ * 4);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.log_period_ * 4);
+  ASSERT_EQ(runner.results_backoff_period_, results_period);
+  expectJittered(runner.statuses_backoff_period_, runner.log_period_ * 4);
 
   // Fail to send again, hitting the max backoff.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -739,9 +751,9 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
       .WillOnce(Return(Status(1)));
   runner.check();
   ASSERT_EQ(runner.results_backoff_, 2);
-  ASSERT_EQ(runner.results_backoff_period_, runner.max_backoff_period_);
+  expectJittered(runner.results_backoff_period_, runner.max_backoff_period_);
   ASSERT_EQ(runner.statuses_backoff_, 2);
-  ASSERT_EQ(runner.statuses_backoff_period_, runner.max_backoff_period_);
+  expectJittered(runner.statuses_backoff_period_, runner.max_backoff_period_);
 
   // Allow send() to succeed.
   EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
@@ -772,5 +784,26 @@ TEST_F(BufferedLogForwarderTests, test_backoff) {
   runner.log_period_ = std::chrono::seconds(2);
   runner.backoffTick();
   ASSERT_TRUE(runner.results_backoff_period_ <= std::chrono::seconds::zero());
+}
+
+TEST_F(BufferedLogForwarderTests, test_backoff_jitter) {
+  StrictMock<MockBufferedLogForwarder> runner;
+  runner.max_backoff_period_ = runner.log_period_ * 5;
+  runner.logString("foo");
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillRepeatedly(Return(Status(1, "fail")));
+
+  // The wait after the same number of failures should vary, so nodes that
+  // started failing together don't retry together.
+  std::set<std::chrono::seconds::rep> periods;
+  for (int i = 0; i < 20; i++) {
+    runner.results_backoff_ = 1;
+    runner.check(true, false);
+    ASSERT_EQ(runner.results_backoff_, 2);
+    ASSERT_GE(runner.results_backoff_period_, runner.log_period_ * 2);
+    ASSERT_LE(runner.results_backoff_period_, runner.log_period_ * 4);
+    periods.insert(runner.results_backoff_period_.count());
+  }
+  EXPECT_GT(periods.size(), 1U);
 }
 } // namespace osquery

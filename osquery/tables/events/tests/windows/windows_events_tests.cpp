@@ -188,6 +188,40 @@ TEST_F(WindowsEventsTests, event_data_serialization) {
       {"named_data_only",
        "<Data Name='First'>one</Data><Data Name='Second'>two</Data>",
        R"json({"EventData":{"First":"one","Second":"two"}})json"},
+      {"named_then_unnamed_data",
+       "<Data Name='First'>one</Data><Data>two</Data>",
+       R"json({"EventData":["one","two"]})json"},
+      {"unnamed_then_named_data",
+       "<Data>one</Data><Data Name='Second'>two</Data>",
+       R"json({"EventData":["one","two"]})json"},
+      {"named_then_unnamed_then_named_data",
+       "<Data Name='First'>one</Data><Data>two</Data>"
+       "<Data Name='Third'>three</Data>",
+       R"json({"EventData":["one","two","three"]})json"},
+      {"named_then_empty_name",
+       "<Data Name='First'>one</Data><Data Name=''>two</Data>",
+       R"json({"EventData":["one","two"]})json"},
+      {"named_then_empty_unnamed_data",
+       "<Data Name='First'>one</Data><Data/>",
+       R"json({"EventData":["one",""]})json"},
+      {"named_then_unnamed_data_and_binary",
+       "<Data Name='First'>one</Data><Data>two</Data><Binary>bin</Binary>",
+       R"json({"EventData":{"Data":["one","two"],"Binary":"bin"}})json"},
+      {"binary_then_named_then_unnamed_data",
+       "<Binary>bin</Binary><Data Name='First'>one</Data><Data>two</Data>",
+       R"json({"EventData":{"Binary":"bin","Data":["one","two"]}})json"},
+      {"nested_named_then_unnamed_data",
+       "<Container><Data Name='First'>one</Data><Data>two</Data></Container>",
+       R"json({"EventData":{"Container":["one","two"]}})json"},
+      {"dotted_name_after_prefix",
+       "<Data Name='A'>x</Data><Data Name='A.B'>y</Data>",
+       R"json({"EventData":{"A":"x","A.B":"y"}})json"},
+      {"dotted_name_before_prefix",
+       "<Data Name='A.B'>y</Data><Data Name='A'>x</Data>",
+       R"json({"EventData":{"A.B":"y","A":"x"}})json"},
+      {"dotted_name_only",
+       "<Data Name='A.B'>y</Data>",
+       R"json({"EventData":{"A.B":"y"}})json"},
       {"named_data_and_binary",
        "<Data Name='First'>one</Data><Binary>bin</Binary>",
        R"json({"EventData":{"First":"one","Binary":"bin"}})json"},
@@ -224,6 +258,19 @@ TEST_F(WindowsEventsTests, event_data_serialization) {
        "<Data>one</Data><Data.Extension>meta</Data.Extension>"
        "<Data>two</Data>",
        R"json({"EventData":{"Data":["one","two"],"Data.Extension":"meta"}})json"},
+      {"dotted_sibling_with_named_data",
+       "<Data Name='First'>one</Data><Data.Extension>meta</Data.Extension>",
+       R"json({"EventData":{"First":"one","Data.Extension":"meta"}})json"},
+      {"dotted_sibling_only",
+       "<Data.Extension>meta</Data.Extension>",
+       R"json({"EventData":{"Data.Extension":"meta"}})json"},
+      {"nested_dotted_sibling_with_named_data",
+       "<Container><Data Name='First'>one</Data>"
+       "<Data.Extension>meta</Data.Extension></Container>",
+       R"json({"EventData":{"Container":{"First":"one","Data.Extension":"meta"}}})json"},
+      {"dotted_container",
+       "<Container.Extension><Data Name='A.B'>y</Data></Container.Extension>",
+       R"json({"EventData":{"Container.Extension":{"A.B":"y"}}})json"},
       {"nested_mixed_data",
        "<Container><Data>one</Data><Data>two</Data>"
        "<Binary>bin</Binary></Container>",
@@ -243,10 +290,6 @@ TEST_F(WindowsEventsTests, event_data_serialization) {
 
     ASSERT_TRUE(status.ok()) << status.getMessage();
     EXPECT_EQ(windows_event.data, test_case.expected_json);
-
-    std::stringstream json_stream(windows_event.data);
-    boost::property_tree::ptree parsed_json;
-    ASSERT_NO_THROW(boost::property_tree::read_json(json_stream, parsed_json));
   }
 }
 

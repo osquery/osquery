@@ -30,6 +30,20 @@ TEST_F(ShellitemTests, test_shellitem_fileentry) {
   ASSERT_TRUE(file_entry.mft_sequence == 0LL);
 }
 
+TEST_F(ShellitemTests, test_shellitem_fileentry_odd_tail_after_complete_field) {
+  // A complete string_size field followed by an odd-length tail parses: the
+  // swap only sees the full four-character field, and the tail belongs to
+  // the name. Appending one character to the standard fixture leaves its
+  // terminated "osquery" name intact.
+  std::string data =
+      "56003100000000000000000010006F73717565727900400009000400EFBE000000000000"
+      "00002E00000000000000000000000000000000000000000000000000000000006F007300"
+      "71007500650072007900000016000000"
+      "F";
+  auto file_entry = fileEntry(data);
+  ASSERT_EQ(file_entry.path, "osquery");
+}
+
 TEST_F(ShellitemTests, test_shellitem_ftpserver) {
   std::string data =
       "560061034C00030100000400000012122B8B7BFBD601FFFFFFFF00000000000000000000"
@@ -116,6 +130,30 @@ TEST_F(ShellitemTests, test_shellitem_driveletterentry_truncated) {
   std::string data = "3A5C2F";
   auto name = driveLetterItem(data);
   ASSERT_EQ(name, "[UNKNOWN DRIVE VOLUME]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_signature_at_start) {
+  // The extension signature is the first field of the record; subtracting
+  // eight underflows entry_offset, and the resulting huge value passed the
+  // entry_offset <= 0 check and made the field reads run past the end.
+  auto file_entry = fileEntry("0400EFBE");
+  ASSERT_EQ(file_entry.path, "[UNSUPPORTED SHELL EXTENSION]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_truncated) {
+  // A record that ends before the string_size field at entry_offset + 72
+  // made substr() throw std::out_of_range, aborting the whole shellbags
+  // query.
+  auto file_entry = fileEntry("56003100000000000000000010000400EFBE");
+  ASSERT_EQ(file_entry.path, "[UNSUPPORTED SHELL EXTENSION]");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_truncated_name) {
+  // Version 9 places the name at entry_offset + 92; this record ends at
+  // entry_offset + 88, which made substr() throw.
+  auto file_entry = fileEntry(std::string(76, 'A') + "0900" + "0400EFBE" +
+                              std::string(72, 'B'));
+  ASSERT_EQ(file_entry.path, "[UNSUPPORTED SHELL EXTENSION]");
 }
 
 TEST_F(ShellitemTests, test_shellitem_mtpfolder) {
@@ -234,6 +272,35 @@ TEST_F(ShellitemTests, test_shellitem_networkshare) {
       "776172652053686172656420466F6C64657273003F000000";
   auto name = networkShareItem(data);
   ASSERT_TRUE(name == "\\\\vmware-host\\Shared Folders");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_v7_boundary_exact) {
+  // A version-7 record ending exactly at its name field (entry_offset +
+  // 72) parses with an empty name. The previous string_size guard
+  // (entry_offset + 76) rejected it as truncated.
+  std::string data =
+      std::string(24, '3') + "0700" + "0400EFBE" + std::string(56, '4');
+  auto file_entry = fileEntry(data);
+  ASSERT_EQ(file_entry.path, "");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_v7_boundary_partial_name) {
+  // Two characters past the name field still parse; the partial name
+  // "44" decodes to "D".
+  std::string data =
+      std::string(24, '3') + "0700" + "0400EFBE" + std::string(58, '4');
+  auto file_entry = fileEntry(data);
+  ASSERT_EQ(file_entry.path, "D");
+}
+
+TEST_F(ShellitemTests, test_shellitem_fileentry_v7_odd_tail) {
+  // A record whose partial string_size field would be a single character
+  // (odd tail past entry_offset + 72) makes swapEndianess() swap a
+  // character over the string terminator; odd tails are rejected outright.
+  std::string data =
+      std::string(24, '3') + "0700" + "0400EFBE" + std::string(57, '4');
+  auto file_entry = fileEntry(data);
+  ASSERT_EQ(file_entry.path, "[UNSUPPORTED SHELL EXTENSION]");
 }
 
 } // namespace osquery

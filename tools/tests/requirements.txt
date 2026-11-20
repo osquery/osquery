@@ -5,5 +5,5 @@ docker
 osquery
 pexpect==3.3
 psutil
-thrift==0.11.0
+thrift==0.24.0
 timeout_decorator

@@ -19,6 +19,7 @@
 #include <osquery/logger/logger.h>
 #include <osquery/tables/system/system_utils.h>
 #include <osquery/utils/conversions/split.h>
+#include <osquery/utils/property_tree.h>
 
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
@@ -69,10 +70,8 @@ void readKernelPanic(const std::string& panicLogFilePath, QueryData& results) {
 
   try {
     pt::ptree panicLogHeader, panicLogContent;
-    std::istringstream issHeader(rawFileContent.substr(0, contentJsonBegin));
-    pt::read_json(issHeader, panicLogHeader);
-    std::istringstream issContent(rawFileContent.substr(contentJsonBegin));
-    pt::read_json(issContent, panicLogContent);
+    readJsonTree(rawFileContent.substr(0, contentJsonBegin), panicLogHeader);
+    readJsonTree(rawFileContent.substr(contentJsonBegin), panicLogContent);
 
     // Neatly parse the fields represented in actual JSON:
 #ifdef __aarch64__
