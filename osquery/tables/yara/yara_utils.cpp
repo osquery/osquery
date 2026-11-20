@@ -27,6 +27,7 @@
 namespace osquery {
 
 DECLARE_bool(enable_yara_string);
+DECLARE_uint64(read_max);
 
 namespace {
 Status verifyRuleFilePointer(FILE* rule_file, const std::string& file_path) {
@@ -373,6 +374,18 @@ Status handleRuleFiles(const std::string& category,
 }
 
 int yaraScanFile(YR_RULES* rules, const std::string& path, void* user_data) {
+  // libyara mmaps the whole file, so cap scans at --read_max, the same limit
+  // readFile enforces on osquery's other file readers. A huge (or sparse)
+  // file would inflate the worker's RSS until the watchdog stops it.
+  struct stat file_stat;
+  if (::stat(path.c_str(), &file_stat) == 0 &&
+      static_cast<std::uint64_t>(file_stat.st_size) > FLAGS_read_max) {
+    VLOG(1) << "Skipping YARA scan of " << path << ": size "
+            << file_stat.st_size << " exceeds --read_max (" << FLAGS_read_max
+            << ")";
+    return ERROR_COULD_NOT_OPEN_FILE;
+  }
+
 #ifdef WIN32
   // Windows file systems hold no FIFOs, and libyara's own open of the path
   // shares the file with its writers. PlatformFile's shares it with readers
