@@ -361,7 +361,7 @@ Comma-delimited list of table names to be disabled. This allows osquery to be la
 
 `--read_max=52428800` (50 MB)
 
-Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
+Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned. The same limit applies to `yara` scans: a file larger than `read_max` is skipped rather than scanned, since libyara maps the whole file into memory.
 
 ## Linux-only runtime control flags
 

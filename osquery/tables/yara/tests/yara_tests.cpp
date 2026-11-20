@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <osquery/core/flags.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/process/process.h>
 #include <osquery/tables/yara/yara_utils.h>
@@ -26,6 +27,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+DECLARE_uint64(read_max);
 
 const std::string alwaysTrue = "rule always_true { condition: true }";
 const std::string alwaysFalse = "rule always_false { condition: false }";
@@ -164,6 +167,44 @@ TEST_F(YARATest, test_match_false) {
   Row r = scanFile(alwaysFalse);
   // Should have 0 count
   EXPECT_TRUE(r["count"] == "0");
+}
+
+TEST_F(YARATest, test_scan_skips_oversized_file) {
+  // A file larger than --read_max is skipped instead of scanned, the same
+  // limit readFile enforces on osquery's other file readers.
+  const auto read_max = FLAGS_read_max;
+  FLAGS_read_max = 4096;
+
+  const auto file_to_scan = fs::temp_directory_path() /
+                            fs::unique_path("osquery.tests.yara.%%%%.%%%%.bin");
+  {
+    std::ofstream test_file(file_to_scan.string());
+    test_file << "test\n";
+  }
+
+  auto compiler_result = compileFromString(alwaysTrue);
+  ASSERT_TRUE(compiler_result.isValue());
+  auto rules_handle = compiler_result.take();
+
+  Row r;
+  r["count"] = "0";
+  r["matches"] = "";
+
+  // Under the limit, the file is scanned and matches.
+  auto result = yaraScanFile(rules_handle.get(), file_to_scan.string(), &r);
+  EXPECT_EQ(result, ERROR_SUCCESS);
+  EXPECT_EQ(r["count"], "1");
+
+  // Past the limit, the scan is skipped: no matches, and the same code the
+  // callers use for files that cannot be opened.
+  fs::resize_file(file_to_scan, FLAGS_read_max + 1);
+  r["count"] = "0";
+  result = yaraScanFile(rules_handle.get(), file_to_scan.string(), &r);
+  EXPECT_EQ(result, ERROR_COULD_NOT_OPEN_FILE);
+  EXPECT_EQ(r["count"], "0");
+
+  fs::remove_all(file_to_scan);
+  FLAGS_read_max = read_max;
 }
 
 TEST_F(YARATest, test_process_scan_true) {
