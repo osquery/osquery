@@ -101,8 +101,15 @@ bool Filesystem::enumFiles(int dirfd, EnumFilesCallback callback) const {
   UniqueDir directory(nullptr, closedir);
 
   {
-    auto dir_obj = fdopendir(dirfd);
+    // closedir() also closes the fd, and dirfd belongs to the caller
+    auto dir_fd = dup(dirfd);
+    if (dir_fd == -1) {
+      return false;
+    }
+
+    auto dir_obj = fdopendir(dir_fd);
     if (dir_obj == nullptr) {
+      close(dir_fd);
       return false;
     }
 

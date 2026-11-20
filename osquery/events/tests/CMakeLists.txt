@@ -65,6 +65,7 @@ function(generateOsqueryEventsTestsBpftestsTest)
 
     linux/bpf/bpfeventpublisher.cpp
     linux/bpf/bpftestsmain.h
+    linux/bpf/filesystem.cpp
     linux/bpf/mockedfilesystem.cpp
     linux/bpf/mockedfilesystem.h
     linux/bpf/mockedprocesscontextfactory.cpp
