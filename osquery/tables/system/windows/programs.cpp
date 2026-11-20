@@ -7,12 +7,20 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <osquery/utils/system/system.h>
+
+#include <Shlwapi.h>
+
+#include <cctype>
+#include <optional>
 #include <regex>
 
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
+#include <osquery/tables/system/windows/programs.h>
+#include <osquery/utils/conversions/windows/strings.h>
 
 #include "osquery/tables/system/windows/registry.h"
 
@@ -122,6 +130,119 @@ std::string packageFamilyNameFromPackageFullName(
   }
 
   return packageName + "_" + publisherHash;
+}
+
+// Returns what follows the "ms-resource:" prefix, or nothing if the value isn't
+// an ms-resource reference. The scheme is case-insensitive, and surrounding
+// whitespace from the manifest is ignored.
+std::optional<std::string> getMsResourceReference(const std::string& value) {
+  const std::string kPrefix = "ms-resource:";
+  auto begin = value.find_first_not_of(" \t\r\n");
+  if (begin == std::string::npos || value.size() - begin < kPrefix.size()) {
+    return std::nullopt;
+  }
+  for (size_t i = 0; i < kPrefix.size(); i++) {
+    if (std::tolower(static_cast<unsigned char>(value[begin + i])) !=
+        kPrefix[i]) {
+      return std::nullopt;
+    }
+  }
+  auto end = value.find_last_not_of(" \t\r\n");
+  return value.substr(begin + kPrefix.size(), end - begin + 1 - kPrefix.size());
+}
+
+std::vector<std::string> buildMsResourceUris(const std::string& value,
+                                             const std::string& packageName) {
+  auto reference = getMsResourceReference(value);
+  if (!reference || reference->empty()) {
+    return {};
+  }
+  const auto& rest = *reference;
+
+  // The path inside the package's resources, starting with "/".
+  std::string path;
+  if (rest.compare(0, 3, "///") == 0) {
+    // Empty authority, e.g. ms-resource:///Resources/AppName. It means the
+    // running app's package, which is this package.
+    path = rest.substr(2);
+  } else if (rest.compare(0, 2, "//") == 0) {
+    // Full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName. The
+    // authority names a resource map in the .pri file, which isn't always
+    // named after the package, so the URI is tried exactly as written.
+    if (rest.find('/', 2) == std::string::npos) {
+      return {};
+    }
+    return {"ms-resource:" + rest};
+  } else if (rest[0] == '/') {
+    // Path rooted at the package, e.g. ms-resource:/Resources/AppName
+    path = rest;
+  }
+
+  std::vector<std::string> paths;
+  if (!path.empty()) {
+    if (path == "/") {
+      return {};
+    }
+    paths.push_back(path);
+  } else {
+    // A bare key is usually in the default "Resources" map, but some packages
+    // use a path like "LensSDK/Resources/AppStoreName" that is rooted at the
+    // package instead.
+    paths.push_back("/Resources/" + rest);
+    paths.push_back("/" + rest);
+  }
+
+  std::vector<std::string> uris;
+  if (!packageName.empty()) {
+    for (const auto& p : paths) {
+      uris.push_back("ms-resource://" + packageName + p);
+    }
+  }
+  // Last, try an empty authority. With an explicit .pri path, this also
+  // resolves packages whose resource map isn't named after the package.
+  for (const auto& p : paths) {
+    uris.push_back("ms-resource://" + p);
+  }
+  return uris;
+}
+
+// Resolves an "ms-resource:" manifest string from the package's resources.pri.
+// Uses the .pri path form instead of the package full name form because the
+// latter only works for users the package is registered for, which excludes
+// SYSTEM and packages that are only provisioned.
+std::string resolveMsResource(const std::string& value,
+                              const std::string& packageName,
+                              const std::string& installLocation) {
+  if (installLocation.empty()) {
+    return "";
+  }
+
+  const auto priPath = installLocation + "\\resources.pri";
+  if (!osquery::pathExists(priPath).ok()) {
+    return "";
+  }
+
+  // Manifest display strings are limited to 256 characters. A larger buffer
+  // leaves room for translations, and longer strings are truncated.
+  constexpr size_t kResourceStringBufferSize = 1024;
+
+  for (const auto& uri : buildMsResourceUris(value, packageName)) {
+    const auto source = stringToWstring("@{" + priPath + "?" + uri + "}");
+    std::vector<wchar_t> buffer(kResourceStringBufferSize, L'\0');
+    auto hr = SHLoadIndirectString(source.c_str(),
+                                   buffer.data(),
+                                   static_cast<UINT>(buffer.size()),
+                                   nullptr);
+    if (hr == S_OK) {
+      auto resolved = wstringToString(buffer.data());
+      if (!resolved.empty()) {
+        return resolved;
+      }
+    }
+  }
+
+  VLOG(1) << "Cannot resolve '" << value << "' from '" << priPath << "'";
+  return "";
 }
 
 // Function to reverse a string
@@ -417,14 +538,30 @@ void genMsixPrograms(const std::string& key,
       // "ms-resource:" prefix means that the string is dynamically
       // generated from a .pri file .pri file is a binary index of all
       // localized and scaled resources compiled from .resw files or
-      // .resources at build time
-      if (!displayName.empty() &&
-          displayName.find("ms-resource") == std::string::npos) {
-        result["name"] = displayName;
+      // .resources at build time. If it can't be resolved, keep the values
+      // from the Identity tag.
+      const auto packageName = result["name"];
+      if (!displayName.empty()) {
+        if (!getMsResourceReference(displayName)) {
+          result["name"] = displayName;
+        } else {
+          auto resolved = resolveMsResource(
+              displayName, packageName, result["install_location"]);
+          if (!resolved.empty()) {
+            result["name"] = resolved;
+          }
+        }
       }
-      if (!publisherDisplayName.empty() &&
-          publisherDisplayName.find("ms-resource") == std::string::npos) {
-        result["publisher"] = publisherDisplayName;
+      if (!publisherDisplayName.empty()) {
+        if (!getMsResourceReference(publisherDisplayName)) {
+          result["publisher"] = publisherDisplayName;
+        } else {
+          auto resolved = resolveMsResource(
+              publisherDisplayName, packageName, result["install_location"]);
+          if (!resolved.empty()) {
+            result["publisher"] = resolved;
+          }
+        }
       }
     }
 
