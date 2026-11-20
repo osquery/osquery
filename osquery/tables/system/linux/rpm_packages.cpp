@@ -195,96 +195,6 @@ bool RpmSession::ok_ = false;
 rpmlogCallback RpmSession::prev_callback_ = nullptr;
 boost::optional<std::string> RpmSession::prev_config_;
 
-// Core rpm_packages scan. Privileges must already be dropped by the caller; see
-// genRpmPackagesImpl (namespace worker) and genRpmPackages (direct path).
-static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
-  QueryData results;
-
-  // The following implementation uses http://rpm.org/api/4.11.1/
-  RpmSession rpm_session(logger);
-  if (!rpm_session.ok()) {
-    logger.vlog(1, "Cannot read RPM configuration files");
-    return results;
-  }
-
-  rpmts ts = rpmtsCreate();
-  rpmdbMatchIterator matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
-
-  if (context.constraints["name"].exists(EQUALS)) {
-    auto names = context.constraints["name"].getAll(EQUALS);
-    for (const auto& name : names) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
-        logger.vlog(
-            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
-      }
-    }
-  }
-
-  Header header;
-  while ((header = rpmdbNextIterator(matches)) != nullptr) {
-    Row r;
-    rpmtd td = rpmtdNew();
-    r["name"] = getRpmAttribute(header, RPMTAG_NAME, td, logger);
-    r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td, logger);
-    r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td, logger);
-    r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td, logger);
-    r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td, logger);
-    r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td, logger);
-    r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td, logger);
-    r["epoch"] = INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td, logger));
-    r["install_time"] =
-        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td, logger));
-    r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td, logger);
-    r["package_group"] = getRpmAttribute(header, RPMTAG_GROUP, td, logger);
-    r["pid_with_namespace"] = "0";
-
-    rpmtdFree(td);
-    results.push_back(r);
-  }
-
-  rpmdbFreeIterator(matches);
-  rpmtsFree(ts);
-
-  return results;
-}
-
-// Namespace-worker entry point. generateInNamespace takes a plain function
-// pointer (so this can't be a lambda): the forked child keeps privileges to
-// enter the namespace, then drops here before touching the rpmdb.
-QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
-    return {};
-  }
-
-  return genRpmPackagesCore(context, logger);
-}
-
-QueryData genRpmPackages(QueryContext& context) {
-  if (hasNamespaceConstraint(context)) {
-    // Lock in the parent, not the worker: the child would inherit it locked by
-    // an absent thread. The worker keeps privileges to enter the namespace and
-    // drops inside genRpmPackagesImpl.
-    auto rpm_lock = RpmSession::lock();
-    return generateInNamespace(context, "rpm_packages", genRpmPackagesImpl);
-  }
-
-  // Drop before locking (mirrors genRpmPackageFiles) so the drop's `users`
-  // sub-query does not run inside the global rpm critical section.
-  auto& logger = GLOGLogger::instance();
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
-    return {};
-  }
-
-  auto rpm_lock = RpmSession::lock();
-  return genRpmPackagesCore(context, logger);
-}
-
 namespace {
 
 // librpm C handles owned via RAII. genRpmPackageFiles yields inside its loops;
@@ -322,17 +232,129 @@ using RpmtdPtr = std::unique_ptr<std::remove_pointer_t<rpmtd>, RpmtdDeleter>;
 
 } // namespace
 
-void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
-  auto& logger = GLOGLogger::instance();
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
-    logger.log(google::GLOG_WARNING,
-               "Cannot drop privileges for rpm_packages_files");
-    return;
+// Iterates all matching packages and returns their rows. The caller opens
+// the database (matches) and, on the host, drops privileges first.
+static QueryData scanRpmPackages(QueryContext& context,
+                                 Logger& logger,
+                                 rpmdbMatchIterator matches) {
+  QueryData results;
+
+  if (context.constraints["name"].exists(EQUALS)) {
+    auto names = context.constraints["name"].getAll(EQUALS);
+    for (const auto& name : names) {
+      // Limit RPM iterator to constraint values
+      if (rpmdbSetIteratorRE(
+              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
+        logger.vlog(
+            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
+      }
+    }
   }
 
-  auto rpm_lock = RpmSession::lock();
+  Header header;
+  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+    Row r;
+    RpmtdPtr td(rpmtdNew());
+    r["name"] = getRpmAttribute(header, RPMTAG_NAME, td.get(), logger);
+    r["version"] = getRpmAttribute(header, RPMTAG_VERSION, td.get(), logger);
+    r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td.get(), logger);
+    r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td.get(), logger);
+    r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td.get(), logger);
+    r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td.get(), logger);
+    r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td.get(), logger);
+    r["epoch"] =
+        INTEGER(getRpmAttribute(header, RPMTAG_EPOCH, td.get(), logger));
+    r["install_time"] =
+        INTEGER(getRpmAttribute(header, RPMTAG_INSTALLTIME, td.get(), logger));
+    r["vendor"] = getRpmAttribute(header, RPMTAG_VENDOR, td.get(), logger);
+    r["package_group"] =
+        getRpmAttribute(header, RPMTAG_GROUP, td.get(), logger);
+    r["pid_with_namespace"] = "0";
 
+    results.push_back(r);
+  }
+
+  return results;
+}
+
+// Core rpm_packages scan, opening the database itself. Privileges must
+// already be dropped by the caller; see genRpmPackagesImpl (namespace
+// worker). The host path in genRpmPackages opens the database before
+// dropping privileges instead.
+static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
+  // The following implementation uses http://rpm.org/api/4.11.1/
+  RpmSession rpm_session(logger);
+  if (!rpm_session.ok()) {
+    logger.vlog(1, "Cannot read RPM configuration files");
+    return {};
+  }
+
+  RpmtsPtr ts(rpmtsCreate());
+  RpmdbIteratorPtr matches(
+      rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
+  return scanRpmPackages(context, logger, matches.get());
+}
+
+// Namespace-worker entry point. generateInNamespace takes a plain function
+// pointer (so this can't be a lambda): the forked child keeps privileges to
+// enter the namespace, then drops here before touching the rpmdb.
+QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
+    return {};
+  }
+
+  return genRpmPackagesCore(context, logger);
+}
+
+QueryData genRpmPackages(QueryContext& context) {
+  if (hasNamespaceConstraint(context)) {
+    // Lock in the parent, not the worker: the child would inherit it locked by
+    // an absent thread. The worker keeps privileges to enter the namespace and
+    // drops inside genRpmPackagesImpl.
+    auto rpm_lock = RpmSession::lock();
+    return generateInNamespace(context, "rpm_packages", genRpmPackagesImpl);
+  }
+
+  auto& logger = GLOGLogger::instance();
+  auto rpm_lock = RpmSession::lock();
+  // The handle is declared first so that privileges are restored only after
+  // the librpm objects below are freed.
+  auto dropper = DropPrivileges::get();
+
+  // On the host, the RPM configuration and database are root-owned: open
+  // them before dropping privileges. The drop's `users` sub-query does not
+  // touch librpm, so it can run inside the global rpm critical section.
+  RpmSession rpm_session(logger);
+  if (!rpm_session.ok()) {
+    logger.vlog(1, "Cannot read RPM configuration files");
+    return {};
+  }
+
+  RpmtsPtr ts(rpmtsCreate());
+  RpmdbIteratorPtr matches(
+      rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
+
+  // The database is now open; parse it without privileges.
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
+    return {};
+  }
+
+  return scanRpmPackages(context, logger, matches.get());
+}
+
+void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
+  auto& logger = GLOGLogger::instance();
+  auto rpm_lock = RpmSession::lock();
+  // The handle is declared first so that privileges are restored only after
+  // the librpm objects below are freed.
+  auto dropper = DropPrivileges::get();
+
+  // This table only reads the host's root-owned database. It is opened
+  // before dropping privileges so that databases only root can open are
+  // read, and is then parsed without privileges.
   RpmSession rpm_session(logger);
   if (!rpm_session.ok()) {
     logger.vlog(1, "Cannot read RPM configuration files");
@@ -342,6 +364,13 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   RpmtsPtr ts(rpmtsCreate());
   RpmdbIteratorPtr matches(
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
+
+  // The database is now open; parse it without privileges.
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    logger.log(google::GLOG_WARNING,
+               "Cannot drop privileges for rpm_packages_files");
+    return;
+  }
 
   if (context.constraints["package"].exists(EQUALS)) {
     auto packages = context.constraints["package"].getAll(EQUALS);
