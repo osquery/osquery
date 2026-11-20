@@ -90,24 +90,21 @@ TEST_F(ProgramsTablesTest, test_build_ms_resource_uris) {
                                 "Microsoft.Todos"),
             rootedPath);
 
-  // Full URI for this package
+  // Full URI: tried exactly as written, because the authority names a
+  // resource map, which isn't always named after the package
   std::vector<std::string> fullUri = {
-      "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName",
-      "ms-resource:///YourPhone/Resources/AppName"};
+      "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName"};
   ASSERT_EQ(buildMsResourceUris(
                 "ms-resource://Microsoft.YourPhone/YourPhone/Resources/AppName",
                 "Microsoft.YourPhone"),
             fullUri);
-
-  // Full URI for another package, or with a different case, isn't resolved
-  ASSERT_TRUE(buildMsResourceUris(
-                  "ms-resource://Microsoft.UI.Xaml.2.8/Resources/AppName",
-                  "Microsoft.YourPhone")
-                  .empty());
-  ASSERT_TRUE(buildMsResourceUris(
-                  "ms-resource://microsoft.yourphone/YourPhone/Resources/"
-                  "AppName",
-                  "Microsoft.YourPhone")
+  std::vector<std::string> otherMap = {
+      "ms-resource://NotesApp/Resources/AppName"};
+  ASSERT_EQ(buildMsResourceUris("ms-resource://NotesApp/Resources/AppName",
+                                "Contoso.Notes"),
+            otherMap);
+  ASSERT_TRUE(buildMsResourceUris("ms-resource://Microsoft.YourPhone",
+                                  "Microsoft.YourPhone")
                   .empty());
 
   // No package name: only the empty authority is tried

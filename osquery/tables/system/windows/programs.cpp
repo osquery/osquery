@@ -166,14 +166,13 @@ std::vector<std::string> buildMsResourceUris(const std::string& value,
     // running app's package, which is this package.
     path = rest.substr(2);
   } else if (rest.compare(0, 2, "//") == 0) {
-    // Full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName. Only
-    // resolve references to this package. Package names are case-sensitive.
-    auto slash = rest.find('/', 2);
-    if (slash == std::string::npos ||
-        rest.substr(2, slash - 2) != packageName) {
+    // Full URI, e.g. ms-resource://Microsoft.YourPhone/.../AppName. The
+    // authority names a resource map in the .pri file, which isn't always
+    // named after the package, so the URI is tried exactly as written.
+    if (rest.find('/', 2) == std::string::npos) {
       return {};
     }
-    path = rest.substr(slash);
+    return {"ms-resource:" + rest};
   } else if (rest[0] == '/') {
     // Path rooted at the package, e.g. ms-resource:/Resources/AppName
     path = rest;

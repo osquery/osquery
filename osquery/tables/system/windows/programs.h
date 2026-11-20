@@ -39,7 +39,7 @@ std::string decodeMsiRegistryGuid(const std::string& encoded);
  * {"ms-resource://Microsoft.Todos/Resources/AppName",
  * "ms-resource://Microsoft.Todos/AppName", "ms-resource:///Resources/AppName",
  * "ms-resource:///AppName"}, or an empty vector if the value isn't an
- * ms-resource string or refers to another package
+ * ms-resource string. A full URI is returned as written.
  */
 std::vector<std::string> buildMsResourceUris(const std::string& value,
                                              const std::string& packageName);
