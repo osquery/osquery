@@ -16,7 +16,10 @@
 #include <osquery/dispatcher/dispatcher.h>
 #include <osquery/dispatcher/scheduler.h>
 #include <osquery/logger/logger.h>
+#include <osquery/numeric_monitoring/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry/registry.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/sql/sqlite_util.h>
 #include <osquery/utils/system/time.h>
 
@@ -25,6 +28,28 @@ namespace osquery {
 DECLARE_bool(disable_logging);
 DECLARE_bool(enable_numeric_monitoring);
 DECLARE_uint64(schedule_reload);
+DECLARE_string(numeric_monitoring_plugins);
+DECLARE_uint64(numeric_monitoring_pre_aggregation_time);
+
+namespace {
+const auto kRowsMetricPluginName = "scheduler_rows_test_plugin";
+}
+
+class SchedulerRowsTestPlugin : public NumericMonitoringPlugin {
+ public:
+  Status call(const PluginRequest& request, PluginResponse& response) override {
+    points.push_back(request);
+    return Status::success();
+  }
+
+  static std::vector<PluginRequest> points;
+};
+
+std::vector<PluginRequest> SchedulerRowsTestPlugin::points;
+
+REGISTER(SchedulerRowsTestPlugin,
+         monitoring::registryName(),
+         kRowsMetricPluginName);
 
 class SchedulerTests : public testing::Test {
   void SetUp() override {
@@ -118,6 +143,54 @@ TEST_F(SchedulerTests, test_monitor_with_numeric_monitoring) {
   // Recording numeric monitoring points starts a flusher service; stop it so
   // the test does not leave a running thread behind. Stopping services leaves
   // the dispatcher refusing new services until it is reset.
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
+  Dispatcher::instance().resetStopping();
+}
+
+TEST_F(SchedulerTests, test_rows_metric) {
+  const auto numeric_monitoring = FLAGS_enable_numeric_monitoring;
+  const auto plugins = FLAGS_numeric_monitoring_plugins;
+  const auto pre_aggregation_time =
+      FLAGS_numeric_monitoring_pre_aggregation_time;
+
+  FLAGS_enable_numeric_monitoring = true;
+  FLAGS_numeric_monitoring_plugins = kRowsMetricPluginName;
+  FLAGS_numeric_monitoring_pre_aggregation_time = 0;
+
+  ASSERT_TRUE(RegistryFactory::get()
+                  .setActive(monitoring::registryName(),
+                             FLAGS_numeric_monitoring_plugins)
+                  .ok());
+
+  monitoring::flush();
+  SchedulerRowsTestPlugin::points.clear();
+
+  std::string name = "pack_test_rows_metric_query";
+  ScheduledQuery query("test_pack",
+                       "test_query",
+                       "select 1 as number union all select 2 as number");
+  query.interval = 10;
+
+  // The first execution emits both rows as added; the second has no
+  // differential and emits nothing.
+  ASSERT_TRUE(launchQuery(name, query).ok());
+  ASSERT_TRUE(launchQuery(name, query).ok());
+
+  const auto expected_path = "scheduler.query.test_pack.test_query.rows";
+  std::vector<PluginRequest> rows_points;
+  for (const auto& point : SchedulerRowsTestPlugin::points) {
+    if (point.at(monitoring::recordKeys().path) == expected_path) {
+      rows_points.push_back(point);
+    }
+  }
+  ASSERT_EQ(rows_points.size(), 1U);
+  EXPECT_EQ(rows_points.front().at(monitoring::recordKeys().value), "2");
+
+  FLAGS_enable_numeric_monitoring = numeric_monitoring;
+  FLAGS_numeric_monitoring_plugins = plugins;
+  FLAGS_numeric_monitoring_pre_aggregation_time = pre_aggregation_time;
+
   Dispatcher::stopServices();
   Dispatcher::joinServices();
   Dispatcher::instance().resetStopping();
