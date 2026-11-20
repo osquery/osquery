@@ -15,5 +15,5 @@ schema([
 attributes(user_data=True)
 implementation("applications/vscode_extensions@genVSCodeExtensions")
 examples([
-  "select * from users join vscode_extensions using (uid)",
+  "SELECT * FROM users CROSS JOIN vscode_extensions USING (uid)",
 ])
