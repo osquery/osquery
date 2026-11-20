@@ -11,7 +11,14 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/filesystem/filesystem.h>
 #include <osquery/filesystem/linux/proc.h>
+
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#include <string>
 
 #ifndef ETH_P_ALL
 #define ETH_P_ALL 0x0003
@@ -146,6 +153,80 @@ TEST_F(LinuxProc, test_user_namespace_parser) {
 
   removePath(temp_path);
   EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
+}
+
+// Independent reference reader (raw read() to EOF), to compare against
+// readFile without sharing its buffer-growth logic.
+std::string rawReadAll(const std::string& path) {
+  int fd = ::open(path.c_str(), O_RDONLY);
+  std::string out;
+  if (fd < 0) {
+    return out;
+  }
+  char buf[4096];
+  ssize_t n;
+  while ((n = ::read(fd, buf, sizeof(buf))) > 0) {
+    out.append(buf, static_cast<std::size_t>(n));
+  }
+  ::close(fd);
+  return out;
+}
+
+// readFile's unknown-size path (buffer grown block by block) is only reached by
+// special files, which report size 0 -- /proc entries are the real-world case.
+// cmdline is stable and smaller than one block: exercises the short-read path
+// (grow never triggers) and must return the complete content.
+TEST_F(LinuxProc, readFileReadsShortProcFileCompletely) {
+  std::string content;
+  ASSERT_TRUE(readFile("/proc/self/cmdline", content).ok());
+  EXPECT_FALSE(content.empty());
+  EXPECT_EQ(content, rawReadAll("/proc/self/cmdline"));
+}
+
+// Regression guard for the over-allocation itself (not just the contents): a
+// sub-block unknown-size read must not retain a whole kBlockSize buffer. The
+// pre-fix logic grew by a block and never shrank, so capacity stayed >= 16384;
+// resize() never reduces capacity, so that holds regardless of content length.
+// This case therefore fails without the grow-when-full + shrink_to_fit fix.
+TEST_F(LinuxProc, readFileDoesNotOverallocateShortProcFile) {
+  std::string content;
+  ASSERT_TRUE(readFile("/proc/self/cmdline", content).ok());
+  ASSERT_FALSE(content.empty());
+  // Premise: cmdline is smaller than one 16384-byte read block.
+  ASSERT_LT(content.size(), static_cast<std::size_t>(16384));
+  EXPECT_LT(content.capacity(), static_cast<std::size_t>(16384));
+}
+
+// maps is typically larger than one block, exercising the grow-when-full and
+// bounded-read logic. It can shift if mappings change, so compare against a
+// reference read and retry a few times to get a consistent snapshot.
+TEST_F(LinuxProc, readFileReadsMultiBlockProcFileCompletely) {
+  // A static test binary's maps can be under one 16384-byte block, leaving the
+  // grow path untested. One mmap split into many VMAs by alternating page
+  // protections (same-protection neighbors coalesce into one maps line) forces
+  // maps well past a block; it is unmapped again once the read is done.
+  const auto page = static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
+  constexpr std::size_t kRegions = 512;
+  const std::size_t span = kRegions * page;
+  const int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+  void* base = ::mmap(nullptr, span, PROT_READ, flags, -1, 0);
+  ASSERT_NE(base, MAP_FAILED) << "could not map regions to enlarge maps";
+  for (std::size_t i = 0; i < kRegions; i += 2) {
+    ::mprotect(static_cast<char*>(base) + i * page, page, PROT_NONE);
+  }
+
+  std::string content;
+  bool consistent = false;
+  for (int attempt = 0; attempt < 5 && !consistent; ++attempt) {
+    content.clear();
+    ASSERT_TRUE(readFile("/proc/self/maps", content).ok());
+    consistent = (content == rawReadAll("/proc/self/maps"));
+  }
+  ::munmap(base, span);
+
+  ASSERT_TRUE(consistent) << "/proc/self/maps kept changing between reads";
+  // Confirms the read crossed a block boundary, so grow-when-full actually ran.
+  EXPECT_GT(content.size(), static_cast<std::size_t>(16384));
 }
 
 } // namespace
