@@ -183,9 +183,14 @@ TEST_F(RocksDBDatabasePluginTests, test_table_options_pinned) {
   EXPECT_EQ(table_opts->checksum, rocksdb::kCRC32c)
       << "checksum must be pinned to kCRC32c for backward compatibility";
 
+  // TableProperties::format_version is "reserved" and stays 0 on older
+  // RocksDB releases (e.g. a system 6.22.1), so only check it when populated.
+  // The table_factory assertions above cover the pin itself.
   for (const auto& kv : props) {
-    EXPECT_EQ(kv.second->format_version, 5U)
-        << "format_version must be pinned to 5 for backward compatibility";
+    if (kv.second->format_version != 0) {
+      EXPECT_EQ(kv.second->format_version, 5U)
+          << "format_version must be pinned to 5 for backward compatibility";
+    }
   }
 
   db.tearDown();
