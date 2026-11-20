@@ -1,0 +1,17 @@
+table_name("containerd_snapshots")
+description("Containerd snapshots information.")
+schema([
+    Column("name", TEXT, "Snapshot name", index=True),
+    Column("namespace", TEXT, "Containerd namespace", index=True),
+    Column("snapshotter", TEXT, "Snapshotter driver (overlayfs, native, btrfs, zfs)", index=True),
+    Column("parent", TEXT, "Parent snapshot name"),
+    Column("kind", TEXT, "Snapshot kind (view, active, committed, unknown)"),
+    Column("created_at", BIGINT, "Snapshot creation time (seconds since epoch)"),
+    Column("updated_at", BIGINT, "Snapshot last update time (seconds since epoch)"),
+])
+implementation("applications/containerd@genContainerdSnapshots")
+examples([
+  "select * from containerd_snapshots",
+  "select * from containerd_snapshots where snapshotter = 'overlayfs'",
+  "select * from containerd_snapshots where kind = 'active'"
+])

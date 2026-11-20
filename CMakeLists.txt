@@ -129,6 +129,7 @@ function(importLibraries)
     "Linux:dbus"
     "Linux:libcap"
     "Linux,Darwin,Windows:yaml-cpp"
+    "Linux:grpc"
   )
 
   if(OSQUERY_BUILD_BPF)

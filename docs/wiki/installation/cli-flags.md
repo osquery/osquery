@@ -681,6 +681,16 @@ Colon-separated list of magic databases the `magic` table loads when a query doe
 
 Docker information for containers, networks, volumes, images etc is available in different tables. osquery uses docker's UNIX domain socket to invoke docker API calls. Provide the path to Docker's domain socket file. User running `osqueryd` / `osqueryi` should have permission to read the socket file.
 
+## Containerd flags
+
+`--containerd_socket=/run/containerd/containerd.sock`
+
+Containerd information for containers, images, snapshots, namespaces etc is available in the `containerd_*` tables on Linux. osquery talks to containerd over its gRPC UNIX domain socket; provide the path if containerd is configured to use a non-default one. The user running `osqueryd` / `osqueryi` must have permission to read the socket.
+
+`--containerd_namespace=`
+
+Containerd isolates containers into namespaces (for example `default` for `ctr` and `k8s.io` for Kubernetes). By default every namespace is queried; set this flag to restrict the `containerd_*` tables to a single namespace.
+
 ## Shell-only flags
 
 Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's `.help` command for details and explanations.

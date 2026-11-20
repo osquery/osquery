@@ -302,8 +302,10 @@ function(generateSpecialTargets)
   # Used to generate all the files necessary to have a complete view of the project in the IDE
   add_custom_target(prepare_for_ide)
 
+  # osquery/proto/containerd holds containerd's .proto files copied verbatim
+  # (upstream formatting + Apache-2.0 headers), so exclude them like libraries/.
   set(excluded_folders
-    "libraries"
+    "libraries,osquery/proto/containerd"
   )
 
   add_custom_target(format
