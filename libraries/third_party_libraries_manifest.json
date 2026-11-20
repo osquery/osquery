@@ -136,7 +136,7 @@
   "protobuf": {
     "product": "protobuf",
     "vendor": "google",
-    "version": "3.29.0",
+    "version": "5.29.0",
     "commit": "2d4414f384dc499af113b5991ce3eaa9df6dd931",
     "ignored-cves": []
   },
@@ -145,7 +145,10 @@
     "vendor": "c-ares",
     "version": "1.19.1",
     "commit": "6360e96b5cf8e5980c887ce58ef727e53d77243a",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2024-25629",
+      "CVE-2025-31498"
+    ]
   },
   "re2": {
     "vendor": "google",
