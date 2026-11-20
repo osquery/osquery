@@ -482,4 +482,25 @@ Status platformFileno(FILE* file, int& fd);
  * @return osquery::Status
  */
 Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
+
+/**
+ * @brief Reads the filesystem attribute flags of a file with the
+ * FS_IOC_GETFLAGS ioctl (the chattr/lsattr flags). Linux only.
+ *
+ * Returns failure if the file cannot be opened or the filesystem does not
+ * support the ioctl, success otherwise.
+ *
+ * @return osquery::Status
+ */
+Status getFilesystemFileFlags(const std::string& path, std::uint32_t& flags);
+
+/**
+ * @brief Populates the provided string with a textual representation of the
+ * provided filesystem attribute flags (the FS_*_FL flags). Linux only.
+ *
+ * Returns failure if unrecognized flags are set, success in all other cases.
+ *
+ * @return osquery::Status
+ */
+Status describeFilesystemFileFlags(std::string& output, std::uint32_t flags);
 } // namespace osquery
