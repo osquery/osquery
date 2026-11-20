@@ -442,6 +442,20 @@ void genFileInfoPosix(const fs::path& path,
   r["bsd_flags"] = bsd_file_flags_description;
 #endif
 
+#if defined(__linux__)
+  std::string fs_flags_description;
+  std::uint32_t fs_flags = 0U;
+  if (getFilesystemFileFlags(path.string(), fs_flags).ok()) {
+    if (!describeFilesystemFileFlags(fs_flags_description, fs_flags)) {
+      VLOG(1) << "The following file had undocumented filesystem attribute "
+                 "flags (chattr) set: "
+              << path;
+    }
+  }
+
+  r["fs_flags"] = fs_flags_description;
+#endif
+
   results.push_back(r);
 }
 

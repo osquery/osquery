@@ -38,6 +38,7 @@ extended_schema(DARWIN, [
     Column("bsd_flags", TEXT, "The BSD file flags (chflags). Possible values: NODUMP, UF_IMMUTABLE, UF_APPEND, OPAQUE, HIDDEN, ARCHIVED, SF_IMMUTABLE, SF_APPEND")
 ])
 extended_schema(LINUX, [
+    Column("fs_flags", TEXT, "Filesystem attribute flags set by chattr (FS_*_FL names, comma-separated). See: https://man7.org/linux/man-pages/man1/chattr.1.html"),
     Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
     Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
 ])

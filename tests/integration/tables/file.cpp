@@ -186,6 +186,10 @@ static void test_sanity_common(const QueryData& data,
   row_map["bsd_flags"] = NormalType;
 #endif
 
+#ifdef __linux__
+  row_map["fs_flags"] = NormalType;
+#endif
+
   for (const auto& test_file_name : kFileNameList) {
     auto opt_index = getRowIndexForFileName(data, test_file_name);
     ASSERT_TRUE(opt_index.has_value());
