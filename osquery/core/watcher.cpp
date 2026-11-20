@@ -699,11 +699,15 @@ void WatcherRunner::createWorker() {
     LOG(WARNING) << "osqueryd doesn't exist in: " << exec_path.string();
     return;
   }
-  if (!safePermissions(
-          exec_path.parent_path().string(), exec_path.string(), true)) {
+  std::string failure_reason;
+  if (!safePermissions(exec_path.parent_path().string(),
+                       exec_path.string(),
+                       true,
+                       &failure_reason)) {
     // osqueryd binary has become unsafe.
     auto message = std::string(RLOG(1382)) +
-                   "osqueryd has unsafe permissions: " + exec_path.string();
+                   "osqueryd has unsafe permissions: " + exec_path.string() +
+                   ": " + failure_reason;
     requestShutdown(EXIT_FAILURE, message);
     return;
   }
@@ -748,11 +752,15 @@ void WatcherRunner::createExtension(const std::string& extension) {
     LOG(WARNING) << "Extension binary doesn't exist in: " << exec_path.string();
     return;
   }
-  if (!safePermissions(
-          exec_path.parent_path().string(), exec_path.string(), true)) {
+  std::string failure_reason;
+  if (!safePermissions(exec_path.parent_path().string(),
+                       exec_path.string(),
+                       true,
+                       &failure_reason)) {
     // Extension binary has become unsafe.
     LOG(WARNING) << RLOG(1382)
-                 << "Extension binary has unsafe permissions: " << extension;
+                 << "Extension binary has unsafe permissions: " << extension
+                 << ": " << failure_reason;
     return;
   }
 
