@@ -4,8 +4,8 @@ To submit a PR please make sure to follow the next steps:
 
 - [ ] Read the `CONTRIBUTING.md` guide at the root of the repo.
 - [ ] Ensure the code is formatted building the `format_check` target.  
-      If it is not, then move the committed files to the git staging area,
-      build the `format` target to format them, and then re-commit.
+      If it is not, build the `format_all` target to format all the lines
+      changed on the branch, and then amend or re-commit.
       [More information is available on the wiki](https://osquery.readthedocs.io/en/latest/development/building/#formatting-the-code).
 - [ ] Ensure your PR contains a single logical change.
 - [ ] Ensure your PR contains tests for the changes you're submitting.
