@@ -18,8 +18,8 @@ function(generateOsqueryWorkerLoggingLogger)
   add_osquery_library(osquery_worker_logging_logger INTERFACE)
 
   set(public_header_files
-    include/logger.h
-    include/glog_logger_types.h
+    logger.h
+    glog_logger_types.h
   )
 
   generateIncludeNamespace(osquery_worker_logging_logger "osquery/worker/logging" FILE_ONLY ${public_header_files})
