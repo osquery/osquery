@@ -33,6 +33,7 @@ function(generateOsqueryEventsTestsMergedtestsTest)
     list(APPEND source_files
       darwin/fsevents_tests.cpp
       darwin/es_utils_tests.cpp
+      darwin/diskarbitration_tests.cpp
     )
   elseif(DEFINED PLATFORM_WINDOWS)
     list(APPEND source_files windows/usn_journal_reader_tests.cpp)

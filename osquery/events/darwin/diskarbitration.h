@@ -99,5 +99,7 @@ class DiskArbitrationEventPublisher
   CFRunLoopRef run_loop_{nullptr};
 
   mutable Mutex mutex_;
+
+  FRIEND_TEST(DiskArbitrationTests, test_extract_udif_checksum);
 };
 }
