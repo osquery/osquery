@@ -422,9 +422,11 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
     LOG(WARNING) << type_name << " doesn't exist at: " << path;
     return false;
   }
-  if (!safePermissions(extendable.parent_path().string(), path, true)) {
-    LOG(WARNING) << "Will not autoload " << type_name
-                 << " with unsafe directory permissions: " << path;
+  std::string failure_reason;
+  if (!safePermissions(
+          extendable.parent_path().string(), path, true, &failure_reason)) {
+    LOG(WARNING) << "Will not autoload " << type_name << " at " << path << ": "
+                 << failure_reason;
     return false;
   }
 

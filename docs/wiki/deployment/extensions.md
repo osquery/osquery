@@ -8,6 +8,16 @@ If you are interested in writing extensions, please read the [SDK and Extensions
 
 First, a note: the osquery agent will refuse to load an extension executable from the filesystem if the file's permissions allow write or modify by non-privileged accounts. Before loading an extension, change the owner of the `your_extension.ext` file to be the root account.
 
+When osquery refuses to load an extension, the error message names the specific check that failed. The complete checklist is:
+
+- The file must exist and be readable.
+- The file must not be inside a temporary (`/tmp`-like) directory.
+- The path must be a file, not a directory.
+- The file must be owned by root or by the user running osquery.
+- The file must be executable by its owner.
+- The file must not be writable by other users.
+- Autoloaded extensions must end in `.ext`.
+
 On Windows, because of permission inheritance, just changing the owner of a file is not sufficient. You must also change the owner of the parent directory, remove all inherited DACLs, and disable inheritance. For example, if your osquery extensions are in the `.\Extensions` directory, the following commands will set permissions that satisfy osquery:
 
 ```PowerShell
@@ -102,4 +112,4 @@ Note: [`PRAGMA`](https://www.sqlite.org/pragma.html) is unavailable in v4.6.0, b
 ## Troubleshooting
 
 - Ensure that your osquery config has `--disable_extensions=false`, which ought to be the default value.
-- If you observe a runtime error from osquery, `Extension binary has unsafe permissions`, you have to lock down the filesystem permissions on the extension executable. See the steps in "Extensions Binary Permissions," above. For quick testing, you can bypass this by running osquery with the `--allow_unsafe` flag (not recommended in deployment).
+- If you observe a runtime error from osquery, `Extension binary has unsafe permissions`, the message names the specific check that failed; see the checklist in "Extensions Binary Permissions," above. For quick testing, you can bypass this by running osquery with the `--allow_unsafe` flag (not recommended in deployment).

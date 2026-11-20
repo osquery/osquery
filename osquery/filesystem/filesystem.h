@@ -266,12 +266,15 @@ std::set<boost::filesystem::path> getHomeDirectories();
  * @param dir the directory to check `/tmp` mode.
  * @param path a path to a file to check.
  * @param executable true if the file must also be executable.
+ * @param failure_reason if not null and the check fails, receives a
+ * description of the specific check that failed, for user-facing messages.
  *
  * @return true if the file is 'safe' else false.
  */
 bool safePermissions(const boost::filesystem::path& dir,
                      const boost::filesystem::path& path,
-                     bool executable = false);
+                     bool executable = false,
+                     std::string* failure_reason = nullptr);
 
 /**
  * @brief osquery may use local storage in a user-protected "home".

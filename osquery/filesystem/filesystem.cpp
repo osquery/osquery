@@ -585,10 +585,19 @@ std::set<fs::path> getHomeDirectories() {
 
 bool safePermissions(const fs::path& dir,
                      const fs::path& path,
-                     bool executable) {
+                     bool executable,
+                     std::string* failure_reason) {
+  // Set the optional user-facing reason for each specific failed check.
+  auto fail = [failure_reason](const std::string& reason) {
+    if (failure_reason != nullptr) {
+      *failure_reason = reason;
+    }
+    return false;
+  };
+
   if (!platformIsFileAccessible(path).ok()) {
     // Path was not real, had too may links, or could not be accessed.
-    return false;
+    return fail("file does not exist or is not accessible");
   }
 
   if (FLAGS_allow_unsafe) {
@@ -599,40 +608,45 @@ bool safePermissions(const fs::path& dir,
   if (!result.ok() && result.getCode() < 0) {
     // An error has occurred in stat() on dir, most likely because the file
     // path does not exist
-    return false;
+    return fail("parent directory is not accessible");
   } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.
-    return false;
+    return fail("parent directory " + dir.string() +
+                " is a temporary directory");
   }
 
   PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
   if (!fd.isValid()) {
-    return false;
+    return fail("file is not readable");
   }
 
   result = isDirectory(path);
   if (!result.ok() && result.getCode() < 0) {
     // Something went wrong when determining the file's directoriness
-    return false;
+    return fail("could not determine whether the path is a directory");
   } else if (result.ok()) {
     // Only load file-like nodes (not directories).
-    return false;
+    return fail("path is a directory, not a file");
   }
 
   if (fd.isOwnerRoot().ok() || fd.isOwnerCurrentUser().ok()) {
     result = fd.isExecutable();
 
     // Otherwise, require matching or root file ownership.
-    if (executable && (result.getCode() > 0 || !fd.hasSafePermissions().ok())) {
+    if (executable && result.getCode() > 0) {
       // Require executable, implies by the owner.
-      return false;
+      return fail("file is not executable by its owner");
+    }
+
+    if (executable && !fd.hasSafePermissions().ok()) {
+      return fail("file is writable by other users");
     }
 
     return true;
   }
 
   // Do not load modules not owned by the user.
-  return false;
+  return fail("file is not owned by root or the current user");
 }
 
 const std::string& osqueryHomeDirectory() {
