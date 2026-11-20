@@ -86,10 +86,10 @@ CLI_FLAG(bool,
          false,
          "Dump the contents of the configuration, then exit");
 
-CLI_FLAG(uint64,
-         config_refresh,
-         0,
-         "Optional interval in seconds to re-read configuration");
+FLAG(uint64,
+     config_refresh,
+     0,
+     "Optional interval in seconds to re-read configuration");
 FLAG_ALIAS(google::uint64, config_tls_refresh, config_refresh);
 
 /// How long to wait when config update fails
@@ -592,6 +592,12 @@ Status Config::refresh() {
     }
     status = update(response[0]);
     if (status.ok()) {
+      // An applied config may change config_refresh through its options;
+      // propagate the new interval to the refresh runner.
+      if (getRefresh() != FLAGS_config_refresh) {
+        VLOG(1) << "Config refresh interval updated by config";
+        setRefresh(FLAGS_config_refresh);
+      }
       // Let the plugin know the generated config was applied, e.g. so it
       // can acknowledge a server-supplied validator. Plugins built against
       // an older SDK reject the unknown action; that is not a failure.
@@ -1359,6 +1365,13 @@ void ConfigRefreshRunner::start() {
     // interruption request.
     if (interrupted()) {
       return;
+    }
+
+    // A config may set config_refresh to 0 while the runner is active;
+    // treat that as disabled instead of spinning on a zero pause.
+    if (refresh_sec_ == 0) {
+      pause(std::chrono::seconds(1));
+      continue;
     }
 
     VLOG(1) << "Refreshing configuration state";
