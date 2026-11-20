@@ -12,6 +12,8 @@
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -49,9 +51,12 @@ void genDescriptors(const std::string& process,
                     const std::map<std::string, std::string>& descriptors,
                     QueryData& results) {
   for (const auto& fd : descriptors) {
-    if (fd.second.find("socket:") != std::string::npos ||
-        fd.second.find("anon_inode:") != std::string::npos ||
-        fd.second.find("pipe:") != std::string::npos ||
+    // Sockets, pipes and anonymous inodes readlink to "socket:[<inode>]",
+    // "pipe:[<inode>]" and "anon_inode:<type>". Match on the prefix, as for
+    // namespaces: a regular file may contain these strings in its path.
+    if (boost::algorithm::starts_with(fd.second, "socket:[") ||
+        boost::algorithm::starts_with(fd.second, "anon_inode:") ||
+        boost::algorithm::starts_with(fd.second, "pipe:[") ||
         isNamespaceDescriptor(fd.second)) {
       // This is NOT a vnode/file descriptor.
       continue;

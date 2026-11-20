@@ -15,6 +15,7 @@
 
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -234,6 +235,40 @@ TEST_F(ProcessOpenPipesTest, test_sanity) {
   ASSERT_GT(test_result_, 0);
   test_unnamed_pipe();
   ASSERT_GT(test_result_, 0);
+}
+
+TEST_F(ProcessOpenPipesTest, test_named_pipe_path_containing_descriptor_type) {
+  // Only the "pipe:[", "socket:[" and "anon_inode:" prefixes identify an
+  // anonymous pipe or a non-pipe descriptor; a FIFO whose path merely
+  // contains them is a named pipe.
+  char dir_template[] = "/tmp/tmpdir.XXXXXX";
+  ASSERT_NE(mkdtemp(dir_template), nullptr);
+  const std::string dir_path(dir_template);
+  const std::string fifo_path = dir_path + "/pipe:[1]-socket:[2]-anon_inode:x";
+  ASSERT_EQ(mkfifo(fifo_path.c_str(), 0600), 0);
+
+  // O_RDWR does not block on a FIFO on Linux.
+  int fd = open(fifo_path.c_str(), O_RDWR | O_NONBLOCK);
+  struct stat fifo_stat = {};
+  bool stat_ok = (fd != -1 && fstat(fd, &fifo_stat) == 0);
+
+  QueryData data;
+  if (stat_ok) {
+    data = execute_query("select * from process_open_pipes where pid = " +
+                         std::to_string(getpid()) +
+                         " and fd = " + std::to_string(fd));
+  }
+
+  if (fd != -1) {
+    close(fd);
+  }
+  remove(fifo_path.c_str());
+  rmdir(dir_path.c_str());
+
+  ASSERT_TRUE(stat_ok) << "Cannot open the test FIFO";
+  ASSERT_EQ(data.size(), 1ul);
+  EXPECT_EQ(data[0].at("type"), "named");
+  EXPECT_EQ(data[0].at("inode"), std::to_string(fifo_stat.st_ino));
 }
 
 } // namespace table_tests
