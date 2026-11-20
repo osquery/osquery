@@ -172,6 +172,7 @@ function(generateNativeTables)
     "linux/apparmor_events.table:linux"
     "linux/apparmor_profiles.table:linux"
     "linux/apt_sources.table:linux"
+    "linux/cpu_features.table:linux"
     "linux/iptables.table:linux"
     "linux/kernel_keys.table:linux"
     "linux/kernel_modules.table:linux"
