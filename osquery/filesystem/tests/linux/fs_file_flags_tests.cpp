@@ -186,12 +186,17 @@ TEST_F(LinuxFsFileFlags, readFlagsOfRealFile) {
                  << " does not support FS_IOC_GETFLAGS";
   }
 
-  // A new file has no attribute flags set
-  EXPECT_EQ(flags, 0U);
+  // A new file has no attribute flags set, except on ext4, which creates
+  // regular files with FS_EXTENT_FL (extents) set
+  EXPECT_EQ(flags & ~FS_EXTENT_FL, 0U);
 
   std::string description;
   EXPECT_TRUE(describeFilesystemFileFlags(description, flags));
-  EXPECT_TRUE(description.empty());
+  if ((flags & FS_EXTENT_FL) != 0U) {
+    EXPECT_EQ(description, "FS_EXTENT_FL");
+  } else {
+    EXPECT_TRUE(description.empty());
+  }
 }
 
 TEST_F(LinuxFsFileFlags, setAndReadNoDump) {
