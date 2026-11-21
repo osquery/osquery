@@ -20,6 +20,7 @@
 #include <osquery/logger/logger.h>
 
 #include <osquery/utils/json/json.h>
+#include <osquery/utils/siphash.h>
 
 namespace rj = rapidjson;
 
@@ -36,101 +37,87 @@ FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
 
 namespace {
 
-/// The splitmix64 finalizer (Steele, Lea and Flood, "Fast Splittable
-/// PseudoRandom Number Generators", 2014), used to spread the bits of each
-/// row hash before they are combined.
-inline uint64_t mix64(uint64_t hash) {
-  hash += 0x9e3779b97f4a7c15ULL;
-  hash = (hash ^ (hash >> 30)) * 0xbf58476d1ce4e5b9ULL;
-  hash = (hash ^ (hash >> 27)) * 0x94d049bb133111ebULL;
-  return hash ^ (hash >> 31);
-}
-
-/// Random key of the result hash, generated once per installation and kept in
-/// the database, which is readable by root only. Differential results are a
-/// detection mechanism: without the key, an attacker able to control table
-/// contents could craft a result set colliding with the stored hash to hide
-/// rows from the 'added'/'removed' results.
-uint64_t queryHashKey() {
-  static uint64_t key = []() -> uint64_t {
+/// Random 128-bit key of the result hash, generated once per installation and
+/// kept in the database, which is readable by root only. Differential results
+/// are a detection mechanism: without the key, an attacker able to control
+/// table contents could craft a result set colliding with the stored hash to
+/// hide rows from the 'added'/'removed' results.
+std::pair<uint64_t, uint64_t> queryHashKey() {
+  static std::pair<uint64_t, uint64_t> key =
+      []() -> std::pair<uint64_t, uint64_t> {
     std::string raw;
-    if (getDatabaseValue(kPersistentSettings, "diff_hash_key", raw).ok() &&
-        !raw.empty()) {
-      return std::stoull(raw);
+    if (getDatabaseValue(kPersistentSettings, "diff_hash_key", raw).ok()) {
+      auto separator = raw.find(' ');
+      if (separator != std::string::npos) {
+        return {std::stoull(raw), std::stoull(raw.substr(separator + 1))};
+      }
     }
     std::random_device rd;
-    uint64_t fresh =
-        (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
-    setDatabaseValue(
-        kPersistentSettings, "diff_hash_key", std::to_string(fresh));
-    return fresh;
+    auto half = [&rd]() -> uint64_t {
+      return (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
+    };
+    uint64_t key0 = half();
+    uint64_t key1 = half();
+    setDatabaseValue(kPersistentSettings,
+                     "diff_hash_key",
+                     std::to_string(key0) + " " + std::to_string(key1));
+    return {key0, key1};
   }();
   return key;
 }
 
-/// Hash of a single row, independent of the column order (rows are maps).
-/// The key is applied while the bytes are absorbed, so a collision found for
-/// one key does not hold for another, and the variant index is hashed too, so
-/// the same bytes cannot hash the same under a different value type. Each
-/// column name and string value is length prefixed, so adjacent strings
-/// cannot be regrouped into different columns with the same byte stream.
-/// Allocates nothing.
-uint64_t hashRow(const RowTyped& row, uint64_t key) {
-  uint64_t hash = 0xcbf29ce484222325ULL ^ key;
-  auto fnv1aBytes = [&hash](const unsigned char* bytes, size_t size) {
-    for (size_t i = 0; i < size; ++i) {
-      hash ^= bytes[i];
-      hash *= 0x100000001b3ULL;
-    }
-  };
-  auto fnv1aU64 = [&hash, &fnv1aBytes](uint64_t value) {
-    fnv1aBytes(reinterpret_cast<const unsigned char*>(&value), sizeof(value));
-  };
+/// Absorb a 64-bit value in little endian order, independent of the host
+/// byte order.
+void updateU64LE(SipHash24& hash, uint64_t value) {
+  unsigned char bytes[8];
+  for (size_t i = 0; i < sizeof(bytes); ++i) {
+    bytes[i] = static_cast<unsigned char>(value >> (8 * i));
+  }
+  hash.update(bytes, sizeof(bytes));
+}
+
+/// SipHash-2-4 of a single row, independent of the column order (rows are
+/// maps). Each column name and string value is length prefixed, so adjacent
+/// strings cannot be regrouped into different columns with the same byte
+/// stream, and the variant index is hashed too, so the same bytes cannot hash
+/// the same under a different value type. Allocates nothing.
+uint64_t hashRow(const RowTyped& row, uint64_t key0, uint64_t key1) {
+  SipHash24 hash(key0, key1);
   for (const auto& column : row) {
-    fnv1aU64(column.first.size());
-    fnv1aBytes(reinterpret_cast<const unsigned char*>(column.first.data()),
-               column.first.size());
-    fnv1aU64(column.second.which());
+    updateU64LE(hash, column.first.size());
+    hash.update(column.first.data(), column.first.size());
+    updateU64LE(hash, column.second.which());
     boost::apply_visitor(
         [&](const auto& value) {
           using T = std::decay_t<decltype(value)>;
           if constexpr (std::is_same_v<T, std::string>) {
-            fnv1aU64(value.size());
-            fnv1aBytes(reinterpret_cast<const unsigned char*>(value.data()),
-                       value.size());
+            updateU64LE(hash, value.size());
+            hash.update(value.data(), value.size());
           } else {
-            fnv1aBytes(reinterpret_cast<const unsigned char*>(&value),
-                       sizeof(T));
+            hash.update(&value, sizeof(T));
           }
         },
         column.second);
   }
-  return mix64(hash);
+  return hash.digest();
 }
 
-/// Hash of a result set with the same semantics as diff(): only the multiset
-/// of rows matters, not their order. Combining the sorted per-row hashes keeps
-/// duplicate rows counted while removing the order.
+/// SipHash-2-4 of a result set with the same semantics as diff(): only the
+/// multiset of rows matters, not their order. Combining the sorted per-row
+/// hashes keeps duplicate rows counted while removing the order.
 uint64_t hashQueryData(const QueryDataTyped& qd) {
-  const uint64_t key = queryHashKey();
+  auto [key0, key1] = queryHashKey();
   std::vector<uint64_t> row_hashes;
   row_hashes.reserve(qd.size());
   for (const auto& row : qd) {
-    row_hashes.push_back(hashRow(row, key));
+    row_hashes.push_back(hashRow(row, key0, key1));
   }
   std::sort(row_hashes.begin(), row_hashes.end());
-  uint64_t hash = 0xcbf29ce484222325ULL ^ key;
-  auto fnv1aValue = [&hash](uint64_t value) {
-    const auto* bytes = reinterpret_cast<const unsigned char*>(&value);
-    for (size_t i = 0; i < sizeof(value); ++i) {
-      hash ^= bytes[i];
-      hash *= 0x100000001b3ULL;
-    }
-  };
+  SipHash24 hash(key0, key1);
   for (const auto& row_hash : row_hashes) {
-    fnv1aValue(row_hash);
+    updateU64LE(hash, row_hash);
   }
-  return mix64(hash);
+  return hash.digest();
 }
 
 } // namespace

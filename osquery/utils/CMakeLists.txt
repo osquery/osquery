@@ -87,6 +87,7 @@ function(generateOsqueryUtils)
     only_movable.h
     rot13.h
     scope_guard.h
+    siphash.h
   )
 
   generateIncludeNamespace(osquery_utils "osquery/utils" "FILE_ONLY" ${public_header_files})
@@ -165,6 +166,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/map_take.cpp
     tests/rot13.cpp
     tests/scope_guard.cpp
+    tests/siphash.cpp
   )
 
   if(DEFINED PLATFORM_WINDOWS)
