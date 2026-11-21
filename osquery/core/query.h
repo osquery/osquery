@@ -156,10 +156,13 @@ class Query {
    *
    * @param json  Json serialized results string
    * @param epoch  Epoch the results are from
+   * @param hash  Hash of the results, saved with the epoch
    *
    * @return the success or failure of the operation.
    */
-  Status saveQueryResults(const std::string& json, uint64_t epoch) const;
+  Status saveQueryResults(const std::string& json,
+                          uint64_t epoch,
+                          const std::string& hash) const;
 
   /**
    * @brief Get the epoch associated with the previous query results.

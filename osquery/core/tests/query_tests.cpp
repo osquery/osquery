@@ -223,6 +223,107 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_EQ(dr.added.size(), results.size() - 1);
 }
 
+TEST_F(QueryTests, test_add_new_results_typed_value_change) {
+  // A long long and a double with the same payload bytes are different rows,
+  // and must produce a differential.
+  QueryDataTyped results;
+  RowTyped row;
+  row["value"] = 4607182418800017408LL;
+  results.push_back(row);
+
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("typed_value_query", query);
+  uint64_t counter = 0;
+  DiffResults dr;
+  auto status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+
+  QueryDataTyped changed;
+  RowTyped changed_row;
+  changed_row["value"] = 1.0;
+  changed.push_back(changed_row);
+
+  status = cf.addNewResults(changed, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(dr.added.size(), 1UL);
+  EXPECT_EQ(dr.removed.size(), 1UL);
+}
+
+TEST_F(QueryTests, test_add_new_results_column_boundaries) {
+  // The column name and value encodings must not be regroupable: these two
+  // rows differ, although their bytes run together the same way.
+  QueryDataTyped results;
+  RowTyped row;
+  row["a"] = std::string("s");
+  row["b"] = std::string(
+      "\x1f"
+      "b"
+      "\x1f"
+      "\x02"
+      "t");
+  results.push_back(row);
+
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("column_boundaries_query", query);
+  uint64_t counter = 0;
+  DiffResults dr;
+  auto status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+
+  QueryDataTyped changed;
+  RowTyped changed_row;
+  changed_row["a"] = std::string(
+      "s"
+      "\x1f"
+      "b"
+      "\x1f"
+      "\x02");
+  changed_row["b"] = std::string("t");
+  changed.push_back(changed_row);
+
+  status = cf.addNewResults(changed, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(dr.added.size(), 1UL);
+  EXPECT_EQ(dr.removed.size(), 1UL);
+}
+
+TEST_F(QueryTests, test_add_new_results_unchanged) {
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("unchanged_query", query);
+
+  // Store an initial set of results.
+  uint64_t counter = 128;
+  DiffResults dr;
+  auto results = getTestDBExpectedResults();
+  auto status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(counter, 0UL);
+
+  // Running the same results again produces no differential and does not
+  // increment the counter.
+  counter = 128;
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_TRUE(dr.hasNoResults());
+  EXPECT_EQ(counter, 128UL);
+
+  // The row order does not affect the differential.
+  std::reverse(results.begin(), results.end());
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_TRUE(dr.hasNoResults());
+  EXPECT_EQ(counter, 128UL);
+
+  // A changed result set still produces a differential.
+  results.resize(1);
+  counter = 128;
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(dr.added.size(), 0UL);
+  EXPECT_EQ(dr.removed.size(), getTestDBExpectedResults().size() - 1);
+  EXPECT_EQ(counter, 1UL);
+}
+
 TEST_F(QueryTests, test_get_stored_query_names) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);

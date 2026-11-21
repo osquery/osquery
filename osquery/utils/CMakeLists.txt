@@ -89,6 +89,7 @@ function(generateOsqueryUtils)
     property_tree.h
     rot13.h
     scope_guard.h
+    siphash.h
   )
 
   generateIncludeNamespace(osquery_utils "osquery/utils" "FILE_ONLY" ${public_header_files})
@@ -168,6 +169,7 @@ function(generateOsqueryUtilsUtilstestsTest)
     tests/property_tree.cpp
     tests/rot13.cpp
     tests/scope_guard.cpp
+    tests/siphash.cpp
   )
 
   if(DEFINED PLATFORM_WINDOWS)
