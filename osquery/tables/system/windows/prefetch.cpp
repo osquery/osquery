@@ -21,6 +21,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include <algorithm>
+
 #define PREFETCH_SIGNATURE_COMPRESSED '\x04MAM' // MAM\0x4
 #define PREFETCH_SIGNATURE 'ACCS' // SCCA
 
@@ -139,7 +141,8 @@ std::string parseExecutablePath(const std::vector<UCHAR>& data,
                                 DWORD hash_string_offset,
                                 DWORD hash_string_size) {
   if (hash_string_offset == 0 ||
-      hash_string_offset + hash_string_size > data.size()) {
+      static_cast<size_t>(hash_string_offset) + hash_string_size >
+          data.size()) {
     return {};
   }
   auto path_wstr = (PWCHAR)(&data[0] + hash_string_offset);
@@ -208,18 +211,19 @@ PrefetchFileInfo parseFileInfo(
 
   result.last_run_time = filetimeToUnixtime(last_run_time);
 
-  // Size is given in bytes.
-  const auto size = prefetch_file_info->FileNameStringsSize;
   const auto offset = prefetch_file_info->FileNameStringsOffset;
   if (offset > data.size()) {
     // Unexpected offset.
     return result;
   }
+  // Size is given in bytes, and cannot extend past the end of the data.
+  const auto size = std::min<size_t>(prefetch_file_info->FileNameStringsSize,
+                                     data.size() - offset);
 
   size_t total_length{0};
   std::vector<std::string> filenames;
   auto next = (PWCHAR)(&data[0] + offset);
-  while (*next != L'\0') {
+  while (size - total_length >= sizeof(WCHAR) && *next != L'\0') {
     auto length = wcsnlen_s(next, (size - total_length) / sizeof(WCHAR));
     if (length == 0 || length == (size - total_length) / sizeof(WCHAR)) {
       // A null wide character was not found.
@@ -250,12 +254,13 @@ PrefetchVolumeInfo parseVolumeInfo(
                                       ? kPrefetchVolumeSizeWindows10
                                       : kPrefetchVolumeSizeWindows8;
   const auto volume_offset = prefetch_file_info->VolumeInformationOffset;
-  // Size is given in bytes.
-  const auto volume_size = prefetch_file_info->VolumesInformationSize;
   if (volume_offset > data.size()) {
     // Unexpected offset.
     return result;
   }
+  // Size is given in bytes, and cannot extend past the end of the data.
+  const auto volume_size = std::min<size_t>(
+      prefetch_file_info->VolumesInformationSize, data.size() - volume_offset);
 
   // Headers are stacked sequentially.
   auto volume_header_offset = volume_offset;
@@ -294,6 +299,10 @@ PrefetchVolumeInfo parseVolumeInfo(
       const auto prefetch_directory =
           (PDIRECTORY_STRING)(&data[0] + volume_offset + dir_offset);
       dir_offset += sizeof(DIRECTORY_STRING);
+      if (dir_offset >= volume_size) {
+        // Unexpected offset.
+        break;
+      }
 
       auto length = wcsnlen_s(prefetch_directory->Directory,
                               (volume_size - dir_offset) / sizeof(WCHAR));
@@ -331,6 +340,12 @@ void parsePrefetchData(RowYield& yield,
       version != kPrefetchVersionWindows8) {
     LOG(INFO) << "Unsupported prefetch file version ("
               << prefetch_header->Version << "): " << file_path;
+    return;
+  }
+
+  if (data.size() <
+      sizeof(PREFETCH_FILE_HEADER) + sizeof(PREFETCH_FILE_INFORMATION)) {
+    LOG(INFO) << "Truncated prefetch file: " << file_path;
     return;
   }
 
