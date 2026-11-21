@@ -156,7 +156,7 @@ class Query {
    *
    * @param json  Json serialized results string
    * @param epoch  Epoch the results are from
-   * @param hash  Hash of the results, saved with them
+   * @param hash  Hash of the results, saved with the epoch
    *
    * @return the success or failure of the operation.
    */

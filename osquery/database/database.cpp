@@ -51,7 +51,6 @@ const std::string kQueryPerformance = "query_performance";
 
 const std::string kDbEpochSuffix = "epoch";
 const std::string kDbCounterSuffix = "counter";
-const std::string kDbHashSuffix = "hash";
 
 const std::string kDbVersionKey = "results_version";
 
@@ -66,8 +65,8 @@ const std::vector<std::string> kDomains = {kPersistentSettings,
 
 const std::vector<std::string> kReservedDbPrefixes = {
     "query.", "cache.", "config_views."};
-const std::vector<std::string> kReservedDbSuffixes = {
-    kDbEpochSuffix, kDbCounterSuffix, kDbHashSuffix};
+const std::vector<std::string> kReservedDbSuffixes = {kDbEpochSuffix,
+                                                      kDbCounterSuffix};
 
 std::atomic<bool> kDBAllowOpen(false);
 std::atomic<bool> kDBInitialized(false);
@@ -562,7 +561,6 @@ static Status migrateV0V1(void) {
     // Skip over epoch and counter entries, as 0 is parsed by ptree
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
         boost::algorithm::ends_with(key, kDbCounterSuffix) ||
-        boost::algorithm::ends_with(key, kDbHashSuffix) ||
         boost::algorithm::starts_with(key, "query.") ||
         boost::algorithm::starts_with(key, "config_views.")) {
       continue;

@@ -71,33 +71,36 @@ uint64_t queryHashKey() {
 /// Hash of a single row, independent of the column order (rows are maps).
 /// The key is applied while the bytes are absorbed, so a collision found for
 /// one key does not hold for another, and the variant index is hashed too, so
-/// the same bytes cannot hash the same under a different value type.
+/// the same bytes cannot hash the same under a different value type. Each
+/// column name and string value is length prefixed, so adjacent strings
+/// cannot be regrouped into different columns with the same byte stream.
 /// Allocates nothing.
 uint64_t hashRow(const RowTyped& row, uint64_t key) {
   uint64_t hash = 0xcbf29ce484222325ULL ^ key;
-  auto fnv1aByte = [&hash](unsigned char byte) {
-    hash ^= byte;
-    hash *= 0x100000001b3ULL;
-  };
-  auto fnv1aSpan = [&fnv1aByte](const unsigned char* bytes, size_t size) {
+  auto fnv1aBytes = [&hash](const unsigned char* bytes, size_t size) {
     for (size_t i = 0; i < size; ++i) {
-      fnv1aByte(bytes[i]);
+      hash ^= bytes[i];
+      hash *= 0x100000001b3ULL;
     }
-    fnv1aByte(0x1f);
+  };
+  auto fnv1aU64 = [&hash, &fnv1aBytes](uint64_t value) {
+    fnv1aBytes(reinterpret_cast<const unsigned char*>(&value), sizeof(value));
   };
   for (const auto& column : row) {
-    fnv1aSpan(reinterpret_cast<const unsigned char*>(column.first.data()),
-              column.first.size());
-    fnv1aByte(static_cast<unsigned char>(column.second.which()));
+    fnv1aU64(column.first.size());
+    fnv1aBytes(reinterpret_cast<const unsigned char*>(column.first.data()),
+               column.first.size());
+    fnv1aU64(column.second.which());
     boost::apply_visitor(
         [&](const auto& value) {
           using T = std::decay_t<decltype(value)>;
           if constexpr (std::is_same_v<T, std::string>) {
-            fnv1aSpan(reinterpret_cast<const unsigned char*>(value.data()),
-                      value.size());
+            fnv1aU64(value.size());
+            fnv1aBytes(reinterpret_cast<const unsigned char*>(value.data()),
+                       value.size());
           } else {
-            fnv1aSpan(reinterpret_cast<const unsigned char*>(&value),
-                      sizeof(T));
+            fnv1aBytes(reinterpret_cast<const unsigned char*>(&value),
+                       sizeof(T));
           }
         },
         column.second);
@@ -181,12 +184,15 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
 Status Query::saveQueryResults(const std::string& json,
                                uint64_t epoch,
                                const std::string& hash) const {
-  // Save the results, their epoch and their hash together, so a partial
-  // write cannot leave a hash describing different results.
+  // The hash is stored after the epoch in the same value ("<epoch> <hash>"),
+  // so the results and the hash describing them are always written together,
+  // and no part of the query name space needs to be reserved for it. Reading
+  // the epoch with stoull stops at the space, and an osquery version without
+  // this support rewriting the epoch drops the hash, invalidating it after a
+  // downgrade and re-upgrade.
   DatabaseStringValueList data;
   data.push_back({name_, json});
-  data.push_back({name_ + "epoch", std::to_string(epoch)});
-  data.push_back({name_ + "hash", hash});
+  data.push_back({name_ + "epoch", std::to_string(epoch) + " " + hash});
   return setDatabaseBatch(kQueries, data);
 }
 
@@ -283,9 +289,17 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // so it is saved alongside them to let the next run skip the differential.
   auto current_hash = hashQueryData(current_qd);
   if (!new_query_epoch) {
+    // The hash is stored after the epoch in the same value. An epoch value
+    // without a hash (or a missing epoch) simply falls back to the full
+    // differential.
+    std::string stored_epoch;
+    getDatabaseValue(kQueries, name_ + "epoch", stored_epoch);
     std::string stored_hash;
-    auto status = getDatabaseValue(kQueries, name_ + "hash", stored_hash);
-    if (status.ok() && stored_hash == std::to_string(current_hash)) {
+    auto separator = stored_epoch.find(' ');
+    if (separator != std::string::npos) {
+      stored_hash = stored_epoch.substr(separator + 1);
+    }
+    if (stored_hash == std::to_string(current_hash)) {
       // The results are identical to the last run: the differential is empty
       // and the stored results can stay in the database unparsed. The output
       // differential is reset, as the caller may reuse it across runs.
@@ -295,7 +309,7 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     } else {
       // Get the rows from the last run of this query name.
       QueryDataSet previous_qd;
-      status = getPreviousQueryResults(previous_qd);
+      auto status = getPreviousQueryResults(previous_qd);
       if (!status.ok()) {
         return status;
       }
@@ -325,9 +339,13 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     }
   } else if (!new_query_epoch) {
     // The differential was empty: remember the hash of the unchanged results
-    // so the next run can skip them.
+    // so the next run can skip them. The epoch value is rewritten with the
+    // same epoch and the new hash, reaching this only when the stored hash
+    // was missing or described different results.
     auto status = setDatabaseValue(
-        kQueries, name_ + "hash", std::to_string(current_hash));
+        kQueries,
+        name_ + "epoch",
+        std::to_string(current_epoch) + " " + std::to_string(current_hash));
     if (!status.ok()) {
       return status;
     }
