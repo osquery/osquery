@@ -70,42 +70,17 @@ boost::optional<std::string> getMemoryBackedBIOContentsAsString(BIO* bio) {
   return std::string(buffer_ptr, buffer_size);
 }
 
-boost::optional<std::string> convertAsn1TimeToString(
-    const ASN1_TIME* asn1_time) {
-  auto unique_mem_bio = createUniqueBIO();
-  if (unique_mem_bio == nullptr) {
-    return boost::none;
-  }
-
-  // ANS1_TIME_print's format is: Mon DD HH:MM:SS YYYY GMT
-  // e.g. Jan 1 00:00:00 1970 GMT (always GMT)
-  if (ASN1_TIME_print(unique_mem_bio.get(), asn1_time) == 0) {
-    return boost::none;
-  }
-
-  return getMemoryBackedBIOContentsAsString(unique_mem_bio.get());
-}
-
 boost::optional<std::time_t> convertAsn1TimeToEpochTime(
     const ASN1_TIME* asn1_time) {
-  auto opt_string_time = convertAsn1TimeToString(asn1_time);
-  if (!opt_string_time.has_value()) {
-    return boost::none;
-  }
-
-  const auto& string_time = opt_string_time.value();
-
-  // b := abbr month, e := day with leading space instead of leading zero
+  // ASN1_TIME_to_tm() breaks the time down in GMT regardless of how the
+  // certificate encoded it, so the fields belong to timegm() and not to
+  // mktime(), which would read them as local time.
   struct tm tm {};
-  if (strptime(string_time.c_str(), "%b %e %H:%M:%S %Y %Z", &tm) == nullptr) {
+  if (ASN1_TIME_to_tm(asn1_time, &tm) != 1) {
     return boost::none;
   }
 
-  // Don't set DST, since strptime() doesn't.
-  // Let mktime() determine whether DST in effect
-  tm.tm_isdst = -1;
-
-  auto epoch = std::mktime(&tm);
+  auto epoch = timegm(&tm);
   if (epoch == -1) {
     return boost::none;
   }
