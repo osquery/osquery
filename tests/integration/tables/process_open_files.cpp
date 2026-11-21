@@ -80,5 +80,35 @@ TEST_F(ProcessOpenFilesTest, test_sanity) {
       << "process_open_files tables could not find opened file by test";
 }
 
+TEST_F(ProcessOpenFilesTest, test_path_containing_descriptor_type) {
+  // Only the "socket:[", "pipe:[" and "anon_inode:" prefixes mark a
+  // descriptor that is not a file; a file path containing them is a file.
+  auto const marker_path =
+      boost::filesystem::temp_directory_path() /
+      boost::filesystem::unique_path(
+          "test-socket:[1]-pipe:[2]-anon_inode:x.%%%%-%%%%.txt");
+  std::ofstream marker_file(marker_path.native(), std::ios::out);
+  ASSERT_TRUE(marker_file.is_open());
+
+  auto const self_pid = std::to_string(getpid());
+  auto const expected_path = boost::filesystem::canonical(marker_path).string();
+  QueryData data =
+      execute_query("select * from process_open_files where pid = " + self_pid);
+
+  bool found_marker_file_open = false;
+  for (const auto& row : data) {
+    if (row.at("path") == expected_path) {
+      found_marker_file_open = true;
+      break;
+    }
+  }
+
+  marker_file.close();
+  boost::filesystem::remove(marker_path);
+
+  ASSERT_TRUE(found_marker_file_open)
+      << "process_open_files did not report " << expected_path;
+}
+
 } // namespace table_tests
 } // namespace osquery
