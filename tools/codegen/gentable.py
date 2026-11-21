@@ -150,6 +150,10 @@ def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
 
 
+def yellow(msg):
+    return "\033[43m\033[1;30m %s \033[0m" % str(msg)
+
+
 def is_denylisted(table_name, path=None, denylist=None):
     """Allow denylisting by tablename."""
     if denylist is None:
@@ -185,11 +189,8 @@ def is_denylisted(table_name, path=None, denylist=None):
 
 def setup_templates(templates_path):
     if not os.path.exists(templates_path):
-        templates_path = os.path.join(
-            os.path.dirname(tables_path), "templates")
-        if not os.path.exists(templates_path):
-            print("Cannot read templates path: %s" % (templates_path))
-            exit(1)
+        print("Cannot read templates path: %s" % (templates_path))
+        exit(1)
     templates = (f for f in os.listdir(templates_path) if fnmatch.fnmatch(f, "*.in"))
     for template in templates:
         template_name = template.split(".", 1)[0]
