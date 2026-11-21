@@ -67,11 +67,12 @@ TEST(SipHash24Tests, input_split_across_updates) {
   SipHash24 split(kKey0, kKey1);
   split.update(input, 9);
   split.update(input + 9, 12);
-  EXPECT_EQ(split.digest(), 0xd0f2cbb02e3b67c7ULL);
+  uint64_t split_digest = split.digest();
+  EXPECT_EQ(split_digest, 0xd0f2cbb02e3b67c7ULL);
 
   SipHash24 whole(kKey0, kKey1);
   whole.update(input, 21);
-  EXPECT_EQ(whole.digest(), split.digest());
+  EXPECT_EQ(whole.digest(), split_digest);
 }
 
 TEST(SipHash24Tests, different_keys_differ) {
