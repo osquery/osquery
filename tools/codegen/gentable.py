@@ -150,6 +150,10 @@ def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
 
 
+def yellow(msg):
+    return "\033[43m\033[1;30m %s \033[0m" % str(msg)
+
+
 def is_denylisted(table_name, path=None, denylist=None):
     """Allow denylisting by tablename."""
     if denylist is None:
@@ -185,11 +189,8 @@ def is_denylisted(table_name, path=None, denylist=None):
 
 def setup_templates(templates_path):
     if not os.path.exists(templates_path):
-        templates_path = os.path.join(
-            os.path.dirname(tables_path), "templates")
-        if not os.path.exists(templates_path):
-            print("Cannot read templates path: %s" % (templates_path))
-            exit(1)
+        print("Cannot read templates path: %s" % (templates_path))
+        exit(1)
     templates = (f for f in os.listdir(templates_path) if fnmatch.fnmatch(f, "*.in"))
     for template in templates:
         template_name = template.split(".", 1)[0]
@@ -270,7 +271,9 @@ class TableState(Singleton):
                 else:
                     print(yellow(
                         "Table %s column %s contains an unknown option: %s" % (
-                            self.table_name, column.name, option)))
+                            self.table_name, column.name, option)),
+                        file=sys.stderr)
+                    exit(1)
             column.options_set = " | ".join(column_options)
             if len(column.aliases) > 0:
                 self.has_column_aliases = True
