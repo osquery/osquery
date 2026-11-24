@@ -165,7 +165,9 @@ XAttrValueResult getExtendedAttributeValue(int fd, const std::string& name) {
 }
 
 XAttrGetResult getExtendedAttributes(const std::string& path) {
-  int fd = open(path.c_str(), O_RDONLY);
+  // The path may be a FIFO. Without O_NONBLOCK, opening one that has no
+  // writer would never return.
+  int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK);
 
   if (fd < 0) {
     if (errno == ENOENT) {

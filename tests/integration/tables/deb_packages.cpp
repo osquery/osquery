@@ -14,6 +14,9 @@
 #include <osquery/tests/integration/tables/helper.h>
 #include <osquery/utils/info/platform_type.h>
 
+#include <thread>
+#include <vector>
+
 namespace osquery {
 namespace table_tests {
 
@@ -59,6 +62,30 @@ TEST_F(DebPackages, test_sanity) {
   } else {
     LOG(WARNING) << "Empty results of query from 'deb_packages', assume there "
                     "is no dpkg in the system";
+  }
+}
+
+// libdpkg keeps process-wide state; concurrent scans used to corrupt it and
+// crash osqueryd (#8622).
+TEST_F(DebPackages, test_concurrent_queries) {
+  auto packages = execute_query("select * from deb_packages").size();
+  auto files = execute_query("select * from deb_package_files").size();
+  if (packages == 0) {
+    GTEST_SKIP() << "no dpkg database on this system";
+  }
+
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 4; i++) {
+    threads.emplace_back([packages, files] {
+      for (int j = 0; j < 10; j++) {
+        EXPECT_EQ(execute_query("select * from deb_packages").size(), packages);
+        EXPECT_EQ(execute_query("select * from deb_package_files").size(),
+                  files);
+      }
+    });
+  }
+  for (auto& thread : threads) {
+    thread.join();
   }
 }
 

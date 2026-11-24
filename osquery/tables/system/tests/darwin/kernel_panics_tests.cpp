@@ -82,5 +82,24 @@ TEST_F(KernelPanicsTests, test_process_name_is_reported) {
   EXPECT_EQ(r["name"], "launchd");
 }
 
+TEST_F(KernelPanicsTests, test_json_panic_log_is_parsed) {
+  // The panic string's key differs between ARM and x86, so give both.
+  auto r = parsePanicLog(
+      R"({"bug_type":"210"})"
+      "\n"
+      R"({"panicString":"Process name corresponding to current thread: launchd\n",)"
+      R"("macOSPanicString":"Process name corresponding to current thread: launchd\n"})");
+  EXPECT_EQ(r["name"], "launchd");
+}
+
+TEST_F(KernelPanicsTests, test_deeply_nested_json_is_refused) {
+  // A valid header followed by content nested deeply enough to overflow the
+  // stack of a recursive JSON parser
+  const std::size_t depth = 1000000;
+  auto r =
+      parsePanicLog("{}" + std::string(depth, '[') + std::string(depth, ']'));
+  EXPECT_EQ(r.count("name"), 0U);
+}
+
 } // namespace tables
 } // namespace osquery

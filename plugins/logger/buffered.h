@@ -12,6 +12,7 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
@@ -240,6 +241,10 @@ class BufferedLogForwarder : public InternalRunnable {
  private:
   /// Hold an incrementing index for buffering logs
   std::atomic<size_t> log_index_{0};
+
+  /// Randomizes backoff periods
+  std::mt19937 backoff_rng_{static_cast<std::mt19937::result_type>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count())};
 
   /// Stores the count of buffered logs
   unsigned long long int buffer_count_{0};

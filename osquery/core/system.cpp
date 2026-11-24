@@ -332,28 +332,19 @@ DropPrivilegesRef DropPrivileges::get() {
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
   auto parent = path.parent_path().string();
-  auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);
-  if (result.empty()) {
+
+  // Stat the parent directly instead of querying the file table: dropping
+  // privileges should not depend on the SQL stack and a registered file
+  // table. lstat covers both cases the query distinguished, because it never
+  // follows a symlink at the parent path: for a symlink it returns the link's
+  // owner, which is the owner to drop to, and for anything else it matches
+  // stat().
+  struct stat parent_stat;
+  if (lstat(parent.c_str(), &parent_stat) != 0) {
     return false;
   }
 
-  if (result.front().at("symlink") == "1") {
-    // The file is a symlink, inspect the owner of the link.
-    struct stat link_stat;
-    if (lstat(parent.c_str(), &link_stat) != 0) {
-      return false;
-    }
-
-    return dropTo(link_stat.st_uid, link_stat.st_gid);
-  }
-
-  long uid = 0;
-  long gid = 0;
-  if (!ownerFromResult(result.front(), uid, gid)) {
-    return false;
-  }
-
-  return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
+  return dropTo(parent_stat.st_uid, parent_stat.st_gid);
 }
 
 bool DropPrivileges::dropTo(const std::string& user) {

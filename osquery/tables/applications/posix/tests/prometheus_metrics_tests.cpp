@@ -411,5 +411,80 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
 
   validate(sr, expected);
 }
+
+TEST_F(PrometheusMetricsTest, malformed_config_non_object_section) {
+  const std::string config = R"({"prometheus_targets": "malformed"})";
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(config).ok());
+
+  std::map<std::string, PrometheusResponseData> sr;
+  size_t timeout = 0;
+
+  parsePrometheusTargetsConfig(doc, sr, timeout);
+
+  EXPECT_TRUE(sr.empty());
+  EXPECT_EQ(timeout, 1U);
+}
+
+TEST_F(PrometheusMetricsTest, malformed_config_non_array_urls) {
+  const std::string config =
+      R"({"prometheus_targets": {"urls": "not-an-array"}})";
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(config).ok());
+
+  std::map<std::string, PrometheusResponseData> sr;
+  size_t timeout = 0;
+
+  parsePrometheusTargetsConfig(doc, sr, timeout);
+
+  EXPECT_TRUE(sr.empty());
+  EXPECT_EQ(timeout, 1U);
+}
+
+TEST_F(PrometheusMetricsTest, malformed_config_skips_non_string_urls) {
+  const std::string config =
+      R"({"prometheus_targets": {"urls": ["http://valid", 42]}})";
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(config).ok());
+
+  std::map<std::string, PrometheusResponseData> sr;
+  size_t timeout = 0;
+
+  parsePrometheusTargetsConfig(doc, sr, timeout);
+
+  EXPECT_EQ(sr.size(), 1U);
+  EXPECT_NE(sr.find("http://valid"), sr.end());
+  EXPECT_EQ(timeout, 1U);
+}
+
+TEST_F(PrometheusMetricsTest, malformed_config_non_integer_timeout) {
+  const std::string config =
+      R"({"prometheus_targets": {"urls": ["http://valid"], "timeout": "10"}})";
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(config).ok());
+
+  std::map<std::string, PrometheusResponseData> sr;
+  size_t timeout = 0;
+
+  parsePrometheusTargetsConfig(doc, sr, timeout);
+
+  EXPECT_EQ(sr.size(), 1U);
+  EXPECT_EQ(timeout, 1U);
+}
+
+TEST_F(PrometheusMetricsTest, valid_config) {
+  const std::string config =
+      R"({"prometheus_targets": {"urls": ["http://valid"], "timeout": 10}})";
+  auto doc = JSON::newObject();
+  ASSERT_TRUE(doc.fromString(config).ok());
+
+  std::map<std::string, PrometheusResponseData> sr;
+  size_t timeout = 0;
+
+  parsePrometheusTargetsConfig(doc, sr, timeout);
+
+  EXPECT_EQ(sr.size(), 1U);
+  EXPECT_EQ(timeout, 10U);
+}
 } // namespace tables
 } // namespace osquery

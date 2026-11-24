@@ -122,8 +122,8 @@ Status NonBlockingFStream::getline(std::string& output) {
   std::copy(buffer_.data(), buffer_end, std::back_inserter(output));
   offset_ = offset_ - line_size - 1;
   if (offset_ > 0) {
-    // Shift bytes down.
-    memcpy(buffer_.data(), buffer_end + 1, offset_);
+    // Shift bytes down, the source and destination ranges may overlap.
+    memmove(buffer_.data(), buffer_end + 1, offset_);
   }
   return Status::success();
 }

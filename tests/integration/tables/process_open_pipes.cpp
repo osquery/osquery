@@ -61,8 +61,11 @@ class ProcessOpenPipesTest : public testing::Test {
   }
 
   void signal_parent() {
+    // Runs in a child process, where a test assertion would not be reported.
     char buf = '1';
-    write(fd_signal_[1], &buf, 1);
+    if (write(fd_signal_[1], &buf, 1) != 1) {
+      LOG(ERROR) << "Error signaling the parent process";
+    }
   }
 
   int setup_writer() {
@@ -149,7 +152,8 @@ class ProcessOpenPipesTest : public testing::Test {
 
   void wait_child_signal() {
     char buf;
-    read(fd_signal_[0], &buf, 1);
+    EXPECT_EQ(read(fd_signal_[0], &buf, 1), 1)
+        << "Cannot read the child process' signal";
   }
 
   void do_query(int writer_pid, int reader_pid) {
