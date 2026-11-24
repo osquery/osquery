@@ -31,13 +31,13 @@ void writeBigEndian32(std::string& buffer, size_t offset, uint32_t value) {
 }
 
 /// Build a disk image made only of a koly trailer with a CRC32 master
-/// checksum, declaring the given checksum size.
-std::string makeUdifImage(uint32_t checksum_size) {
+/// checksum, declaring the given checksum size in bits.
+std::string makeUdifImage(uint32_t checksum_bits) {
   std::string trailer(512, '\0');
   trailer.replace(0, 4, "koly");
   // Master checksum type (CRC32), size, and the checksum itself.
   writeBigEndian32(trailer, 352, 2);
-  writeBigEndian32(trailer, 356, checksum_size);
+  writeBigEndian32(trailer, 356, checksum_bits);
   writeBigEndian32(trailer, 360, 0x12345678);
   // Image variant and sector count follow the 128 byte checksum field.
   writeBigEndian32(trailer, 488, 1);
@@ -59,23 +59,23 @@ class DiskArbitrationTests : public testing::Test {
     fs::remove(image_path_, ec);
   }
 
-  bool writeImage(uint32_t checksum_size) {
+  bool writeImage(uint32_t checksum_bits) {
     boost::system::error_code ec;
     fs::remove(image_path_, ec);
-    return writeTextFile(image_path_, makeUdifImage(checksum_size)).ok();
+    return writeTextFile(image_path_, makeUdifImage(checksum_bits)).ok();
   }
 
   fs::path image_path_;
 };
 
 TEST_F(DiskArbitrationTests, test_extract_udif_checksum) {
-  // A CRC32 master checksum, with the size hdiutil writes (32).
+  // A CRC32 master checksum, with the size hdiutil writes: 32 bits.
   ASSERT_TRUE(writeImage(32));
   EXPECT_EQ(
       DiskArbitrationEventPublisher::extractUdifChecksum(image_path_.string()),
       "12345678");
 
-  // A size larger than the checksum field must not read past the field.
+  // A size larger than the 1024 bit checksum field must not read past it.
   ASSERT_TRUE(writeImage(4096));
   EXPECT_EQ(
       DiskArbitrationEventPublisher::extractUdifChecksum(image_path_.string()),

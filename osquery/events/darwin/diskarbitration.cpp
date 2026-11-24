@@ -32,8 +32,8 @@ namespace osquery {
 
 const std::string kIOHIDXClassPath{"IOService:/IOResources/IOHDIXController/"};
 
-/// Length of the master checksum field in the UDIF (koly) trailer.
-const uint32_t kUdifChecksumFieldSize{128};
+/// Length of the master checksum field in the UDIF (koly) trailer, in bits.
+const uint32_t kUdifChecksumFieldBits{128 * 8};
 
 REGISTER(DiskArbitrationEventPublisher, "event_publisher", "diskarbitration");
 
@@ -203,15 +203,19 @@ std::string DiskArbitrationEventPublisher::extractUdifChecksum(
     dmg_file.read((char*)&checksum_size, sizeof(checksum_size));
     // checksum_size is in big endian and we need to byte swap
     checksum_size = CFSwapInt32(checksum_size);
-    // The size comes from the image, so never read past the checksum field.
-    checksum_size = std::min(checksum_size, kUdifChecksumFieldSize);
+    // The trailer records this size in bits: hdiutil writes 32 for a CRC32.
+    // It comes from the image, so clamp it to the checksum field before
+    // converting to a byte count, which also keeps the rounding below from
+    // overflowing.
+    checksum_size = std::min(checksum_size, kUdifChecksumFieldBits);
+    const size_t checksum_bytes = (checksum_size + 7) / 8;
 
     dmg_file.seekg(-152L, std::ios::end); // checksum offset
-    std::vector<unsigned char> u_buffer(checksum_size);
-    dmg_file.read((char*)u_buffer.data(), checksum_size);
+    std::vector<unsigned char> u_buffer(checksum_bytes);
+    dmg_file.read((char*)u_buffer.data(), checksum_bytes);
     // we don't want to byte swap checksum as disk utility/hdiutil doesn't
     std::stringstream checksum;
-    for (size_t i = 0; i < checksum_size; i++) {
+    for (size_t i = 0; i < checksum_bytes; i++) {
       if (u_buffer[i] != 0) {
         checksum << std::setw(2) << std::hex << std::uppercase
                  << (unsigned int)u_buffer[i];
