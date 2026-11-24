@@ -1,0 +1,7 @@
+table_name("cpu_features")
+description("Security-relevant CPU feature flags from the hardware; populated on aarch64, empty on other architectures.")
+schema([
+    Column("feature", TEXT, "Feature flag name"),
+    Column("value", INTEGER, "1 if the feature is present, else 0"),
+])
+implementation("cpu_features@genCpuFeatures")
