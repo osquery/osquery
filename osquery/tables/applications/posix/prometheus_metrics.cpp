@@ -11,6 +11,7 @@
 // Keep it on top of all other includes to fix double include WinSock.h header file
 // which is windows specific boost build problem
 #include <osquery/remote/http_client.h>
+#include <osquery/remote/transports/tls.h>
 // clang-format on
 
 #include <sstream>
@@ -52,8 +53,15 @@ void parseScrapeResults(
 
 void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
                    size_t timeoutS) {
-  http::Client client(
-      http::Client::Options().follow_redirects(true).timeout(timeoutS));
+  // Reuse the TLS transport options so scrape requests get the same TLS
+  // hardening (cipher suites, protocol versions, peer verification, and server
+  // certificate pinning) and redirect policy as the fleet transport, rather
+  // than a bare client that followed redirects with no TLS restrictions. The
+  // scrape URLs come from the (fleet-provided) config, so they are not fully
+  // trusted.
+  auto options = TLSTransport().getInternalOptions();
+  options.timeout(timeoutS);
+  http::Client client(options);
 
   for (auto& target : scrapeResults) {
     try {
@@ -72,6 +80,59 @@ void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
   }
 }
 
+void parsePrometheusTargetsConfig(
+    const JSON& doc,
+    std::map<std::string, PrometheusResponseData>& scrapeResults,
+    size_t& timeout) {
+  timeout = 1;
+
+  const auto& root = doc.doc();
+  if (!root.IsObject() || !root.HasMember(kPrometheusParserRootKey)) {
+    LOG(WARNING) << "Could not load prometheus_targets root key: "
+                 << kPrometheusParserRootKey;
+    return;
+  }
+
+  const auto& config = root[kPrometheusParserRootKey];
+  if (!config.IsObject()) {
+    LOG(WARNING) << "Configuration for prometheus_targets is not an object";
+    return;
+  }
+
+  if (!config.HasMember("urls")) {
+    LOG(WARNING)
+        << "Configuration for prometheus_targets is missing field: urls";
+    return;
+  }
+
+  const auto& urls = config["urls"];
+  if (!urls.IsArray()) {
+    LOG(WARNING)
+        << "Configuration for prometheus_targets has a non-array urls field";
+    return;
+  }
+
+  for (const auto& url : urls.GetArray()) {
+    if (!url.IsString()) {
+      LOG(WARNING) << "Configuration for prometheus_targets contains a "
+                      "non-string url, skipping it";
+      continue;
+    }
+
+    scrapeResults[url.GetString()] = PrometheusResponseData{};
+  }
+
+  if (config.HasMember("timeout")) {
+    if (!config["timeout"].IsUint64()) {
+      LOG(WARNING) << "Configuration for prometheus_targets has a non-integer "
+                      "timeout field, using the default";
+      return;
+    }
+
+    timeout = config["timeout"].GetUint64();
+  }
+}
+
 QueryData genPrometheusMetrics(QueryContext& context) {
   QueryData result;
   // get urls from config
@@ -80,38 +141,13 @@ QueryData genPrometheusMetrics(QueryContext& context) {
     return result;
   }
 
-  /* Add a specific value to the default property tree to differentiate it from
-   * the scenario where the user does not provide any prometheus_targets config.
-   */
-  const auto& root = parser->getData().doc();
-  if (!root.HasMember(kPrometheusParserRootKey)) {
-    LOG(WARNING) << "Could not load prometheus_targets root key: "
-                 << kPrometheusParserRootKey;
-    return result;
-  }
-
-  const auto& config = root[kPrometheusParserRootKey];
-  if (!config.HasMember("urls")) {
-    LOG(WARNING)
-        << "Configuration for prometheus_targets is missing field: urls";
-    return result;
-  }
-
   std::map<std::string, PrometheusResponseData> sr;
-  /* Below should be unreachable if there were no urls child node, but we set
-   * handle with default value for consistency's sake and for added robustness.
-   */
-  const auto& urls = config["urls"];
-  for (const auto& url : urls.GetArray()) {
-    sr[url.GetString()] = PrometheusResponseData{};
-  }
-
-  size_t timeout =
-      (!config.HasMember("timeout")) ? 1 : config["timeout"].GetUint64();
+  size_t timeout = 1;
+  parsePrometheusTargetsConfig(parser->getData(), sr, timeout);
   scrapeTargets(sr, timeout);
   parseScrapeResults(sr, result);
 
   return result;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

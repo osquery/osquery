@@ -141,11 +141,11 @@ void genKeychainCertificate(const SecCertificateRef& SecCert,
 //  osqueryd: (Security) [com.apple.securityd:security_exception]
 // CSSM Exception: -2147413759 CSSMERR_DL_DATABASE_CORRUPT
 static bool isLegacyKeychainFile(const std::string& path) {
-  // A path constraint can match a FIFO. Open it non-blocking so a FIFO with
-  // no writer does not hang the query, and skip special files rather than
-  // reading from them.
-  PlatformFile file(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
-  if (!file.isValid() || file.isSpecialFile()) {
+  // A path constraint can match a FIFO. Open regular files only, so a FIFO
+  // with no writer does not hang the query and special files are not read.
+  PlatformFile file(path,
+                    PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK | PF_REGULAR_ONLY);
+  if (!file.isValid()) {
     return false;
   }
   std::string header(16, '\0');
@@ -200,6 +200,8 @@ class OpenedKeychain {
       ref_ = nullptr;
     }
     if (!temp_dir_.empty()) {
+      // Best effort: a copy that cannot be removed is left in the temporary
+      // directory.
       boost::system::error_code ec;
       boost::filesystem::remove_all(temp_dir_, ec);
       temp_dir_.clear();
@@ -249,6 +251,7 @@ static OpenedKeychain openKeychainForPath(const std::string& original_path) {
                  path_to_open.c_str(),
                  nullptr,
                  COPYFILE_CLONE) != 0) {
+      // Best effort, as in reset().
       boost::system::error_code rm_ec;
       boost::filesystem::remove_all(temp_dir, rm_ec);
       return {};
@@ -263,6 +266,7 @@ static OpenedKeychain openKeychainForPath(const std::string& original_path) {
       CFRelease(ref);
     }
     if (!temp_dir.empty()) {
+      // Best effort, as in reset().
       boost::system::error_code ec;
       boost::filesystem::remove_all(temp_dir, ec);
     }

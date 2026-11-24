@@ -26,7 +26,6 @@ static inline pt::ptree parseChildNodeToJSONPtree(
     const pt::ptree& event_data_node) {
   pt::ptree event_data;
 
-  bool detect_data_type{true};
   bool as_array{false};
   bool has_non_data{false};
 
@@ -34,7 +33,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
     const auto& name = p.first;
     const auto& data_field = p.second;
 
-    if (name == "Data" && detect_data_type) {
+    if (name == "Data") {
       std::string data_name = {};
       auto data_name_attr_opt = data_field.get_child_optional("<xmlattr>.Name");
       if (data_name_attr_opt.has_value()) {
@@ -42,10 +41,9 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         data_name = data_name_attr.get_value<std::string>("");
       }
 
-      as_array = data_name.empty();
-      detect_data_type = false;
+      as_array = as_array || data_name.empty();
 
-    } else if (name != "Data") {
+    } else {
       has_non_data = true;
     }
   }
@@ -92,7 +90,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         array_item.put("", data_value);
         event_data.push_back(std::make_pair("", array_item));
       } else {
-        event_data.put(data_name, data_value);
+        event_data.put(pt::ptree::path_type(data_name, '\0'), data_value);
       }
 
     } else {
@@ -107,7 +105,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         if (wrap_data_array) {
           event_data.push_back(std::make_pair(name, child));
         } else {
-          event_data.add_child(name, child);
+          event_data.add_child(pt::ptree::path_type(name, '\0'), child);
         }
       } else {
         auto child = parseChildNodeToJSONPtree(data_field);
@@ -115,7 +113,7 @@ static inline pt::ptree parseChildNodeToJSONPtree(
         if (wrap_data_array) {
           event_data.push_back(std::make_pair(name, child));
         } else {
-          event_data.add_child(name, child);
+          event_data.add_child(pt::ptree::path_type(name, '\0'), child);
         }
       }
     }

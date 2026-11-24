@@ -27,6 +27,10 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#ifndef OSQUERY_WINDOWS
+#include <sys/stat.h>
+#endif
+
 #include "../jetbrains_plugins_internal.h"
 
 namespace fs = boost::filesystem;
@@ -363,6 +367,25 @@ TEST_F(JetbrainsPluginsTest, test_getContentFromTag_unterminated_tag_input) {
   }
   EXPECT_EQ(getContentFromTag(repeated_open_tags, "name"), "");
 }
+
+#ifndef OSQUERY_WINDOWS
+TEST_F(JetbrainsPluginsTest, test_rejects_fifo_named_as_jar) {
+  // Plugin directories are user-writable: a FIFO named like a jar, with no
+  // writer, would block the archive's open for good.
+  const auto fifo_path = root_ / "plugin.jar";
+  ASSERT_EQ(::mkfifo(fifo_path.c_str(), S_IRUSR | S_IWUSR), 0);
+
+  auto status = ExtractionStatus::Success;
+  EXPECT_TRUE(returnsWithoutBlockingOnFifo(fifo_path, [&fifo_path, &status]() {
+    status = jetbrains_plugins_internal::extractSpecificFileFromArchive(
+                 fifo_path.string(),
+                 kPluginXmlPath,
+                 jetbrains_plugins_internal::kMaxDecompressedPluginXmlSize)
+                 .status;
+  }));
+  EXPECT_EQ(status, ExtractionStatus::ArchiveError);
+}
+#endif
 
 TEST_F(JetbrainsPluginsTest, test_fileNameIsLikeVersionedLibraryName) {
   // Versioned filenames

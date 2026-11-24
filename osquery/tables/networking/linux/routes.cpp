@@ -43,6 +43,11 @@ std::string getNetlinkIP(int family, const char* buffer) {
   return address;
 }
 
+// Number of bytes inet_ntop() reads for the given address family.
+size_t ipSizeForFamily(int family) {
+  return family == AF_INET6 ? sizeof(struct in6_addr) : sizeof(struct in_addr);
+}
+
 std::string getDefaultRouteIP(int family) {
   switch (family) {
   case AF_INET:
@@ -138,7 +143,10 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
 
   struct rtmsg* message = static_cast<struct rtmsg*>(NLMSG_DATA(netlink_msg));
   struct rtattr* attr = static_cast<struct rtattr*>(RTM_RTA(message));
-  uint32_t attr_size = RTM_PAYLOAD(netlink_msg);
+  // Signed: a truncated final attribute leaves fewer bytes than RTA_NEXT()
+  // subtracts, and an unsigned counter would wrap and make the following
+  // RTA_OK() dereference a header past the end of the message.
+  int attr_size = RTM_PAYLOAD(netlink_msg);
 
   Row r;
 
@@ -150,38 +158,55 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   while (RTA_OK(attr, attr_size)) {
     switch (attr->rta_type) {
     case RTA_OIF:
-      if_indextoname(*(int*)RTA_DATA(attr), interface);
-      r["interface"] = std::string(interface);
+      // RTA_OK() only validates the attribute header against the remaining
+      // bytes; the typed reads below must check the payload length
+      // themselves, or a truncated attribute reads past the message.
+      if (RTA_PAYLOAD(attr) >= sizeof(int)) {
+        if_indextoname(*(int*)RTA_DATA(attr), interface);
+        r["interface"] = std::string(interface);
+      }
       break;
     case RTA_GATEWAY:
-      address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
-      r["gateway"] = address;
+      if (RTA_PAYLOAD(attr) >= ipSizeForFamily(message->rtm_family)) {
+        address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
+        r["gateway"] = address;
+      }
       break;
     case RTA_PREFSRC:
-      address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
-      r["source"] = address;
+      if (RTA_PAYLOAD(attr) >= ipSizeForFamily(message->rtm_family)) {
+        address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
+        r["source"] = address;
+      }
       break;
     case RTA_DST:
       if (message->rtm_dst_len != 32 && message->rtm_dst_len != 128) {
         mask = (int)message->rtm_dst_len;
       }
-      address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
-      r["destination"] = address;
-      has_destination = true;
+      if (RTA_PAYLOAD(attr) >= ipSizeForFamily(message->rtm_family)) {
+        address = getNetlinkIP(message->rtm_family, (char*)RTA_DATA(attr));
+        r["destination"] = address;
+        has_destination = true;
+      }
       break;
     case RTA_PRIORITY:
-      r["metric"] = INTEGER(*(int*)RTA_DATA(attr));
+      if (RTA_PAYLOAD(attr) >= sizeof(int)) {
+        r["metric"] = INTEGER(*(int*)RTA_DATA(attr));
+      }
       break;
     case RTA_METRICS:
       struct rtattr* xattr = static_cast<struct rtattr*> RTA_DATA(attr);
-      auto xattr_size = RTA_PAYLOAD(attr);
+      int xattr_size = RTA_PAYLOAD(attr);
       while (RTA_OK(xattr, xattr_size)) {
         switch (xattr->rta_type) {
         case RTAX_MTU:
-          r["mtu"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
+          if (RTA_PAYLOAD(xattr) >= sizeof(int)) {
+            r["mtu"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
+          }
           break;
         case RTAX_HOPLIMIT:
-          r["hopcount"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
+          if (RTA_PAYLOAD(xattr) >= sizeof(int)) {
+            r["hopcount"] = INTEGER(*reinterpret_cast<int*>(RTA_DATA(xattr)));
+          }
           break;
         }
         xattr = RTA_NEXT(xattr, xattr_size);
@@ -270,5 +295,5 @@ QueryData genRoutes(QueryContext& context) {
   free(netlink_buffer);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

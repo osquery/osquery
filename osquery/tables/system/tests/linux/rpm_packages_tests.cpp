@@ -9,7 +9,11 @@
 
 #include <osquery/config/tests/test_utils.h>
 #include <osquery/core/system.h>
+#include <osquery/core/tables.h>
+#include <osquery/database/database.h>
+#include <osquery/registry/registry_factory.h>
 #include <osquery/utils/system/env.h>
+#include <osquery/worker/logging/glog/glog_logger.h>
 
 #include <rpm/header.h>
 #include <rpm/rpmdb.h>
@@ -25,16 +29,53 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#include <algorithm>
 #include <cstdlib>
+#include <fstream>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace testing;
 
 namespace osquery {
 namespace tables {
 
+QueryData genRpmPackages(QueryContext& context);
+void genRpmPackageFiles(RowYield& yield, QueryContext& context);
+
 rpmlogCallback gPreviousCallback{nullptr};
+
+/**
+ * librpm reads RPM_CONFIGDIR only once per process, so all tests in this
+ * binary share the configuration directory of the first one to read it. Set
+ * it up before any test runs, with the rpmrc that reading the configuration
+ * requires. Each test still selects its database with the _dbpath macro.
+ */
+class RpmConfigEnvironment : public ::testing::Environment {
+ public:
+  void SetUp() override {
+    namespace fs = boost::filesystem;
+    config_dir_ = fs::temp_directory_path() /
+                  fs::unique_path("osquery-rpm-config-%%%%-%%%%");
+    fs::create_directories(config_dir_);
+    std::ofstream((config_dir_ / "rpmrc").string()).close();
+    setEnvVar("RPM_CONFIGDIR", config_dir_.string());
+    rpmConfigDir();
+  }
+
+  void TearDown() override {
+    unsetEnvVar("RPM_CONFIGDIR");
+    boost::filesystem::remove_all(config_dir_);
+  }
+
+ private:
+  boost::filesystem::path config_dir_;
+};
+
+const auto* const kRpmConfigEnvironment =
+    ::testing::AddGlobalTestEnvironment(new RpmConfigEnvironment);
 
 class RpmTests : public ::testing::Test {
  public:
@@ -44,6 +85,12 @@ class RpmTests : public ::testing::Test {
 
  protected:
   void SetUp() {
+    // Dropping privileges, which the tests do when run as root, looks the
+    // nobody user up through the users table.
+    platformSetup();
+    registryAndPluginInit();
+    initDatabasePluginForTesting();
+
     gPreviousCallback = rpmlogSetCallback(&RpmTests::Callback, nullptr);
   }
 
@@ -52,6 +99,22 @@ class RpmTests : public ::testing::Test {
     setEnvVar("RPM_CONFIGDIR", path);
     addMacro(nullptr, "_dbpath", nullptr, path.c_str(), 0);
     addMacro(nullptr, "rpmdb", nullptr, path.c_str(), 0);
+  }
+
+  // Copies the BDB fixture into a directory only its owner can access and
+  // points librpm at it. Returns the new directory; the caller removes it.
+  boost::filesystem::path useRootOnlyBdbDatabase() {
+    namespace fs = boost::filesystem;
+    auto source = fs::absolute(getTestConfigDirectory() / "rpm" / "rpm-bdb");
+    auto db_dir =
+        fs::temp_directory_path() / fs::unique_path("osquery-rpm-%%%%-%%%%");
+    fs::create_directories(db_dir);
+    for (const auto& entry : fs::directory_iterator(source)) {
+      fs::copy_file(entry.path(), db_dir / entry.path().filename());
+    }
+    fs::permissions(db_dir, fs::owner_all);
+    this->setConfig(db_dir.string());
+    return db_dir;
   }
 
   void TearDown() {
@@ -159,6 +222,86 @@ TEST_F(RpmTests, test_bdb_packages) {
 
   EXPECT_EQ(expected, packages);
 };
+
+// rpm_packages opens the database before dropping privileges, so it reads a
+// database that only root can open, as when /var/lib/rpm is not readable by
+// other users.
+TEST_F(RpmTests, test_rpm_packages_reads_root_only_database) {
+  if (!isUserAdmin()) {
+    GTEST_SKIP() << "Creating a database only root can open requires root";
+  }
+
+  auto db_dir = useRootOnlyBdbDatabase();
+
+  QueryContext context;
+  auto results = genRpmPackages(context);
+  boost::filesystem::remove_all(db_dir);
+
+  std::vector<std::string> names;
+  for (const auto& row : results) {
+    names.push_back(row.at("name"));
+  }
+  std::vector<std::string> expected = {"rpm-libs", "rpm-python", "rpm"};
+  EXPECT_EQ(expected, names);
+}
+
+// rpm_package_files has its own open/drop sequence: drive its coroutine
+// against the same root-only database and check the files it yields.
+TEST_F(RpmTests, test_rpm_package_files_reads_root_only_database) {
+  if (!isUserAdmin()) {
+    GTEST_SKIP() << "Creating a database only root can open requires root";
+  }
+
+  auto db_dir = useRootOnlyBdbDatabase();
+
+  QueryContext context;
+  RowGenerator::pull_type rows(
+      [&context](RowYield& yield) { genRpmPackageFiles(yield, context); });
+  std::map<std::string, std::vector<std::string>> files;
+  // No range-for: boost.coroutine2's begin/end overloads in namespace std
+  // clash with its detail:: ones when the yielded type holds std types.
+  while (rows) {
+    Row r = static_cast<Row>(*rows.get());
+    files[r.at("package")].push_back(r.at("path"));
+    rows();
+  }
+  boost::filesystem::remove_all(db_dir);
+
+  std::vector<std::string> expected_rpm_libs = {
+      "/usr/lib64/librpm.so.1",
+      "/usr/lib64/librpm.so.1.0.0",
+      "/usr/lib64/librpmbuild.so.1",
+      "/usr/lib64/librpmbuild.so.1.0.0",
+      "/usr/lib64/librpmio.so.1",
+      "/usr/lib64/librpmio.so.1.0.0",
+  };
+  EXPECT_EQ(expected_rpm_libs, files["rpm-libs"]);
+
+  std::vector<std::string> expected_rpm_python = {
+      "/usr/lib64/python2.6/site-packages/rpm",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.py",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.pyc",
+      "/usr/lib64/python2.6/site-packages/rpm/__init__.pyo",
+      "/usr/lib64/python2.6/site-packages/rpm/_rpmbmodule.so",
+      "/usr/lib64/python2.6/site-packages/rpm/_rpmmodule.so",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.py",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.pyc",
+      "/usr/lib64/python2.6/site-packages/rpm/transaction.pyo",
+  };
+  EXPECT_EQ(expected_rpm_python, files["rpm-python"]);
+
+  // The rpm package's 140 files are too many to list; check the count and a
+  // few paths spanning the package.
+  const auto& rpm_files = files["rpm"];
+  EXPECT_EQ(140U, rpm_files.size());
+  for (const auto* path : {"/bin/rpm",
+                           "/usr/lib/rpm/rpmrc",
+                           "/usr/share/locale/sv/LC_MESSAGES/rpm.mo",
+                           "/var/lib/rpm/Packages"}) {
+    EXPECT_NE(rpm_files.end(),
+              std::find(rpm_files.begin(), rpm_files.end(), path));
+  }
+}
 
 TEST_F(RpmTests, test_sqlite_packages) {
   auto dropper = DropPrivileges::get();
