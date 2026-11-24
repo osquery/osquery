@@ -64,6 +64,7 @@ endfunction()
 FindCppcheck("CPPCHECK_EXECUTABLE")
 mark_as_advanced("CPPCHECK_EXECUTABLE")
 
+set(cppcheck_FIND_VERSION 2.12.0)
 set(cppcheck_FIND_VERSION_MAJOR 2)
 set(cppcheck_FIND_VERSION_MINOR 12)
 set(cppcheck_FIND_VERSION_PATCH 0)
