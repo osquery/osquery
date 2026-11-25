@@ -487,8 +487,10 @@ Status describeBSDFileFlags(std::string& output, std::uint32_t st_flags);
  * @brief Reads the filesystem attribute flags of a file with the
  * FS_IOC_GETFLAGS ioctl (the chattr/lsattr flags). Linux only.
  *
- * Returns failure if the file cannot be opened or the filesystem does not
- * support the ioctl, success otherwise.
+ * Returns failure if the file cannot be opened, is not a regular file or a
+ * directory (other file types are not opened, since opening a device node can
+ * have side effects), or the filesystem does not support the ioctl; success
+ * otherwise.
  *
  * @return osquery::Status
  */

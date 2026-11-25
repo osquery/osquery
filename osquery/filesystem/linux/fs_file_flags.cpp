@@ -9,6 +9,7 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <iomanip>
@@ -167,7 +168,30 @@ std::uint32_t getFsFlagMask() {
 Status getFilesystemFileFlags(const std::string& path, std::uint32_t& flags) {
   flags = 0U;
 
-  auto fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK);
+  // Only regular files and directories have attribute flags, and opening
+  // anything else can have side effects: a device driver's open handler runs
+  // even with O_NONBLOCK. So pin the path with an O_PATH descriptor, which
+  // does not open the file itself, check its type, and only then open it,
+  // through /proc/self/fd so that the check and the open see the same file.
+  // Like a normal open, O_PATH follows symlinks.
+  auto path_fd = ::open(path.c_str(), O_PATH | O_CLOEXEC);
+  if (path_fd < 0) {
+    return Status::failure("Failed to open file: " + path);
+  }
+
+  auto path_fd_guard = scope_guard::create([path_fd]() { ::close(path_fd); });
+
+  struct stat file_stat;
+  if (::fstat(path_fd, &file_stat) != 0) {
+    return Status::failure("Failed to stat file: " + path);
+  }
+
+  if (!S_ISREG(file_stat.st_mode) && !S_ISDIR(file_stat.st_mode)) {
+    return Status::failure("Not a regular file or directory: " + path);
+  }
+
+  auto fd = ::open(("/proc/self/fd/" + std::to_string(path_fd)).c_str(),
+                   O_RDONLY | O_NONBLOCK | O_CLOEXEC);
   if (fd < 0) {
     return Status::failure("Failed to open file: " + path);
   }

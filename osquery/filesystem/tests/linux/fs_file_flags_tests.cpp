@@ -9,9 +9,11 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <fstream>
+#include <string>
 
 #include <boost/filesystem.hpp>
 
@@ -119,6 +121,23 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace {
+/// Read a path's attribute flags directly with FS_IOC_GETFLAGS, to compare
+/// with getFilesystemFileFlags. Returns false if they cannot be read.
+bool readFlagsDirectly(const fs::path& path, std::uint32_t& flags) {
+  auto fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK);
+  if (fd < 0) {
+    return false;
+  }
+  auto fd_guard = scope_guard::create([fd]() { ::close(fd); });
+
+  int raw_flags = 0;
+  if (::ioctl(fd, FS_IOC_GETFLAGS, &raw_flags) != 0) {
+    return false;
+  }
+  flags = static_cast<std::uint32_t>(raw_flags);
+  return true;
+}
+
 class LinuxFsFileFlags : public testing::Test {
  protected:
   void SetUp() override {
@@ -186,17 +205,78 @@ TEST_F(LinuxFsFileFlags, readFlagsOfRealFile) {
                  << " does not support FS_IOC_GETFLAGS";
   }
 
-  // A new file has no attribute flags set, except on ext4, which creates
-  // regular files with FS_EXTENT_FL (extents) set
-  EXPECT_EQ(flags & ~FS_EXTENT_FL, 0U);
+  // A new file's flags depend on the filesystem and on what it inherits from
+  // its directory (ext4 sets FS_EXTENT_FL, and can inherit FS_NODUMP_FL,
+  // FS_NOATIME_FL and others), so compare with a direct read.
+  std::uint32_t expected_flags = 0U;
+  ASSERT_TRUE(readFlagsDirectly(path_, expected_flags));
+  EXPECT_EQ(flags, expected_flags);
 
   std::string description;
   EXPECT_TRUE(describeFilesystemFileFlags(description, flags));
-  if ((flags & FS_EXTENT_FL) != 0U) {
-    EXPECT_EQ(description, "FS_EXTENT_FL");
-  } else {
-    EXPECT_TRUE(description.empty());
+  EXPECT_EQ(description.empty(), flags == 0U);
+}
+
+TEST_F(LinuxFsFileFlags, readFlagsOfDirectory) {
+  auto directory = path_.parent_path();
+
+  std::uint32_t flags = 0U;
+  if (!getFilesystemFileFlags(directory.string(), flags).ok()) {
+    GTEST_SKIP() << "The filesystem of " << directory
+                 << " does not support FS_IOC_GETFLAGS";
   }
+
+  std::uint32_t expected_flags = 0U;
+  ASSERT_TRUE(readFlagsDirectly(directory, expected_flags));
+  EXPECT_EQ(flags, expected_flags);
+}
+
+// Opening a device node or FIFO can have side effects, so the helper refuses
+// anything that is not a regular file or a directory, without opening it.
+TEST_F(LinuxFsFileFlags, rejectsOtherFileTypes) {
+  auto fifo = path_.string() + ".fifo";
+  ASSERT_EQ(::mkfifo(fifo.c_str(), 0600), 0);
+  auto fifo_guard = scope_guard::create([&fifo]() { ::unlink(fifo.c_str()); });
+
+  for (const auto& path : {fifo, std::string("/dev/null")}) {
+    std::uint32_t flags = 0U;
+    auto status = getFilesystemFileFlags(path, flags);
+    EXPECT_FALSE(status.ok()) << path;
+    EXPECT_NE(status.getMessage().find("Not a regular file or directory"),
+              std::string::npos)
+        << path << ": " << status.getMessage();
+  }
+}
+
+// The type check applies to the symlink's target, which is what gets opened.
+TEST_F(LinuxFsFileFlags, checksTheTypeOfASymlinkTarget) {
+  auto file_link = path_.string() + ".link";
+  auto fifo = path_.string() + ".fifo";
+  auto fifo_link = path_.string() + ".fifo_link";
+  ASSERT_EQ(::symlink(path_.c_str(), file_link.c_str()), 0);
+  ASSERT_EQ(::mkfifo(fifo.c_str(), 0600), 0);
+  ASSERT_EQ(::symlink(fifo.c_str(), fifo_link.c_str()), 0);
+  auto guard = scope_guard::create([&]() {
+    ::unlink(file_link.c_str());
+    ::unlink(fifo_link.c_str());
+    ::unlink(fifo.c_str());
+  });
+
+  // A link to a regular file reports the file's flags, as before.
+  std::uint32_t expected_flags = 0U;
+  if (readFlagsDirectly(path_, expected_flags)) {
+    std::uint32_t flags = 0U;
+    ASSERT_TRUE(getFilesystemFileFlags(file_link, flags).ok());
+    EXPECT_EQ(flags, expected_flags);
+  }
+
+  // A link to a FIFO is refused.
+  std::uint32_t flags = 0U;
+  auto status = getFilesystemFileFlags(fifo_link, flags);
+  EXPECT_FALSE(status.ok());
+  EXPECT_NE(status.getMessage().find("Not a regular file or directory"),
+            std::string::npos)
+      << status.getMessage();
 }
 
 TEST_F(LinuxFsFileFlags, setAndReadNoDump) {
