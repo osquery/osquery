@@ -126,7 +126,7 @@ out-of-cycle "point release").
 The recommended, and default, way to run the osquery daemon is as root (or Administrator, on Windows).
 
 - Its files are owned as root (config, RocksDB) to resist tampering
-- Extensions must also run as root, and communicate over an IPC restricted to root
+- By default, extensions must also run as root, and communicate over an IPC restricted to root. Optionally, deployments can configure `--extensions_socket_group` to restrict socket permissions (`0660`) to a dedicated group, allowing extension processes to run under an unprivileged/isolated user while communicating with the privileged daemon.
 - When osquery runs as root, it enforces additional file permission checks on the osquery core executable file and that
   of any extensions. For example, a user-controlled directory or binary should not be run as root, since osquery will
   fork and exec itself, which may lead to TOCTOU bugs. To prevent this, osquery checks for the secure set of file
