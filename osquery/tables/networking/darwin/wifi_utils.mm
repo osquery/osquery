@@ -61,7 +61,7 @@ std::string extractSsid(const CFDataRef& data) {
       ss << " ";
     }
     ss << std::setfill('0') << std::setw(2) << std::hex
-       << (unsigned int)bytes[i];
+       << (unsigned int)bytes[i] << " ";
   }
   return ss.str();
 }
