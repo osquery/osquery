@@ -40,17 +40,6 @@ platform() {
   fi
 }
 
-exec_with_env() {
-  REAL_CONFIG_PATH=$REAL_CONFIG_PATH \
-  EXAMPLE_CONFIG_PATH=$EXAMPLE_CONFIG_PATH \
-  PIDFILE=$PIDFILE \
-  LOCKFILE=$LOCKFILE \
-  EXEC=$EXEC \
-  PROG=$PROG \
-  $1
-  return $?
-}
-
 start() {
   check_config
   if [ $OS = "darwin" ]; then
@@ -60,7 +49,7 @@ start() {
     cp $PLIST_INSTALLATION_PATH $PLIST_PATH
     launchctl load $PLIST_PATH
   else
-    exec_with_env "service osqueryd start"
+    systemctl start osqueryd
   fi
 }
 
@@ -69,7 +58,7 @@ stop() {
     launchctl unload $PLIST_PATH
     rm $PLIST_PATH
   else
-    exec_with_env "service osqueryd stop"
+    systemctl stop osqueryd
   fi
 }
 
@@ -86,7 +75,7 @@ status() {
       echo "$PLIST_DOMAIN is running. pid: $LAUNCHCTL_LIST_PID"
     fi
   else
-    exec_with_env "service osqueryd status"
+    systemctl status osqueryd
   fi
 }
 
@@ -109,8 +98,6 @@ main() {
     REAL_CONFIG_PATH="/var/osquery/osquery.conf"
     FLAGS_FILE_PATH="/var/osquery/osquery.flags"
     EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
-    PIDFILE="/var/osquery/osquery.pid"
-    LOCKFILE="/var/osquery/osquery.lock"
     EXEC="/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd"
     PLIST_DOMAIN="io.osquery.agent"
     PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
@@ -118,18 +105,14 @@ main() {
     LAUNCHCTL_LIST=`launchctl list | grep io.osquery.agent || true`
     LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
   else
-    INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
     SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/osqueryd.service"
-    if [[ ! -e "$INIT_SCRIPT_PATH" && ! -f "$SERVICE_SCRIPT_PATH" ]]; then
-      echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
-      echo "Additionally, no systemd service at $SERVICE_SCRIPT_PATH"
+    if [[ ! -f "$SERVICE_SCRIPT_PATH" && ! -f "/lib/systemd/system/osqueryd.service" ]]; then
+      echo "No systemd service found at $SERVICE_SCRIPT_PATH"
       exit 6
     fi
 
     REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
     EXAMPLE_CONFIG_PATH="/opt/osquery/share/osquery/osquery.example.conf"
-    PIDFILE="/var/run/osquery.pid"
-    LOCKFILE="/var/lock/subsys/osqueryd"
     EXEC="/opt/osquery/bin/osqueryd"
   fi
 
