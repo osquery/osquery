@@ -27,6 +27,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       posix/augeas_tests.cpp
       posix/magic_tests.cpp
       posix/crontab_tests.cpp
+      posix/openssl_utils_tests.cpp
     )
   endif()
 
