@@ -52,6 +52,11 @@ function(generatePluginsConfigTlsconfig)
   generateIncludeNamespace(plugins_config_tlsconfig "plugins/config" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME plugins_config_tests_tlsconfigtests-test COMMAND plugins_config_tests_tlsconfigtests-test)
+  if(DEFINED PLATFORM_WINDOWS)
+    set_tests_properties(plugins_config_tests_tlsconfigtests-test PROPERTIES COST 130)
+  elseif(DEFINED PLATFORM_MACOS)
+    set_tests_properties(plugins_config_tests_tlsconfigtests-test PROPERTIES COST 430)
+  endif()
 
   set(tlsconfigtests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

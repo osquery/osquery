@@ -39,7 +39,8 @@ main() {
 
   printf '#!/usr/bin/env bash\n\n' > "${launcher_path}"
   printf 'export RUNNER_ROOT_FOLDER="$(pwd)"\n\n' >> "${launcher_path}"
-  printf 'ctest --build-nocmake -V\n' >> "${launcher_path}"
+  printf 'export CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$(sysctl -n hw.logicalcpu)}"\n\n' >> "${launcher_path}"
+  printf 'ctest --build-nocmake -V "$@"\n' >> "${launcher_path}"
   chmod 755 "${launcher_path}" || return 1
 
   printf "Generating the archive..\n\n"

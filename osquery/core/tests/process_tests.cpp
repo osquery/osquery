@@ -14,12 +14,14 @@
 #include <osquery/utils/system/system.h>
 #endif
 
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <fstream>
 
 #include <gtest/gtest.h>
 
 #include <osquery/process/process.h>
+#include <osquery/utils/scope_guard.h>
 
 #include <osquery/tests/test_util.h>
 
@@ -171,6 +173,39 @@ TEST_F(ProcessTests, test_envVar) {
   val = getEnvVar("GTEST_OSQUERY");
   EXPECT_FALSE(val);
   EXPECT_FALSE(val.is_initialized());
+}
+
+TEST_F(ProcessTests, test_launchPythonArgumentVector) {
+  auto directory = boost::filesystem::temp_directory_path() /
+                   boost::filesystem::unique_path("osquery python %%%%-%%%%");
+  ASSERT_TRUE(boost::filesystem::create_directory(directory));
+  auto cleanup = scope_guard::create(
+      [&directory] { boost::filesystem::remove_all(directory); });
+  auto script = directory / "check arguments.py";
+  {
+    std::ofstream output(script.string());
+    ASSERT_TRUE(output.is_open());
+    output
+        << "import sys\n"
+           "expected = ['space value', '', 'tab\\tvalue', 'quote\"value', "
+           "'trailing space\\\\', 'before\\\\\"quote', 'two\\\\\\\\\"quote']\n"
+           "sys.exit(0 if sys.argv[1:] == expected else 1)\n";
+    ASSERT_TRUE(output.good());
+  }
+
+  std::vector<std::string> arguments = {script.string(),
+                                        "space value",
+                                        "",
+                                        "tab\tvalue",
+                                        "quote\"value",
+                                        "trailing space\\",
+                                        "before\\\"quote",
+                                        "two\\\\\"quote"};
+  auto process = PlatformProcess::launchPythonScript(arguments);
+  ASSERT_NE(process, nullptr);
+  int code{0};
+  ASSERT_TRUE(getProcessExitCode(*process, code));
+  EXPECT_EQ(code, 0);
 }
 
 TEST_F(ProcessTests, test_launchExtension) {

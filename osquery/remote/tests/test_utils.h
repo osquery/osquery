@@ -40,6 +40,8 @@ class TLSServerRunner : private boost::noncopyable {
 
   /**
    * Start the server if it hasn't started already.
+   * The server binds to port zero and publishes the assigned port without
+   * releasing its listening socket.
    *
    * A failure status is returned on error.
    */
@@ -52,19 +54,12 @@ class TLSServerRunner : private boost::noncopyable {
 
  private:
   /**
-   * The output "pid" will be empty if no listening port is found.
-   *
-   * A failure status will also be returned if no pid is found.
-   */
-  Status getListeningPortPid(const std::string& port, std::string& pid);
-
-  /**
    * Try to start the TLS server and set ::server_ to the process.
    *
    * A failure status is returned if the process is not created.
    * This does not check that the port was bound.
    */
-  Status startAndSetScript(const std::string& port,
+  Status startAndSetScript(const std::string& port_file,
                            const std::string& server_cert,
                            bool verify_client_cert,
                            bool require_gzip = false);

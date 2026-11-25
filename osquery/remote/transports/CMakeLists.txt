@@ -35,6 +35,11 @@ function(generateOsqueryRemoteTransportsTransportstls)
   generateIncludeNamespace(osquery_remote_transports_transportstls "osquery/remote/transports" "FILE_ONLY" ${public_header_files})
 
   add_test(NAME osquery_remote_transports_remotetransportstlstests-test COMMAND osquery_remote_transports_remotetransportstlstests-test)
+  if(DEFINED PLATFORM_WINDOWS)
+    set_tests_properties(osquery_remote_transports_remotetransportstlstests-test PROPERTIES COST 50)
+  elseif(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_remote_transports_remotetransportstlstests-test PROPERTIES COST 385)
+  endif()
 
   set(remotetransportstlstests-test_env
     "TEST_CONF_FILES_DIR=${TEST_CONFIGS_DIR}"

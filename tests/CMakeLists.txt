@@ -33,6 +33,7 @@ function(generateTestsHelper)
     osquery_sql
     osquery_utils
     osquery_utils_conversions
+    osquery_utils_system_env
     osquery_utils_system_time
     specs_tables
     thirdparty_boost

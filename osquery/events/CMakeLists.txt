@@ -73,9 +73,10 @@ function(generateOsqueryEvents)
         windows/etw/etw_post_processing_pipeline.cpp
         windows/etw/etw_kernel_session.cpp
         windows/etw/etw_controller.cpp
+        windows/etw/etw_test_session_lock.cpp
         windows/etw/etw_publisher.cpp
       )
-    endif()	
+    endif()
   endif()
 
   add_osquery_library(osquery_events EXCLUDE_FROM_ALL
@@ -193,13 +194,13 @@ function(generateOsqueryEvents)
         windows/etw/etw_kernel_session.h
         windows/etw/etw_data_event.h
         windows/etw/etw_controller.h
+        windows/etw/etw_test_session_lock.h
         windows/etw/etw_concurrent_queue.h
       )
-    endif()	
+    endif()
   endif()
 
   generateIncludeNamespace(osquery_events "osquery/events" "FULL_PATH" ${platform_public_header_files})
-
 
   if(DEFINED PLATFORM_LINUX AND OSQUERY_BUILD_BPF)
     add_test(NAME osquery_events_tests_bpftests-test COMMAND osquery_events_tests_bpftests-test)
@@ -210,8 +211,9 @@ function(generateOsqueryEvents)
     add_test(NAME osquery_tables_events_tests_windowseventstests-test COMMAND osquery_tables_events_tests_windowseventstests-test)
 
     if(OSQUERY_BUILD_ETW)
-		add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
-    endif()		
+      add_test(NAME osquery_tables_events_tests_etwtests-test COMMAND osquery_tables_events_tests_etwtests-test)
+      set_tests_properties(osquery_tables_events_tests_etwtests-test PROPERTIES COST 90)
+    endif()
   endif()
 endfunction()
 

@@ -406,6 +406,9 @@ function(generateOsqueryTablesSystemSystemtable)
   else()
     add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
   endif()
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_tables_system_tests_mergedtests-test PROPERTIES COST 11)
+  endif()
 
   if(DEFINED PLATFORM_POSIX)
     set_tests_properties(
