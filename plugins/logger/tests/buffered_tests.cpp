@@ -37,6 +37,7 @@ namespace osquery {
 
 DECLARE_uint64(buffered_log_max);
 DECLARE_uint64(buffered_log_max_batch_bytes);
+DECLARE_uint64(buffered_log_max_age);
 DECLARE_bool(decorations_top_level);
 
 // Check that the string matches the StatusLogLine
@@ -110,6 +111,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_split_bytes);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
+  FRIEND_TEST(BufferedLogForwarderTests, test_purge_max_age);
   FRIEND_TEST(BufferedLogForwarderTests, test_backoff);
   FRIEND_TEST(BufferedLogForwarderTests, test_backoff_jitter);
 
@@ -453,6 +455,68 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
   runner.check();
 
   runner.check();
+}
+
+// Verify that logs older than the max age are dropped instead of sent
+TEST_F(BufferedLogForwarderTests, test_purge_max_age) {
+  const auto max = FLAGS_buffered_log_max;
+  const auto max_age = FLAGS_buffered_log_max_age;
+  FLAGS_buffered_log_max = 2;
+  FLAGS_buffered_log_max_age = 0;
+
+  StrictMock<MockBufferedLogForwarder> runner;
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  uint64_t time = getUnixTime();
+
+  // Off by default.
+  runner.logString("old", time - 200);
+  EXPECT_CALL(runner, send(ElementsAre("old"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  FLAGS_buffered_log_max_age = 100;
+  runner.logString("fresh", time);
+  std::vector<std::string> indexes;
+  scanDatabaseKeys(kLogs, indexes, runner.index_name_, 0);
+  EXPECT_FALSE(runner.purgeExpired(indexes));
+  EXPECT_CALL(runner, send(ElementsAre("fresh"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  runner.logString("old", time - 200);
+  runner.logStatus({log1}, time - 200);
+  runner.logString("new1", time);
+  runner.logString("new2", time);
+  // Times are not zero padded, so this key sorts after the new ones.
+  runner.logString("y2k", 946684800);
+  // A key without a time is left alone.
+  setDatabaseValue(kLogs, "mock_r_.odd_1", "odd");
+
+  EXPECT_CALL(runner, send(ElementsAre("odd", "new1", "new2"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check();
+
+  // If the count still had the dropped logs, purge() would drop "new1" here.
+  EXPECT_CALL(runner, send(ElementsAre("odd", "new1", "new2"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  runner.check();
+
+  // More expired logs than one batch are all dropped in one check, even behind
+  // a key without a time.
+  StrictMock<MockBufferedLogForwarder> small("mock", kLogPeriod, 2);
+  setDatabaseValue(kLogs, "mock_r_.odd_2", "odd");
+  for (int i = 0; i < 5; i++) {
+    small.logString("old", time - 200);
+  }
+  small.logString("new", time);
+  EXPECT_CALL(small, send(ElementsAre("odd", "new"), "result"))
+      .WillOnce(Return(Status(0)));
+  small.check();
+
+  FLAGS_buffered_log_max = max;
+  FLAGS_buffered_log_max_age = max_age;
 }
 
 TEST_F(BufferedLogForwarderTests, test_status_log_standard_decorations) {

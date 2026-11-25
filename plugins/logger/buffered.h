@@ -164,6 +164,14 @@ class BufferedLogForwarder : public InternalRunnable {
    */
   void purge();
 
+  /**
+   * @brief Purge logs older than the max age, if any of the indexes expired
+   *
+   * Uses the buffered_log_max_age flag. Called by check() before sending.
+   * Returns true if it purged, so the indexes must be read again.
+   */
+  bool purgeExpired(const std::vector<std::string>& indexes);
+
   /// Apply any new configuration changes.
   virtual void applyNewConfiguration() {}
 
