@@ -79,6 +79,9 @@ class SchedulerRunner : public InternalRunnable {
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query);
 
+/// Execute and log a single scheduled query; the scheduler's per-step worker.
+Status launchQuery(const std::string& name, const ScheduledQuery& query);
+
 /// Start querying according to the config's schedule
 void startScheduler();
 

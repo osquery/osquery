@@ -158,6 +158,13 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
                             ": " + status.toString();
       requestShutdown(EXIT_CATASTROPHIC, message);
     }
+    monitoring::record(
+        (boost::format("scheduler.query.%s.%s.rows") % query.pack_name %
+         query.name)
+            .str(),
+        static_cast<monitoring::ValueType>(item.snapshot_results.size()),
+        monitoring::PreAggregationType::Sum,
+        true);
     return status;
   }
 
@@ -210,6 +217,14 @@ Status launchQuery(const std::string& name, const ScheduledQuery& query) {
                           status.toString();
     requestShutdown(EXIT_CATASTROPHIC, message);
   }
+  monitoring::record(
+      (boost::format("scheduler.query.%s.%s.rows") % query.pack_name %
+       query.name)
+          .str(),
+      static_cast<monitoring::ValueType>(diff_results.added.size() +
+                                         diff_results.removed.size()),
+      monitoring::PreAggregationType::Sum,
+      true);
   return status;
 }
 
