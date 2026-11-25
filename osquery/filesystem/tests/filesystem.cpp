@@ -532,15 +532,55 @@ TEST_F(FilesystemTests, test_safe_permissions) {
   EXPECT_TRUE(safePermissions(system_root_, path_1));
 
   // A file with a directory.mode & 0x1000 fails.
-  EXPECT_FALSE(safePermissions(tmp_path_, path_1));
+  std::string reason;
+  EXPECT_FALSE(safePermissions(tmp_path_, path_1, false, &reason));
+  EXPECT_EQ(reason,
+            "parent directory " + tmp_path_ + " is a temporary directory");
 
   // A directory for a file will fail.
-  EXPECT_FALSE(safePermissions(system_root_, path_2));
+  EXPECT_FALSE(safePermissions(system_root_, path_2, false, &reason));
+  EXPECT_EQ(reason, "path is a directory, not a file");
 
   // A root-owned file is appropriate
   if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
     EXPECT_TRUE(safePermissions("/", "/dev/zero"));
   }
+}
+
+TEST_F(FilesystemTests, test_safe_permissions_failure_reasons) {
+  // The owner-exec and world-writable checks follow POSIX semantics.
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    GTEST_SKIP() << "POSIX permission semantics";
+  }
+
+  fs::path test_file(fake_directory_ / "reasons_test.sh");
+  {
+    std::ofstream output(test_file.string());
+    output << "#!/bin/sh\n";
+  }
+
+  std::string reason;
+
+  // A nonexistent file fails access.
+  EXPECT_FALSE(safePermissions(
+      system_root_, fake_directory_ / "does_not_exist.sh", true, &reason));
+  EXPECT_EQ(reason, "file does not exist or is not accessible");
+
+  // A file without the owner exec bit fails the executable check.
+  ::chmod(test_file.string().c_str(), 0644);
+  EXPECT_FALSE(safePermissions(system_root_, test_file, true, &reason));
+  EXPECT_EQ(reason, "file is not executable by its owner");
+
+  // An executable but world-writable file fails the permissions check.
+  ::chmod(test_file.string().c_str(), 0777);
+  EXPECT_FALSE(safePermissions(system_root_, test_file, true, &reason));
+  EXPECT_EQ(reason, "file is writable by other users");
+
+  // Executable and not world-writable passes.
+  ::chmod(test_file.string().c_str(), 0755);
+  EXPECT_TRUE(safePermissions(system_root_, test_file, true, &reason));
+
+  fs::remove(test_file);
 }
 
 TEST_F(FilesystemTests, test_read_proc) {
