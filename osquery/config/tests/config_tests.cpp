@@ -832,6 +832,25 @@ TEST_F(ConfigTests, test_pack_file_paths) {
   EXPECT_EQ(count, 0U);
 }
 
+// removePack(name) removes a pack from any source, so it must remove the
+// pack's files from the pack's own source, not from an empty source.
+TEST_F(ConfigTests, test_pack_file_paths_removed_with_source) {
+  size_t count = 0;
+  auto fileCounter = [&count](const std::string& c,
+                              const std::vector<std::string>& files) {
+    count += files.size();
+  };
+
+  get().addPack("unrestricted_pack", "source", getUnrestrictedPack().doc());
+  get().files(fileCounter);
+  EXPECT_EQ(count, 2U);
+
+  count = 0;
+  get().removePack("unrestricted_pack");
+  get().files(fileCounter);
+  EXPECT_EQ(count, 0U);
+}
+
 void waitForConfig(std::shared_ptr<TestConfigPlugin>& plugin, size_t count) {
   // Max wait of 3 seconds.
   auto delay = std::chrono::milliseconds{3000};
