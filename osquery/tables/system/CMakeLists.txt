@@ -99,6 +99,7 @@ function(generateOsqueryTablesSystemSystemtable)
       linux/apparmor_profiles.cpp
       linux/systemd_units.cpp
       linux/cpu_info.cpp
+      linux/cpu_features.cpp
       linux/gpu_info.cpp
       linux/yum_sources.cpp
     )
