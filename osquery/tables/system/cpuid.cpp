@@ -115,9 +115,18 @@ static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
 #endif
 }
 
-static inline void registerToString(int reg, std::stringstream& stream) {
-  for (size_t i = 0; i < 4; i++) {
-    stream << ((char*)&reg)[i];
+static inline void registersToString(const std::vector<int>& regs,
+                                     std::stringstream& stream) {
+  for (const auto reg : regs) {
+    for (size_t i = 0; i < 4; i++) {
+      char c = ((char*)&reg)[i];
+
+      if (c == 0) {
+        return;
+      }
+
+      stream << c;
+    }
   }
 }
 
@@ -136,9 +145,7 @@ inline Status genStrings(QueryData& results) {
   }
 
   std::stringstream vendor_string;
-  registerToString(regs[1], vendor_string);
-  registerToString(regs[3], vendor_string);
-  registerToString(regs[2], vendor_string);
+  registersToString(std::vector<int>{regs[1], regs[3], regs[2]}, vendor_string);
 
   Row r;
   r["feature"] = "vendor";
@@ -153,10 +160,8 @@ inline Status genStrings(QueryData& results) {
   std::stringstream product_name;
   for (size_t i = 0; i < 3; i++) {
     cpuid(0x80000002 + i, 0U, regs);
-    registerToString(regs[0], product_name);
-    registerToString(regs[1], product_name);
-    registerToString(regs[2], product_name);
-    registerToString(regs[3], product_name);
+    registersToString(std::vector<int>{regs[0], regs[1], regs[2], regs[3]},
+                      product_name);
   }
 
   r["feature"] = "product_name";
