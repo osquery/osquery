@@ -371,6 +371,8 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_config_backup_integrate);
   FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(ConfigTests, test_refresh_unchanged_config);
+  FRIEND_TEST(ConfigTests, test_config_refresh_interval_from_options);
+  FRIEND_TEST(ConfigTests, test_config_refresh_interval_zero_from_options);
   FRIEND_TEST(ConfigTests, test_config_applied_notification);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_nondenylist_query);

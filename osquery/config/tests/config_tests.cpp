@@ -32,6 +32,8 @@
 #include <osquery/utils/json/json.h>
 
 #include <osquery/utils/info/platform_type.h>
+
+DECLARE_uint64(config_refresh);
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/system/time.h>
 
@@ -531,6 +533,67 @@ TEST_F(ConfigTests, test_refresh_unchanged_config) {
   EXPECT_EQ(unchanged_pack_count, pack_count);
 
   rf.registry("config")->remove("test_unchanged");
+  get().reset();
+}
+
+namespace {
+class RefreshIntervalConfigPlugin : public ConfigPlugin {
+ public:
+  explicit RefreshIntervalConfigPlugin(uint64_t refresh) : refresh_(refresh) {}
+
+  Status genConfig(std::map<std::string, std::string>& config) override {
+    config["data"] = std::string("{\"options\": {\"config_refresh\": ") +
+                     std::to_string(refresh_) + "}}";
+    return Status::success();
+  }
+
+ private:
+  uint64_t refresh_;
+};
+} // namespace
+
+TEST_F(ConfigTests, test_config_refresh_interval_from_options) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<RefreshIntervalConfigPlugin>(3);
+  rf.registry("config")->add("test_refresh_interval", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_refresh_interval").ok());
+
+  // The runner starts with the flag value, as set in load().
+  const auto config_refresh = FLAGS_config_refresh;
+  FLAGS_config_refresh = 30;
+  get().setRefresh(FLAGS_config_refresh);
+  ASSERT_EQ(get().getRefresh(), 30U);
+
+  // Applying a config whose options set config_refresh updates the flag and
+  // propagates the new interval to the refresh runner.
+  ASSERT_TRUE(get().refresh().ok());
+  EXPECT_EQ(FLAGS_config_refresh, 3U);
+  EXPECT_EQ(get().getRefresh(), 3U);
+
+  FLAGS_config_refresh = config_refresh;
+  rf.registry("config")->remove("test_refresh_interval");
+  get().reset();
+}
+
+TEST_F(ConfigTests, test_config_refresh_interval_zero_from_options) {
+  get().reset();
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<RefreshIntervalConfigPlugin>(0);
+  rf.registry("config")->add("test_refresh_interval_zero", plugin);
+  EXPECT_TRUE(rf.setActive("config", "test_refresh_interval_zero").ok());
+
+  const auto config_refresh = FLAGS_config_refresh;
+  FLAGS_config_refresh = 30;
+  get().setRefresh(FLAGS_config_refresh);
+
+  // A config may disable refreshing; the runner interval follows the flag.
+  ASSERT_TRUE(get().refresh().ok());
+  EXPECT_EQ(FLAGS_config_refresh, 0U);
+  EXPECT_EQ(get().getRefresh(), 0U);
+
+  FLAGS_config_refresh = config_refresh;
+  rf.registry("config")->remove("test_refresh_interval_zero");
   get().reset();
 }
 
