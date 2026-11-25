@@ -194,7 +194,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
       }
       break;
     case RTA_METRICS:
-      struct rtattr* xattr = static_cast<struct rtattr*> RTA_DATA(attr);
+      struct rtattr* xattr = static_cast<struct rtattr*>(RTA_DATA(attr));
       int xattr_size = RTA_PAYLOAD(attr);
       while (RTA_OK(xattr, xattr_size)) {
         switch (xattr->rta_type) {
