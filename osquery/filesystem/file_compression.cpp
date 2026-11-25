@@ -36,7 +36,11 @@ Status compress(const boost::filesystem::path& in,
                            " for compression");
   }
 
-  auto inFileSize = inFile.size();
+  const auto inFileSizeOpt = inFile.size();
+  if (!inFileSizeOpt) {
+    return Status::failure("Could not determine size of: " + in.string());
+  }
+  const auto inFileSize = *inFileSizeOpt;
   ZSTD_CStream* const cstream = ZSTD_createCStream();
   if (cstream == nullptr) {
     return Status(1, "Couldn't create compression stream");
@@ -112,7 +116,11 @@ Status decompress(const boost::filesystem::path& in,
                            " for decompression");
   }
 
-  auto inFileSize = inFile.size();
+  const auto inFileSizeOpt = inFile.size();
+  if (!inFileSizeOpt) {
+    return Status::failure("Could not determine size of: " + in.string());
+  }
+  const auto inFileSize = *inFileSizeOpt;
   size_t const buffInSize = ZSTD_DStreamInSize();
   size_t const buffOutSize = ZSTD_DStreamOutSize();
   std::vector<void*> buffIn(buffInSize);
@@ -208,15 +216,17 @@ Status archive(const std::set<boost::filesystem::path>& paths,
       // Final fallback with defaults
       LOG(WARNING) << "Could not stat file: " << f.string()
                    << " to preserve metadata in archive";
-      archive_entry_set_size(entry, pFile.size());
+      const auto fallback_size = pFile.size().value_or(0);
+      archive_entry_set_size(entry, fallback_size);
       archive_entry_set_filetype(entry, AE_IFREG);
       archive_entry_set_perm(entry, 0644);
     }
 
     archive_write_header(arch, entry);
 
-    auto blkCount = static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
-                                             static_cast<double>(block_size)));
+    const auto pFileSize = pFile.size().value_or(0);
+    auto blkCount = static_cast<size_t>(
+        ceil(static_cast<double>(pFileSize) / static_cast<double>(block_size)));
     for (size_t i = 0; i < blkCount; i++) {
       std::vector<char> block(block_size, 0);
       auto r = pFile.read(block.data(), block_size);
