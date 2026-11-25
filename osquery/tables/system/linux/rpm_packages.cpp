@@ -245,27 +245,16 @@ using RpmtdPtr = std::unique_ptr<std::remove_pointer_t<rpmtd>, RpmtdDeleter>;
 
 } // namespace
 
-// Iterates all matching packages and returns their rows. The caller opens
-// the database (matches) and, on the host, drops privileges first.
+// Caller opens the rpmdb and `all_names` (every package) while privileged, so a
+// root-only /var/lib/rpm stays readable after the drop. A constrained query
+// frees it and does an indexed Name lookup per value instead of scanning.
 static QueryData scanRpmPackages(QueryContext& context,
                                  Logger& logger,
-                                 rpmdbMatchIterator matches) {
+                                 rpmts ts,
+                                 RpmdbIteratorPtr all_names) {
   QueryData results;
 
-  if (context.constraints["name"].exists(EQUALS)) {
-    auto names = context.constraints["name"].getAll(EQUALS);
-    for (const auto& name : names) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches, RPMTAG_NAME, RPMMIRE_STRCMP, name.c_str()) != 0) {
-        logger.vlog(
-            1, "Cannot add pattern: (" + name + ") to RPM iterator selector");
-      }
-    }
-  }
-
-  Header header;
-  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+  auto emitPackage = [&](Header header) {
     Row r;
     RpmtdPtr td(rpmtdNew());
     r["name"] = getRpmAttribute(header, RPMTAG_NAME, td.get(), logger);
@@ -285,6 +274,23 @@ static QueryData scanRpmPackages(QueryContext& context,
     r["pid_with_namespace"] = "0";
 
     results.push_back(r);
+  };
+
+  auto scan = [&](RpmdbIteratorPtr matches) {
+    Header header;
+    while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+      emitPackage(header);
+    }
+  };
+
+  if (context.constraints["name"].exists(EQUALS)) {
+    all_names.reset();
+    for (const auto& name : context.constraints["name"].getAll(EQUALS)) {
+      scan(RpmdbIteratorPtr(
+          rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size())));
+    }
+  } else {
+    scan(std::move(all_names));
   }
 
   return results;
@@ -303,9 +309,9 @@ static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
   }
 
   RpmtsPtr ts(rpmtsCreate());
-  RpmdbIteratorPtr matches(
+  RpmdbIteratorPtr all_names(
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
-  return scanRpmPackages(context, logger, matches.get());
+  return scanRpmPackages(context, logger, ts.get(), std::move(all_names));
 }
 
 // Namespace-worker entry point. generateInNamespace takes a plain function
@@ -346,7 +352,10 @@ QueryData genRpmPackages(QueryContext& context) {
   }
 
   RpmtsPtr ts(rpmtsCreate());
-  RpmdbIteratorPtr matches(
+  // Open the rpmdb and Name index while privileged (this all-packages iterator
+  // primes both), so post-drop lookups read a root-only /var/lib/rpm;
+  // rpmtsOpenDB(O_RDONLY) alone leaves the index unprimed on Berkeley DB.
+  RpmdbIteratorPtr all_names(
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
   // The database is now open; parse it without privileges.
@@ -355,7 +364,7 @@ QueryData genRpmPackages(QueryContext& context) {
     return {};
   }
 
-  return scanRpmPackages(context, logger, matches.get());
+  return scanRpmPackages(context, logger, ts.get(), std::move(all_names));
 }
 
 void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
@@ -375,7 +384,9 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   }
 
   RpmtsPtr ts(rpmtsCreate());
-  RpmdbIteratorPtr matches(
+  // Open the rpmdb and Name index while privileged (see scanRpmPackages): keeps
+  // a root-only /var/lib/rpm readable after the drop and primes the lookups.
+  RpmdbIteratorPtr all_names(
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
   // The database is now open; parse it without privileges.
@@ -385,22 +396,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     return;
   }
 
-  if (context.constraints["package"].exists(EQUALS)) {
-    auto packages = context.constraints["package"].getAll(EQUALS);
-    for (const auto& package : packages) {
-      // Limit RPM iterator to constraint values
-      if (rpmdbSetIteratorRE(
-              matches.get(), RPMTAG_NAME, RPMMIRE_STRCMP, package.c_str()) !=
-          0) {
-        logger.vlog(
-            1,
-            "Cannot add pattern: (" + package + ") to RPM iterator selector");
-      }
-    }
-  }
-
-  Header header;
-  while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+  auto emitFiles = [&](Header header) {
     RpmtdPtr td(rpmtdNew());
     RpmfiPtr fi(rpmfiNew(ts.get(), header, RPMTAG_BASENAMES, RPMFI_NOHEADER));
     std::string package_name =
@@ -409,12 +405,12 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
     auto file_count = rpmfiFC(fi.get());
     if (file_count <= 0) {
       logger.vlog(1, "RPM package " + package_name + " contains 0 files");
-      continue;
+      return;
     } else if (file_count > MAX_RPM_FILES) {
       logger.vlog(1,
                   "RPM package " + package_name + " contains over " +
                       std::to_string(MAX_RPM_FILES) + " files");
-      continue;
+      return;
     }
 
     // Iterate over every file in this package.
@@ -441,6 +437,26 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
 
       yield(std::move(r));
     }
+  };
+
+  auto scan = [&](RpmdbIteratorPtr matches) {
+    Header header;
+    while ((header = rpmdbNextIterator(matches.get())) != nullptr) {
+      emitFiles(header);
+    }
+  };
+
+  // `package` is `optimized`, so the whole IN list arrives in one call: an
+  // indexed Name lookup per value reads only matching headers, versus scanning
+  // every header and comparing.
+  if (context.constraints["package"].exists(EQUALS)) {
+    all_names.reset();
+    for (const auto& package : context.constraints["package"].getAll(EQUALS)) {
+      scan(RpmdbIteratorPtr(rpmtsInitIterator(
+          ts.get(), RPMTAG_NAME, package.c_str(), package.size())));
+    }
+  } else {
+    scan(std::move(all_names));
   }
 }
 } // namespace tables
