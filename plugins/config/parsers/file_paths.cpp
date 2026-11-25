@@ -7,6 +7,11 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <cstdint>
+#include <map>
+#include <string>
+#include <vector>
+
 #include <osquery/config/config.h>
 #include <osquery/filesystem/filesystem.h>
 #include <osquery/logger/logger.h>
@@ -14,6 +19,21 @@
 #include <osquery/sql/sql.h>
 
 namespace osquery {
+
+namespace {
+
+/// A file_paths_query query that update() left for afterUpdate() to run.
+struct PendingFilePathsQuery {
+  std::string source;
+  std::string category;
+  std::string query;
+};
+
+/// The queries that update() left for afterUpdate() to run. Only accessed
+/// during a config update, which the config's update mutex serializes.
+std::vector<PendingFilePathsQuery> kPendingFilePathsQueries;
+
+} // namespace
 
 /**
  * @brief A simple ConfigParserPlugin for an "file_paths" dictionary key.
@@ -30,6 +50,9 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 
   Status update(const std::string& source, const ParserConfig& config) override;
 
+  /// Run the file_paths_query queries that update() received.
+  void afterUpdate() override;
+
  private:
   // Parse and update file_accesses top-level key.
   void updateFileAccesses(const JSON& file_accesses, const std::string& source);
@@ -37,7 +60,8 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   // Parse and update file_paths top-level key.
   void updateFilePaths(const JSON& file_paths, const std::string& source);
 
-  // Parse and update file_paths_query top-level key.
+  // Parse the file_paths_query top-level key, leaving its queries for
+  // afterUpdate() to run.
   void updateFilePathsQuery(const JSON& file_paths_query,
                             const std::string& source);
 
@@ -136,27 +160,44 @@ void FilePathsConfigParserPlugin::updateFilePathsQuery(
         continue;
       }
 
-      auto sql = SQL(query.GetString());
-      if (!sql.ok()) {
-        LOG(ERROR) << "Could not add file_paths using file_paths_query '"
-                   << query.GetString() << "': " << sql.getMessageString();
-      } else {
-        for (const auto& row : sql.rows()) {
-          auto pathIt = row.find("path");
-          if (pathIt == row.end()) {
-            LOG(ERROR) << "Cold not find non-empty 'path' column in the "
-                          "results of file_paths_query '"
-                       << query.GetString() << "'";
-          } else {
-            std::string path = pathIt->second;
-            replaceGlobWildcards(path);
-            Config::get().addFile(source, name, path);
-          }
-        }
-      }
+      // The queries may read tables, such as ATC tables, that parsers attach
+      // in afterUpdate(), so they run in afterUpdate() too.
+      kPendingFilePathsQueries.push_back({source, name, query.GetString()});
     }
   }
 #endif
+}
+
+void FilePathsConfigParserPlugin::afterUpdate() {
+  std::vector<PendingFilePathsQuery> queries;
+  queries.swap(kPendingFilePathsQueries);
+
+  for (const auto& pending : queries) {
+    auto sql = SQL(pending.query);
+    if (!sql.ok()) {
+      LOG(ERROR) << "Could not add file_paths using file_paths_query '"
+                 << pending.query << "': " << sql.getMessageString();
+      continue;
+    }
+
+    std::vector<std::string> paths;
+    for (const auto& row : sql.rows()) {
+      auto pathIt = row.find("path");
+      if (pathIt == row.end()) {
+        LOG(ERROR) << "Cold not find non-empty 'path' column in the "
+                      "results of file_paths_query '"
+                   << pending.query << "'";
+      } else {
+        std::string path = pathIt->second;
+        replaceGlobWildcards(path);
+        paths.push_back(std::move(path));
+      }
+    }
+
+    for (const auto& path : paths) {
+      Config::get().addFile(pending.source, pending.category, path);
+    }
+  }
 }
 
 void FilePathsConfigParserPlugin::updateExcludePaths(
