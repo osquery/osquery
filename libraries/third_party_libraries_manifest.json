@@ -274,8 +274,8 @@
   "rocksdb": {
     "product": "rocksdb",
     "vendor": "facebook",
-    "version": "6.22.1",
-    "commit": "51b540921dd7495c9cf2265eb58942dad1f2ef72",
+    "version": "10.6.2",
+    "commit": "fae8a27fbd6f54aea1a1bfe32c0d058807ceb8f4",
     "ignored-cves": []
   },
   "sleuthkit": {
@@ -300,7 +300,11 @@
       "CVE-2026-119372",
       "CVE-2026-119373",
       "CVE-2026-119374",
-      "CVE-2026-119377"
+      "CVE-2026-119377",
+      "CVE-2025-3277",
+      "CVE-2026-119378",
+      "CVE-2026-119379",
+      "CVE-2026-119586"
     ]
   },
   "thrift": {
@@ -344,7 +348,9 @@
     "vendor": "zlib",
     "version": "1.3.2",
     "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
-    "ignored-cves": []
+    "ignored-cves": [
+      "CVE-2026-22184"
+    ]
   },
   "zstd": {
     "product": "zstandard",

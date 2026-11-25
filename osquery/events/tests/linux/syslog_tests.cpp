@@ -150,6 +150,25 @@ TEST_F(SyslogTests, test_nonblockingfstream) {
     std::string expected(9, 'A');
     EXPECT_EQ(expected, output);
   }
+
+  // Write a short line followed by a longer one, so the remaining bytes
+  // overlap the start of the buffer when they are shifted down.
+  fill = "A\n";
+  fill += std::string(15, 'B');
+  fill.push_back('\n');
+
+  bytes_written = write(fd, fill.data(), fill.size());
+  ASSERT_EQ(18, bytes_written);
+
+  s = nbfs.getline(output);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(16, nbfs.offset());
+  EXPECT_EQ("A", output);
+
+  s = nbfs.getline(output);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(0, nbfs.offset());
+  EXPECT_EQ(std::string(15, 'B'), output);
 }
 
 TEST_F(SyslogTests, test_populate_event_context) {

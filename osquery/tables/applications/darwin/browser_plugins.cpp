@@ -319,7 +319,7 @@ inline void collectSafariExtensionsFromAppBundlesUnder(
       continue;
     }
     const auto& entry = *it;
-    if (!fs::is_directory(entry.status(ec))) {
+    if (!fs::is_directory(entry.symlink_status(ec))) {
       continue;
     }
     const auto name = entry.path().filename().string();

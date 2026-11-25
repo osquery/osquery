@@ -113,6 +113,10 @@ function(generateTestsIntegrationTablesTestsTest)
     list(APPEND source_files cpuid.cpp)
   endif()
 
+  if(DEFINED PLATFORM_LINUX AND TARGET_PROCESSOR STREQUAL "aarch64")
+    list(APPEND source_files cpu_features.cpp)
+  endif()
+
   if(DEFINED PLATFORM_POSIX)
     set(platform_source_files
       acpi_tables.cpp

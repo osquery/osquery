@@ -50,20 +50,44 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
      }},
     {7,
      {
-         FEATURE("sgx", "ebx", 2),        FEATURE("hle", "ebx", 4),
-         FEATURE("avx2", "ebx", 5),       FEATURE("smep", "ebx", 7),
-         FEATURE("bmi2", "ebx", 8),       FEATURE("erms", "ebx", 9),
-         FEATURE("invpcid", "ebx", 10),   FEATURE("rtm", "ebx", 11),
-         FEATURE("pqm", "ebx", 12),       FEATURE("mpx", "ebx", 14),
-         FEATURE("pqe", "ebx", 15),       FEATURE("avx512f", "ebx", 16),
-         FEATURE("avx512dq", "ebx", 17),  FEATURE("rdseed", "ebx", 18),
-         FEATURE("adx", "ebx", 19),       FEATURE("smap", "ebx", 20),
-         FEATURE("intel_pt", "ebx", 25),  FEATURE("sha", "ebx", 29),
+         FEATURE("sgx", "ebx", 2),
+         FEATURE("hle", "ebx", 4),
+         FEATURE("avx2", "ebx", 5),
+         FEATURE("smep", "ebx", 7),
+         FEATURE("bmi2", "ebx", 8),
+         FEATURE("erms", "ebx", 9),
+         FEATURE("invpcid", "ebx", 10),
+         FEATURE("rtm", "ebx", 11),
+         FEATURE("pqm", "ebx", 12),
+         FEATURE("mpx", "ebx", 14),
+         FEATURE("pqe", "ebx", 15),
+         FEATURE("avx512f", "ebx", 16),
+         FEATURE("avx512dq", "ebx", 17),
+         FEATURE("rdseed", "ebx", 18),
+         FEATURE("adx", "ebx", 19),
+         FEATURE("smap", "ebx", 20),
+         FEATURE("avx512ifma", "ebx", 21),
+         FEATURE("intel_pt", "ebx", 25),
+         FEATURE("avx512cd", "ebx", 28),
+         FEATURE("sha", "ebx", 29),
+         FEATURE("avx512bw", "ebx", 30),
+         FEATURE("avx512vl", "ebx", 31),
 
-         FEATURE("umip", "ecx", 2),       FEATURE("pku", "ecx", 3),
-         FEATURE("ospke", "ecx", 4),      FEATURE("gfni", "ecx", 8),
-         FEATURE("vaes", "ecx", 9),       FEATURE("sgx_lc", "ecx", 30),
+         FEATURE("avx512vbmi", "ecx", 1),
+         FEATURE("umip", "ecx", 2),
+         FEATURE("pku", "ecx", 3),
+         FEATURE("ospke", "ecx", 4),
+         FEATURE("avx512_vbmi2", "ecx", 6),
+         FEATURE("gfni", "ecx", 8),
+         FEATURE("vaes", "ecx", 9),
+         FEATURE("vpclmulqdq", "ecx", 10),
+         FEATURE("avx512_vnni", "ecx", 11),
+         FEATURE("avx512_bitalg", "ecx", 12),
+         FEATURE("avx512_vpopcntdq", "ecx", 14),
+         FEATURE("sgx_lc", "ecx", 30),
 
+         FEATURE("avx512_vp2intersect", "edx", 8),
+         FEATURE("avx512_fp16", "edx", 23),
          FEATURE("spec_ctrl", "edx", 26),
      }},
     {0x80000001,
@@ -98,7 +122,8 @@ static inline void registerToString(int reg, std::stringstream& stream) {
 }
 
 static inline bool isBitSet(size_t bit, unsigned int reg) {
-  return ((reg & (1 << bit)) != 0);
+  // Unsigned literal: 1 << 31 (e.g. avx512vl, hypervisor) overflows signed int.
+  return ((reg & (1U << bit)) != 0);
 }
 
 inline Status genStrings(QueryData& results) {
@@ -143,7 +168,7 @@ inline Status genStrings(QueryData& results) {
 
   // Do the same to grab the optional hypervisor ID.
   cpuid(0x40000000, 0, regs);
-  if (regs[0] && 0xFF000000 != 0) {
+  if (regs[0] & 0xFF000000) {
     std::stringstream hypervisor;
     hypervisor << std::hex << std::setw(8) << std::setfill('0')
                << static_cast<int>(regs[0]);

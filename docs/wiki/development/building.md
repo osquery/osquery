@@ -335,14 +335,13 @@ cmake --build . --target format_check
 
 This is the same command the CI runs to verify formatting.
 
-If the code is not formatted, you can do so with the following command run from the build folder,
-but the code has to be put in the stage area first if it was already committed:
+If it reports violations, format every line the branch changed with the following command run from the build folder:
 
 ```bash
-cmake --build . --target format
+cmake --build . --target format_all
 ```
 
-To avoid having to move the committed files to the stage area and back each time, remember to format the code before committing.
+This applies clang-format to all lines changed relative to `origin/master`, including changes that are already committed, so there is no staging dance: amend or re-commit afterward. (The older `format` target only formats uncommitted changes against `HEAD`, so it cannot fix what the CI flags after committing.)
 
 ## Running cppcheck
 

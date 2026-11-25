@@ -157,5 +157,6 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   FRIEND_TEST(RocksDBDatabasePluginTests, test_corruption);
   FRIEND_TEST(RocksDBDatabasePluginTests, test_column_families_rollback);
   FRIEND_TEST(RocksDBDatabasePluginTests, test_events_ttl);
+  FRIEND_TEST(RocksDBDatabasePluginTests, test_table_options_pinned);
 };
 } // namespace osquery

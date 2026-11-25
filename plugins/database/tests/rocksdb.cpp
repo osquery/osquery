@@ -12,6 +12,8 @@
 #include <osquery/sql/sql.h>
 #include <plugins/database/rocksdb.h>
 
+#include <rocksdb/table.h>
+
 #include <boost/filesystem.hpp>
 
 namespace osquery {
@@ -116,6 +118,119 @@ TEST_F(RocksDBDatabasePluginTests, test_events_ttl) {
   // ttl should be configured to 1d
   auto ttl = db.db_->GetOptions(handle).ttl;
   EXPECT_EQ(ttl, 24 * 60 * 60) << kEvents;
+
+  db.tearDown();
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_version_matches) {
+  const auto expected_version = std::to_string(ROCKSDB_MAJOR) + "." +
+                                std::to_string(ROCKSDB_MINOR) + "." +
+                                std::to_string(ROCKSDB_PATCH);
+  EXPECT_EQ(rocksdb::GetRocksVersionAsString(true), expected_version);
+  EXPECT_GE(ROCKSDB_MAJOR, 6);
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_open_close_cycles) {
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_open_close_cycles.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  for (int i = 0; i < 50; ++i) {
+    auto db = RocksDBDatabasePlugin();
+    auto s = db.setUp();
+    ASSERT_TRUE(s.ok()) << "Cycle " << i << " failed: " << s.getMessage();
+    db.tearDown();
+  }
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_table_options_pinned) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_table_options_pinned.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  // Populate data in a domain so an SST file is flushed
+  std::string value = "test_value";
+  s = db.put(kQueries, "test_key", value);
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  rocksdb::FlushOptions flush_opts;
+  auto rs = db.db_->Flush(flush_opts, db.getHandleForColumnFamily(kQueries));
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
+
+  rocksdb::TablePropertiesCollection props;
+  rs = db.db_->GetPropertiesOfAllTables(db.getHandleForColumnFamily(kQueries),
+                                        &props);
+  ASSERT_TRUE(rs.ok()) << rs.ToString();
+  ASSERT_GT(props.size(), 0U);
+
+  const auto* table_opts =
+      db.options_.table_factory->GetOptions<rocksdb::BlockBasedTableOptions>();
+  ASSERT_NE(table_opts, nullptr);
+  EXPECT_EQ(table_opts->format_version, 5U)
+      << "format_version must be pinned to 5 for backward compatibility";
+  EXPECT_EQ(table_opts->checksum, rocksdb::kCRC32c)
+      << "checksum must be pinned to kCRC32c for backward compatibility";
+
+  // TableProperties::format_version is "reserved" and stays 0 on older
+  // RocksDB releases (e.g. a system 6.22.1), so only check it when populated.
+  // The table_factory assertions above cover the pin itself.
+  for (const auto& kv : props) {
+    if (kv.second->format_version != 0) {
+      EXPECT_EQ(kv.second->format_version, 5U)
+          << "format_version must be pinned to 5 for backward compatibility";
+    }
+  }
+
+  db.tearDown();
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_domain_isolation) {
+  auto db = RocksDBDatabasePlugin();
+  const auto test_db_path =
+      (boost::filesystem::temp_directory_path() /
+       boost::filesystem::unique_path(
+           "osquery.test_domain_isolation.%%%%.%%%%.%%%%.%%%%.db"))
+          .string();
+  FLAGS_database_path = test_db_path;
+  db_dirs_.push_back(test_db_path);
+
+  auto s = db.setUp();
+  ASSERT_TRUE(s.ok()) << s.getMessage();
+
+  const std::string common_key = "shared_key";
+  ASSERT_TRUE(db.put(kPersistentSettings, common_key, "config_val").ok());
+  ASSERT_TRUE(db.put(kQueries, common_key, "queries_val").ok());
+  ASSERT_TRUE(db.put(kEvents, common_key, "events_val").ok());
+  ASSERT_TRUE(db.put(kLogs, common_key, "logs_val").ok());
+  ASSERT_TRUE(db.put(kCarves, common_key, "carves_val").ok());
+
+  std::string val;
+  ASSERT_TRUE(db.get(kPersistentSettings, common_key, val).ok());
+  EXPECT_EQ(val, "config_val");
+
+  ASSERT_TRUE(db.get(kQueries, common_key, val).ok());
+  EXPECT_EQ(val, "queries_val");
+
+  ASSERT_TRUE(db.get(kEvents, common_key, val).ok());
+  EXPECT_EQ(val, "events_val");
+
+  ASSERT_TRUE(db.get(kLogs, common_key, val).ok());
+  EXPECT_EQ(val, "logs_val");
+
+  ASSERT_TRUE(db.get(kCarves, common_key, val).ok());
+  EXPECT_EQ(val, "carves_val");
 
   db.tearDown();
 }
