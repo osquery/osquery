@@ -7,10 +7,13 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <chrono>
+#include <ctime>
 #include <fstream>
 #include <future>
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
+#include <thread>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -359,20 +362,34 @@ TEST_F(HashTableTest, hashes_are_correct) {
   EXPECT_EQ(rows[0].at("sha256"), contentSha256);
 }
 
-TEST_F(HashTableTest, test_cache_works) {
-  time_t last_mtime = 0;
-  for (int i = 0; i < 2; ++i) {
-    SetContent(i);
-    if (last_mtime == 0) {
-      last_mtime = boost::filesystem::last_write_time(tmpPath);
-    } else {
-      // make sure mtime doesn't change
-      boost::filesystem::last_write_time(tmpPath, last_mtime);
-    }
-    SQL results(qry);
-    auto rows = results.rows();
-    ASSERT_EQ(rows.size(), 1U);
+TEST_F(HashTableTest, test_cache_rehashes_rewritten_file_with_restored_mtime) {
+  SetContent(0);
+  SQL r1(qry);
+  ASSERT_EQ(r1.rows().size(), 1U);
+  EXPECT_EQ(r1.rows()[0].at("md5"), contentMd5);
+
+  // Not every filesystem stores sub-second timestamps, so let the clock move
+  // past the second the file was created in before rewriting it.
+  auto last_mtime = boost::filesystem::last_write_time(tmpPath);
+  while (std::time(nullptr) <= last_mtime) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+
+  // Rewrite the content in place, keeping the inode and the size, and put the
+  // modification time back the way a timestomping tool would.
+  SetContent(1);
+  boost::filesystem::last_write_time(tmpPath, last_mtime);
+
+  SQL r2(qry);
+  auto rows = r2.rows();
+  ASSERT_EQ(rows.size(), 1U);
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    // _stat reports the creation time as st_ctime and 0 as st_ino, so the
+    // cache cannot see the rewrite and still serves the old digest.
     EXPECT_EQ(rows[0].at("md5"), contentMd5);
+  } else {
+    // The rewrite and the utimes call both moved the ctime.
+    EXPECT_EQ(rows[0].at("md5"), badContentMd5);
   }
 }
 

@@ -59,11 +59,18 @@ const size_t kHashCacheEvictSize{5};
  * @brief Implements persistent in-memory caching of files' hashes.
  *
  * This cache has LRU eviction policy. The hash is recalculated
- * every time the mtime or size of the file changes.
+ * every time the mtime, ctime or size of the file changes.
  */
 struct FileHashCache {
   /// The file's modification time, changes with a touch.
   time_t file_mtime;
+
+  /// The file's status change time, which utimes cannot set.
+  time_t file_ctime;
+
+  /// Sub-second parts of the two times above, zero where stat has none.
+  long file_mtime_nsec;
+  long file_ctime_nsec;
 
   /// The file's serial or information number (inode).
   ino_t file_inode;
@@ -101,9 +108,35 @@ struct FileHashCache {
 
 #if defined(WIN32)
 
+// The ctime check in statInvalid does not protect Windows: _stat reports the
+// creation time as st_ctime, which SetFileTime can rewrite as freely as the
+// mtime, and its st_ino is always 0. Closing that needs the change time from
+// GetFileInformationByHandleEx.
 #define stat _stat
 
 #endif
+
+/// The sub-second part of the modification time, where stat provides one.
+static inline long statMtimeNsec(const struct stat& st) {
+#if defined(WIN32)
+  return 0;
+#elif defined(__APPLE__)
+  return st.st_mtimespec.tv_nsec;
+#else
+  return st.st_mtim.tv_nsec;
+#endif
+}
+
+/// The sub-second part of the status change time, where stat provides one.
+static inline long statCtimeNsec(const struct stat& st) {
+#if defined(WIN32)
+  return 0;
+#elif defined(__APPLE__)
+  return st.st_ctimespec.tv_nsec;
+#else
+  return st.st_ctim.tv_nsec;
+#endif
+}
 
 /**
  * @brief Checks the current stat output against the cached view.
@@ -112,13 +145,20 @@ struct FileHashCache {
  * should be recalculated.
  */
 static inline bool statInvalid(const struct stat& st, const FileHashCache& fh) {
-  if (st.st_ino != fh.file_inode || st.st_mtime != fh.file_mtime) {
+  if (st.st_ino != fh.file_inode || st.st_mtime != fh.file_mtime ||
+      statMtimeNsec(st) != fh.file_mtime_nsec) {
     // Most plausible case for modification detection.
     return true;
   }
 
   if (st.st_size != fh.file_size) {
     // Just in case there's tomfoolery.
+    return true;
+  }
+
+  if (st.st_ctime != fh.file_ctime || statCtimeNsec(st) != fh.file_ctime_nsec) {
+    // The owner can rewrite the content in place and restore the mtime, but
+    // the kernel updates the ctime on every write and cannot be told not to.
     return true;
   }
   return false;
@@ -164,6 +204,9 @@ bool FileHashCache::load(const std::string& path,
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
     FileHashCache rec = {st.st_mtime, // .file_mtime
+                         st.st_ctime, // .file_ctime
+                         statMtimeNsec(st), // .file_mtime_nsec
+                         statCtimeNsec(st), // .file_ctime_nsec
                          st.st_ino, // .file_inode
                          st.st_size, // .file_size
                          time(nullptr), // .cache_access_time
@@ -179,6 +222,9 @@ bool FileHashCache::load(const std::string& path,
     entry->second.cache_access_time = time(nullptr);
     entry->second.file_inode = st.st_ino;
     entry->second.file_mtime = st.st_mtime;
+    entry->second.file_ctime = st.st_ctime;
+    entry->second.file_mtime_nsec = statMtimeNsec(st);
+    entry->second.file_ctime_nsec = statCtimeNsec(st);
     entry->second.file_size = st.st_size;
     entry->second.hashes = std::move(hashes);
     std::make_heap(lru.begin(), lru.end(), FileHashCache::greater);
