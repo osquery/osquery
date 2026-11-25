@@ -48,6 +48,7 @@ function(generateOsqueryFilesystem)
       linux/mem.cpp
       linux/proc.cpp
       linux/mounts.cpp
+      linux/fs_file_flags.cpp
     )
 
   elseif(DEFINED PLATFORM_WINDOWS)
@@ -139,6 +140,7 @@ function(generateOsqueryFilesystemTest)
     list(APPEND source_files
       tests/linux/proc_tests.cpp
       tests/linux/mounts_tests.cpp
+      tests/linux/fs_file_flags_tests.cpp
     )
   endif()
 

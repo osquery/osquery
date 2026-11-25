@@ -373,6 +373,7 @@ QueryData genFileWindows(QueryContext& context, Logger& logger) {
 void genFileInfoPosix(const fs::path& path,
                       const fs::path& parent,
                       const std::string& pattern,
+                      const QueryContext& context,
                       QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
@@ -442,6 +443,22 @@ void genFileInfoPosix(const fs::path& path,
   r["bsd_flags"] = bsd_file_flags_description;
 #endif
 
+#if defined(__linux__)
+  // Reading the flags opens the file, so only do it when they are requested.
+  std::string fs_flags_description;
+  std::uint32_t fs_flags = 0U;
+  if (context.isColumnUsed("fs_flags") &&
+      getFilesystemFileFlags(path.string(), fs_flags).ok()) {
+    if (!describeFilesystemFileFlags(fs_flags_description, fs_flags)) {
+      VLOG(1) << "The following file had undocumented filesystem attribute "
+                 "flags (chattr) set: "
+              << path;
+    }
+  }
+
+  r["fs_flags"] = fs_flags_description;
+#endif
+
   results.push_back(r);
 }
 
@@ -454,7 +471,7 @@ QueryData genFilePosix(QueryContext& context, Logger& logger) {
   // Iterate through each of the resolved/supplied paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
-    genFileInfoPosix(path, path.parent_path(), "", results);
+    genFileInfoPosix(path, path.parent_path(), "", context, results);
   }
 
   // Resolve directories for EQUALS and LIKE operations.
@@ -470,7 +487,7 @@ QueryData genFilePosix(QueryContext& context, Logger& logger) {
       // Iterate over the directory and generate info for each regular file.
       fs::directory_iterator begin(directory_string), end;
       for (; begin != end; ++begin) {
-        genFileInfoPosix(begin->path(), directory_string, "", results);
+        genFileInfoPosix(begin->path(), directory_string, "", context, results);
       }
     } catch (const fs::filesystem_error& /* e */) {
       continue;
