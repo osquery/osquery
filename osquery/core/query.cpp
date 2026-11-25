@@ -19,6 +19,7 @@
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
 #include <osquery/utils/siphash.h>
 
@@ -49,9 +50,14 @@ std::pair<uint64_t, uint64_t> queryHashKey() {
     if (getDatabaseValue(kPersistentSettings, "diff_hash_key", raw).ok()) {
       auto separator = raw.find(' ');
       if (separator != std::string::npos) {
-        return {std::stoull(raw), std::stoull(raw.substr(separator + 1))};
+        auto key0 = tryTo<uint64_t>(raw.substr(0, separator));
+        auto key1 = tryTo<uint64_t>(raw.substr(separator + 1));
+        if (key0 && key1) {
+          return {key0.take(), key1.take()};
+        }
       }
     }
+    // A missing or corrupt value falls through and regenerates the key.
     std::random_device rd;
     auto half = [&rd]() -> uint64_t {
       return (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
@@ -272,6 +278,8 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
+  // Whether the stored hash already describes the current rows.
+  bool hash_matched = false;
   // Hash of the current rows; the stored results always end up equal to them,
   // so it is saved alongside them to let the next run skip the differential.
   auto current_hash = hashQueryData(current_qd);
@@ -286,7 +294,8 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     if (separator != std::string::npos) {
       stored_hash = stored_epoch.substr(separator + 1);
     }
-    if (stored_hash == std::to_string(current_hash)) {
+    hash_matched = stored_hash == std::to_string(current_hash);
+    if (hash_matched) {
       // The results are identical to the last run: the differential is empty
       // and the stored results can stay in the database unparsed. The output
       // differential is reset, as the caller may reuse it across runs.
@@ -324,11 +333,11 @@ Status Query::addNewResults(QueryDataTyped current_qd,
     if (!status.ok()) {
       return status;
     }
-  } else if (!new_query_epoch) {
-    // The differential was empty: remember the hash of the unchanged results
-    // so the next run can skip them. The epoch value is rewritten with the
-    // same epoch and the new hash, reaching this only when the stored hash
-    // was missing or described different results.
+  } else if (!new_query_epoch && !hash_matched) {
+    // The differential ran and came back empty, and the stored hash was
+    // missing or described different results: remember the hash of the
+    // unchanged results so the next run can skip them. A matching hash writes
+    // nothing at all.
     auto status = setDatabaseValue(
         kQueries,
         name_ + "epoch",

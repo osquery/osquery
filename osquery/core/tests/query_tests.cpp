@@ -324,6 +324,50 @@ TEST_F(QueryTests, test_add_new_results_unchanged) {
   EXPECT_EQ(counter, 1UL);
 }
 
+TEST_F(QueryTests, test_add_new_results_unchanged_no_write) {
+  // A hash match must not write anything.
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("idle_write_query", query);
+
+  uint64_t counter = 0;
+  DiffResults dr;
+  auto results = getTestDBExpectedResults();
+  auto status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+
+  std::string stored_epoch;
+  status = getDatabaseValue(kQueries, "idle_write_queryepoch", stored_epoch);
+  ASSERT_TRUE(status.ok());
+  ASSERT_NE(stored_epoch.find(' '), std::string::npos);
+
+  // Rewrite the stored value with a spelling the saver would normalize away
+  // ("00" instead of "0"), keeping the hash: if the next run writes, the
+  // value changes; if it does not, it stays as put here.
+  stored_epoch = "00" + stored_epoch.substr(stored_epoch.find(' '));
+  status = setDatabaseValue(kQueries, "idle_write_queryepoch", stored_epoch);
+  ASSERT_TRUE(status.ok());
+
+  // The same results match the stored hash.
+  status = cf.addNewResults(results, 0, counter, dr);
+  ASSERT_TRUE(status.ok());
+  EXPECT_TRUE(dr.hasNoResults());
+
+  std::string current_epoch;
+  status = getDatabaseValue(kQueries, "idle_write_queryepoch", current_epoch);
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(current_epoch, stored_epoch);
+}
+
+TEST_F(QueryTests, test_get_previous_epoch_with_hash) {
+  // saveQueryResults() stores "<epoch> <hash>"; the epoch is still readable.
+  auto status = setDatabaseValue(kQueries, "epoch_hash_queryepoch", "7 12345");
+  ASSERT_TRUE(status.ok());
+
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("epoch_hash_query", query);
+  EXPECT_EQ(cf.getPreviousEpoch(), 7UL);
+}
+
 TEST_F(QueryTests, test_get_stored_query_names) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
@@ -363,4 +407,4 @@ TEST_F(QueryTests, test_report_removed_rows) {
   sq.options["removed"] = false;
   EXPECT_FALSE(sq.reportRemovedRows());
 }
-}
+} // namespace osquery

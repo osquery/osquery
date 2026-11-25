@@ -51,47 +51,56 @@ class SipHash24 {
     }
   }
 
-  /// Produce the digest of everything absorbed so far.
-  uint64_t digest() {
+  /// Produce the digest of everything absorbed so far. The finalization runs
+  /// on a copy of the state, so this can be called more than once.
+  uint64_t digest() const {
+    uint64_t v0 = v0_;
+    uint64_t v1 = v1_;
+    uint64_t v2 = v2_;
+    uint64_t v3 = v3_;
+
     // The length byte is followed by the partial block in the low bytes.
     uint64_t b = (total_ & 0xff) << 56 | buffer_;
-    block(b);
+    v3 ^= b;
+    round(v0, v1, v2, v3);
+    round(v0, v1, v2, v3);
+    v0 ^= b;
 
-    v2_ ^= 0xff;
-    round();
-    round();
-    round();
-    round();
-    return v0_ ^ v1_ ^ v2_ ^ v3_;
+    v2 ^= 0xff;
+    round(v0, v1, v2, v3);
+    round(v0, v1, v2, v3);
+    round(v0, v1, v2, v3);
+    round(v0, v1, v2, v3);
+    return v0 ^ v1 ^ v2 ^ v3;
   }
 
  private:
   /// One SipRound.
-  void round() {
-    v0_ += v1_;
-    v1_ = rotateLeft(v1_, 13);
-    v1_ ^= v0_;
-    v0_ = rotateLeft(v0_, 32);
+  static void round(uint64_t& v0, uint64_t& v1, uint64_t& v2, uint64_t& v3) {
+    v0 += v1;
+    v1 = rotateLeft(v1, 13);
+    v1 ^= v0;
+    v0 = rotateLeft(v0, 32);
 
-    v2_ += v3_;
-    v3_ = rotateLeft(v3_, 16);
-    v3_ ^= v2_;
+    v2 += v3;
+    v3 = rotateLeft(v3, 16);
+    v3 ^= v2;
 
-    v0_ += v3_;
-    v3_ = rotateLeft(v3_, 21);
-    v3_ ^= v0_;
+    v0 += v3;
+    v3 = rotateLeft(v3, 21);
+    v3 ^= v0;
 
-    v2_ += v1_;
-    v1_ = rotateLeft(v1_, 17);
-    v1_ ^= v2_;
-    v2_ = rotateLeft(v2_, 32);
+    v2 += v1;
+    v1 = rotateLeft(v1, 17);
+    v1 ^= v2;
+    v2 = rotateLeft(v2, 32);
   }
 
   /// Compress one 64-bit block.
   void block(uint64_t m) {
     v3_ ^= m;
-    round();
-    round();
+    round(v0_, v1_, v2_, v3_);
+    round(v0_, v1_, v2_, v3_);
     v0_ ^= m;
   }
 
