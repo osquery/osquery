@@ -313,7 +313,7 @@ static QueryData genRpmPackagesCore(QueryContext& context, Logger& logger) {
 // enter the namespace, then drops here before touching the rpmdb.
 QueryData genRpmPackagesImpl(QueryContext& context, Logger& logger) {
   auto dropper = DropPrivileges::get();
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropper->dropToNobodyOrOverflow() && isUserAdmin()) {
     logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
     return {};
   }
@@ -350,7 +350,7 @@ QueryData genRpmPackages(QueryContext& context) {
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
   // The database is now open; parse it without privileges.
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropper->dropToNobodyOrOverflow() && isUserAdmin()) {
     logger.log(google::GLOG_WARNING, "Cannot drop privileges for rpm_packages");
     return {};
   }
@@ -379,7 +379,7 @@ void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
       rpmtsInitIterator(ts.get(), RPMTAG_NAME, nullptr, 0));
 
   // The database is now open; parse it without privileges.
-  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+  if (!dropper->dropToNobodyOrOverflow() && isUserAdmin()) {
     logger.log(google::GLOG_WARNING,
                "Cannot drop privileges for rpm_packages_files");
     return;

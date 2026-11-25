@@ -313,6 +313,12 @@ bool PlatformProcess::cleanup(std::chrono::milliseconds timeout) const {
 
 #ifndef WIN32
 
+#ifdef __linux__
+/// The kernel's default overflow IDs, which "nobody" usually maps to.
+const uid_t kOverflowUid{65534};
+const gid_t kOverflowGid{65534};
+#endif
+
 static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
   auto const uid_exp = tryTo<long>(row.at("uid"), 10);
   auto const gid_exp = tryTo<long>(row.at("gid"), 10);
@@ -360,6 +366,20 @@ bool DropPrivileges::dropTo(const std::string& user) {
   }
 
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
+}
+
+bool DropPrivileges::dropToUserOrIds(const std::string& user,
+                                     uid_t uid,
+                                     gid_t gid) {
+  return dropTo(user) || dropTo(uid, gid);
+}
+
+bool DropPrivileges::dropToNobodyOrOverflow() {
+#ifdef __linux__
+  return dropToUserOrIds("nobody", kOverflowUid, kOverflowGid);
+#else
+  return dropTo("nobody");
+#endif
 }
 
 bool setThreadEffective(uid_t uid, gid_t gid) {
