@@ -14,6 +14,8 @@
 #include <osquery/logger/logger.h>
 #include <regex>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -96,8 +98,8 @@ std::unique_ptr<pipe_info> createPipeInfoStruct(pid_t pid,
 std::unique_ptr<pipe_info> getNamedPipeInfo(
     const std::string& process,
     const std::pair<std::string, std::string>& desc) {
-  if (desc.second.find("socket:") != std::string::npos ||
-      desc.second.find("anon_inode:") != std::string::npos) {
+  if (boost::algorithm::starts_with(desc.second, "socket:[") ||
+      boost::algorithm::starts_with(desc.second, "anon_inode:")) {
     return nullptr;
   }
   struct stat file_stat;
@@ -115,7 +117,9 @@ std::unique_ptr<pipe_info> getNamedPipeInfo(
 std::unique_ptr<pipe_info> getPipeInfo(
     const std::string& process,
     const std::pair<std::string, std::string>& desc) {
-  if (desc.second.find("pipe:") != std::string::npos) { // found unnamed pipe
+  // Anonymous pipes readlink to "pipe:[<inode>]"; a named pipe's path may
+  // contain "pipe:" anywhere, so only the prefix identifies one.
+  if (boost::algorithm::starts_with(desc.second, "pipe:[")) {
     return createPipeInfoStruct(std::stoi(process),
                                 std::stoi(desc.first),
                                 getMode(process, desc.first),
