@@ -241,7 +241,9 @@ void Schedule::remove(const std::string& pack, const std::string& source) {
       packs_.begin(), packs_.end(), [pack, source](const PackRef& p) {
         if (p->getName() == pack &&
             (p->getSource() == source || source == "")) {
-          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+          // An empty source matches packs from every source, so remove the
+          // files stored under the pack's own source.
+          Config::get().removeFiles(p->getSource() + FLAGS_pack_delimiter +
                                     p->getName());
           return true;
         }
