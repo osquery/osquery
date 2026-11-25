@@ -74,22 +74,57 @@ const std::string kConfigWithoutTable = R"({
 // it runs, and osquery_schedule takes the config schedule lock to read the
 // schedule. Running both at once used to deadlock.
 TEST_F(ATCConfigParserPluginTests, test_config_update_and_query_no_deadlock) {
+  // Seed the schedule, so osquery_schedule has rows (and takes the schedule
+  // lock to generate them) from the querier's first query.
+  ASSERT_TRUE(Config::get().update({{kSource, kConfigWithoutTable}}).ok());
+
   std::atomic<bool> stop{false};
+  std::atomic<size_t> failed_updates{0};
+  std::atomic<size_t> failed_queries{0};
+  std::atomic<size_t> queries_run{0};
 
-  auto updater = std::async(std::launch::async, [&stop]() {
-    for (size_t i = 0; i < 200 && !stop; ++i) {
-      Config::get().update(
-          {{kSource, (i % 2 == 0) ? kConfigWithTable : kConfigWithoutTable}});
-    }
-    stop = true;
-  });
+  // The updater starts only after the querier's first query, so the two
+  // overlap. Otherwise the updater could finish all of its updates before the
+  // querier starts, and the test would pass without running any SQL during an
+  // update.
+  std::promise<void> first_query_promise;
+  auto first_query = first_query_promise.get_future();
 
-  auto querier = std::async(std::launch::async, [&stop]() {
-    while (!stop) {
-      QueryData results;
-      query("SELECT name FROM osquery_schedule", results);
-    }
-  });
+  auto querier = std::async(
+      std::launch::async,
+      [&stop, &failed_queries, &queries_run, &first_query_promise]() {
+        bool first = true;
+        while (!stop) {
+          QueryData results;
+          if (!query("SELECT name FROM osquery_schedule", results).ok()) {
+            ++failed_queries;
+          }
+          ++queries_run;
+          if (first) {
+            first = false;
+            first_query_promise.set_value();
+          }
+        }
+      });
+
+  auto updater =
+      std::async(std::launch::async, [&stop, &failed_updates, &first_query]() {
+        if (first_query.wait_for(std::chrono::seconds(30)) !=
+            std::future_status::ready) {
+          stop = true;
+          return;
+        }
+        for (size_t i = 0; i < 200; ++i) {
+          if (!Config::get()
+                   .update({{kSource,
+                             (i % 2 == 0) ? kConfigWithTable
+                                          : kConfigWithoutTable}})
+                   .ok()) {
+            ++failed_updates;
+          }
+        }
+        stop = true;
+      });
 
   // Each thread waits on the other when deadlocked, so they cannot be joined
   // and the test cannot clean up. Report the failure and exit instead of
@@ -108,6 +143,12 @@ TEST_F(ATCConfigParserPluginTests, test_config_update_and_query_no_deadlock) {
   // Both workers are finished; propagate any exception they stored.
   updater.get();
   querier.get();
+
+  // The querier ran (so the updater did not give up waiting for it), and
+  // every update and query succeeded.
+  EXPECT_GT(queries_run.load(), 0U);
+  EXPECT_EQ(failed_updates.load(), 0U);
+  EXPECT_EQ(failed_queries.load(), 0U);
 
   // Leave the ATC table detached.
   Config::get().update({{kSource, kConfigWithoutTable}});

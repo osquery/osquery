@@ -444,6 +444,12 @@ void Config::addPack(const std::string& name,
 }
 
 void Config::removePack(const std::string& pack) {
+  // Serialize with update() and addPack(): those run a pack's deferred parser
+  // changes, such as its file_paths_query, after releasing the schedule lock.
+  // Removing the pack in that window would let the deferred changes publish
+  // results for a pack that is no longer scheduled. This is the outermost
+  // config lock, taken before the schedule lock, matching their order.
+  RecursiveLock lock(config_update_mutex_);
   RecursiveLock wlock(config_schedule_mutex_);
   return schedule_->remove(pack);
 }
