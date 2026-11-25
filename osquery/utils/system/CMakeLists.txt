@@ -13,6 +13,7 @@ function(osqueryUtilsSystemMain)
 
   if(OSQUERY_BUILD_TESTS)
     generateOsqueryUtilsSystemErrnoErrnotestsTest()
+    generateOsqueryUtilsSystemSystemtestsTest()
     generateOsqueryUtilsSystemTimeTimetestsTest()
 
     if(DEFINED PLATFORM_LINUX)
@@ -233,6 +234,9 @@ function(generateOsqueryUtilsSystem)
   endif()
 
   generateIncludeNamespace(osquery_utils_system_systemutils "osquery/utils/system" "FULL_PATH" ${public_header_files})
+
+  add_test(NAME osquery_utils_system_systemtests-test COMMAND osquery_utils_system_systemtests-test)
+
 endfunction()
 
 function(generateOsqueryUtilsSystemUptime)
@@ -327,6 +331,16 @@ function(generateOsqueryUtilsSystemCpuCputopologytestsTest)
   target_link_libraries(osquery_utils_system_cputopologytests-test PRIVATE
     osquery_cxx_settings
     osquery_utils_system_cputopology
+    thirdparty_googletest
+  )
+endfunction()
+
+function(generateOsqueryUtilsSystemSystemtestsTest)
+  add_osquery_executable(osquery_utils_system_systemtests-test tests/system.cpp)
+
+  target_link_libraries(osquery_utils_system_systemtests-test PRIVATE
+    osquery_cxx_settings
+    osquery_utils_system_systemutils
     thirdparty_googletest
   )
 endfunction()

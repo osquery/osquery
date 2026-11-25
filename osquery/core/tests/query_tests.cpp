@@ -190,6 +190,25 @@ TEST_F(QueryTests, test_is_query_name_in_database) {
   EXPECT_TRUE(cf.isQueryNameInDatabase());
 }
 
+TEST_F(QueryTests, test_query_name_with_expired_results) {
+  // Config::purge() removes the results and epoch of an expired query but
+  // keeps its "query." entry and counter. It must count as a first run again.
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("expired_query", query);
+  auto status = setDatabaseValue(kQueries, "query.expired_query", query.query);
+  EXPECT_TRUE(status.ok());
+  status = setDatabaseValue(kQueries, "expired_querycounter", "7");
+  EXPECT_TRUE(status.ok());
+  EXPECT_FALSE(cf.isQueryNameInDatabase());
+
+  DiffResults dr;
+  uint64_t counter = 128;
+  status = cf.addNewResults(getTestDBExpectedResults(), 0, counter, dr);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(counter, 0UL);
+  EXPECT_TRUE(cf.isQueryNameInDatabase());
+}
+
 TEST_F(QueryTests, test_query_name_updated) {
   // Try to retrieve results from a query that has not executed.
   QueryDataSet previous_qd;

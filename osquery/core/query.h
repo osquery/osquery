@@ -260,6 +260,12 @@ class Query {
   static std::vector<std::string> getStoredQueryNames();
 
  private:
+  /// getQueryStatus() that also returns the stored results JSON, if any.
+  void getQueryStatus(uint64_t epoch,
+                      bool& new_query_epoch,
+                      bool& new_query_sql,
+                      std::string& previous_json) const;
+
   /// The scheduled query's query string.
   std::string query_;
 

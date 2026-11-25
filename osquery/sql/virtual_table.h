@@ -91,8 +91,10 @@ Status attachFunctionInternal(
     std::function<
         void(sqlite3_context* context, int argc, sqlite3_value** argv)> func);
 
-/// Attach all table plugins to an in-memory SQLite database.
-void attachVirtualTables(const SQLiteDBInstanceRef& instance);
+/// Attach all table plugins to an in-memory SQLite database. Returns false if
+/// a table was left out because its columns request failed or it is still
+/// pending.
+bool attachVirtualTables(const SQLiteDBInstanceRef& instance);
 
 #if !defined(OSQUERY_EXTERNAL)
 /**
