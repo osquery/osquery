@@ -8,7 +8,9 @@
  */
 
 #include <algorithm>
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <osquery/core/flagalias.h>
@@ -17,7 +19,9 @@
 #include <osquery/database/database.h>
 #include <osquery/logger/logger.h>
 
+#include <osquery/utils/conversions/tryto.h>
 #include <osquery/utils/json/json.h>
+#include <osquery/utils/siphash.h>
 
 namespace rj = rapidjson;
 
@@ -31,6 +35,98 @@ FLAG(bool,
      false,
      "Use numeric JSON syntax for numeric values");
 FLAG_ALIAS(bool, log_numerics_as_numbers, logger_numerics);
+
+namespace {
+
+/// Random 128-bit key of the result hash, generated once per installation and
+/// kept in the database, which is readable by root only. Differential results
+/// are a detection mechanism: without the key, an attacker able to control
+/// table contents could craft a result set colliding with the stored hash to
+/// hide rows from the 'added'/'removed' results.
+std::pair<uint64_t, uint64_t> queryHashKey() {
+  static std::pair<uint64_t, uint64_t> key =
+      []() -> std::pair<uint64_t, uint64_t> {
+    std::string raw;
+    if (getDatabaseValue(kPersistentSettings, "diff_hash_key", raw).ok()) {
+      auto separator = raw.find(' ');
+      if (separator != std::string::npos) {
+        auto key0 = tryTo<uint64_t>(raw.substr(0, separator));
+        auto key1 = tryTo<uint64_t>(raw.substr(separator + 1));
+        if (key0 && key1) {
+          return {key0.take(), key1.take()};
+        }
+      }
+    }
+    // A missing or corrupt value falls through and regenerates the key.
+    std::random_device rd;
+    auto half = [&rd]() -> uint64_t {
+      return (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
+    };
+    uint64_t key0 = half();
+    uint64_t key1 = half();
+    setDatabaseValue(kPersistentSettings,
+                     "diff_hash_key",
+                     std::to_string(key0) + " " + std::to_string(key1));
+    return {key0, key1};
+  }();
+  return key;
+}
+
+/// Absorb a 64-bit value in little endian order, independent of the host
+/// byte order.
+void updateU64LE(SipHash24& hash, uint64_t value) {
+  unsigned char bytes[8];
+  for (size_t i = 0; i < sizeof(bytes); ++i) {
+    bytes[i] = static_cast<unsigned char>(value >> (8 * i));
+  }
+  hash.update(bytes, sizeof(bytes));
+}
+
+/// SipHash-2-4 of a single row, independent of the column order (rows are
+/// maps). Each column name and string value is length prefixed, so adjacent
+/// strings cannot be regrouped into different columns with the same byte
+/// stream, and the variant index is hashed too, so the same bytes cannot hash
+/// the same under a different value type. Allocates nothing.
+uint64_t hashRow(const RowTyped& row, uint64_t key0, uint64_t key1) {
+  SipHash24 hash(key0, key1);
+  for (const auto& column : row) {
+    updateU64LE(hash, column.first.size());
+    hash.update(column.first.data(), column.first.size());
+    updateU64LE(hash, column.second.which());
+    boost::apply_visitor(
+        [&](const auto& value) {
+          using T = std::decay_t<decltype(value)>;
+          if constexpr (std::is_same_v<T, std::string>) {
+            updateU64LE(hash, value.size());
+            hash.update(value.data(), value.size());
+          } else {
+            hash.update(&value, sizeof(T));
+          }
+        },
+        column.second);
+  }
+  return hash.digest();
+}
+
+/// SipHash-2-4 of a result set with the same semantics as diff(): only the
+/// multiset of rows matters, not their order. Combining the sorted per-row
+/// hashes keeps duplicate rows counted while removing the order.
+uint64_t hashQueryData(const QueryDataTyped& qd) {
+  auto [key0, key1] = queryHashKey();
+  std::vector<uint64_t> row_hashes;
+  row_hashes.reserve(qd.size());
+  for (const auto& row : qd) {
+    row_hashes.push_back(hashRow(row, key0, key1));
+  }
+  std::sort(row_hashes.begin(), row_hashes.end());
+  SipHash24 hash(key0, key1);
+  for (const auto& row_hash : row_hashes) {
+    updateU64LE(hash, row_hash);
+  }
+  return hash.digest();
+}
+
+} // namespace
 
 uint64_t Query::getPreviousEpoch() const {
   uint64_t epoch = 0;
@@ -78,13 +174,19 @@ Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   return Status::success();
 }
 
-Status Query::saveQueryResults(const std::string& json, uint64_t epoch) const {
-  auto status = setDatabaseValue(kQueries, name_, json);
-  if (!status.ok()) {
-    return status;
-  }
-
-  return setDatabaseValue(kQueries, name_ + "epoch", std::to_string(epoch));
+Status Query::saveQueryResults(const std::string& json,
+                               uint64_t epoch,
+                               const std::string& hash) const {
+  // The hash is stored after the epoch in the same value ("<epoch> <hash>"),
+  // so the results and the hash describing them are always written together,
+  // and no part of the query name space needs to be reserved for it. Reading
+  // the epoch with stoull stops at the space, and an osquery version without
+  // this support rewriting the epoch drops the hash, invalidating it after a
+  // downgrade and re-upgrade.
+  DatabaseStringValueList data;
+  data.push_back({name_, json});
+  data.push_back({name_ + "epoch", std::to_string(epoch) + " " + hash});
+  return setDatabaseBatch(kQueries, data);
 }
 
 std::vector<std::string> Query::getStoredQueryNames() {
@@ -145,7 +247,10 @@ Status Query::addNewEvents(QueryDataTyped current_qd,
   bool new_query_sql = false;
   getQueryStatus(current_epoch, new_query_epoch, new_query_sql);
   if (new_query_epoch) {
-    auto status = saveQueryResults("[]", current_epoch);
+    // Store the hash of the empty result set together with the results, so
+    // the stored hash keeps describing the stored results.
+    auto status = saveQueryResults(
+        "[]", current_epoch, std::to_string(hashQueryData(QueryDataTyped{})));
     if (!status.ok()) {
       return status;
     }
@@ -173,18 +278,43 @@ Status Query::addNewResults(QueryDataTyped current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
+  // Whether the stored hash already describes the current rows.
+  bool hash_matched = false;
+  // Hash of the current rows; the stored results always end up equal to them,
+  // so it is saved alongside them to let the next run skip the differential.
+  auto current_hash = hashQueryData(current_qd);
   if (!new_query_epoch) {
-    // Get the rows from the last run of this query name.
-    QueryDataSet previous_qd;
-    auto status = getPreviousQueryResults(previous_qd);
-    if (!status.ok()) {
-      return status;
+    // The hash is stored after the epoch in the same value. An epoch value
+    // without a hash (or a missing epoch) simply falls back to the full
+    // differential.
+    std::string stored_epoch;
+    getDatabaseValue(kQueries, name_ + "epoch", stored_epoch);
+    std::string stored_hash;
+    auto separator = stored_epoch.find(' ');
+    if (separator != std::string::npos) {
+      stored_hash = stored_epoch.substr(separator + 1);
     }
+    hash_matched = stored_hash == std::to_string(current_hash);
+    if (hash_matched) {
+      // The results are identical to the last run: the differential is empty
+      // and the stored results can stay in the database unparsed. The output
+      // differential is reset, as the caller may reuse it across runs.
+      dr.added.clear();
+      dr.removed.clear();
+      update_db = false;
+    } else {
+      // Get the rows from the last run of this query name.
+      QueryDataSet previous_qd;
+      auto status = getPreviousQueryResults(previous_qd);
+      if (!status.ok()) {
+        return status;
+      }
 
-    // Calculate the differential between previous and current query results.
-    dr = diff(previous_qd, current_qd);
+      // Calculate the differential between previous and current query results.
+      dr = diff(previous_qd, current_qd);
 
-    update_db = (!dr.added.empty() || !dr.removed.empty());
+      update_db = (!dr.added.empty() || !dr.removed.empty());
+    }
   } else {
     dr.added = std::move(current_qd);
     target_gd = &dr.added;
@@ -198,7 +328,20 @@ Status Query::addNewResults(QueryDataTyped current_qd,
       return status;
     }
 
-    status = saveQueryResults(json, current_epoch);
+    status =
+        saveQueryResults(json, current_epoch, std::to_string(current_hash));
+    if (!status.ok()) {
+      return status;
+    }
+  } else if (!new_query_epoch && !hash_matched) {
+    // The differential ran and came back empty, and the stored hash was
+    // missing or described different results: remember the hash of the
+    // unchanged results so the next run can skip them. A matching hash writes
+    // nothing at all.
+    auto status = setDatabaseValue(
+        kQueries,
+        name_ + "epoch",
+        std::to_string(current_epoch) + " " + std::to_string(current_hash));
     if (!status.ok()) {
       return status;
     }
