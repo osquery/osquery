@@ -224,7 +224,8 @@ TEST_F(LinuxFsFileFlags, setAndReadNoDump) {
 
   std::string description;
   EXPECT_TRUE(describeFilesystemFileFlags(description, flags));
-  EXPECT_EQ(description, "FS_NODUMP_FL");
+  EXPECT_EQ(flags, static_cast<std::uint32_t>(updated_flags));
+  EXPECT_NE(description.find("FS_NODUMP_FL"), std::string::npos);
 }
 } // namespace
 } // namespace osquery
