@@ -396,9 +396,6 @@ function(generateOsqueryTablesSystemSystemtable)
 
   generateIncludeNamespace(osquery_tables_system_systemtable "osquery/tables/system" "FULL_PATH" ${platform_public_header_files})
 
-  add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
-  if(DEFINED PLATFORM_MACOS)
-    set_tests_properties(osquery_tables_system_tests_mergedtests-test PROPERTIES COST 11)
   # Tests that need root, because they create a database only root can open.
   # They run in a separate root-required test so that CI runs them as root;
   # the regular test excludes them.
@@ -408,6 +405,9 @@ function(generateOsqueryTablesSystemSystemtable)
     add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test --gtest_filter=-${root_only_tests})
   else()
     add_test(NAME osquery_tables_system_tests_mergedtests-test COMMAND osquery_tables_system_tests_mergedtests-test)
+  endif()
+  if(DEFINED PLATFORM_MACOS)
+    set_tests_properties(osquery_tables_system_tests_mergedtests-test PROPERTIES COST 11)
   endif()
 
   if(DEFINED PLATFORM_POSIX)
