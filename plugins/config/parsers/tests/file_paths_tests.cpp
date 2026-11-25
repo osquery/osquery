@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config/config.h>
+#include <osquery/config/packs.h>
 #include <osquery/core/system.h>
 #include <osquery/registry/registry.h>
 
@@ -20,7 +21,15 @@
 #include <osquery/registry/registry_interface.h>
 #include <osquery/utils/conversions/tryto.h>
 
+#include "blocking_table.h"
+
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <future>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace osquery {
 
@@ -113,5 +122,113 @@ TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {
   config_data_["awesome"] = "";
   Config::get().update(config_data_);
   EXPECT_EQ(numFiles(), 0U);
+}
+
+namespace {
+
+/// A parser config whose file_paths_query update() defers to afterUpdate().
+ConfigParserPlugin::ParserConfig filePathsQueryConfig() {
+  ConfigParserPlugin::ParserConfig config;
+  auto file_paths_query = JSON::newObject();
+  auto queries = file_paths_query.getArray();
+  file_paths_query.pushCopy("select '/dev/urandom' as path", queries);
+  file_paths_query.addCopy("config_files_query", queries);
+  config.emplace("file_paths_query", std::move(file_paths_query));
+  return config;
+}
+
+} // namespace
+
+TEST_F(FilePathsConfigParserPluginTests, test_pending_query_added) {
+  auto parser = Config::getParser("file_paths");
+  ASSERT_NE(parser, nullptr);
+
+  ASSERT_TRUE(parser->update("awesome", filePathsQueryConfig()).ok());
+  parser->afterUpdate();
+
+  // Without an intervening removal, the deferred query's paths are added.
+  EXPECT_EQ(numFiles(), 1U);
+}
+
+// addPack runs a pack's file_paths_query after releasing the schedule lock.
+// removePack must wait for it: otherwise it removes the pack (and its files)
+// first, and the deferred query then publishes paths for a pack that is no
+// longer scheduled.
+TEST_F(FilePathsConfigParserPluginTests,
+       test_remove_pack_waits_for_deferred_query) {
+  const std::string pack_name{"blocked_pack"};
+  const std::string category{"blocked_pack_category"};
+
+  auto table = attachBlockingTable("blocked_pack_paths", "/blocked_pack/path");
+  ASSERT_NE(table, nullptr);
+
+  // The pack is added with an empty source, which is the source removePack
+  // removes files for, so that removing the pack also removes its files.
+  auto pack = JSON::newObject();
+  ASSERT_TRUE(pack.fromString(R"({
+    "queries": {"blocked_pack_query": {"query": "SELECT 1", "interval": 60}},
+    "file_paths_query": {
+      ")" + category + R"(": ["SELECT value AS path FROM blocked_pack_paths"]
+    }
+  })")
+                  .ok());
+
+  auto packCount = [&pack_name] {
+    size_t count = 0;
+    Config::get().packs([&](const Pack& p) {
+      if (p.getName() == pack_name) {
+        ++count;
+      }
+    });
+    return count;
+  };
+  auto categoryPaths = [&category] {
+    std::vector<std::string> paths;
+    Config::get().files(
+        [&](const std::string& c, const std::vector<std::string>& files) {
+          if (c == category) {
+            paths.insert(paths.end(), files.begin(), files.end());
+          }
+        });
+    return paths;
+  };
+
+  // Declared before the releaser, so that on an early return the table is
+  // released before these futures wait for their workers.
+  std::future<void> adder;
+  std::future<void> remover;
+  BlockingTableReleaser releaser{table};
+
+  adder = std::async(std::launch::async,
+                     [&] { Config::get().addPack(pack_name, "", pack.doc()); });
+  ASSERT_TRUE(table->waitUntilEntered(std::chrono::seconds(30)))
+      << "addPack never ran the pack's file_paths_query";
+  // The pack is scheduled; its deferred query is blocked mid-run.
+  EXPECT_EQ(packCount(), 1U);
+
+  remover = std::async(std::launch::async,
+                       [&] { Config::get().removePack(pack_name); });
+  EXPECT_EQ(remover.wait_for(std::chrono::milliseconds(500)),
+            std::future_status::timeout)
+      << "removePack finished while addPack's deferred query was running";
+
+  table->release();
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  if (adder.wait_until(deadline) != std::future_status::ready ||
+      remover.wait_until(deadline) != std::future_status::ready) {
+    std::fprintf(stderr,
+                 "Deadlock: addPack and removePack did not finish within 60 "
+                 "seconds\n");
+    std::fflush(stderr);
+    std::_Exit(EXIT_FAILURE);
+  }
+  adder.get();
+  remover.get();
+
+  // The removal ran after the deferred query, so it removed the pack and the
+  // paths that the query published.
+  EXPECT_EQ(packCount(), 0U);
+  EXPECT_TRUE(categoryPaths().empty());
 }
 }
