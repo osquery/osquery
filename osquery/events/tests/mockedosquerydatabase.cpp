@@ -147,6 +147,11 @@ Status MockedOsqueryDatabase::deleteDatabaseValue(
         key);
   }
 
+  if (failed_delete_key_set.count(key) != 0U) {
+    return Status::failure(
+        "MockedOsqueryDatabase: Failed deleteDatabaseValue call");
+  }
+
   key_map.erase(key_it);
   return Status::success();
 }

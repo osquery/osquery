@@ -554,26 +554,40 @@ void EventSubscriberPlugin::removeOverflowingEventBatches(
     string_last_query_time = buffer.data();
   }
 
+  // A batch counts as removed only if all of its events were deleted.
+  //
+  // The excess batches were already erased from event_index above, whether or
+  // not their deletes succeed here, so keys that fail to delete are not
+  // retried during this run. They remain in the database until
+  // generateEventDataIndex() rebuilds the index from it at the next startup.
   std::size_t batches_removed{};
+  std::size_t failed_delete_count{};
   for (const auto& p : excess_event_batch_list) {
     const auto& event_identifier_list = p.second;
 
+    bool all_deleted{true};
     for (auto event_id : event_identifier_list) {
       auto key = databaseKeyForEventId(context, event_id);
       auto status = db_interface.deleteDatabaseValue(kEvents, key);
-      if (status.ok()) {
-        ++batches_removed;
+      if (!status.ok()) {
+        ++failed_delete_count;
+        all_deleted = false;
       }
+    }
+
+    if (all_deleted) {
+      ++batches_removed;
     }
   }
 
-  auto failed_delete_count = (excess_event_batch_list.size() - batches_removed);
-
   std::stringstream message;
-  message << "Removed " << batches_removed << " event batches ";
+  message << "Removed " << batches_removed;
 
   if (failed_delete_count > 0U) {
-    message << "(with " << failed_delete_count << " delete errors)  ";
+    message << " of " << excess_event_batch_list.size() << " event batches ("
+            << failed_delete_count << " events failed to delete) ";
+  } else {
+    message << " event batches ";
   }
 
   message << "for subscriber: " << context.database_namespace
