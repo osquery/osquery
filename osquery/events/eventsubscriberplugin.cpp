@@ -555,6 +555,11 @@ void EventSubscriberPlugin::removeOverflowingEventBatches(
   }
 
   // A batch counts as removed only if all of its events were deleted.
+  //
+  // The excess batches were already erased from event_index above, whether or
+  // not their deletes succeed here, so keys that fail to delete are not
+  // retried during this run. They remain in the database until
+  // generateEventDataIndex() rebuilds the index from it at the next startup.
   std::size_t batches_removed{};
   std::size_t failed_delete_count{};
   for (const auto& p : excess_event_batch_list) {

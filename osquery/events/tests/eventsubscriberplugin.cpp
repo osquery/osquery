@@ -11,7 +11,10 @@
 
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -43,11 +46,21 @@ class WarningCapture final : public google::LogSink {
             const char* message,
             size_t message_len) override {
     if (severity == google::GLOG_WARNING) {
-      message_list.emplace_back(message, message_len);
+      std::lock_guard<std::mutex> lock(mutex_);
+      message_list_.emplace_back(message, message_len);
     }
   }
 
-  std::vector<std::string> message_list;
+  /// A snapshot of the warnings captured so far. glog can call send() from
+  /// several logging threads at once, so appends and reads share a mutex.
+  std::vector<std::string> messages() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return message_list_;
+  }
+
+ private:
+  std::mutex mutex_;
+  std::vector<std::string> message_list_;
 };
 
 } // namespace
@@ -223,7 +236,7 @@ TEST_F(EventSubscriberPluginTests, removeOverflowingEventBatchesLog) {
     WarningCapture capture;
     EventSubscriberPlugin::removeOverflowingEventBatches(
         context, mocked_database, max_event_batches);
-    return capture.message_list;
+    return capture.messages();
   };
 
   // Batches 1 and 2
