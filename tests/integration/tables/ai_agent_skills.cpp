@@ -252,8 +252,7 @@ std::string makeNestedMapSkillMarkdown(const std::string& name,
   nested_value += "supported";
   nested_value += std::string(map_depth, '}');
 
-  return "---\nname: " + name + "\ncompatibility: " + nested_value +
-         "\n---\n";
+  return "---\nname: " + name + "\ncompatibility: " + nested_value + "\n---\n";
 }
 
 std::string makeSizedSkillMarkdown(const std::string& name, size_t total_size) {
@@ -477,8 +476,7 @@ compatibility: *c
       execute_query("select * from ai_agent_skills where directory = '" +
                     project_dir.string() + "'");
 
-  const auto& anchor =
-      findRowByPath(data, (anchor_dir / "SKILL.md").string());
+  const auto& anchor = findRowByPath(data, (anchor_dir / "SKILL.md").string());
   expectFrontmatterColumnsEmpty(anchor);
 
   const auto& aliases =
