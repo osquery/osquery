@@ -57,6 +57,30 @@ TEST_F(TablesTests, test_constraint_list) {
   EXPECT_EQ(all_equals.size(), 2U);
 }
 
+// The typed getAll<T>(op) returns only the values of constraints with that
+// operator, like the string overload. It used to ignore the operator, so tables
+// treated a range constraint's value as an equality match (#9351).
+TEST_F(TablesTests, test_constraint_list_typed_get_all_filters_operator) {
+  struct ConstraintList cl;
+  cl.affinity = INTEGER_TYPE;
+  cl.add(Constraint(EQUALS, "100"));
+  cl.add(Constraint(GREATER_THAN, "1"));
+  cl.add(Constraint(LESS_THAN, "1000"));
+
+  EXPECT_EQ(cl.getAll<int>(EQUALS), (std::set<int>{100}));
+  EXPECT_EQ(cl.getAll<int>(GREATER_THAN), (std::set<int>{1}));
+  EXPECT_EQ(cl.getAll<long long>(LESS_THAN), (std::set<long long>{1000}));
+  EXPECT_EQ(cl.getAll<unsigned long long>(EQUALS),
+            (std::set<unsigned long long>{100}));
+  EXPECT_TRUE(cl.getAll<int>(LESS_THAN_OR_EQUALS).empty());
+
+  // A column with only a range constraint has no equality values.
+  struct ConstraintList range_only;
+  range_only.affinity = INTEGER_TYPE;
+  range_only.add(Constraint(GREATER_THAN, "50"));
+  EXPECT_TRUE(range_only.getAll<int>(EQUALS).empty());
+}
+
 TEST_F(TablesTests, test_constraint_matching) {
   struct ConstraintList cl;
   // An empty constraint list has expectations.

@@ -1018,6 +1018,37 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   EXPECT_EQ(10U, j->scans);
 }
 
+// A table that generates only the rows named by getAll<int>(EQUALS), and
+// scans everything when there are none, must still answer range-only queries.
+// getAll<T> used to ignore the operator, so "i > 50" was read as "i = 50":
+// the table generated only row 50, which SQLite's recheck then filtered out
+// (#9351).
+TEST_F(VirtualTableTests, test_indexed_table_with_range_only_constraint) {
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = RegistryFactory::get().registry("table");
+
+  auto i = std::make_shared<indexIOptimizedTablePlugin>();
+  table_registry->add("index_i_range", i);
+  attachTableInternal("index_i_range", dbc, false);
+
+  // Range only: a full scan, filtered by SQLite to i = 51..99.
+  QueryData results;
+  ASSERT_TRUE(
+      queryInternal("SELECT i FROM index_i_range WHERE i > 50", results, dbc)
+          .ok());
+  dbc->clearAffectedTables();
+  EXPECT_EQ(results.size(), 49U);
+
+  // Equality plus a range: only the equality value is looked up.
+  results.clear();
+  const std::string equality_and_range =
+      "SELECT i FROM index_i_range WHERE i = 7 AND i < 100";
+  ASSERT_TRUE(queryInternal(equality_and_range, results, dbc).ok());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["i"], "7");
+}
+
 class colsUsedTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {

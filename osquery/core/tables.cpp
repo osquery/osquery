@@ -460,9 +460,14 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
 }
 
 template <typename T>
-std::set<T> ConstraintList::getAll(ConstraintOperator /* op */) const {
+std::set<T> ConstraintList::getAll(ConstraintOperator op) const {
   std::set<T> cs;
   for (const auto& item : constraints_) {
+    // Only constraints with the requested operator, like the string overload.
+    if (item.op != op) {
+      continue;
+    }
+
     auto exp = tryTo<T>(item.expr);
     if (exp) {
       cs.insert(exp.take());
