@@ -380,12 +380,32 @@ ColumnType columnTypeName(const std::string& type) {
   return UNKNOWN_TYPE;
 }
 
+namespace {
+
+/// The operators that are single-bit flags, which exists() can combine.
+constexpr ConstraintOperatorFlag kFlagOperators =
+    EQUALS | GREATER_THAN | LESS_THAN_OR_EQUALS | LESS_THAN |
+    GREATER_THAN_OR_EQUALS;
+
+/// Whether a constraint's operator is one of the requested operators. Only
+/// the flag operators can be combined. Every other operator value (LIKE, GLOB,
+/// REGEXP, MATCH, and SQLite's LIMIT/OFFSET pseudo-constraints) shares bits
+/// with them, so it must match exactly: OFFSET (74) is not EQUALS (2).
+bool operatorMatches(unsigned char op, ConstraintOperatorFlag ops) {
+  if ((op & ~kFlagOperators) == 0) {
+    return (op & ops) != 0;
+  }
+  return op == ops;
+}
+
+} // namespace
+
 bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
   if (ops == ANY_OP) {
     return (constraints_.size() > 0);
   } else {
     for (const struct Constraint& c : constraints_) {
-      if (c.op & ops) {
+      if (operatorMatches(c.op, ops)) {
         return true;
       }
     }

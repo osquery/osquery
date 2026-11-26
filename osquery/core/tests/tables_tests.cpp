@@ -57,6 +57,43 @@ TEST_F(TablesTests, test_constraint_list) {
   EXPECT_EQ(all_equals.size(), 2U);
 }
 
+// exists() can combine the single-bit operators, but other operator values
+// share bits with them and must match exactly (#9353).
+TEST_F(TablesTests, test_constraint_list_exists_non_flag_operators) {
+  // SQLite's LIMIT and OFFSET pseudo-constraints, which xBestIndex passes on
+  // as constraints on the table's first column.
+  const unsigned char kLimit = 73;
+  const unsigned char kOffset = 74;
+
+  // GLOB (66), REGEXP (67) and OFFSET (74) all share the EQUALS bit (2).
+  const unsigned char shares_equals_bit[] = {GLOB, REGEXP, kOffset};
+  for (auto op : shares_equals_bit) {
+    struct ConstraintList cl;
+    cl.add(Constraint(op, "1"));
+    EXPECT_TRUE(cl.exists()) << static_cast<int>(op);
+    EXPECT_TRUE(cl.exists(op)) << static_cast<int>(op);
+    EXPECT_FALSE(cl.exists(EQUALS)) << static_cast<int>(op);
+  }
+
+  // LIMIT (73) shares the LESS_THAN_OR_EQUALS bit (8).
+  struct ConstraintList limit;
+  limit.add(Constraint(kLimit, "5"));
+  EXPECT_FALSE(limit.exists(LESS_THAN_OR_EQUALS));
+  EXPECT_FALSE(limit.exists(EQUALS | LESS_THAN_OR_EQUALS));
+
+  // GLOB (66) also shares a bit with LIKE (65), but is not LIKE.
+  struct ConstraintList glob;
+  glob.add(Constraint(GLOB, "a*"));
+  EXPECT_FALSE(glob.exists(LIKE));
+
+  // Combinations of the single-bit operators still work.
+  struct ConstraintList range;
+  range.add(Constraint(LESS_THAN, "5"));
+  EXPECT_TRUE(range.exists(LESS_THAN));
+  EXPECT_TRUE(range.exists(EQUALS | LESS_THAN));
+  EXPECT_FALSE(range.exists(EQUALS | GREATER_THAN));
+}
+
 TEST_F(TablesTests, test_constraint_matching) {
   struct ConstraintList cl;
   // An empty constraint list has expectations.
