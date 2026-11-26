@@ -213,7 +213,6 @@ if not validateManifestFormat(libraries):
     exit(1)
 
 cves_per_library = []
-all_ignored_cves = []
 libraries_to_check = []
 
 # If not empty, only check the libraries provided in this list
@@ -244,7 +243,6 @@ for library_name, library_metadata in libraries.items():
 
     vendor = library_metadata["vendor"]
     ignored_cves = library_metadata["ignored-cves"]
-    all_ignored_cves.extend(ignored_cves)
 
     # The underlying nvdlib library will wait around base_nvd_retry_interval already,
     # which is the NVD API required wait time, but sometimes that's not enough.
@@ -304,7 +302,9 @@ for library_name, library_metadata in libraries.items():
 
         cves.append(CVE(cve.id, severity, description_text, cve.url))
 
-    cves_per_library.append({"name": library_name, "cves": cves})
+    cves_per_library.append(
+        {"name": library_name, "cves": cves, "ignored-cves": ignored_cves}
+    )
 
 if len(cves_per_library) == 0:
     exit(0)
@@ -318,12 +318,13 @@ libraries_with_ignored_cves = []
 # Split ignored CVEs from still valid CVEs and organize both for display
 for library in cves_per_library:
     cves = library["cves"]
+    ignored_cves = library["ignored-cves"]
 
     cves_messages = []
     ignored_cves_messages = []
 
     for cve in cves:
-        if cve.name not in all_ignored_cves:
+        if cve.name not in ignored_cves:
             cves_messages.append(f"\t Name: {cve.name}\tSeverity: {cve.severity}")
         else:
             ignored_cves_messages.append(
@@ -391,7 +392,7 @@ if args.create_issues:
         # We create the CVEs from older to newer
         # so that the newer ones are on top of the Github issues list
         for cve in reversed(cves):
-            if cve.name in opened_cve_issues or cve.name in all_ignored_cves:
+            if cve.name in opened_cve_issues or cve.name in library["ignored-cves"]:
                 continue
 
             library_name = library["name"]
