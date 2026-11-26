@@ -1018,6 +1018,71 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   EXPECT_EQ(10U, j->scans);
 }
 
+// Follows the common table pattern: if exists(EQUALS), generate only the rows
+// with those values, otherwise generate every row (#9353).
+class existsEqualsTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("name", TEXT_TYPE, ColumnOptions::INDEX),
+    };
+  }
+
+ public:
+  TableRows generate(QueryContext& context) override {
+    auto by_id = context.constraints["id"].exists(EQUALS);
+    auto ids = context.constraints["id"].getAll(EQUALS);
+    auto by_name = context.constraints["name"].exists(EQUALS);
+    auto names = context.constraints["name"].getAll(EQUALS);
+
+    TableRows results;
+    for (size_t i = 0; i < 100; i++) {
+      auto id = std::to_string(i);
+      auto name = "name_" + id;
+      if ((by_id && ids.count(id) == 0) ||
+          (by_name && names.count(name) == 0)) {
+        continue;
+      }
+      results.push_back(make_table_row({{"id", id}, {"name", name}}));
+    }
+    return results;
+  }
+};
+
+TEST_F(VirtualTableTests, test_exists_equals_ignores_non_equality_operators) {
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = RegistryFactory::get().registry("table");
+
+  auto table = std::make_shared<existsEqualsTablePlugin>();
+  table_registry->add("exists_equals", table);
+  attachTableInternal("exists_equals", dbc, false);
+
+  auto run = [&dbc](const std::string& sql) {
+    QueryData results;
+    EXPECT_TRUE(queryInternal(sql, results, dbc).ok()) << sql;
+    dbc->clearAffectedTables();
+    return results;
+  };
+
+  // SQLite passes OFFSET (74) to the table as a constraint on its first
+  // column. It shares the EQUALS bit, so exists(EQUALS) used to be true and
+  // the table generated no rows.
+  auto results = run("SELECT id FROM exists_equals LIMIT 5 OFFSET 10");
+  ASSERT_EQ(results.size(), 5U);
+  EXPECT_EQ(results[0]["id"], "10");
+  EXPECT_EQ(results[4]["id"], "14");
+
+  // GLOB (66) also shares the EQUALS bit.
+  results = run("SELECT id FROM exists_equals WHERE name GLOB 'name_1*'");
+  EXPECT_EQ(results.size(), 11U);
+
+  // Equality constraints still select only their rows.
+  results = run("SELECT id FROM exists_equals WHERE id = 7");
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["id"], "7");
+}
+
 class colsUsedTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {

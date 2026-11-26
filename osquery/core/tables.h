@@ -272,7 +272,10 @@ struct ConstraintList : private boost::noncopyable {
    * A ConstraintList is used in a ConstraintMap with a column name as the
    * map index. Tables that act on optional constraints should check if any
    * constraint was provided.  The ops parameter serves to specify which
-   * operators we want to check existence for.
+   * operators we want to check existence for. The single-bit operators
+   * (EQUALS, GREATER_THAN, LESS_THAN_OR_EQUALS, LESS_THAN and
+   * GREATER_THAN_OR_EQUALS) can be combined with `|`; any other operator
+   * matches only itself.
    *
    * @param ops (Optional: default ANY_OP) The operators types to look for.
    * @return true if any constraint exists.
