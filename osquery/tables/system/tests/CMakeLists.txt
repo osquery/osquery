@@ -46,6 +46,7 @@ function(generateOsqueryTablesSystemTestsMergedtestsTest)
       linux/rpm_packages_tests.cpp
       linux/secureboot_certificates_tests.cpp
       linux/selinux_settings_tests.cpp
+      linux/usb_devices_tests.cpp
       linux/yum_sources_tests.cpp
     )
   elseif(DEFINED PLATFORM_MACOS)

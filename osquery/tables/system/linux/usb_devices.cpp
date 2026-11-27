@@ -7,11 +7,15 @@
  * SPDX-License-Identifier: (Apache-2.0 OR GPL-2.0-only)
  */
 
+#include <stdexcept>
+#include <utility>
+
 #include <osquery/core/core.h>
 #include <osquery/core/tables.h>
 #include <osquery/logger/logger.h>
 
 #include <osquery/events/linux/udev.h>
+#include <osquery/tables/system/linux/usb_devices.h>
 #include <osquery/utils/conversions/split.h>
 
 namespace osquery {
@@ -29,6 +33,55 @@ const std::string kUSBKeySerial = "ID_SERIAL_SHORT";
 const std::string kUSBKeyAddress = "BUSNUM";
 const std::string kUSBKeyPort = "DEVNUM";
 const std::string kUSBKeyType = "TYPE";
+
+bool parseUSBDeviceNumber(const std::string& value, int& number) {
+  if (value.empty()) {
+    return false;
+  }
+
+  for (const auto character : value) {
+    if (character < '0' || character > '9') {
+      return false;
+    }
+  }
+
+  try {
+    std::size_t parsed_length{0U};
+    const auto parsed_number = std::stoi(value, &parsed_length, 10);
+
+    if (parsed_length != value.size()) {
+      return false;
+    }
+
+    number = parsed_number;
+    return true;
+  } catch (const std::invalid_argument&) {
+    return false;
+  } catch (const std::out_of_range&) {
+    return false;
+  }
+}
+
+void addUSBDeviceRow(QueryData& results,
+                     Row row,
+                     const std::string& usb_address_value,
+                     const std::string& usb_port_value) {
+  if (usb_address_value.empty() || usb_port_value.empty()) {
+    return;
+  }
+
+  int usb_address{0};
+  if (parseUSBDeviceNumber(usb_address_value, usb_address)) {
+    row["usb_address"] = INTEGER(usb_address);
+  }
+
+  int usb_port{0};
+  if (parseUSBDeviceNumber(usb_port_value, usb_port)) {
+    row["usb_port"] = INTEGER(usb_port);
+  }
+
+  results.push_back(std::move(row));
+}
 
 QueryData genUSBDevices(QueryContext &context) {
   QueryData results;
@@ -81,8 +134,10 @@ QueryData genUSBDevices(QueryContext &context) {
     }
 
     // Address/port accessors.
-    r["usb_address"] = UdevEventPublisher::getValue(device, kUSBKeyAddress);
-    r["usb_port"] = UdevEventPublisher::getValue(device, kUSBKeyPort);
+    const auto usb_address_value =
+        UdevEventPublisher::getValue(device, kUSBKeyAddress);
+    const auto usb_port_value =
+        UdevEventPublisher::getValue(device, kUSBKeyPort);
 
     // Removable detection.
     auto removable = UdevEventPublisher::getAttr(device, "removable");
@@ -92,9 +147,8 @@ QueryData genUSBDevices(QueryContext &context) {
       r["removable"] = "1";
     }
 
-    if (r["usb_address"].size() > 0 && r["usb_port"].size() > 0) {
-      results.push_back(r);
-    }
+    addUSBDeviceRow(
+        results, std::move(r), usb_address_value, usb_port_value);
     udev_device_unref(device);
   }
 
