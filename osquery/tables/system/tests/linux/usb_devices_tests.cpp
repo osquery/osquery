@@ -40,9 +40,8 @@ TEST(USBDevicesTests, parses_decimal_numbers) {
 }
 
 TEST(USBDevicesTests, rejects_non_decimal_numbers_without_changing_output) {
-  const auto out_of_range_number =
-      std::to_string(static_cast<long long>(std::numeric_limits<int>::max()) +
-                     1LL);
+  const auto out_of_range_number = std::to_string(
+      static_cast<long long>(std::numeric_limits<int>::max()) + 1LL);
 
   const std::vector<std::string> test_cases = {
       "",
@@ -68,9 +67,8 @@ TEST(USBDevicesTests, rejects_non_decimal_numbers_without_changing_output) {
 }
 
 TEST(USBDevicesTests, preserves_row_and_omits_only_malformed_number) {
-  const auto out_of_range_number =
-      std::to_string(static_cast<long long>(std::numeric_limits<int>::max()) +
-                     1LL);
+  const auto out_of_range_number = std::to_string(
+      static_cast<long long>(std::numeric_limits<int>::max()) + 1LL);
 
   const std::vector<std::string> malformed_values = {
       "invalid",
@@ -100,10 +98,8 @@ TEST(USBDevicesTests, preserves_row_and_omits_only_malformed_number) {
     EXPECT_EQ("9", address_results[0].at("usb_port"));
 
     QueryData port_results;
-    addUSBDeviceRow(port_results,
-                    Row{{"model", "malformed port"}},
-                    "008",
-                    malformed_value);
+    addUSBDeviceRow(
+        port_results, Row{{"model", "malformed port"}}, "008", malformed_value);
 
     ASSERT_EQ(1U, port_results.size());
     EXPECT_EQ("malformed port", port_results[0].at("model"));
@@ -125,8 +121,7 @@ TEST(USBDevicesTests, preserves_row_and_omits_only_malformed_number) {
 
 TEST(USBDevicesTests, canonicalizes_padded_numbers_in_preserved_row) {
   QueryData results;
-  addUSBDeviceRow(
-      results, Row{{"model", "padded numbers"}}, "008", "009");
+  addUSBDeviceRow(results, Row{{"model", "padded numbers"}}, "008", "009");
 
   ASSERT_EQ(1U, results.size());
   EXPECT_EQ("padded numbers", results[0].at("model"));

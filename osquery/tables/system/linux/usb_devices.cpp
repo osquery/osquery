@@ -147,8 +147,7 @@ QueryData genUSBDevices(QueryContext &context) {
       r["removable"] = "1";
     }
 
-    addUSBDeviceRow(
-        results, std::move(r), usb_address_value, usb_port_value);
+    addUSBDeviceRow(results, std::move(r), usb_address_value, usb_port_value);
     udev_device_unref(device);
   }
 
