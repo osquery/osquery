@@ -145,12 +145,6 @@ function(importSourceSubmodule)
     message(FATAL_ERROR "Invalid library name specified: ${ARGS_NAME}")
   endif()
 
-  message(STATUS "Importing: source/${ARGS_NAME}")
-
-  if("${ARGS_SUBMODULES};${SHALLOW_SUBMODULES}" STREQUAL "")
-    message(FATAL_ERROR "Missing git submodule name(s)")
-  endif()
-
   get_property(
     source_module_imported
     GLOBAL
@@ -160,6 +154,12 @@ function(importSourceSubmodule)
     return()
   endif()
   set_property(GLOBAL PROPERTY "osquery_imported_source_module_${ARGS_NAME}" TRUE)
+
+  message(STATUS "Importing: source/${ARGS_NAME}")
+
+  if("${ARGS_SUBMODULES};${ARGS_SHALLOW_SUBMODULES}" STREQUAL "")
+    message(FATAL_ERROR "Missing git submodule name(s)")
+  endif()
 
   set(directory_path "${CMAKE_SOURCE_DIR}/libraries/cmake/source/${ARGS_NAME}")
 
